@@ -373,9 +373,12 @@ pub(super) fn cannon_at(game: &super::Game<'_>, pos: Pos) -> Option<super::tcons
 }
 pub(super) fn save_cannon(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_fluid_cannon::Cannon) -> bool {
     if !state.lossless() || !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if !slots.is_empty()) { return false; }
-    let before = store::read(&game.world,pos,"tconstruct:fluid_cannon")
-        .and_then(|tag| super::tconstruct_source_fluid_cannon::Cannon::from_nbt(&tag)).map_or(0, |state| state.comparator());
-    if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",state.to_nbt()) { return false; }
+    let Some(raw) = store::read(&game.world,pos,"tconstruct:fluid_cannon") else { return false; };
+    let Some(current) = cannon_at(game,pos) else { return false; };
+    if current.tank_to_nbt_preserving(&raw).as_ref() != Some(&raw) { return false; }
+    let before = current.comparator();
+    let Some(saved) = state.to_nbt_preserving(&raw) else { return false; };
+    if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",saved) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = state.item.clone(); }
     notify_casting_comparator(game, pos, before, state.comparator());
     game.container_changed(pos); true
@@ -385,7 +388,12 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
     let Some(mut state) = cannon_at(game,pos) else { return false; };
     if clicked_tank {
         let Some(held) = game.held().cloned() else { return true; };
-        if held.wire_patch().is_some() { return true; }
+        if held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) { return true; }
+        let Some(raw_cannon) = store::read(&game.world,pos,"tconstruct:fluid_cannon") else { return false; };
+        if state.tank_to_nbt_preserving(&raw_cannon).as_ref() != Some(&raw_cannon) { return true; }
+        let block_state = game.world.block(pos.0,pos.1,pos.2);
+        let held_before = held.clone(); let creative = game.creative;
+        let comparator_before = state.comparator();
         game.ensure_datapacks();
         let Some((fluids,_)) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok()) else { return true; };
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
@@ -394,16 +402,32 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
             super::tconstruct_source_fluid_container::Direction::Auto,&|id| game.res.items().get(id).is_some(),
             &|id| fluids.contains(id),tags,game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
         let drained = state.tank.amount < before;
-        if !save_cannon(game,pos,&state) { return false; }
+        // Recheck after datapack preparation before changing either fluid or
+        // held inventory. The Cannon's live item is never rewritten here.
+        if !game.world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4))
+            || game.world.block(pos.0,pos.1,pos.2) != block_state
+            || store::read(&game.world,pos,"tconstruct:fluid_cannon").as_ref() != Some(&raw_cannon)
+            || !cannon_at(game,pos).is_some_and(|fresh| fresh.tank_to_nbt_preserving(&raw_cannon).as_ref() == Some(&raw_cannon))
+            || game.creative != creative
+            || !game.held().is_some_and(|held| held.count == held_before.count && held.damage == held_before.damage
+                && held.same_item_same_components(&held_before) && !held.data().is_some_and(|data| data.wire.patch().is_some())) { return true; }
+        let Some(saved) = state.tank_to_nbt_preserving(&raw_cannon) else { return false; };
+        if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",saved) { return false; }
+        notify_casting_comparator(game,pos,comparator_before,state.comparator());
+        game.container_changed(pos);
         if game.creative { if drained { if let Some(item) = slots[1].take() { game.give_or_drop(item); } } }
         else if let Some(rest) = slots[0].take() { *game.held_mut() = Some(rest); if let Some(item) = slots[1].take() { game.give_or_drop(item); } }
         else { *game.held_mut() = slots[1].take(); }
         return true;
     }
+    // ItemStack equality does not prove that a retained network patch can
+    // survive count changes. Keep such stacks out of the native add planner.
+    let wire_safe = |item: &horizon_items::items::ItemStack| item.count > 0
+        && item.wire_patch().is_none() && !item.data().is_some_and(|data| data.wire.patch().is_some());
     let held = game.held().cloned();
     match (state.item.take(), held) {
         (None, None) => true,
-        (None, Some(item)) if item.count > 0 && item.wire_patch().is_none() => {
+        (None, Some(item)) if wire_safe(&item) => {
             state.item = Some(item); if !save_cannon(game,pos,&state) { return false; }
             *game.held_mut() = None; true
         }
@@ -412,9 +436,17 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
             *game.held_mut() = Some(item); true
         }
         (Some(mut item), Some(_)) => {
+            // inventory_add indexes all 36 player slots and may merge into
+            // the off hand. Refuse opaque destinations before staging moves.
+            if game.inventory.len() < 36 || game.selected >= 36
+                || !game.inventory.iter().flatten().all(&wire_safe)
+                || !game.offhand.as_ref().is_none_or(&wire_safe) { return true; }
+            let before = item.count;
             let mut inventory = game.inventory.clone(); let mut offhand = game.offhand.clone();
             let max = game.res.items().get(&item.item).map_or(64, |info| info.max_stack);
             let left = super::inventory_add(&mut inventory,&mut offhand,game.selected,max,&mut item);
+            // A full inventory is a handled no-op, not a save/notification.
+            if item.count == before { return true; }
             state.item = left.then_some(item);
             if !save_cannon(game,pos,&state) { return false; }
             game.inventory = inventory; game.offhand = offhand; true

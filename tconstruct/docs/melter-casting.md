@@ -399,3 +399,82 @@ and five fallback modes, with thirteen preparation changes and unchanged control
 State/store/item codecs are real; recipes, portable conversion, acting hand and
 world callbacks are fixtures. Cases are added but unrun. Full host/world/LAN and
 post-save crafted-item callback behavior remain outside this change.
+### Fluid Cannon held-container preservation (#379)
+
+Using a fluid container on the Cannon tank now saves only a preserving tank
+patch. Machine/tank extensions and the raw saved item remain unchanged, and
+the live item slot is never rewritten by this path. Owned tank fields, fluid
+identity and item agreement are validated; legacy tank aliases, lossy IDs,
+malformed states and retained wire backing refuse the exchange.
+
+Before committing, the path rechecks saved data, live Cannon item, held item,
+creative mode, exact block and loaded chunk after datapack preparation.
+Comparator/container notifications and held-container changes follow the
+successful save. Item-slot interactions, hopper behavior and firing are not
+changed by this work.
+
+The new `run_cannon_held.py` fixture extracts the production loader and held
+branch and uses production tank/item/transfer code. World, persistence and
+callbacks are bounded mocks. Cases cover fill/drain, stacked/single containers,
+creative behavior, extension retention, eight changed-state cases, unsafe
+metadata and failed writes. They were not run. Host/world, save/reload and LAN
+validation remain deferred to the combined pass.
+
+### Cannon item-state preservation (#379)
+
+The shared Cannon item save used by manual interactions and hopper commits
+now preserves native machine/tank extensions and validates the saved/live
+item before publishing a new slot. Unchanged opaque saved item fields remain
+intact; removing, replacing or decrementing such an item is refused rather
+than discarding unrepresented data. A mixed legacy `Items` payload also blocks
+item changes. Representable ordinary items retain their existing behavior.
+
+Cannon item validation rejects retained wire backing even after its current
+wire view is stale. Hopper source/destination candidates and the selected
+slot after the inventory callback use the same conservative wire restriction.
+A failed Cannon save retains the existing hopper rollback. Fluid-only held
+transfers keep their separate tank patch.
+
+Three added production-save fixture cases cover normal insert/remove/count
+changes, extension retention, opaque/stale live states, wire refusal and
+failed persistence. Wiring assertions cover hopper rollback and post-callback
+guards. Tests were not run. The fixture does not execute native hopper
+callbacks or full manual dispatch; host/gameplay/save/reload/LAN and destruction
+remain for the later combined work.
+
+
+### Fluid Cannon hopper endpoint snapshots (#379)
+
+Cannon hopper push/pull now requires distinct, loaded endpoints, captures both
+exact block states and the raw Cannon save, and validates the saved/live Cannon
+identity before the move event. After the native inventory callback, the route
+rechecks both chunks, both block states and the exact saved compound, in addition
+to its existing inventory and retained-wire guards. A callback cannot redirect a
+staged transfer into a replacement block or overwrite newer saved data. Failed
+Cannon persistence still restores the hopper snapshot.
+
+The Cannon fixture now extracts this production route and imports the real Pluto
+inventory planner. Added cases cover push/pull counts and metadata, cancellation,
+block/chunk/raw/live/wire changes, missing entities, invalid endpoints and failed
+save rollback. Host containers/world/storage remain mocked; these tests were added
+but not run. Actual hopper scheduling, host gameplay, reload and LAN remain for the
+combined validation phase.
+
+### Cannon ordinary item clicks: retained-wire destinations
+
+The upper/item interaction rejects retained wire patches before inserting a
+held stack, and before the native inventory-add planner touches any player or
+offhand stack. Zero-count stored/target items are not representable inventory
+entries. An inventory that cannot accept any items is a handled no-op: no
+machine save or comparator/container notification is emitted. Partial extraction
+keeps the remainder in the Cannon. Player inventory changes still publish only
+after the preserving Cannon save succeeds.
+
+`run_cannon_held.py` now extracts the complete production Cannon interaction and
+the host's actual `inventory_add` function. Added fixtures cover insertion,
+empty-hand extraction, selected/offhand/empty-slot ordering, partial transfer,
+full inventories, current/retained wire patches, malformed player layout and
+save failure. World storage, notifications and the acting-hand mapping remain
+fixture implementations, not a full host/LAN execution. These new cases have not
+been run in this implementation-only batch. This does not implement firing or
+claim arbitrary host callback/notification transaction safety.
