@@ -3124,6 +3124,18 @@ name = "tconstruct_reinforced_armor_wear"
 source = "source-reinforced-armor-wear.rs"
 
 [[module]]
+id = "source-solar-armor-wear"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_solar_armor_wear"
+source = "source-solar-armor-wear.rs"
+
+[[module]]
+id = "source-solar-armor-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_solar_armor_world"
+source = "solar-armor-world.rs"
+
+[[module]]
 id = "source-dense-armor-wear"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_dense_armor_wear"

@@ -43,6 +43,11 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
             // Probe a positive amount: zero loss deliberately skips validation
             // in the shared evaluator. Ordinary armor wear has EMPTY cause.
             super::tconstruct_tanned_wear::loss(raw, 1, level, None)?;
+        } else if id == "tconstruct:solar_powered" {
+            if !super::tconstruct_solar_armor_wear::supported(&value) { return None; }
+            // Validation is read-only. Missing holder/light must not fall back
+            // to unmodified loss in the final armor collector.
+            super::tconstruct_solar_armor_world::chance(game, level)?;
         } else if id == "tconstruct:dense" {
             if !super::tconstruct_dense_armor_wear::supported(&value) { return None; }
         } else if id == "tconstruct:reinforced" || id == "tconstruct:unbreakable" {
@@ -67,11 +72,15 @@ pub(super) fn pre_native_loss(game: &mut super::Game<'_>, stack: &ItemStack, amo
     supported(game, stack)?;
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     let tanned = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tanned")?;
+    let solar = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:solar_powered")?;
+    let solar_chance = super::tconstruct_solar_armor_world::chance(game, solar)?;
     let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
     let plan = super::tconstruct_reinforced_armor_wear::plan(raw, stack, &traits)?;
-    // Tanned200, Unbreakable125, then Dense/Reinforced100 in insertion order.
+    // Tanned200, Solar185, Unbreakable125, then Dense/Reinforced100.
+    // Solar still consumes its draws when a later Unbreakable prevents all loss.
     let amount = super::tconstruct_tanned_wear::loss(raw, amount, tanned, None)?;
     use horizon_core::random::RandomSource;
+    let amount = super::tconstruct_solar_armor_wear::reduce(amount, solar_chance, || game.world.random.next_float());
     Some(super::tconstruct_reinforced_armor_wear::reduce(amount, plan, || game.world.random.next_float()))
 }
 
