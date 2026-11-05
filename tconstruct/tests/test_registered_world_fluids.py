@@ -35,6 +35,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 ('seared_stone', 2, 6, 2, 40, 0x4F4A47),
                 ('scorched_stone', 2, 4, 2, 40, 0x3E3029),
                 ('clay', 2, 3, 2, 40, 0x9B6045),
+                ('glass', 2, 1, 8, 30, 0xFFFFFF),
                 ('porcelain', 2, 2, 2, 40, 0xFFFFFF),
                 ('obsidian', 4, 3, 2, 40, 0xFFFFFF),
                 ('emerald', 6, 9, 4, 45, 0xFFFFFF),
@@ -55,7 +56,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': slope, 'tick_delay': delay, 'source_conversion': False})
                 policy = fluid['interaction']
                 seconds = {'seared_stone': 8, 'scorched_stone': 7,
-                           'clay': 5, 'porcelain': 5, 'obsidian': 12,
+                           'clay': 5, 'glass': 5, 'porcelain': 5, 'obsidian': 12,
                            'blazing_blood': 15, 'fiery_liquid': 20}.get(name, 10)
                 self.assertEqual(policy['burn'], {'seconds': seconds, 'damage': damage})
                 self.assertFalse(policy['can_swim'])
@@ -79,7 +80,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 204)
+        self.assertEqual(len(manifest['files']), 208)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -106,7 +107,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite',
                         'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
                         'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel',
-                        'clay', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond',
+                        'clay', 'glass', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond',
                         'steel', 'knightmetal', 'knightslime', 'tin', 'aluminum', 'lead', 'silver',
                         'nickel', 'zinc', 'platinum', 'tungsten', 'osmium', 'uranium', 'chromium',
                         'cadmium', 'bronze', 'brass', 'electrum', 'invar', 'constantan', 'pewter',
@@ -195,6 +196,13 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 for field in ('still', 'flowing'):
                     self.assertEqual(fluid['visual'][field],
                                      'tconstruct:fluid/' + folder + '/' + field)
+
+    def test_glass_keeps_source_slope_eight_instead_of_stone_fallback(self):
+        fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid/molten_glass.json').read_text())
+        self.assertEqual(fluid['policy'], {'drop_off': 8, 'slope_distance': 8,
+                                          'tick_delay': 30, 'source_conversion': False})
+        for field in ('still', 'flowing'):
+            self.assertEqual(fluid['visual'][field], 'tconstruct:fluid/molten/glass/' + field)
 
 
 if __name__ == '__main__':

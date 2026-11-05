@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "tconstruct:block/molten_glass_fluid"
+    }
+  }
+}
