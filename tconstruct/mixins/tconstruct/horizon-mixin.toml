@@ -6,6 +6,14 @@ priority = 100
 [compatibility]
 horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
 
+# Requires the draft host opt-in effect landing support.
+[[injection]]
+id = "source-bouncy-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "source-bouncy-status.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
 [[crate]]
 id = "source-config-parser"
 path = "source-config-parser"
