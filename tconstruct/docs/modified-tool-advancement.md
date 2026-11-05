@@ -14,11 +14,10 @@ The mod reads that field; it does not alter item persistence or invent a paralle
 inventory event. Existing inventory fingerprints, criterion selection, progress,
 and notifications continue to drive completion. Do not apply this mod change to
 a host without that field. Build and runtime integration remain unverified.
-The current host fingerprint compares item IDs and counts, not custom data.
-An in-place metadata-only edit with unchanged inventory IDs/counts is therefore
-not evaluated until a later inventory change; this slice does not repair that
-host event limitation. Normal acquisition/removal of an upgraded tool uses the
-existing inventory event.
+Without [host #41](https://github.com/sofia-gros/horizon/pull/41), the host
+fingerprint compares item IDs/counts and metadata-only edits wait for a later
+inventory change. That follow-on includes custom data in the existing event
+gate. Normal acquisition/removal uses the existing inventory event either way.
 
 ## Bounded source predicate
 
@@ -41,8 +40,9 @@ Empty stacks, absent or malformed custom data, invalid modifier IDs, negative
 or noninteger amounts, and empty/all-zero upgrades fail closed. Other source
 tool predicate forms also fail closed rather than allowing the native matcher
 to ignore the custom `type`. Unrelated native predicate types are untouched.
-This is not a general implementation of source material, slot, or compound tool
-predicates, and does not award Material Master or Slimeskull.
+This is not a general implementation of source slot or compound tool predicates.
+The [Material Master follow-on](material-master-advancement.md) adds the bounded
+compact material-ID predicate and its goal. Slimeskull remains separate.
 
 ## Review scope
 

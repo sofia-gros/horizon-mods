@@ -14,7 +14,7 @@ pub mod nbt {
         }
     }
     #[derive(Clone, Debug)]
-    pub enum Tag { Compound(BTreeMap<JavaString, Tag>), Int(i32), String(String) }
+    pub enum Tag { Compound(BTreeMap<JavaString, Tag>), Int(i32), String(JavaString), List(Vec<Tag>) }
     impl Tag {
         pub fn get(&self, key: &str) -> Option<&Tag> {
             match self {
@@ -138,5 +138,81 @@ mod tests {
             assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &ItemView::default(),
                 &CurrentWorld(vec![])), Continue(()));
         }
+    }
+
+    fn materials(values: &[&str]) -> ItemView {
+        ItemView { id: "tconstruct:pickaxe".into(), count: 1,
+            custom_data: Some(data(vec![("tic_materials", Tag::List(values.iter()
+                .map(|id| Tag::String((*id).into())).collect()))])) }
+    }
+    fn has_material(item: &ItemView, predicate: serde_json::Value) -> bool {
+        tconstruct_advancement_tool_predicate(
+            &json!({"type": "tconstruct:tool_stack", "predicate": predicate}), item,
+            &CurrentWorld(vec!["tconstruct:pickaxe"])) == Break(true)
+    }
+    fn material(value: &str) -> serde_json::Value {
+        json!({"type": "tconstruct:has_material", "material": value})
+    }
+
+    #[test]
+    fn material_base_ids_accept_variants_but_not_other_bases() {
+        let item = materials(&["tconstruct:cobalt", "tconstruct:wood#oak"]);
+        assert!(has_material(&item, material("tconstruct:wood")));
+        assert!(has_material(&item, material("tconstruct:cobalt")));
+        assert!(!has_material(&item, material("tconstruct:manyullyn")));
+        assert!(!has_material(&item, material("tconstruct:wood#birch")));
+        assert!(has_material(&item, material("tconstruct:wood#oak")));
+        assert!(!has_material(&item, material("tconstruct:wood#default")));
+        assert!(has_material(&item, material("tconstruct:cobalt#default")));
+    }
+
+    #[test]
+    fn material_indexes_are_exact_and_minus_one_scans_all_slots() {
+        let item = materials(&["tconstruct:cobalt", "tconstruct:wood#oak"]);
+        for (index, expected) in [(-1, true), (0, false), (1, true), (2, false)] {
+            let mut predicate = material("tconstruct:wood");
+            predicate["index"] = json!(index);
+            assert_eq!(has_material(&item, predicate), expected);
+        }
+        for index in [json!(-2), json!(2147483648_i64), json!(1.5), json!("1"), serde_json::Value::Null] {
+            let mut predicate = material("tconstruct:wood");
+            predicate["index"] = index;
+            assert!(!has_material(&item, predicate));
+        }
+    }
+
+    #[test]
+    fn material_match_keeps_item_tag_and_empty_stack_gates() {
+        let mut item = materials(&["tconstruct:cobalt"]);
+        item.count = 0;
+        assert!(!has_material(&item, material("tconstruct:cobalt")));
+        item.count = 1;
+        item.id = "minecraft:diamond".into();
+        assert!(!has_material(&item, material("tconstruct:cobalt")));
+        let item = tool(data(vec![("tconstruct:emerald", Tag::Int(1))]));
+        assert!(!has_material(&item, material("tconstruct:cobalt")));
+        assert!(!has_material(&materials(&[]), material("tconstruct:cobalt")));
+    }
+
+    #[test]
+    fn malformed_material_lists_and_unsupported_predicates_fail_closed() {
+        for invalid in ["wood", "tconstruct:", "tconstruct:wood#", "tconstruct:wood#bad#variant",
+            "tconstruct:Wood", "tconstruct:wood#bad variant"] {
+            assert!(!has_material(&materials(&["tconstruct:cobalt", invalid]), material("tconstruct:cobalt")));
+            assert!(!has_material(&materials(&["tconstruct:cobalt"]), material(invalid)));
+        }
+        for invalid in [Tag::Int(1), Tag::String(nbt::JavaString(vec![0xd800]))] {
+            let item = ItemView { id: "tconstruct:pickaxe".into(), count: 1,
+                custom_data: Some(data(vec![("tic_materials", Tag::List(vec![
+                    Tag::String("tconstruct:cobalt".into()), invalid]))])) };
+            assert!(!has_material(&item, material("tconstruct:cobalt")));
+        }
+        for value in [serde_json::Value::Null, json!(["tconstruct:cobalt"]),
+            json!({"type": "mantle:tag", "tag": "tconstruct:metal"})] {
+            let mut predicate = material("tconstruct:cobalt");
+            predicate["material"] = value;
+            assert!(!has_material(&materials(&["tconstruct:cobalt"]), predicate));
+        }
+        assert!(!has_material(&materials(&["tconstruct:cobalt"]), json!({"type": "tconstruct:has_material"})));
     }
 }
