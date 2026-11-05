@@ -68,8 +68,8 @@ classification of every highest-priority dynamic definition. The current host
 provides neither: conditions, modifier deserialization and registration events
 are not yet faithfully reproduced. The helper therefore has no production
 consumer, and it must not be mistaken for a complete registry. Modifier tag
-entries can resolve redirects to the target modifier object, so the existing
-string-only tag resolver is not sufficient for displaying those entries.
+entries can resolve redirects to the target modifier object, so tag operations
+must compare canonical object identities rather than alias strings.
 
 A separate classifier models the source's order for unconditional redirects,
 then the normal condition, then modifier deserialization. It requires the
@@ -79,13 +79,18 @@ the pinned source parses their conditions from the enclosing redirect object,
 which needs further compatibility work. This helper is also not connected to
 production and does not make the registry or modifier pages complete.
 
-An unconnected tag helper can project IDs to canonical modifier identities
-when supplied a complete authoritative registry. It preserves first-seen
-ordering, deduplicates aliases, and treats an alias to the empty sentinel as
-missing, as the source's tag lookup does. To avoid incorrect alias removal,
-it currently rejects the snapshot if any modifier tag contains a remove
-operation. It does not construct the registry or enable modifier pages. The
-pinned TConstruct registration class alone cannot prove a complete registry:
+An unconnected tag helper resolves IDs to canonical modifier identities
+before applying each tag operation, when supplied a complete authoritative
+registry. It preserves first-seen ordering, deduplicates aliases, and treats
+an alias to the empty sentinel as missing, as the source's tag lookup does.
+Forge removals now compare those identities, including nested tag removals;
+removing and re-adding an alias moves its object to the end. Pack replacement
+and optional missing values retain the shared tag resolver's behavior. Cycles
+remain conservatively unsupported. Unrelated tags with removals no longer
+make a valid requested tag unavailable. Fifteen source-derived synthetic
+fixtures cover these operations and failures; they are not an upstream game
+execution or proof of a complete runtime registry. This helper does not
+construct the registry or enable modifier pages. The pinned TConstruct registration class alone cannot prove a complete registry:
 other mods may register static modifiers through the registration event.
 
 The bounded classifier now recognizes exactly two source-supported,

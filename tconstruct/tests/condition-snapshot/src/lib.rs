@@ -66,3 +66,28 @@ mod budding_snapshot_test {
     }
 
 }
+
+#[cfg(test)]
+mod modifier_identity_fixtures {
+    #[test]
+    fn source_derived_modifier_tag_operations() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/modifier-tag-identities.json")).unwrap();
+        let registry = fixture["registry"].as_object().unwrap().iter()
+            .map(|(id, target)| (id.clone(), target.as_str().unwrap().to_owned())).collect();
+        for case in fixture["cases"].as_array().unwrap() {
+            let mut raw = super::tconstruct_modifier_snapshot::Raw::default();
+            for (tag, layers) in case["tags"].as_object().unwrap() {
+                raw.1.insert(format!("x:tinkering/tags/modifiers/{tag}"),
+                    layers.as_array().unwrap().iter().map(|layer| serde_json::to_vec(layer).unwrap()).collect());
+            }
+            let result = super::tconstruct_modifier_snapshot::resolve_canonical_tag(&raw, "x:root", Some(&registry));
+            if let Some(error) = case["error"].as_str() {
+                assert_eq!(result.unwrap_err(), error, "{}", case["name"]);
+            } else {
+                let expected: Vec<_> = case["expected"].as_array().unwrap().iter().map(|id| id.as_str().unwrap()).collect();
+                assert_eq!(result.unwrap(), expected, "{}", case["name"]);
+            }
+        }
+    }
+}
