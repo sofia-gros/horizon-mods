@@ -1,4 +1,5 @@
 """Source contract and native per-load wiring for optional gravel crafting."""
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -28,6 +29,23 @@ class GravelCrafting(unittest.TestCase):
             value = json.loads(path.read_text())
             self.assertNotEqual(value.get('result', {}).get('id') if isinstance(value.get('result'), dict) else None,
                                 'minecraft:flint', str(path))
+
+    def test_source_discovery_maps_event_key_without_unconditional_install(self):
+        fixture = ROOT / 'tests/fixtures/flint_discovery'
+        raw = (fixture / 'flint.json').read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), json.loads((fixture / 'sha256.json').read_text())['flint'])
+        expected = json.loads(raw)
+        expected['criteria']['has_the_recipe']['conditions'] = {'recipes': 'tconstruct:common/flint'}
+        helper = (MIXINS / 'source-gravel-crafting.rs').read_text()
+        native = json.loads(re.search(r'const ADVANCEMENT:.*?br#"(.*?)"#;', helper).group(1))
+        self.assertEqual(native, expected)
+        self.assertEqual(native['criteria']['has_item']['conditions'], {'items': [{'items': ['minecraft:gravel']}]})
+        self.assertEqual(native['requirements'], [['has_item', 'has_the_recipe']])
+        self.assertEqual(native['rewards']['recipes'], ['tconstruct:common/flint'])
+        self.assertNotIn('display', native)
+        self.assertIn('"advancement/tconstruct:recipes/misc/common/flint"', helper)
+        for path in (ROOT / 'content/data').glob('*/advancement/**/*.json'):
+            self.assertNotIn('tconstruct:common/flint', json.loads(path.read_text()).get('rewards', {}).get('recipes', []), str(path))
 
     def test_native_contribution_hook_uses_authoritative_world_config(self):
         manifest = tomllib.loads((MIXINS / 'horizon-mixin.toml').read_text())
