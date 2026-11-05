@@ -72,6 +72,56 @@ mod tconstruct_source_smeltery_fuel {
    assert!(state.tick(true));assert!(state.input.is_none());assert_eq!(state.tank.amount,0);assert_eq!(state.output.unwrap().item.as_ref(),output);
   }
  }
+ #[test] fn water_bottles_cast_with_potion_components_and_survive_state_roundtrip() {
+  for (kind,input,output,bytes) in [
+   ("bottle","minecraft:glass_bottle","minecraft:potion",include_bytes!("../fixtures/water_casting_bottle.json").as_slice()),
+   ("splash","tconstruct:splash_bottle","minecraft:splash_potion",include_bytes!("../fixtures/water_casting_splash.json").as_slice()),
+   ("lingering","tconstruct:lingering_bottle","minecraft:lingering_potion",include_bytes!("../fixtures/water_casting_lingering.json").as_slice()),
+  ] {
+   let recipes=BTreeMap::from([(format!("tconstruct:smeltery/casting/water/{kind}"),bytes.to_vec())]);
+   let tags=HashMap::from([("forge:bottles/splash".into(),HashSet::from(["tconstruct:splash_bottle".into()])),("forge:bottles/lingering".into(),HashSet::from(["tconstruct:lingering_bottle".into()]))]);
+   let fluids=HashMap::from([("mantle:water".into(),HashSet::from(["minecraft:water".into()]))]);
+   let items=HashSet::from([input.into(),output.into()]);let known_fluids=HashSet::from(["minecraft:water".into(),"minecraft:lava".into()]);
+   let c=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&fluids,known_items:&items,known_fluids:&known_fluids};
+   let (id,r,out)=c.casting(false,Some(input),"minecraft:water",&|_|true).unwrap();
+   assert_eq!((r.fluid.amount,r.cooling_time,r.consumes_cast,out.as_str()),(500,1,true,output));
+   assert_eq!(r.output.potion(),Some("minecraft:water"));
+   assert!(c.casting(true,Some(input),"minecraft:water",&|_|true).is_none());
+   assert!(c.casting(false,None,"minecraft:water",&|_|true).is_none());
+   assert!(c.casting(false,Some(input),"minecraft:lava",&|_|true).is_none());
+   let missing_items=HashSet::from([input.into()]);
+   assert!(tconstruct_source_melting_lookup::Catalog{known_items:&missing_items,..c}.casting(false,Some(input),"minecraft:water",&|_|true).is_none());
+   let empty_tags=HashMap::new();
+   assert!(tconstruct_source_melting_lookup::Catalog{fluid_tags:&empty_tags,..c}.casting(false,Some(input),"minecraft:water",&|_|true).is_none());
+   let result=ItemStack::new(&out,1).with_potion(r.output.potion().unwrap());
+   let mut state=tconstruct_source_melter_state::Casting::new();state.input=Some(ItemStack::new(input,1));
+   assert!(state.prepare(&id,500,1,result,true,r.switch_slots));
+   assert!(state.tank.insert("minecraft:water",499));assert!(!state.tick(true));assert!(state.input.is_some());
+   let mut state=tconstruct_source_melter_state::Casting::from_nbt(&state.to_nbt()).unwrap();
+   assert!(state.tank.insert("minecraft:water",1));assert!(state.tick(true));assert!(state.input.is_none());assert_eq!(state.tank.amount,0);
+   let state=tconstruct_source_melter_state::Casting::from_nbt(&state.to_nbt()).unwrap();
+   let result=state.output.unwrap();assert_eq!(result.item.as_ref(),output);assert_eq!(result.potion(),Some("minecraft:water"));assert_eq!(result.count,1);
+  }
+ }
+ #[test] fn water_result_parser_rejects_unknown_nbt_and_ambiguous_plain_potion() {
+  use tconstruct_source_melting_recipes::CastingRecipe;
+  let source=include_bytes!("../fixtures/water_casting_bottle.json");
+  let original:serde_json::Value=serde_json::from_slice(source).unwrap();
+  for result in [
+   serde_json::json!({"item":"minecraft:potion","nbt":{"Potion":"minecraft:healing"}}),
+   serde_json::json!({"item":"minecraft:potion","nbt":{"Potion":"minecraft:water","CustomPotionColor":1}}),
+   serde_json::json!({"item":"minecraft:potion","nbt":{"Potion":"minecraft:water"},"count":2}),
+   serde_json::json!({"item":"minecraft:stone","nbt":{"Potion":"minecraft:water"}}),
+   serde_json::json!({"item":"minecraft:potion","nbt":"{Potion:water}"}),
+  ] {let mut v=original.clone();v["result"]=result;assert!(CastingRecipe::parse(&serde_json::to_vec(&v).unwrap(),&|_|true).is_none());}
+  let mut v=original.clone();v["conditions"]=serde_json::json!([{"type":"example:off"}]);assert!(CastingRecipe::parse(&serde_json::to_vec(&v).unwrap(),&|_|false).is_none());
+  let mut plain=original.clone();plain["result"]=serde_json::json!("minecraft:potion");
+  let recipes=BTreeMap::from([("test:water".into(),source.to_vec()),("test:plain".into(),serde_json::to_vec(&plain).unwrap())]);
+  let tags=HashMap::new();let fluids=HashMap::from([("mantle:water".into(),HashSet::from(["minecraft:water".into()]))]);
+  let items=HashSet::from(["minecraft:glass_bottle".into(),"minecraft:potion".into()]);let known_fluids=HashSet::from(["minecraft:water".into()]);
+  let c=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&fluids,known_items:&items,known_fluids:&known_fluids};
+  assert!(c.casting(false,Some("minecraft:glass_bottle"),"minecraft:water",&|_|true).is_none());
+ }
  #[test] fn pinned_recipe_casts_with_each_fluid_and_consumes_pattern() {
   let bytes=include_bytes!("../fixtures/seared_reinforcement.json").to_vec();
   let recipes=BTreeMap::from([("tconstruct:tools/modifiers/seared_reinforcement".into(),bytes)]);

@@ -225,7 +225,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         if overlap { return None; }
     }
     if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
-        return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
+        let mut stack = horizon_items::items::ItemStack::new(&output, 1);
+        if let Some(potion) = recipe.output.potion() { stack = stack.with_potion(potion); }
+        return Some((id, recipe, stack));
     }
     if let Some(stack) = input {
     let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
