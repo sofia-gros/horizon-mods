@@ -16,6 +16,20 @@ Seared and Scorched Chutes connect adjacent hoppers to the formed controller's m
 
 Brewing stands can also turn a glass bottle plus Earth, Sky, Ender or Ichor Congealed Slime into the corresponding slime bottle, or a glass bottle plus a Magma Block into a Magma Bottle, when the required items are registered and no existing recipe overlaps. World reload, integrated host, multiplayer and gameplay have not been verified for these paths.
 
+### Crafting tinted smeltery glass
+
+Craft Seared or Scorched Tinted Glass by placing a Tinted Glass block in the
+center of a crafting table, with four matching bricks above, below, left and
+right. Each recipe produces one block. Both vanilla Tinted Glass and TConstruct
+Clear Tinted Glass are accepted through `forge:glass/tinted`; ordinary clear
+glass is not. The native tag combines the pinned Forge and TConstruct entries
+and remains available for datapack additions or replacement.
+
+These recipes restore crafting routes to existing blocks. Source recipe/tag
+and package tests cover the two recipes and their registered endpoints; actual
+crafting, tag reload, light blocking, machine-wall use, saves and LAN have not
+been verified by these tests. Rendering and machine behavior are unchanged.
+
 ### Built-in tank to casting
 
 A Faucet can draw from a registered Seared or Scorched fuel/ingot tank and pour into a casting table or basin when the source, faucet, and casting save data can be safely decoded. A changed or missing recipe, unknown source fields, unreadable target, or unloaded chunk causes this new route to wait rather than rewrite uncertain data. Source, target and faucet edits are staged together in memory. Existing behavior when the target is removed may discard the reserved packet, as in the source; this does not guarantee atomic disk or network persistence. Generic modded fluid handlers, live game, save/reload and LAN remain unverified. The route fixtures use real state types with a mocked world and recipe selector; they do not establish an integrated host build.

@@ -162,7 +162,9 @@ class MaterialsBookSourceTest(unittest.TestCase):
         page = json.loads((root / 'en_us/smeltery/tinted_glass.json').read_text())
         text = ' '.join(part['text'] for part in page['text'])
         self.assertEqual(page['item'], 'tconstruct:seared_tinted_glass')
-        self.assertIn('ordinary crafting recipe is not yet available', text)
+        self.assertIn('four Seared Bricks', text)
+        self.assertIn('vanilla Tinted Glass or Clear Tinted Glass', text)
+        self.assertIn('forge:glass/tinted', text)
         self.assertIn('not been verified', text)
         block = json.loads((ARCHIVE / 'data/tconstruct/horizon/block/seared_tinted_glass.json').read_text())
         self.assertEqual(block['template'], 'minecraft:tinted_glass')
@@ -171,7 +173,9 @@ class MaterialsBookSourceTest(unittest.TestCase):
             floor = json.loads(tags.read('data/tconstruct/tags/blocks/smeltery/floor.json'))['values']
         self.assertIn('tconstruct:seared_tinted_glass', wall)
         self.assertNotIn('tconstruct:seared_tinted_glass', floor)
-        self.assertFalse((ARCHIVE / 'data/tconstruct/recipe/seared_tinted_glass.json').exists())
+        recipe = json.loads((ARCHIVE / 'data/tconstruct/recipe/seared_tinted_glass.json').read_text())
+        self.assertEqual(recipe['key']['G'], '#forge:glass/tinted')
+        self.assertEqual(recipe['result'], {'id': page['item']})
 
     def test_mighty_smeltery_port_adaptations_are_readable(self):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
