@@ -71,6 +71,20 @@ source = "source-budding-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-scute-compat"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_scute_compat"
+source = "source-scute-compat.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-chain-compat"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_chain_compat"
+source = "source-chain-compat.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
@@ -1296,13 +1310,13 @@ visibility = "pub"
 id = "host-source-cast-info"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_cast_info"
-source = "source-cast-info.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "server-source-cast-info"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_cast_info"
-source = "source-cast-info.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[state]]
@@ -1447,13 +1461,13 @@ source = "source-quick-packet.rs"
 id = "host-source-original-item-durability"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_original_item_durability"
-source = "source-original-item-durability.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "server-source-original-item-durability"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_original_item_durability"
-source = "source-original-item-durability.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[module]]
@@ -1750,13 +1764,13 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 id = "host-source-anvil-capacity"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_anvil_capacity"
-source = "source-anvil-capacity.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "server-source-anvil-capacity"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_anvil_capacity"
-source = "source-anvil-capacity.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[module]]
@@ -1993,13 +2007,13 @@ visibility = "pub"
 id = "host-source-melee-stat-ops"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melee_stat_ops"
-source = "source-melee-stat-ops.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "server-source-melee-stat-ops"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_melee_stat_ops"
-source = "source-melee-stat-ops.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[module]]
@@ -2465,7 +2479,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 id = "source-melter-layout"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_layout"
-source = "source-melter-layout.rs"
+source = "source-pure-rules.rs"
 
 [[injection]]
 id = "source-machine-geometry"
@@ -2754,7 +2768,7 @@ bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held"
 id = "source-area-shape"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_area_shape"
-source = "source-area-shape.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "source-chain-geometry"
@@ -2887,7 +2901,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 id = "source-transform-mode"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_transform_mode"
-source = "source-transform-mode.rs"
+source = "source-pure-rules.rs"
 
 
 [[module]]
@@ -2920,7 +2934,7 @@ source = "source-crop-loot.rs"
 id = "source-melee-knockback"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melee_knockback"
-source = "source-melee-knockback.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "source-melee-shape"
@@ -3443,7 +3457,7 @@ source = "source-materials-book-recipe.rs"
 id = "materials-book-stat"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_stat"
-source = "source-materials-book-stat.rs"
+source = "source-pure-rules.rs"
 
 [[injection]]
 id = "materials-book-key"
@@ -3473,7 +3487,7 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { nam
 id = "materials-book-spread"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_spread"
-source = "source-materials-book-spread.rs"
+source = "source-pure-rules.rs"
 
 [[state]]
 id = "materials-book-history"
@@ -4146,19 +4160,19 @@ source = "game-tool-api.rs"
 id = "source-campfire-select"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_campfire_select"
-source = "source-campfire-select.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "source-bow-start"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_bow_start"
-source = "source-bow-start.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "server-source-menu-wire-cache"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_menu_wire_cache"
-source = "source-menu-wire-cache.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[state]]
@@ -4200,20 +4214,20 @@ bindings = [
 id = "source-dwarven"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_dwarven"
-source = "source-dwarven.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "lib-source-dwarven"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_dwarven"
-source = "source-dwarven.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[module]]
 id = "items-source-dwarven"
 file = "crates/horizon-items/src/items.rs"
 name = "tconstruct_source_dwarven"
-source = "source-dwarven.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "game-source-mining-context"
@@ -4909,13 +4923,13 @@ source = "source-haste-wire.rs"
 id = "host-haste-source"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_haste_source"
-source = "source-haste-source.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "lib-haste-source"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_haste_source"
-source = "source-haste-source.rs"
+source = "source-pure-rules.rs"
 visibility = "pub"
 
 [[injection]]
@@ -5057,7 +5071,7 @@ source = "source-slime-grass-meal-algorithm.rs"
 id = "source-slime-seed-rules"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_slime_seed_rules"
-source = "source-slime-seed-rules.rs"
+source = "source-pure-rules.rs"
 
 [[injection]]
 id = "source-slime-seed-use"
@@ -5086,13 +5100,13 @@ require = 1
 id = "source-part-material-id"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_part_material_id"
-source = "source-part-material-id.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "source-part-material-id-lib"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_material_id"
-source = "source-part-material-id.rs"
+source = "source-pure-rules.rs"
 
 [[module]]
 id = "source-part-material-id-host-tests"
@@ -5321,3 +5335,22 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "RETURN"
 helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+[[module]]
+id = "source-gold-guard-module"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_gold_guard"
+source = "source-gold-guard.rs"
+
+[[module]]
+id = "source-gold-guard-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_gold_guard_world"
+source = "gold-guard-world.rs"
+
+[[injection]]
+id = "source-gold-guard-attributes"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "gold-guard-attributes.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

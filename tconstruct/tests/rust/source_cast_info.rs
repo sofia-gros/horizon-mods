@@ -1,2 +1,2 @@
-#[path = "../../mixins/tconstruct/source-cast-info.rs"]
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"]
 mod source;
