@@ -711,9 +711,11 @@ unverified.
 The four fixed source recipes join a single material part with a material fluid:
 shield core to plate shield at the table, and laces, ribcage or shell to the
 corresponding slime armor in the basin. The part supplies material zero and the
-fluid supplies material one. The part must be one undamaged item with only its
-Material custom data and no opaque wire patch; extra components are refused so
-they cannot be silently lost. Both stats, registered outputs, traits and the
+fluid supplies material one. The part must be one undamaged item with its
+Material custom data and optional lossless custom name/lore. Pinned
+`ToolCastingRecipe.assemble` creates a fresh tool, so that presentation is
+consumed rather than copied to the result. Other components, extra custom
+data and retained wire patches are refused. Both stats, registered outputs, traits and the
 encoded result must resolve before consuming anything. Unknown recipe forms,
 unsupported predicates and ambiguity among parsed candidates fail closed;
 other datapack forms and overlaps are not generally analyzed. This does not
