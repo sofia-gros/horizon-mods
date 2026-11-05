@@ -119,3 +119,11 @@ The Mighty Smelting Seared Soul Glass identity and source fixture are from
 [Tinkers’ Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/smeltery/soul_glass.json).
 The displayed text is adapted to explain existing acquisition and port limits.
 Copyright (c) SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Fantastic Foundry acquisition and recipe-unlock advancements are adapted
+from Tinkers' Construct at
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements):
+`foundry/fantastic_foundry.json` and `recipes/misc/common/fantastic_foundry.json`.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`. The native port adapts the display
+icon key, recipe ID and recipe-unlocked predicate key.

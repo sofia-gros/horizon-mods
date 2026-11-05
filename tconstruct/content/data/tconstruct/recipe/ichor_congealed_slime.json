@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "tconstruct:congealed_slime",
+  "key": {
+    "#": "#forge:slimeball/ichor"
+  },
+  "pattern": [
+    "##",
+    "##"
+  ],
+  "result": {
+    "id": "tconstruct:ichor_congealed_slime"
+  },
+  "show_notification": true
+}
