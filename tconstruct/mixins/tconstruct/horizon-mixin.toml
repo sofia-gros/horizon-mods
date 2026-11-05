@@ -5421,3 +5421,86 @@ bindings = [
   { name = "source", ty = "horizon_client::mobs::Damage", value = "$arg2" },
   { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, usize, f32, horizon_client::mobs::Damage) -> bool", value = "$operation" },
 ]
+
+
+# Source Dagger offhand attack, independent of mainhand cooldown and attributes.
+[[module]]
+id = "source-offhand-attack-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_offhand_attack"
+source = "source-offhand-attack.rs"
+
+[[module]]
+id = "source-offhand-attack-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_offhand_attack_world"
+source = "offhand-attack-world.rs"
+
+[[state]]
+id = "offhand-cooldown"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<[i32;4],(i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-offhand-use"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_item"
+kind = "HEAD"
+helper = "offhand-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
+
+[[injection]]
+id = "source-offhand-interact"
+target = "horizon_client::game::native_hooks::Game<'_>::native_interact_entity"
+kind = "HEAD"
+helper = "offhand-interact.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "entity", ty = "i32", value = "entity" }, { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
+
+[[injection]]
+id = "source-offhand-charge"
+target = "horizon_client::game::Game<'_>::attack_strength_scale"
+kind = "HEAD"
+helper = "offhand-charge.rs"
+cancellable = true
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-offhand-enter"
+priority = 200
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "offhand-enter.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-offhand-leave"
+priority = 0
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "offhand-leave.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-offhand-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "offhand-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "source-offhand-death"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_died"
+kind = "HEAD"
+helper = "offhand-death.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "player", ty = "u128", value = "player" }]
+
+[[injection]]
+id = "source-offhand-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "offhand-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
