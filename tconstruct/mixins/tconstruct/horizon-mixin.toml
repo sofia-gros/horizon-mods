@@ -5354,3 +5354,77 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-warping-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_warping"
+source = "source-warping.rs"
+
+[[module]]
+id = "source-warping-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_warping_world"
+source = "warping-world.rs"
+
+[[state]]
+id = "warping-draw"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>,(usize,horizon_items::items::ItemStack,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "warping-teleport"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,([f64;3],[f32;2])>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-warping-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "warping-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-warping-animation"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_animation"
+kind = "HEAD"
+helper = "warping-animation.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "animation", ty = "&mut horizon_world::consumable::UseAnimation", value = "&mut *animation" }]
+
+[[injection]]
+id = "source-warping-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "warping-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[injection]]
+id = "source-warping-release"
+target = "horizon_client::game::native_hooks::Game<'_>::native_release_using"
+kind = "HEAD"
+helper = "warping-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "time_left", ty = "i32", value = "time_left" }, { name = "used", ty = "&mut bool", value = "&mut *used" }]
+
+[[injection]]
+id = "source-warping-guest-teleport"
+target = "horizon_client::game::lan_actions::Game<'_>::leave_guest"
+kind = "HEAD"
+helper = "warping-guest.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "swap", ty = "&GuestSwap", value = "&swap" }]
+
+[[injection]]
+id = "source-warping-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "warping-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]

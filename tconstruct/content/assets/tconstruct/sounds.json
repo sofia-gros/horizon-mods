@@ -11,5 +11,12 @@
       "mob/zombie/infect"
     ],
     "subtitle": "subtitles.tconstruct.necrotic_heal"
+  },
+  "slime_sling.teleport": {
+    "sounds": [
+      "mob/endermen/portal",
+      "mob/endermen/portal2"
+    ],
+    "subtitle": "subtitles.tconstruct.slime_sling.teleport"
   }
 }

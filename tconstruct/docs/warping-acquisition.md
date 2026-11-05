@@ -2,7 +2,8 @@
 
 Acquisition slice of issue #379's high-priority held Warping task. Adds the
 pinned source recipe to the existing authoritative Station upgrade transaction.
-This does not implement charging, teleporting or its durability cost.
+Charging, teleporting and its durability cost are a separate slice documented
+in [Held Warping runtime](warping-held-runtime.md).
 
 - Ender Slime Vine, Ender Slime Crystal, Ender Slime Vine, and two Ender
   Congealed Slime inputs grant one Warping level for one ability slot. The
