@@ -4,7 +4,7 @@ mod tconstruct_tool_api {
     pub use horizon_items::item_data::canon_tag;
     pub use crate::rules;
 }
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 use horizon_world::nbt::Tag;
 use std::collections::{BTreeMap, HashSet};
 #[path = "../../mixins/tconstruct/source-mining-math.rs"] mod tconstruct_source_mining_math;

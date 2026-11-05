@@ -122,7 +122,7 @@ pinned local client jar:
 
 ```sh
 python3 tools/extract_original_item_durability.py /path/to/minecraft-1.20.1-client.jar /tmp/original-item-durability.rs
-cmp /tmp/original-item-durability.rs mixins/tconstruct/source-original-item-durability.rs
+cmp /tmp/original-item-durability.rs mixins/tconstruct/source-pure-rules.rs
 ```
 
 To repeat the source-recipe ordering comparison, install a JDK and run:

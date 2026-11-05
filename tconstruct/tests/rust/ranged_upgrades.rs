@@ -5,9 +5,9 @@ extern crate horizon_items as horizon_client;
 #[path = "../../mixins/tconstruct/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path = "../../mixins/tconstruct/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
 #[path = "../../mixins/tconstruct/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
-#[path = "../../mixins/tconstruct/source-melee-stat-ops.rs"] mod tconstruct_source_melee_stat_ops;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_melee_stat_ops;
 #[path = "../../mixins/tconstruct/source-material-effects.rs"] mod tconstruct_source_material_effects;
 #[path = "../../mixins/tconstruct/source-upgrade-rules.rs"] mod tconstruct_source_upgrade_rules;
 #[path = "../../mixins/tconstruct/source-ranged-draw.rs"] mod draw;
@@ -325,7 +325,7 @@ fn local_armor_haste_survives_item_codec_and_unequip_has_no_effect() {
 
 #[path = "../../mixins/tconstruct/source-haste-wire.rs"] mod tconstruct_source_haste_wire;
 
-#[path = "../../mixins/tconstruct/source-haste-source.rs"] mod tconstruct_source_haste_source;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_haste_source;
 
 #[test]
 fn ambush_projectile_tracks_shooter_full_health_and_material_rebuild() {

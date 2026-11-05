@@ -1,2 +1,2 @@
-#[path = "../../mixins/tconstruct/source-part-material-id.rs"]
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"]
 mod source_part_material_id;
