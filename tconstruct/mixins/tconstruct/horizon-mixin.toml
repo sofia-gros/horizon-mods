@@ -5437,12 +5437,12 @@ source = "fire-duration-world.rs"
 
 [[state]]
 id = "fire-duration-context"
-target = "horizon_client_lib::motion::PlayerMotion"
+target = "horizon_client_render::effects::StatusFlags"
 ty = "Option<(i32, f64)>"
-initial = "None"
+initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client_lib::motion::PlayerMotion::new"
-selector = "Self"
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
 require = 1
 
 [[injection]]
@@ -5615,3 +5615,12 @@ bindings = [
   { name = "known", ty = "Option<Option<u32>>", value = "$arg3" },
   { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, f32, Option<[f64;3]>, &str, Option<Option<u32>>) -> bool", value = "$operation" },
 ]
+
+
+# Status replacement must rehydrate this transient equipment-derived context.
+[[injection]]
+id = "source-fire-duration-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "fire-duration-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

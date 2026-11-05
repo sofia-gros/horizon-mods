@@ -56,6 +56,6 @@ fn wanted(game: &super::Game<'_>) -> Option<(i32, f64)> {
 pub(super) fn refresh(game: &mut super::Game<'_>) {
     let context = if game.remote.is_none() { wanted(game) } else { None };
     if let Some(player) = game.player.as_mut() {
-        *player.__horizon_mixins_tconstruct_fire_duration_context_mut() = context;
+        *player.status.__horizon_mixins_tconstruct_fire_duration_context_mut() = context;
     }
 }
