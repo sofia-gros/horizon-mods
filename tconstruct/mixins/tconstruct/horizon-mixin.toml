@@ -5526,5 +5526,6 @@ target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
 kind = "MODIFY_VARIABLE"
 variable = { name = "status", ordinal = 0, at = "STORE" }
 require = 1
+ordinal = 0
 helper = "dreambound-jump-status.rs"
 bindings = [{ name = "status", ty = "horizon_client::effects::StatusFlags", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
