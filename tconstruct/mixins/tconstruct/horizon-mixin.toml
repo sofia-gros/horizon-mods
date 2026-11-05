@@ -5315,3 +5315,22 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "RETURN"
 helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+[[module]]
+id = "source-gold-guard-module"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_gold_guard"
+source = "source-gold-guard.rs"
+
+[[module]]
+id = "source-gold-guard-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_gold_guard_world"
+source = "gold-guard-world.rs"
+
+[[injection]]
+id = "source-gold-guard-attributes"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "gold-guard-attributes.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
