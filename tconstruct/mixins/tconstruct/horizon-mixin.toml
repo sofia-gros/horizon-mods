@@ -3071,11 +3071,42 @@ selector = "Self"
 require = 1
 
 [[injection]]
-id = "armor-wear-start"
-target = "horizon_client::game::Game<'_>::hurt_armor"
-kind = "HEAD"
-helper = "source-armor-wear-start.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+id = "armor-wear-call-scope"
+target = "horizon_client::game::Game<'_>::wear_armor"
+kind = "WRAP_OPERATION"
+selector = "self.hurt_armor"
+require = 1
+ordinal = 0
+helper = "source-armor-wear-call.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "source", ty = "horizon_world::damage_source::DamageTypeId", value = "$arg0" },
+  { name = "damage", ty = "f32", value = "$arg1" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, horizon_world::damage_source::DamageTypeId, f32)", value = "$operation" },
+]
+
+[[injection]]
+id = "armor-wear-final-loss"
+target = "horizon_client::game::enchant_effects::Game<'_>::wear"
+kind = "RETURN"
+helper = "source-armor-wear-record.rs"
+bindings = [
+  { name = "loss", ty = "u32", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[module]]
+id = "source-armor-wear-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_armor_wear_world"
+source = "armor-wear-world.rs"
+
+[[module]]
+id = "source-armor-wear-definitions"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_armor_wear_definitions"
+source = "armor-wear-definitions.rs"
 
 [[module]]
 id = "source-armor-wear"
