@@ -510,6 +510,26 @@ pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 
     transfer_selected(tank, slots, direction, None, known_item, known_fluid)
 }
 
+/// Fill from one exact UI-selected row, even when another row shares its ID.
+/// Isolate the selected fluid for container planning, then apply only its debit
+/// back to the original tank so layer order and unrelated quantities stay put.
+pub(super) fn fill_from_index_with_color(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], index: usize,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
+    if SmelteryTank::from_nbt(&tank.to_nbt()).as_ref() != Some(&*tank) { return false; }
+    let Some(source) = tank.fluids.get(index).cloned() else { return false; };
+    let mut selected = SmelteryTank { capacity: tank.capacity, fluids: vec![source.clone()] };
+    let mut planned = slots.clone();
+    if !transfer_selected_with_color(&mut selected, &mut planned, Direction::FillItem, None,
+        known_item, known_fluid, item_tags, allow_color) { return false; }
+    if selected.fluids.iter().any(|fluid| fluid.id != source.id || fluid.tag != source.tag) { return false; }
+    let Some(amount) = source.amount.checked_sub(selected.total()).filter(|amount| *amount > 0) else { return false; };
+    let mut next = tank.clone();
+    if !next.take_tagged(&source.id, source.tag.as_ref(), amount) { return false; }
+    *tank = next; *slots = planned;
+    true
+}
+
 pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     transfer_selected_with_tags(tank, slots, direction, selected, known_item, known_fluid, None)
@@ -2189,4 +2209,38 @@ mod tests {
         assert_eq!((raw, held), before);
     }
 
+}
+
+
+#[cfg(test)]
+mod indexed_fill_tests {
+    use super::*;
+    use horizon_world::nbt::Tag;
+    fn potion(id:&str)->Tag{Tag::compound([("Potion",Tag::String(id.into()))])}
+    #[test]
+    fn indexed_fill_distinguishes_same_id_potion_layers_without_reordering(){
+        let first=potion("minecraft:healing");let second=potion("minecraft:swiftness");
+        let mut tank=SmelteryTank::new(4000);assert!(tank.insert_tagged("tconstruct:potion",Some(&first),1000));assert!(tank.insert_tagged("tconstruct:potion",Some(&second),1000));
+        let mut slots=[Some(ItemStack::new("minecraft:glass_bottle",2)),None];
+        assert!(fill_from_index_with_color(&mut tank,&mut slots,1,&|_|true,&|_|true,None,false));
+        assert_eq!(tank.fluids[0].tag,Some(first));assert_eq!(tank.fluids[0].amount,1000);assert_eq!(tank.fluids[1].tag,Some(second));assert_eq!(tank.fluids[1].amount,750);
+        assert_eq!(slots[0].as_ref().unwrap().count,1);assert_eq!(potion_data(slots[1].as_ref().unwrap(),false).unwrap().0,"minecraft:swiftness");
+    }
+    #[test]
+    fn indexed_fill_preserves_local_color_and_network_restriction(){
+        let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into())),("CustomPotionColor",Tag::Int(0x123456))]);
+        for allow in [false,true]{let mut tank=SmelteryTank::new(1000);assert!(tank.insert_tagged("tconstruct:potion",Some(&tag),500));let before=tank.clone();
+            let mut slots=[Some(ItemStack::new("minecraft:glass_bottle",1)),None];let previous=slots.clone();
+            assert_eq!(fill_from_index_with_color(&mut tank,&mut slots,0,&|_|true,&|_|true,None,allow),allow);
+            if allow{assert_eq!(tank.total(),250);assert_eq!(potion_data(slots[1].as_ref().unwrap(),true).unwrap().1,Some(0x123456));}else{assert_eq!(tank,before);assert_eq!(slots,previous);}
+        }
+    }
+    #[test]
+    fn indexed_fill_invalid_selection_or_incompatible_container_is_atomic(){
+        for mode in 0..4{let mut tank=SmelteryTank::new(4000);assert!(tank.insert("minecraft:water",1000));assert!(tank.insert_tagged("tconstruct:potion",Some(&potion("minecraft:healing")),250));
+            let mut slots=[Some(ItemStack::new(if mode==2{"minecraft:water_bucket"}else{"minecraft:bucket"},1)),None];if mode==3{slots[1]=Some(ItemStack::new("minecraft:stone",1));}
+            let before=tank.clone();let previous=slots.clone();let index=if mode==0{9}else if mode==1{1}else{0};
+            assert!(!fill_from_index_with_color(&mut tank,&mut slots,index,&|_|true,&|_|true,None,false));assert_eq!(tank,before);assert_eq!(slots,previous);
+        }
+    }
 }

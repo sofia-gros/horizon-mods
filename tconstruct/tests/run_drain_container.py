@@ -15,7 +15,9 @@ if actual != expected or dirty:
 source = (root / "mixins/tconstruct/source-machine-runtime.rs").read_text()
 route = source[source.index("pub(super) fn interact_drain("):source.index("pub(super) fn ensure(")]
 patch = source[source.index("fn patch_smeltery_controller_tank("):source.index("\nfn validated_drain(")]
-template = (root / "tests/rust/drain_container_fixture.rs").read_text().replace("// __PRODUCTION_PATCH__", patch)
+direct_source = (root / "mixins/tconstruct/source-fluid-direct.rs").read_text()
+direct = direct_source[direct_source.index("pub(super) fn local("):direct_source.index("pub(super) fn guest(")]
+template = (root / "tests/rust/drain_container_fixture.rs").read_text().replace("// __PRODUCTION_DIRECT_LOCAL__", direct).replace("// __PRODUCTION_PATCH__", patch)
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__",str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs")).replace("// __PRODUCTION_ROUTE__", route)
 with tempfile.TemporaryDirectory(prefix="drain-container-") as tmp:
     path = pathlib.Path(tmp)
@@ -35,6 +37,6 @@ with tempfile.TemporaryDirectory(prefix="drain-container-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("full_tank_and_empty_tank_consume_container_action_without_mutation", "noncontainers_and_unformed_drains_still_pass", "successful_and_rejected_save_paths_preserve_existing_item_transaction", "drain_held_preserves_raw_controller_and_item_fields", "drain_held_refuses_noncanonical_tanks_and_retained_wire", "drain_held_preservation_save_failure_and_creative_paths", "drain_held_preserves_native_tank_and_row_extensions", "drain_held_opaque_row_removal_and_failed_save_leave_items_unchanged", "tank_only_mode_processing_keeps_machine_inventory_separate"):
+    for case in ("full_tank_and_empty_tank_consume_container_action_without_mutation", "noncontainers_and_unformed_drains_still_pass", "successful_and_rejected_save_paths_preserve_existing_item_transaction", "drain_held_preserves_raw_controller_and_item_fields", "drain_held_refuses_noncanonical_tanks_and_retained_wire", "drain_held_preservation_save_failure_and_creative_paths", "drain_held_preserves_native_tank_and_row_extensions", "drain_held_opaque_row_removal_and_failed_save_leave_items_unchanged", "tank_only_mode_processing_keeps_machine_inventory_separate", "controller_carried_local_preserves_raw_fields_and_counts", "controller_carried_local_selects_exact_potion_layer", "controller_carried_refusals_leave_cursor_and_save_unchanged"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")

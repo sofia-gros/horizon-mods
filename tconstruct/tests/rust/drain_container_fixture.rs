@@ -22,7 +22,7 @@ impl Chunks {
 }
 struct World {chunks:Chunks,raw:Tag,formed:bool,fail:bool,controller:usize,writes:usize}
 impl World {fn block(&self,_:i32,_:i32,_:i32)->usize{self.controller}}
-struct Game<'a> {world:World,res:Res,held:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,_life:std::marker::PhantomData<&'a()>}
+struct Game<'a> {world:World,res:Res,held:Option<ItemStack>,carried:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,_life:std::marker::PhantomData<&'a()>}
 impl Game<'_> {fn ensure_datapacks(&mut self){} fn held(&self)->Option<&ItemStack>{self.held.as_ref()} fn held_mut(&mut self)->&mut Option<ItemStack>{&mut self.held} fn give_or_drop(&mut self,s:ItemStack){self.gifts.push(s)}}
 mod tconstruct_source_smeltery_world {use super::*;pub(super) fn detect(g:&Game<'_>,_:Pos)->Option<([i32;3],[i32;3],u32)>{g.world.formed.then_some(([-2,-1,-1],[0,1,1],4000))}}
 mod store {use super::*;pub(super) fn read(w:&World,_:Pos,_:&str)->Option<Tag>{Some(w.raw.clone())} pub(super) fn write(w:&mut World,_:Pos,_:&str,t:Tag)->bool{if w.fail{return false}w.raw=t;w.writes+=1;true}}
@@ -34,7 +34,7 @@ use super::*;use super::tconstruct_source_smeltery_state::Smeltery;
 fn fixture(item:&str,amount:u32)->Game<'static>{
  let mut state=tconstruct_source_smeltery_state::Smeltery::new();state.tank.capacity=4000;
  if amount>0 {assert!(state.tank.insert("minecraft:water",amount));}
- Game{world:World{chunks:Chunks{owners:HashMap::from([((-2,0,0),(-1,0,0))]),fluids:Some(Ok((HashSet::from(["minecraft:water".into(),"minecraft:lava".into()]),Tags::new()))),tags:Some(Ok(Tags::new()))},raw:state.to_nbt(),formed:true,fail:false,controller:1,writes:0},res:Res,held:Some(ItemStack::new(item,1)),gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,_life:std::marker::PhantomData}
+ Game{world:World{chunks:Chunks{owners:HashMap::from([((-2,0,0),(-1,0,0))]),fluids:Some(Ok((HashSet::from(["minecraft:water".into(),"minecraft:lava".into()]),Tags::new()))),tags:Some(Ok(Tags::new()))},raw:state.to_nbt(),formed:true,fail:false,controller:1,writes:0},res:Res,held:Some(ItemStack::new(item,1)),carried:None,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,_life:std::marker::PhantomData}
 }
 #[test]fn full_tank_and_empty_tank_consume_container_action_without_mutation(){
  for (item,amount) in [("minecraft:water_bucket",4000),("minecraft:water_bucket",3500),("minecraft:lava_bucket",4000),("minecraft:bucket",0)] {
@@ -142,4 +142,38 @@ fn extend_drain_tank(game:&mut Game<'_>,row_extensions:bool){
  assert!(transfer_selected_with_color(&mut state.tank,&mut containers,Direction::Auto.next(),None,&|_|true,&|_|true,None,false));
  let saved=state.tank_to_nbt_preserving(&raw).unwrap();assert_eq!(saved.get("slots"),raw.get("slots"));
  assert_eq!(state.tank.amount("minecraft:water"),3000);assert!(containers[0].is_none());assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
+}
+
+
+use store as tconstruct_source_melter_store;
+mod direct_local{
+ use super::{Game,Pos};
+ use super::tconstruct_source_fluid_container::{self as containers,Direction};
+ // __PRODUCTION_DIRECT_LOCAL__
+}
+#[test]fn controller_carried_local_preserves_raw_fields_and_counts(){
+ for draining in [false,true]{let mut game=fixture("minecraft:stone",2000);extended_controller(&mut game);extend_drain_tank(&mut game,true);
+  game.carried=Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},2));let raw=game.world.raw.clone();
+  direct_local::local(&mut game,(-1,0,0),draining.then_some(0));assert_eq!(game.world.writes,1);
+  let state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&game.world.raw).unwrap();assert_eq!(state.tank.total(),if draining{1000}else{3000});
+  assert_eq!(game.world.raw.get("slots"),raw.get("slots"));assert_eq!(game.world.raw.get("future"),raw.get("future"));
+  assert_eq!(game.world.raw.get("tank").unwrap().get("future_tank"),Some(&Tag::Int(7)));
+  assert_eq!(game.carried.as_ref().unwrap().count,1);assert_eq!(game.gifts.len(),1);assert_eq!(&*game.gifts[0].item,if draining{"minecraft:water_bucket"}else{"minecraft:bucket"});
+ }
+}
+#[test]fn controller_carried_local_selects_exact_potion_layer(){
+ let mut game=fixture("minecraft:stone",0);let mut state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&game.world.raw).unwrap();
+ for id in ["minecraft:healing","minecraft:swiftness"]{assert!(state.tank.insert_tagged("tconstruct:potion",Some(&Tag::compound([("Potion",Tag::String(id.into()))])),1000));}
+ game.world.raw=state.to_nbt();extend_drain_tank(&mut game,true);game.world.chunks.fluids.as_mut().unwrap().as_mut().unwrap().0.insert("tconstruct:potion".into());
+ game.carried=Some(ItemStack::new("minecraft:glass_bottle",1));direct_local::local(&mut game,(-1,0,0),Some(1));
+ let state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&game.world.raw).unwrap();assert_eq!(state.tank.fluids[0].amount,1000);assert_eq!(state.tank.fluids[1].amount,750);
+ assert_eq!(&*game.carried.as_ref().unwrap().item,"minecraft:potion");assert_eq!(game.world.writes,1);assert!(game.gifts.is_empty());
+}
+#[test]fn controller_carried_refusals_leave_cursor_and_save_unchanged(){
+ for mode in 0..5{let mut game=fixture("minecraft:stone",if mode==0{1000}else{2000});extend_drain_tank(&mut game,true);game.carried=Some(ItemStack::new("minecraft:bucket",1));
+  if mode==1{game.world.fail=true;}
+  if mode>=3{let item=game.carried.as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==4{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}}
+  let raw=game.world.raw.clone();let carried=game.carried.clone();direct_local::local(&mut game,(-1,0,0),Some(if mode==2{9}else{0}));
+  assert_eq!(game.world.raw,raw);assert_eq!(game.carried,carried);assert_eq!(game.world.writes,0);assert!(game.gifts.is_empty());
+ }
 }

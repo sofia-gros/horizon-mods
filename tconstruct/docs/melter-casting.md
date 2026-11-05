@@ -152,3 +152,20 @@ Three production codec/transfer cases plus local/guest wiring checks were added.
 These are not full pointer, UI or guest packet execution fixtures, and no tests were
 run. Direct carried-container interactions, generic slot writes and machine ticks
 remain separate. Actual host/UI, reload and LAN behavior remain unverified.
+
+
+### Direct carried-container controller clicks (#379)
+
+Local and guest clicks on the Smeltery/Foundry tank now use the preserving
+controller/tank codec before publishing a carried item, returned stack or cursor
+packet. Both paths reject current/retained wire backing and recheck their raw save
+snapshot. Selecting a fluid layer now stages a fill from that exact index and full
+fluid tag, then debits only that identity in the original order. Multiple potion
+layers with the same fluid ID no longer cause an otherwise valid selected fill to
+be rejected as ambiguous. Local custom-color support and guest/network restrictions
+remain in the existing container rules.
+
+Added three exact-index codec cases and three extracted production-local-route
+cases, plus guest wiring checks. World/storage are mocked; the guest packet handler
+is not executed by this fixture. No tests were run. Actual host/UI, save/reload and
+LAN, direct fuel/Melter clicks and other inventory paths remain separate/unverified.
