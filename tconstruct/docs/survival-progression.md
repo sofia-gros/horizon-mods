@@ -38,6 +38,21 @@ TConstruct tool. Keep receipts/screenshots at the checkpoints below.
 Checkpoint: the tool and both stations came from gathered items, and repair did
 not duplicate or delete the tool. See [building and repair](playing.md).
 
+### Obtain the first guide without leather
+
+The source's alternative Book recipe uses three Paper, one Slime Ball and two
+Patterns in any arrangement in a crafting table. It produces one vanilla Book.
+Combine that Book with one more Pattern for Materials and You. The slime input
+uses `forge:slimeballs`, accepting vanilla, Sky, Ichor and Ender slimeballs by
+default; datapacks may change the tag. The ordinary vanilla leather recipe is
+unchanged.
+
+Data-only tests establish the recipe/tag/package route from vanilla paper,
+slime and wood ingredients without seeding a Book, leather or a mod item.
+Additional cases check the three modded slimeball inputs. These tests do not
+establish quantities gathered, natural access to every slime type,
+actual crafting transactions, recipe-book unlocks, tag reload, saves or LAN.
+
 ## Make the first melting equipment
 
 One clay ball, one sand and one gravel craft two Grout. Smelt Grout in the vanilla
