@@ -200,17 +200,16 @@ actual crafting, custom tag members, reload, saves and LAN remain unverified.
 The existing Forge namespace ownership and unsupported tag removal limitations
 still apply; this does not promise compatibility with arbitrary Forge packs.
 
-### Reinforcement casting outputs
+### Scorched machinery recipe-book unlocks
 
-Iron, Gold, Cobalt and Obsidian Reinforcement now have native item declarations
-and manual resource-overlay entries. Manual entries are appended after
-Tinkers' Gadgetry, preserving earlier protocol IDs. The fixed source casting
-recipes consume one Pattern: iron 90 mB / 60 ticks, gold 90 mB / 57 ticks,
-cobalt 90 mB / 65 ticks, and obsidian 1,000 mB / 221 ticks.
+Scorched Brick unlocks the existing native Faucet, Casting Table/Basin,
+Lantern, four tank/gauge, Drain, Chute and Scorched Glass recipes. Scorched
+Glass unlocks its pane recipe. The twelve advancements preserve the fixed
+source inventory criteria and OR requirements, while mapping recipe rewards
+to the port's existing recipe IDs and native `recipes` criterion key.
 
-The bounded Rust casting fixture checks catalog selection, unregistered output
-rejection, wrong machine/input/fluid rejection, partial fills, cooling, fluid
-consumption and Pattern consumption. Python checks pin the recipe fixtures,
-item/model/texture declarations, and generated manual resources. This does not
-claim modifier application/effects, actual host casting, Creative placement,
-save/reload or LAN validation.
+These are recipe-book unlocks, not replacement recipes or new machinery.
+Existing narrowed material inputs and machine limitations remain unchanged.
+Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
+Source fixtures, recipe shapes/counts and packaged registrations are checked;
+actual book UI, crafting, save/reload and LAN remain unverified.
