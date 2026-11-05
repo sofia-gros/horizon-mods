@@ -5462,8 +5462,19 @@ bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty
 [[injection]]
 id = "source-fire-duration-ignite"
 target = "horizon_client_lib::motion::PlayerMotion::ignite_for_ticks"
-kind = "MODIFY_EXPRESSION_VALUE"
-selector = '(f64::from(ticks) * self.attribute("minecraft:burning_time")?).ceil() as i32'
+kind = "MODIFY_VARIABLE"
+variable = { name = "scaled", ordinal = 0, at = "LOAD" }
 require = 1
+ordinal = 0
 helper = "fire-duration-ignite.rs"
-bindings = [{ name = "value", ty = "i32", value = "$value" }, { name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" }, { name = "ticks", ty = "i32", value = "ticks" }]
+bindings = [{ name = "value", ty = "i32", value = "$value" }, { name = "player", ty = "&crate::motion::PlayerMotion", value = "&*self" }, { name = "ticks", ty = "i32", value = "ticks" }]
+
+[[injection]]
+id = "source-fire-duration-contact"
+target = "horizon_client_lib::motion::environment::MotionWorld<'_, '_, '_>::apply_fire_contact"
+kind = "MODIFY_VARIABLE"
+variable = { name = "multiplier", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "fire-duration-contact.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&crate::motion::PlayerMotion", value = "&*self.player" }]
