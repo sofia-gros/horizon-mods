@@ -25,5 +25,13 @@ class FaucetSmelteryTankWiring(unittest.TestCase):
         self.assertIn('source_key == "tconstruct:lantern"', route)
         self.assertIn('casting.to_nbt_preserving(&raw_casting)', route)
 
+    def test_cannon_casting_preserves_source_item_and_checks_live_state(self):
+        route = RUNTIME.read_text().split('fn machine_to_casting(', 1)[1]
+        self.assertIn('"tconstruct:seared_fluid_cannon"', route)
+        self.assertIn('cannon_at(game, source).is_some_and', route)
+        self.assertIn('data.wire.patch().is_none()', route)
+        self.assertIn('patch_melter_tank(&raw_controller, &input)', route)
+        self.assertLess(route.index('if !store::write_many('), route.index('notify_casting_comparator('))
+
 if __name__ == '__main__':
     unittest.main()

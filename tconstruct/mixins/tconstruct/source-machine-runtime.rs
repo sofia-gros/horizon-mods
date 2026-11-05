@@ -1409,22 +1409,31 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Preserve machine and casting metadata while pouring from a Melter, Lantern
-/// or formed Drain. Recheck the current recipe before committing a packet.
+/// Preserve machine and casting metadata while pouring from a Melter, Lantern,
+/// Cannon or formed Drain. Recheck the current recipe before committing a packet.
 fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
     if !matches!(&*source_name, "tconstruct:seared_melter" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern"
-        | "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
+        | "tconstruct:seared_drain" | "tconstruct:scorched_drain" | "tconstruct:seared_fluid_cannon") { return None; }
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if !super::tconstruct_source_melter_state::is_casting_block(&target_name) { return None; }
     if source == target || source == pos || target == pos { return Some(false); }
     if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
+    let mut cannon = None;
     let (controller, source_key, mut smeltery, raw_controller, mut input) = if &*source_name == "tconstruct:seared_melter" {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, "tconstruct:melter") else { return Some(false); };
         let Some(state) = super::tconstruct_source_melter_state::Melter::from_nbt(&raw) else { return Some(false); };
         if raw.get("tank") != Some(&state.tank.to_nbt()) { return Some(false); }
         (source, "tconstruct:melter", None, raw, state.tank)
+    } else if &*source_name == "tconstruct:seared_fluid_cannon" {
+        let Some(state) = cannon_at(game, source) else { return Some(false); };
+        let Some(raw) = store::read(&game.world, source, "tconstruct:fluid_cannon") else { return Some(false); };
+        if state.to_nbt() != raw
+            || state.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some())) { return Some(false); }
+        let fluid = state.tank.clone();
+        cannon = Some(state);
+        (source, "tconstruct:fluid_cannon", None, raw, fluid)
     } else if matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
         // Route-local adapter: Lanterns are not multiblock fuel tanks.
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
@@ -1468,7 +1477,7 @@ fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target:
     } else if source_key == "tconstruct:lantern" {
         Some(input.to_nbt())
     } else {
-        // Melter items, fuel and progress remain byte-for-byte unchanged.
+        // Cannon items and Melter items, fuel and progress remain unchanged.
         super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_controller, &input)
     };
     let Some(next_controller) = next_controller else { return Some(false); };
@@ -1478,12 +1487,19 @@ fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target:
         || store::read(&game.world, controller, source_key).as_ref() != Some(&raw_controller)
         || (smeltery.is_some() && !validated_drain(game, source).is_some_and(|(at, _, raw)| at == controller && raw == raw_controller))
         || (smeltery.is_none() && !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))))
+        || (cannon.is_some() && !cannon_at(game, source).is_some_and(|current| current.to_nbt() == raw_controller
+            && current.item.as_ref().is_none_or(|item| item.data().is_none_or(|data| data.wire.patch().is_none()))))
         || store::read(&game.world, target, kind).as_ref() != Some(&raw_casting)
         || !casting_at(game, target).is_some_and(|(key, current)| key == kind && current.to_nbt_preserving(&raw_casting).as_ref() == Some(&raw_casting))
         || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet)
         || (offered.amount > 0 && !tank_casting_recipe_current(game, target, kind, &casting, &offered)) { return Some(false); }
     if !store::write_many(&mut game.world, &[(controller, source_key, next_controller),
         (target, kind, next_casting), (pos, "tconstruct:faucet", faucet.to_nbt())]) { return Some(false); }
+    if let Some(mut state) = cannon {
+        let previous_strength = state.comparator();
+        state.tank = input.clone();
+        notify_casting_comparator(game, source, previous_strength, state.comparator());
+    }
     if input.amount < before.amount { game.container_changed(controller); }
     if casting.tank.amount != before_output { game.container_changed(target); }
     Some(true)
