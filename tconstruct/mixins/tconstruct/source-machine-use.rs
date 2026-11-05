@@ -23,6 +23,7 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
         }
     }
     let handled = match &*name {
+        "tconstruct:seared_duct" | "tconstruct:scorched_duct" => crate::game::tconstruct_source_machine_runtime::interact_duct(game, pos),
         "tconstruct:seared_casting_tank" => crate::game::tconstruct_source_machine_runtime::interact_casting_tank(game, pos, hit.point[1] - f64::from(pos.1) < 0.6875),
         "tconstruct:seared_fluid_cannon" => {
             let mut tank = hit.point[1] - f64::from(pos.1) > 0.5;

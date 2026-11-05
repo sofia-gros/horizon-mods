@@ -2190,3 +2190,27 @@ mod tests {
     }
 
 }
+
+/// Read a filter without consuming or rewriting its container. The caller
+/// separately enforces the world's duct_containers tag (or crafting remainder).
+pub(super) fn duct_filter(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<(String, Option<horizon_world::nbt::Tag>)> {
+    if stack.count == 0 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
+    let (id, tag) = if stack.item.as_ref() == "tconstruct:copper_can" {
+        let (id, tag) = can_contents(stack)?;
+        if let Some(horizon_world::nbt::Tag::String(raw)) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("fluid")) {
+            raw.to_string().ok()?;
+        }
+        (id?, tag)
+    } else if super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item).is_some() {
+        let tank = lantern_tank(stack)?;
+        let raw = stack.data()?.other("minecraft:custom_data")?.get("tconstruct:tank")?;
+        if tank.amount == 0 || tank.to_nbt() != *raw { return None; }
+        (tank.fluid?, tank.tag)
+    } else {
+        let plain = ItemStack::new(&stack.item, 1);
+        if !stack.same_item_same_components(&plain) { return None; }
+        (bucket_fluid(&stack.item)?, None)
+    };
+    if !known(&id) || id == "minecraft:empty" { return None; }
+    Some((id, tag))
+}

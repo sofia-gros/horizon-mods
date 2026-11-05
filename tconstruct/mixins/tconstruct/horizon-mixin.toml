@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+horizon_revision = "dbe80ca7de510dad736b5a9c58813499cdeb5df6"
 
 [[crate]]
 id = "source-config-parser"
@@ -2316,6 +2316,24 @@ id = "source-casting-tank"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_casting_tank"
 source = "source-casting-tank.rs"
+
+[[module]]
+id = "source-duct"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_duct"
+source = "source-duct.rs"
+
+[[injection]]
+id = "source-duct-removal-guard"
+target = "horizon_client::game::GameLevel<'_>::allow_block_removal"
+kind = "HEAD"
+cancellable = true
+helper = "source-duct-guard.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "_pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "_state" },
+]
 
 [[module]]
 id = "source-fluid-cannon"
