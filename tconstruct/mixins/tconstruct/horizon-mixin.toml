@@ -5373,3 +5373,159 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "TAIL"
 helper = "dreambound-equipment.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[state]]
+id = "dreambound-jump-capacity"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "u8"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "dreambound-jumps-used"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "u8"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "dreambound-jump-pending"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "bool"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "dreambound-jump-client"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<([Option<horizon_items::items::ItemStack>;4],u8)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "dreambound-jump-sent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64),(Vec<u8>,u8)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "dreambound-jump-rules-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_dreambound"
+source = "source-dreambound.rs"
+
+[[module]]
+id = "dreambound-jump-levels-game"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dreambound_jump_levels"
+source = "dreambound-jump-levels.rs"
+
+[[module]]
+id = "dreambound-jump-levels-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_dreambound_jump_levels"
+source = "dreambound-jump-levels.rs"
+
+[[module]]
+id = "dreambound-jump-motion"
+file = "crates/horizon-client/src/motion.rs"
+name = "tconstruct_dreambound_jump_motion"
+source = "dreambound-jump-motion.rs"
+visibility = "pub"
+
+[[module]]
+id = "dreambound-jump-wire-game"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dreambound_jump_wire"
+source = "dreambound-jump-wire.rs"
+
+[[module]]
+id = "dreambound-jump-wire-server"
+file = "crates/horizon-client/src/lan/hub.rs"
+name = "tconstruct_dreambound_jump_wire"
+source = "dreambound-jump-wire.rs"
+
+[[injection]]
+id = "dreambound-jump-input"
+target = "horizon_client_lib::motion::MotionWorld<'_, '_, '_>::player_movement_tick_with_fluids"
+kind = "HEAD"
+cancellable = true
+helper = "dreambound-jump-input.rs"
+bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "jumping", ty = "bool", value = "jumping" }]
+
+[[injection]]
+id = "dreambound-jump-ground-reset"
+target = "horizon_client_lib::motion::MotionWorld<'_, '_, '_>::jump_from_ground"
+kind = "HEAD"
+helper = "dreambound-jump-ground.rs"
+bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dreambound-jump-land-reset"
+target = "horizon_client_lib::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::check_fall_damage"
+kind = "HEAD"
+helper = "dreambound-jump-land.rs"
+bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "grounded", ty = "bool", value = "grounded" }]
+
+[[injection]]
+id = "dreambound-jump-refresh"
+target = "horizon_client::game::Game<'_>::sync_player_body"
+kind = "HEAD"
+helper = "dreambound-jump-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dreambound-jump-send"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "dreambound-jump-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "dreambound-jump-receive"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+cancellable = true
+helper = "dreambound-jump-receive.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
+
+[[injection]]
+id = "dreambound-jump-request"
+target = "horizon_client::game::remote::Game<'_>::remote_send_state"
+kind = "HEAD"
+helper = "dreambound-jump-request.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dreambound-jump-server"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+cancellable = true
+helper = "dreambound-jump-server.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&S", value = "&packet" }]
+
+[[injection]]
+id = "source-dreambound-status-preserve"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "MODIFY_VARIABLE"
+variable = { name = "status", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "dreambound-jump-status.rs"
+bindings = [{ name = "status", ty = "horizon_client::effects::StatusFlags", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
