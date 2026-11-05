@@ -1,0 +1,9 @@
+{
+  "values": [
+    "minecraft:slime_ball",
+    "#forge:slimeball/earth",
+    "#forge:slimeball/sky",
+    "#forge:slimeball/ichor",
+    "#forge:slimeball/ender"
+  ]
+}

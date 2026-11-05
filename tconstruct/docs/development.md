@@ -18,6 +18,18 @@ Run it alone with:
 python3 -m unittest discover -s tconstruct/tests -p 'test_material_conversions.py' -v
 ```
 
+Block-shape regressions live in `tests/test_block_shapes.py`, covering 15 masonry,
+six firewood and eight slimewood recipes. Shared source comparisons remain
+independent of production converters; masonry retains explicit pattern, count
+and ingredient checks, including the two-ingredient scorched-brick fence.
+Extend `MASONRY` for matching families and keep distinct wood behavior explicit.
+The seven former modules are represented by three methods with named subtests;
+all 132 original assertions are retained. Run this feature suite with:
+
+```sh
+python3 -m unittest discover -s tconstruct/tests -p 'test_block_shapes.py' -v
+```
+
 Keep regression cases after a feature is finished. Remove superseded test files
 only when their assertions are represented in the maintained feature suite.
 This reduces repeated test code, not generated build or game-world storage.
@@ -171,3 +183,19 @@ Package/resource tests cover registration and visuals, with a bounded catalog
 regression in `tests/rust/soul_glass_acquisition.rs`. Actual world casting,
 Part Builder use, Venom supply, reload, saves and LAN remain unverified. This
 does not add Venombone to Creative tabs or implement its material traits.
+
+### Pattern and blank cast ingredient tags
+
+The native Pattern recipe accepts `forge:rods/wooden`, and blank Sand and Red
+Sand Casts accept `forge:sand/colorless` and `forge:sand/red`, respectively,
+matching TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The defaults
+retain vanilla sticks and the corresponding sand color from Forge 47.4.0.
+Patterns still require two planks and two rods for six patterns; each sand
+produces four matching blank casts. The two sand colors are not interchangeable.
+
+`test_pattern_cast_ingredients.py` checks the pinned recipe inputs, quantities,
+Forge defaults and packaged native files. The survival reachability suite checks
+that the default early-machine chain remains reachable. These are data checks:
+actual crafting, custom tag members, reload, saves and LAN remain unverified.
+The existing Forge namespace ownership and unsupported tag removal limitations
+still apply; this does not promise compatibility with arbitrary Forge packs.
