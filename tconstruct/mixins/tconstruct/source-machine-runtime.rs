@@ -461,6 +461,7 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
 }
 
 pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
+    if super::tconstruct_source_duct::is_duct(block) { return ensure_duct(game, pos); }
     let Some(kind) = kind(block) else { return false; };
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
     if game.world.block_entities.get(&pos).is_some_and(|entity| !matches!(entity, BlockEntity::Chest(_))) { return false; }
@@ -811,9 +812,7 @@ fn faucet_neighbors(game: &super::Game<'_>, pos: Pos) -> Option<(Pos, Pos)> {
 fn smeltery_source(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery)> {
     let block = &game.res.facts().get(game.world.block(io.0, io.1, io.2)).name;
     if !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") { return None; }
-    let controller = *game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&io)?;
-    let state = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag))?;
-    Some((controller, state))
+    validated_drain(game, io).map(|(controller, state, _)| (controller, state))
 }
 
 fn selected_smeltery_fluid(state: &Smeltery) -> Option<Tank> {
@@ -846,7 +845,7 @@ fn matched_casting(world: &super::tconstruct_world::World, basin: bool, input: O
 
 fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) -> bool {
     let Some((controller, mut smeltery)) = smeltery_source(game, source) else { return true; };
-    let Some(mut fluid) = selected_smeltery_fluid(&smeltery) else { return true; };
+    let Some(mut fluid) = selected_source_fluid(game, source, &smeltery) else { return true; };
     let before = fluid.clone();
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if &*target_name == "tconstruct:seared_fluid_cannon" {
@@ -886,10 +885,11 @@ fn prepare_faucet_casting(game: &super::Game<'_>, target: Pos, kind: &str, casti
 }
 
 fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) {
+    if !duct_source_readable(game, source) { return; }
     let Some((controller, mut smeltery)) = smeltery_source(game, source) else { return; };
     let Some(raw_controller) = store::read(&game.world, controller, "tconstruct:smeltery") else { return; };
     if raw_controller.get("tank") != Some(&smeltery.tank.to_nbt()) { return; }
-    let mut fluid = selected_smeltery_fluid(&smeltery).unwrap_or_else(|| Tank::new(0));
+    let mut fluid = selected_source_fluid(game, source, &smeltery).unwrap_or_else(|| Tank::new(0));
     let before = fluid.clone();
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_fluid_cannon" {
         let Some(mut state) = cannon_at(game,target) else { return; };
@@ -959,7 +959,7 @@ fn patch_smeltery_controller_tank(raw: &horizon_world::nbt::Tag, state: &Smelter
 
 fn validated_drain(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery, horizon_world::nbt::Tag)> {
     let name = game.res.facts().get(game.world.block(io.0, io.1, io.2)).name.clone();
-    if !matches!(&*name, "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
+    if !matches!(&*name, "tconstruct:seared_drain" | "tconstruct:scorched_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_duct") { return None; }
     let controller = *game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&io)?;
     if !game.world.chunks.contains_key(&(controller.0 >> 4, controller.2 >> 4)) { return None; }
     let block = game.res.facts().get(game.world.block(controller.0, controller.1, controller.2)).name.clone();
@@ -981,9 +981,10 @@ fn validated_drain(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery, ho
 // waiting; no alternate path may consume them after a failed validation.
 fn smeltery_to_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     let source_name = game.res.facts().get(game.world.block(source.0,source.1,source.2)).name.clone();
-    if !matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
+    if !matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:scorched_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_duct") { return None; }
     let target_name = game.res.facts().get(game.world.block(target.0,target.1,target.2)).name.clone();
     let (key, capacity) = super::tconstruct_source_faucet_tank::tank_kind(&target_name)?;
+    if !duct_source_readable(game, source) { return Some(false); }
     if source == target || source == pos || target == pos { return Some(false); }
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return Some(false); }
     let Some((controller, mut smeltery, raw_controller)) = validated_drain(game, source) else { return Some(false); };
@@ -994,7 +995,7 @@ fn smeltery_to_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     if output.to_nbt() != raw_target { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
     if faucet.to_nbt() != raw_faucet { return Some(false); }
-    let mut fluid = selected_smeltery_fluid(&smeltery).unwrap_or_else(|| Tank::new(0));
+    let mut fluid = selected_source_fluid(game, source, &smeltery).unwrap_or_else(|| Tank::new(0));
     if (game.remote.is_some() || game.lan.is_some() || game.lan_acting_uuid.is_some())
         && (!faucet_network_tag_safe(&fluid) || !faucet_network_tag_safe(&output) || !faucet_network_tag_safe(&faucet.pending)) { return Some(false); }
     if !faucet_supported_potion_tag(&fluid) || !faucet_supported_potion_tag(&output) || !faucet_supported_potion_tag(&faucet.pending) { return Some(false); }
@@ -1412,4 +1413,79 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input; slots[1] = casting.output;
     }
+}
+
+/// None means unknown/opaque state, while a valid Duct with no item is empty.
+/// Inspect both decoded sources and undecoded raw block entities before edits.
+pub(super) fn read_duct(world: &super::tconstruct_world::World, pos: Pos) -> Option<super::tconstruct_source_duct::Duct> {
+    use super::tconstruct_source_duct::Duct;
+    let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
+    if world.block_names.contains_key(&pos) { return None; }
+    if world.block_entities.get(&pos).is_some_and(|entity|
+        !matches!(entity, BlockEntity::Chest(slots) if slots.is_empty())) { return None; }
+    let Some(saved) = chunk.saved.as_deref() else { return Some(Duct::default()); };
+    // A raw undecoded entity is not a fresh Duct. In particular Forge's `item`
+    // field and any opaque extension must survive even if we cannot load it.
+    if saved.block_entities.iter().any(|raw| raw.get("x") == Some(&Tag::Int(pos.0))
+        && raw.get("y") == Some(&Tag::Int(pos.1)) && raw.get("z") == Some(&Tag::Int(pos.2))) { return None; }
+    let mut sources = saved.block_entity_sources.iter().filter(|(at, _)| *at == pos);
+    let Some((_, raw)) = sources.next() else { return Some(Duct::default()); };
+    if sources.next().is_some() { return None; }
+    Duct::from_envelope(raw, pos)
+}
+
+fn ensure_duct(game: &mut super::Game<'_>, pos: Pos) -> bool {
+    let Some(duct) = read_duct(&game.world, pos) else { return false; };
+    if !store::write(&mut game.world, pos, "tconstruct:duct", duct.to_nbt()) { return false; }
+    game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(Vec::new()));
+    true
+}
+
+pub(super) fn interact_duct(game: &mut super::Game<'_>, pos: Pos) -> bool {
+    use super::tconstruct_source_duct::Duct;
+    if game.remote.is_some() { return false; }
+    let Some(mut duct) = read_duct(&game.world, pos) else { return false; };
+    // Retrieval never depends on current datapack tags/fluid registration.
+    if game.held().is_none() {
+        let Some(item) = duct.item.take() else { return true; };
+        if !store::write(&mut game.world, pos, "tconstruct:duct", duct.to_nbt()) { return false; }
+        game.give_or_drop(item);
+        game.container_changed(pos);
+        return true;
+    }
+    if duct.item.is_some() { return true; }
+    game.ensure_datapacks();
+    let Some(mut held) = game.held().cloned() else { return false; };
+    if !Duct::accepts_stack(&held) { return true; }
+    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok()) else { return true; };
+    let Some(containers) = tags.get("tconstruct:duct_containers") else { return true; };
+    let Some(info) = game.res.items().get(&held.item) else { return true; };
+    if !containers.contains(held.item.as_ref()) && !info.crafting_remainder.as_deref().is_some_and(|item| containers.contains(item)) { return true; }
+    let Some((fluids, _)) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|value| value.as_ref().ok()) else { return true; };
+    if super::tconstruct_source_fluid_container::duct_filter(&held, &|id| fluids.contains(id)).is_none() { return true; }
+    let mut one = held.clone(); one.count = 1;
+    duct.item = Some(one);
+    if !store::write(&mut game.world, pos, "tconstruct:duct", duct.to_nbt()) { return false; }
+    game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(Vec::new()));
+    // Creative inserts a copy, matching inventory handling. Survival moves one.
+    if !game.creative { held.count -= 1; *game.held_mut() = (held.count > 0).then_some(held); }
+    game.container_changed(pos);
+    true
+}
+
+fn duct_source_readable(game: &super::Game<'_>, pos: Pos) -> bool {
+    !super::tconstruct_source_duct::is_duct(&game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name)
+        || read_duct(&game.world, pos).is_some()
+}
+
+fn selected_source_fluid(game: &super::Game<'_>, source: Pos, state: &Smeltery) -> Option<Tank> {
+    if !super::tconstruct_source_duct::is_duct(&game.res.facts().get(game.world.block(source.0, source.1, source.2)).name) {
+        return selected_smeltery_fluid(state);
+    }
+    let duct = read_duct(&game.world, source)?;
+    let item = duct.item.as_ref()?;
+    let (fluids, _) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()?.as_ref().ok()?;
+    let filter = super::tconstruct_source_fluid_container::duct_filter(item, &|id| fluids.contains(id))?;
+    let fluid = super::tconstruct_source_duct::selected(&state.tank.fluids, Some(&filter))?;
+    Some(Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: state.tank.capacity.max(fluid.amount) })
 }

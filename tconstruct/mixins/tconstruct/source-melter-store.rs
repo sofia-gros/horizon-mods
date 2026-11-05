@@ -10,7 +10,7 @@ fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) 
     set_metadata_inner(sources, pos, key, value, true)
 }
 fn set_metadata_inner(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag, preserve_smeltery: bool) -> bool {
-    if !matches!(key, "tconstruct:modifier_chest" | "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank" | "tconstruct:lantern" | "tconstruct:casting_tank" | "tconstruct:fluid_cannon") { return false; }
+    if !matches!(key, "tconstruct:modifier_chest" | "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank" | "tconstruct:lantern" | "tconstruct:casting_tank" | "tconstruct:fluid_cannon" | "tconstruct:duct") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
         if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };

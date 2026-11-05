@@ -43,7 +43,7 @@ class MachineSneakPassthrough(unittest.TestCase):
     def test_pinned_host_guest_context_supplies_guest_sneak_and_hands(self):
         host=Path(os.environ['HORIZON_HOST'])
         sha=subprocess.check_output(['git','-C',str(host),'rev-parse','HEAD'],text=True).strip()
-        self.assertEqual(sha,'0c7b5b61a5e746d621afffba919b12aeccf9c0fa')
+        self.assertEqual(sha,'dbe80ca7de510dad736b5a9c58813499cdeb5df6')
         text=(host/'crates/horizon-client/src/game/lan_actions.rs').read_text()
         for line in ['std::mem::swap(&mut self.inventory, &mut g.inventory);',
                      'std::mem::swap(&mut self.offhand, &mut g.offhand);',

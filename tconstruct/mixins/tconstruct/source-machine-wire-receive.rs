@@ -13,6 +13,7 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
         Some("tconstruct:fuel_tank") => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge"],
         Some("tconstruct:lantern") => &["tconstruct:seared_lantern", "tconstruct:scorched_lantern"],
         Some("tconstruct:casting_tank") => &["tconstruct:seared_casting_tank"],
+        Some("tconstruct:duct") => &["tconstruct:seared_duct", "tconstruct:scorched_duct"],
         Some("tconstruct:fluid_cannon") => &["tconstruct:seared_fluid_cannon"],
         Some("tconstruct:ingot_tank") => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge"],
         _ => return Continue(()),

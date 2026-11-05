@@ -1,5 +1,9 @@
 fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId, side_effects: bool) {
     let name = level.facts.get(old).name.clone();
+    if matches!(&*name, "tconstruct:seared_duct" | "tconstruct:scorched_duct") {
+        // The host preflight permits removal only after the filter is retrieved.
+        crate::game::tconstruct_source_melter_store::clear(level.world, (pos.x, pos.y, pos.z));
+    }
     if &*name == "tconstruct:tinkers_chest" {
         let at=(pos.x,pos.y,pos.z);
         if side_effects {

@@ -16,6 +16,7 @@ fn tconstruct_machine_encode_id(entity: &crate::containers::BlockEntity, block: 
         "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => "tconstruct:lantern",
         "tconstruct:seared_casting_tank" => "tconstruct:casting_tank",
         "tconstruct:seared_fluid_cannon" => "tconstruct:fluid_cannon",
+        "tconstruct:seared_duct" | "tconstruct:scorched_duct" => "tconstruct:duct",
         _ => return std::ops::ControlFlow::Continue(()),
     };
     std::ops::ControlFlow::Break(id.to_owned())
