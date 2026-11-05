@@ -67,6 +67,40 @@ pub mod game {
                     assert_eq!(tconstruct_advancement_tag_predicate(&View(&game),"item",TAG,"test:stale_tool"),std::ops::ControlFlow::Break(false));
                 }
             }
+            #[test] fn recipe_tags_use_world_membership_and_refresh_without_native_fallback() {
+                for tag in ["forge:rods/wooden", "forge:ingots/copper", "forge:ingots/gold",
+                    "tconstruct:greenheart_logs", "tconstruct:skyroot_logs",
+                    "tconstruct:bloodshroom_logs", "tconstruct:enderbark_logs",
+                    "forge:slimeball/earth", "forge:slimeball/sky",
+                    "forge:slimeball/ichor", "forge:slimeball/ender"] {
+                    let mut game=game();
+                    game.adv.tree=Arc::new(adv::Tree { tags: vec![tag.into(), "minecraft:planks".into()] });
+                    game.item.item_tags.insert(tag.into(), HashSet::from(["test:stale".into()]));
+                    game.world.chunks.tags=Some(Ok(HashMap::from([(tag.into(), HashSet::from(["test:world".into()]))])));
+                    let ids=index(&mut game).ids.clone();
+                    assert!(ids.contains(&"test:world".into()), "{tag}");
+                    assert!(!ids.contains(&"test:stale".into()), "{tag}");
+                    assert!(ids.contains(&"minecraft:oak_planks".into()));
+                    assert_eq!(tconstruct_advancement_tag_predicate(&View(&game), "item", tag, "test:world"), std::ops::ControlFlow::Break(true));
+                    assert_eq!(tconstruct_advancement_tag_predicate(&View(&game), "item", tag, "test:stale"), std::ops::ControlFlow::Break(false));
+                    assert_eq!(tconstruct_advancement_tag_predicate(&View(&game), "block", tag, "test:world"), std::ops::ControlFlow::Continue(()));
+                    for (tags, expected_replacement) in [
+                        (Some(Ok(HashMap::from([(tag.into(), HashSet::from(["test:replacement".into()]))]))), true),
+                        (None, false), (Some(Err("invalid".into())), false),
+                        (Some(Ok(HashMap::new())), false),
+                        (Some(Ok(HashMap::from([(tag.into(), HashSet::new())]))), false)] {
+                        game.world.chunks.tags=tags;
+                        game.tconstruct_invalidate_advancement_inventory_index();
+                        let ids=index(&mut game).ids.clone();
+                        assert!(!ids.contains(&"test:world".into()), "{tag}");
+                        assert!(!ids.contains(&"test:stale".into()), "{tag}");
+                        let has_replacement=ids.contains(&"test:replacement".into());
+                        assert_eq!(has_replacement, expected_replacement, "{tag}");
+                        assert_eq!(tconstruct_advancement_tag_predicate(&View(&game), "item", tag, "test:replacement"), std::ops::ControlFlow::Break(has_replacement));
+                        assert_eq!(tconstruct_advancement_tag_predicate(&View(&game), "item", tag, "test:world"), std::ops::ControlFlow::Break(false));
+                    }
+                }
+            }
         }
     }
 }

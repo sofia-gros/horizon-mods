@@ -7,8 +7,9 @@ the host's native `items: "#tag"` predicate form. This does not establish that
 every multipart tool is obtainable or implements its full effects.
 
 Both the host inventory candidate index and its item-tag predicate read the
-same resolved world snapshot for this one tag. Other tag predicates retain
-native behavior. Missing, invalid or empty snapshots match nothing; native
+same resolved world snapshot for this tag and the bounded recipe-unlock tags
+listed in [tagged recipe unlocks](tagged-recipe-unlocks.md). Other tag predicates
+retain native behavior. Missing, invalid or empty snapshots match nothing; native
 resource membership is never used as a fallback. Snapshot refresh invalidates
 the cached candidate index. It does not synthesize an inventory-change event:
 the host hashes item IDs, counts and slots and skips unchanged inventories.
