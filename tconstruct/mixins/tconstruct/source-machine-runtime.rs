@@ -1250,7 +1250,7 @@ fn tick_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: 
 
 pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     if !ensure(game, pos, block) { return false; }
-    let Some(faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
+    let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
