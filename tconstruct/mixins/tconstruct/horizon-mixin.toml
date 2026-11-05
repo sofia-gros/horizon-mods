@@ -5421,3 +5421,10 @@ bindings = [
   { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
   { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, &horizon_client::items::ConsumeEffect)", value = "$operation" },
 ]
+
+[[injection]]
+id = "source-insatiable-damage"
+target = "horizon_client::game::Game<'_>::melee_damage"
+kind = "RETURN"
+helper = "insatiable-damage.rs"
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "living", ty = "bool", value = "living" }]
