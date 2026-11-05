@@ -21,14 +21,14 @@ player `ignite_for_ticks` path, without projecting vanilla protection points.
   ticks and source reload. Missing/changed definitions or invalid records remove
   it. Remote clients do not add an independent projection.
 - Guard the native burning-time baseline. Unsupported enchantment formulas or
-  a changed live burning-time attribute retain the native path rather than
+  a changed native scaled duration retain the native path rather than
   discarding another mod or command's behavior.
 
 ## Boundaries
 
 This covers lava ignition, lightning and native explicit player ignitions from
-entity attacks that call `ignite_for_ticks`. Ordinary standing-in-fire contact
-uses a separate `ignite_contact` calculation and is **not covered**. Mob equipment,
+entity attacks that call `ignite_for_ticks`. Standing-in-fire contact now has a separate
+[local-value bridge](fire-protection-contact.md) preserving the native RNG and damage. Mob equipment,
 held shields, other direct fire-clock writes, guest state synchronization and
 legacy entity-wide fire behavior remain outside this patch. Fire damage
 protection is still unimplemented. Existing fires are not shortened retroactively.
@@ -38,5 +38,6 @@ Source: Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`,
 `fire_protection.json`; legacy vanilla `ProtectionEnchantment` duration formula.
 
 Brief static review only. Two regression cases were added but not run. No tests,
-builds, planner, CI inspection, version checks or merges were performed. Runtime
-hook matching, save/reload and multiplayer behavior remain unverified.
+builds, planner, CI inspection, version checks or merges were performed. The later contact bridge also replaces the explicit-ignition selector with a
+variable read, since expression rewriting cannot wrap a `?` in this target.
+Runtime hook matching, save/reload and multiplayer behavior remain unverified.

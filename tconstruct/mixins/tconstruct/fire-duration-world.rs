@@ -48,8 +48,8 @@ fn wanted(game: &super::Game<'_>) -> Option<(i32, f64)> {
             native_amounts.push(*amount);
         }
     }
-    // Do not change vanilla-only gear. Unknown/custom burning attributes are
-    // also left alone by the live value check in the ignition helper.
+    // Do not change vanilla-only gear. The duration/contact helpers retain
+    // native behavior when its observed result or multiplier differs.
     has_modifier.then_some((maximum, native_amounts.into_iter().fold(1.0f64, |n, a| n + a).max(0.0)))
 }
 
