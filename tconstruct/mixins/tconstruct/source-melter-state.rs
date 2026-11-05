@@ -148,6 +148,12 @@ pub(super) struct Melter {
     pub rate: u32,
 }
 impl Melter {
+    /// ITankBlockEntity: empty = 0; otherwise 1 + floor(14 * amount / capacity).
+    pub(super) fn comparator(&self) -> i32 {
+        if self.tank.amount == 0 { 0 } else {
+            (1 + 14 * u64::from(self.tank.amount) / u64::from(MELTER_CAPACITY)) as i32
+        }
+    }
     pub(super) fn new() -> Self {
         Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, fuel_quality: 0, temperature: 0, rate: 0 }
     }
@@ -970,4 +976,20 @@ mod swap_presentation_tests {
         let mut stacked = input; stacked.count = 2;
         assert!(!same_pristine_with_presentation(&stacked, &pristine));
     }
+    #[test]
+    fn melter_comparator_all_amounts_and_saved_state() {
+        let mut melter = Melter::new();
+        assert_eq!(melter.comparator(), 0);
+        for amount in 1..=MELTER_CAPACITY {
+            melter.tank = Tank::new(MELTER_CAPACITY);
+            assert!(melter.tank.insert("minecraft:water", amount));
+            let expected = 1 + 14 * amount / MELTER_CAPACITY;
+            assert_eq!(melter.comparator(), expected as i32);
+            assert_eq!(Melter::from_nbt(&melter.to_nbt()).unwrap().comparator(), expected as i32);
+        }
+        assert_eq!(melter.comparator(), 15);
+        melter.tank.take(MELTER_CAPACITY).unwrap();
+        assert_eq!(melter.comparator(), 0);
+    }
+
 }

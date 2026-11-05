@@ -11,7 +11,7 @@ pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::item
 use std::collections::HashMap;
 use horizon_world::nbt::Tag;
 type Pos=(i32,i32,i32);
-struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_table",3=>"tconstruct:seared_casting_tank",4=>"tconstruct:scorched_table",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
+struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_table",3=>"tconstruct:seared_casting_tank",4=>"tconstruct:scorched_table",5=>"tconstruct:seared_melter",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
 struct World{blocks:HashMap<Pos,usize>,block_entities:HashMap<Pos,containers::BlockEntity>,chunks:HashMap<(i32,i32),()>,tags:HashMap<(Pos,String),Tag>,fail:bool} impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{*self.blocks.get(&(x,y,z)).unwrap_or(&0)}}
 struct Game<'a>{res:Res,world:World,signals:usize,slot_updates:usize,switch_target:bool,change_recipe:bool,recipe_changed:bool,change_target_slot:bool,change_source_slot:bool,_life:std::marker::PhantomData<&'a()>}
 mod tconstruct_source_melter_store{use super::*;pub(super) fn read(w:&World,p:Pos,k:&str)->Option<Tag>{w.tags.get(&(p,k.into())).cloned()}pub(super) fn write_many(w:&mut World,v:&[(Pos,&str,Tag)])->bool{if w.fail||v.iter().any(|(p,k,_)|!w.tags.contains_key(&(*p,(*k).into()))){return false}for(p,k,t)in v{w.tags.insert((*p,(*k).into()),t.clone());}true}}
@@ -28,6 +28,44 @@ struct Fluid{amount:u32} struct Recipe{fluid:Fluid,cooling_time:u32,consumes_cas
 fn casting_recipe_at(g: &Game<'_>,_:Pos,_:&str,_:&Casting,t:&Tank)->Option<(String,Recipe,horizon_items::items::ItemStack)>{(matches!(t.fluid.as_deref(),Some("x:copper" | "minecraft:water"))).then(||((if g.recipe_changed {"test:changed"} else {"test:copper"}).into(),Recipe{fluid:Fluid{amount:90},cooling_time:1,consumes_cast:false,switch_slots:false},horizon_items::items::ItemStack::new("minecraft:copper_ingot",1)))}
 fn prepare_faucet_casting(g:&Game<'_>,p:Pos,k:&str,c:&mut Casting,f:&Faucet,i:&Tank){if let Some(t)=super::tconstruct_source_melter_state::casting_faucet_offer(c,f,i){if let Some((id,r,out))=casting_recipe_at(g,p,k,c,t){c.prepare(&id,r.fluid.amount,r.cooling_time,out,r.consumes_cast,r.switch_slots);}}}
 // __PRODUCTION_ROUTE__
+#[test]
+fn actual_faucet_reservation_refreshes_melter_signal() {
+    let (mut g, faucet, source, target) = super::fixture();
+    let mut m = super::tconstruct_source_melter_state::Melter::new();
+    assert!(m.tank.insert("minecraft:water", 180));
+    g.world.blocks.insert(source, 5);
+    g.world.blocks.insert(target, 1);
+    g.world.tags.insert((source,"tconstruct:melter".into()),m.to_nbt());
+    g.world.tags.insert((target,"tconstruct:fuel_tank".into()),Tank::new(4000).to_nbt());
+    assert_eq!(super::tconstruct_source_faucet_tank::activate(&mut g,faucet,source,target,Faucet::new()),Some(true));
+    let m = super::tconstruct_source_melter_state::Melter::from_nbt(&store::read(&g.world,source,"tconstruct:melter").unwrap()).unwrap();
+    assert_eq!((m.tank.amount,m.comparator(),g.signals),(90,1,1));
+}
+#[test]
+fn melter_signal_published_only_after_successful_commit() {
+    let (mut g, _, pos, _) = super::fixture();
+    let mut m = super::tconstruct_source_melter_state::Melter::new();
+    g.world.tags.insert((pos,"tconstruct:melter".into()),m.to_nbt());
+    assert!(m.tank.insert("minecraft:water", 1));
+    assert!(write_machine_updates(&mut g,&[(pos,"tconstruct:melter",m.to_nbt())]));
+    assert_eq!(g.signals,1);
+    assert!(m.tank.insert("minecraft:water", 1));
+    assert!(write_machine_updates(&mut g,&[(pos,"tconstruct:melter",m.to_nbt())]));
+    assert_eq!(g.signals,1); // same comparator level
+    let before=g.world.tags.clone();
+    assert!(m.tank.insert("minecraft:water", 2158));
+    g.world.fail=true;
+    assert!(!write_machine_updates(&mut g,&[(pos,"tconstruct:melter",m.to_nbt())]));
+    assert_eq!(g.signals,1);
+    assert_eq!(g.world.tags,before);
+    g.world.fail=false;
+    assert!(write_machine_updates(&mut g,&[(pos,"tconstruct:melter",m.to_nbt())]));
+    assert_eq!(g.signals,2);
+    m.tank.take(2160).unwrap();
+    assert!(write_machine_updates(&mut g,&[(pos,"tconstruct:melter",m.to_nbt())]));
+    assert_eq!(g.signals,3);
+}
+
 #[test]fn reserve_tick_and_failed_write(){let(mut g,p,s,t)=super::fixture();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));let source=Tank::from_nbt(&tconstruct_source_melter_store::read(&g.world,s,"tconstruct:fuel_tank").unwrap(),4000).unwrap();let faucet=Faucet::from_nbt(&tconstruct_source_melter_store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert_eq!((source.amount,faucet.pending.amount),(90,80));let before=g.world.tags.clone();g.world.fail=true;assert!(tick_tank_casting(&mut g,p,s,t,faucet.clone()));assert_eq!(before,g.world.tags);g.world.fail=false;assert!(tick_tank_casting(&mut g,p,s,t,faucet));let c=Casting::from_nbt(&tconstruct_source_melter_store::read(&g.world,t,"tconstruct:table").unwrap()).unwrap();let f=Faucet::from_nbt(&tconstruct_source_melter_store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert_eq!((c.tank.amount,f.pending.amount),(20,70));}
 #[test]fn stale_recipe_and_unknown_casting_refuse(){let(mut g,p,s,t)=super::fixture();let mut c=Casting::new();assert!(c.prepare("test:old",90,1,horizon_items::items::ItemStack::new("minecraft:copper_ingot",1),false,false));g.world.tags.insert((t,"tconstruct:table".into()),c.to_nbt());let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));assert_eq!(before,g.world.tags);let tag=g.world.tags.get_mut(&(t,"tconstruct:table".into())).unwrap();if let Tag::Compound(fields)=tag{fields.insert("legacy".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}
 #[test]fn portable_source_preserves_slots_and_refuses_bad_state(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();assert!(ct.tank.insert("x:copper",300));ct.slots[0]=Some(horizon_items::items::ItemStack::new("minecraft:bucket",1));ct.slots[1]=Some(horizon_items::items::ItemStack::new("minecraft:stone",2));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());let before_slots=ct.slots.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));let saved=CastingTank::from_nbt(&store::read(&g.world,s,"tconstruct:casting_tank").unwrap()).unwrap();assert_eq!(saved.tank.amount,210);assert_eq!(g.signals,1);assert_eq!(saved.slots,before_slots);let super::containers::BlockEntity::Chest(live)=g.world.block_entities.get(&s).unwrap();assert_eq!(live.as_slice(),before_slots);let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();let old=g.world.tags.clone();let signals=g.signals;g.world.fail=true;assert!(tick_tank_casting(&mut g,p,s,t,f));assert_eq!(old,g.world.tags);assert_eq!(signals,g.signals);g.world.fail=false;let super::containers::BlockEntity::Chest(live)=g.world.block_entities.get_mut(&s).unwrap();live[0]=None;let old=g.world.tags.clone();let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert!(tick_tank_casting(&mut g,p,s,t,f));assert_eq!(old,g.world.tags);}

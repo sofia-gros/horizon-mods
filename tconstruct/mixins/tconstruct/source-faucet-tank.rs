@@ -68,7 +68,7 @@ pub(super) fn stop(game: &mut super::Game<'_>, pos: Pos, mut faucet: Faucet) -> 
     let Some(raw)=store::read(&game.world,pos,"tconstruct:faucet") else { return false; };
     faucet.stop_after_packet = true;
     let Some(data)=patch_faucet(&raw,&faucet) else { return false; };
-    store::write_many(&mut game.world,&[(pos,"tconstruct:faucet",data)])
+    super::tconstruct_source_machine_runtime::write_machine_updates(game,&[(pos,"tconstruct:faucet",data)])
 }
 
 /// Returns None when this is not our bounded route; Some is handled.
@@ -88,7 +88,7 @@ pub(super) fn activate(game: &mut super::Game<'_>, pos: Pos, source: Pos, target
     let Some(raw_faucet)=store::read(&game.world,pos,"tconstruct:faucet") else { return Some(false); };
     let Some(next_faucet)=patch_faucet(&raw_faucet,&faucet) else { return Some(false); };
     let Some(next_output)=patch_tank(&raw_output,&output) else { return Some(false); };
-    Some(store::write_many(&mut game.world,&[(source,key,data),(target,out_key,next_output),(pos,"tconstruct:faucet",next_faucet)]))
+    Some(super::tconstruct_source_machine_runtime::write_machine_updates(game,&[(source,key,data),(target,out_key,next_output),(pos,"tconstruct:faucet",next_faucet)]))
 }
 /// Keep pending fluid on an unreadable known source/destination. A removed
 /// source is not needed for a packet already reserved by the faucet.
@@ -114,6 +114,6 @@ pub(super) fn tick(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Po
     let Some(next_faucet)=patch_faucet(&raw_faucet,&faucet) else { return true; };
     let mut changes=vec![(target,out_key,next_output),(pos,"tconstruct:faucet",next_faucet)];
     if let Some(input)=input { let Some((key,data))=input.data() else { return true; }; changes.push((source,key,data)); }
-    let _=store::write_many(&mut game.world,&changes);
+    let _=super::tconstruct_source_machine_runtime::write_machine_updates(game,&changes);
     true
 }

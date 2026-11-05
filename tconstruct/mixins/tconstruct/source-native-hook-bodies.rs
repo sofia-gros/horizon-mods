@@ -2,7 +2,7 @@
 use super::{GameLevel, Ticks, BlockPos, BlockStateId, LevelAccess};
 
 pub(super) fn tconstruct_casting_comparator_present(level: &crate::game::GameLevel<'_>, state: horizon_world::registry::BlockStateId, output: &mut bool) {
-    if matches!(&*level.facts.get(state).name, "tconstruct:seared_casting_tank" | "tconstruct:seared_fluid_cannon") { *output = true; }
+    if matches!(&*level.facts.get(state).name, "tconstruct:seared_casting_tank" | "tconstruct:seared_fluid_cannon" | "tconstruct:seared_melter") { *output = true; }
 }
 
 pub(super) fn tconstruct_geode_random_tick(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
