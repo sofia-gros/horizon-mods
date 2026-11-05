@@ -17,7 +17,7 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 25] = [
+const UPGRADES: [(&str, i32); 26] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
@@ -26,6 +26,7 @@ const UPGRADES: [(&str, i32); 25] = [
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
     ("tconstruct:blockade", 10),
     ("tconstruct:parrying", 1),
+    ("tconstruct:blocking", 1),
 ];
 
 // Parrying is a static Java modifier, not a dynamic JSON definition. The
@@ -45,6 +46,42 @@ pub(super) fn valid_parrying_amount(tool: &ItemStack) -> bool {
             None | Some(Tag::Int(0 | 1))),
         _ => false,
     }
+}
+
+fn blocking_recipe() -> Value {
+    serde_json::json!({"type":"tconstruct:modifier", "allow_crystal":true,
+        "check_trait_level":true, "inputs":[{"tag":"minecraft:planks"},
+            {"tag":"forge:ingots/steel"}, {"tag":"minecraft:planks"},
+            {"tag":"minecraft:planks"}, {"tag":"minecraft:planks"}],
+        "level":1, "result":"tconstruct:blocking", "slots":{"abilities":1},
+        "tools":{"type":"forge:difference", "base":{"type":"forge:intersection",
+            "children":[{"tag":"tconstruct:modifiable/interactable/charge"},
+                {"tag":"tconstruct:modifiable/durability"}]},
+            "subtracted":[{"tag":"tconstruct:modifiable/melee/parry"},
+                {"tag":"tconstruct:modifiable/shields"}]}})
+}
+pub(super) fn known_blocking_definition(bytes: Option<&[u8]>) -> bool {
+    bytes.and_then(|bytes| serde_json::from_slice::<Value>(bytes).ok()).is_some_and(|value|
+        value == serde_json::json!({"level_display":"tconstruct:no_levels",
+            "modules":[{"type":"tconstruct:blocking"}]}))
+}
+pub(super) fn valid_blocking_amount(tool: &ItemStack) -> bool {
+    match tool.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|custom| custom.get("tic_upgrades")) {
+        None => true,
+        Some(upgrades @ Tag::Compound(_)) => matches!(upgrades.get("tconstruct:blocking"),
+            None | Some(Tag::Int(0 | 1))),
+        _ => false,
+    }
+}
+fn blocking_target(tool: &ItemStack, tags: &HashMap<String, HashSet<String>>) -> bool {
+    let member = |tag: &str| tags.get(tag).map(|items| items.contains(tool.item.as_ref()));
+    // Missing exclusion tags are unknown, not empty: do not accidentally turn
+    // a shield or a parry tool into an ordinary Blocking recipe target.
+    member("tconstruct:modifiable/interactable/charge") == Some(true)
+        && member("tconstruct:modifiable/durability") == Some(true)
+        && member("tconstruct:modifiable/melee/parry") == Some(false)
+        && member("tconstruct:modifiable/shields") == Some(false)
 }
 
 // Blockade stores applied panes, not whole levels, in the incremental record.
@@ -188,7 +225,7 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:parrying" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:blocking" | "tconstruct:parrying" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -204,7 +241,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
-    if !valid_parrying_amount(tool) || !valid_blockade(tool, traits) { return false; }
+    if !valid_blocking_amount(tool) || !valid_parrying_amount(tool) || !valid_blockade(tool, traits) { return false; }
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
     used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
@@ -218,7 +255,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:parrying" || valid_parrying_amount(tool)) && (id != "tconstruct:blockade" || blockade_level(tool,0).is_some()) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:blocking" || valid_blocking_amount(tool)) && (id != "tconstruct:parrying" || valid_parrying_amount(tool)) && (id != "tconstruct:blockade" || blockade_level(tool,0).is_some()) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -239,7 +276,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_parrying_amount(tool) || blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_blocking_amount(tool) || !valid_parrying_amount(tool) || blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -249,8 +286,9 @@ pub(super) fn extract_upgrade_with_traits(
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
-    if id == "tconstruct:parrying" {
-        if !belongs("tconstruct:modifiable/melee/parry")
+    if matches!(id, "tconstruct:blocking" | "tconstruct:parrying") {
+        if (id == "tconstruct:parrying" && !belongs("tconstruct:modifiable/melee/parry"))
+            || (id == "tconstruct:blocking" && !blocking_target(tool, tags))
             || traits.get(id).copied().unwrap_or(0) < 0 { return None; }
         // Never remove the last Blocking/Parrying prerequisite while any
         // saved or material Blockade remains on the rebuilt tool.
@@ -295,7 +333,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_parrying_amount(tool) || blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) { return None; }
+    if !valid_blocking_amount(tool) || !valid_parrying_amount(tool) || blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -309,6 +347,9 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:blocking" && (value != blocking_recipe() || tool.count != 1
+            || !blocking_target(tool, tags) || traits.get(id).copied().unwrap_or(0) < 0
+            || inputs.iter().flatten().any(|stack| stack.count == 0)) { continue; }
         if id == "tconstruct:parrying" && (value != parrying_recipe() || tool.count != 1
             || traits.get(id).copied().unwrap_or(0) < 0
             || inputs.iter().flatten().any(|stack| stack.count == 0)) { continue; }
@@ -319,7 +360,7 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:parrying" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:blocking" | "tconstruct:parrying" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
@@ -1705,5 +1746,100 @@ mod parrying_acquisition_tests {
         }
         let mut zero = inputs(); zero[1].as_mut().unwrap().count = 0;
         assert!(plan_with_traits(&recipes(), &tags(), &original, &zero, 9, 9, &BTreeMap::new()).is_none());
+    }
+}
+
+#[cfg(test)]
+mod blocking_acquisition_tests {
+    use super::*;
+    fn recipes() -> BTreeMap<String, Vec<u8>> {
+        BTreeMap::from([("blocking".into(), serde_json::to_vec(&blocking_recipe()).unwrap())])
+    }
+    fn tags() -> HashMap<String, HashSet<String>> {
+        HashMap::from([
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:sword".into()])),
+            ("tconstruct:modifiable/interactable/charge".into(), HashSet::from(["tconstruct:sword".into()])),
+            ("tconstruct:modifiable/durability".into(), HashSet::from(["tconstruct:sword".into()])),
+            ("tconstruct:modifiable/melee/parry".into(), HashSet::from(["tconstruct:dagger".into()])),
+            ("tconstruct:modifiable/shields".into(), HashSet::from(["tconstruct:plate_shield".into()])),
+            ("minecraft:planks".into(), HashSet::from(["minecraft:oak_planks".into()])),
+            ("forge:ingots/steel".into(), HashSet::from(["test:steel_ingot".into()])),
+        ])
+    }
+    fn tool(blocking: Tag, blockade: i32) -> ItemStack {
+        let mut tool = ItemStack::new("tconstruct:sword", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([
+                ("tconstruct:blocking", blocking), ("tconstruct:blockade", Tag::Int(blockade)),
+            ])),
+        ])));
+        tool
+    }
+    fn inputs() -> Vec<Option<ItemStack>> {
+        ["minecraft:oak_planks", "test:steel_ingot", "minecraft:oak_planks",
+            "minecraft:oak_planks", "minecraft:oak_planks"].into_iter()
+            .map(|item| Some(ItemStack::new(item, 2))).collect()
+    }
+    #[test]
+    fn five_input_recipe_and_crystals_respect_ability_and_trait_caps() {
+        let (recipes, tags, empty) = (recipes(), tags(), BTreeMap::new());
+        let blank = tool(Tag::Int(0), 0);
+        let plan = plan_with_traits(&recipes, &tags, &blank, &inputs(), 0, 1, &empty).unwrap();
+        assert_eq!((plan.id.as_str(), plan.amount), ("tconstruct:blocking", 1));
+        assert_eq!(plan.consumed, vec![(0,1), (1,1), (2,1), (3,1), (4,1), (5,1)]);
+        assert!(plan_with_traits(&recipes, &tags, &blank, &inputs()[..3], 0, 1, &empty).is_none());
+        assert!(plan_with_traits(&recipes, &tags, &blank, &inputs(), 9, 0, &empty).is_none());
+        assert!(plan_with_traits(&recipes, &tags, &blank, &inputs(), 9, 1,
+            &BTreeMap::from([("tconstruct:blocking".into(), 1)])).is_none());
+        let installed = tool(Tag::Int(1), 0);
+        assert!(plan_with_traits(&recipes, &tags, &installed, &inputs(), 9, 9, &empty).is_none());
+        assert!(valid_slots(&installed, &empty, 0, 1));
+        assert!(!valid_slots(&installed, &empty, 9, 0));
+        let removal = [Some(ItemStack::new("tconstruct:sky_slime_crystal", 1)),
+            Some(ItemStack::new("minecraft:wet_sponge", 1))];
+        let extraction = extract_upgrade_with_traits(&tags, &installed, &removal, "tconstruct:blocking", &empty).unwrap();
+        assert_eq!(extraction.upgrade.amount, 0);
+        assert_eq!(&*extraction.sponge.item, "minecraft:sponge");
+        let crystal = extraction.upgrade.leftover.unwrap();
+        assert!(plan_with_traits(&recipes, &tags, &blank, &[Some(crystal.clone()), None, None], 0, 1, &empty).is_some());
+        let mut zero = crystal; zero.count = 0;
+        assert!(plan_with_traits(&recipes, &tags, &blank, &[Some(zero)], 0, 1, &empty).is_none());
+    }
+    #[test]
+    fn both_exclusion_tags_and_blockade_dependencies_are_enforced() {
+        let blank = tool(Tag::Int(0), 0);
+        for tag in ["tconstruct:modifiable/interactable/charge", "tconstruct:modifiable/durability",
+            "tconstruct:modifiable/melee/parry", "tconstruct:modifiable/shields"] {
+            let mut missing = tags(); missing.remove(tag);
+            assert!(plan_with_traits(&recipes(), &missing, &blank, &inputs(), 9, 9, &BTreeMap::new()).is_none());
+        }
+        for tag in ["tconstruct:modifiable/melee/parry", "tconstruct:modifiable/shields"] {
+            let mut excluded = tags(); excluded.get_mut(tag).unwrap().insert("tconstruct:sword".into());
+            assert!(plan_with_traits(&recipes(), &excluded, &blank, &inputs(), 9, 9, &BTreeMap::new()).is_none());
+        }
+        let removal = [Some(ItemStack::new("tconstruct:sky_slime_crystal", 1)),
+            Some(ItemStack::new("minecraft:wet_sponge", 1))];
+        let installed = tool(Tag::Int(1), 5);
+        assert!(extract_upgrade_with_traits(&tags(), &installed, &removal, "tconstruct:blocking", &BTreeMap::new()).is_none());
+        assert!(extract_upgrade_with_traits(&tags(), &installed, &removal, "tconstruct:blocking",
+            &BTreeMap::from([("tconstruct:parrying".into(), 1)])).is_some());
+    }
+    #[test]
+    fn changed_definitions_recipes_and_malformed_records_fail_closed() {
+        let canonical = br#"{"level_display":"tconstruct:no_levels","modules":[{"type":"tconstruct:blocking"}]}"#;
+        assert!(known_blocking_definition(Some(canonical)));
+        assert!(!known_blocking_definition(None));
+        assert!(!known_blocking_definition(Some(b"{}")));
+        let mut changed = blocking_recipe(); changed["slots"]["abilities"] = serde_json::json!(0);
+        let changed = BTreeMap::from([("blocking".into(), serde_json::to_vec(&changed).unwrap())]);
+        assert!(plan_with_traits(&changed, &tags(), &tool(Tag::Int(0), 0), &inputs(), 9, 9, &BTreeMap::new()).is_none());
+        for value in [Tag::Int(-1), Tag::Int(2), Tag::Long(1)] {
+            let bad = tool(value, 0);
+            assert!(!valid_blocking_amount(&bad));
+            assert!(!extractable(&bad).contains(&"tconstruct:blocking"));
+            assert!(plan_with_traits(&recipes(), &tags(), &bad, &inputs(), 9, 9, &BTreeMap::new()).is_none());
+        }
+        let mut zero = inputs(); zero[1].as_mut().unwrap().count = 0;
+        assert!(plan_with_traits(&recipes(), &tags(), &tool(Tag::Int(0), 0), &zero, 9, 9, &BTreeMap::new()).is_none());
     }
 }
