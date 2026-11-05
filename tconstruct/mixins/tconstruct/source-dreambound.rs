@@ -1,6 +1,16 @@
 // Source Dreambound's independent worn gravity and extra-jump attributes.
 pub(super) const ID: &str = "tconstruct:dreambound";
 const DEFINITION: &str = r#"{"level_display":"tconstruct:single_level","modules":[{"type":"tconstruct:attribute","attribute":"tconstruct:player.jump_count","flat":1.0,"operation":"addition","slots":["mainhand","offhand","feet","legs","chest","head"]},{"type":"tconstruct:attribute","attribute":"forge:entity_gravity","flat":0.15,"modifier_level":1,"operation":"multiply_total","slots":["mainhand","offhand","feet","legs","chest","head"],"tooltip_style":"percent"}]}"#;
+pub(super) const DOUBLE_JUMP_ID: &str = "tconstruct:double_jump";
+const DOUBLE_JUMP_DEFINITION: &str = r#"{"level_display":{"type":"tconstruct:unique","first_unique":false,"unique_until":4},"modules":[{"type":"tconstruct:attribute","attribute":"tconstruct:player.jump_count","each_level":1.0,"operation":"addition","slots":["feet","legs","chest","head"],"tooltip_style":"none"}]}"#;
+// TinkerAttributes.JUMP_COUNT: base/min 1, maximum 100. The base is the
+// ordinary ground jump, so the shared airborne allowance is at most 99.
+pub(super) const MAX_EXTRA_JUMPS: u8 = 99;
+pub(super) fn known_double_jump(bytes: Option<&[u8]>) -> bool {
+    bytes
+        .and_then(|b| serde_json::from_slice::<serde_json::Value>(b).ok())
+        .is_some_and(|value| Some(value) == serde_json::from_str(DOUBLE_JUMP_DEFINITION).ok())
+}
 pub(super) fn known(bytes: Option<&[u8]>) -> bool {
     bytes
         .and_then(|b| serde_json::from_slice::<serde_json::Value>(b).ok())
@@ -20,6 +30,16 @@ pub(super) fn extra_jumps(levels: &[i32; 4]) -> Option<u8> {
         return None;
     }
     Some(levels.iter().filter(|level| **level > 0).count() as u8)
+}
+/// Both source modifiers contribute to one attribute and one spent budget.
+/// Dreambound is flat per piece; Double Jump scales with the logical level.
+pub(super) fn combined_jumps(dreambound: &[i32; 4], double_jump: &[i32; 4]) -> Option<u8> {
+    if double_jump.iter().any(|n| *n < 0) {
+        return None;
+    }
+    let flat = i64::from(extra_jumps(dreambound)?);
+    let leveled: i64 = double_jump.iter().map(|n| i64::from(*n)).sum();
+    Some((flat + leveled).min(i64::from(MAX_EXTRA_JUMPS)) as u8)
 }
 pub(super) fn fresh_jump(jumping: bool, was_jumping: bool, auto_jump: bool) -> bool {
     jumping && !was_jumping && !auto_jump
@@ -42,6 +62,26 @@ pub(super) fn armor_slot(item: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn double_jump_and_dreambound_share_the_source_attribute_cap() {
+        assert_eq!(combined_jumps(&[0; 4], &[0, 0, 0, 1]), Some(1));
+        assert_eq!(combined_jumps(&[0; 4], &[0, 0, 0, 2]), Some(2));
+        assert_eq!(combined_jumps(&[1, 1, 1, 1], &[0, 0, 0, 2]), Some(6));
+        assert_eq!(combined_jumps(&[4, 4, 4, 4], &[1, 2, 3, 4]), Some(14));
+        assert_eq!(combined_jumps(&[1; 4], &[i32::MAX; 4]), Some(99));
+        assert_eq!(combined_jumps(&[0; 4], &[0, -1, 0, 0]), None);
+        assert_eq!(combined_jumps(&[-1, 0, 0, 0], &[0; 4]), None);
+    }
+    #[test]
+    fn double_jump_requires_its_level_scaled_worn_definition() {
+        assert!(known_double_jump(Some(DOUBLE_JUMP_DEFINITION.as_bytes())));
+        assert!(!known_double_jump(None));
+        let mut value: serde_json::Value = serde_json::from_str(DOUBLE_JUMP_DEFINITION).unwrap();
+        value["modules"][0]["each_level"] = serde_json::json!(2.0);
+        assert!(!known_double_jump(Some(
+            &serde_json::to_vec(&value).unwrap()
+        )));
+    }
     #[test]
     fn holding_jump_and_auto_jump_do_not_spend_extra_jumps() {
         assert!(fresh_jump(true, false, false));
