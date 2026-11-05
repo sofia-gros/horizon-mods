@@ -30,8 +30,8 @@ mod tests {
         for config in [None, Some("[recipes]\nglassRecipeFix = true\n")] {
             if let Some(value) = config { root.set(value); }
             let files = root.files();
-            assert_eq!(files.len(), 4);
-            for ((path, bytes), &(expected_path, expected_bytes)) in files.iter().zip(glass::RECIPES) {
+            assert_eq!(files.len(), 8);
+            for ((path, bytes), &(expected_path, expected_bytes)) in files.iter().filter(|(path, _)| path.starts_with("recipe/")).zip(glass::RECIPES) {
                 assert_eq!(path, expected_path);
                 assert_eq!(bytes, expected_bytes);
                 let recipe: serde_json::Value = serde_json::from_slice(bytes).unwrap();
@@ -62,7 +62,7 @@ mod tests {
         b.set("[recipes]\nglassRecipeFix = false");
         for enabled in [true, false, true, false] {
             a.set(&format!("[recipes]\nglassRecipeFix = {enabled}"));
-            assert_eq!(a.files().len(), if enabled { 4 } else { 0 });
+            assert_eq!(a.files().len(), if enabled { 8 } else { 0 });
             assert!(b.files().is_empty());
         }
     }
@@ -74,11 +74,57 @@ mod tests {
         let overridden = (glass::RECIPES[1].0.to_owned(), b"{\"override\":true}".to_vec());
         let mut files = vec![other.clone(), overridden.clone()];
         glass::contribute(&root.0, &mut files);
-        assert_eq!(files.len(), 5);
+        assert_eq!(files.len(), 8);
+        assert!(!files.iter().any(|(path, _)| path == glass::ADVANCEMENTS[1].1));
         assert_eq!(files[0], other);
         assert_eq!(files[1], overridden);
         let once = files.clone();
         glass::contribute(&root.0, &mut files);
         assert_eq!(files, once);
     }
+
+    #[test]
+    fn source_discovery_is_paired_with_each_recipe_and_adapts_native_predicates() {
+        let root = Root::new();
+        let files = root.files();
+        let fixtures = [
+            ("glass_bottle", include_str!("../../fixtures/configured_glass_discovery/glass_bottle.json")),
+            ("beacon", include_str!("../../fixtures/configured_glass_discovery/beacon.json")),
+            ("daylight_detector", include_str!("../../fixtures/configured_glass_discovery/daylight_detector.json")),
+            ("end_crystal", include_str!("../../fixtures/configured_glass_discovery/end_crystal.json")),
+        ];
+        assert_eq!(glass::ADVANCEMENTS.len(), fixtures.len());
+        for (name, raw) in fixtures {
+            let id = format!("tconstruct:common/glass/vanilla/{name}");
+            let recipe_path = format!("recipe/{id}");
+            let &(_, advancement_path, _) = glass::ADVANCEMENTS.iter().find(|row| row.0 == recipe_path).unwrap();
+            assert!(files.iter().any(|(path, _)| path == &recipe_path));
+            let bytes = &files.iter().find(|(path, _)| path == advancement_path).unwrap().1;
+            let mut expected: serde_json::Value = serde_json::from_str(raw).unwrap();
+            expected["criteria"]["has_the_recipe"]["conditions"] = serde_json::json!({"recipes":id});
+            if name == "glass_bottle" {
+                expected["criteria"]["has_glass"]["conditions"] = serde_json::json!({"items":[{"items":"#forge:glass/colorless"}]});
+            }
+            assert_eq!(serde_json::from_slice::<serde_json::Value>(bytes).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn existing_advancement_is_preserved_without_blocking_its_recipe() {
+        let root = Root::new();
+        let supplied = (glass::ADVANCEMENTS[1].1.to_owned(), b"{\"custom\":true}".to_vec());
+        let mut files = vec![supplied.clone()];
+        glass::contribute(&root.0, &mut files);
+        assert_eq!(files.len(), 8);
+        assert_eq!(files[0], supplied);
+        assert!(files.iter().any(|(path, _)| path == glass::ADVANCEMENTS[1].0));
+        let once = files.clone();
+        glass::contribute(&root.0, &mut files);
+        assert_eq!(files, once);
+        root.set("[recipes]\nglassRecipeFix = false");
+        let mut disabled = vec![supplied.clone()];
+        glass::contribute(&root.0, &mut disabled);
+        assert_eq!(disabled, vec![supplied]);
+    }
+
 }
