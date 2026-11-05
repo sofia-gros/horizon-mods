@@ -210,13 +210,16 @@ pub(super) struct IncrementalGuideRecipe {
     pub inputs: Vec<String>,
     pub tools: Vec<String>,
     pub needed: i32,
+    pub per_item: i32,
+    pub leftover: Option<String>,
     pub maximum: i32,
     pub upgrade_cost: i32,
 }
 
-/// Show only single-progress-unit item/tag inputs with known gameplay
-/// denominators, explicit maximum levels and the source one-upgrade-slot cost.
-/// Block-value/leftover recipes and unknown shapes remain outside this view.
+/// Show item/tag inputs worth the source single-item or block values (1/4/9)
+/// with known gameplay denominators, explicit maxima and one-slot costs.
+/// Bulk recipes require a registered leftover item so partial levels are safe
+/// to describe. Unknown shapes and other progress multipliers remain omitted.
 pub(super) fn incremental_guide_recipes(
     recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],
     registry: &BTreeMap<String, i32>, items: &[String], tools: &[String],
@@ -232,11 +235,20 @@ pub(super) fn incremental_guide_recipes(
         for (recipe, bytes) in recipes {
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
             let Some(object) = value.as_object() else { continue; };
-            if object.keys().any(|key| !matches!(key.as_str(), "type" | "result" | "input" | "tools" | "level" | "allow_crystal" | "amount_per_item" | "needed_per_level" | "slots"))
+            if object.keys().any(|key| !matches!(key.as_str(), "type" | "result" | "input" | "tools" | "level" | "allow_crystal" | "amount_per_item" | "needed_per_level" | "slots" | "leftover"))
                 || value.get("type").and_then(|v| v.as_str()) != Some("tconstruct:incremental_modifier")
                 || value.get("result").and_then(|v| v.as_str()) != Some(modifier.as_str())
-                || value.get("amount_per_item").and_then(|v| v.as_i64()) != Some(1)
                 || value.get("allow_crystal").is_some_and(|v| !v.is_boolean()) { continue; }
+            let Some(per_item) = value.get("amount_per_item").and_then(|v| v.as_i64()).filter(|v| matches!(v, 1 | 4 | 9)) else { continue; };
+            let per_item = per_item as i32;
+            let leftover = match (per_item, value.get("leftover")) {
+                (1, None) => None,
+                (4 | 9, Some(value)) => {
+                    let Some(id) = value.as_str().filter(|id| items.iter().any(|item| item == id)) else { continue; };
+                    Some(id.to_owned())
+                }
+                _ => continue,
+            };
             let Some(needed) = value.get("needed_per_level").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0 && v == expected) else { continue; };
             let Some(level) = value.get("level").and_then(|v| v.as_object()).filter(|v| v.len() == 1) else { continue; };
             let Some(maximum) = level.get("max").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };
@@ -252,7 +264,7 @@ pub(super) fn incremental_guide_recipes(
             let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();
             inputs.sort(); inputs.dedup(); tools.sort(); tools.dedup();
             if !inputs.is_empty() && !tools.is_empty() {
-                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, maximum, upgrade_cost });
+                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, per_item, leftover, maximum, upgrade_cost });
             }
         }
     }
@@ -396,6 +408,29 @@ pub(super) fn compose_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bulk_incremental_pages_require_registered_leftovers_and_supported_point_values() {
+        let base=serde_json::json!({"type":"tconstruct:incremental_modifier","result":"x:known","input":{"item":"x:block"},"tools":{"item":"x:tool"},"amount_per_item":9,"needed_per_level":45,"level":{"max":5},"slots":{"upgrades":1},"leftover":"x:dust"});
+        let registry=BTreeMap::from([("x:known".into(),45)]);
+        let modifiers=vec!["x:known".into()]; let tools=vec!["x:tool".into()];
+        let matches=|v:&serde_json::Value,id:&str|v["item"].as_str()==Some(id);
+        let rows=|recipe:&serde_json::Value,items:&[String]|incremental_guide_recipes(&BTreeMap::from([("x:recipe".into(),serde_json::to_vec(recipe).unwrap())]),&modifiers,&registry,items,&tools,matches,|_,_|true,|_,_,_|true);
+        let items=vec!["x:block".into(),"x:dust".into()];
+        let result=rows(&base,&items); assert_eq!(result.len(),1);
+        assert_eq!(result[0].per_item,9); assert_eq!(result[0].leftover.as_deref(),Some("x:dust"));
+        assert!(rows(&base,&["x:block".into()]).is_empty());
+        let mut four=base.clone(); four["amount_per_item"]=serde_json::json!(4);
+        assert_eq!(rows(&four,&items)[0].per_item,4);
+        for (key,value) in [("amount_per_item",serde_json::json!(0)),("amount_per_item",serde_json::json!(2)),
+            ("amount_per_item",serde_json::json!(2147483647)),("amount_per_item",serde_json::json!(1)),
+            ("leftover",serde_json::json!(null)),("leftover",serde_json::json!("x:missing")),
+            ("slots",serde_json::json!({"upgrades":0})),("slots",serde_json::json!({"upgrades":2}))] {
+            let mut changed=base.clone(); changed[key]=value; assert!(rows(&changed,&items).is_empty(),"{key}");
+        }
+        let mut missing=base.clone(); missing.as_object_mut().unwrap().remove("leftover");
+        assert!(rows(&missing,&items).is_empty());
+    }
+
     #[test]
     fn incremental_pages_refuse_unknown_shapes_denominators_and_unavailable_items() {
         let recipe = serde_json::json!({"type":"tconstruct:incremental_modifier","result":"x:known","input":{"item":"x:a"},"tools":{"item":"x:tool"},"amount_per_item":1,"needed_per_level":45,"level":{"max":5},"slots":{"upgrades":1}});

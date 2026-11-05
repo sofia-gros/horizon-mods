@@ -64,7 +64,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
         import zipfile
         fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
-            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {})}.items():
+            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {})}.items():
                 self.assertEqual(recipe, json.loads(archive.read(path)), path)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             for path, tag in fixture['modifier_tags'].items():
@@ -158,7 +158,7 @@ class IncrementalModifierGuideWiring(unittest.TestCase):
                      'incremental_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',
                      'incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools',
                      'tool_supported_with_tags(modifier, item, tags)', 'incremental_limits_supported',
-                     'entry.needed, entry.maximum, entry.upgrade_cost', 'split_styled(game,', 'partial guide'):
+                     'entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost', 'entry.leftover', 'unused progress points', 'split_styled(game,', 'partial guide'):
             self.assertIn(text, body)
         self.assertIn('if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages', source)
         rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
