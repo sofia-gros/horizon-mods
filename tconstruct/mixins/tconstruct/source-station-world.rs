@@ -569,8 +569,8 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     let defense_slots = super::tconstruct_source_material_traits::levels(world, tool)
         .and_then(|resolved| super::tconstruct_source_defense_slots::capacity(world, definition, tool, &resolved.levels));
     let plan = super::tconstruct_source_upgrade_rules::plan_with_defense(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, defense_slots.unwrap_or(0), &traits)?;
-    if plan.id == "tconstruct:fire_protection" && !super::tconstruct_source_fire_protection::supported_definition(world) {
-        *reason = Some("Fire Protection is unavailable: the current modifier definition is unsupported.".into());
+    if super::tconstruct_source_upgrade_rules::is_protection(&plan.id) && !super::tconstruct_source_protection::supported_definition(world, &plan.id) {
+        *reason = Some(format!("{} is unavailable: the current modifier definition is unsupported.", plan.id));
         return None;
     }
     if plan.id == "tconstruct:knockback_resistance" && !super::tconstruct_source_knockback_defense::supported_definition(world) {
