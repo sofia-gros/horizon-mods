@@ -5322,6 +5322,12 @@ file = "crates/horizon-client/src/game/advancements.rs"
 name = "tconstruct_source_advancement_tag"
 source = "source-advancement-tag.rs"
 
+[[module]]
+id = "source-container-advancement"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_container_advancement"
+source = "source-container-advancement.rs"
+
 [[injection]]
 id = "source-advancement-tag-predicate"
 target = "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"

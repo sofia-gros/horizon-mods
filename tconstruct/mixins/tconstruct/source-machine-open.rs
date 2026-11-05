@@ -24,6 +24,11 @@ fn tconstruct_machine_open(game: &mut crate::game::Game<'_>, pos: [i32; 3], name
         *slots = crate::game::tconstruct_source_smeltery_page::project(&state.slots, 0);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(key, (state.slots.len(), 0));
         game.container = Some(key);
+        // Guest requests are awarded only after their actual network menu
+        // opens in guest-open.rs, never during a temporary acting context.
+        if game.lan_acting.is_none() {
+            crate::game::tconstruct_source_container_advancement::opened(game, name);
+        }
         return std::ops::ControlFlow::Break(true);
     }
     if !matches!(name, "tconstruct:seared_melter" | "tconstruct:seared_heater") { return std::ops::ControlFlow::Continue(()); }

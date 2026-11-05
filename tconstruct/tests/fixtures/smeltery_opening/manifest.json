@@ -1,0 +1,10 @@
+{
+  "structure.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/smeltery/structure.json",
+    "sha256": "f5d45a8c75611b5bf6f120bfed521440ea62edf6f58bab86e2513d1c3e856e03"
+  },
+  "BlockContainerOpenedTrigger.java": {
+    "source": "src/main/java/slimeknights/tconstruct/shared/inventory/BlockContainerOpenedTrigger.java",
+    "sha256": "ab5f16bce365ca1ad54f641178b7995bb149b0035df4b31159fec3def51ffd25"
+  }
+}

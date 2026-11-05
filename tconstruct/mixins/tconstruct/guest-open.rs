@@ -54,6 +54,15 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30004, value: 0 }));
             }
         }
+        // Only the opener receives progress, after a real menu for this
+        // controller exists. A failed open cannot award the host player.
+        let opened = host.hub.guest(conn).and_then(|guest| guest.menu.as_ref())
+            .is_some_and(|menu| menu.pos == Some(pos) && menu.slots == horizon_client::lan::menu::Slots::Block(pos));
+        if opened {
+            let _ = game.as_guest(host, conn, |actor| {
+                crate::game::tconstruct_source_container_advancement::opened(actor, &machine);
+            });
+        }
         return Break(true);
     }
     if matches!(&*machine, "tconstruct:seared_melter" | "tconstruct:seared_heater") {
