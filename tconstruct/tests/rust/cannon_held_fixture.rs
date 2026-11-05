@@ -24,7 +24,7 @@ impl Chunks{
 }
 struct World{raw:Tag,chunks:Chunks,block_entities:HashMap<Pos,BlockEntity>,block:usize,blocks:HashMap<Pos,usize>,fail:bool,writes:usize}
 impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{self.blocks.get(&(x,y,z)).copied().unwrap_or(self.block)}}
-struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,inventory:Vec<Option<ItemStack>>,offhand:Option<ItemStack>,selected:usize,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,fault_after:usize,preparations:usize,move_fault:u8,fault_after:usize,preparations:usize,moves:usize,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
+struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,inventory:Vec<Option<ItemStack>>,offhand:Option<ItemStack>,selected:usize,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,fault_after:usize,preparations:usize,move_fault:u8,moves:usize,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
 #[derive(PartialEq)]enum Kind{Hopper,Other}
 struct View{kind:Kind,parts:Vec<(Pos,usize)>}impl View{fn len(&self)->usize{self.parts.iter().map(|(_,len)|len).sum()}}
 struct Containers;impl Containers{fn max_stack(&self,_:&ItemStack)->u32{64}fn can_place(&self,_:&View,_:usize,_:&ItemStack)->bool{true}}
@@ -91,7 +91,7 @@ fn fixture(draining:bool,count:u32)->Game<'static>{
   if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("future_tank".into(),Tag::Int(8));}
   if let Some(Tag::Compound(item))=fields.get_mut(&"item".into()){item.insert("future_item".into(),Tag::Int(9));}
  }
- Game{world:World{raw,chunks:Chunks{loaded:true,unloaded:HashSet::new(),fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,blocks:HashMap::new(),fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),inventory:vec![None;36],offhand:None,selected:0,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,fault_after:1,preparations:0,move_fault:0,fault_after:1,preparations:0,moves:0,signals:0,updates:0,_life:std::marker::PhantomData}
+ Game{world:World{raw,chunks:Chunks{loaded:true,unloaded:HashSet::new(),fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,blocks:HashMap::new(),fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),inventory:vec![None;36],offhand:None,selected:0,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,fault_after:1,preparations:0,move_fault:0,moves:0,signals:0,updates:0,_life:std::marker::PhantomData}
 }
 #[test]fn cannon_held_fill_drain_preserve_raw_and_live_items(){
  for draining in [false,true]{for count in [1,2]{for creative in [false,true]{

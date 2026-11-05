@@ -32,7 +32,6 @@ template = (root / "tests/rust/cannon_held_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"))
 template = template.replace("__INVENTORY__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs")).replace("// __CANNON_HOPPER__", hopper)
 template = template.replace("// __INVENTORY_ADD__", inventory_add)
-template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route).replace("// __CANNON_SAVE__", save)
 template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route).replace("// __CANNON_SAVE__", save).replace("// __CASTING_TANK_SAVE__", casting).replace("// __CASTING_TANK_INTERACTION__", casting_interaction)
 with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
     path = pathlib.Path(tmp)
