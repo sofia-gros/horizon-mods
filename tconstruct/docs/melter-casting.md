@@ -95,3 +95,25 @@ without pouring until the source is corrected or removed. Older casting table,
 basin and cannon routes and broken/replaced blocks are outside this guard.
 Fixture tests use mock world and atomic store behavior; host integration and
 LAN remain unverified.
+
+### Held casting containers: native extension preservation (#379)
+
+Held-container filling and draining on Seared/Scorched Casting Tables and
+Basins now use the preserving casting codec instead of requiring an exact
+canonical serialization. Native machine/tank extension fields and unchanged
+opaque saved item fields survive supported transfers. Source/Forge aliases,
+malformed owned fields, lossy strings and wire-backed live items still refuse
+the exchange. Lantern items retain their existing portable-data safety gate.
+
+The exchange is staged before checking the original saved state, live casting
+slots, block state, loaded chunk, held stack and creative mode again. The
+casting save must succeed before replacing the held container or giving its
+remainder. Cooling and ordinary item-slot behavior remain unchanged.
+
+The bounded interaction fixture adds all four blocks, filling/draining,
+single/stacked containers, creative behavior, nine changed-state cases and
+invalid metadata/save cases. World, recipe lookup and portable conversion are
+mocked; the interaction, casting codec, item codec and metadata store are the
+production implementations. These cases have not been run in this batch.
+Full host/world, real portable conversion, save/reload and LAN validation are
+still deferred to the combined pass.

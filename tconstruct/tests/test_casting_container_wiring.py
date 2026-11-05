@@ -17,7 +17,13 @@ class CastingContainerWiring(unittest.TestCase):
         self.assertIn('if game.creative', body)
         self.assertLess(body.index('casting_portable_rewrite_safe(stack)'), body.index('transfer_single_with_color'))
         self.assertIn('let held = game.held().cloned();', body)
-        self.assertLess(body.index('casting.roundtrips(&raw)'), body.index('store::write_casting(&mut game.world, pos, kind, &next)'))
+        self.assertLess(body.index('let raw_casting = store::read('), body.index('game.ensure_datapacks()'))
+        self.assertNotIn('casting.roundtrips(&raw)', body)
+        for guard in ('casting.to_nbt_preserving(&raw_casting)', 'fresh.to_nbt_preserving(&raw_casting)',
+                      'game.world.block(pos.0, pos.1, pos.2) != block_state',
+                      'store::read(&game.world, pos, kind).as_ref() != Some(&raw_casting)',
+                      'held.same_item_same_components(&held_before)', 'game.creative != creative'):
+            self.assertLess(body.index(guard), body.index('store::write_casting(&mut game.world, pos, kind, &next)'))
 
     def test_both_faucet_sources_reinitialize_the_casting_before_pouring(self):
         source = (ROOT / 'source-machine-runtime.rs').read_text()
