@@ -66,3 +66,60 @@ mod budding_snapshot_test {
     }
 
 }
+
+#[path = "../../../mixins/tconstruct/source-scute-compat.rs"]
+mod tconstruct_source_scute_compat;
+
+#[cfg(test)]
+mod scute_compat_tests {
+    use super::tconstruct_source_scute_compat as compat;
+    use serde_json::json;
+
+    #[test]
+    fn preparation_is_bounded_idempotent_and_registry_gated() {
+        let dir = std::env::temp_dir().join(format!("tconstruct-scute-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let original = [
+            (compat::MATERIAL, json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:scute"}, "material":"tconstruct:turtle", "needed":1,"value":1})),
+            (compat::RECYCLING, json!({"type":"tconstruct:part_builder_recycling", "pattern":{"item":"tconstruct:venom_bottle"}, "tool":{"item":"minecraft:turtle_helmet"}, "results":{"tconstruct:scale":{"item":"minecraft:scute","count":5}}})),
+        ];
+        for (id, value) in &original {
+            let path = dir.join(format!("data/tconstruct/recipes/{id}.json"));
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
+        }
+        for registry in [json!(null), json!({}), json!({"minecraft:scute":{}}), json!({"minecraft:scute":{},"minecraft:turtle_scute":{}})] {
+            compat::prepare(&dir, &registry).unwrap();
+            for (id, value) in &original {
+                let read: serde_json::Value = serde_json::from_slice(&std::fs::read(dir.join(format!("data/tconstruct/recipes/{id}.json"))).unwrap()).unwrap();
+                assert_eq!(&read, value);
+            }
+        }
+        compat::prepare(&dir, &json!({"minecraft:turtle_scute":{}})).unwrap();
+        for (id, value) in &original {
+            let path = dir.join(format!("data/tconstruct/recipes/{id}.json"));
+            let saved = std::fs::read(&path).unwrap();
+            let read: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+            let mut expected = value.clone();
+            assert!(compat::adapt_recipe(id, &mut expected));
+            assert_eq!(read, expected);
+            compat::prepare(&dir, &json!({"minecraft:turtle_scute":{}})).unwrap();
+            assert_eq!(std::fs::read(path).unwrap(), saved);
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn unrelated_or_overridden_recipes_are_not_redirected() {
+        for (id, mut value) in [
+            ("other", json!({"type":"tconstruct:material","ingredient":{"item":"minecraft:scute"}})),
+            (compat::MATERIAL, json!({"type":"other","ingredient":{"item":"minecraft:scute"}})),
+            (compat::MATERIAL, json!({"type":"tconstruct:material","ingredient":{"tag":"forge:scutes"}})),
+            (compat::MATERIAL, json!({"type":"tconstruct:material","ingredient":{"item":"mod:custom_scute"}})),
+        ] {
+            let original = value.clone();
+            assert!(!compat::adapt_recipe(id, &mut value));
+            assert_eq!(value, original);
+        }
+    }
+}

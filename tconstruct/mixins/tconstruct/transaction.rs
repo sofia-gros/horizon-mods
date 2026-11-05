@@ -1820,6 +1820,43 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 #[cfg(test)]
 mod tests {
     #[test]
+    fn native_turtle_scute_enters_source_material_lookup_and_recycling_output() {
+        use std::collections::{BTreeMap, HashMap, HashSet};
+        use crate::entry::tconstruct_source_scute_compat as compat;
+        let mut material = serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:scute"}, "material":"tconstruct:turtle", "needed":1,"value":1});
+        let lookup = |value: &serde_json::Value, item: &str| {
+            super::source_material_lookup(
+                &BTreeMap::from([("tconstruct:tools/materials/turtle_scute".into(), serde_json::to_vec(value).unwrap())]),
+                item, None, &HashMap::new(), &HashSet::new(), &HashMap::new(), &HashMap::new(), &HashMap::new(), true).unwrap()
+        };
+        assert!(lookup(&material, "minecraft:turtle_scute").is_none());
+        assert!(compat::adapt_recipe(compat::MATERIAL, &mut material));
+        let matched = lookup(&material, "minecraft:turtle_scute").unwrap();
+        assert_eq!(matched.material, "tconstruct:turtle");
+        assert_eq!(super::material_cost(2, matched.needed, matched.value), Some((2, 0)));
+        assert!(lookup(&material, "minecraft:scute").is_none());
+        let supported = super::source_supported_original_parts(&HashSet::from(["tconstruct:maille".into(), "tconstruct:shell".into()]), false);
+        assert!(supported.contains("tconstruct:maille"));
+        let recipe = super::SourcePartRecipe::parse("tconstruct:tools/parts/builder/maille".into(), &serde_json::json!({"type":"tconstruct:part_builder","cost":2,"pattern":"tconstruct:maille","pattern_item":[{"tag":"tconstruct:patterns/default"},{"item":"tconstruct:maille_cast"}],"result":{"item":"tconstruct:maille"}})).unwrap();
+        let input = super::SourcePartInput::Material { input_item: "minecraft:turtle_scute", material: "tconstruct:turtle", craftable: true, supported_outputs: &supported };
+        let plan = super::source_part_plan(&recipe, &input, Some(&matched), 2, false).unwrap().unwrap();
+        assert_eq!(plan.materials_used, 2);
+        assert_eq!(plan.pattern_used, 1);
+        assert!(matches!(plan.output, super::SourcePartOutput::MaterialItem { ref item, ref material, count: 1 } if item == "tconstruct:maille" && material == "tconstruct:turtle"));
+        assert!(super::source_part_plan(&recipe, &input, Some(&matched), 1, false).unwrap().is_none());
+
+        let mut recycling = serde_json::json!({"type":"tconstruct:part_builder_recycling", "pattern":{"item":"tconstruct:venom_bottle"}, "tool":{"item":"minecraft:turtle_helmet"}, "results":{"tconstruct:scale":{"item":"minecraft:scute","count":5}}});
+        assert!(compat::adapt_recipe(compat::RECYCLING, &mut recycling));
+        let parsed = super::SourceRecyclingRecipe::parse("tconstruct:tables/recycling/turtle_helmet".into(), &recycling).unwrap();
+        let output = &parsed.results["tconstruct:scale"];
+        assert_eq!(output.kind, super::SourceOutputKind::Item("minecraft:turtle_scute".into()));
+        assert_eq!(output.count, 5);
+        // The normal persisted output representation retains the native ID.
+        let restored: super::SourceItemOutput = serde_json::from_slice(&serde_json::to_vec(output).unwrap()).unwrap();
+        assert_eq!(&restored, output);
+    }
+
+    #[test]
     fn plain_material_ingredient_enumerates_tag_difference_without_inventing_instruments() {
         use std::collections::{HashMap, HashSet};
         let items = HashSet::from(["minecraft:oak_log".to_owned(), "minecraft:birch_log".to_owned()]);
