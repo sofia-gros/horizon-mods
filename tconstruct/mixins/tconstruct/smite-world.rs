@@ -3,7 +3,12 @@ use horizon_world::nbt::Tag;
 pub(super) fn bonus(game: &super::Game<'_>, index: usize) -> Option<f32> {
     if game.remote.is_some() || game.player.as_ref()?.auto_spin_attack_dmg > 0.0 { return None; }
     let mob = game.mobs.get(index)?;
-    if !mob.alive() || !mob.kind.flags.undead { return None; }
+    if !mob.alive() { return None; }
+    let (id, supported) = if mob.kind.flags.undead {
+        ("tconstruct:smite", super::tconstruct_source_smite::supported_definition(&game.world))
+    } else if super::tconstruct_source_smite::water_mob(&mob.kind.id) {
+        ("tconstruct:antiaquatic", super::tconstruct_source_smite::supported_antiaquatic_definition(&game.world))
+    } else { return None; };
     let stack = game.inventory.get(game.selected)?.as_ref()?;
     if game.held() != Some(stack) || stack.count != 1 || stack.wire_patch().is_some()
         || !matches!(stack.item.as_ref(), "tconstruct:pickaxe" | "tconstruct:sledge_hammer" | "tconstruct:vein_hammer" | "tconstruct:hand_axe" | "tconstruct:broad_axe" | "tconstruct:mattock" | "tconstruct:pickadze" | "tconstruct:excavator" | "tconstruct:kama" | "tconstruct:scythe" | "tconstruct:sword" | "tconstruct:cleaver" | "tconstruct:dagger" | "tconstruct:battlesign" | "tconstruct:war_pick") { return None; }
@@ -12,17 +17,17 @@ pub(super) fn bonus(game: &super::Game<'_>, index: usize) -> Option<f32> {
     if stack.damage >= max || !matches!(custom.get("tic_broken"), None | Some(Tag::Byte(0))) { return None; }
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     if !tags.get("tconstruct:modifiable/melee")?.contains(stack.item.as_ref())
-        || !super::tconstruct_source_smite::supported_definition(&game.world) { return None; }
+        || !supported { return None; }
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     if super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:no_melee")? != 0 { return None; }
     let amount = match custom.get("tic_upgrades") {
         None => 0,
-        Some(upgrades @ Tag::Compound(_)) => match upgrades.get("tconstruct:smite") {
+        Some(upgrades @ Tag::Compound(_)) => match upgrades.get(id) {
             None => 0, Some(Tag::Int(amount)) => *amount, _ => return None,
         },
         _ => return None,
     };
-    let level = super::tconstruct_source_smite::effective_level(traits.levels.get("tconstruct:smite").copied().unwrap_or(0), amount)?;
+    let level = super::tconstruct_source_smite::effective_level(traits.levels.get(id).copied().unwrap_or(0), amount)?;
     if level <= 0.0 { return None; }
     let multiplier = match custom.get("tic_smite_melee_multiplier") { Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return None };
     if !multiplier.is_finite() || multiplier < 0.0 { return None; }

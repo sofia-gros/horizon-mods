@@ -1,5 +1,7 @@
 # Smite acquisition and primary melee damage
 
+Antiaquatic now shares this primary-target path; see `antiaquatic-melee.md`.
+
 This bounded high-priority #379 slice admits the original incremental Smite
 recipe on 15 existing held melee tool classes: Pickaxe, Sledge Hammer, Vein
 Hammer, Hand Axe, Broad Axe, Mattock, Pickadze, Excavator, Kama, Scythe, Sword,
