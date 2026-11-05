@@ -401,3 +401,52 @@ mod tank_drop{
  assert_eq!(pending.copied[&[1,2,3]].1.get(&"other".into()),Some(&Tag::Int(7)));assert!(!pending.copied[&[1,2,3]].1.contains_key(&"tconstruct:internal_tank_copy".into()));
  let before=right.clone();tank_drop::smeltery_tank_drop(&mut pending,[1,2,3],&mut right);assert_eq!(right,before);
 }
+
+#[test]fn portable_recipe_fill_preserves_all_twelve_tanks(){
+ use tconstruct_source_melter_state::{portable_tank,fill_portable};
+ let names=["seared_fuel_tank","seared_fuel_gauge","scorched_fuel_tank","scorched_fuel_gauge","seared_ingot_tank","seared_ingot_gauge","scorched_ingot_tank","scorched_ingot_gauge","seared_lantern","scorched_lantern","seared_casting_tank","seared_fluid_cannon"];
+ for short in names{for tagged in [false,true]{for initial in [0,10]{
+  let name=format!("tconstruct:{short}");let capacity=tconstruct_source_smeltery_fuel::item_capacity(&name).unwrap();
+  let metadata=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);let tag=tagged.then_some(&metadata);let fluid=if tagged{"tconstruct:potion"}else{"minecraft:lava"};
+  let mut tank=tconstruct_source_melter_state::Tank::new(capacity);if initial>0{assert!(tank.insert_tagged(fluid,tag,initial));}
+  let Tag::Compound(mut raw)=tank.to_nbt()else{panic!()};raw.insert("future_tank".into(),Tag::compound([("nested",Tag::Long(17))]));
+  let mut stack=ItemStack::new(&name,1);stack.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Kept".into())));
+  stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tconstruct:tank",Tag::Compound(raw)),("future_item",Tag::Int(29))])));
+  let before=stack.clone();let output=fill_portable(&stack,portable_tank(&stack,capacity).unwrap(),fluid,tag,10).unwrap();assert_eq!(stack,before);
+  let next=portable_tank(&output,capacity).unwrap();assert_eq!((next.amount,next.fluid.as_deref(),next.tag.as_ref()),(initial+10,Some(fluid),tag));
+  let custom=output.data().unwrap().other("minecraft:custom_data").unwrap();assert_eq!(custom.get("future_item"),Some(&Tag::Int(29)));
+  assert_eq!(custom.get("tconstruct:tank").unwrap().get("future_tank"),Some(&Tag::compound([("nested",Tag::Long(17))])));
+  assert_eq!(output.data().unwrap().other("minecraft:custom_name"),stack.data().unwrap().other("minecraft:custom_name"));
+  let decoded=horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output)).unwrap();assert_eq!(decoded.count,1);assert!(decoded.same_item_same_components(&output));
+ }}}
+}
+#[test]fn portable_recipe_fill_rejects_ambiguous_and_opaque_inputs(){
+ use tconstruct_source_melter_state::{portable_tank,fill_portable,Tank};
+ for key in ["FluidName","Amount","Tag","Tank","Fluid"]{
+  let mut stack=ItemStack::new("tconstruct:seared_lantern",1);stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tconstruct:tank",Tag::compound([("amount",Tag::Int(0)),(key,Tag::Int(1))]))])));
+  let before=stack.clone();assert!(portable_tank(&stack,50).is_none());assert!(fill_portable(&stack,Tank::new(50),"minecraft:lava",None,10).is_none());assert_eq!(stack,before);
+ }
+ for raw in [Tag::Int(1),Tag::compound([("amount",Tag::Int(-1))]),Tag::compound([("amount",Tag::Int(51)),("fluid",Tag::String("minecraft:lava".into()))]),Tag::compound([("amount",Tag::Int(1)),("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800])))]),Tag::compound([("amount",Tag::Int(0)),("fluid_tag",Tag::Int(1))])]{
+  let mut stack=ItemStack::new("tconstruct:seared_lantern",1);stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tconstruct:tank",raw)])));assert!(portable_tank(&stack,50).is_none());
+ }
+ for mode in 0..7{let mut stack=ItemStack::new("tconstruct:seared_lantern",1);
+  match mode{0=>stack.count=0,1=>stack.count=2,2=>stack.damage=1,3=>stack.data_mut().set_other("minecraft:custom_data",Some(Tag::Int(1))),4|5=>{stack.data_mut().wire=horizon_items::item_data::Wire::new(stack.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==5{stack.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}},6=>stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tconstruct:tank",Tag::Int(1))]))),_=>unreachable!()}
+  let before=stack.clone();assert!(portable_tank(&stack,50).is_none());assert!(fill_portable(&stack,Tank::new(50),"minecraft:lava",None,10).is_none());assert_eq!(stack,before);
+ }
+}
+#[test]fn portable_recipe_fill_requires_exact_current_tank(){
+ use tconstruct_source_melter_state::{portable_tank,fill_portable,Tank};
+ let stack=ItemStack::new("tconstruct:seared_lantern",1);let mut stale=Tank::new(50);assert!(stale.insert("minecraft:lava",10));assert!(fill_portable(&stack,stale,"minecraft:lava",None,10).is_none());
+ let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);let other=Tag::compound([("Potion",Tag::String("minecraft:poison".into()))]);
+ let filled=fill_portable(&stack,Tank::new(50),"tconstruct:potion",Some(&tag),10).unwrap();let current=portable_tank(&filled,50).unwrap();
+ for (fluid,metadata,amount) in [("tconstruct:potion",None,10),("tconstruct:potion",Some(&other),10),("minecraft:water",Some(&tag),10),("tconstruct:potion",Some(&tag),0),("tconstruct:potion",Some(&tag),41)]{assert!(fill_portable(&filled,current.clone(),fluid,metadata,amount).is_none());}
+ assert!(fill_portable(&filled,Tank::new(50),"tconstruct:potion",Some(&tag),10).is_none());
+ assert_eq!(portable_tank(&fill_portable(&filled,current,"tconstruct:potion",Some(&tag),40).unwrap(),50).unwrap().amount,50);
+}
+#[test]fn portable_recipe_fill_keeps_extensions_through_casting_completion(){
+ use tconstruct_source_melter_state::{portable_tank,fill_portable,Casting};
+ let mut input=ItemStack::new("tconstruct:seared_lantern",1);input.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tconstruct:tank",Tag::compound([("amount",Tag::Int(0)),("future_tank",Tag::Int(19))]))])));
+ let result=fill_portable(&input,portable_tank(&input,50).unwrap(),"minecraft:lava",None,10).unwrap();let mut casting=Casting::new();casting.input=Some(input);assert!(casting.prepare("test:lantern",10,5,result.clone(),true,false));
+ assert!(casting.tank.insert("minecraft:lava",10));let mut restored=Casting::from_nbt(&casting.to_nbt()).unwrap();for _ in 0..4{assert!(!restored.tick(true));}assert!(restored.tick(true));
+ let output=restored.output.unwrap();assert!(output.same_item_same_components(&result));assert_eq!(portable_tank(&output,50).unwrap().amount,10);assert!(restored.input.is_none());assert_eq!(restored.tank.amount,0);
+}
