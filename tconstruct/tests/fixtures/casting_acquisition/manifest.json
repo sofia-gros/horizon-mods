@@ -1,0 +1,10 @@
+{
+  "sand_casting": {
+    "source": "smeltery/sand_casting.json",
+    "sha256": "54e6949062b71a043a701cb4455ae1f1ca4b6c034b520c588b6672d5f3399130"
+  },
+  "gold_casting": {
+    "source": "smeltery/gold_casting.json",
+    "sha256": "7b6f885a30837e80cbbcdd4a1163dcadebbddb0c2d445757c7619ad6a8e5b3cd"
+  }
+}

@@ -66,8 +66,9 @@ in a running world.
 
 The source Cast Collector goal records the 24 named reusable casts as separate
 inventory criteria; all are required and acquisitions may occur at different
-times. Its Gold Casting parent is not registered, so this goal is not laid out
-in the advancement tree; the host may still show a toast or chat announcement.
+times. Its Gold Casting parent is now registered by the separate
+casting-acquisition advancement addition, connecting its ancestry through
+Melter. Actual tree layout and notifications remain unverified.
 The package declares all 24 item IDs, but this does not establish every cast's
 ordinary acquisition. Actual inventory events, persistence, display and LAN are
 unverified in a running world.
