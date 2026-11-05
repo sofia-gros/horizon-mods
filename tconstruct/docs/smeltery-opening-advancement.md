@@ -18,16 +18,19 @@ The bounded trigger adapter runs from the successful Smeltery menu branches:
   block slots. The trigger then runs through `as_guest` for that connection,
   never directly against the host's player progress.
 
-The helper accepts only `tconstruct:smeltery_controller` and matches the
-exact source block-entity type. It evaluates the source player predicate with
+The helper maps `tconstruct:smeltery_controller` to its exact source
+block-entity type. The separate Foundry opening extension also maps
+`tconstruct:foundry_controller` to `tconstruct:foundry`, without allowing one
+to satisfy the other. It evaluates the source player predicate with
 the host advancement predicate machinery, then uses the normal event pipeline
 for criterion tracking, completion, notifications, rewards and guest packets.
 It does not directly grant hard-coded advancement IDs. Remote clients do not
 award locally. Reopening uses the host's existing completed-criterion guard.
 
-This does not register every possible block-container trigger type, the
-Foundry opening milestone, placement/possession substitutes, or new machine
-behavior. Existing menu permission checks and structure rules are unchanged.
+This does not register every possible block-container trigger type,
+placement/possession substitutes, or new machine behavior. The Foundry
+opening extension is documented separately, including its missing Alloyer
+ancestor. Existing menu permission checks and structure rules are unchanged.
 The hook records the established authoritative menu-open boundary; network
 delivery and actual display have not been exercised.
 

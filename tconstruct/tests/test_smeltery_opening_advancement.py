@@ -63,9 +63,9 @@ class SmelteryOpeningAdvancement(unittest.TestCase):
         self.assertEqual(entry['file'], 'crates/horizon-client/src/game.rs')
         self.assertEqual(entry['source'], 'source-container-advancement.rs')
         source = (MIXINS / entry['source']).read_text()
-        for token in ('block != "tconstruct:smeltery_controller"', 'game.remote.is_some()',
+        for token in ('"tconstruct:smeltery_controller" => "tconstruct:smeltery"', 'game.remote.is_some()',
                       'game.player_entity()', 'game.trigger("tconstruct:block_container_opened"',
-                      'conditions["type"].as_str() == Some("tconstruct:smeltery")',
+                      'conditions["type"].as_str() == Some(container_type)',
                       'adv::conditions(&conditions["player"], &context, world)'):
             self.assertIn(token, source)
 
