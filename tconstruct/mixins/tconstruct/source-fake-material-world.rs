@@ -85,6 +85,9 @@ pub(super) fn refresh(game: &mut super::Game<'_>) {
     // not alter other mods' tables or use a process-global eligibility cache.
     tables.recipes.crafting.retain(|(id, _)| !id.starts_with(PREFIX));
     tables.recipes.crafting.extend(generated);
+    horizon_client::recipe_book::tconstruct_source_fake_material_book::replace(
+        &mut tables.stations.recipe_index, &tables.recipes.crafting);
+    game.tconstruct_invalidate_fake_material_book();
 }
 
 #[cfg(test)]
