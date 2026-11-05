@@ -5412,3 +5412,24 @@ bindings = [
   { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" },
   { name = "extra_life", ty = "&mut i32", value = "&mut *extra_life" },
 ]
+
+[[module]]
+id = "worldbound-explosion"
+file = "crates/horizon-client/src/game/explosion.rs"
+name = "tconstruct_worldbound_explosion"
+source = "worldbound-explosion.rs"
+
+[[injection]]
+id = "worldbound-explosion-head"
+target = "horizon_client::game::explosion::Game<'_>::explosion_hurt_entities"
+kind = "HEAD"
+cancellable = true
+helper = "worldbound-explosion-head.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "center", ty = "[f64; 3]", value = "center" },
+  { name = "radius", ty = "f32", value = "radius" },
+  { name = "damage_type", ty = "&str", value = "damage_type" },
+  { name = "interaction", ty = "crate::game::explosion::BlockInteraction", value = "interaction" },
+  { name = "blocks", ty = "&[[i32; 3]]", value = "blocks" },
+]
