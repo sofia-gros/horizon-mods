@@ -5884,3 +5884,10 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "boundless-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "server-source-boundless"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_boundless"
+source = "source-boundless.rs"
+visibility = "pub"

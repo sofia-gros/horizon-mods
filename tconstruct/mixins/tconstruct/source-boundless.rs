@@ -44,3 +44,33 @@ pub(super) fn cap(levels: impl IntoIterator<Item = i32>) -> Option<f32> {
         assert!(!supported_value(&value));
     }
 }
+
+
+pub(super) fn supported_definition(world: &super::tconstruct_world::World) -> bool {
+    world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()
+        .and_then(|raw|raw.as_ref().ok())
+        .and_then(|raw|raw.0.get("tconstruct:tinkering/modifiers/boundless"))
+        .and_then(|layers|layers.last())
+        .and_then(|bytes|serde_json::from_slice::<serde_json::Value>(bytes).ok())
+        .is_some_and(|value|supported_value(&value))
+}
+
+pub(super) fn recipe(value: &serde_json::Value) -> bool {
+    value == &serde_json::json!({
+        "type":"tconstruct:modifier","allow_crystal":true,
+        "inputs":[{"amount_needed":4,"item":"tconstruct:obsidian_pane"},
+            {"item":"minecraft:writable_book"},{"amount_needed":4,"item":"tconstruct:obsidian_pane"},
+            {"amount_needed":2,"item":"tconstruct:ichor_slime_crystal"},
+            {"amount_needed":2,"item":"tconstruct:ichor_slime_crystal"}],
+        "level":1,"result":"tconstruct:boundless","slots":{"abilities":1},
+        "tools":{"tag":"tconstruct:modifiable/shields"}
+    })
+}
+
+pub(super) fn salvage(world: &super::tconstruct_world::World) -> bool {
+    world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().is_some_and(|recipes|
+        recipes.values().filter_map(|bytes|serde_json::from_slice::<serde_json::Value>(bytes).ok())
+            .any(|value|value == serde_json::json!({"type":"tconstruct:modifier_salvage",
+                "modifier":"tconstruct:boundless","slots":{"abilities":1},
+                "tools":{"tag":"tconstruct:modifiable/shields"}})))
+}

@@ -17,7 +17,7 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 30] = [
+const UPGRADES: [(&str, i32); 31] = [
     ("tconstruct:knockback_resistance", 1),
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
@@ -27,7 +27,7 @@ const UPGRADES: [(&str, i32); 30] = [
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:fire_protection", 5),
     ("tconstruct:blast_protection", 5), ("tconstruct:magic_protection", 5),
     ("tconstruct:melee_protection", 5), ("tconstruct:projectile_protection", 5),
-    ("tconstruct:turtle_shell", 5),
+    ("tconstruct:turtle_shell", 5), ("tconstruct:boundless", 1),
 ];
 
 const PROTECTIONS: [(&str, &str); 6] = [
@@ -98,6 +98,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:boundless" => matches!(item,"tconstruct:travelers_shield" | "tconstruct:plate_shield" | "tconstruct:battlesign"),
         id if is_protection(id) => matches!(item,
             "tconstruct:travelers_helmet" | "tconstruct:travelers_chestplate" | "tconstruct:travelers_leggings" | "tconstruct:travelers_boots"
             | "tconstruct:plate_helmet" | "tconstruct:plate_chestplate" | "tconstruct:plate_leggings" | "tconstruct:plate_boots"
@@ -138,8 +139,15 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
     }
 }
 
+/// Boundless is one purchased level. Do not overwrite malformed saved data.
+fn valid_boundless_amount(tool: &ItemStack) -> bool {
+    let Some(upgrades) = tool.data().and_then(|d|d.other("minecraft:custom_data")).and_then(|d|d.get("tic_upgrades")) else { return true; };
+    let Tag::Compound(_) = upgrades else { return false; };
+    matches!(upgrades.get("tconstruct:boundless"), None | Some(Tag::Int(0 | 1)))
+}
+
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:boundless" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -228,7 +236,7 @@ pub(super) fn free_defense_slots(tool: &ItemStack, defense: i32) -> Option<i32> 
 
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
-    used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
+    valid_boundless_amount(tool) && used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
 
 /// Validate source Unbreakable dependencies against complete levels and material traits.
@@ -240,7 +248,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (!is_protection(id) || valid_protection_amounts(tool)) && (id != "tconstruct:knockback_resistance" || valid_knockback_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:boundless" || valid_boundless_amount(tool)) && (!is_protection(id) || valid_protection_amounts(tool)) && (id != "tconstruct:knockback_resistance" || valid_knockback_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -261,13 +269,14 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_boundless_amount(tool) || !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if is_protection(&id) && !(belongs("tconstruct:modifiable/armor") || belongs("tconstruct:modifiable/held")) { return None; }
+    if id == "tconstruct:boundless" && !belongs("tconstruct:modifiable/shields") { return None; }
     if id == "tconstruct:turtle_shell" && !belongs("tconstruct:modifiable/armor") { return None; }
     if id == "tconstruct:knockback_resistance" && !belongs("tconstruct:modifiable/armor") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
@@ -315,7 +324,7 @@ pub(super) fn plan_with_defense(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     defense_slots: i32, traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
+    if !valid_boundless_amount(tool) || !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -329,6 +338,7 @@ pub(super) fn plan_with_defense(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:boundless" && (tool.count != 1 || !super::tconstruct_boundless::recipe(&value)) { continue; }
         if is_protection(&id) && (!protection_recipe(&value)
             || !["tconstruct:modifiable/armor","tconstruct:modifiable/held"].iter().any(|tag|
                 tags.get(*tag).is_some_and(|items| items.contains(tool.item.as_ref())))) { continue; }
@@ -342,7 +352,7 @@ pub(super) fn plan_with_defense(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback_resistance")
+            if !matches!(id, "tconstruct:boundless" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback_resistance")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
@@ -373,7 +383,7 @@ pub(super) fn plan_with_defense(
             let Some(ingredients) = value.get("inputs").and_then(Value::as_array) else { continue; };
             let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, stack)| stack.as_ref().map(|stack| (i + 1, stack))).collect();
             let crystal = value.get("allow_crystal").and_then(Value::as_bool).unwrap_or(true)
-                && present.len() == 1 && &*present[0].1.item == "tconstruct:modifier_crystal"
+                && present.len() == 1 && present[0].1.count > 0 && &*present[0].1.item == "tconstruct:modifier_crystal"
                 && matches!(present[0].1.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("modifier")), Some(Tag::String(value)) if value.to_string_lossy() == id);
             let mut consumed = vec![(0, 1)];
             if crystal { consumed.push((present[0].0, 1)); }
@@ -382,9 +392,15 @@ pub(super) fn plan_with_defense(
                 let mut used = vec![false; present.len()];
                 let mut matched = true;
                 for ingredient in ingredients {
-                    let found = present.iter().enumerate().position(|(i, (_, stack))| !used[i] && stack.count > 0 &&
+                    // Boundless's source ingredients are five separate counted
+                    // inputs, not five individual items or a pooled total.
+                    let count = if id == "tconstruct:boundless" {
+                        ingredient.get("amount_needed").and_then(Value::as_u64)
+                            .and_then(|n|u32::try_from(n).ok()).unwrap_or(1)
+                    } else { 1 };
+                    let found = present.iter().enumerate().position(|(i, (_, stack))| !used[i] && stack.count >= count &&
                         stack_ingredient_matches(ingredient, stack, tags));
-                    if let Some(index) = found { used[index] = true; consumed.push((present[index].0, 1)); }
+                    if let Some(index) = found { used[index] = true; consumed.push((present[index].0, count)); }
                     else { matched = false; break; }
                 }
                 if !matched { continue; }
@@ -1743,4 +1759,78 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod boundless_acquisition_tests {
+    use super::*;
+    fn recipe() -> Value {
+        serde_json::json!({"type":"tconstruct:modifier","allow_crystal":true,
+            "inputs":[{"amount_needed":4,"item":"tconstruct:obsidian_pane"},
+                {"item":"minecraft:writable_book"},{"amount_needed":4,"item":"tconstruct:obsidian_pane"},
+                {"amount_needed":2,"item":"tconstruct:ichor_slime_crystal"},
+                {"amount_needed":2,"item":"tconstruct:ichor_slime_crystal"}],
+            "level":1,"result":"tconstruct:boundless","slots":{"abilities":1},
+            "tools":{"tag":"tconstruct:modifiable/shields"}})
+    }
+    fn recipes() -> BTreeMap<String,Vec<u8>> {
+        BTreeMap::from([("boundless".into(),serde_json::to_vec(&recipe()).unwrap())])
+    }
+    fn tags() -> HashMap<String,HashSet<String>> {
+        HashMap::from([
+            ("tconstruct:modifiable/shields".into(),HashSet::from(["tconstruct:plate_shield".into()])),
+            ("tconstruct:modifiable".into(),HashSet::from(["tconstruct:plate_shield".into()]))])
+    }
+    fn tool(amount: Tag) -> ItemStack {
+        let mut tool = ItemStack::new("tconstruct:plate_shield",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:boundless",amount)]))])));
+        tool
+    }
+    fn ingredients() -> Vec<Option<ItemStack>> {
+        vec![Some(ItemStack::new("tconstruct:obsidian_pane",4)),
+            Some(ItemStack::new("minecraft:writable_book",1)),
+            Some(ItemStack::new("tconstruct:obsidian_pane",4)),
+            Some(ItemStack::new("tconstruct:ichor_slime_crystal",2)),
+            Some(ItemStack::new("tconstruct:ichor_slime_crystal",2))]
+    }
+    #[test] fn counted_recipe_requires_all_five_inputs_and_one_ability() {
+        let tool = tool(Tag::Int(0));let inputs = ingredients();
+        let plan = plan_with_traits(&recipes(),&tags(),&tool,&inputs,0,1,&BTreeMap::new()).unwrap();
+        assert_eq!(plan.amount,1);
+        assert_eq!(plan.consumed,vec![(0,1),(1,4),(2,1),(3,4),(4,2),(5,2)]);
+        assert!(plan_with_traits(&recipes(),&tags(),&tool,&inputs,9,0,&BTreeMap::new()).is_none());
+        let mut short = inputs.clone();short[2].as_mut().unwrap().count = 3;
+        assert!(plan_with_traits(&recipes(),&tags(),&tool,&short,0,1,&BTreeMap::new()).is_none());
+        let pooled = vec![Some(ItemStack::new("tconstruct:obsidian_pane",8)),
+            Some(ItemStack::new("minecraft:writable_book",1)),Some(ItemStack::new("tconstruct:ichor_slime_crystal",4))];
+        assert!(plan_with_traits(&recipes(),&tags(),&tool,&pooled,0,1,&BTreeMap::new()).is_none());
+        assert!(plan_with_traits(&recipes(),&HashMap::new(),&tool,&inputs,0,1,&BTreeMap::new()).is_none());
+    }
+    #[test] fn crystal_is_single_level_and_malformed_saved_levels_are_not_replaced() {
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal",1);
+        crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("modifier",Tag::String("tconstruct:boundless".into()))])));
+        let input = [Some(crystal)];
+        let plan = plan_with_traits(&recipes(),&tags(),&tool(Tag::Int(0)),&input,0,1,&BTreeMap::new()).unwrap();
+        assert_eq!(plan.consumed,vec![(0,1),(1,1)]);
+        for value in [Tag::Int(1),Tag::Int(2),Tag::Int(-1),Tag::String("bad".into())] {
+            assert!(plan_with_traits(&recipes(),&tags(),&tool(value),&input,0,3,&BTreeMap::new()).is_none());
+        }
+        let mut changed = recipe();changed["slots"]["abilities"] = serde_json::json!(0);
+        assert!(!super::super::tconstruct_boundless::recipe(&changed));
+    }
+    #[test] fn extraction_requires_shields_and_releases_ability_budget() {
+        let tool = tool(Tag::Int(1));
+        assert!(!valid_slots(&tool,&BTreeMap::new(),5,0));
+        assert!(valid_slots(&tool,&BTreeMap::new(),0,1));
+        let inputs = [Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+        let plan = extract_upgrade(&tags(),&tool,&inputs,"tconstruct:boundless").unwrap();
+        assert_eq!(plan.upgrade.amount,0);
+        assert_eq!(plan.upgrade.leftover.as_ref().unwrap().item.as_ref(),"tconstruct:modifier_crystal");
+        let mut not_shield = tags();not_shield.remove("tconstruct:modifiable/shields");
+        assert!(extract_upgrade(&not_shield,&tool,&inputs,"tconstruct:boundless").is_none());
+        assert!(valid_slots(&self::tool(Tag::Int(0)),&BTreeMap::new(),0,0));
+        assert_eq!(selection_index("tconstruct:boundless").and_then(selection_id),Some("tconstruct:boundless"));
+    }
 }
