@@ -5354,3 +5354,31 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+# Fortune / Fortunate enchantment views for actual player block-loot rolls.
+[[module]]
+id = "source-fortune-harvest"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_fortune_harvest"
+source = "source-fortune-harvest.rs"
+
+[[module]]
+id = "fortune-harvest-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_fortune_harvest_world"
+source = "fortune-harvest-world.rs"
+
+[[injection]]
+id = "fortune-harvest-head"
+target = "horizon_client::game::Game<'_>::block_loot_at"
+kind = "HEAD"
+cancellable = true
+helper = "fortune-harvest-head.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "held", ty = "Option<&horizon_items::items::ItemStack>", value = "held" },
+  { name = "block_entity", ty = "&Option<horizon_world::nbt::Tag>", value = "&block_entity" },
+]
