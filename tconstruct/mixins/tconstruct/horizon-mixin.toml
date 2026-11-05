@@ -5382,3 +5382,25 @@ bindings = [
   { name = "held", ty = "Option<&horizon_items::items::ItemStack>", value = "held" },
   { name = "block_entity", ty = "&Option<horizon_world::nbt::Tag>", value = "&block_entity" },
 ]
+
+[[module]]
+id = "source-chrysophilite"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_chrysophilite"
+source = "source-chrysophilite.rs"
+
+[[module]]
+id = "chrysophilite-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_chrysophilite_world"
+source = "chrysophilite-world.rs"
+
+[[state]]
+id = "chrysophilite-loot-snapshot"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::BTreeMap<String,Vec<Vec<u8>>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

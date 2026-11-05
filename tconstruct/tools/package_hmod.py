@@ -205,6 +205,9 @@ def package(output):
     tags = 'tconstruct/content/reference/tconstruct-tags/data'
     for rel, source in tracked(tags):
         add(prefix + 'tconstruct-original-pack/data/' + rel.relative_to(tags).as_posix(), source.read_bytes())
+    loot = 'tconstruct/content/reference/tconstruct-loot-modifiers/data'
+    for rel, source in tracked(loot):
+        add(prefix + 'tconstruct-original-pack/data/' + rel.relative_to(loot).as_posix(), source.read_bytes())
     archives = {
         'tconstruct-recipes.zip': 'tconstruct-original-pack',
         'tconstruct-materials.zip': 'tconstruct-original-pack',
