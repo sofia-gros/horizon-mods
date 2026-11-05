@@ -286,6 +286,7 @@ pub(super) struct IncrementalGuideRecipe {
     pub per_item: i32,
     pub leftover: Option<String>,
     pub maximum: i32,
+    pub default_maximum: bool,
     pub upgrade_cost: i32,
     pub crystal_alternative: bool,
 }
@@ -301,11 +302,26 @@ pub(super) fn incremental_guide_recipes(
     supported_tool: impl Fn(&str, &str) -> bool,
     supported_limits: impl Fn(&str, i32, i32) -> bool,
 ) -> Vec<IncrementalGuideRecipe> {
+    incremental_guide_recipes_with_slotless(recipes, modifiers, registry, items, tools,
+        matches, supported_tool, supported_limits, |_| None)
+}
+
+/// Extend the existing explicit-cost recipes only with runtime-authorized
+/// slotless modifiers. Other missing costs and default caps remain unknown.
+pub(super) fn incremental_guide_recipes_with_slotless(
+    recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],
+    registry: &BTreeMap<String, i32>, items: &[String], tools: &[String],
+    matches: impl Fn(&serde_json::Value, &str) -> bool,
+    supported_tool: impl Fn(&str, &str) -> bool,
+    supported_limits: impl Fn(&str, i32, i32) -> bool,
+    slotless_limit: impl Fn(&str) -> Option<i32>,
+) -> Vec<IncrementalGuideRecipe> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
     for modifier in modifiers {
         if !seen.insert(modifier) { continue; }
         let Some(expected) = registry.get(modifier) else { continue; };
+        let slotless = slotless_limit(modifier);
         for (recipe, bytes) in recipes {
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
             let Some(object) = value.as_object() else { continue; };
@@ -324,21 +340,33 @@ pub(super) fn incremental_guide_recipes(
                 _ => continue,
             };
             let Some(needed) = value.get("needed_per_level").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0 && v == expected) else { continue; };
-            let Some(level) = value.get("level").and_then(|v| v.as_object()).filter(|v| v.len() == 1) else { continue; };
-            let Some(maximum) = level.get("max").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };
+            let default_maximum = value.get("level").is_none();
+            let maximum = if default_maximum {
+                let Some(maximum) = slotless.filter(|v| *v > 0) else { continue; };
+                maximum
+            } else {
+                let Some(level) = value.get("level").and_then(|v| v.as_object()).filter(|v| v.len() == 1) else { continue; };
+                let Some(maximum) = level.get("max").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };
+                maximum
+            };
             if needed.checked_mul(maximum).is_none() || !supported_limits(modifier, needed, maximum) { continue; }
             // Runtime occupancy is one slot per started incremental level,
-            // regardless of recipe overrides. Only advertise that exact cost.
-            if value.get("slots").and_then(|v| v.as_object()).is_none_or(|slots|
-                slots.len() != 1 || slots.get("upgrades").and_then(|v| v.as_i64()) != Some(1)) { continue; }
-            let upgrade_cost = 1;
+            // except the explicitly supported slotless family.
+            let upgrade_cost: i32 = if slotless.is_some() { 0 } else { 1 };
+            let valid_cost = match value.get("slots") {
+                None => upgrade_cost == 0,
+                Some(value) => value.as_object().is_some_and(|slots|
+                    slots.keys().all(|key| key == "upgrades")
+                    && slots.get("upgrades").map_or(upgrade_cost == 0, |v| v.as_i64() == Some(i64::from(upgrade_cost)))),
+            };
+            if !valid_cost { continue; }
             let Some(input) = value.get("input").filter(|v| v.as_object().is_some_and(|v| v.len() == 1 && v.iter().all(|(k,v)| matches!(k.as_str(), "item" | "tag") && v.is_string()))) else { continue; };
             let Some(tool_filter) = value.get("tools") else { continue; };
             let mut inputs: Vec<_> = items.iter().filter(|id| matches(input, id)).cloned().collect();
             let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();
             inputs.sort(); inputs.dedup(); tools.sort(); tools.dedup();
             if !inputs.is_empty() && !tools.is_empty() {
-                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, per_item, leftover, maximum, upgrade_cost,
+                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, per_item, leftover, maximum, default_maximum, upgrade_cost,
                     crystal_alternative: guide_crystal_alternative(&value, items) });
             }
         }

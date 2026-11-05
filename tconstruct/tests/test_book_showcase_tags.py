@@ -101,7 +101,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
         import zipfile
         fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
-            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {}), **fixture.get('fluid_recipes', {}), **fixture.get('bonus_recipes', {}), **fixture.get('range_recipes', {})}.items():
+            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {}), **fixture.get('fluid_recipes', {}), **fixture.get('bonus_recipes', {}), **fixture.get('range_recipes', {}), **fixture.get('slotless_incremental_recipes', {})}.items():
                 self.assertEqual(recipe, json.loads(archive.read(path)), path)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             for path, tag in fixture['modifier_tags'].items():
@@ -193,7 +193,7 @@ class IncrementalModifierGuideWiring(unittest.TestCase):
         body = source[start:source.index('fn dynamic_materials(', start)]
         for text in ('modifier_resource_snapshot()', 'recipe_snapshot()', 'resolved_item_tags()',
                      'incremental_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',
-                     'incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools',
+                     'incremental_guide_recipes_with_slotless(recipes, &modifiers, &registry, &items, &tools',
                      'tool_supported_with_tags(modifier, item, tags)', 'incremental_limits_supported',
                      'entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost', 'entry.leftover', 'unused progress points', 'split_styled(game,', 'partial guide'):
             self.assertIn(text, body)
@@ -217,3 +217,17 @@ class ModifierCrystalGuideWiring(unittest.TestCase):
         for text in ('preserving existing partial progress', 'even when a partial level is installed',
                      'entire addition must fit within the level cap', 'returns no leftover'):
             self.assertIn(text, incremental)
+
+
+class SlotlessIncrementalGuideWiring(unittest.TestCase):
+    def test_slotless_groups_use_shared_default_and_cost_policy(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        for text in ('let mut slotless_tags = Vec::new()', 'slotless_tags.push(tag.to_owned())',
+                     'incremental_modifier_pages(game, &slotless_tags)', 'slotless_incremental_limit',
+                     'entry.default_maximum', 'source recipe has no explicit maximum',
+                     'Slotless: no upgrade or ability slots are consumed',
+                     "Blindshot cannot be recovered through this port's modifier-extraction operation"):
+            self.assertIn(text, source)
+        rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
+        self.assertIn('slotless_incremental_limit(id).is_none()', rules)
+        self.assertIn('match slotless_incremental_limit(id)', rules)

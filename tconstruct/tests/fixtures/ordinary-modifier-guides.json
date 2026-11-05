@@ -146,6 +146,17 @@
         "tconstruct:frost_walker",
         "tconstruct:glowing"
       ]
+    },
+    "data/tconstruct/tinkering/tags/modifiers/slotless/general.json": {
+      "values": [
+        "tconstruct:overslime",
+        "tconstruct:worldbound",
+        "tconstruct:offhanded",
+        "tconstruct:blunted",
+        "tconstruct:workbench",
+        "tconstruct:blindshot",
+        "tconstruct:barebow"
+      ]
     }
   },
   "incremental_recipes": {
@@ -619,6 +630,21 @@
       },
       "tools": {
         "tag": "tconstruct:modifiable/bonus_slots"
+      }
+    }
+  },
+  "slotless_incremental_recipes": {
+    "data/tconstruct/recipes/tools/modifiers/slotless/blindshot.json": {
+      "type": "tconstruct:incremental_modifier",
+      "allow_crystal": true,
+      "amount_per_item": 1,
+      "input": {
+        "item": "minecraft:dirt"
+      },
+      "needed_per_level": 10,
+      "result": "tconstruct:blindshot",
+      "tools": {
+        "tag": "tconstruct:modifiable/ranged"
       }
     }
   }

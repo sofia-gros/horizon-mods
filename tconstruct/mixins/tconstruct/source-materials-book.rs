@@ -398,10 +398,11 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
     let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();
     let tools: Vec<String> = tags.get("tconstruct:modifiable").into_iter().flatten()
         .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();
-    let entries = crate::game::tconstruct_modifier_snapshot::incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools,
+    let entries = crate::game::tconstruct_modifier_snapshot::incremental_guide_recipes_with_slotless(recipes, &modifiers, &registry, &items, &tools,
         |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags),
         |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags),
-        crate::game::tconstruct_source_upgrade_rules::incremental_limits_supported);
+        crate::game::tconstruct_source_upgrade_rules::incremental_limits_supported,
+        crate::game::tconstruct_source_upgrade_rules::slotless_incremental_limit);
     let mut pages = Vec::new();
     for entry in entries {
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
@@ -413,6 +414,9 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
         let mut text = String::from("Supported incremental recipe (partial guide).\n\n");
         let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
         if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
+        if entry.default_maximum { text.push_str(&format!("The source recipe has no explicit maximum; this port limits it to {} levels.\n\n", entry.maximum)); }
+        if entry.upgrade_cost == 0 { text.push_str("Slotless: no upgrade or ability slots are consumed.\n\n"); }
+        if entry.modifier == "tconstruct:blindshot" { text.push_str("Blindshot cannot be recovered through this port's modifier-extraction operation.\n\n"); }
         text.push_str(&format!("Each ingredient item adds {} progress point(s). {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One ingredient operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly supported single-item and block-value recipes are shown. Existing modifier and tool state still affect application.",
             entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR "),
             entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
@@ -673,7 +677,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let mut chapter_pages = Vec::new();
         let mut bonus_pages = Vec::new();
         let mut ordinary_tags = Vec::new();
+        let mut slotless_tags = Vec::new();
         for page in section.as_array()? {
+            if puny && key == "slotless" {
+                if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) { slotless_tags.push(tag.to_owned()); }
+            }
             if (puny && key == "upgrades") || (mighty && key == "abilities") {
                 if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) { ordinary_tags.push(tag.to_owned()); }
                 // Mighty currently exposes generated supported recipes only;
@@ -817,6 +825,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
         }
         chapter_pages.extend(bonus_pages);
+        if !slotless_tags.is_empty() { chapter_pages.extend(incremental_modifier_pages(game, &slotless_tags)); }
         if !ordinary_tags.is_empty() {
             chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags));
             if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages(game, &ordinary_tags)); }

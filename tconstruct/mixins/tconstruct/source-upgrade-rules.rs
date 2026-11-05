@@ -64,6 +64,12 @@ pub(super) fn incremental_guide_registry() -> BTreeMap<String, i32> {
         .map(|(id, needed)| ((*id).to_owned(), *needed)).collect()
 }
 
+/// The supported slotless incremental modifier uses this port's bounded
+/// default when its source recipe does not declare a maximum level.
+pub(super) fn slotless_incremental_limit(id: &str) -> Option<i32> {
+    (id == "tconstruct:blindshot").then_some(i16::MAX as i32)
+}
+
 /// These two effects encode fixed denominators/ranges in their runtime hooks.
 /// Keep the same acceptance boundary in Station transactions and guide pages.
 pub(super) fn incremental_limits_supported(id: &str, needed: i32, maximum: i32) -> bool {
@@ -181,7 +187,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let wings = &*tool.item == "tconstruct:slime_wings";
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>() + reverted * if wings { 1 } else { 2 };
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>() - if wings { 0 } else { reverted };
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && slotless_incremental_limit(id).is_none())
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
@@ -375,7 +381,7 @@ pub(super) fn plan_with_traits(
         };
         let max = match value.pointer("/level/max").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()) {
             Some(max) => max,
-            None if id == "tconstruct:blindshot" && value.get("level").is_none() => i16::MAX as i32,
+            None if value.get("level").is_none() => match slotless_incremental_limit(id) { Some(maximum) => maximum, None => continue },
             None => continue,
         };
         if !incremental_limits_supported(id, needed, max) { continue; }
