@@ -558,7 +558,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         let known = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()
             .and_then(|raw| raw.as_ref().ok())
             .is_some_and(|raw| super::tconstruct_source_upgrade_rules::known_warping_definition(
-                super::tconstruct_modifier_snapshot::highest_definition(raw, "tconstruct:tinkering/modifiers/warping")));
+                raw.0.get("tconstruct:tinkering/modifiers/warping").and_then(|layers| layers.last()).map(Vec::as_slice)));
         if !known || super::tconstruct_source_material_traits::levels(world, tool).is_none() {
             *reason = Some("Warping requires its supported modifier definition and valid tool traits.".into());
             return None;
