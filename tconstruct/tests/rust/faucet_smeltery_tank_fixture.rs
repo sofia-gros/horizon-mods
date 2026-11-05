@@ -10,15 +10,34 @@ type Pos=(i32,i32,i32);
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
-struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_drain",2=>"tconstruct:seared_fuel_tank",3=>"tconstruct:smeltery_controller",4=>"tconstruct:seared_duct",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
+struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_drain",2=>"tconstruct:seared_fuel_tank",3=>"tconstruct:smeltery_controller",4=>"tconstruct:seared_duct",5=>"tconstruct:scorched_duct",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
 struct Chunks{loaded:HashMap<(i32,i32),()>,owners:HashMap<Pos,Pos>} impl Chunks{fn contains_key(&self,p:&(i32,i32))->bool{self.loaded.contains_key(p)}fn __horizon_mixins_tconstruct_smeltery_owners(&self)->&HashMap<Pos,Pos>{&self.owners}}
 struct World{blocks:HashMap<Pos,usize>,block_entities:HashMap<Pos,containers::BlockEntity>,chunks:Chunks,tags:HashMap<(Pos,String),Tag>,fail:bool,formed:bool} impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{*self.blocks.get(&(x,y,z)).unwrap_or(&0)}}
 struct Game<'a>{res:Res,remote:Option<()>,lan:Option<()>,lan_acting_uuid:Option<()>,world:World,_life:std::marker::PhantomData<&'a()>}
 mod tconstruct_source_smeltery_world{use super::*;pub(super) fn detect(g:&Game<'_>,_:Pos)->Option<([i32;3],[i32;3],u32)>{g.world.formed.then_some(([-2,-1,-1],[0,1,1],4000))}}
-mod tconstruct_source_faucet_tank{pub(super) fn tank_kind(n:&str)->Option<(&'static str,u32)>{(n=="tconstruct:seared_fuel_tank").then_some(("tconstruct:fuel_tank",4000))}}
+mod tconstruct_source_faucet_tank{pub(super) fn stop(_: &mut super::Game<'_>, _:super::Pos,_:super::tconstruct_source_melter_state::Faucet)->bool{panic!("unexpected stop")}pub(super) fn tank_kind(n:&str)->Option<(&'static str,u32)>{(n=="tconstruct:seared_fuel_tank").then_some(("tconstruct:fuel_tank",4000))}}
 mod tconstruct_source_melter_store{use super::*;pub(super) fn read(w:&World,p:Pos,k:&str)->Option<Tag>{w.tags.get(&(p,k.into())).cloned()}pub(super) fn write_many(w:&mut World,v:&[(Pos,&str,Tag)])->bool{if w.fail||v.iter().any(|(p,k,_)|!w.tags.contains_key(&(*p,(*k).into()))){return false}for(p,k,t)in v{w.tags.insert((*p,(*k).into()),t.clone());}true}}
+#[path="__MIXINS__/source-machine-interaction.rs"] mod tconstruct_source_machine_interaction;
 mod runtime{
 use super::*;use super::tconstruct_source_melter_store as store;use super::tconstruct_source_smeltery_state::Smeltery;use super::tconstruct_source_melter_state::{Faucet,Tank};use super::containers::BlockEntity;
+fn ensure(_: &mut Game<'_>,_:Pos,_:&str)->bool{true}
+fn faucet_neighbors(_: &Game<'_>,_:Pos)->Option<(Pos,Pos)>{Some(((-2,0,0),(0,0,0)))}
+// __DUCT_DISPATCH__
+#[test]
+fn duct_dispatch_preserves_all_fluid_and_unknown_metadata() {
+    for duct in [4,5] { for pending in [false,true] {
+        let (mut g,p,s,_,_)=super::fixture();
+        g.world.blocks.insert(s,duct);
+        g.world.tags.insert((s,"tconstruct:duct".into()),Tag::compound([("unknown",Tag::Int(9))]));
+        let mut faucet=Faucet::new();
+        if pending { faucet.active=true; assert!(faucet.pending.insert("x:copper",37)); }
+        g.world.tags.insert((p,"tconstruct:faucet".into()),faucet.to_nbt());
+        let before=g.world.tags.clone();
+        if pending { tick_faucet(&mut g,p); }
+        else { assert!(activate_faucet(&mut g,p,"tconstruct:seared_faucet")); }
+        assert_eq!(g.world.tags,before);
+    } }
+}
 // __SMELTERY_HELPERS__
 // __PRODUCTION_ROUTE__
 #[test]fn reserves_atomically_and_preserves_opaque_controller(){let(mut g,p,s,t,c)=super::fixture();let before=g.world.tags.get(&(c,"tconstruct:smeltery".into())).unwrap().get("heat_codes").cloned();assert_eq!(smeltery_to_tank(&mut g,p,s,t,Faucet::new(),true),Some(true));let raw=g.world.tags.get(&(c,"tconstruct:smeltery".into())).unwrap();assert_eq!(raw.get("heat_codes").cloned(),before);let state=Smeltery::from_nbt(raw).unwrap();let out=Tank::from_nbt(&store::read(&g.world,t,"tconstruct:fuel_tank").unwrap(),4000).unwrap();let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert_eq!((state.tank.total(),out.amount,f.pending.amount),(90,10,80));let old=g.world.tags.clone();g.world.fail=true;assert_eq!(smeltery_to_tank(&mut g,p,s,t,f,false),Some(false));assert_eq!(old,g.world.tags);}

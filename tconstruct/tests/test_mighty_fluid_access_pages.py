@@ -42,8 +42,8 @@ class MightyFluidAccessPages(unittest.TestCase):
                        'click a fluid', 'Copper Cans', 'external-pipe integration', 'unverified'):
             self.assertIn(phrase, drain)
         duct = text('seared_duct')
-        for phrase in ('filter and its fluid display are not implemented', 'does not filter fluids',
-                       'bottom fluid selected in the controller', 'not a working filter guide', 'unverified'):
+        for phrase in ('filter and its fluid display are not implemented', 'cannot transfer fluid',
+                       'already reserved packet is held unchanged', 'not a working filter guide', 'unverified'):
             self.assertIn(phrase, duct)
 
     def test_reader_keeps_partial_notice_and_packages_pages(self):

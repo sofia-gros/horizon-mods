@@ -51,3 +51,20 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+### Duct filter safety boundary
+
+Seared and Scorched Ducts currently have no supported filter inventory. They no
+longer act as unrestricted Drains: faucet activation and ticking wait without
+extracting controller fluid or changing an already reserved faucet packet. Use
+a Seared or Scorched Drain for supported transfers. This applies to both empty
+and unknown Duct metadata; the port does not infer a filter from the controller's
+selected fluid.
+
+This is the empty-filter safety prerequisite, not a working Duct filter. The
+original requires a real one-item inventory and matches both fluid and its NBT.
+The port still needs filter insertion/removal, lossless save/reload, display and
+LAN synchronization, plus safe item recovery or rejection across player removal,
+explosions, pistons, commands and block replacement before accepting filter items.
+The controller-only player-destruction proposal in #631 does not establish those
+Duct guarantees. No in-game or LAN filter behavior has been verified.

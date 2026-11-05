@@ -6,7 +6,7 @@
       "text": "In the original, a Seared Duct selects one fluid with a filled bucket or Copper Can in its filter slot. That filter and its fluid display are not implemented in this port."
     },
     {
-      "text": "The block is registered, but its existing faucet path uses the same bottom fluid selected in the controller as a Drain. It does not filter fluids. Use a Seared Drain for the supported fluid-transfer instructions on the previous page.",
+      "text": "Seared and Scorched Ducts cannot transfer fluid until their filter inventory is supported. A faucet attached to a Duct waits without taking fluid; any already reserved packet is held unchanged. Use a Seared Drain for the supported fluid-transfer instructions on the previous page.",
       "paragraph": true
     },
     {
