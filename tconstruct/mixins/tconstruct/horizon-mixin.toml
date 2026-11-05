@@ -5302,3 +5302,17 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "RETURN"
 helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+# Optional source recipes allow the slimeball family in vanilla crafting.
+[[module]]
+id = "source-slime-crafting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_slime_crafting"
+source = "source-slime-crafting.rs"
+
+[[injection]]
+id = "source-slime-crafting-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "slime-crafting-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
