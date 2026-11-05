@@ -25,3 +25,29 @@ item and recipe require the Puny guide integration.
 These are two advancement paths, not the complete original progression. Other
 source advancements, custom triggers, conditions and guide content remain
 unfinished or unverified.
+
+## Fantastic Foundry entry
+
+`foundry/fantastic_foundry` now records acquiring Fantastic Foundry, under the
+existing Materials and You root. The source criterion accepts the book from
+any acquisition method, not only crafting. Its display retains the source task
+frame, toast, translations and disabled chat announcement, with `item` adapted
+to the host's `id` icon field. It has no reward.
+
+The separate `recipes/misc/fantastic_foundry` advancement unlocks the existing
+book-and-Nether-Grout recipe when Nether Grout enters inventory, or records the
+recipe if it is already unlocked through the recipe-unlocked event. These are
+OR alternatives, not two required steps. The source recipe ID
+`tconstruct:common/fantastic_foundry` is mapped to the existing native ID
+`tconstruct:fantastic_foundry`; the source `recipe` predicate key is adapted to
+the host's `recipes` field. No duplicate recipe or new crafting requirement is
+introduced. Both definitions derive from TConstruct `f4e77d43`.
+
+Tests cover the source conditions, parent, display, native recipe mapping,
+item declarations, translations and inclusion in the packaged content. Actual
+inventory/recipe events, recipe-book UI, progress persistence and LAN actor
+attribution remain unverified in a running world. This is the obtainable entry
+to Foundry progression, not its completion: Scorched Alloyer is not registered,
+the Foundry structure requires an unsupported custom container-open trigger,
+and the Blazing Blood goal needs tank-content predicate compatibility. Those
+nodes, and the existing Plate Armor branch's missing ancestors, remain open.
