@@ -123,9 +123,9 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
                      'entry.inputs.iter().enumerate()', 'entry.check_trait_level',
                      'entry.upgrade_cost, entry.ability_cost', 'split_styled(game,', 'partial guide'):
             self.assertIn(text, body)
-        self.assertIn('if puny && key == "upgrades" {', source)
-        self.assertIn('mighty_ability_pages(game, path, root, &section, &labels)', source)
-        self.assertIn('ordinary_modifier_pages(game, &ordinary_tags)', source)
+        self.assertIn('let puny_upgrades = puny && key == "upgrades";', source)
+        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, puny_upgrades)', source)
+        self.assertIn('ordinary_modifier_pages(game, &[tag.to_owned()])', source)
         rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
         self.assertIn('if !ordinary_modifier_supported(id) { continue; }', rules)
         self.assertIn('if !tool_supported_with_tags(id, &tool.item, tags) { continue; }', rules)
@@ -197,7 +197,7 @@ class IncrementalModifierGuideWiring(unittest.TestCase):
                      'tool_supported_with_tags(modifier, item, tags)', 'incremental_limits_supported',
                      'entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost', 'entry.leftover', 'unused progress points', 'split_styled(game,', 'partial guide'):
             self.assertIn(text, body)
-        self.assertIn('if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages', source)
+        self.assertIn('if upgrades { recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()])); }', source)
         rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
         self.assertIn('if !incremental_limits_supported(id, needed, max) { continue; }', rules)
         self.assertIn('*needed > 1 && provisional_upgrade_enabled(id)', rules)

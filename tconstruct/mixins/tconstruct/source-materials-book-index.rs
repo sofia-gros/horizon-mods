@@ -61,6 +61,24 @@ pub(super) fn mighty_ability_group(name: &str) -> Option<(&'static str, Option<&
     })
 }
 
+// Puny has five overview pages plus Bonus Damage and four armor subgroups.
+// Like Mighty, group identity is fixed while recipe membership stays live.
+pub(super) fn puny_upgrade_group(name: &str) -> Option<(&'static str, Option<&'static str>)> {
+    Some(match name {
+        "group_general" => ("tconstruct:upgrades/general", Some("upgrades/general.json")),
+        "group_melee" => ("tconstruct:upgrades/melee", Some("upgrades/melee.json")),
+        "group_damage" => ("tconstruct:upgrades/damage", None),
+        "group_harvest" => ("tconstruct:upgrades/harvest", Some("upgrades/harvest.json")),
+        "group_ranged" => ("tconstruct:upgrades/ranged", Some("upgrades/ranged.json")),
+        "group_armor" => ("tconstruct:upgrades/armor/general", Some("upgrades/armor.json")),
+        "group_armor.helmet" => ("tconstruct:upgrades/armor/helmet", None),
+        "group_armor.chestplate" => ("tconstruct:upgrades/armor/chestplate", None),
+        "group_armor.leggings" => ("tconstruct:upgrades/armor/leggings", None),
+        "group_armor.boots" => ("tconstruct:upgrades/armor/boots", None),
+        _ => return None,
+    })
+}
+
 // Source book tier and material-tag predicates. Stat support and hidden state
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
@@ -145,6 +163,24 @@ mod tests {
         assert!(mighty_advice_ready([Some("Partial"), Some("Notice"), Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), None, Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
+    }
+    #[test]
+    fn puny_upgrades_keep_five_overviews_and_five_bounded_subgroups() {
+        for name in ["general", "melee", "harvest", "ranged", "armor"] {
+            let (tag, page) = super::puny_upgrade_group(&format!("group_{name}")).unwrap();
+            assert!(tag.starts_with("tconstruct:upgrades/"));
+            assert_eq!(page, Some(format!("upgrades/{name}.json").as_str()));
+        }
+        assert_eq!(super::puny_upgrade_group("group_armor").unwrap().0, "tconstruct:upgrades/armor/general");
+        assert_eq!(super::puny_upgrade_group("group_damage"), Some(("tconstruct:upgrades/damage", None)));
+        for name in ["helmet", "chestplate", "leggings", "boots"] {
+            let (tag, page) = super::puny_upgrade_group(&format!("group_armor.{name}")).unwrap();
+            assert_eq!(tag, format!("tconstruct:upgrades/armor/{name}"));
+            assert_eq!(page, None);
+        }
+        for name in ["group_unknown", "group_armor.shield", "group_armor.unknown", "group_interact"] {
+            assert_eq!(super::puny_upgrade_group(name), None);
+        }
     }
     #[test]
     fn mighty_abilities_keep_six_overviews_and_five_bounded_subgroups() {

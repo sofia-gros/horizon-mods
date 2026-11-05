@@ -43,16 +43,17 @@ class MightyAbilityGroups(unittest.TestCase):
 
     def test_reader_groups_existing_recipe_projection_without_widening_eligibility(self):
         source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        start = source.index('fn mighty_ability_pages(')
+        start = source.index('fn modifier_group_pages(')
         body = source[start:source.index('fn incremental_modifier_pages(', start)]
         for text in ('mighty_ability_group(name)', '!= Some(tag)', '!= Some(relative)',
                      'ordinary_modifier_pages(game, &[tag.to_owned()])', 'if recipes.is_empty() { continue; }',
                      'text.push_str(empty)', 'pages.extend(recipes)', 'pages.splice(0..0',
-                     'abilities.partial.reference', 'abilities.partial.empty', 'split_styled(game,'):
+                     '{category}.partial.reference', '{category}.partial.empty', 'split_styled(game,'):
             self.assertIn(text, body)
         self.assertIn('let mighty_abilities = mighty && key == "abilities";', source)
         self.assertIn('if mighty_abilities && !super::tconstruct_materials_book_index::mighty_advice_ready([', source)
-        self.assertIn('mighty_ability_pages(game, path, root, &section, &labels)', source)
+        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, puny_upgrades)', source)
+        self.assertIn('if upgrades { recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()])); }', body)
         self.assertIn('chapters.push((heading.to_owned(), chapter_pages));', source)
         index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
         for group in json.loads((BOOK / 'sections/abilities.json').read_text()):
