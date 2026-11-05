@@ -1,0 +1,18 @@
+{
+  "recipes/seared_forge_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/seared_forge_material.json",
+    "sha256": "ffb0f636241bedd9aa04ecd7f5443d436b52feae0f3b1857a0eb98c8597c6694"
+  },
+  "recipes/scorched_forge_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/scorched_forge_material.json",
+    "sha256": "66dce4febfd7cec657c1b2c48764af8cfef58b36cd91b4c6c53d72aee3c756e2"
+  },
+  "advancements/seared_forge_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/seared_forge_material.json",
+    "sha256": "5609cf5fcf2fd5c5e6213c06c2ccfe25553f2c22af1a0e60fffaaaad8086322a"
+  },
+  "advancements/scorched_forge_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/scorched_forge_material.json",
+    "sha256": "c16e4afb3a58b2f98adb7066e158403de72d3b00b70f5c7832cd317bdc355063"
+  }
+}

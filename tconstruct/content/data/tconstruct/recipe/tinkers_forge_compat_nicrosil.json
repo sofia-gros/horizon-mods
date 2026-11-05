@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "key": {
+    "m": "tconstruct:fake_storage_block",
+    "s": "#tconstruct:seared_blocks",
+    "t": "tconstruct:tinker_station"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:nicrosil",
+          "RequiredMaterial": "tconstruct:nicrosil",
+          "Variant": "compat_nicrosil",
+          "Texture": "tconstruct:block/storage/fallback_tconstruct_nicrosil"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_compat_nicrosil",
+      "minecraft:custom_name": {
+        "translate": "block.tconstruct.tool_forge"
+      }
+    }
+  },
+  "show_notification": true
+}

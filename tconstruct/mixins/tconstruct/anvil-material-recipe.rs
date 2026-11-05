@@ -17,8 +17,21 @@ fn tconstruct_anvil_material_recipe(input: &Input<'_>, recipe: &Recipe) -> std::
         .and_then(|data| data.get("tconstruct:anvil")).and_then(|data| data.get("RequiredMaterial"));
     let Some(Tag::String(expected)) = expected else { return Continue(()); };
     let expected = expected.to_string_lossy();
+    // Only the exact source station-upgrade shape may consume four material
+    // blocks. Ordinary Anvils retain their three-block check. The native
+    // shaped matcher still owns grid position, counts and consumption.
+    let exact_item = |index: usize, item: &str| cells.get(index).and_then(Option::as_ref)
+        .is_some_and(|ingredient| ingredient.items.len() == 1 && ingredient.items.contains(item));
+    let is_forge = *width == 3 && *height == 3 && cells.len() == 9
+        && [3, 5, 6, 8].into_iter().all(|index| exact_item(index, "tconstruct:fake_storage_block"))
+        && exact_item(4, "tconstruct:tinker_station") && cells[7].is_none()
+        && (0..3).all(|index| cells[index].as_ref().is_some_and(|ingredient|
+            !ingredient.items.is_empty()
+            && !ingredient.items.contains("tconstruct:fake_storage_block")
+            && !ingredient.items.contains("tconstruct:tinker_station")));
+    let required_fake = if is_forge { 4 } else { 3 };
     let fake: Vec<_> = input.stacks().into_iter().filter(|stack| &*stack.item == "tconstruct:fake_storage_block").collect();
-    if fake.len() != 3 || fake.iter().any(|stack| {
+    if fake.len() != required_fake || fake.iter().any(|stack| {
         !matches!(stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("Material")),
             Some(Tag::String(material)) if material.to_string_lossy() == expected)
     }) { return Break(None); }
