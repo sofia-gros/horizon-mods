@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "3a04811822551b0c9717119a1ba8de833c999fc1"
+horizon_revision = "f2e8a953042e674bbb1936ec36849f607734437e"
 
 [[crate]]
 id = "source-config-parser"
@@ -5402,3 +5402,10 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-entity-damage-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "entity-damage-pack-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]

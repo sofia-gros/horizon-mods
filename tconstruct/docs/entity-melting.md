@@ -33,7 +33,12 @@ packaged preparation retain the additional source layer.
 The current world's source recipe snapshot already gates config and conditions.
 Native, source and enabled world-pack tag/definition layers are then resolved in
 priority order. Replace/removal semantics and actual registered entity/fluid
-identities are respected. Snapshots are cleared on world teardown and parked-
+identities are respected. Damage definitions also enter the real synchronized
+registry, and source tag memberships enter normal loot/advancement tables.
+Each selected damage source must agree with those actual tables and any active
+network registry; unsupported tag operations or a missing retained wire identity
+disable that source instead of applying a misleading hit. Native death-message
+keys are verified against the source definition. Snapshots are cleared on world teardown and parked-
 world reload. Unsupported damage tags, unknown output, ambiguous matching
 recipes, malformed predicates or unavailable context disable the action.
 
@@ -49,7 +54,7 @@ on the original pre-refresh data rather than its decoded projection.
 ## Dependency and bounds
 
 This requires the separately reviewed native environmental-damage host bridge,
-currently `sofia-gros/horizon` commit `3a04811822551b0c9717119a1ba8de833c999fc1`,
+currently `sofia-gros/horizon` commit `f2e8a953042e674bbb1936ec36849f607734437e`,
 based on official `0c7b5b61a5e746d621afffba919b12aeccf9c0fa`. The compatibility
 pin and CI source repository are explicit; this is not compatible with an
 unmodified official host. Keep the dependent PR draft until combined integration

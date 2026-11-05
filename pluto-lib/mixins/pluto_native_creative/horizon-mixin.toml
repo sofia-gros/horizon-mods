@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "3a04811822551b0c9717119a1ba8de833c999fc1"
+horizon_revision = "f2e8a953042e674bbb1936ec36849f607734437e"
 
 [[crate]]
 id = "creative-api"

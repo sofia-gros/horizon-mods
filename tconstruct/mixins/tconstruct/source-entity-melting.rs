@@ -12,8 +12,15 @@ pub(super) struct Snapshot {
     pub damage: Value,
     pub damage_tags: Value,
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(super) struct Recipe { pub fluid: String, pub amount: u32, pub damage: u32 }
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) struct Prepared {
+    pub recipe: Option<Recipe>,
+    pub damage: Value,
+    pub damage_tags: Value,
+}
+
 
 fn canonical(id: &str) -> String {
     if id.contains(':') { id.into() } else { format!("minecraft:{id}") }
@@ -110,8 +117,31 @@ pub(super) fn compile_damage(definitions: &BTreeMap<String, Value>, raw: &RawTag
     Ok((serde_json::json!({"data_version":horizon_world::DATA_VERSION,"types":types}), resolved.into()))
 }
 
+// A native snapshot must agree with the actual loot/advancement tables.
+// Otherwise unsupported tag operations could bypass one predicate but not
+// another; disable only the affected source instead of guessing.
+pub(super) fn matching_damage_tags(catalog: &horizon_world::damage_source::Catalog,
+    name: &str, actual: &HashMap<String, HashSet<String>>) -> bool {
+    let Some(id) = catalog.id(name) else { return false; };
+    catalog.tags().chain(actual.keys().map(String::as_str)).all(|tag|
+        actual.get(tag).is_some_and(|values| values.contains(name)) == catalog.in_tag(id, tag))
+}
+
 #[cfg(test)] mod tests {
     use super::*;
+    #[test] fn actual_gameplay_damage_tag_disagreement_fails_closed() {
+        let definitions = [("tconstruct:smeltery_magic".into(), serde_json::json!({
+            "message_id":"tconstruct.smeltery_magic","exhaustion":0.1,"scaling":"never"}))].into_iter().collect();
+        let raw = [("minecraft:witch_resistant_to".into(), vec![br#"{"values":["tconstruct:smeltery_magic"]}"#.to_vec()])].into_iter().collect();
+        let (damage, tags) = compile_damage(&definitions, &raw).unwrap();
+        let catalog = horizon_world::damage_source::Catalog::from_json(&damage, &tags).unwrap();
+        let mut actual = HashMap::new();
+        assert!(!matching_damage_tags(&catalog, "tconstruct:smeltery_magic", &actual));
+        actual.insert("minecraft:witch_resistant_to".into(), ["tconstruct:smeltery_magic".into()].into_iter().collect());
+        assert!(matching_damage_tags(&catalog, "tconstruct:smeltery_magic", &actual));
+        actual.insert("minecraft:bypasses_armor".into(), ["tconstruct:smeltery_magic".into()].into_iter().collect());
+        assert!(!matching_damage_tags(&catalog, "tconstruct:smeltery_magic", &actual));
+    }
     fn setup() -> (Snapshot, BTreeMap<String, Vec<u8>>, HashSet<String>) {
         let snapshot = Snapshot {
             known_entities: ["minecraft:blaze".into()].into_iter().collect(),

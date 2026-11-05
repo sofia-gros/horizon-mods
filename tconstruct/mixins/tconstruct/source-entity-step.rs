@@ -99,7 +99,7 @@ pub(super) fn apply(
         let catalog = horizon_world::damage_source::Catalog::from_json(&serde_json::json!({
             "data_version":horizon_world::DATA_VERSION,"types":[{"id":"tconstruct:smeltery_magic", "message_id":"tconstruct.smeltery_magic", "exhaustion":"3dcccccd","scaling":"never","effects":"burning","death_message_type":"default"}]
         }), &serde_json::json!({})).unwrap();
-        [NativeDamage::from_catalog(&catalog,"tconstruct:smeltery_magic");2]
+        [NativeDamage::from_catalog(&catalog,"tconstruct:smeltery_magic", "tconstruct.smeltery_magic");2]
     }
     fn setup(capacity:u32) -> (Vec<Mob>,Smeltery,Smeltery,Recipe) {
         let mobs = vec![Mob::new(8300,kind(),horizon_core::geometry::Vec3::ZERO,0.0)];
