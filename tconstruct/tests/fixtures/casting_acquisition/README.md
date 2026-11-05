@@ -1,0 +1,11 @@
+# Pinned casting acquisition advancements
+
+These JSON files are copied unchanged from Tinkers' Construct
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`.
+
+https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/smeltery
+
+The manifest records source paths and SHA-256 hashes. Native adaptations
+change the legacy inventory tag predicate and display icon item key only.
+Copyright (c) SlimeKnights. MIT license retained at
+`tconstruct/third_party/tconstruct/LICENSE`.
