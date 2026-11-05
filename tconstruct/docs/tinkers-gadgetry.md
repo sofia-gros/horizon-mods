@@ -1,4 +1,4 @@
-# Tinkers' Gadgetry: acquisition and introductory reader
+# Tinkers' Gadgetry: acquisition and bounded exploration reader
 
 The book is registered with the source single-item stack size and crafted from
 one book plus a member of `forge:slimeball/sky`. The native recipe uses the live
@@ -11,9 +11,15 @@ providing the formerly missing parent of the existing Ancient Tools challenge.
 This does not make every ancient tool obtainable or complete their gameplay.
 No new recipe-book unlock advancement is claimed here.
 
-The local and server reader paths expose only Melvin's source introduction,
-preceded by an explicit partial-edition notice. Gadget, exploration, armor,
-staff, ancient-tool and material chapters are not exposed. Source cover/page
+The local and server reader paths expose Melvin's source introduction and a
+bounded exploration chapter, each preceded by an explicit partial-edition
+notice. Exploration includes the pinned source Cobalt Ore page and a clearly
+port-specific page describing the existing raw-cobalt/ore blast-furnace recipes.
+The registered generation and harvesting route is explicitly unverified in a
+running world. No slime-island, geode, mob-drop or chest-supply acquisition is
+claimed. Gadget, armor, staff, ancient-tool and material chapters remain hidden.
+The exploration whitelist excludes all other source pages; missing or blank
+notice labels suppress the chapter rather than presenting unqualified advice. Source cover/page
 textures are wired to the book's own title, and network replies are matched to
 both this book identity and the current request sequence. Source content is
 from Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`.

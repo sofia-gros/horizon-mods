@@ -14,21 +14,21 @@ from package_hmod import package
 
 
 class MightySearedBlocksPage(unittest.TestCase):
-    def test_source_slot_and_explicit_representative_icon(self):
+    def test_source_slot_and_live_tag_icon(self):
         raw = (ROOT / 'tests/fixtures/mighty_seared_blocks_source.json').read_bytes()
         self.assertEqual(hashlib.sha1(f'blob {len(raw)}\0'.encode() + raw).hexdigest(), '76cede7c3e828c90a5926b960b2571600e352da3')
         source = json.loads(raw)
         page = json.loads((ROOT / 'content' / BOOK / 'en_us/smeltery/searedblocks.json').read_text())
         self.assertEqual(page['title'], source['title'])
         self.assertEqual(source['item'], {'tag': 'tconstruct:seared_blocks'})
-        self.assertEqual(page['item'], 'tconstruct:seared_bricks')
+        self.assertEqual(page['item'], source['item'])
         entries = json.loads((ROOT / 'content' / BOOK / 'sections/smeltery.json').read_text())
         entry = next(p for p in entries if p['name'] == 'seared_blocks')
         self.assertEqual(entry, {'name': 'seared_blocks', 'type': 'mantle:showcase', 'data': 'smeltery/searedblocks.json'})
         names = [p['name'] for p in entries]
         self.assertEqual(names[names.index('seared_blocks') - 1:names.index('seared_blocks') + 2], ['seared_tanks', 'seared_blocks', 'seared_ladder'])
         text = ' '.join(p['text'] for p in page['text'])
-        for phrase in ('representative icon', 'not the original cycling block-tag display', 'Datapacks may change', 'save/reload and LAN remain unverified'):
+        for phrase in ('icon cycles', 'current world’s Seared Blocks item tag', 'Datapacks may change', 'save/reload and LAN remain unverified'):
             self.assertIn(phrase, text)
 
     def test_quantities_and_recipe_path(self):
