@@ -5368,3 +5368,17 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_knockback_defense"
 source = "source-knockback-defense.rs"
 visibility = "pub"
+
+
+[[module]]
+id = "source-defense-slots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_defense_slots"
+source = "source-defense-slots.rs"
+
+[[module]]
+id = "server-source-defense-slots"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_defense_slots"
+source = "source-defense-slots.rs"
+visibility = "pub"
