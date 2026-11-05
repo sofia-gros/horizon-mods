@@ -1,0 +1,25 @@
+{
+  "recipes/part_chest.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/part_chest.json",
+    "sha256": "35c460ca4418003450c595d7f10ebb69add3a0349ffb67cdb7dca74c882eb025"
+  },
+  "recipes/tinkers_chest.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/tinkers_chest.json",
+    "sha256": "1b764ec7b57431be8a5c1dcd06541cd88d67418a5ab21962e3eed55f3abcfca3"
+  },
+  "tags/chests/wooden.json": {
+    "archive": "content/reference/forge-47.4.0-data.zip",
+    "entry": "data/forge/tags/items/chests/wooden.json",
+    "sha256": "7f73b4253d33d1de4a936b0588d68d8ef86013fdec90a27e1520393149f8a9d8"
+  },
+  "tags/gems/lapis.json": {
+    "archive": "content/reference/forge-47.4.0-data.zip",
+    "entry": "data/forge/tags/items/gems/lapis.json",
+    "sha256": "9f1e212934fae4ed5b92ce88178237394c2dd5daf9d879bee0de304da8fbdf9b"
+  },
+  "tags/rods/wooden.json": {
+    "archive": "content/reference/forge-47.4.0-data.zip",
+    "entry": "data/forge/tags/items/rods/wooden.json",
+    "sha256": "30dc91e5290cc19e8d37628b0c42bef221ab139ab19eca5105cce363d7a0231f"
+  }
+}

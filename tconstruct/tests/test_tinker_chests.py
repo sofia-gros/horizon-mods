@@ -15,10 +15,10 @@ class TinkerChestSourceTest(unittest.TestCase):
         self.assertIn("minecraft:crafting_table", tag["values"])
 
     def test_source_recipes_and_item_declarations(self):
-        for name, ingredient in [("part_chest", "#tconstruct:source_forge_rods_wooden"), ("tinkers_chest", "#tconstruct:source_forge_gems_lapis")]:
+        for name, ingredient in [("part_chest", "#forge:rods/wooden"), ("tinkers_chest", "#forge:gems/lapis")]:
             recipe = json.loads((ROOT / f"data/tconstruct/recipe/{name}.json").read_text())
             self.assertEqual(recipe["pattern"], [" p ", "xCx", "xwx"])
-            self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "x": ingredient, "C": "#tconstruct:source_forge_chests_wooden", "w": "#minecraft:planks"})
+            self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "x": ingredient, "C": "#forge:chests/wooden", "w": "#minecraft:planks"})
             self.assertEqual(recipe["result"]["id"], f"tconstruct:{name}")
             self.assertTrue((ROOT / f"data/tconstruct/horizon/block/{name}.json").is_file())
             self.assertTrue((ROOT / f"assets/tconstruct/items/{name}.json").is_file())
