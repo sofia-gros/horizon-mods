@@ -31,6 +31,14 @@ mod anvil_capacity_tests {
 // ---- source-area-shape.rs ----
 // Original side-hit box iterator for the unexpanded 3x3 hammer/shovel plane.
 pub(super) fn plane(origin: [i32; 3], face: [i32; 3], yaw: f32) -> Option<Vec<[i32; 3]>> {
+    expanded_plane(origin,face,yaw,0)
+}
+
+pub(super) fn expanded_plane(origin:[i32;3],face:[i32;3],yaw:f32,level:i32)->Option<Vec<[i32;3]>> {
+    if !(0..=8).contains(&level) || !yaw.is_finite() {return None;}
+    let radius_width=1+(level+1)/2;
+    let radius_height=1+level/2;
+
     let horizontal = match ((yaw / 90.0 + 0.5).floor() as i32).rem_euclid(4) {
         0 => [0, 0, 1], 1 => [-1, 0, 0], 2 => [0, 0, -1], _ => [1, 0, 0],
     };
@@ -39,8 +47,8 @@ pub(super) fn plane(origin: [i32; 3], face: [i32; 3], yaw: f32) -> Option<Vec<[i
         [0, 0, 1] | [0, 0, -1] | [1, 0, 0] | [-1, 0, 0] => ([face[2], 0, -face[0]], [0, 1, 0]),
         _ => return None,
     };
-    let mut positions = Vec::with_capacity(8);
-    for h in -1i32..=1 { for w in -1i32..=1 {
+    let mut positions = Vec::new();
+    for h in -radius_height..=radius_height { for w in -radius_width..=radius_width {
         if w == 0 && h == 0 { continue; }
         let mut pos = origin;
         for axis in 0..3 { pos[axis] = pos[axis].checked_add(width[axis]*w + height[axis]*h)?; }
@@ -65,6 +73,23 @@ mod area_shape_tests {
                 assert_eq!(p.iter().copied().collect::<std::collections::HashSet<_>>().len(),8);
             }
         }
+    }
+    #[test] fn expanded_plane_bounds_counts_and_orientation() {
+        for level in 0..=8 {
+            for face in [[0,1,0],[0,-1,0],[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]] {
+                for yaw in [0.0,90.0,180.0,270.0] {
+                    let points=expanded_plane([0,0,0],face,yaw,level).unwrap();
+                    assert_eq!(points.len(),((3+2*((level+1)/2))*(3+2*(level/2))-1) as usize);
+                    assert_eq!(points.iter().collect::<std::collections::HashSet<_>>().len(),points.len());
+                    assert!(points.iter().all(|p|p[0]*face[0]+p[1]*face[1]+p[2]*face[2]==0));
+                }
+            }
+        }
+        assert_eq!(expanded_plane([0,0,0],[0,0,1],0.0,1).unwrap()[0],[-2,-1,0]);
+        assert!(expanded_plane([0,0,0],[0,0,1],0.0,9).is_none());
+        assert!(expanded_plane([0,0,0],[0,0,1],0.0,-1).is_none());
+        assert!(expanded_plane([i32::MAX,0,0],[0,0,1],0.0,1).is_none());
+        assert!(expanded_plane([0,0,0],[0,0,1],f32::NAN,1).is_none());
     }
     #[test] fn source_traversal_and_hardness() {
         assert_eq!(plane([0,0,0],[0,0,1],0.0).unwrap()[0],[-1,-1,0]);

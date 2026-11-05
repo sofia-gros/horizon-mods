@@ -11,6 +11,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
         let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return false; };
         if *max <= 0 || stack.damage >= *max as u32 { return false; }
+        if stack.item.as_ref()=="tconstruct:sledge_hammer" && crate::game::tconstruct_source_ranged_wear::is_broken(stack) {return false;}
         let Some(tool) = stack.data().and_then(|data| data.other("minecraft:tool")) else { return false; };
         crate::game::tconstruct_source_mining_rules::harvestable(tool, block, |tag, block| game.res.items().block_in_tag(tag, block)) == Some(true)
     };
@@ -29,12 +30,15 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         None => (game.pick().filter(|hit| hit.pos == pos).map(|hit| hit.face), Default::default()),
     };
     enum Area { Box(std::vec::IntoIter<[i32;3]>), Vein(crate::game::tconstruct_source_chain_geometry::Vein), Tree(crate::game::tconstruct_source_chain_geometry::Tree) }
+    let expanded=if tool_name=="tconstruct:sledge_hammer" {
+        let Some(level)=game.held().and_then(|stack|crate::game::tconstruct_expanded::level(&game.world,stack)) else {return Continue(());};level
+    } else {0};
     let area = match tool_name.as_str() {
         "tconstruct:scythe" => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_transform_geometry::box_area(pos, face, game.yaw, 2)) else { return Continue(()); }; Area::Box(positions.into_iter()) },
         "tconstruct:vein_hammer" => Area::Vein(crate::game::tconstruct_source_chain_geometry::Vein::new(pos, 2)),
         "tconstruct:broad_axe" if is_tree => Area::Tree(crate::game::tconstruct_source_chain_geometry::Tree::new(pos)),
         "tconstruct:broad_axe" => Area::Box((1..=5).filter_map(|dy| pos[1].checked_add(dy).map(|y| [pos[0],y,pos[2]])).collect::<Vec<_>>().into_iter()),
-        _ => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_area_shape::plane(pos, face, game.yaw)) else { return Continue(()); }; Area::Box(positions.into_iter()) }
+        _ => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_area_shape::expanded_plane(pos, face, game.yaw, expanded)) else { return Continue(()); }; Area::Box(positions.into_iter()) }
     };
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().insert(actor);
     let result = (|| -> Result<()> {
@@ -51,6 +55,9 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
                     .is_some_and(|max| stack.damage < max)
             });
             if !intact { break; }
+            if tool_name=="tconstruct:sledge_hammer" && game.held().is_some_and(crate::game::tconstruct_source_ranged_wear::is_broken) {break;}
+            if tool_name=="tconstruct:sledge_hammer" && game.held().and_then(|stack|crate::game::tconstruct_expanded::level(&game.world,stack))!=Some(expanded) {break;}
+
             let is_box = matches!(&area, Area::Box(_));
             let same = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).name.as_ref() == center_name.as_str();
             let occludes = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).can_occlude;
