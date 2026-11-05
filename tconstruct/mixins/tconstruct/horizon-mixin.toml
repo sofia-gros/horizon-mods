@@ -5354,3 +5354,77 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-insatiable"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_insatiable"
+source = "source-insatiable.rs"
+
+[[module]]
+id = "source-insatiable-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_insatiable_world"
+source = "insatiable-world.rs"
+
+[[state]]
+id = "insatiable-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<(Option<u32>, Option<(u32, horizon_items::items::ItemStack, bool)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-insatiable-begin"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "insatiable-begin.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-insatiable-end"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "insatiable-end.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-insatiable-hurt"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.hurt_by_player"
+require = 1
+ordinal = 0
+helper = "insatiable-hurt.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "index", ty = "usize", value = "$arg0" },
+  { name = "amount", ty = "f32", value = "$arg1" },
+  { name = "source", ty = "horizon_client::mobs::Damage", value = "$arg2" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, usize, f32, horizon_client::mobs::Damage) -> bool", value = "$operation" },
+]
+
+[[injection]]
+id = "source-insatiable-milk"
+target = "horizon_client::game::consume::Game<'_>::finish_consuming"
+kind = "WRAP_OPERATION"
+selector = "self.apply_consume_effect"
+require = 1
+ordinal = 0
+helper = "insatiable-milk.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "effect", ty = "&horizon_client::items::ConsumeEffect", value = "$arg0" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, &horizon_client::items::ConsumeEffect)", value = "$operation" },
+]
+
+[[injection]]
+id = "source-insatiable-damage"
+target = "horizon_client::game::Game<'_>::melee_damage"
+kind = "RETURN"
+helper = "insatiable-damage.rs"
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "living", ty = "bool", value = "living" }]
