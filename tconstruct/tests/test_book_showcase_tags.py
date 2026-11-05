@@ -31,3 +31,27 @@ class BookShowcaseTagWiring(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SupportedBonusGuideWiring(unittest.TestCase):
+    def test_puny_bonus_group_reads_current_snapshots_and_existing_pagination(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        start = source.index('fn bonus_modifier_pages(')
+        body = source[start:source.index('fn dynamic_materials(', start)]
+        for accessor in ('modifier_resource_snapshot', 'recipe_snapshot', 'resolved_item_tags'):
+            self.assertIn('__horizon_mixins_tconstruct_' + accessor, body)
+        for call in ('bonus_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',
+                     'bonus_guide_recipes(recipes, &modifiers, &items, &tools',
+                     'ingredient_matches(ingredient, item, tags)', 'split_styled(game,',
+                     'tconstruct:book-title', 'partial guide'):
+            self.assertIn(call, body)
+        self.assertIn('puny && key == "slotless"', source)
+        self.assertIn('Some("group_bonus_upgrades")', source)
+        self.assertIn('/extraData/tconstruct:load_modifiers/tag', source)
+        self.assertIn('chapter_pages.extend(bonus_pages)', source)
+        self.assertIn('source_pages(game, &path, book)', (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text())
+
+    def test_gameplay_bonus_registry_is_not_duplicated_for_the_book(self):
+        rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
+        self.assertIn("bonus_guide_registry() -> &'static [(&'static str, i32, i32)] { &BONUS_SLOTS }", rules)
+        self.assertIn('pub(super) fn ingredient_matches(', rules)

@@ -155,6 +155,15 @@ pub(super) fn resolve_available_blocks(
     tags: &BTreeMap<String, Vec<Vec<u8>>>,
     registry: &std::collections::HashSet<String>,
 ) -> Result<Vec<String>, String> {
+    resolve_available_entries(id, tags, registry)
+}
+
+/// Explicitly partial registry projection, shared by available block tags and
+/// supported guide views. Not a substitute for complete source tag resolution.
+pub(super) fn resolve_available_entries(
+    id: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+) -> Result<Vec<String>, String> {
     fn canonical(id: &str) -> String {
         if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
     }

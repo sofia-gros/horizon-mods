@@ -277,6 +277,41 @@ const ARMOR_MATERIAL_STATS: &[&str] = &[
     "tconstruct:shell", "tconstruct:laces", "tconstruct:ribcage",
 ];
 
+// A visible, deliberately partial modifier consumer. Read fresh world snapshots
+// on each open/request; never turn a cached or missing registry into pages.
+fn bonus_modifier_pages(game: &Game<'_>, tag: &str) -> Vec<Text> {
+    let Some(raw) = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };
+    let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref() else { return Vec::new(); };
+    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };
+    let Some(rest) = game.res.rest.get() else { return Vec::new(); };
+    let registry = crate::game::tconstruct_source_upgrade_rules::bonus_guide_registry();
+    let supported = registry.iter().map(|(id, _, _)| (*id).to_owned()).collect();
+    let Ok(modifiers) = crate::game::tconstruct_modifier_snapshot::supported_guide_tag(raw, tag, &supported) else { return Vec::new(); };
+    let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();
+    let tools: Vec<String> = tags.get("tconstruct:modifiable").into_iter().flatten()
+        .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();
+    let entries = crate::game::tconstruct_modifier_snapshot::bonus_guide_recipes(recipes, &modifiers, &items, &tools,
+        |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags));
+    let mut pages = Vec::new();
+    for entry in entries {
+        let Some((_, upgrades, abilities)) = registry.iter().find(|(id, _, _)| *id == entry.modifier) else { continue; };
+        let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
+        let title = game.translate(&format!("modifier.{namespace}.{name}"), name);
+        let item_name = |id: &str| {
+            let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
+            game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))
+        };
+        let input = entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", ");
+        let tools = entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", ");
+        let text = format!("Supported bonus modifier (partial guide).\n\nAdds {upgrades} upgrade slot(s) and {abilities} ability slot(s), once per tool.\n\nStation input: one of {input}.\n\nEligible tool types: {tools}.\n\nRecipe: {}\n\nShows this port's ordinary one-input bonus recipes, not all source modifiers. Existing modifier and tool state still affect application.", entry.recipe);
+        for part in split_styled(game, &Text::literal(text), 182.0, 15) {
+            let mut page = Text::styled(&title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
+            page.push("\n\n"); page.push(part); pages.push(page);
+        }
+    }
+    pages
+}
+
 fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
@@ -368,8 +403,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         if mighty_smeltery && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("smeltery.partial").copied(), labels.get("smeltery.partial.notice_title").copied(), labels.get("smeltery.partial.notice").copied()
         ]) { continue; }
-        // Modifier chapters currently expose static overview pages only;
-        // dynamic modifier-tag pages and recipe layouts need more work.
+        // Most modifier groups currently expose static overview pages only;
+        // Puny also exposes the bounded supported bonus-slot projection below;
+        // other modifier-tag pages and recipe layouts need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
         let heading = if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
@@ -515,7 +551,13 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let Some(section) = read(path, &format!("{root}{data}")) else { continue; };
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
+        let mut bonus_pages = Vec::new();
         for page in section.as_array()? {
+            if puny && key == "slotless" && page.get("name").and_then(|v| v.as_str()) == Some("group_bonus_upgrades") {
+                if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) {
+                    bonus_pages.extend(bonus_modifier_pages(game, tag));
+                }
+            }
             if gadgetry_exploration && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::gadgetry_exploration_page) { continue; }
             if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2" | "scorched_tanks")) { continue; }
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
@@ -647,6 +689,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                 }
             }
         }
+        chapter_pages.extend(bonus_pages);
         if !chapter_pages.is_empty() {
             if mighty_advice || mighty_smeltery || encyclopedia || gadgetry {
                 let (title_key, note_key) = if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
