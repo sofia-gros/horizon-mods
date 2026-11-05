@@ -1,6 +1,7 @@
 // Wrap the consume call so the existing Momentum milk HEAD cannot remove
 // Insatiable first. Preserve the supported NoMilkEffect instances in place,
-// including hidden upgrades; commands and non-milk clears stay native.
+// including hidden upgrades and Strong Bones' helmet-curable Resistance.
+// Commands and non-milk clears stay native.
 fn tconstruct_insatiable_milk(
     game: &mut crate::game::Game<'_>,
     effect: &horizon_client::items::ConsumeEffect,
@@ -14,12 +15,15 @@ fn tconstruct_insatiable_milk(
         )
     {
         game.potions.effects.list.retain(|entry| {
-            matches!(
-                entry.id,
-                "tconstruct:insatiable_melee"
-                    | "tconstruct:momentum_harvest"
-                    | "tconstruct:momentum_ranged"
-            )
+            entry
+                .__horizon_mixins_tconstruct_strong_bones_cure_item()
+                .is_some()
+                || matches!(
+                    entry.id,
+                    "tconstruct:insatiable_melee"
+                        | "tconstruct:momentum_harvest"
+                        | "tconstruct:momentum_ranged"
+                )
         });
         game.apply_effect_status();
     } else {
