@@ -277,6 +277,22 @@ const ARMOR_MATERIAL_STATS: &[&str] = &[
     "tconstruct:shell", "tconstruct:laces", "tconstruct:ribcage",
 ];
 
+// Keep the complete text recipe even when visual choices exceed the wire budget.
+fn modifier_input_page(game: &Game<'_>, title: &str, inputs: &[Vec<String>]) -> Option<Text> {
+    let mut spec = super::tconstruct_materials_book_recipe::modifier_input_spec(inputs)?;
+    let preview_title = format!("{title}: Inputs");
+    if game.gui.atlas.font.split(&Text::literal(&preview_title), 182.0).len() != 1 { return None; }
+    let workstation = if inputs.len() > 3 { "Four or five inputs require a Tinker's Anvil." }
+        else { "Repeated ingredients still need separate input slots." };
+    let text = format!("One item per numbered input. Choices cycle every 3 seconds.\n\n{workstation}\n\nDetails and restrictions follow. This is not a crafting grid.");
+    let body = split_styled(game, &Text::literal(text), 182.0, 11);
+    if body.len() != 1 { return None; }
+    spec["body_runs"] = serde_json::json!(super::tconstruct_materials_book_layout::encode_runs(&body[0]));
+    let insertion = format!("tconstruct:book:{spec}");
+    if insertion.len() > 8192 { return None; }
+    Some(Text::styled(preview_title, horizon_client::text::Style { insertion:Some(insertion), underlined:Some(true), ..Default::default() }))
+}
+
 // A visible, deliberately partial modifier consumer. Read fresh world snapshots
 // on each open/request; never turn a cached or missing registry into pages.
 fn bonus_modifier_pages(game: &Game<'_>, tag: &str) -> Vec<Text> {
@@ -297,6 +313,7 @@ fn bonus_modifier_pages(game: &Game<'_>, tag: &str) -> Vec<Text> {
         let Some((_, upgrades, abilities)) = registry.iter().find(|(id, _, _)| *id == entry.modifier) else { continue; };
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
         let title = game.translate(&format!("modifier.{namespace}.{name}"), name);
+        if let Some(preview) = modifier_input_page(game, &title, &entry.inputs) { pages.push(preview); }
         let item_name = |id: &str| {
             let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
             game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))
@@ -345,6 +362,7 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
     for entry in entries {
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
         let title = game.translate(&format!("modifier.{namespace}.{name}"), name);
+        if let Some(preview) = modifier_input_page(game, &title, &entry.inputs) { pages.push(preview); }
         let item_name = |id: &str| {
             let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
             game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))

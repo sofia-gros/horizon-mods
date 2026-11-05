@@ -128,6 +128,18 @@ mod tests {
         assert_eq!(pages[1].spans[0].style.insertion.as_deref(), Some(metadata.as_str()));
     }
     #[test]
+    fn five_modifier_inputs_and_all_alternatives_survive_guest_transfer() {
+        let root = Text::styled("Puny Smelting\n", Style { insertion: Some(ROOT.into()), ..Default::default() });
+        let spec = serde_json::json!({"modifier_inputs":[["test:a", "test:b"], ["test:a"], ["test:c"], ["test:d"], ["test:e"]],
+            "body_runs":[{"text":"One item per numbered input."}]});
+        let metadata = format!("tconstruct:book:{spec}");
+        let preview = Text::styled("Modifier: Inputs", Style { insertion:Some(metadata.clone()), ..Default::default() });
+        let current = vec![root, preview];
+        let pages = decode_reply(91, &current, &encode_reply(91, &current).unwrap()).unwrap();
+        assert_eq!(pages[1].spans[0].style.insertion.as_deref(), Some(metadata.as_str()));
+        assert_eq!(pages[1].spans[0].text, "Modifier: Inputs");
+    }
+    #[test]
     fn source_title_style_survives_guest_transfer() {
         let root = Text::styled("contents", Style { insertion: Some(ROOT.into()), ..Default::default() });
         let title = Text::styled("Source title", Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), color: Some(0x102030), ..Default::default() });
