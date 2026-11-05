@@ -61,5 +61,10 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
             }
         }
     }
+    if living && spin <= 0.0 {
+        let bonus = crate::game::tconstruct_insatiable_world::damage(game, scale);
+        amount += bonus;
+        magic |= bonus > 0.0;
+    }
     (amount, scale, crit, magic)
 }
