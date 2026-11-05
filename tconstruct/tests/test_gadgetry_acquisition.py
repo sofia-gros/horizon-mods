@@ -50,9 +50,9 @@ class GadgetryAcquisition(unittest.TestCase):
         self.assertEqual(json.loads((BOOK / 'en_us/intro.json').read_text())['title'], "Melvin's Guide to Gadgets")
         lang = (BOOK / 'en_us/language.lang').read_text()
         self.assertIn('intro.partial.notice_title=Partial edition', lang)
-        self.assertIn('includes only Melvin', lang)
+        self.assertIn('includes Melvin', lang)
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('if gadgetry && key != "intro" { continue; }', reader)
+        self.assertIn('if gadgetry && !matches!(key, "intro" | "exploration") { continue; }', reader)
         self.assertIn('if gadgetry && !super::tconstruct_materials_book_index::mighty_advice_ready', reader)
         self.assertIn('mighty_advice || mighty_smeltery || encyclopedia || gadgetry', reader)
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
@@ -60,6 +60,32 @@ class GadgetryAcquisition(unittest.TestCase):
         draw = (ROOT / 'mixins/tconstruct/source-materials-book-draw.rs').read_text()
         for suffix in ('cover', 'pages'):
             self.assertIn('gui/tconstruct_book_covers_gadgetry_' + suffix, draw)
+
+    def test_exploration_is_limited_to_existing_cobalt_path(self):
+        pages = json.loads((BOOK / 'sections/exploration.json').read_text())
+        self.assertEqual([page['name'] for page in pages], ['cobalt_ore', 'cobalt_blasting'])
+        for page in pages:
+            self.assertEqual(page['type'], 'mantle:showcase')
+            self.assertTrue((BOOK / 'en_us' / page['data']).is_file())
+        ore = json.loads((BOOK / 'en_us/exploration/cobalt_ore.json').read_text())
+        self.assertEqual(ore['item'], 'tconstruct:cobalt_ore')
+        self.assertIn('8 and 32', ore['text'][0]['text'])
+        placement = json.loads((CONTENT / 'data/tconstruct/worldgen/placed_feature/cobalt_ore_large.json').read_text())
+        height = next(p['height'] for p in placement['placement'] if p['type'] == 'minecraft:height_range')
+        self.assertEqual(height['min_inclusive']['absolute'], 8)
+        self.assertEqual(height['max_inclusive']['absolute'], 32)
+        for kind in ('raw', 'ore'):
+            recipe = json.loads((CONTENT / f'data/tconstruct/recipe/cobalt_{kind}_blasting.json').read_text())
+            self.assertEqual(recipe['type'], 'minecraft:blasting')
+            self.assertEqual(recipe['ingredient'], 'tconstruct:raw_cobalt' if kind == 'raw' else 'tconstruct:cobalt_ore')
+            self.assertEqual(recipe['result'], {'id': 'tconstruct:cobalt_ingot'})
+        lang = (BOOK / 'en_us/language.lang').read_text()
+        self.assertIn('exploration.partial=Exploration (partial)', lang)
+        self.assertIn('real-world generation and harvesting remain unverified', lang)
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('if gadgetry_exploration && !super::tconstruct_materials_book_index::mighty_advice_ready', reader)
+        self.assertIn('is_some_and(super::tconstruct_materials_book_index::gadgetry_exploration_page)', reader)
+        self.assertIn('if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") }', reader)
 
     def test_native_package_includes_acquisition_and_reader_assets(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -71,6 +97,9 @@ class GadgetryAcquisition(unittest.TestCase):
                              'data/tconstruct/advancement/world/tinkers_gadgetry.json',
                              'assets/tconstruct/book/tinkers_gadgetry/index.json',
                              'assets/tconstruct/book/tinkers_gadgetry/en_us/intro.json',
+                             'assets/tconstruct/book/tinkers_gadgetry/sections/exploration.json',
+                             'assets/tconstruct/book/tinkers_gadgetry/en_us/exploration/cobalt_ore.json',
+                             'assets/tconstruct/book/tinkers_gadgetry/en_us/exploration/cobalt_blasting.json',
                              'assets/tconstruct/book/tinkers_gadgetry/en_us/language.lang',
                              'assets/tconstruct/items/tinkers_gadgetry.json',
                              'assets/tconstruct/models/item/tinkers_gadgetry.json',

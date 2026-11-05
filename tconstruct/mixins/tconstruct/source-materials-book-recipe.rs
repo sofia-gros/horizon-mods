@@ -10,6 +10,32 @@ pub(super) fn showcase_item(value: &Value) -> Option<&str> {
     Some(id)
 }
 
+// Tag-only showcases use this world's already-resolved registry, never a
+// process-wide/default tag list. Bound metadata below the book wire span limit.
+pub(super) fn showcase_tag(value: &Value, tags: Option<&HashMap<String, HashSet<String>>>, known: Option<&HashSet<String>>) -> Option<Value> {
+    let object = value.as_object()?;
+    if object.len() != 1 { return None; }
+    let tag = object.get("tag")?.as_str()?;
+    showcase_item(&Value::String(tag.to_owned()))?;
+    let known = known?;
+    let members = tags?.get(tag)?;
+    let mut choices: Vec<_> = members.iter().filter(|id| id.as_str() != "minecraft:air" && known.contains(*id)
+        && showcase_item(&Value::String((*id).clone())).is_some()).cloned().collect();
+    choices.sort();
+    if choices.is_empty() || choices.len() > 128
+        || choices.iter().map(|id| id.len() + 3).sum::<usize>() > 4096 { return None; }
+    Some(serde_json::json!({"showcase_items":choices}))
+}
+
+// Use the same selected ID for drawing and the hover tooltip. Source Mantle
+// switches every three seconds; this renderer has a shared wall-clock phase.
+pub(super) fn showcase_display_item(spec: &Value, seconds: u64) -> Option<&str> {
+    if let Some(value) = spec.get("showcase_item") { return showcase_item(value); }
+    let choices = spec.get("showcase_items")?.as_array()?;
+    if choices.is_empty() || choices.len() > 128 { return None; }
+    showcase_item(&choices[((seconds / 3) % choices.len() as u64) as usize])
+}
+
 pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<String>>>, grid_size: &str) -> Option<Value> {
     fn ingredient(value: &serde_json::Value, tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> Vec<String> {
         if let Some(choices) = value.as_array() {
@@ -45,6 +71,46 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn showcase_tags_use_each_world_and_only_registered_valid_items() {
+        let input = serde_json::json!({"tag":"tconstruct:seared_blocks"});
+        let tags = HashMap::from([("tconstruct:seared_blocks".into(), HashSet::from([
+            "tconstruct:seared_stone".into(), "tconstruct:seared_bricks".into(),
+            "minecraft:air".into(), "missing:item".into(), "invalid id".into()]))]);
+        let known = HashSet::from(["tconstruct:seared_bricks".into(), "tconstruct:seared_stone".into(), "minecraft:air".into(), "invalid id".into()]);
+        let actual = showcase_tag(&input, Some(&tags), Some(&known)).unwrap();
+        assert_eq!(actual, serde_json::json!({"showcase_items":["tconstruct:seared_bricks","tconstruct:seared_stone"]}));
+        let other = HashMap::from([("tconstruct:seared_blocks".into(), HashSet::from(["tconstruct:seared_stone".into()]))]);
+        assert_eq!(showcase_tag(&input, Some(&other), Some(&known)).unwrap()["showcase_items"], serde_json::json!(["tconstruct:seared_stone"]));
+        assert_eq!(showcase_tag(&input, Some(&tags), Some(&known)), Some(actual));
+        for (tags, known) in [(None, Some(&known)), (Some(&tags), None), (Some(&HashMap::new()), Some(&known)), (Some(&tags), Some(&HashSet::new()))] {
+            assert!(showcase_tag(&input, tags, known).is_none());
+        }
+    }
+    #[test]
+    fn showcase_tag_rejects_unsupported_forms_and_bounds_metadata() {
+        let members: HashSet<_> = (0..129).map(|n| format!("test:item_{n}")).collect();
+        let tags = HashMap::from([("test:items".into(), members.clone())]);
+        for input in [serde_json::json!({"tag":"test:items"}), serde_json::json!({"tag":42}),
+            serde_json::json!({"tag":"bad tag"}), serde_json::json!({"tag":"test:items", "item":"test:item_0"}),
+            serde_json::json!({"tag":"test:items", "nbt":{}}), serde_json::json!({"tag":"test:items", "amount_needed":2})] {
+            assert!(showcase_tag(&input, Some(&tags), Some(&members)).is_none());
+        }
+        let members = HashSet::from([format!("test:{}", "x".repeat(4096))]);
+        let tags = HashMap::from([("test:items".into(), members.clone())]);
+        assert!(showcase_tag(&serde_json::json!({"tag":"test:items"}), Some(&tags), Some(&members)).is_none());
+    }
+    #[test]
+    fn showcase_cycles_every_three_seconds_and_safely_wraps() {
+        let spec = serde_json::json!({"showcase_items":["test:a", "test:b"]});
+        for seconds in [0, 1, 2, 6, 7, 8] { assert_eq!(showcase_display_item(&spec, seconds), Some("test:a")); }
+        for seconds in [3, 4, 5, 9, 10, 11] { assert_eq!(showcase_display_item(&spec, seconds), Some("test:b")); }
+        assert_eq!(showcase_display_item(&spec, u64::MAX), Some("test:b"));
+        assert_eq!(showcase_display_item(&serde_json::json!({"showcase_item":"test:single"}), u64::MAX), Some("test:single"));
+        for spec in [serde_json::json!({"showcase_items":[]}), serde_json::json!({"showcase_items":[42]}), serde_json::json!({"showcase_items":["bad id"]}), serde_json::json!({"showcase_items":42})] {
+            assert!(showcase_display_item(&spec, 0).is_none());
+        }
+    }
     #[test]
     fn showcase_accepts_source_item_forms_and_rejects_invalid_values() {
         for id in ["tconstruct:copper_gauge", "tconstruct:seared_fluid_cannon", "tconstruct:seared_casting_tank"] {

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "cobalt_ore",
+    "type": "mantle:showcase",
+    "data": "exploration/cobalt_ore.json"
+  },
+  {
+    "name": "cobalt_blasting",
+    "type": "mantle:showcase",
+    "data": "exploration/cobalt_blasting.json"
+  }
+]
