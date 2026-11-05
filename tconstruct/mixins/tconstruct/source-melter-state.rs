@@ -331,9 +331,22 @@ impl Faucet {
         Tag::Compound(fields)
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
+        // These are owned fields in the fixed source Faucet format, not
+        // extension metadata. Do not advance native state alongside stale
+        // Forge state or guess a migration for its buffered/rendered fluid.
+        for alias in ["state", "drained", "render_fluid", "lastRedstone"] {
+            if tag.get(alias).is_some() { return None; }
+        }
         let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
         let active = boolean("active")?; let stop_after_packet = boolean("stop")?;
-        let pending = Tank::from_nbt(tag.get("pending")?, 90)?;
+        let raw_pending = tag.get("pending")?;
+        for alias in ["FluidName", "Amount", "Tag"] {
+            if raw_pending.get(alias).is_some() { return None; }
+        }
+        let pending = Tank::from_nbt(raw_pending, 90)?;
+        // Every caller, including legacy routes and renderers, must see an
+        // exact fluid identity. Preserve genuine pending-tank extensions.
+        if pending.to_nbt_preserving(raw_pending).as_ref() != Some(raw_pending) { return None; }
         if !active && (stop_after_packet || pending.amount != 0) { return None; }
         Some(Self { active, stop_after_packet, pending, original: Some(tag.clone()) })
     }
@@ -369,7 +382,6 @@ mod faucet_tests {
     }
     #[test]
     fn malformed_pending_packet_rejects_resume_without_mutating_snapshots() {
-        let casting = Casting::new(); let saved_casting = casting.to_nbt();
         let mut raw = Faucet::new().to_nbt();
         if let Tag::Compound(fields) = &mut raw {
             fields.insert("active".into(), Tag::Byte(1));
@@ -378,23 +390,58 @@ mod faucet_tests {
                 ("amount", Tag::Int(10)),
             ]));
         }
-        let before = raw.clone(); let faucet = Faucet::from_nbt(&raw).unwrap();
-        let mut committed_casting = saved_casting.clone();
-        let mut committed_faucet = raw.clone();
-        let mut staged_casting = casting.clone(); let mut staged_faucet = faucet.clone();
-        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
-        if safe_casting_resume(&casting, &saved_casting, &faucet, &raw) {
-            let _ = prepare_copper(&mut staged_casting, &staged_faucet, &source);
-            staged_faucet.tick(&mut source, Some(&mut staged_casting.tank));
-            committed_casting = staged_casting.to_nbt(); committed_faucet = staged_faucet.to_nbt();
+        let before = raw.clone();
+        // Refuse at the common decoder, before either guarded or legacy
+        // routes can normalize the identifier or mutate a fluid destination.
+        assert!(Faucet::from_nbt(&raw).is_none());
+        assert_eq!(raw, before);
+    }
+    #[test]
+    fn faucet_rejects_mixed_source_aliases_before_activation_or_tick() {
+        for alias in ["state", "drained", "render_fluid", "lastRedstone"] {
+            for value in [Tag::Byte(0), Tag::compound([("Amount", Tag::Int(10))]), Tag::String("invalid".into())] {
+                let Tag::Compound(mut fields) = Faucet::new().to_nbt() else { panic!() };
+                fields.insert(alias.into(), value);
+                let raw = Tag::Compound(fields); let before = raw.clone();
+                assert!(Faucet::from_nbt(&raw).is_none(), "{alias}");
+                assert_eq!(raw, before);
+            }
         }
-        assert_eq!(committed_faucet, before); assert_eq!(committed_casting, saved_casting);
-        assert_eq!(source.amount, 90);
-        // An unmatched packet must also fail before the legacy tick path.
-        // The invalid ID cannot match the copper stub and must remain raw.
-        assert!(!prepare_copper(&mut staged_casting, &faucet, &source));
-        assert_ne!(faucet.to_nbt(), raw);
-        assert_eq!(committed_faucet, raw);
+        for alias in ["FluidName", "Amount", "Tag"] {
+            let mut raw = Faucet::new().to_nbt();
+            if let Tag::Compound(fields) = &mut raw {
+                if let Some(Tag::Compound(pending)) = fields.get_mut(&"pending".into()) {
+                    pending.insert(alias.into(), Tag::Int(1));
+                }
+            }
+            assert!(Faucet::from_nbt(&raw).is_none(), "{alias}");
+        }
+    }
+    #[test]
+    fn faucet_native_extensions_survive_packet_drain_stop_and_reload() {
+        let mut raw = Faucet::new().to_nbt();
+        if let Tag::Compound(fields) = &mut raw {
+            fields.insert("future".into(), Tag::Long(7));
+            if let Some(Tag::Compound(pending)) = fields.get_mut(&"pending".into()) {
+                pending.insert("future_pending".into(), Tag::Long(8));
+            }
+        }
+        let mut faucet = Faucet::from_nbt(&raw).unwrap(); assert_eq!(faucet.to_nbt(), raw);
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        let mut input = Tank::new(100); assert!(input.insert_tagged("tconstruct:potion", Some(&tag), 25));
+        let mut output = Tank::new(100);
+        assert!(faucet.activate(&mut input, &output));
+        assert!(faucet.activate(&mut input, &output)); // Stop after the reserved packet.
+        for _ in 0..4 {
+            faucet.tick(&mut input, Some(&mut output));
+            let saved = faucet.to_nbt();
+            assert_eq!(saved.get("future"), Some(&Tag::Long(7)));
+            assert_eq!(saved.get("pending").unwrap().get("future_pending"), Some(&Tag::Long(8)));
+            faucet = Faucet::from_nbt(&saved).unwrap(); assert_eq!(faucet.to_nbt(), saved);
+            assert_eq!(input.amount + faucet.pending.amount + output.amount, 25);
+        }
+        assert!(!faucet.active); assert!(!faucet.stop_after_packet);
+        assert_eq!(output.amount, 25); assert_eq!(output.tag, Some(tag));
     }
     #[test]
     fn drained_casting_restarts_for_pending_packet_and_conserves_fluid() {
