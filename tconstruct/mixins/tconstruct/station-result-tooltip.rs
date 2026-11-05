@@ -9,10 +9,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             let has_heater = if game.remote.is_some() { game.remote_chest_menu().is_some_and(|(rows, _)| rows == 6) } else { game.container_size() > 27 };
             if (ox + 152.0..ox + 166.0).contains(&game.cursor.0) && (oy + 31.0..oy + 69.0).contains(&game.cursor.1)
                 && (!has_heater || game.cursor.1 > oy + 50.0) {
-                let queued_temperature = has_heater.then(|| game.container_kind().and_then(|entity| entity.slots().get(27)).and_then(Option::as_ref))
-                    .flatten().filter(|stack| game.res.providers().burn_time(game.res.items(), stack, false) > 0)
-                    .and_then(|_| crate::game::tconstruct_source_machine_runtime::solid_fuel_rule(game).map(|(temperature, _)| temperature));
-                let temperature = if state.fuel > 0 { Some(state.temperature) } else { queued_temperature };
+                let temperature = state.solid_fuel_tooltip_temperature();
                 let lines = if !has_heater {
                     let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
                     if let Some(tank) = fuel {
