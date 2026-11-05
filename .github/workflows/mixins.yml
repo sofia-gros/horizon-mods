@@ -50,6 +50,7 @@ jobs:
           python3 -m unittest discover -s tconstruct/tests -v
           python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
+          cargo test --locked --manifest-path tconstruct/tests/wither-bone/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
           SOUL_REPO_ROOT="$GITHUB_WORKSPACE" cargo test --locked --manifest-path tconstruct/tests/soul-glass/Cargo.toml
           rustc --edition=2021 --test tconstruct/tests/rust/source_fluid_display.rs -o /tmp/tconstruct-fluid-display-test
@@ -108,6 +109,8 @@ jobs:
           python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client-lib --lib --no-default-features --profile fast tconstruct_wither_bone_host_tests::tests -- --nocapture | tee "$RUNNER_TEMP/wither-bone-tests.log"
+          grep -Fqx "test mobs::drops::tconstruct_wither_bone_host_tests::tests::wither_bone_reload_counts_components_rng_and_other_tables ... ok" "$RUNNER_TEMP/wither-bone-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_recipes::foundry_tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimelytra_tests

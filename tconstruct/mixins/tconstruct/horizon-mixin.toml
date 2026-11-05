@@ -5302,3 +5302,59 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "RETURN"
 helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+[[module]]
+id = "source-wither-bone-client"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_source_wither_bone"
+source = "source-wither-bone.rs"
+
+[[module]]
+id = "source-wither-bone-world-module"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_wither_bone"
+source = "source-wither-bone.rs"
+
+[[injection]]
+id = "source-wither-bone-pack"
+target = "horizon_client::game::functions::content_overlay"
+kind = "RETURN"
+helper = "source-wither-bone-pack.rs"
+bindings = [{ name = "files", ty = "Vec<(String, Vec<Vec<u8>>)>", value = "$value" }, { name = "world_root", ty = "&std::path::Path", value = "world_root" }, { name = "resources", ty = "&std::path::Path", value = "resources" }, { name = "vanilla_disabled", ty = "bool", value = "vanilla_disabled" }, { name = "enabled_features", ty = "&[String]", value = "enabled_features" }]
+
+
+[[injection]]
+id = "source-wither-bone-native"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+priority = -1000000
+helper = "source-wither-bone-native.rs"
+bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+
+[[injection]]
+id = "source-wither-bone-world"
+target = "horizon_world::loot::overlay_map"
+kind = "RETURN"
+helper = "source-wither-bone-world.rs"
+bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" }, { name = "kind", ty = "&str", value = "kind" }, { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" }]
+
+
+[[injection]]
+id = "source-wither-bone-roll"
+target = "horizon_client_lib::mobs::drops::roll"
+kind = "RETURN"
+helper = "source-wither-bone-roll.rs"
+bindings = [{ name = "drops", ty = "Vec<LootStack>", value = "$value" }, { name = "d", ty = "&Death", value = "d" }, { name = "table", ty = "&str", value = "table" }]
+
+[[module]]
+id = "source-wither-bone-host-tests"
+file = "crates/horizon-client/src/mobs/drops.rs"
+name = "tconstruct_wither_bone_host_tests"
+source = "source-wither-bone-tests.rs"
+
+[[module]]
+id = "source-wither-bone-death-module"
+file = "crates/horizon-client/src/mobs/drops.rs"
+name = "tconstruct_source_wither_bone"
+source = "source-wither-bone.rs"
