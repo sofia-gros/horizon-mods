@@ -5354,3 +5354,22 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-dreambound"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dreambound"
+source = "source-dreambound.rs"
+
+[[module]]
+id = "source-dreambound-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dreambound_world"
+source = "dreambound-world.rs"
+
+[[injection]]
+id = "source-dreambound-gravity"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "TAIL"
+helper = "dreambound-equipment.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
