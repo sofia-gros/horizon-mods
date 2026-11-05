@@ -5354,3 +5354,61 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-worldbound"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_worldbound"
+source = "source-worldbound.rs"
+
+[[module]]
+id = "source-worldbound-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_worldbound_world"
+source = "worldbound-world.rs"
+
+[[state]]
+id = "worldbound-environment-items"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<u32>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "worldbound-drop-prepare"
+target = "horizon_client::game::Game<'_>::tick_dropped_items"
+kind = "HEAD"
+helper = "worldbound-prepare.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "worldbound-drop-clear"
+target = "horizon_client::game::Game<'_>::tick_items"
+kind = "TAIL"
+helper = "worldbound-clear.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "worldbound-drop-environment"
+target = "horizon_client_lib::entities::ItemEntity::environment_tick"
+kind = "HEAD"
+cancellable = true
+helper = "worldbound-environment.rs"
+bindings = [
+  { name = "entity", ty = "&mut crate::entities::ItemEntity", value = "&mut *self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+]
+
+[[injection]]
+id = "worldbound-drop-expire"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_expire"
+kind = "TAIL"
+helper = "worldbound-expire.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" },
+  { name = "extra_life", ty = "&mut i32", value = "&mut *extra_life" },
+]
