@@ -1041,14 +1041,16 @@ fn tank_to_cannon(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos
     let source_amount = input.tank().amount;
     let Some(mut output) = cannon_at(game,target) else { return Some(false); };
     let Some(raw_output) = store::read(&game.world,target,"tconstruct:fluid_cannon") else { return Some(false); };
-    if output.to_nbt() != raw_output { return Some(false); }
+    if output.to_nbt() != raw_output
+        || output.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some())) { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world,pos,"tconstruct:faucet") else { return Some(false); };
     if faucet.to_nbt() != raw_faucet { return Some(false); }
-    // Cannon supply stays untagged. A source refill after reservation must
-    // not stop the old untagged packet, but may not start a tagged one.
-    if output.tank.tag.is_some() || faucet.pending.tag.is_some()
+    // Keep exact untagged/base-potion identity on every route, including
+    // nonnetwork execution. Unsupported source refills may not start a new
+    // packet, but do not block one already reserved with supported metadata.
+    if !faucet_network_tag_safe(&output.tank) || !faucet_network_tag_safe(&faucet.pending)
         || ((starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet))
-            && input.tank().tag.is_some()) { return Some(false); }
+            && !faucet_network_tag_safe(input.tank())) { return Some(false); }
     if starting && !faucet.activate(input.tank(),&output.tank) { return Some(true); }
     let previous_strength = output.comparator();
     let needs_packet = !starting && faucet.pending.amount == 0;

@@ -2,7 +2,7 @@
 """Test production transfer route; host state is real, world mocked."""
 import os,pathlib,subprocess,tempfile
 root=pathlib.Path(__file__).resolve().parents[1];host=pathlib.Path(os.environ['HORIZON_HOST']).resolve()
-s=(root/'mixins/tconstruct/source-machine-runtime.rs').read_text();route=(s[s.index('fn tank_to_cannon('):s.index('fn faucet_network_tag_safe(')]
+s=(root/'mixins/tconstruct/source-machine-runtime.rs').read_text();route=(s[s.index('fn tank_to_cannon('):s.index('fn faucet_supported_potion_tag(')]
     + s[s.index('enum CastingInput {'):s.index('fn source_process_snapshot_valid(')])
 t=(root/'tests/rust/faucet_tank_cannon_fixture.rs').read_text().replace('__MIXINS__',str(root/'mixins/tconstruct')).replace('__PLUTO__',str(root.parent/'pluto-lib/mixins/pluto_native_creative/stack-fluid.rs')).replace('// __PRODUCTION_ROUTE__',route)
 with tempfile.TemporaryDirectory(prefix='faucet-portable-') as tmp:

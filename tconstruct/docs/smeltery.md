@@ -44,7 +44,7 @@ An untagged fluid from a built-in fuel or ingot tank can travel through a Faucet
 
 ### Built-in tank to Fluid Cannon
 
-A Faucet can supply a Fluid Cannon from a built-in fuel or ingot tank. This bounded route checks the saved source, Faucet and Cannon against the current machine state, then stages their changes together and updates the comparator. Cannon items remain unchanged. Unknown or noncanonical saves and tagged fluids wait; generic handlers remain unsupported. The real game, host-wide build, LAN and disk/network atomicity remain unverified. The source-state fixture uses a mocked world and store and does not verify Cannon firing.
+A Faucet can supply a Fluid Cannon from a built-in fuel or ingot tank. This bounded route checks the saved source, Faucet and Cannon against the current machine state, then stages their changes together and updates the comparator. Cannon items remain unchanged. Unknown or noncanonical saves and unsupported fluid tags wait; generic handlers remain unsupported. The real game, host-wide build, LAN and disk/network atomicity remain unverified. The source-state fixture uses a mocked world and store and does not verify Cannon firing.
 
 The built-in tank → Casting Tank route also accepts registered vanilla potion fluid tags. Simple potion-name tags are allowed through the host network representation; supported custom color and effects require a nonnetwork execution path because the current item wire drops those fields. The host normally uses an integrated server even for singleplayer, so custom effects and color are not claimed as available in ordinary singleplayer. Each saved source, Faucet and target must round-trip; invalid UTF-16, unsupported effects, unknown potions and other tagged fluids wait. Networked Faucet packets and existing Casting Tank tick paths also reject metadata other than the supported simple potion tag. This safety restriction can suspend previously allowed tagged transfers. On the current remote renderer, the potion liquid can still appear in the generic fallback colour even when its saved tag is correct. Live game, host-wide build, save/reload and LAN behavior remain unverified.
 
@@ -56,16 +56,32 @@ A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The 
 ### Casting Tank to Fluid Cannon
 
 The existing Faucet-to-Cannon supply route also accepts a Seared Casting Tank
-as its source. Supply remains limited to untagged fluid. A waiting source
+as its source. Supply accepts untagged fluid and supported vanilla base-potion identity, as described below. A waiting source
 container is reprocessed after reserving fluid, on copies of the machine state.
 The source tank and slots, Faucet packet and Cannon fluid are committed together;
 live source slots and comparator notifications update only after that succeeds.
 The Cannon's item is unchanged. Block states, loaded chunks, saved data and both
 machines' live inventories are rechecked after source processing.
 
-An already-reserved untagged packet can finish if source reprocessing refills
-the Casting Tank with tagged fluid, but new tagged packets wait. This does not
+An already-reserved supported packet can finish if source reprocessing refills
+the Casting Tank with unsupported metadata, but new unsupported packets wait. This does not
 implement Cannon firing or arbitrary FluidHandler support. Focused regression
 cases are added for later execution; only brief static review was performed in
 this phase. Build, gameplay, save/reload, LAN and disk/network atomicity remain
 unverified. Existing source-removal and target-change fallbacks are unchanged.
+
+
+### Base-potion supply to Fluid Cannon
+
+Faucets can supply a Fluid Cannon with a supported vanilla base potion from
+built-in fuel/ingot tanks or a Casting Tank. The source, pending packet and
+Cannon retain the exact Potion tag; a different potion in the destination
+prevents mixing. Custom colors/effects, other fluid tags, unknown potion IDs and
+noncanonical saved data wait in all execution modes. This intentionally does
+not extend the less-restricted nonnetwork potion path used by Casting Tanks.
+Cannon items, including opaque retained wire data, must remain representable
+without loss. This supplies the Cannon tank only; firing remains unimplemented.
+
+This draft builds on the Casting Tank-to-Cannon route. Brief static review only;
+new potion regression cases have not been run. Host build, gameplay, save/reload
+and LAN behavior remain unverified.
