@@ -215,4 +215,67 @@ mod tests {
         }
         assert!(!has_material(&materials(&["tconstruct:cobalt"]), json!({"type": "tconstruct:has_material"})));
     }
+
+    fn skull_predicate(material_id: &str) -> serde_json::Value {
+        json!({"type": "mantle:and", "predicates": [
+            {"type": "mantle:set", "items": ["tconstruct:slime_helmet"]},
+            {"type": "tconstruct:has_material", "material": material_id, "index": 0}
+        ]})
+    }
+    fn composed(item: &ItemView, predicate: serde_json::Value, allowed: &[&'static str]) -> bool {
+        tconstruct_advancement_tool_predicate(
+            &json!({"type": "tconstruct:tool_stack", "predicate": predicate}), item,
+            &CurrentWorld(allowed.to_vec())) == Break(true)
+    }
+
+    #[test]
+    fn slimeskull_needs_the_helmet_and_its_first_material() {
+        let mut item = materials(&["tconstruct:gunpowder", "tconstruct:enderslime"]);
+        assert!(!composed(&item, skull_predicate("tconstruct:gunpowder"), &["tconstruct:pickaxe"]));
+        item.id = "tconstruct:slime_helmet".into();
+        assert!(composed(&item, skull_predicate("tconstruct:gunpowder"), &["tconstruct:slime_helmet"]));
+        assert!(!composed(&item, skull_predicate("tconstruct:enderslime"), &["tconstruct:slime_helmet"]));
+        assert!(!composed(&item, skull_predicate("tconstruct:gunpowder"), &[]));
+        item.count = 0;
+        assert!(!composed(&item, skull_predicate("tconstruct:gunpowder"), &["tconstruct:slime_helmet"]));
+    }
+
+    #[test]
+    fn conjunctions_reject_empty_unknown_and_malformed_children() {
+        let item = materials(&["tconstruct:cobalt"]);
+        let yes = material("tconstruct:cobalt");
+        for children in [json!([]), json!([yes.clone(), {"type": "example:unknown"}]),
+            json!([yes.clone(), null]), json!([yes.clone(), material("tconstruct:wood")]),
+            serde_json::Value::Null, json!("tconstruct:has_upgrades")] {
+            assert!(!composed(&item, json!({"type": "mantle:and", "predicates": children}), &["tconstruct:pickaxe"]));
+        }
+        let nested = json!({"type": "mantle:and", "predicates": [yes.clone(),
+            {"type": "mantle:and", "predicates": [yes]}]});
+        assert!(composed(&item, nested, &["tconstruct:pickaxe"]));
+        assert!(!composed(&item, json!({"type": "mantle:or", "predicates": [material("tconstruct:cobalt")]}), &["tconstruct:pickaxe"]));
+    }
+
+    #[test]
+    fn item_sets_validate_every_id_and_require_membership() {
+        let item = materials(&["tconstruct:cobalt"]);
+        for items in [json!([]), json!(["tconstruct:pickaxe", null]), json!(["tconstruct:pickaxe", "bad"]),
+            json!(["tconstruct:slime_helmet"]), json!("tconstruct:pickaxe")] {
+            assert!(!composed(&item, json!({"type": "mantle:set", "items": items}), &["tconstruct:pickaxe"]));
+        }
+        assert!(composed(&item, json!({"type": "mantle:set", "items": ["tconstruct:slime_helmet", "tconstruct:pickaxe"]}), &["tconstruct:pickaxe"]));
+    }
+
+    #[test]
+    fn composed_predicate_depth_and_width_are_bounded() {
+        let item = materials(&["tconstruct:cobalt"]);
+        let mut predicate = material("tconstruct:cobalt");
+        for _ in 0..8 {
+            predicate = json!({"type": "mantle:and", "predicates": [predicate]});
+        }
+        assert!(composed(&item, predicate.clone(), &["tconstruct:pickaxe"]));
+        predicate = json!({"type": "mantle:and", "predicates": [predicate]});
+        assert!(!composed(&item, predicate, &["tconstruct:pickaxe"]));
+        assert!(!composed(&item, json!({"type": "mantle:and", "predicates": vec![material("tconstruct:cobalt"); 33]}), &["tconstruct:pickaxe"]));
+        assert!(!composed(&item, json!({"type": "mantle:set", "items": vec!["tconstruct:pickaxe"; 65]}), &["tconstruct:pickaxe"]));
+    }
 }

@@ -42,7 +42,9 @@ provided by this acquisition branch. It is not replaced with an easier parent;
 the visible advancement-tree ancestry remains incomplete. The 38 source
 requirements include late-game/compatibility materials. This slice does not
 implement missing materials or certify that all 38 are naturally obtainable.
-No Slimeskull advancement or general stat/modifier/slot predicates are added.
+General stat/modifier/slot predicates remain outside this slice. The
+[Slimeskull follow-on](slimeskull-advancement.md) adds bounded tool conjunctions
+and item-set membership without broadening the material predicate schema.
 
 ## Deferred validation
 

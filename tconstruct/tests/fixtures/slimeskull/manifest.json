@@ -1,0 +1,10 @@
+{
+  "slimeskull.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/world/slimeskull.json",
+    "sha256": "1f762c44c2c20b74dbdfdfed605e9eb31b03a72a6039ed2b8cd30e6161cc3998"
+  },
+  "ToolStackPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/ToolStackPredicate.java",
+    "sha256": "b6ce0a6bba26dec63f5b17907bebfba492465c25d4b65c1458dc3aab10d573c9"
+  }
+}
