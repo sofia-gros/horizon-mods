@@ -620,8 +620,8 @@ graphic rather than showing a recipe with a missing ingredient.
 The bounded renderer accepts ordinary shaped/shapeless crafting and Mantle's
 shaped retextured form. It keeps the existing plain item preview for retextured
 outputs; no material-specific output texture is claimed. Unknown serializers,
-complex Forge ingredients (including the Crafting Station's source difference
-ingredient), component/NBT restrictions and decorated results are omitted.
+unsupported complex Forge ingredients, component/NBT restrictions and
+decorated results are omitted. Bounded difference ingredients are described below.
 Text and other page content remain available. A diagram is still explanatory
 source advice, not proof that this port can craft the displayed recipe.
 
@@ -638,3 +638,29 @@ regressions were authored or updated but not run. Brief static source/diff
 review only. Compilation, actual rendering, world reload, save/reload and LAN
 remain unverified. Crafting transactions, recipe acquisition and modifier pages
 are unchanged. This is another partial #379 guide-accuracy improvement.
+
+
+## Crafting Station guide and difference ingredients
+
+Materials and You now includes an explicitly labeled port Crafting Station
+recipe page after the Pattern page. It explains the vanilla Crafting Table plus
+Pattern path and distinguishes this optional station from the Part Builder and
+Tinker Station. The page references the unchanged source recipe snapshot; its
+prose warns that source-tag alternatives do not prove native crafting support.
+No crafting recipe, tag, workstation behavior or acquisition trigger changes.
+
+The static preview resolver now supports a bounded `forge:difference` ingredient
+by resolving the complete base and subtracted ID sets from the current world,
+then removing every excluded ID. This displays the source workbench candidates
+without offering an existing Crafting Station as an input. Existing item,
+condition, grid, recursion, alternatives and metadata bounds still apply.
+Malformed, missing, unsupported or unresolvable subtraction omits the entire
+graphic rather than ignoring the exclusion. Empty/unavailable subtraction tags
+remain conservatively unsupported, as do component-dependent predicates and
+other complex Forge ingredient forms. This is not a generic recipe matcher.
+
+Regression cases cover tag replacement on reopening, complete exclusions,
+unknown subtraction, extra fields, depth limits, source recipe/page linkage and
+book-reply round trips. They were authored but not run. Brief static review and
+whitespace review only; compilation, rendered layout, actual crafting, reload,
+save/reload and LAN remain unverified. This remains partial #379 guide work.

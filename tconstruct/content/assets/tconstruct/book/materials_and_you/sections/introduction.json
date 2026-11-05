@@ -10,6 +10,11 @@
     "data": "intro/pattern_craft.json"
   },
   {
+    "name": "craftingstation_port",
+    "type": "mantle:crafting",
+    "data": "intro/craftingstation_port.json"
+  },
+  {
     "name": "partbuilder_craft",
     "type": "mantle:crafting",
     "data": "intro/partbuilder_craft.json"
