@@ -300,6 +300,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     crate::game::tconstruct_depth_protection_world::refresh(game);
     crate::game::tconstruct_turtle_shell_world::refresh(game);
     crate::game::tconstruct_boundless_world::refresh(game);
+    crate::game::tconstruct_maintained_world::refresh(game);
 }
 
 // The active level is captured below the reload hook. Parked levels retain

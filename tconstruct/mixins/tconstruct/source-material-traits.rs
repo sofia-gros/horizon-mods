@@ -8,6 +8,7 @@ pub(super) struct Traits {
     pub levels: BTreeMap<String, i32>,
     pub order: Vec<String>,
     pub durability_multiplier: f32,
+    pub base_stats: super::tconstruct_source_station_stats::BaseStats,
 }
 
 /// Combine independently stored recipe upgrades with resolved traits once.
@@ -172,6 +173,7 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         levels: resolved,
         order,
         durability_multiplier: stats.durability_multiplier_unit,
+        base_stats: stats,
     })
 }
 
