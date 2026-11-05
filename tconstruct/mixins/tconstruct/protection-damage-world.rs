@@ -1,9 +1,17 @@
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 
-const RULES: [(&str,&str,&str);2] = [
-    ("tconstruct:fire_protection","tconstruct:protection/fire","minecraft:is_fire"),
-    ("tconstruct:blast_protection","tconstruct:protection/blast","minecraft:is_explosion"),
+#[derive(Clone,Copy)]
+struct Rule {
+    id: &'static str,
+    source_tag: &'static str,
+    source_each: f32,
+    vanilla: Option<(&'static str,f32)>,
+}
+const RULES: [Rule;3] = [
+    Rule { id:"tconstruct:fire_protection", source_tag:"tconstruct:protection/fire", source_each:3.0, vanilla:Some(("minecraft:is_fire",2.0)) },
+    Rule { id:"tconstruct:blast_protection", source_tag:"tconstruct:protection/blast", source_each:3.0, vanilla:Some(("minecraft:is_explosion",2.0)) },
+    Rule { id:"tconstruct:magic_protection", source_tag:"tconstruct:protection/magic", source_each:3.0, vanilla:None },
 ];
 
 fn piece(game: &super::Game<'_>, stack: &ItemStack, worn: bool, id: &str) -> Option<(f32,bool,bool)> {
@@ -36,12 +44,16 @@ fn wanted(game: &super::Game<'_>) -> Option<Vec<(String,f32)>> {
             && belongs(stack,"tconstruct:modifiable/armor/worn") { equipment.push((stack,true)); }
     }
     let mut table = std::collections::BTreeMap::new();
-    for (id, source_tag, vanilla_tag) in RULES {
-        if !super::tconstruct_source_protection::supported_definition(&game.world,id) { continue; }
-        let Some(source_types) = damage_types.get(source_tag) else { continue; };
-        let Some(vanilla_types) = damage_types.get(vanilla_tag) else { continue; };
-        let Some(pieces) = equipment.iter().map(|(stack,worn)|piece(game,stack,*worn,id)).collect::<Option<Vec<_>>>() else { continue; };
-        let Some(points) = super::tconstruct_protection_damage::points(&pieces) else { continue; };
+    let empty = std::collections::HashSet::new();
+    for rule in RULES {
+        if !super::tconstruct_source_protection::supported_definition(&game.world,rule.id) { continue; }
+        let Some(source_types) = damage_types.get(rule.source_tag) else { continue; };
+        let (vanilla_types, vanilla_each) = match rule.vanilla {
+            Some((tag,each)) => { let Some(types) = damage_types.get(tag) else { continue; }; (types,each) },
+            None => (&empty,0.0),
+        };
+        let Some(pieces) = equipment.iter().map(|(stack,worn)|piece(game,stack,*worn,rule.id)).collect::<Option<Vec<_>>>() else { continue; };
+        let Some(points) = super::tconstruct_protection_damage::points(&pieces,rule.source_each,vanilla_each) else { continue; };
         super::tconstruct_protection_damage::add_points(&mut table,source_types,vanilla_types,points);
     }
     Some(table.into_iter().collect())

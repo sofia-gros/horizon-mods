@@ -39,7 +39,8 @@ stage, after armor and Resistance, rather than scaling incoming damage early.
 
 ## Boundaries
 
-The shared stage now also covers [Blast Protection](blast-protection-damage.md).
+The shared stage now also covers [Blast Protection](blast-protection-damage.md)
+and [Magic Protection](magic-protection-damage.md).
 Other protection modifiers, Overshield,
 Boundless and custom protection-cap changes remain unsupported. Exact mixed-modifier float ordering,
 negative protection and extended caps remain unsupported. Damage predicates that
