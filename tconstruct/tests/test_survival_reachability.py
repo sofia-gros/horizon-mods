@@ -53,8 +53,8 @@ def matches(ingredient, reachable):
     return bool(tag_items(ingredient[1:]) & reachable) if ingredient.startswith('#') else ingredient in reachable
 
 
-def closure(recipes):
-    reachable = set(VANILLA)
+def closure(recipes, starting=VANILLA):
+    reachable = set(starting)
     while True:
         previous = set(reachable)
         for recipe in recipes:
