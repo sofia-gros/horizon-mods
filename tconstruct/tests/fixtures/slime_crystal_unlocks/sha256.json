@@ -1,0 +1,14 @@
+{
+  "earth_crystal_block": "394ee9cf718a5463854629d39a94d09c5d9d679256b0a8745a8d4e945885b4a8",
+  "earth_crystal_growing": "d53a449e08af59179e1d45311097ecca86e8960a61acc341a8266b5486d3e3f5",
+  "earth_crystal_smelting": "6f27246ee8f4488b6ede3bf4042f7cc273938a6172d77c0a07d1da7c01fec6eb",
+  "ender_crystal_block": "94b8793aa3ce570d5a210117bef3ea3f38742a5b53d871a82f58d4d5c4d184c7",
+  "ender_crystal_growing": "21d33b61e99bec6ea705c55b7689d505095fb1eb317c2cb4fb9eb140d6728c12",
+  "ender_crystal_smelting": "76146be9f2f2225b732509f7df8fdfe19d67b5bdbcfdbba2ee9de348c7952e39",
+  "ichor_crystal_block": "e17f70e558181ad927d14950df94d5d94179f8dcdc35a0b27dd4b349912114f7",
+  "ichor_crystal_growing": "d0ccc6bad837cefe33c68f668895830bcc8c956fb0e3c28e0bffab25aec59972",
+  "ichor_crystal_smelting": "384c9810f6a1bdef4435add86ba910bfe9575e53e77dfc997217017a748351f8",
+  "sky_crystal_block": "a08fa8997496773351aeb81e14fd9d3fd7d71845f758e9a885f6ebf3fae9a20d",
+  "sky_crystal_growing": "13a7c74a73d4217d5db44f1704284227541f75e4e4ff45a6fa118b27e975cf4a",
+  "sky_crystal_smelting": "248f74d7c4d598ff1b4aa09912881ae70210520b3924461c2a4d6a9580d463b2"
+}
