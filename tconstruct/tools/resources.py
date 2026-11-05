@@ -114,9 +114,10 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
-seared_reinforcement_sprite = mod_assets / 'textures/item/materials/reinforcement/seared.png'
-seared_reinforcement_sprite.parent.mkdir(parents=True, exist_ok=True)
-shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png', seared_reinforcement_sprite)
+for material in ('seared', 'iron', 'gold', 'cobalt', 'obsidian'):
+    sprite = mod_assets / ('textures/item/materials/reinforcement/' + material + '.png')
+    sprite.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement' / (material + '.png'), sprite)
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
@@ -333,6 +334,10 @@ entries.append(('tconstruct:necrotic_bone', 'minecraft:bone', 'Necrotic Bone'))
 # Append new material items so existing prepared item IDs stay unchanged.
 entries.append(('tconstruct:venombone', 'minecraft:bone', source_names['item.tconstruct.venombone']))
 entries.append(('tconstruct:tinkers_gadgetry', 'minecraft:book', "Tinkers' Gadgetry"))
+# Append only: prepared worlds retain every existing protocol ID.
+for material in ('iron', 'gold', 'cobalt', 'obsidian'):
+    short = material + '_reinforcement'
+    entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -367,7 +372,7 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/bone', 'textures': {'layer0': 'tconstruct:item/materials/venombone'}}
     elif short == 'blazing_bone':
         native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/materials/blazing_bone'}}
-    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement'):
+    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement', 'iron_reinforcement', 'gold_reinforcement', 'cobalt_reinforcement', 'obsidian_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
         texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
