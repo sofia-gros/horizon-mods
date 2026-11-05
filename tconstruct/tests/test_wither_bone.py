@@ -10,8 +10,8 @@ class WitherBoneTests(unittest.TestCase):
     def test_authoritative_hook_and_ci(self):
         v=tomllib.loads((ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text())
         hooks={x['id']:x for x in v['injection']}
-        self.assertEqual(hooks['source-wither-bone-roll']['target'], 'horizon_client::mobs::drops::roll')
+        self.assertEqual(hooks['source-wither-bone-roll']['target'], 'horizon_client_lib::mobs::drops::roll')
         self.assertEqual(hooks['source-wither-bone-roll']['kind'], 'RETURN')
         workflow=(ROOT.parent / '.github/workflows/mixins.yml').read_text()
         self.assertIn('tests/wither-bone/Cargo.toml',workflow)
-        self.assertIn('tconstruct_wither_bone_host_tests::tests',workflow)
+        self.assertIn('-p horizon-client-lib --lib --no-default-features --profile fast tconstruct_wither_bone_host_tests::tests',workflow)

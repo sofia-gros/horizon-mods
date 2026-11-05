@@ -5334,7 +5334,7 @@ bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "overlay"
 
 [[injection]]
 id = "source-wither-bone-roll"
-target = "horizon_client::mobs::drops::roll"
+target = "horizon_client_lib::mobs::drops::roll"
 kind = "RETURN"
 helper = "source-wither-bone-roll.rs"
 bindings = [{ name = "drops", ty = "Vec<LootStack>", value = "$value" }, { name = "d", ty = "&Death", value = "d" }, { name = "table", ty = "&str", value = "table" }]
