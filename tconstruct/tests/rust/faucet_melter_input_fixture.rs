@@ -387,6 +387,54 @@ mod tconstruct_source_machine_runtime {
   assert!(input.insert_tagged("tconstruct:potion",Some(&unsupported),90)); g.world.tags.insert((s,"tconstruct:fuel_tank".into()),input.to_nbt());
   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
  }
+ #[test]
+ fn both_lantern_sources_fill_melter_and_each_lantern_without_losing_the_packet() {
+  for source_id in [17,18] { for target_id in [9,17,18] {
+   let (mut g,p,s,t)=lantern_source_fixture(source_id,target_id);
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!((lantern(&g,s).amount,faucet(&g,p).pending.amount),(0,40));
+   assert!(lantern(&g,s).fluid.is_none()); assert!(lantern(&g,s).tag.is_none());
+   let f=faucet(&g,p); assert!(tconstruct_source_faucet_tank::stop(&mut g,p,f));
+   for _ in 0..5 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+   assert_eq!(if target_id==9 {melter(&g,t).tank.amount} else {lantern(&g,t).amount},50);
+   assert_eq!(faucet(&g,p).pending.amount,0); assert!(!faucet(&g,p).active);
+   assert_eq!(g.process_calls,0);
+  } }
+ }
+ #[test]
+ fn lantern_source_unknown_state_missing_entity_failed_save_and_aliases_wait() {
+  for failure in 0..5 {
+   let (mut g,p,s,t)=lantern_source_fixture(17,9);
+   match failure {
+    0=>g.world.fail=true,
+    1=>{ g.world.block_entities.remove(&s); },
+    2=>{ g.world.tags.remove(&(s,"tconstruct:lantern".into())); },
+    3=>{ if let Tag::Compound(raw)=g.world.tags.get_mut(&(s,"tconstruct:lantern".into())).unwrap() { raw.insert("opaque".into(),Tag::Int(7)); } },
+    _=>{ g.world.chunks.loaded.remove(&(-1,0)); },
+   }
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   assert_eq!(g.world.tags,before); assert!(g.notifications.is_empty());
+  }
+  let (mut g,p,s,t)=lantern_source_fixture(18,17); let before=g.world.tags.clone();
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,s,Faucet::new(),true),Some(false));
+  assert_eq!(source_to_melter_or_lantern(&mut g,s,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
+ }
+ #[test]
+ fn lantern_potion_packet_survives_refill_but_opaque_source_waits() {
+  let first=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);
+  let second=Tag::compound([("Potion",Tag::String("minecraft:swiftness".into()))]);
+  let (mut g,p,s,t)=lantern_source_fixture(18,9); let mut tank=Tank::new(50);
+  assert!(tank.insert_tagged("tconstruct:potion",Some(&first),50)); g.world.tags.insert((s,"tconstruct:lantern".into()),tank.to_nbt());
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  let mut tank=Tank::new(50); assert!(tank.insert_tagged("tconstruct:potion",Some(&second),50));
+  let valid=tank.to_nbt(); let mut opaque=valid.clone(); if let Tag::Compound(fields)=&mut opaque {fields.insert("opaque".into(),Tag::Int(7));}
+  g.world.tags.insert((s,"tconstruct:lantern".into()),opaque);
+  let f=faucet(&g,p); let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(false)); assert_eq!(g.world.tags,before);
+  g.world.tags.insert((s,"tconstruct:lantern".into()),valid);
+  for _ in 0..5 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+  assert_eq!((melter(&g,t).tank.amount,lantern(&g,s).amount),(50,50));
+  assert_eq!(melter(&g,t).tank.tag,Some(first)); assert_eq!(lantern(&g,s).tag,Some(second)); assert!(!faucet(&g,p).active);
+ }
 }
 fn faucet(g:&Game<'_>,p:Pos)->Faucet { Faucet::from_nbt(g.world.tags.get(&(p,"tconstruct:faucet".into())).unwrap()).unwrap() }
 fn melter(g:&Game<'_>,p:Pos)->Melter { Melter::from_nbt(g.world.tags.get(&(p,"tconstruct:melter".into())).unwrap()).unwrap() }
@@ -452,5 +500,13 @@ fn lantern_fixture(lantern_id:usize,source_id:usize)->(Game<'static>,Pos,Pos,Pos
  };
  g.world.blocks.insert(t,lantern_id); g.world.tags.remove(&(t,"tconstruct:melter".into()));
  g.world.tags.insert((t,"tconstruct:lantern".into()),Tank::new(50).to_nbt());
+ (g,p,s,t)
+}
+
+fn lantern_source_fixture(source_id:usize,target_id:usize)->(Game<'static>,Pos,Pos,Pos) {
+ let (mut g,p,s,t,key,_)=fixture(1); g.world.blocks.insert(s,source_id); g.world.tags.remove(&(s,key.into()));
+ let mut input=Tank::new(50); assert!(input.insert("minecraft:water",50));
+ g.world.tags.insert((s,"tconstruct:lantern".into()),input.to_nbt());
+ if target_id!=9 { g.world.blocks.insert(t,target_id); g.world.tags.remove(&(t,"tconstruct:melter".into())); g.world.tags.insert((t,"tconstruct:lantern".into()),Tank::new(50).to_nbt()); }
  (g,p,s,t)
 }

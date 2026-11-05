@@ -1417,7 +1417,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
 }
 
 /// Melters and Lanterns expose their internal tank as a fluid handler on every face.
-/// This bounded route accepts built-in tanks/gauges, Melters, Casting Tanks,
+/// This bounded route accepts built-in tanks/gauges, Lanterns, Melters, Casting Tanks,
 /// and formed Drains without rewriting Melter inventory, heat, fuel, or progress.
 fn source_to_melter_or_lantern(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
@@ -1448,7 +1448,10 @@ fn source_to_melter_or_lantern(game: &mut super::Game<'_>, pos: Pos, source: Pos
         let Some(state) = Melter::from_nbt(&raw) else { return Some(false); };
         if raw.get("tank") != Some(&state.tank.to_nbt()) { return Some(false); }
         Some((source, "tconstruct:melter", state.tank, raw))
-    } else if let Some((key, capacity)) = tanks::tank_kind(&source_name) {
+    } else if let Some((key, capacity)) = tanks::tank_kind(&source_name).or_else(|| {
+        matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern")
+            .then_some(("tconstruct:lantern", 50))
+    }) {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
         let Some(tank) = Tank::from_nbt(&raw, capacity) else { return Some(false); };
