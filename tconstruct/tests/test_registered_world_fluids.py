@@ -79,7 +79,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 200)
+        self.assertEqual(len(manifest['files']), 204)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -112,7 +112,8 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'cadmium', 'bronze', 'brass', 'electrum', 'invar', 'constantan', 'pewter',
                         'enderium', 'lumium', 'signalum', 'refined_glowstone', 'refined_obsidian',
                         'nicrosil', 'duralumin', 'bendalloy', 'steeleaf')]
-                    for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid']:
+                    for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid',
+                                             'beetroot_soup', 'mushroom_stew', 'rabbit_stew', 'meat_soup']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]
                         archive.read('data/tconstruct/horizon/block/' + blockname + '.json')

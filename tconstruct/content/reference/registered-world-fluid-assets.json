@@ -800,6 +800,22 @@
     "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/food/stew/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/stew/still.png",
+      "sha256": "f78b3593331a69dff73481374c6648e633cd07eb1aa36cba4ca2899657774b20"
+    },
+    "assets/tconstruct/textures/fluid/food/stew/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/stew/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/food/stew/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/stew/flowing.png",
+      "sha256": "4d974246b9cf72c547d9e348422cdb49e39562d59ff24415b67a1f609aa89bbb"
+    },
+    "assets/tconstruct/textures/fluid/food/stew/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/stew/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }
