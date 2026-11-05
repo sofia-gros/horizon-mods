@@ -67,7 +67,7 @@ class WorkstationDiscoveryUnlocks(unittest.TestCase):
                 native = json.loads((DATA / f'recipe/modifier_worktable_{variant}.json').read_text())
                 self.assertEqual(native['type'], 'minecraft:crafting_shaped')
                 self.assertEqual(native['pattern'], original['pattern'])
-                self.assertEqual(native['key'], {'s': '#tconstruct:anvil_seared_blocks', 'r': 'minecraft:' + variant})
+                self.assertEqual(native['key'], {'s': '#tconstruct:seared_blocks', 'r': 'minecraft:' + variant})
                 self.assertEqual(native['result']['id'], original['result']['item'])
                 self.assertEqual(native['result'].get('count', 1), 1)
                 metadata = native['result']['components']['minecraft:custom_data']['tconstruct:anvil']

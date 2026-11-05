@@ -1,0 +1,20 @@
+{
+  "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/modifier_worktable.json",
+  "sha256": "bc007d153b959ec0f6a9c48908177baac317d936ecac2535e78bd96ca3b7e28d",
+  "base_commit": "9a0bc037f9fa66840e73ceffd4e24fc3014d4bf4",
+  "recipe_without_masonry_sha256": {
+    "modifier_worktable_andesite.json": "df0cb2e77599c93f79fe1645b6efdbffab42905d69a45d76c5662f061fd458df",
+    "modifier_worktable_basalt.json": "5614d3883250a6a73a675dbc5f2da839c1f1dc896d3fa205d8e11b901d84a0f3",
+    "modifier_worktable_blackstone.json": "3a06c6f7d41438e3fa64a197e86d2cec941c9ff740605b4a0fa96e83eb8cc446",
+    "modifier_worktable_calcite.json": "3974ca1dc502cee2319549e4f518e772783cd5723fc472f95ca6c411c1df4c4a",
+    "modifier_worktable_cobbled_deepslate.json": "5c77113282c3b3326bbb6c1a6412d0eb2820ef973c79cca762a6538e161f9909",
+    "modifier_worktable_cobblestone.json": "a378b05d483b80beb861790d23781897990668e08e7d85dc0683285111609b62",
+    "modifier_worktable_deepslate.json": "817970ad2c72110501d89d39c342a01a84db21f8151f46a1b9408032da1c31b0",
+    "modifier_worktable_diorite.json": "1e8fc4e18f7721bacbaca64c27ee10ce7b60744de090c0c7ea0931492021d97c",
+    "modifier_worktable_dripstone_block.json": "aacd82968af65a431c45fdf56a4751432051222e2620a26d80182045665a99dc",
+    "modifier_worktable_granite.json": "b2b8c27073b2aa21ab1d072a569931f7b74b6d6a6b5099910cfe142f6e727992",
+    "modifier_worktable_mossy_cobblestone.json": "844f04e1a0bcf9c3bab61654a86b24fe1b9386ba344e539bcf849bb101558d74",
+    "modifier_worktable_stone.json": "4d1b521a1335054a09a8cb5ef9d3082c27042c82497ea432b2ac446043cfed4b",
+    "modifier_worktable_tuff.json": "3b45a1a38f5dea4d1bde89238dfa3b01c3b039974fe9dfc553f915e1a77eeb9a"
+  }
+}

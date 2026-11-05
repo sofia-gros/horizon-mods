@@ -20,7 +20,7 @@ for rock in rocks:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(json.dumps(content, separators=(',', ':')) + '\n')
     recipe = {'type': 'minecraft:crafting_shaped', 'category': 'misc', 'pattern': ['sss', 'r r', 'r r'],
-              'key': {'s': '#tconstruct:anvil_seared_blocks', 'r': 'minecraft:' + rock},
+              'key': {'s': '#tconstruct:seared_blocks', 'r': 'minecraft:' + rock},
               'result': {'id': 'tconstruct:modifier_worktable', 'components': {
                   'minecraft:custom_data': {'tconstruct:anvil': {'Rock': 'minecraft:' + rock, 'Variant': rock, 'Texture': side, 'TextureTop': top}},
                   'minecraft:item_model': 'tconstruct:' + name}}}

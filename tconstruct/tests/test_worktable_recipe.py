@@ -18,7 +18,7 @@ class WorktableRecipe(unittest.TestCase):
             short = rock.split(':')[1]
             local = json.loads((ROOT / 'content/data/tconstruct/recipe' / ('modifier_worktable_' + short + '.json')).read_text())
             self.assertEqual(local['pattern'], source['pattern'])
-            self.assertEqual(local['key'], {'s': '#tconstruct:anvil_seared_blocks', 'r': rock})
+            self.assertEqual(local['key'], {'s': '#tconstruct:seared_blocks', 'r': rock})
             self.assertEqual(local['result']['id'], source['result']['item'])
             data = local['result']['components']['minecraft:custom_data']['tconstruct:anvil']
             self.assertEqual(data['Rock'], rock)
