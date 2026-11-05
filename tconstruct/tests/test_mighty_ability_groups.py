@@ -52,7 +52,7 @@ class MightyAbilityGroups(unittest.TestCase):
             self.assertIn(text, body)
         self.assertIn('let mighty_abilities = mighty && key == "abilities";', source)
         self.assertIn('if mighty_abilities && !super::tconstruct_materials_book_index::mighty_advice_ready([', source)
-        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, puny_upgrades)', source)
+        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, key)', source)
         self.assertIn('if upgrades { recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()])); }', body)
         self.assertIn('chapters.push((heading.to_owned(), chapter_pages));', source)
         index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()

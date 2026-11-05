@@ -664,3 +664,29 @@ unknown subtraction, extra fields, depth limits, source recipe/page linkage and
 book-reply round trips. They were authored but not run. Brief static review and
 whitespace review only; compilation, rendered layout, actual crafting, reload,
 save/reload and LAN remain unverified. This remains partial #379 guide work.
+
+
+## Mighty defense reference chapter
+
+Mighty Smelting now exposes the pinned Protection and Special Defense category
+overviews through the existing grouped modifier reader. Source section order,
+category tags, paths and prose are retained. Unknown or mismatched category
+identities are not placed below unrelated guidance. The chapter, each source
+overview and each empty recipe group require explicit partial/reference notices.
+Missing required labels omit the chapter rather than presenting unqualified
+source promises.
+
+Recipe membership still uses current-world modifier tags. Any displayed recipe
+must pass the existing ordinary guide registry, recipe/condition, registered
+item and tool/Station eligibility checks. Only Puny upgrades gain incremental
+recipes; this change does not broaden that projection. The fixed default
+Defense groups currently contain no supported ordinary guide recipes, so the
+two overviews display the explicit empty-category notice. It does not imply
+that every related material effect is absent. No defense-slot recipes, effects,
+armor attributes, extraction rules or gameplay eligibility are added here.
+
+The copied MIT source files have dedicated attribution. Source identity/order,
+required notices, category routing and unchanged eligibility regressions were
+authored or updated but not run. Brief static and whitespace review only.
+Compilation, total book size/layout, resource reload, save/reload and LAN remain
+unverified. This is partial #379 guide coverage, not complete defense gameplay.
