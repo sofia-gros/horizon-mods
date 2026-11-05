@@ -26,9 +26,51 @@ pub(super) fn level(base: u32, fortune: i32, fortunate: i32) -> Option<u32> {
     (result <= 255).then_some(result)
 }
 
+pub(super) fn with_worn(base: u32, levels: &[i32]) -> Option<u32> {
+    let result = levels.iter().try_fold(base, |total, level| {
+        if *level < 0 {
+            None
+        } else {
+            total.checked_add(*level as u32)
+        }
+    })?;
+    (result <= 255).then_some(result)
+}
+
+pub(super) fn armor_slot(item: &str) -> Option<usize> {
+    Some(match item {
+        "tconstruct:travelers_helmet" | "tconstruct:plate_helmet" | "tconstruct:slime_helmet" => 0,
+        "tconstruct:travelers_chestplate"
+        | "tconstruct:plate_chestplate"
+        | "tconstruct:slimy_chestplate"
+        | "tconstruct:slime_wings" => 1,
+        "tconstruct:travelers_leggings"
+        | "tconstruct:plate_leggings"
+        | "tconstruct:slime_leggings" => 2,
+        "tconstruct:travelers_boots" | "tconstruct:plate_boots" | "tconstruct:slime_boots" => 3,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn worn_levels_add_once_to_the_tool_projection() {
+        assert_eq!(with_worn(level(1, 2, 8).unwrap(), &[1, 0, 2, 3]), Some(10));
+        assert_eq!(with_worn(0, &[1, 1, 0, 0]), Some(2));
+        assert_eq!(with_worn(255, &[1]), None);
+        assert_eq!(with_worn(0, &[-1]), None);
+        assert_eq!(with_worn(u32::MAX, &[1]), None);
+    }
+    #[test]
+    fn only_stock_worn_slots_are_projected() {
+        assert_eq!(armor_slot("tconstruct:slime_helmet"), Some(0));
+        assert_eq!(armor_slot("tconstruct:slime_wings"), Some(1));
+        assert_eq!(armor_slot("tconstruct:plate_leggings"), Some(2));
+        assert_eq!(armor_slot("tconstruct:travelers_boots"), Some(3));
+        assert_eq!(armor_slot("tconstruct:travelers_shield"), None);
+    }
     #[test]
     fn fortune_scales_but_fortunate_is_flat() {
         assert_eq!(level(0, 3, 0), Some(3));

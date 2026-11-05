@@ -26,8 +26,10 @@ The native named random sequence or level random, dynamic drops, block-entity
 data, location, player-break flag, and native loot callback are retained. The
 native callback also receives the projected loot tool. The original stack and
 all its other components, including existing enchantments, stay unchanged.
-Normal player breaks and the existing Kama/Scythe crop-harvest path both call
-this entry point. The existing area-mining path also delegates actual breaks
+Normal player breaks use this entry point. The Kama/Scythe crop adapter uses
+the same native roll helper with tool-only enchantments; worn contributions
+are covered separately in [worn Fortune](fortune-worn-harvest.md).
+The existing area-mining path also delegates actual breaks
 through the ordinary player path; no new area size or acquisition is added.
 
 Only intact, count-one TiC tools with a resolved source material layout and the
@@ -39,9 +41,10 @@ are read at each roll, so there is no new reload cache or persistent state.
 
 ## Deferred and validation
 
-- Worn Fortune harvest contributions, Luck attributes, fishing/sea luck,
-  Fortunate's worn Looting, and all Looting modifier paths are not implemented
-  here. Station acquisition and extraction are unchanged.
+- Worn Fortune harvest contributions are added by the stacked
+  [worn Fortune change](fortune-worn-harvest.md). Luck attributes, fishing/sea
+  luck and Fortunate's worn Looting are separate. Station acquisition and
+  extraction are unchanged.
 - This is not a general `ItemStack.getAllEnchantments` bridge. Other consumers,
   automation, mob harvesting, commands, explosions, broken tools, arbitrary
   modded tools, and custom modifier definitions are outside this scope.
