@@ -1,4 +1,4 @@
-//! The native vanilla Chain -> Iron Chain rename in the generated source layer.
+// The native vanilla Chain -> Iron Chain rename in the generated source layer.
 use serde_json::Value;
 use std::path::Path;
 
