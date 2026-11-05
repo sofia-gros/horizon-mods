@@ -58,13 +58,27 @@ class SupportedBonusGuideWiring(unittest.TestCase):
 
 
 class OrdinaryModifierGuideWiring(unittest.TestCase):
+    def test_fluid_guides_use_fresh_stacks_and_runtime_repeatability(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        start = source.index('fn ordinary_modifier_pages(')
+        body = source[start:source.index('fn dynamic_materials(', start)]
+        for text in ('stack_ingredient_matches(ingredient, &ItemStack::new(item, 1), tags)',
+                     'fluid_guide_policy', 'entry.repeatable_maximum',
+                     'entry.empty_inputs[index]', 'fresh empty container',
+                     'Filled or otherwise modified containers may be rejected',
+                     'More than three inputs require a Tinker'):
+            self.assertIn(text, body)
+        rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
+        self.assertIn('let maximum = repeatable_fluid_limit(id)?;', rules)
+        self.assertIn('let fluid_limit = repeatable_fluid_limit(id);', rules)
+
     def test_source_recipes_and_mighty_group_metadata_are_pinned(self):
         import hashlib
         import json
         import zipfile
         fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
-            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {})}.items():
+            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {}), **fixture.get('fluid_recipes', {})}.items():
                 self.assertEqual(recipe, json.loads(archive.read(path)), path)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             for path, tag in fixture['modifier_tags'].items():
@@ -81,7 +95,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
         start = source.index('fn ordinary_modifier_pages(')
         body = source[start:source.index('fn dynamic_materials(', start)]
         for text in ('ordinary_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',
-                     'ordinary_guide_recipes(recipes, &modifiers, &items, &tools',
+                     'ordinary_guide_recipes_with_fluids(recipes, &modifiers, &items, &tools',
                      'ingredient_matches(ingredient, item, tags)', 'tool_supported_with_tags',
                      'entry.inputs.iter().enumerate()', 'entry.check_trait_level',
                      'entry.upgrade_cost, entry.ability_cost', 'split_styled(game,', 'partial guide'):

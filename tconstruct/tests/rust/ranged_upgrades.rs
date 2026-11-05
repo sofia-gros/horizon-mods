@@ -1126,3 +1126,76 @@ fn bulk_incremental_guide_reports_actual_partial_level_leftovers() {
         let leftover=plan.leftover.unwrap(); assert_eq!(&*leftover.item,dust); assert_eq!(leftover.count,(per_item-1) as u32);
     }
 }
+
+#[test]
+fn fluid_guide_matches_empty_container_inputs_repetition_and_runtime_slots() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let recipes: BTreeMap<String, Vec<u8>> = fixture["fluid_recipes"].as_object().unwrap().iter()
+        .map(|(id,value)|(id.clone(),serde_json::to_vec(value).unwrap())).collect();
+    let modifiers = ["tank", "slurping", "spilling", "splashing"].map(|id|format!("tconstruct:{id}"));
+    let items = ["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "minecraft:stone", "minecraft:glass_bottle",
+        "tconstruct:seared_channel", "tconstruct:scorched_channel", "tconstruct:splash_bottle", "minecraft:copper_ingot"].map(str::to_owned);
+    let tools = ["tconstruct:pickaxe", "tconstruct:sword", "tconstruct:travelers_helmet", "tconstruct:sky_staff"].map(str::to_owned);
+    let mut tags: HashMap<String, HashSet<String>> = [
+        // An unknown item in the container tag must not become a displayed input.
+        ("tconstruct:tanks", vec!["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "minecraft:stone"]),
+        ("forge:ingots/copper", vec!["minecraft:copper_ingot"]), ("forge:bottles/splash", vec!["tconstruct:splash_bottle"]),
+        ("tconstruct:modifiable/held", vec!["tconstruct:pickaxe", "tconstruct:sword", "tconstruct:sky_staff"]),
+        ("tconstruct:modifiable/armor", vec!["tconstruct:travelers_helmet"]),
+        ("tconstruct:modifiable/armor/helmets", vec!["tconstruct:travelers_helmet"]),
+        ("tconstruct:modifiable/interactable/charge", vec!["tconstruct:pickaxe"]),
+        ("tconstruct:modifiable/melee", vec!["tconstruct:sword"]),
+        ("tconstruct:modifiable/durability", vec!["tconstruct:pickaxe", "tconstruct:sky_staff"]),
+        ("tconstruct:modifiable/interactable", vec!["tconstruct:pickaxe", "tconstruct:sky_staff"]),
+    ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();
+    let rows = |recipes: &BTreeMap<String,Vec<u8>>, tags: &HashMap<String,HashSet<String>>, items: &[String]| {
+        tconstruct_modifier_snapshot::ordinary_guide_recipes_with_fluids(recipes,&modifiers,items,&tools,
+            |value,id|tconstruct_source_upgrade_rules::stack_ingredient_matches(value,&ItemStack::new(id,1),tags),
+            |value,id|tconstruct_source_upgrade_rules::ingredient_matches(value,id,tags),
+            |id,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,tags),
+            tconstruct_source_upgrade_rules::fluid_guide_policy)
+    };
+    let shown = rows(&recipes,&tags,&items);
+    assert_eq!(shown.len(),4);
+    assert_eq!(shown[0].inputs.len(),1);
+    assert_eq!(shown[0].inputs[0],["tconstruct:seared_fuel_gauge", "tconstruct:seared_fuel_tank"]);
+    assert_eq!(shown[1].tools,["tconstruct:pickaxe"]); // The uncharged helmet remains unsupported.
+    assert_eq!(shown[2].tools,["tconstruct:sword"]);
+    assert_eq!(shown[3].tools,["tconstruct:sky_staff"]); // Runtime rejects an ordinary pickaxe.
+    for row in &shown {
+        let fluid_slot = if row.modifier == "tconstruct:tank" { 0 } else { 1 };
+        assert_eq!(row.repeatable_maximum,Some(i16::MAX as i32));
+        assert_eq!(row.empty_inputs.iter().filter(|empty| **empty).count(),1);
+        assert!(row.empty_inputs[fluid_slot]);
+        let (upgrades,abilities) = if fluid_slot == 0 { (1,0) } else { (0,1) };
+        assert_eq!((row.upgrade_cost,row.ability_cost),(upgrades,abilities));
+        let inputs: Vec<_> = row.inputs.iter().map(|choices|Some(ItemStack::new(&choices[0],1))).collect();
+        let mut tool = ItemStack::new(&row.tools[0],1);
+        let plan = |tool: &ItemStack,inputs: &[Option<ItemStack>],upgrade_slots,ability_slots| {
+            tconstruct_source_upgrade_rules::plan_with_traits(&recipes,&tags,tool,inputs,upgrade_slots,ability_slots,&BTreeMap::new())
+        };
+        let first = plan(&tool,&inputs,upgrades,abilities).unwrap();
+        assert_eq!(first.id,row.modifier); assert_eq!(first.amount,1);
+        assert_eq!(first.consumed.len(),row.inputs.len()+1); assert!(first.leftover.is_none());
+        assert!(plan(&tool,&inputs,0,0).is_none());
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(&*row.modifier,Tag::Int(1))]))])));
+        assert!(plan(&tool,&inputs,upgrades,abilities).is_none());
+        assert_eq!(plan(&tool,&inputs,2*upgrades,2*abilities).unwrap().amount,2);
+        let mut filled = inputs.clone();
+        filled[fluid_slot].as_mut().unwrap().data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tconstruct:tank",Tag::compound([("fluid",Tag::String("minecraft:water".into())),("amount",Tag::Int(1000))]))
+        ])));
+        assert!(plan(&tool,&filled,2*upgrades,2*abilities).is_none());
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(&*row.modifier,Tag::Int(i16::MAX as i32))]))])));
+        assert!(plan(&tool,&inputs,i32::MAX/2,i32::MAX/2).is_none());
+    }
+    assert_eq!(shown[1].inputs[0],shown[1].inputs[2]);
+    assert_eq!(shown[1].inputs[3],shown[1].inputs[4]);
+    let registered_without_tanks: Vec<_> = items.iter().filter(|id|!id.starts_with("tconstruct:seared_fuel_")).cloned().collect();
+    assert!(rows(&recipes,&tags,&registered_without_tanks).is_empty());
+    tags.remove("tconstruct:tanks");
+    assert!(rows(&recipes,&tags,&items).is_empty());
+}

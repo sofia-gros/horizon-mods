@@ -325,9 +325,11 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
     let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();
     let tools: Vec<String> = tags.get("tconstruct:modifiable").into_iter().flatten()
         .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();
-    let entries = crate::game::tconstruct_modifier_snapshot::ordinary_guide_recipes(recipes, &modifiers, &items, &tools,
+    let entries = crate::game::tconstruct_modifier_snapshot::ordinary_guide_recipes_with_fluids(recipes, &modifiers, &items, &tools,
+        |ingredient, item| crate::game::tconstruct_source_upgrade_rules::stack_ingredient_matches(ingredient, &ItemStack::new(item, 1), tags),
         |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags),
-        |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags));
+        |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags),
+        crate::game::tconstruct_source_upgrade_rules::fluid_guide_policy);
     let mut pages = Vec::new();
     for entry in entries {
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
@@ -339,12 +341,18 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
         let mut text = String::from("Supported modifier recipe (partial guide).\n\n");
         let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
         if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
-        text.push_str(&format!("Level 1. Requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));
+        if let Some(maximum) = entry.repeatable_maximum {
+            text.push_str(&format!("Adds one level per application, up to this port's limit of {maximum} levels while slots remain. Each added level requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));
+        } else {
+            text.push_str(&format!("Level 1. Requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));
+        }
         if entry.check_trait_level { text.push_str("Existing material-trait levels count toward this limit.\n\n"); }
         text.push_str("Use one item in EACH listed input slot. Repeated ingredients need separate slots.\n");
         for (index, choices) in entry.inputs.iter().enumerate() {
-            text.push_str(&format!("\nInput {}: {}", index + 1, choices.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR ")));
+            let qualifier = if entry.empty_inputs[index] { "fresh empty container with no crafting remainder: " } else { "" };
+            text.push_str(&format!("\nInput {}: {qualifier}{}", index + 1, choices.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR ")));
         }
+        if entry.empty_inputs.iter().any(|empty| *empty) { text.push_str("\n\nContainer choices are checked as fresh empty items. Filled or otherwise modified containers may be rejected."); }
         if entry.inputs.len() > 3 { text.push_str("\n\nMore than three inputs require a Tinker's Anvil."); }
         text.push_str(&format!("\n\nEligible tool types: {}.\n\nRecipe: {}\n\nNot all source modifiers or recipe forms are shown. Existing modifier and tool state still affect application.",
             entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
