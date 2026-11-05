@@ -1,6 +1,6 @@
 extern crate horizon_items as horizon_client;
 #[path = "../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
-#[path = "../../mixins/tconstruct/source-melee-stat-ops.rs"] mod tconstruct_source_melee_stat_ops;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_melee_stat_ops;
 #[path = "../../mixins/tconstruct/source-upgrade-rules.rs"] mod tconstruct_source_upgrade_rules;
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;

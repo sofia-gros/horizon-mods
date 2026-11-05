@@ -1,6 +1,6 @@
 // Exercise the actual position filter against a stand-in for the existing
 // spawn-protection callback. Real server permission behavior needs a game test.
-#[path = "../../mixins/tconstruct/source-area-shape.rs"]
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"]
 mod area_shape;
 mod game { pub(crate) use crate::area_shape as tconstruct_source_area_shape; }
 pub struct Stack { pub item: String }

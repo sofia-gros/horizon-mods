@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class LocalArmorHaste(unittest.TestCase):
     def test_pinned_definition_is_exact_source(self):
-        source = (ROOT / 'mixins/tconstruct/source-haste-source.rs').read_bytes()
+        source = (ROOT / 'mixins/tconstruct/source-pure-rules.rs').read_bytes()
         literal = source.split(b'const PINNED_HASTE: &[u8] = br#"', 1)[1].split(b'"#;', 1)[0]
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             self.assertEqual(literal, archive.read('data/tconstruct/tinkering/modifiers/haste.json'))

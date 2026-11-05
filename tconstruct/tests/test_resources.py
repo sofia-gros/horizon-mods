@@ -61,6 +61,15 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items['tconstruct:venombone']['minecraft:item_model'], 'tconstruct:venombone')
             self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/venombone.json').read_text()), {'parent': 'minecraft:item/bone', 'textures': {'layer0': 'tconstruct:item/materials/venombone'}})
             self.assertEqual((out / 'assets/tconstruct/textures/item/materials/venombone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/venombone.png').read_bytes())
+            for offset, material in enumerate(('iron', 'gold', 'cobalt', 'obsidian'), 1):
+                name = material + '_reinforcement'
+                item_id = 'tconstruct:' + name
+                self.assertEqual(registries[item_id]['protocol_id'], registries['tconstruct:tinkers_gadgetry']['protocol_id'] + offset)
+                self.assertEqual(items[item_id]['minecraft:item_model'], item_id)
+                self.assertIn(item_id, json.loads((out / 'command-registries.json').read_text())['items'])
+                native = SCRIPT.parent.parent / 'content/assets/tconstruct'
+                self.assertEqual(json.loads((out / f'assets/tconstruct/models/item/{name}.json').read_text()), json.loads((native / f'models/item/{name}.json').read_text()))
+                self.assertEqual((out / f'assets/tconstruct/textures/item/materials/reinforcement/{material}.png').read_bytes(), (native / f'textures/item/materials/reinforcement/{material}.png').read_bytes())
             for kind in ('splash', 'lingering'):
                 name = kind + '_bottle'
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 64)
