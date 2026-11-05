@@ -29,7 +29,7 @@ mod game {
         }
     }
     mod tconstruct_slime_seed_rules {
-        include!("../../mixins/tconstruct/source-slime-seed-rules.rs");
+        include!("../../mixins/tconstruct/source-pure-rules.rs");
     }
     #[derive(Clone)]
     pub struct State {

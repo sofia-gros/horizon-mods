@@ -77,6 +77,8 @@ fn prepare_tconstruct_resources() {
                 }
             }
         }
+        horizon_client::entry::tconstruct_source_scute_compat::prepare(&original_pack, &items)?;
+        horizon_client::entry::tconstruct_source_chain_compat::prepare(&original_pack, &items)?;
         // Project original harvest predicates onto installed blocks under
         // TConstruct-only aliases; native vanilla tags stay untouched.
         crate::tconstruct_source_harvest_tags::prepare(&out, &original_pack, &content_path.join("reference/forge-47.4.0-harvest-tags.zip"))?;

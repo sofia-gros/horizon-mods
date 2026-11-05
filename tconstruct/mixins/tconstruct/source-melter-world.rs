@@ -130,7 +130,17 @@ pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u
 pub(super) fn alloy(world: &World, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32)
     -> Option<(String, Vec<(String, u32)>, String, u32)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.alloy_except(fluids, tagged, capacity, temperature, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+        catalog.alloy_cycle(fluids, tagged, capacity, temperature,
+            &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false),
+            &mut |bound| bound.checked_sub(1)).and_then(|plans| plans.into_iter().next())
+    })?
+}
+
+pub(super) fn alloy_cycle(world: &World, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32,
+    draw: &mut impl FnMut(usize) -> Option<usize>) -> Option<Vec<(String, Vec<(String, u32)>, String, u32)>> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.alloy_cycle(fluids, tagged, capacity, temperature,
+            &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false), draw)
     })?
 }
 
@@ -225,7 +235,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         if overlap { return None; }
     }
     if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
-        return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
+        let mut stack = horizon_items::items::ItemStack::new(&output, 1);
+        if let Some(potion) = recipe.output.potion() { stack = stack.with_potion(potion); }
+        return Some((id, recipe, stack));
     }
     if let Some(stack) = input {
     let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");

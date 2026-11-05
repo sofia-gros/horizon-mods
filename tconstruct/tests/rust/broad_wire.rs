@@ -1,5 +1,5 @@
 #[path = "../../mixins/tconstruct/source-broad-wire.rs"] mod broad_wire;
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-mining-math.rs"] mod tconstruct_source_mining_math;
 
 #[test]

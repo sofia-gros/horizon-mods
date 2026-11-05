@@ -1,4 +1,4 @@
-#[path = "../../mixins/tconstruct/source-slime-seed-rules.rs"]
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"]
 mod rules;
 use rules::{conversion, ResultKind};
 #[test]
