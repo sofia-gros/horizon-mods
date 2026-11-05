@@ -686,8 +686,9 @@ The basin can select the consumed-cast slimelytra recipe, join the selected
 material fluid with a material that has slime stats, and assemble slime wings
 through the Station's existing stat and trait path. Its pending result is staged
 in the existing casting transaction, revalidated before consumption, and saved
-with the basin. The supplied earthslime recipe uses 2,000 mB. Damaged Elytra or
-ones with item components, other tool-casting forms, tagged fluid, and
+with the basin. The supplied earthslime recipe uses 2,000 mB. Worn Elytra and
+lossless custom names/lore are consumed without copying wear or presentation
+to the fresh wings. Other components, retained wire, other tool-casting forms, tagged fluid, and
 unresolved or ambiguous material data are refused. This is a narrow candidate,
 not complete tool-casting parity; game, LAN, and full integrated behavior remain
 unverified.
