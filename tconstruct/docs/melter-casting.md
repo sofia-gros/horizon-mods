@@ -257,3 +257,23 @@ Pure production-code fixtures cover partial/final debits and twelve refusal
 cases; source checks cover both tick call sites and grant ordering. These added
 cases are unrun. This is not full tick, host/world/LAN or legacy recovery proof;
 other controller serialization and fuel-temperature display paths remain separate.
+
+### Seared Melter held-use preparation snapshots
+
+The world-use Melter branch captures its raw machine, clicked block, acting
+hand and Creative/local/LAN state before datapack preparation. It rechecks that
+snapshot before planning and again before transferring or opening the fallback
+menu. Changes consume the interaction without touching newer state. Unchanged
+unsupported or opaque containers still use the existing menu fallback.
+
+The held-transfer planner now uses the strict preserving single-tank planner:
+native extensions survive while controller `Tank`/`Fluid` aliases, nested tank
+aliases, lossy IDs and retained-wire containers cannot be rewritten. The raw
+inventory, heat/fuel fields and other machine data are copied unchanged.
+
+The shared Drain fixture extracts the real Melter match-arm body, adapting only
+module paths and supplying a small host wrapper. Added cases cover fill/drain,
+stacked and Creative handling, save rejection, eleven preparation changes on
+transfer and menu-fallback paths, aliases and unchanged opaque/empty hands.
+These cases are unrun. Initialization, storage, menu opening, notifications and
+acting-hand mapping are mocked; full host/world/LAN remain unverified.

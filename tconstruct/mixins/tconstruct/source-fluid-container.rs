@@ -769,16 +769,15 @@ pub(super) fn plan_melter_held(raw: &horizon_world::nbt::Tag, held: &ItemStack,
     use horizon_world::nbt::Tag;
     if held.data().is_some_and(|data| data.wire.patch().is_some())
         || !casting_portable_rewrite_safe(held) { return None; }
-    let mut melter = super::tconstruct_source_melter_state::Melter::from_nbt(raw)?;
-    let before = melter.tank.amount;
-    let mut slots = [Some(held.clone()), None];
-    if !transfer_single_with_color(&mut melter.tank, &mut slots, Direction::Auto,
-        known_item, known_fluid, item_tags, allow_color) { return None; }
+    let melter = super::tconstruct_source_melter_state::Melter::from_nbt(raw)?;
+    for alias in ["Tank", "Fluid"] { if raw.get(alias).is_some() { return None; } }
+    let (tank, mut slots) = plan_single_tank_container(raw.get("tank")?, melter.tank.capacity,
+        &Some(held.clone()), Direction::Auto, known_item, known_fluid, item_tags, allow_color)?;
+    let drained = super::tconstruct_source_melter_state::Tank::from_nbt(&tank,melter.tank.capacity)?.amount < melter.tank.amount;
     let Tag::Compound(mut saved) = raw.clone() else { return None; };
-    let tank = melter.tank.to_nbt_preserving(saved.get(&"tank".into())?)?;
     saved.insert("tank".into(), tank);
     Some(MelterTransfer { saved: Tag::Compound(saved), remaining: slots[0].take(),
-        result: slots[1].take(), drained: melter.tank.amount < before })
+        result: slots[1].take(), drained })
 }
 
 /// Apply the same bucket rules to the Melter's single-fluid tank.
