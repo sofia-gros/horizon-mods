@@ -145,7 +145,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             if !ensure(game, at, &name) { continue; }
             let Some(kind) = kind(&name) else { continue; };
             let Some(raw_tank) = store::read(&game.world, at, kind) else { continue; };
-            let Some(mut tank) = Tank::from_nbt(&raw_tank, tank_capacity) else { continue; };
+            let Some(tank) = Tank::from_nbt(&raw_tank, tank_capacity) else { continue; };
             let Some(fluid) = tank.fluid.as_deref() else { continue; };
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
@@ -158,8 +158,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                     candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount })
                 });
             if !can_heat && !can_alloy { continue; }
-            if tank.take(fuel.fluid.amount).is_none() { continue; }
-            let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { continue; };
+            let Some(updated_tank) = Tank::drain_fuel_preserving(&raw_tank, tank_capacity, fuel.fluid.amount) else { continue; };
             state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
             fuel_update = Some((at, kind, updated_tank));
             break;
@@ -576,16 +575,17 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     if melter.phase == 0 && melter.fuel == 0 {
         if let Some((capacity, kind)) = liquid_kind {
             if let Some(raw_tank) = store::read(&game.world, below, kind) {
-              if let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) {
+              if let Some(tank) = Tank::from_nbt(&raw_tank, capacity) {
                 if let Some(fluid) = tank.fluid.as_deref() {
                     if let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) {
                         let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
                             melter.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
-                        if can_heat && tank.take(fuel.fluid.amount).is_some() {
-                            melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
-                            melter.temperature = fuel.temperature; melter.rate = fuel.rate;
-                            let Some(next_tank) = tank.to_nbt_preserving(&raw_tank) else { return; };
-                            fluid_update = Some((below, kind, next_tank));
+                        if can_heat {
+                            if let Some(next_tank) = Tank::drain_fuel_preserving(&raw_tank, capacity, fuel.fluid.amount) {
+                                melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
+                                melter.temperature = fuel.temperature; melter.rate = fuel.rate;
+                                fluid_update = Some((below, kind, next_tank));
+                            }
                         }
                     }
                 }

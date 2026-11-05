@@ -241,3 +241,19 @@ unsafe data, failed saves and ten preparation-time state changes. World storage,
 initialization and callbacks are mocked. Tests have not been run in this batch;
 full host, offhand mapping, save/reload and LAN remain unverified. The separate
 comparator notification stack (#688) still needs combined integration.
+
+### Liquid-fuel debit preservation
+
+Melter and Smeltery/Foundry fuel acquisition stage the same strict raw-tank
+debit before granting heat, duration or rate. Native extensions survive partial
+and final consumption. Forge aliases (`FluidName`, `Amount`, `Tag`, `Tank`,
+`Fluid`), lossy IDs, malformed owned values, tagged fuel, zero-sized requests
+and insufficient amounts are rejected without rewriting the source tank.
+Ambiguous sources are not migrated or silently canonicalized. A refused Melter
+fuel source no longer exits the whole tick at the debit step; normal remaining
+phase/cooling logic continues. The existing atomic machine/fuel save is retained.
+
+Pure production-code fixtures cover partial/final debits and twelve refusal
+cases; source checks cover both tick call sites and grant ordering. These added
+cases are unrun. This is not full tick, host/world/LAN or legacy recovery proof;
+other controller serialization and fuel-temperature display paths remain separate.
