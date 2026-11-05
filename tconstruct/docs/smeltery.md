@@ -72,3 +72,24 @@ The fixture uses real state/metadata codecs with mocked world, recipes and
 storage. Brief static review only; full host, actual recipes, gameplay,
 save/reload, LAN and atomic disk/network persistence are unverified. Separate
 Duct behavior and comparator integration remain outside this change.
+
+
+### Guarded Melter to Table/Basin pouring
+
+Seared Melters now share the guarded recipe-aware Table/Basin route with formed
+Drains. Melter loading requires readable machine state and a canonical internal
+tank, but not a multiblock shell. Only its tank is patched; raw inventory/item
+fields, fuel, temperature, progress and extension metadata are retained without
+changing live Melter slots.
+
+The shared route preserves supported destination extensions, rechecks the
+current recipe and snapshots, and pours immediately after initial and later
+reservations. Pending packets may finish after unsupported source refills, but
+new reservations wait and stop-after-packet remains usable. This does not change
+melting recipes, fuel use or the separate Melter comparator implementation.
+
+Three focused fixture cases were added but not run, using the production tank
+patch helper and state codecs with mocked world/recipes/storage. Brief static
+review only; actual recipes, host/gameplay, save/reload, LAN and atomic disk or
+network persistence remain unverified. Requires the guarded Drain casting and
+metadata-preserving destination changes.
