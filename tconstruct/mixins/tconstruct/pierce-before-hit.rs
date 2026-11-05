@@ -5,5 +5,6 @@ fn tconstruct_pierce_before_hit(
     // Source beforeMeleeHit precedes damage, even if the later hit is rejected.
     let result = original(game, kind, scale);
     crate::game::tconstruct_pierce_world::before_hit(game, index, scale);
+    crate::game::tconstruct_enderference_world::before_hit(game, index, scale);
     result
 }
