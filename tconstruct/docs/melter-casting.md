@@ -135,3 +135,19 @@ state tests were added for both Lanterns, potion identity, fill/drain/refill,
 stack splitting, alias/wire refusal and the non-mutating Melter plan. They
 were not run in this batch. Host/world, save/reload and LAN validation remain
 for the combined pass; placed Lantern transfers are separate PRs.
+
+### Copper Can identity and retained-wire guard (#379)
+
+Copper Can's shared decoder now requires an exact UTF-16 fluid identifier and
+refuses current or stale retained wire backing. This prevents permissive
+registry callbacks or direct setters from replacing a lossy ID or rewriting
+an opaque item. Transfers, Melter plans, displays, container acceptance and
+crafting-remainder predicates all use this boundary.
+
+Valid cans retain their 90 mB quantity, exact fluid tags, native extension
+data, other item components and one-item stack splitting. Three production
+unit cases cover lossy IDs across entrypoints, both wire states for filling
+and draining, and valid named/extended stacks with distinct potion layers.
+They were not run. Real inventory/menu interaction, save/reload and LAN remain
+for the final combined pass. No new fluid types or external capabilities are
+introduced by this change.
