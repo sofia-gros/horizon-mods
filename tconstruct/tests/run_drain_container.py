@@ -35,6 +35,6 @@ with tempfile.TemporaryDirectory(prefix="drain-container-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("full_tank_and_empty_tank_consume_container_action_without_mutation", "noncontainers_and_unformed_drains_still_pass", "successful_and_rejected_save_paths_preserve_existing_item_transaction", "drain_held_preserves_raw_controller_and_item_fields", "drain_held_refuses_noncanonical_tanks_and_retained_wire", "drain_held_preservation_save_failure_and_creative_paths"):
+    for case in ("full_tank_and_empty_tank_consume_container_action_without_mutation", "noncontainers_and_unformed_drains_still_pass", "successful_and_rejected_save_paths_preserve_existing_item_transaction", "drain_held_preserves_raw_controller_and_item_fields", "drain_held_refuses_noncanonical_tanks_and_retained_wire", "drain_held_preservation_save_failure_and_creative_paths", "drain_held_preserves_native_tank_and_row_extensions", "drain_held_opaque_row_removal_and_failed_save_leave_items_unchanged"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")
