@@ -17,7 +17,8 @@ pub(super) fn protected_for(game: &super::Game<'_>, host: &super::LanHost, conn:
             if game.under_spawn_protection(host, gi, [x,pos[1],z]) { protected.insert((x,z)); }
         }}
     } else {
-        for extra in crate::game::tconstruct_source_area_shape::plane(pos, face, guest.yaw)? {
+        let expanded=if tool=="tconstruct:sledge_hammer" {crate::game::tconstruct_expanded::level(&game.world,held?)?} else {0};
+        for extra in crate::game::tconstruct_source_area_shape::expanded_plane(pos, face, guest.yaw,expanded)? {
             if game.under_spawn_protection(host, gi, extra) { protected.insert((extra[0],extra[2])); }
         }
     }

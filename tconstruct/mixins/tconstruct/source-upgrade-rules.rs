@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:expanded", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -83,6 +83,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:expanded" => item == "tconstruct:sledge_hammer",
         "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
@@ -116,7 +117,7 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:expanded" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -132,6 +133,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
+    if expanded_saved(tool).is_none() {return false;}
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
     used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
@@ -209,7 +211,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_hydraulic_amount(tool) { return None; }
+    if !valid_hydraulic_amount(tool) || expanded_saved(tool).is_none() { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -228,16 +230,17 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:expanded" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
+            if id == "tconstruct:expanded" && old.checked_add(traits.get(id).copied().unwrap_or(0)).is_none_or(|n| !(0..8).contains(&n)) {continue;}
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:expanded" | "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
+            let valid_level = if matches!(id, "tconstruct:expanded" | "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -277,7 +280,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:expanded" | "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -1462,4 +1465,12 @@ mod tests {
         }
     }
 
+}
+
+/// Invalid saved expansion must never be overwritten by a paid upgrade.
+pub(super) fn expanded_saved(tool:&ItemStack)->Option<i32> {
+    let saved=tool.data().and_then(|d|d.other("minecraft:custom_data")).and_then(|d|d.get("tic_upgrades"));
+    match saved {
+        None=>Some(0),Some(Tag::Compound(fields))=>match fields.get(&"tconstruct:expanded".into()) {None=>Some(0),Some(Tag::Int(n)) if (0..=8).contains(n)=>Some(*n),_=>None},_=>None
+    }
 }

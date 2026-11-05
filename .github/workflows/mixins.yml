@@ -128,6 +128,9 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_wire::tests
           cargo test --locked --manifest-path tconstruct/tests/haste-wire-fixture/Cargo.toml
           python3 tconstruct/tests/run_gold_guard.py --horizon ../horizon-official
+          python3 tconstruct/tests/run_expanded_hammer.py --horizon ../horizon-official
+          rustc --edition=2021 --test tconstruct/tests/rust/source_area_protection.rs -o /tmp/tconstruct-area-protection-test
+          /tmp/tconstruct-area-protection-test
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_gold_guard::tests -- --nocapture | tee "$RUNNER_TEMP/gold-guard-tests.log"
           grep -Fq "test game::tconstruct_gold_guard::tests::count_neutral_slots_once_not_modifier_levels ... ok" "$RUNNER_TEMP/gold-guard-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
