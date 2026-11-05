@@ -727,6 +727,8 @@ pub(super) fn plan_melter_held(raw: &horizon_world::nbt::Tag, held: &ItemStack,
     item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>,
     allow_color: bool) -> Option<MelterTransfer> {
     use horizon_world::nbt::Tag;
+    if held.data().is_some_and(|data| data.wire.patch().is_some())
+        || !casting_portable_rewrite_safe(held) { return None; }
     let mut melter = super::tconstruct_source_melter_state::Melter::from_nbt(raw)?;
     let before = melter.tank.amount;
     let mut slots = [Some(held.clone()), None];
@@ -2063,6 +2065,31 @@ mod tests {
         // Even a registry accepting the lossy ID cannot authorize rewriting it.
         assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
         assert_eq!(raw.get("tank").unwrap().get("fluid"), Some(&Tag::String(JavaString(vec![0xd800]))));
+    }
+    #[test]
+    fn melter_held_rejects_retained_wire_and_noncanonical_lanterns() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_items::item_data::Wire;
+        use horizon_world::nbt::{JavaString, Tag};
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert("minecraft:water", 1000));
+        let raw = melter.to_nbt();
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().wire = Wire::new(held.clone(), std::sync::Arc::from([7u8]));
+        assert!(held.wire_patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        held.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Named".into())));
+        assert!(held.wire_patch().is_none());
+        assert!(held.data().unwrap().wire.patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tconstruct:tank", Tag::compound([
+                ("amount", Tag::Int(50)), ("fluid", Tag::String(JavaString(vec![0xd800]))),
+            ])),
+        ])));
+        let empty = Melter::new().to_nbt();
+        assert!(plan_melter_held(&empty, &held, &|_| true, &|_| true, None, false).is_none());
     }
     #[test]
     fn melter_held_keeps_tagged_fluids_separate() {

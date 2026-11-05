@@ -25,6 +25,8 @@ class MelterHeldContainer(unittest.TestCase):
         self.assertIn('raw: &horizon_world::nbt::Tag', plan)
         self.assertIn('held: &ItemStack', plan)
         self.assertIn('Melter::from_nbt(raw)?', plan)
+        self.assertIn('data.wire.patch().is_some()', plan)
+        self.assertIn('!casting_portable_rewrite_safe(held)', plan)
         self.assertIn('to_nbt_preserving', plan)
         self.assertIn('saved.insert("tank".into(), tank)', plan)
         self.assertNotIn('store::write', plan)
