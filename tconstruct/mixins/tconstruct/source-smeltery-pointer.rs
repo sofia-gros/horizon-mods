@@ -21,6 +21,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
         .map(|(id, items)| (id.clone(), items.clone())).collect());
     let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) else { return Continue(()); };
+    if game.remote.is_none() && !crate::game::tconstruct_source_machine_projection_world::known(&game.world, pos) { return Break(true); }
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
     let (ox, oy) = game.inventory_origin(&batch);

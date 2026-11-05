@@ -75,7 +75,7 @@ fn damaged_recipe(game: &super::Game<'_>, stack: &horizon_items::items::ItemStac
 /// Update the current candidate and capacity from loaded world blocks. Items
 /// displaced by shrinking are spilled only after the state update commits.
 pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
-    super::tconstruct_source_machine_projection_world::capture_legacy(&mut game.world, pos);
+    if !super::tconstruct_source_machine_projection_world::known(&game.world, pos) { return; }
     let bounds = super::tconstruct_source_smeltery_world::detect(game, pos);
     super::tconstruct_source_smeltery_world::claim(game, pos, bounds);
     let Some(saved) = store::read(&game.world, pos, "tconstruct:smeltery") else { return; };

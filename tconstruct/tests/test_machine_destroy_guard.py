@@ -23,43 +23,34 @@ class DestroyGuardWiring(unittest.TestCase):
         self.assertIn('game.native_action_bar(uuid, message)', helper)
         self.assertIn('game.titles.set_overlay(message, false)', helper)
         self.assertLess(helper.index('if !*canceled'), helper.index('message.tconstruct.machine_break_guard'))
-    def test_closed_projection_proof_is_persisted_only_after_validation(self):
+    def test_projection_writes_validate_before_mutation_and_commit_atomically(self):
         close = (ROOT / 'source-builder-close.rs').read_text()
-        self.assertIn('if game.remote.is_none()', close)
         self.assertLess(close.index('::close_projection('), close.index('::replace_outer('))
         self.assertLess(close.index('::replace_outer('), close.index('*live = retired'))
         self.assertLess(close.index('*live = retired'), close.index('game.give_or_drop(stack)'))
-        guard = (ROOT / 'source-machine-destroy-guard.rs').read_text()
-        self.assertIn('closed_projection && page_offset.is_none()', guard)
-        self.assertIn('live.len() == super::tconstruct_source_smeltery_page::MENU_SIZE', guard)
-        self.assertIn('&& live.iter().all(Option::is_none)', guard)
-        self.assertIn('if protect("tconstruct:smeltery", raw) { return false; }', guard)
-        self.assertIn('Some(Tag::List(items)) if items.is_empty()', guard)
-        self.assertLess(guard.index('if live.len() != expected.len()'), guard.index('live.fill(None)'))
         opened = (ROOT / 'source-machine-open.rs').read_text()
         self.assertLess(opened.index('::live_matches('), opened.index('::refresh_smeltery('))
-        self.assertLess(opened.index('::protect('), opened.index('::refresh_smeltery('))
+        self.assertLess(opened.index('::protect('), opened.index('*slots ='))
         self.assertLess(opened.index('::open_outer('), opened.index('*slots ='))
-        self.assertLess(opened.index('::replace_outer('), opened.index('*slots ='))
-        helper = (ROOT / 'source-overwield-harvest-start.rs').read_text()
-        self.assertIn('::live_matches(kind, &raw, slots, offset)', helper)
-        self.assertIn('::protect(kind, &raw)', helper)
         runtime = (ROOT / 'source-machine-runtime.rs').read_text()
-        self.assertIn('let fresh_smeltery', runtime)
-        self.assertIn('matches!(live.len(), 27 | 54) && live.iter().all(Option::is_none)', runtime)
-        self.assertIn('if fresh_smeltery {', runtime)
+        self.assertLess(runtime.index('::known('), runtime.index('let bounds ='))
         self.assertIn('"tconstruct:smeltery" => 54', runtime)
-        self.assertLess(runtime.index('::capture_legacy('), runtime.index('let bounds ='))
-        for name in ['source-machine-open.rs', 'source-machine-runtime.rs', 'source-chute-hopper.rs',
-                     'source-smeltery-ui.rs', 'source-smeltery-pointer.rs', 'source-smeltery-click.rs']:
-            source = (ROOT / name).read_text()
-            lines = source.splitlines()
-            for index, line in enumerate(lines):
-                if ('*live = ' in line or '*slots = ' in line) and '::project' in line:
-                    self.assertIn('source_machine_projection_world::record(', lines[index + 1], name)
-        clicked = (ROOT / 'source-smeltery-click.rs').read_text()
-        self.assertIn('record(&mut game.world, pos, offset);\n            return Break(handled)', clicked)
         self.assertIn('"tconstruct:smeltery" => 54', (ROOT / 'source-machine-decode.rs').read_text())
+        for name in ['source-smeltery-ui.rs', 'source-smeltery-pointer.rs', 'source-smeltery-click.rs', 'source-chute-hopper.rs']:
+            source = (ROOT / name).read_text()
+            self.assertLess(source.index('::known('), source.index('::write(') if '::write(' in source else source.index('*slots ='), name)
+        clicked = (ROOT / 'source-smeltery-click.rs').read_text()
+        transaction = clicked.split('let handled = game.menu_ops', 1)[1]
+        self.assertLess(transaction.index('*live = expected.clone()'), transaction.index('::write('))
+        store = (ROOT / 'source-melter-store.rs').read_text().split('pub(super) fn write_many', 1)[1]
+        self.assertLess(store.index('::transition('), store.index('saved.block_entity_sources = sources'))
+        self.assertLess(store.index('saved.block_entity_sources = sources'), store.index('*live = view'))
+        self.assertIn('if projections.contains_key(pos) { return false; }', store)
+        guard = (ROOT / 'source-machine-destroy-guard.rs').read_text()
+        self.assertNotIn('snapshot_view', guard)
+        self.assertIn('Some(before) => current_projection(before, live, offset, containers)', guard)
+        self.assertIn('live.iter().all(Option::is_none) && retired_projection(raw)', guard)
+        self.assertIn('raw.get("Items") != Some(&horizon_items::item_nbt::encode_items(live))', guard)
 
     def test_all_source_languages_receive_feedback(self):
         self.assertEqual(set(MACHINE_GUARD_MESSAGES), set(WARNINGS))

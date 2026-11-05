@@ -93,12 +93,7 @@ pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
 }
 
 pub(super) fn write(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool {
-    let Some(chunk) = world.chunks.get_mut(&(pos.0 >> 4, pos.2 >> 4)) else { return false; };
-    let chunk = std::sync::Arc::make_mut(chunk);
-    let saved = std::sync::Arc::make_mut(chunk.saved.get_or_insert_default());
-    if !set_metadata(&mut saved.block_entity_sources, pos, key, value) { return false; }
-    world.modified.insert((pos.0 >> 4, pos.2 >> 4));
-    true
+    write_many(world, &[(pos, key, value)])
 }
 
 /// Client snapshots replace the previous view rather than merging omitted fields.
@@ -194,6 +189,7 @@ mod tests {
 /// drain the source when a destination chunk or entity cannot be updated.
 pub(super) fn write_many(world: &mut World, changes: &[(Pos, &str, Tag)]) -> bool {
     let mut staged = std::collections::BTreeMap::new();
+    let mut projections = std::collections::BTreeMap::new();
     for (pos, key, value) in changes {
         let chunk_pos = (pos.0 >> 4, pos.2 >> 4);
         if !staged.contains_key(&chunk_pos) {
@@ -201,14 +197,38 @@ pub(super) fn write_many(world: &mut World, changes: &[(Pos, &str, Tag)]) -> boo
             let sources = chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default();
             staged.insert(chunk_pos, sources);
         }
-        if !set_metadata(staged.get_mut(&chunk_pos).unwrap(), *pos, key, value.clone()) { return false; }
+        let sources = staged.get_mut(&chunk_pos).unwrap();
+        let before = sources.iter().find(|(at, _)| *at == *pos).map(|(_, raw)| raw.clone());
+        if !set_metadata(sources, *pos, key, value.clone()) { return false; }
+        if *key == "tconstruct:smeltery" {
+            // One authoritative update per controller in a batch; never use
+            // a partly staged page as evidence for a second update.
+            if projections.contains_key(pos) { return false; }
+            let live = match world.block_entities.get(pos) {
+                Some(horizon_client::containers::BlockEntity::Chest(live)) => live.as_slice(),
+                None => &[],
+                _ => return false,
+            };
+            let offset = world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(pos).map(|page| page.1);
+            let containers = world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(pos)
+                .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+            let Some((_, after)) = sources.iter_mut().find(|(at, _)| *at == *pos) else { return false; };
+            let Some((updated, view)) = super::tconstruct_source_machine_destroy_guard::transition(before.as_ref(), after, live, offset, &containers) else { return false; };
+            *after = updated;
+            projections.insert(*pos, view);
+        }
     }
+    // No callbacks or fallible steps occur between source and view commits.
     for (chunk_pos, sources) in staged {
         let Some(chunk) = world.chunks.get_mut(&chunk_pos) else { return false; };
         let chunk = std::sync::Arc::make_mut(chunk);
         let saved = std::sync::Arc::make_mut(chunk.saved.get_or_insert_default());
         saved.block_entity_sources = sources;
         world.modified.insert(chunk_pos);
+    }
+    for (pos, view) in projections {
+        let entity = world.block_entities.get_or_insert_with(pos, || horizon_client::containers::BlockEntity::Chest(Vec::new()));
+        if let horizon_client::containers::BlockEntity::Chest(live) = entity { *live = view; }
     }
     true
 }

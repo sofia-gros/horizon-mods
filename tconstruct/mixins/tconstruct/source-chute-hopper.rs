@@ -39,6 +39,7 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
     if hopper.kind != Kind::Hopper || hopper.parts.len() != 1 || hopper.len() != 5 { return false; }
     let hopper_pos = hopper.parts[0].0;
     let Some((controller, volume)) = tconstruct_chute_controller(game, chute) else { return false; };
+    if !crate::game::tconstruct_source_machine_projection_world::known(&game.world, controller) { return false; }
     if !matches!(game.world.block_entities.get(&controller), Some(BlockEntity::Chest(_))) { return false; }
     let Some(saved) = crate::game::tconstruct_source_melter_store::read(&game.world, controller, "tconstruct:smeltery") else { return false; };
     let Some(mut state) = crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&saved) else { return false; };

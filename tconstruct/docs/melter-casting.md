@@ -107,37 +107,38 @@ Serialized outer inventory items must round-trip. Only the host's exact empty
 `components` compound and `keepPacked: 0b` envelope are exempt from unknown-field
 protection. Melter slots must match the live inventory exactly.
 
-Smeltery and Foundry controllers persist a versioned projection record beside
-their authoritative machine state. A verified local close retires the complete
-page and clears its serialized/live view only after matching saved inputs and
-separately owned container slots. While open, each supported local projection
-update records its exact, lossless page. After reload, the full live view must
-still match that record; an old known cache is not a second inventory, even if
-guest or runtime changes have since changed authoritative inputs. Pending
-container slots remain protected, including when their local/guest registry no
-longer exists after reload. Opening refuses unexplained or opaque live data
-rather than overwriting it and creating a new trusted record.
+Smeltery and Foundry source writes validate the old live projection before
+changing either authoritative inputs or their UI view. The shared store stages
+both changes together: a closed view is retired to 54 empty slots, while an
+open view is updated at its known page offset with its separately owned bucket
+slots. Guest and runtime writes use that same transaction. Failed validation
+or any failed member of a multi-source batch leaves source and live data
+unchanged. Local UI, runtime and chute paths also check before they can
+replace a live view. Menu operations restore the validated old page before
+committing their new authoritative inputs through the store.
 
-The outer `tconstruct:retired_projection` field has three supported forms:
-- `0`: explicitly unproven during local opening; this is never legacy data.
-- `1`: retired view, requiring an empty serialized Items list and 54 empty live slots.
-- `{version: 1, view: [...]}`: exactly 54 lossless item/null entries representing
-  the last verified local page. Unknown versions, extra fields and retained
-  wire patches are not trusted.
+The outer `tconstruct:retired_projection` field accepts only integer modes
+`0` (open/unproven) and `1` (retired). Mode 1 can authorize only an empty
+serialized Items list plus 54 empty live slots. A marker never authorizes
+discarding nonempty live contents absent from current saved inputs. Historical
+snapshot compounds, unknown versions and extra metadata are refused, even if
+a forged snapshot happens to match the current live items.
 
-Legacy records without this field are migrated only when all 54 live slots
-exactly match both serialized Items and a complete legal page of the current
-saved inputs, with empty container slots. Provenance is captured before the
-runtime changes those inputs. No default page offset or bag/subset comparison
-is used. Legacy mismatches remain protected, including old saves whose live
-projection had already gone stale or whose high slots were already truncated.
-The decoder now retains all 54 Smeltery slots. Data already absent from an old
-save cannot be reconstructed by this guard.
+On reload, a nonempty live view must exactly match both serialized Items and
+a complete legal page of current authoritative inputs, with empty container
+slots. No guessed default offset, bag/subset comparison or historical-cache
+trust is used. The next source write retires a closed loaded view atomically
+before changing its authoritative inputs. Mismatched legacy saves remain
+protected, including old saves whose cached page was already stale or whose
+high slots had already been truncated. The decoder now retains all 54
+Smeltery slots; already absent data cannot be reconstructed.
 
-The guard still covers only player destruction, not explosions, pistons,
-commands or other replacement. Actual in-world item drops and LAN behavior
-remain unverified. Do not use open/close as a recovery procedure for opaque or
-unexplained data.
+Pending bucket slots remain protected after reload even if their in-memory
+owner registry is gone. Opening refuses unexplained or opaque live data
+rather than overwriting it. This is not a recovery procedure for old damaged
+or ambiguous saves. The guard covers only player destruction, not explosions,
+pistons, commands or other replacement. Actual in-world item drops and LAN
+behavior remain unverified.
 
 Run the source-based Rust fixtures with:
 `HORIZON_HOST=/path/to/clean/pinned/horizon bash tconstruct/tests/run_machine_destroy_guard_rust.sh`.

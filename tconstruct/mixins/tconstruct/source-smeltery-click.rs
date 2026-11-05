@@ -1,6 +1,10 @@
 fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button: i32, input: horizon_client::menu::Input) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    if game.remote.is_none() {
+        let Some(pos) = game.container else { return Break(true); };
+        if !crate::game::tconstruct_source_machine_projection_world::known(&game.world, pos) { return Break(true); }
+    }
     let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
         .map(|(id, items)| (id.clone(), items.clone())).collect());
@@ -174,6 +178,9 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             };
             if !same { state.progress[index] = 0; }
         }
+        // The store validates the old page, then commits source and new view
+        // together. Do not present the speculative menu output as old evidence.
+        if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) { *live = expected.clone(); }
         if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
             crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
             return Break(handled);

@@ -2248,6 +2248,12 @@ name = "tconstruct_source_machine_projection_world"
 source = "source-machine-projection-world.rs"
 
 [[module]]
+id = "server-machine-destroy-guard"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_machine_destroy_guard"
+source = "source-machine-destroy-guard.rs"
+
+[[module]]
 id = "source-machine-destroy-guard"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_machine_destroy_guard"
