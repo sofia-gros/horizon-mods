@@ -88,12 +88,12 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let id = id.to_string_lossy();
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
-                        let tip = if id.as_str() == "tconstruct:fire_protection" {
-                            Some("Fire Protection: acquisition only; protection and burn-duration effects are not connected yet.".to_owned())
+                        let tip = if super::tconstruct_source_upgrade_rules::is_protection(id.as_str()) {
+                            Some("Acquisition only: this Protection modifier's damage and secondary effects are not connected yet.".to_owned())
                         } else if id.as_str() == "tconstruct:hydraulic" {
                             Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
                         } else { key.and_then(|key| game.pack.names.display_get(&format!("{key}.description"))) };
-                        let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" | "tconstruct:fire_protection" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback_resistance" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
+                        let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" | "tconstruct:fire_protection" | "tconstruct:blast_protection" | "tconstruct:magic_protection" | "tconstruct:melee_protection" | "tconstruct:projectile_protection" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback_resistance" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
                         let shown = if id.as_str() == "tconstruct:blasting" {
                             let Some(shown) = blasting_label(&label, *amount) else { continue; };
                             shown

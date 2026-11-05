@@ -17,7 +17,7 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 25] = [
+const UPGRADES: [(&str, i32); 29] = [
     ("tconstruct:knockback_resistance", 1),
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
@@ -25,7 +25,19 @@ const UPGRADES: [(&str, i32); 25] = [
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:fire_protection", 5),
+    ("tconstruct:blast_protection", 5), ("tconstruct:magic_protection", 5),
+    ("tconstruct:melee_protection", 5), ("tconstruct:projectile_protection", 5),
 ];
+
+const PROTECTIONS: [(&str, &str); 5] = [
+    ("tconstruct:fire_protection", "tconstruct:seared_reinforcement"),
+    ("tconstruct:blast_protection", "tconstruct:obsidian_reinforcement"),
+    ("tconstruct:magic_protection", "tconstruct:gold_reinforcement"),
+    ("tconstruct:melee_protection", "tconstruct:cobalt_reinforcement"),
+    ("tconstruct:projectile_protection", "tconstruct:iron_reinforcement"),
+];
+
+pub(super) fn is_protection(id: &str) -> bool { PROTECTIONS.iter().any(|(name, _)| *name == id) }
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
 const BONUS_SLOTS: [(&str, i32, i32); 8] = [
@@ -84,7 +96,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
-        "tconstruct:fire_protection" => matches!(item,
+        id if is_protection(id) => matches!(item,
             "tconstruct:travelers_helmet" | "tconstruct:travelers_chestplate" | "tconstruct:travelers_leggings" | "tconstruct:travelers_boots"
             | "tconstruct:plate_helmet" | "tconstruct:plate_chestplate" | "tconstruct:plate_leggings" | "tconstruct:plate_boots"
             | "tconstruct:slime_helmet" | "tconstruct:slimy_chestplate" | "tconstruct:slime_leggings" | "tconstruct:slime_boots" | "tconstruct:slime_wings"
@@ -136,7 +148,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let wings = &*tool.item == "tconstruct:slime_wings";
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>() + reverted * if wings { 1 } else { 2 };
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>() - if wings { 0 } else { reverted };
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot" && !matches!(*id, "tconstruct:knockback_resistance" | "tconstruct:fire_protection"))
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot" && *id != "tconstruct:knockback_resistance" && !is_protection(id))
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
@@ -150,26 +162,28 @@ fn valid_knockback_amount(tool: &ItemStack) -> bool {
     }
 }
 
-fn valid_fire_protection_amount(tool: &ItemStack) -> bool {
+fn valid_protection_amounts(tool: &ItemStack) -> bool {
     let Some(saved)=tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return true; };
     if !matches!(saved,Tag::Compound(_)) { return false; }
-    match saved.get("tconstruct:fire_protection") {
+    PROTECTIONS.iter().all(|(id,_)| match saved.get(id) {
         None => true,
         Some(Tag::Int(amount)) => (0..=5 * 32767).contains(amount),
         _ => false,
-    }
+    })
 }
 
 pub(super) fn has_defense_upgrade(tool: &ItemStack) -> bool {
     tool.data().and_then(|d|d.other("minecraft:custom_data")).and_then(|d|d.get("tic_upgrades"))
         .is_some_and(|saved| saved.get("tconstruct:knockback_resistance").is_some()
-            || saved.get("tconstruct:fire_protection").is_some())
+            || PROTECTIONS.iter().any(|(id,_)| saved.get(id).is_some()))
 }
 
-fn fire_protection_recipe(value: &Value) -> bool {
+fn protection_recipe(value: &Value) -> bool {
+    let Some(id)=value.get("result").and_then(Value::as_str) else { return false; };
+    let Some((_,input))=PROTECTIONS.iter().find(|(name,_)| *name == id) else { return false; };
     value == &serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
-        "amount_per_item":1,"input":{"item":"tconstruct:seared_reinforcement"},"needed_per_level":5,
-        "result":"tconstruct:fire_protection","slots":{"defense":1},"tools":[
+        "amount_per_item":1,"input":{"item":input},"needed_per_level":5,
+        "result":id,"slots":{"defense":1},"tools":[
             {"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]})
 }
 
@@ -189,7 +203,7 @@ pub(super) fn free_defense_slots(tool: &ItemStack, defense: i32) -> Option<i32> 
         if id == "tconstruct:knockback_resistance" {
             if *amount != 1 || !supported(&id, &tool.item) { return None; }
             used = used.checked_add(1)?;
-        } else if id == "tconstruct:fire_protection" {
+        } else if is_protection(&id) {
             if *amount > 5 * 32767 || !supported(&id, &tool.item) { return None; }
             used = used.checked_add((*amount + 4) / 5)?;
         } else if !UPGRADES.iter().any(|(name, _)| *name == id)
@@ -213,7 +227,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:fire_protection" || valid_fire_protection_amount(tool)) && (id != "tconstruct:knockback_resistance" || valid_knockback_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (!is_protection(id) || valid_protection_amounts(tool)) && (id != "tconstruct:knockback_resistance" || valid_knockback_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -234,13 +248,13 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_fire_protection_amount(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
-    if id == "tconstruct:fire_protection" && !(belongs("tconstruct:modifiable/armor") || belongs("tconstruct:modifiable/held")) { return None; }
+    if is_protection(&id) && !(belongs("tconstruct:modifiable/armor") || belongs("tconstruct:modifiable/held")) { return None; }
     if id == "tconstruct:knockback_resistance" && !belongs("tconstruct:modifiable/armor") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
@@ -287,7 +301,7 @@ pub(super) fn plan_with_defense(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     defense_slots: i32, traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_fire_protection_amount(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
+    if !valid_protection_amounts(tool) || !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -301,7 +315,7 @@ pub(super) fn plan_with_defense(
         if !supported(id, &tool.item) {
             continue;
         }
-        if id == "tconstruct:fire_protection" && (!fire_protection_recipe(&value)
+        if is_protection(&id) && (!protection_recipe(&value)
             || !["tconstruct:modifiable/armor","tconstruct:modifiable/held"].iter().any(|tag|
                 tags.get(*tag).is_some_and(|items| items.contains(tool.item.as_ref())))) { continue; }
         if id == "tconstruct:knockback_resistance" &&
@@ -413,7 +427,7 @@ pub(super) fn plan_with_defense(
         };
         let max = match value.pointer("/level/max").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()) {
             Some(max) => max,
-            None if matches!(id, "tconstruct:blindshot" | "tconstruct:fire_protection") && value.get("level").is_none() => i16::MAX as i32,
+            None if (id == "tconstruct:blindshot" || is_protection(id)) && value.get("level").is_none() => i16::MAX as i32,
             None => continue,
         };
         if id == "tconstruct:hydraulic" && max != 5 { continue; }
@@ -423,7 +437,7 @@ pub(super) fn plan_with_defense(
             .and_then(|v| i32::try_from(v).ok())
             .unwrap_or(0);
         let old = amount(tool, id);
-        if id == "tconstruct:fire_protection" && free_defense_slots(tool, defense_slots)
+        if is_protection(&id) && free_defense_slots(tool, defense_slots)
             .is_none_or(|free| (crystal || old % needed == 0) && free < 1) { continue; }
         if crystal {
             if old.saturating_add(needed) > needed.saturating_mul(max) || occupied + cost > upgrade_slots { continue; }
@@ -672,6 +686,48 @@ pub fn apply_stats(
 #[cfg(test)]
 mod tests {
     #[test]
+    fn all_protection_recipes_use_distinct_inputs_and_one_shared_defense_budget() {
+        use super::*;
+        let tags=HashMap::from([
+            ("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()])),
+            ("tconstruct:modifiable".into(),HashSet::from(["tconstruct:plate_helmet".into()])),
+        ]);
+        let mk=|id:&str,raw| {
+            let mut tool=ItemStack::new("tconstruct:plate_helmet",1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                ("tic_upgrades",Tag::compound([(id,Tag::Int(raw))])),
+            ]))); tool
+        };
+        for (id,input) in PROTECTIONS {
+            let recipe=serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
+                "amount_per_item":1,"input":{"item":input},"needed_per_level":5,
+                "result":id,"slots":{"defense":1},"tools":[
+                    {"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]});
+            assert!(protection_recipe(&recipe));
+            let recipes=BTreeMap::from([(id.into(),serde_json::to_vec(&recipe).unwrap())]);
+            let inputs=[Some(ItemStack::new(input,5))];
+            let plan=plan_with_defense(&recipes,&tags,&mk(id,0),&inputs,0,0,1,&BTreeMap::new()).unwrap();
+            assert_eq!((plan.id.as_str(),plan.amount),(id,5));
+            assert!(plan_with_defense(&recipes,&tags,&mk(id,5),&inputs,5,5,1,&BTreeMap::new()).is_none());
+            let mut crystal=ItemStack::new("tconstruct:modifier_crystal",1);
+            crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String(id.into()))])));
+            assert_eq!(plan_with_defense(&recipes,&tags,&mk(id,2),&[Some(crystal)],0,0,2,&BTreeMap::new()).unwrap().amount,7);
+            let extraction=[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+            assert_eq!(extract_upgrade(&tags,&mk(id,7),&extraction,id).unwrap().upgrade.amount,2);
+            let mut altered=recipe.clone(); altered["input"]=serde_json::json!({"item":"minecraft:stone"});
+            assert!(!protection_recipe(&altered));
+        }
+        let mut mixed=ItemStack::new("tconstruct:plate_helmet",1);
+        mixed.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound(PROTECTIONS.iter().map(|(id,_)| (*id,Tag::Int(1)))
+                .chain(std::iter::once(("tconstruct:knockback_resistance",Tag::Int(1)))))),
+        ])));
+        assert_eq!(free_defense_slots(&mixed,6),Some(0));
+        assert_eq!(free_defense_slots(&mixed,5),None);
+        assert!(valid_slots(&mixed,&BTreeMap::new(),0,0));
+    }
+
+    #[test]
     fn fire_protection_partial_levels_share_defense_capacity() {
         use super::*;
         let recipe=serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
@@ -712,7 +768,7 @@ mod tests {
         assert!(plan(&mk(-1,0),2,&inputs).is_none());
         assert!(plan(&mk(5*32767+1,0),32767,&inputs).is_none());
         let mut altered=recipe.clone(); altered["slots"]=serde_json::json!({"upgrades":1});
-        assert!(!fire_protection_recipe(&altered));
+        assert!(!protection_recipe(&altered));
         tags.remove("tconstruct:modifiable/armor");
         assert!(plan_with_defense(&recipes,&tags,&mk(0,0),&inputs,0,0,1,&BTreeMap::new()).is_none());
     }

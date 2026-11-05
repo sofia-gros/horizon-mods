@@ -5384,14 +5384,14 @@ source = "source-defense-slots.rs"
 visibility = "pub"
 
 [[module]]
-id = "source-fire-protection"
+id = "source-protection"
 file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_fire_protection"
-source = "source-fire-protection.rs"
+name = "tconstruct_source_protection"
+source = "source-protection.rs"
 
 [[module]]
-id = "server-source-fire-protection"
+id = "server-source-protection"
 file = "crates/horizon-client/src/client_lib.rs"
-name = "tconstruct_source_fire_protection"
-source = "source-fire-protection.rs"
+name = "tconstruct_source_protection"
+source = "source-protection.rs"
 visibility = "pub"
