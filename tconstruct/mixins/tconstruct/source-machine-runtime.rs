@@ -289,9 +289,12 @@ pub(super) fn casting_tank_at(game: &super::Game<'_>, pos: Pos) -> Option<super:
 pub(super) fn save_casting_tank(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_casting_tank::CastingTank) -> bool {
     if !state.lossless() { return false; }
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if slots.len() >= 2) { return false; }
-    let before = store::read(&game.world,pos,"tconstruct:casting_tank")
-        .and_then(|tag| super::tconstruct_source_casting_tank::CastingTank::from_nbt(&tag)).map_or(0, |state| state.comparator());
-    if !store::write(&mut game.world, pos, "tconstruct:casting_tank", state.to_nbt()) { return false; }
+    let Some(raw) = store::read(&game.world,pos,"tconstruct:casting_tank") else { return false; };
+    let Some(current) = casting_tank_at(game,pos) else { return false; };
+    if current.to_nbt_preserving(&raw).as_ref() != Some(&raw) { return false; }
+    let before = current.comparator();
+    let Some(saved) = state.to_nbt_preserving(&raw) else { return false; };
+    if !store::write(&mut game.world, pos, "tconstruct:casting_tank", saved) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone();
     }

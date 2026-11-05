@@ -194,3 +194,24 @@ failed persistence. Wiring assertions cover hopper rollback and post-callback
 guards. Tests were not run. The fixture does not execute native hopper
 callbacks or full manual dispatch; host/gameplay/save/reload/LAN and destruction
 remain for the later combined work.
+
+### Casting Tank native-state preservation (#379)
+
+The shared Casting Tank save now retains native machine/tank extensions and
+unchanged raw input/output items. Container processing, manual interactions
+and hopper commits refuse to remove, replace or decrement an opaque saved
+item. Legacy aliases, lossy tank IDs and invalid capacities also refuse the
+save. Current saved/live slots must agree before publishing updates, and
+notifications follow persistence.
+
+State validation and processing reject current or stale retained wire backing.
+Hopper candidates and the selected post-callback slot use the same wire
+restriction. Both inventories, blocks and loaded chunks are rechecked after
+container processing; failed saves retain the existing hopper rollback. This does not
+change the separate Faucet transaction routes or add redstone scheduling.
+
+The bounded machine fixture in `run_cannon_held.py` now also extracts the
+production Casting Tank loader/save. Three new cases cover container
+processing, slot/redstone updates, extensions, opaque/stale states, wire and
+failed writes. Tests were not run. Full manual/hopper execution, host/world,
+save/reload, LAN and destruction handling remain separate and unverified.
