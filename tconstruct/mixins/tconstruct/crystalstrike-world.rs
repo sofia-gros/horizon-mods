@@ -1,7 +1,8 @@
-use super::{tconstruct_balm as balm, tconstruct_crystalstrike as rule, Game};
+use super::{Game, tconstruct_balm as balm, tconstruct_crystalstrike as rule};
 
-/// Shared worn attributes. Held Crystalstrike and Balm remain separate work.
-fn levels(game: &Game<'_>, knockback: bool, id: &str) -> Option<[i32; 4]> {
+/// Four worn slots plus selected mainhand/offhand Crystalstrike shields.
+/// Balm remains worn-only; its two held entries stay zero.
+fn levels(game: &Game<'_>, knockback: bool, id: &str) -> Option<[i32; 6]> {
     let raw = game
         .world
         .chunks
@@ -27,7 +28,7 @@ fn levels(game: &Game<'_>, knockback: bool, id: &str) -> Option<[i32; 4]> {
         .as_ref()
         .ok()?;
     let worn = tags.get("tconstruct:modifiable/armor/worn")?;
-    let mut levels = [0; 4];
+    let mut levels = [0; 6];
     for (index, stack) in game
         .armor
         .iter()
@@ -49,6 +50,36 @@ fn levels(game: &Game<'_>, knockback: bool, id: &str) -> Option<[i32; 4]> {
         levels[index] =
             super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, id)?;
     }
+    if id == rule::ID {
+        let held_tag = tags.get("tconstruct:modifiable/armor/held");
+        let hands = [
+            game.inventory.get(game.selected).and_then(Option::as_ref),
+            game.offhand.as_ref(),
+        ];
+        for (hand, stack) in hands
+            .into_iter()
+            .enumerate()
+            .filter_map(|(hand, stack)| stack.map(|stack| (hand, stack)))
+        {
+            if !rule::held_shield(&stack.item) {
+                continue;
+            }
+            if stack.count != 1 || stack.wire_patch().is_some() {
+                return None;
+            }
+            // Percent AttributeModule accepts both hands, even while broken.
+            // Only ArmorLevelModule needs the held tag and an intact tool.
+            if knockback
+                && (!held_tag.is_some_and(|tag| tag.contains(stack.item.as_ref()))
+                    || super::tconstruct_source_melee_shape::intact(stack).is_none())
+            {
+                continue;
+            }
+            let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+            levels[4 + hand] =
+                super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, id)?;
+        }
+    }
     Some(levels)
 }
 
@@ -67,9 +98,9 @@ pub(super) fn attack_speed(game: &Game<'_>, value: f64) -> f64 {
 /// Attribute operation ordering: Balm base additions, then Crystalstrike's
 /// separate total multipliers, then one attribute clamp and duration cast.
 pub(super) fn multiplier(game: &Game<'_>) -> f64 {
-    let balm = levels(game, false, balm::ID).unwrap_or([0; 4]);
+    let balm = levels(game, false, balm::ID).unwrap_or([0; 6]);
     let totals = levels(game, false, rule::ID)
-        .unwrap_or([0; 4])
+        .unwrap_or([0; 6])
         .map(|level| rule::amount(level).unwrap_or(0.0));
     balm::multiplier(&balm, &totals).unwrap_or(1.0)
 }
@@ -77,12 +108,16 @@ pub(super) fn multiplier(game: &Game<'_>) -> f64 {
 /// Keep /attribute consistent with the combat consumer's live calculation.
 /// Own transient IDs, so removal and definition reload do not leave a bonus.
 pub(super) fn refresh(game: &mut Game<'_>) {
-    let levels = levels(game, false, rule::ID).unwrap_or([0; 4]);
+    let levels = levels(game, false, rule::ID).unwrap_or([0; 6]);
     let Some(player) = game.player.as_mut() else {
         return;
     };
     for (index, level) in levels.into_iter().enumerate() {
-        let id = format!("tconstruct:crystalstrike_worn/{index}");
+        let id = if index < 4 {
+            format!("tconstruct:crystalstrike_worn/{index}")
+        } else {
+            format!("tconstruct:crystalstrike_held/{}", index - 4)
+        };
         let amount = rule::amount(level).unwrap_or(0.0);
         let _ = player.set_modifier(
             "minecraft:attack_speed",

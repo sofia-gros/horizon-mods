@@ -111,3 +111,43 @@ mod tests {
         assert_eq!(angle_delta(0.3, 0), None);
     }
 }
+
+/// Bounded held-armor classes. Other tools may expose the source attributes,
+/// but their held Crystalstrike behavior is not claimed by this adapter.
+pub(super) fn held_shield(item: &str) -> bool {
+    matches!(
+        item,
+        "tconstruct:travelers_shield" | "tconstruct:plate_shield" | "tconstruct:battlesign"
+    )
+}
+
+#[cfg(test)]
+mod held_tests {
+    use super::*;
+    #[test]
+    fn held_scope_is_the_three_stock_shields() {
+        for item in [
+            "tconstruct:travelers_shield",
+            "tconstruct:plate_shield",
+            "tconstruct:battlesign",
+        ] {
+            assert!(held_shield(item));
+            assert_eq!(armor_slot(item), None);
+        }
+        assert!(!held_shield("tconstruct:slime_helmet"));
+        assert!(!held_shield("tconstruct:sword"));
+        assert!(!held_shield("minecraft:shield"));
+    }
+    #[test]
+    fn two_hands_and_worn_pieces_multiply_independently() {
+        let factor = 1.0 + amount(1).unwrap();
+        assert_eq!(
+            multiplier(&[1, 0, 0, 0, 1, 1]),
+            Some(factor * factor * factor)
+        );
+        assert_ne!(
+            multiplier(&[0, 0, 0, 0, 1, 1]),
+            multiplier(&[0, 0, 0, 0, 2, 0])
+        );
+    }
+}
