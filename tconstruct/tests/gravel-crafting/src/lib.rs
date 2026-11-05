@@ -25,8 +25,12 @@ mod tests {
         for value in [None, Some("[recipes]\naddGravelToFlintRecipe = true\n")] {
             if let Some(value) = value { root.set(value); }
             let files = root.files();
-            assert_eq!(files.len(), 1);
+            assert_eq!(files.len(), 2);
             assert_eq!(files[0].0, "recipe/tconstruct:common/flint");
+            assert_eq!(files[1].0, gravel::ADVANCEMENT_PATH);
+            let mut source: serde_json::Value = serde_json::from_str(include_str!("../../fixtures/flint_discovery/flint.json")).unwrap();
+            source["criteria"]["has_the_recipe"]["conditions"] = serde_json::json!({"recipes":"tconstruct:common/flint"});
+            assert_eq!(serde_json::from_slice::<serde_json::Value>(&files[1].1).unwrap(), source);
             assert_eq!(serde_json::from_slice::<serde_json::Value>(&files[0].1).unwrap(), serde_json::json!({
                 "type":"minecraft:crafting_shapeless", "category":"misc",
                 "ingredients":["minecraft:gravel","minecraft:gravel","minecraft:gravel"],
@@ -53,7 +57,10 @@ mod tests {
         b.set("[recipes]\naddGravelToFlintRecipe = false");
         for enabled in [true, false, true, false] {
             a.set(&format!("[recipes]\naddGravelToFlintRecipe = {enabled}"));
-            assert_eq!(!a.files().is_empty(), enabled);
+            let files = a.files();
+            assert_eq!(files.len(), if enabled { 2 } else { 0 });
+            assert_eq!(files.iter().any(|(path, _)| path == gravel::PATH), enabled);
+            assert_eq!(files.iter().any(|(path, _)| path == gravel::ADVANCEMENT_PATH), enabled);
             assert!(b.files().is_empty());
         }
     }
@@ -69,6 +76,25 @@ mod tests {
         let mut files = vec![other.clone()];
         gravel::contribute(&root.0, &mut files);
         assert_eq!(files[0], other);
-        assert_eq!(files.len(), 2);
+        assert_eq!(files.len(), 3);
     }
+
+    #[test]
+    fn preserves_existing_discovery_and_does_not_duplicate_on_reentry() {
+        let root = Root::new();
+        let supplied = (gravel::ADVANCEMENT_PATH.to_owned(), b"{\"custom\":true}".to_vec());
+        let mut files = vec![supplied.clone()];
+        gravel::contribute(&root.0, &mut files);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0], supplied);
+        assert_eq!(files[1].0, gravel::PATH);
+        let once = files.clone();
+        gravel::contribute(&root.0, &mut files);
+        assert_eq!(files, once);
+        root.set("[recipes]\naddGravelToFlintRecipe = false");
+        let mut disabled = vec![supplied.clone()];
+        gravel::contribute(&root.0, &mut disabled);
+        assert_eq!(disabled, vec![supplied]);
+    }
+
 }
