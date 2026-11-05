@@ -51,3 +51,22 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Casting Tank to Casting Tank
+
+A Faucet can transfer between two distinct Seared Casting Tanks. Source
+container reprocessing happens after reserving a packet, then destination
+container processing happens after receiving fluid. Both tanks' fluid and slots
+and the Faucet packet are staged in one save before either live inventory or
+comparator notification is updated. Saved snapshots, both live inventories,
+loaded chunks and all three block states are rechecked after processing.
+
+The existing potion restrictions remain: supported vanilla base-potion identity
+is accepted on networked routes; supported custom color/effects require a
+nonnetwork path. Unsupported or mismatched metadata waits. A reserved packet can
+finish independently of a newly refilled source, but an unsupported new
+reservation cannot start. This is not a general FluidHandler implementation.
+Focused fixtures are added but not executed in this phase. Only brief static
+review was performed; host build, actual gameplay, save/reload, LAN and atomic
+disk/network persistence remain unverified.
