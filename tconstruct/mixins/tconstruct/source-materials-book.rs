@@ -572,8 +572,17 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Op
 fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_json::Value> {
     let recipes = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let recipe: serde_json::Value = serde_json::from_slice(recipes.get(id)?).ok()?;
+    let rest = game.res.rest.get()?;
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
-    super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size)
+    let fluid_context = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok());
+    let config = game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok());
+    let registries: Option<std::collections::HashMap<_, _>> = tags.zip(fluid_context).map(|(items, (_, fluids))| [
+        ("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())
+    ].into_iter().collect());
+    let conditions = |values: &[serde_json::Value]| registries.as_ref().zip(config)
+        .and_then(|(registries, config)| crate::game::tconstruct_tx::source_conditions_match(values, registries, config)).unwrap_or(false);
+    super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size,
+        |item| rest.items.items.contains_key(item), conditions)
 }
 
 pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) -> Option<Vec<Text>> {

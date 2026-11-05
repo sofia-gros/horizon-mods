@@ -21,6 +21,22 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn validated_crafting_preview_survives_book_reply() {
+        let source = serde_json::json!({"type":"minecraft:crafting_shaped","pattern":["a "," a"],
+            "key":{"a":{"item":"test:input"}},"result":{"item":"test:output","count":3}});
+        let spec = recipe::resolve(&source, None, "small", |_| true, |_| false).unwrap();
+        let pages = vec![
+            Text::styled("Materials & You\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Crafting", Style { insertion:Some(format!("tconstruct:book:{spec}")), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(17, &pages).unwrap();
+        let decoded = wire::decode_reply(17, &pages, &reply).unwrap();
+        let actual: serde_json::Value = serde_json::from_str(decoded[1].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        assert_eq!(actual, spec);
+        assert_eq!(actual["slots"][4], serde_json::json!(["test:input"]));
+        assert_eq!(actual["count"], 3);
+    }
+    #[test]
     fn composite_input_material_and_all_fluid_choices_survive_book_reply() {
         let entry = recipe::material_composite_options(&["test:head".into(), "test:binding".into()],
             &["Fluid B".into(), "Fluid A".into()], "test:input", "Input", "Composite", "Cast %s on %s parts").unwrap();
