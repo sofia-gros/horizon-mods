@@ -16,10 +16,26 @@ The three block-to-slimeball recipes have source recipe-book discovery: owning
 the matching block OR an unlocked event for its recovery recipe unlocks that
 recipe. The original direct-item predicates, OR requirements and hidden
 advancement parent are preserved. Native recipe IDs and the host string-valued
-`recipes` event condition are adapted. This does not add the separate tagged
-compression unlocks or change the existing Congealed Slime recovery unlocks.
+`recipes` event condition are adapted. Existing Congealed Slime recovery
+unlocks remain unchanged.
 Source advancement bytes and SHA-256 hashes are retained in
 `tests/fixtures/slime_block_recovery_unlocks/`.
+
+The three compression recipes also have source discovery: owning a member of
+`forge:slimeball/{sky,ichor,ender}` OR the matching recipe-unlocked event
+unlocks the corresponding nine-balls-to-one-block recipe. Criteria remain
+color-specific, preserve source OR requirements and have no display/toast.
+Original source recipe IDs ending in `slimeblock` map to the existing native
+`{kind}_slime` IDs. Source bytes/hashes are retained in
+`tests/fixtures/slime_compression_discovery/`.
+
+This compression data is based on the registered block/recovery work in
+PR #717/#771. Current-world candidate indexing and final tag matching require
+the separate bounded bridge in #760 (included in #790's dependency chain).
+Without that bridge, only host-native tag behavior is available; do not claim
+world-datapack replacement/reload parity from this data patch alone. The three
+tags are already managed there, so this change adds no new runtime hook.
+Integrate both dependency lines before the combined current-world checks.
 
 This is registration and acquisition support, not complete slime behavior.
 Horizon uses vanilla block identities for bouncing and sticky-piston behavior;
