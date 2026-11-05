@@ -85,3 +85,23 @@ without loss. This supplies the Cannon tank only; firing remains unimplemented.
 This draft builds on the Casting Tank-to-Cannon route. Brief static review only;
 new potion regression cases have not been run. Host build, gameplay, save/reload
 and LAN behavior remain unverified.
+
+
+### Melter to Fluid Cannon
+
+The guarded Cannon supply route also accepts a Seared Melter with a canonical
+internal tank. It patches only that tank, retaining raw inventory items, fuel,
+progress and other metadata without changing live Melter slots. Initial and
+later packet reservations pour their first 10 mB immediately, and source,
+Cannon and Faucet snapshots are committed together.
+
+The existing Cannon route guards now apply to this source: canonical Cannon
+state and matching live inventory, exact vanilla base-potion identity, pending
+packet preservation, snapshot rechecks and post-save notifications. Custom
+potion color/effects wait. Other Melter routes are unchanged; this does not
+implement Cannon firing or change melting/fuel use.
+
+Three focused regression cases were added but not run. Brief static review
+only; build, gameplay, save/reload, LAN and atomic disk/network persistence
+remain unverified. This builds on the guarded Casting Tank/base-potion Cannon
+route and needs combined integration with the separate comparator work.
