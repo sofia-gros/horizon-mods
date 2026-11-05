@@ -64,6 +64,38 @@
     "assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/still.png",
+      "sha256": "7779a2a3a611ae9601a342fcc37b5391ab5863dd8a73377e2a2f6e3d05dbc008"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/flowing.png",
+      "sha256": "e13851ad178d8d22b125088581ded305f53af546c38edd043fb753eae07e61fa"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/netherite/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/still.png",
+      "sha256": "189877423c4025f77b8c4883d69e47eb870fca10ab0e513c9accad3708c8aa1b"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/netherite/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png",
+      "sha256": "8b8408abc9491a846b1e07ab6ecc422e30dad8553895646761e67de72e007525"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }
