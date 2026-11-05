@@ -21,7 +21,7 @@ pub(super) fn merge_tag_files(files: &[Vec<u8>]) -> Vec<TagEntry> {
     merged
 }
 
-fn parse_file(bytes: &[u8]) -> Option<(bool, Vec<TagEntry>)> {
+pub(super) fn parse_file(bytes: &[u8]) -> Option<(bool, Vec<TagEntry>)> {
     let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
     let obj = value.as_object()?;
     let replace = match obj.get("replace") {

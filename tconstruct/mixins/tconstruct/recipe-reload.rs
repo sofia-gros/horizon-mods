@@ -18,6 +18,13 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let mut block_tags = std::collections::BTreeMap::new();
     let mut materials = std::collections::BTreeMap::new();
     let mut material_tags = std::collections::BTreeMap::new();
+    let registry: std::collections::HashSet<String> = game.motion.health.damage.entries().map(|(_,d)|d.name.clone()).collect();
+    let mut damage_seed = std::collections::BTreeMap::new();
+    for tag in game.motion.health.damage.tags().filter(|_| !game.cmds.vanilla_disabled) {
+        let values: Vec<_> = game.motion.health.damage.entries().filter(|(id,_)| game.motion.health.damage.in_tag(*id,tag)).map(|(_,d)|d.name.clone()).collect();
+        damage_seed.insert(tag.to_owned(),vec![serde_json::to_vec(&serde_json::json!({"values":values})).unwrap_or_default()]);
+    }
+    let mut damage_tags: Result<crate::game::tconstruct_source_damage_tags::Raw,String> = Ok(damage_seed);
     let mut modifiers: Result<crate::game::tconstruct_modifier_snapshot::Raw, String> = Ok(Default::default());
     fn merge(
         pack: &horizon_client::datapack::DataPack,
@@ -28,9 +35,15 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         materials: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         material_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         modifiers: &mut Result<crate::game::tconstruct_modifier_snapshot::Raw, String>,
+        damage_tags: &mut Result<crate::game::tconstruct_source_damage_tags::Raw,String>,
     ) {
         let files = pack.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags", "tinkering"]);
         crate::game::tconstruct_recipes::merge_pack(recipes, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
+        if let Ok(raw) = damage_tags {
+            if let Err(error) = crate::game::tconstruct_source_damage_tags::merge_pack(raw,files.iter().cloned(),|name|pack.__horizon_mixins_tconstruct_recipe_read(name)) {
+                *damage_tags = Err(error);
+            }
+        }
         crate::game::tconstruct_source_tags::merge_pack_tags(tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_fluid_tags(fluid_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_block_tags(block_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
@@ -43,9 +56,9 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     }
     if !game.cmds.vanilla_disabled {
         let builtin = horizon_client::datapack::DataPack::builtin(&game.options.resources);
-        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
+        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers, &mut damage_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
-        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
+        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers, &mut damage_tags);
         crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
@@ -58,14 +71,18 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
     };
     let forge = horizon_client::datapack::DataPack::builtin(&source_pack("forge-original-pack"));
-    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
+    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers, &mut damage_tags);
     let original = horizon_client::datapack::DataPack::builtin(&source_pack("tconstruct-original-pack"));
-    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
+    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers, &mut damage_tags);
     for id in &game.fns.enabled {
         if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) {
-            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
+            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers, &mut damage_tags);
         }
     }
+    let damage_types = damage_tags.and_then(|raw| {
+        Ok((crate::game::tconstruct_source_damage_tags::project("tconstruct:protection/fire",&raw,&registry)?,
+            crate::game::tconstruct_source_damage_tags::project("minecraft:is_fire",&raw,&registry)?))
+    });
     let resolved_tags = game.res.rest.get().map(|rest| {
         let registry = rest.items.registry_order.iter().map(|id| id.to_string()).collect();
         let mut resolved = crate::game::tconstruct_source_tags::resolve_registry(&tags, &registry)?;
@@ -259,6 +276,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = Some(resolved_fluids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
+    *game.world.chunks.__horizon_mixins_tconstruct_fire_protection_damage_types_mut() = Some(damage_types);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
     *game.world.chunks.__horizon_mixins_tconstruct_station_building_recipes_mut() = Some(
@@ -274,6 +292,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     crate::game::tconstruct_gold_guard_world::refresh(game);
     crate::game::tconstruct_projectile_protection_world::refresh(game);
     crate::game::tconstruct_fire_duration_world::refresh(game);
+    crate::game::tconstruct_fire_protection_damage_world::refresh(game);
 }
 
 // The active level is captured below the reload hook. Parked levels retain
@@ -283,6 +302,7 @@ pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
         if let Some(world) = game.levels.parked_world_mut(dim) {
             *world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
             *world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = None;
+            *world.chunks.__horizon_mixins_tconstruct_fire_protection_damage_types_mut() = None;
         }
     }
 }

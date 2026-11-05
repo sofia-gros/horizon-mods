@@ -53,4 +53,5 @@ Sources: Tinkers' Construct f4e77d43,
 
 The later [explicit-ignition duration bridge](fire-protection-duration.md) adds
 the secondary effect for player `ignite_for_ticks` callers. [Standing-in-fire contact](fire-protection-contact.md) is connected separately.
-Damage protection remains outside both bridges.
+The later [damage protection bridge](fire-protection-damage.md) connects the
+default-cap player damage stage separately.
