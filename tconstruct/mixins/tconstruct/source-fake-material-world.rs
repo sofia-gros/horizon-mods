@@ -87,6 +87,20 @@ pub(super) fn refresh(game: &mut super::Game<'_>) {
     tables.recipes.crafting.extend(generated);
     horizon_client::recipe_book::tconstruct_source_fake_material_book::replace(
         &mut tables.stations.recipe_index, &tables.recipes.crafting);
+    restore_saved_book(game);
+    game.tconstruct_invalidate_fake_material_book();
+}
+
+// A guest borrows the game's current player state; never restore the local
+// player's saved knowledge into that borrowed book. update_world retries this
+// one-shot handoff outside a guest scope if the first capture happened there.
+pub(super) fn restore_saved_book(game: &mut super::Game<'_>) {
+    if game.remote.is_some() || game.lan_acting.is_some()
+        || game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().is_none() { return; }
+    let Some(tables) = game.world_tables.as_ref() else { return; };
+    let Some(pending) = game.world.chunks.__horizon_mixins_tconstruct_fake_material_book_pending_mut().take() else { return; };
+    horizon_client::recipe_book::tconstruct_source_fake_material_book_load::restore(
+        &mut game.level.recipe_book, &tables.stations.recipe_index, pending);
     game.tconstruct_invalidate_fake_material_book();
 }
 
