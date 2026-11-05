@@ -3427,6 +3427,14 @@ name = "tconstruct_materials_book_stat"
 source = "source-materials-book-stat.rs"
 
 [[injection]]
+id = "materials-book-key"
+target = "horizon_client::game::books::Game<'_>::book_input"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-key.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "key", ty = "Option<KeyCode>", value = "key" }]
+
+[[injection]]
 id = "materials-book-click"
 target = "horizon_client::game::books::Game<'_>::book_click"
 kind = "HEAD"
@@ -5280,3 +5288,17 @@ target = "horizon_world::loot::overlay_map"
 kind = "RETURN"
 helper = "source-slimy-loot-world.rs"
 bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" }, { name = "kind", ty = "&str", value = "kind" }, { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" }]
+
+# Source's optional 3 gravel -> 1 flint recipe joins native world tables.
+[[module]]
+id = "source-gravel-crafting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_gravel_crafting"
+source = "source-gravel-crafting.rs"
+
+[[injection]]
+id = "source-gravel-crafting-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "gravel-crafting-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]

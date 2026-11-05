@@ -178,10 +178,13 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
         return;
     }
-    if let Some(id) = spec.get("showcase_item").and_then(|v| v.as_str()) {
-        let (x, y) = (left + 36.0 + 83.0, top + 43.0);
-        let stack = draw_stack(batch, id, 1, 0, None, x, y);
-        if hovered(x, y, 16.0) { item_tooltip = Some(stack); }
+    if spec.get("showcase_item").is_some() || spec.get("showcase_items").is_some() {
+        let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs());
+        if let Some(id) = tconstruct_materials_book_recipe::showcase_display_item(&spec, seconds) {
+            let (x, y) = (left + 36.0 + 83.0, top + 43.0);
+            let stack = draw_stack(batch, id, 1, 0, None, x, y);
+            if hovered(x, y, 16.0) { item_tooltip = Some(stack); }
+        }
         if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
             for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
                 batch.text_styled(atlas, line, left + 36.0, top + 76.0 + i as f32 * 9.0, BLACK, false);
