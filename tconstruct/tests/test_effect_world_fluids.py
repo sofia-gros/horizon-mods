@@ -15,7 +15,8 @@ class EffectWorldFluidTests(unittest.TestCase):
             if effect is not None:
                 self.assertTrue(effect['no_curatives'])
                 protected.add(path.stem)
-        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul', 'earth_slime', 'sky_slime'})
+        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul', 'earth_slime', 'sky_slime',
+                                    'ender_slime', 'molten_ender'})
 
     def test_source_effect_flow_temperature_class_and_sprites(self):
         # TinkerFluids and FluidTextureProvider at f4e77d43, not generated values.
@@ -23,6 +24,8 @@ class EffectWorldFluidTests(unittest.TestCase):
             ('venom', 'poison', 1, 4, 5, 0, True, 'slime/venom'),
             ('earth_slime', 'tconstruct:bouncy', 1, 4, 50, 0, True, 'slime/earth'),
             ('sky_slime', 'tconstruct:ricochet', 1, 4, 50, 0, True, 'slime/sky'),
+            ('ender_slime', 'tconstruct:enderference', 1, 4, 50, 0, True, 'slime/ender'),
+            ('molten_ender', 'tconstruct:enderference', 2, 2, 40, 5, False, 'molten/stone'),
             ('honey', 'slowness', 1, 4, 50, 0, True, 'food/honey'),
             ('liquid_soul', 'blindness', 8, 8, 30, 2, False, 'slime/soul'),
         ]
@@ -45,7 +48,7 @@ class EffectWorldFluidTests(unittest.TestCase):
                     self.assertEqual(interaction[key], cool)
                 self.assertEqual(interaction['motion_scale'], 0.0023333333333333335)
                 self.assertEqual(fluid['visual']['emission'], light)
-                self.assertEqual(fluid['visual']['tint'], 0xFFFFFF)
+                self.assertEqual(fluid['visual']['tint'], 0x105E51 if name == 'molten_ender' else 0xFFFFFF)
                 for field in ('still', 'flowing'):
                     self.assertEqual(fluid['visual'][field], 'tconstruct:fluid/' + folder + '/' + field)
                 block = json.loads((CONTENT / 'data/tconstruct/horizon/block' / (blockname + '.json')).read_text())

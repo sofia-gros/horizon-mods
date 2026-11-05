@@ -1,6 +1,6 @@
 # Registered world-fluid draft
 
-This slice declares sixty-eight world-liquid families. The initial families are iron, gold, copper,
+This slice declares seventy world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Glass, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
@@ -9,7 +9,8 @@ Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
 Venom, Honey and Liquid Soul add the first standard player contact effects.
 Magma adds a burning slime-family liquid. Ichor and Molten Cinderslime add
 the first upward-flowing liquids. Earth Slime adds the Bouncy player effect,
-and Sky Slime adds the Ricochet player effect.
+and Sky Slime adds the Ricochet player effect. Ender Slime and Molten Ender
+share the Enderference player effect.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
@@ -43,12 +44,12 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
   uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
-  tick rate 5. None of the sixty-eight families generates new sources.
+  tick rate 5. None of the seventy families generates new sources.
 - Molten Glass uses `registerGlass`: level drop 8, slope distance 8, tick rate 30.
   It needs the extended host slope bound; its policy is not approximated as
   stone or clamped to four. It burns for 5 seconds with damage 2 and light 1.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning
-  for the fifty-eight hot families, including non-burning Liquid Soul.
+  for the fifty-nine hot families, including non-burning Liquid Soul.
 - The four soups use `TinkerFluids.cool`: the same current scale, extinguishing
   enabled, and Forge's default swimming/drowning and 0.5 fall scaling. They
   have no burn contact and emit no light. Their 400 K source temperature does
@@ -85,7 +86,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all sixty-eight families. Queen's Slime's source camera fog color remains
+  covers all seventy families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -141,7 +142,7 @@ This is not arbitrary item-specific curative support or full effect parity.
 The host attaches the policy to accepted duration/amplifier updates and restores
 hidden-instance policy on downgrade; mixed-source equivalence with Forge is
 unverified. Its existing save model does not persist hidden chains. Mobs,
-custom slime/Enderference effects, fog and gameplay/LAN validation remain separate.
+full slime/Enderference behavior, fog and gameplay/LAN validation remain incomplete.
 
 Earth Slime retains source slime flow (drop 1, slope 4, tick rate 50), light 0,
 no burn, and enabled swimming/drowning/extinguishing. Matching body contact
@@ -185,6 +186,33 @@ order, actual combat/LAN and injection planning/build remain unverified or
 unsupported. No new host extension is added beyond the existing fluid stack.
 Brewing, bottles, cakes, solid blocks and acquisition are unchanged.
 
+Ender Slime and Molten Ender share `tconstruct:enderference` contact for 100
+ticks at amplifier zero with no generic curatives. The harmful effect uses its
+source `0xD37CFF` color and original status icon. Ender Slime retains slime flow
+(drop 1, slope 4, tick rate 50), light 0, no burn, cool interaction flags and
+exact `slime/ender` sprites. Molten Ender uses stone flow (drop 2, slope 2,
+tick rate 40), light 5, no burn, hot interaction flags and the existing
+`molten/stone` sprites tinted `0x105E51`. Its temperature does not imply burning.
+Neither generates sources. Bucket and acquisition paths remain unchanged.
+
+Two RETURN bindings read the current acting player's Enderference status after
+the native pearl and chorus-fruit event dispatch. When present on an
+authoritative player they set cancellation true without clearing an existing
+cancellation, changing destinations or modifying damage. The host's pearl
+cancellation consumes the pearl but skips teleport, endermite roll, teleport
+sound and fall damage. Chorus cancellation stops further attempts; preceding
+consumption, dismount and random draws remain native. Effect expiry/removal is
+read directly without a cached flag. These bindings need the host's server
+acting-player context and do not intercept local prediction lacking that hook.
+
+This does not implement command/spread-player/gateway/dimension teleport
+cancellation, arbitrary teleport paths, non-player effects or affected Enderman
+projectile damage. The separate melee/mob Enderference work is not included in this slice.
+The common status ID and source definition must be reconciled during final
+integration.
+Native injection planning, actual pearl/chorus behavior, expiry and LAN remain
+unverified. This is not full Enderference parity.
+
 Magma retains `registerSlime` flow: drop 1, slope 4 and tick rate 50, with light 3
 and 8 seconds/3 damage of burning contact. Despite burning, its source uses the
 `slime()`/`cool()` properties: player swimming, drowning and extinguishing stay
@@ -209,7 +237,7 @@ still, flowing and `flowing_inverted` sprites and all animation metadata. The
 normal flowing path stays in the declaration; the host chooses its `_inverted`
 variant in the world. This matches Mantle's `ClientInvertedFluidType`, including
 reversed source animation frame lists, rather than flipping a different sprite.
-The provenance manifest now records 244 original fluid files. Source inspection of
+The provenance manifest now records 248 original fluid files. Source inspection of
 Mantle `InvertedFluid` and its type shows unchanged liquid surface/contact
 geometry: only simulation, current direction and the flowing sprite change.
 The host therefore does not invent ceiling-anchored geometry. The new upward
@@ -233,8 +261,9 @@ integrator without assigning native water tags. Their equivalence to Forge's
 generic fluid travel, fall scaling and mixed-fluid precedence remains unverified.
 They are provisional host integration parameters, not source-parity claims.
 
-Remaining: Ender Slime and Molten Ender world fluids,
-source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, burn audio, camera fog, mixing and
+The seventy source placeable-fluid declarations are now present in this stack.
+Potion and Powdered Snow are source unplaceable fluids and are not invented as
+world liquids here. Remaining: full source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, burn audio, camera fog, mixing and
 solidification, dispenser handling, final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for

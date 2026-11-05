@@ -1,0 +1,10 @@
+{
+  "template": "minecraft:water",
+  "item": false,
+  "properties": {
+    "light": 5,
+    "hardness": 100,
+    "explosion_resistance": 100,
+    "random_ticks": false
+  }
+}

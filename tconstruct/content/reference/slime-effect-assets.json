@@ -8,6 +8,10 @@
     "assets/tconstruct/textures/mob_effect/ricochet.png": {
       "source": "src/main/resources/assets/tconstruct/textures/mob_effect/ricochet.png",
       "sha256": "a7200eca7e5c701b001f9af98687fbe58396ff211f8ec7aa2d432cfc172b2299"
+    },
+    "assets/tconstruct/textures/mob_effect/enderference.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/mob_effect/enderference.png",
+      "sha256": "de89cd70028d9e8e879e773d3a8b57207d9f81417b1afa227a80257dd182369d"
     }
   }
 }

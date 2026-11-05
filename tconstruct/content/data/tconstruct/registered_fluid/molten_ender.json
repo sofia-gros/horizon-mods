@@ -1,0 +1,39 @@
+{
+  "source": "tconstruct:molten_ender",
+  "flowing": "tconstruct:flowing_molten_ender",
+  "block": "tconstruct:molten_ender_fluid",
+  "bucket": "tconstruct:molten_ender_bucket",
+  "policy": {
+    "drop_off": 2,
+    "slope_distance": 2,
+    "tick_delay": 40,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/stone/still",
+    "flowing": "tconstruct:fluid/molten/stone/flowing",
+    "tint": 1072721,
+    "emission": 5
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": null,
+    "effect": {
+      "id": "tconstruct:enderference",
+      "duration_ticks": 100,
+      "amplifier": 0,
+      "no_curatives": true
+    }
+  }
+}
