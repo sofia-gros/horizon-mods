@@ -1416,7 +1416,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Fill a formed Smeltery/Foundry through its Drain from a built-in tank or Melter.
+/// Fill a formed Smeltery/Foundry through its Drain from a supported tank or Melter.
 /// The destination proxy represents only the offered layer and available
 /// total capacity, so unrelated fluids never prevent a compatible fill.
 fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
@@ -1427,14 +1427,22 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     let source_state = game.world.block(source.0, source.1, source.2);
     let faucet_state = game.world.block(pos.0, pos.1, pos.2);
     let source_name = game.res.facts().get(source_state).name.clone();
-    let source_kind = if &*source_name == "tconstruct:seared_melter" {
+    let mut portable = if &*source_name == "tconstruct:seared_casting_tank" {
+        let Some(state) = casting_tank_at(game, source) else { return Some(false); };
+        Some(state)
+    } else { None };
+    let source_strength = portable.as_ref().map(|state| state.comparator());
+    let source_kind = if portable.is_some() {
+        Some(("tconstruct:casting_tank", 4000))
+    } else if &*source_name == "tconstruct:seared_melter" {
         Some(("tconstruct:melter", super::tconstruct_source_melter_state::MELTER_CAPACITY))
     } else { super::tconstruct_source_faucet_tank::tank_kind(&source_name) };
     let mut input = if let Some((key, capacity)) = source_kind {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
-        let source_tank = if key == "tconstruct:melter" {
-            if super::tconstruct_source_melter_state::Melter::from_nbt(&raw).is_none() { return Some(false); }
+        if portable.as_ref().is_some_and(|state| state.to_nbt() != raw) { return Some(false); }
+        let source_tank = if matches!(key, "tconstruct:melter" | "tconstruct:casting_tank") {
+            if key == "tconstruct:melter" && super::tconstruct_source_melter_state::Melter::from_nbt(&raw).is_none() { return Some(false); }
             let Some(tank) = raw.get("tank") else { return Some(false); };
             tank
         } else { &raw };
@@ -1465,11 +1473,20 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     let Some(capacity) = existing.checked_add(available) else { return Some(false); };
     let mut output = Tank { fluid: (existing > 0).then(|| offered.fluid.clone()).flatten(),
         tag: (existing > 0).then(|| offered.tag.clone()).flatten(), amount: existing, capacity };
+    let before_input = input.as_ref().map_or(0, |(_, tank, _)| tank.amount);
     let mut empty = Tank::new(0);
     if starting && !faucet.activate(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), &output) { return Some(true); }
     let needs_packet = !starting && faucet.pending.amount == 0;
     faucet.tick(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), Some(&mut output));
     if needs_packet && faucet.pending.amount > 0 { faucet.tick(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), Some(&mut output)); }
+    // Only a new reservation frees source capacity. Process its waiting
+    // container on staged state before saving any of the three participants.
+    if let (Some(state), Some((_, tank, _))) = (portable.as_mut(), input.as_mut()) {
+        state.tank = tank.clone();
+        if tank.amount < before_input { let _ = process_casting_tank(game, state); }
+        if !state.lossless() { return Some(false); }
+        *tank = state.tank.clone();
+    }
     let Some(added) = output.amount.checked_sub(existing) else { return Some(false); };
     if added > 0 && !output.fluid.as_ref().is_some_and(|id| smeltery.tank.insert_tagged(id, output.tag.as_ref(), added)) { return Some(false); }
     let Some(next_controller) = patch_smeltery_controller_tank(&raw_controller, &smeltery) else { return Some(false); };
@@ -1479,18 +1496,29 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         || game.world.block(pos.0, pos.1, pos.2) != faucet_state
         || game.world.block(controller.0, controller.1, controller.2) != controller_state
         || !validated_drain(game, target).is_some_and(|(at, _, raw)| at == controller && raw == raw_controller)
+        || super::tconstruct_source_smeltery_world::detect(game, controller)
+            .is_none_or(|(_, _, capacity)| capacity != smeltery.tank.capacity)
         || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet) { return Some(false); }
     let mut changes = vec![(controller, "tconstruct:smeltery", next_controller), (pos, "tconstruct:faucet", faucet.to_nbt())];
     if let Some((key, tank, raw)) = &input {
         if store::read(&game.world, source, key).as_ref() != Some(raw)
             || !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
-        let saved = if *key == "tconstruct:melter" {
+        let saved = if let Some(state) = &portable {
+            if !casting_tank_at(game, source).is_some_and(|current| current.to_nbt() == *raw) { return Some(false); }
+            state.to_nbt()
+        } else if *key == "tconstruct:melter" {
             let Some(saved) = super::tconstruct_source_faucet_tank::patch_melter_tank(raw, tank) else { return Some(false); };
             saved
         } else { tank.to_nbt() };
         changes.push((source, *key, saved));
     }
     if !store::write_many(&mut game.world, &changes) { return Some(false); }
+    if let Some(state) = &portable {
+        if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&source) {
+            slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone();
+        }
+        notify_casting_comparator(game, source, source_strength.unwrap_or(0), state.comparator());
+    }
     if input.is_some() { game.container_changed(source); }
     if added > 0 { game.container_changed(controller); }
     Some(true)

@@ -50,7 +50,7 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 
 ### Casting Tank to casting blocks
 
-A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. The Drain destination is described below. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
 
 
 ### Built-in tank to Drain
@@ -66,8 +66,8 @@ Source tank, controller tank and Faucet packet changes are staged together.
 Only the controller's tank is patched, retaining its other metadata. Unknown
 source/tank representations, invalid Drain ownership, unloaded chunks and stale
 structure capacity wait. A reserved packet can finish after a loaded source is
-removed; an unreadable recognized source waits instead. Duct destinations,
-Casting Tank sources and generic handlers are not added here. Melter support is described below.
+removed; an unreadable recognized source waits instead. Duct destinations
+and generic handlers are not added here. Melter and Casting Tank support are described below.
 
 Brief static review only. Focused route fixtures are added but not run in this
 phase; full host build, gameplay, save/reload, LAN and atomic disk/network
@@ -87,3 +87,24 @@ This transfers already-stored fluid; it does not change fuel consumption or
 melting recipes. The draft builds on the built-in tank-to-Drain route. Brief
 static review only; regression cases are added but not run. Host integration,
 gameplay, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Casting Tank to Drain
+
+The Drain-input route also accepts a Seared Casting Tank source. A new Faucet
+reservation can free room for its waiting input container. Container conversion
+runs on staged state; the source fluid and slots, destination controller tank
+and Faucet are saved together before live slots or comparator notifications
+change. Ticks that only pour an existing packet do not reprocess the container.
+
+The route retains distinct fluid/NBT layers and rechecks the source inventory,
+saved data, blocks, loaded chunks, Drain ownership and current structure
+capacity after container processing. Unknown or mismatched Casting Tank state
+waits. A pending packet keeps its original identity if the source refills with a
+different supported fluid. Untagged fluids and supported vanilla base potions
+are accepted; custom potion colors/effects and Duct destinations are excluded.
+
+Four source-specific fixture cases were added for later validation, using the
+production Casting Tank loader and container/state code with a mocked world.
+Tests were not run for this change. Build, gameplay, save/reload, LAN and atomic
+disk/network persistence remain unverified.
