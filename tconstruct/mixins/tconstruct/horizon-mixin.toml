@@ -5390,3 +5390,91 @@ kind = "HEAD"
 helper = "shield-wear.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "outcome", ty = "horizon_client::health::BlockOutcome", value = "outcome" }]
 
+
+# Battlesign Bonking: scope changes around the existing primary mob melee body.
+[[module]]
+id = "source-bonking-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_bonking"
+source = "source-bonking.rs"
+
+[[module]]
+id = "source-bonking-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_bonking_world"
+source = "bonking-world.rs"
+
+[[state]]
+id = "bonking-draw"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>,(usize,horizon_items::items::ItemStack,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-bonking-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "bonking-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[injection]]
+id = "source-bonking-release"
+target = "horizon_client::game::native_hooks::Game<'_>::native_release_using"
+kind = "HEAD"
+helper = "bonking-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "time_left", ty = "i32", value = "time_left" }, { name = "used", ty = "&mut bool", value = "&mut *used" }]
+
+[[injection]]
+id = "source-bonking-charge"
+target = "horizon_client::game::Game<'_>::attack_strength_scale"
+kind = "HEAD"
+helper = "bonking-charge.rs"
+cancellable = true
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-bonking-damage"
+target = "horizon_client::game::Game<'_>::melee_damage"
+kind = "RETURN"
+helper = "bonking-damage.rs"
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-bonking-extra-knockback"
+target = "horizon_client::game::enchant_effects::Game<'_>::extra_knockback"
+kind = "HEAD"
+helper = "bonking-extra-knockback.rs"
+cancellable = true
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-bonking-knockback"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_knockback"
+kind = "HEAD"
+helper = "bonking-knockback.rs"
+bindings = [{ name = "entity", ty = "i32", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[injection]]
+id = "source-bonking-attack-enter"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "bonking-attack-enter.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-bonking-attack-leave"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "bonking-attack-leave.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-bonking-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "bonking-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
