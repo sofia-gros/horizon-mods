@@ -1,0 +1,10 @@
+{
+  "make_part": {
+    "source": "tools/make_part.json",
+    "sha256": "8131c48ee9bd66d100120cccd9e34cf40fd616284d85e3063142eb6c066c4d59"
+  },
+  "encyclopedia": {
+    "source": "foundry/encyclopedia.json",
+    "sha256": "537ca6978db51f1df853279dc6506d99074619adef8c435863d83e6c5f8155ae"
+  }
+}
