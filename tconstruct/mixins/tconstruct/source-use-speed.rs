@@ -87,32 +87,38 @@ fn tool_stat(definition: &[u8], unburdened: i32) -> Option<f32> {
     result.is_finite().then(|| result.clamp(0.0, 1.0))
 }
 #[derive(Clone, Copy, Default)]
+struct Levels {
+    ordinary: [i32; 3],
+    melee_protection: f32,
+}
+#[derive(Clone, Copy, Default)]
 struct Equipped {
-    levels: [i32; 4],
+    levels: Levels,
     worn: bool,
     armor: bool,
     active: bool,
 }
 fn speed(tool: Option<f32>, equipped: &[Equipped]) -> Option<f32> {
     let mut result = 0.2f64 + f64::from(tool.unwrap_or(0.2) - 0.2f32);
-    let mut protection = 0;
+    let mut protection = 0.0f32;
     for piece in equipped {
-        if piece.levels.iter().any(|n| *n < 0) {
+        if piece.levels.ordinary.iter().any(|n| *n < 0)
+            || !piece.levels.melee_protection.is_finite() || piece.levels.melee_protection < 0.0 {
             return None;
         }
         if !piece.active {
             continue;
         }
         if piece.worn {
-            result += f64::from(0.1f32 * piece.levels[0] as f32);
+            result += f64::from(0.1f32 * piece.levels.ordinary[0] as f32);
         }
-        result += f64::from(0.1f32 * piece.levels[1] as f32);
+        result += f64::from(0.1f32 * piece.levels.ordinary[1] as f32);
         if piece.armor {
-            result += f64::from(0.05f32 * piece.levels[2] as f32);
+            result += f64::from(0.05f32 * piece.levels.ordinary[2] as f32);
         }
-        protection = protection.max(piece.levels[3]);
+        protection = protection.max(piece.levels.melee_protection);
     }
-    result += f64::from(0.05f32 * protection as f32);
+    result += f64::from(0.05f32 * protection);
     result.is_finite().then(|| result.clamp(0.0, 1.0) as f32)
 }
 fn class_slot(item: &str) -> Option<usize> {
@@ -133,7 +139,26 @@ fn class_slot(item: &str) -> Option<usize> {
         _ => None,
     }
 }
-fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<[i32; 4]> {
+/// Acquired defense progress uses five units per complete level. Match the
+/// source started-level + fractional correction, without rounding it upward.
+fn protection_level(stack: &ItemStack, trait_level: i32) -> Option<f32> {
+    use horizon_world::nbt::Tag;
+    if trait_level < 0 { return None; }
+    let raw=match stack.data().and_then(|data|data.other("minecraft:custom_data"))
+        .and_then(|custom|custom.get("tic_upgrades")) {
+        None => 0,
+        Some(upgrades @ Tag::Compound(_)) => match upgrades.get("tconstruct:melee_protection") {
+            None => 0, Some(Tag::Int(raw)) if (0..=5 * 32767).contains(raw) => *raw, _ => return None,
+        },
+        _ => return None,
+    };
+    let whole=trait_level.checked_add(raw / 5)?;
+    let remainder=raw % 5;
+    Some(if remainder == 0 { whole as f32 }
+        else { whole.checked_add(1)? as f32 + (remainder - 5) as f32 / 5.0 })
+}
+
+fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<Levels> {
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     let raw = game
         .world
@@ -142,18 +167,21 @@ fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<[i32; 4]> {
         .as_ref()?
         .as_ref()
         .ok()?;
-    let mut result = [0; 4];
+    let mut result = Levels::default();
     for (i, id) in IDS.iter().enumerate() {
-        // These upgrades have no ordinary Station port yet. Do not guess the
-        // unit of a manually stored incremental-defense counter.
-        let total =
-            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, id)?;
-        let level = traits.levels.get(*id).copied().unwrap_or(0);
-        if total != level || level < 0 {
-            return None;
-        }
-        result[i] = level;
-        if level > 0 {
+        let trait_level=traits.levels.get(*id).copied().unwrap_or(0);
+        let active=if i == 3 {
+            result.melee_protection = protection_level(stack,trait_level)?;
+            result.melee_protection > 0.0
+        } else {
+            // The other three purchased modifiers remain unsupported. Their
+            // integer trait arithmetic is unchanged by defense progress.
+            let total=super::tconstruct_source_material_traits::level_with_upgrade(stack,&traits,id)?;
+            if total != trait_level || trait_level < 0 { return None; }
+            result.ordinary[i]=trait_level;
+            trait_level > 0
+        };
+        if active {
             let path = format!(
                 "tconstruct:tinkering/modifiers/{}",
                 id.strip_prefix("tconstruct:")?
@@ -218,7 +246,7 @@ fn projected(game: &super::Game<'_>, native: Option<f32>) -> Option<f32> {
         let definition = definitions
             .get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?
             .last()?;
-        Some(tool_stat(definition, levels[0])?)
+        Some(tool_stat(definition, levels.ordinary[0])?)
     } else {
         None
     };
@@ -250,7 +278,7 @@ fn projected(game: &super::Game<'_>, native: Option<f32>) -> Option<f32> {
         let mut levels = levels(game, stack)?;
         let worn_tag = worn && has("tconstruct:modifiable/armor/worn", stack);
         if worn && !worn_tag {
-            levels[3] = 0;
+            levels.melee_protection = 0.0;
         }
         pieces.push(Equipped {
             levels,
@@ -286,13 +314,13 @@ mod tests {
     fn equipment_adds_attributes_and_only_maximum_protection() {
         let pieces = [
             Equipped {
-                levels: [2, 1, 2, 3],
+                levels: Levels { ordinary: [2, 1, 2], melee_protection: 3.0 },
                 worn: true,
                 armor: true,
                 active: true,
             },
             Equipped {
-                levels: [8, 0, 9, 1],
+                levels: Levels { ordinary: [8, 0, 9], melee_protection: 1.0 },
                 worn: false,
                 armor: false,
                 active: true,
@@ -317,6 +345,26 @@ mod tests {
             Some(0.2)
         );
     }
+    #[test]
+    fn acquired_melee_protection_preserves_fractional_levels_and_maximum() {
+        use horizon_world::nbt::Tag;
+        let make=|raw:Tag| {
+            let mut stack=ItemStack::new("tconstruct:plate_helmet",1);
+            stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                ("tic_upgrades",Tag::compound([("tconstruct:melee_protection",raw)])),
+            ]))); stack
+        };
+        assert_eq!(protection_level(&make(Tag::Int(5)),0),Some(1.0));
+        assert_eq!(protection_level(&make(Tag::Int(1)),0),Some(1.0 + -4.0 / 5.0));
+        assert_eq!(protection_level(&make(Tag::Int(7)),2),Some(4.0 + -3.0 / 5.0));
+        for raw in [Tag::Int(-1),Tag::Int(5*32767+1),Tag::String("5".into())] {
+            assert_eq!(protection_level(&make(raw),0),None);
+        }
+        let pieces=[Equipped {levels:Levels {ordinary:[0;3],melee_protection:0.4},active:true,..Default::default()},
+            Equipped {levels:Levels {ordinary:[0;3],melee_protection:1.0},active:true,..Default::default()}];
+        assert_eq!(speed(None,&pieces),Some((0.2f64 + f64::from(0.05f32)) as f32));
+    }
+
     #[test]
     fn exact_source_modules_are_required() {
         for i in 0..4 {

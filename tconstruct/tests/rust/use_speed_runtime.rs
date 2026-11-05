@@ -167,7 +167,7 @@ mod game {
             let saved = stack
                 .data()?
                 .other("minecraft:custom_data")?
-                .get("upgrades")
+                .get("tic_upgrades")
                 .and_then(|d| d.get(id));
             let n = match saved {
                 None => 0,
@@ -275,6 +275,32 @@ mod game {
         assert_eq!(game.player.as_ref().unwrap().item_use_speed, Some(0.2));
     }
     #[test]
+    fn acquired_melee_protection_flows_through_real_input_projection() {
+        let mut game=setup();
+        let definition=br#"{"level_display":"tconstruct:default","modules":[{"type":"tconstruct:max_armor_attribute","allow_broken":false,"attribute":"tconstruct:player.use_item_speed","each_level":0.05,"held_tag":"tconstruct:modifiable/held","operation":"addition","tooltip_style":"percent"},{"type":"tconstruct:protection","damage_source":{"type":"mantle:and","predicates":["mantle:can_protect",{"type":"mantle:tag","tag":"tconstruct:protection/melee"},{"type":"mantle:inverted","inverted_type":"mantle:is_indirect"}]},"each_level":2.0}]}"#;
+        game.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.insert(
+            "tconstruct:tinkering/modifiers/melee_protection".into(),vec![definition.to_vec()]);
+        game.inventory[0]=Some(ItemStack::new("minecraft:bow",1));
+        let protection=|item,raw| {
+            let mut stack=ItemStack::new(item,1);
+            stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                ("traits",Tag::compound(Vec::<(&str,Tag)>::new())),
+                ("tic_upgrades",Tag::compound([("tconstruct:melee_protection",Tag::Int(raw))])),
+            ]))); stack
+        };
+        game.armor[0]=Some(protection("tconstruct:plate_helmet",2));
+        game.offhand=Some(protection("tconstruct:longbow",5));
+        tick(&mut game);
+        assert!((game.player.as_ref().unwrap().item_use_speed.unwrap()-0.25).abs()<0.00001);
+        game.offhand=None;
+        tick(&mut game);
+        assert!((game.player.as_ref().unwrap().item_use_speed.unwrap()-0.22).abs()<0.00001);
+        game.armor[0].as_mut().unwrap().damage=999;
+        tick(&mut game);
+        assert_eq!(game.player.as_ref().unwrap().item_use_speed,Some(0.2));
+    }
+
+    #[test]
     fn replacement_preserves_native_body_fields_once() {
         let mut game = setup();
         game.armor[3] = Some(ItemStack::new("minecraft:leather_boots", 1));
@@ -341,7 +367,7 @@ mod game {
                             Tag::compound([("tconstruct:unburdened", Tag::Int(2))]),
                         ),
                         (
-                            "upgrades",
+                            "tic_upgrades",
                             Tag::compound([("tconstruct:unburdened", Tag::Int(1))]),
                         ),
                     ])),
