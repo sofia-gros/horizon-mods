@@ -5354,3 +5354,64 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+[[module]]
+id = "source-smite"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smite"
+source = "source-smite.rs"
+
+[[module]]
+id = "server-source-smite"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_smite"
+source = "source-smite.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-smite-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_smite_world"
+source = "smite-world.rs"
+
+[[state]]
+id = "smite-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<(Option<u32>, String, Option<f32>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-smite-primary-context"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.melee_damage"
+require = 1
+ordinal = 0
+helper = "smite-context.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "kind", ty = "&str", value = "$arg0" },
+  { name = "living", ty = "bool", value = "$arg1" },
+  { name = "index", ty = "usize", value = "index" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, &str, bool) -> (f32, f32, bool, bool)", value = "$operation" },
+]
+
+[[injection]]
+id = "source-smite-before-cooldown-critical"
+target = "horizon_client::game::Game<'_>::melee_damage"
+kind = "WRAP_OPERATION"
+selector = "self.attack_damage"
+require = 1
+ordinal = 0
+helper = "smite-base-damage.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "target_kind", ty = "&str", value = "target_kind" },
+  { name = "living", ty = "bool", value = "living" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>) -> f32", value = "$operation" },
+]
