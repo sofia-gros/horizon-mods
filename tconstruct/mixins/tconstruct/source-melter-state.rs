@@ -547,19 +547,27 @@ pub(super) fn select_casting_candidate<T>(candidates: Vec<(usize, T)>, mut check
     None
 }
 
+/// Check before serialization: the NBT codec cannot represent retained wire,
+/// including stale backing whose public wire_patch() is already None.
+pub(super) fn casting_item_save_safe(item: &ItemStack) -> bool {
+    if item.count == 0 || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
+    let Some(decoded) = item_from_nbt(&item_to_nbt(item)) else { return false; };
+    decoded.count == item.count && decoded.damage == item.damage && decoded.same_item_same_components(item)
+}
+
 /// Patch just one slot while keeping unknown machine fields byte-for-byte.
 pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemStack>, after: &Option<ItemStack>) -> Option<Tag> {
     if !matches!(key, "input" | "output") { return None; }
     match before {
         None if saved.get(key).is_none() => {},
-        Some(item) if item.wire_patch().is_none() && saved.get(key) == Some(&item_to_nbt(item)) => {},
+        Some(item) if casting_item_save_safe(item) && saved.get(key) == Some(&item_to_nbt(item)) => {},
         _ => return None,
     }
     let Tag::Compound(mut fields) = saved.clone() else { return None; };
     match after {
         None => { fields.remove(&key.into()); },
         Some(item) => {
-            if item.count == 0 || item.wire_patch().is_some() { return None; }
+            if !casting_item_save_safe(item) { return None; }
             let raw = item_to_nbt(item);
             let decoded = item_from_nbt(&raw)?;
             if decoded.count != item.count || !decoded.same_item_same_components(item) { return None; }
@@ -569,6 +577,60 @@ pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemSta
     Some(Tag::Compound(fields))
 }
 impl Casting {
+    pub(super) fn items_save_safe(&self) -> bool {
+        [&self.input, &self.output, &self.result].into_iter().flatten().all(casting_item_save_safe)
+    }
+    /// Patch native casting fields without discarding extensions. An opaque
+    /// item may remain byte-for-byte in its slot, but must not be transformed
+    /// or consumed through a decoder that cannot represent it losslessly.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        if !self.items_save_safe() { return None; }
+        let before = Self::from_nbt(raw)?;
+        if let Some(Tag::String(id)) = raw.get("recipe") { id.to_string().ok()?; }
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        // These source/Forge aliases are not native extension metadata. Their
+        // relationship with the owned native fields is not yet interpreted.
+        for alias in ["Items", "Tank", "Fluid", "Recipe", "coolingTime", "lastRedstone"] {
+            if fields.contains_key(&alias.into()) { return None; }
+        }
+        let Tag::Compound(mut tank) = raw.get("tank")?.clone() else { return None; };
+        if let Some(Tag::String(id)) = tank.get(&"fluid".into()) { id.to_string().ok()?; }
+        for alias in ["FluidName", "Amount", "Tag"] {
+            if tank.contains_key(&alias.into()) { return None; }
+        }
+        // Capacity may shrink to zero on completion; validate old data using
+        // the old capacity, then patch only the three native tank fields.
+        let Tag::Compound(next_tank) = self.tank.to_nbt() else { return None; };
+        for key in ["fluid", "fluid_tag", "amount"] {
+            tank.remove(&key.into());
+            if let Some(value) = next_tank.get(&key.into()) { tank.insert(key.into(), value.clone()); }
+        }
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for (key, old_item, item) in [("input", &before.input, &self.input), ("output", &before.output, &self.output), ("result", &before.result, &self.result)] {
+            let unchanged = match (old_item, item) {
+                (Some(old), Some(new)) => old.count == new.count && old.damage == new.damage && old.same_item_same_components(new),
+                (None, None) => true,
+                _ => false,
+            };
+            if unchanged { continue; }
+            if let Some(old) = old_item {
+                if raw.get(key) != Some(&item_to_nbt(old)) { return None; }
+            }
+            if let Some(item) = item {
+                let encoded = item_to_nbt(item);
+                let decoded = item_from_nbt(&encoded)?;
+                if item.wire_patch().is_some() || decoded.count != item.count || decoded.damage != item.damage || !decoded.same_item_same_components(item) { return None; }
+            }
+            fields.remove(&key.into());
+            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+        }
+        for key in ["recipe", "capacity", "timer", "cooling", "consume", "switch", "redstone"] {
+            fields.remove(&key.into());
+            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+        }
+        fields.insert("tank".into(), Tag::Compound(tank));
+        Some(Tag::Compound(fields))
+    }
     /// The existing serializer replaces the compound. Do not introduce a new
     /// interaction when that rewrite would discard or normalize saved data.
     pub(super) fn roundtrips(&self, raw: &Tag) -> bool { self.to_nbt() == *raw }

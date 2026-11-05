@@ -328,3 +328,74 @@ untagged empty/partial fills, unsafe refusals, stale tank proposals, full capaci
 and a real Casting state reservation/reload/completion roundtrip. World recipe
 wiring is checked statically. These cases are unrun; actual datapack selection,
 host gameplay, authoritative saves and LAN remain for combined validation.
+### Held casting containers: native extension preservation (#379)
+
+Held-container filling and draining on Seared/Scorched Casting Tables and
+Basins now use the preserving casting codec instead of requiring an exact
+canonical serialization. Native machine/tank extension fields and unchanged
+opaque saved item fields survive supported transfers. Source/Forge aliases,
+malformed owned fields, lossy strings and wire-backed live items still refuse
+the exchange. Lantern items retain their existing portable-data safety gate.
+
+The exchange is staged before checking the original saved state, live casting
+slots, block state, loaded chunk, held stack and creative mode again. The
+casting save must succeed before replacing the held container or giving its
+remainder. Cooling and ordinary item-slot behavior remain unchanged.
+
+The bounded interaction fixture adds all four blocks, filling/draining,
+single/stacked containers, creative behavior, nine changed-state cases and
+invalid metadata/save cases. World, recipe lookup and portable conversion are
+mocked; the interaction, casting codec, item codec and metadata store are the
+production implementations. These cases have not been run in this batch.
+Full host/world, real portable conversion, save/reload and LAN validation are
+still deferred to the combined pass.
+
+### Portable Lantern native extensions (#379)
+
+The shared Seared/Scorched Lantern item-transfer path now patches its three
+native tank fields rather than discarding the tank compound. Filling, partial
+draining and full draining preserve tank extensions, surrounding custom data
+and other item components. An empty tank containing extensions remains saved
+and can be refilled; an ordinary empty tank still removes its payload. The
+50 mB per-item capacity and one-item-per-transfer stack handling are unchanged.
+
+Casting and Melter held-container gates accept these preserving Lanterns.
+Malformed native data, lossy fluid IDs, legacy tank aliases and both current
+and stale retained wire bytes are rejected before transfer. Other portable
+tank types retain their previous no-extension decoding restriction. Native
+state tests were added for both Lanterns, potion identity, fill/drain/refill,
+stack splitting, alias/wire refusal and the non-mutating Melter plan. They
+were not run in this batch. Host/world, save/reload and LAN validation remain
+for the combined pass; placed Lantern transfers are separate PRs.
+
+### Copper Can identity and retained-wire guard (#379)
+
+Copper Can's shared decoder now requires an exact UTF-16 fluid identifier and
+refuses current or stale retained wire backing. This prevents permissive
+registry callbacks or direct setters from replacing a lossy ID or rewriting
+an opaque item. Transfers, Melter plans, displays, container acceptance and
+crafting-remainder predicates all use this boundary.
+
+Valid cans retain their 90 mB quantity, exact fluid tags, native extension
+data, other item components and one-item stack splitting. Three production
+unit cases cover lossy IDs across entrypoints, both wire states for filling
+and draining, and valid named/extended stacks with distinct potion layers.
+They were not run. Real inventory/menu interaction, save/reload and LAN remain
+for the final combined pass. No new fluid types or external capabilities are
+introduced by this change.
+
+### Casting item fallback after a fluid probe
+
+Datapack preparation is followed by the same exact snapshot guard whether a
+held-fluid conversion succeeds or fails. A changed block/chunk, raw casting
+state, live slot, held count/damage/components/wire data, Creative state or
+local/LAN mode consumes the interaction without applying a stale item fallback.
+The guard runs before conversion, before a successful fluid save, and before
+falling through to insertion, cast/result pickup or molding. Unchanged ordinary
+item behavior and preserving writes remain intact.
+
+The extracted production interaction fixture adds all four Table/Basin variants
+and five fallback modes, with thirteen preparation changes and unchanged controls.
+State/store/item codecs are real; recipes, portable conversion, acting hand and
+world callbacks are fixtures. Cases are added but unrun. Full host/world/LAN and
+post-save crafted-item callback behavior remain outside this change.
