@@ -1,0 +1,29 @@
+{
+  "source": "SlimeKnights/TinkersConstruct",
+  "commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2022 SlimeKnights",
+  "files": [
+    "src/main/java/slimeknights/tconstruct/fluids/fluids/SlimeFluidType.java",
+    "src/main/java/slimeknights/tconstruct/common/registration/FluidDeferredRegisterExtension.java",
+    "src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java",
+    "src/main/java/slimeknights/tconstruct/common/TinkerTags.java",
+    "src/generated/resources/data/forge/tags/entity_types/slimes.json"
+  ],
+  "drowning_immune_tag": "forge:slimes",
+  "fluids": [
+    "earth_slime",
+    "ender_slime",
+    "ichor",
+    "magma",
+    "sky_slime"
+  ],
+  "entity_types": [
+    "minecraft:slime",
+    "minecraft:magma_cube",
+    "tconstruct:sky_slime",
+    "tconstruct:ender_slime",
+    "tconstruct:terracube"
+  ],
+  "required_host": "https://github.com/sofia-gros/horizon/pull/60"
+}
