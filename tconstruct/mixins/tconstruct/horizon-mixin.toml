@@ -5624,3 +5624,54 @@ target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
 kind = "RETURN"
 helper = "fire-duration-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+[[module]]
+id = "source-rugged"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_rugged"
+source = "source-rugged.rs"
+
+[[module]]
+id = "source-rugged-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_rugged_world"
+source = "rugged-world.rs"
+
+[[state]]
+id = "rugged-blocked-types"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "Vec<String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[injection]]
+id = "source-rugged-hurt-cancellation"
+target = "horizon_client_lib::health::<Environment<'_> as HurtWorld>::hurt_start"
+kind = "RETURN"
+helper = "rugged-health.rs"
+bindings = [{ name = "value", ty = "std::io::Result<bool>", value = "$value" }, { name = "environment", ty = "&mut crate::health::Environment<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-rugged-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "rugged-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-rugged-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "rugged-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-rugged-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "rugged-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

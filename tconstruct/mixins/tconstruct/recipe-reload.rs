@@ -81,7 +81,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     }
     let damage_types = damage_tags.map(|raw| {
         // One failed tag disables only its associated modifier, not all others.
-        ["tconstruct:protection/fire", "minecraft:is_fire", "tconstruct:protection/blast", "minecraft:is_explosion", "tconstruct:protection/magic", "tconstruct:protection/projectile", "tconstruct:protection/melee"]
+        ["tconstruct:protection/fire", "minecraft:is_fire", "tconstruct:protection/blast", "minecraft:is_explosion", "tconstruct:protection/magic", "tconstruct:protection/projectile", "tconstruct:protection/melee", "tconstruct:rugged/terrain", "tconstruct:rugged/attacks"]
             .into_iter().filter_map(|tag| crate::game::tconstruct_source_damage_tags::project(tag,&raw,&registry)
                 .ok().map(|values| (tag.to_owned(),values))).collect::<std::collections::HashMap<_,_>>()
     });
@@ -295,6 +295,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     crate::game::tconstruct_projectile_protection_world::refresh(game);
     crate::game::tconstruct_fire_duration_world::refresh(game);
     crate::game::tconstruct_protection_damage_world::refresh(game);
+    crate::game::tconstruct_rugged_world::refresh(game);
 }
 
 // The active level is captured below the reload hook. Parked levels retain
