@@ -13,7 +13,12 @@
     "still": "tconstruct:fluid/molten/alloy/queens_slime/still",
     "flowing": "tconstruct:fluid/molten/alloy/queens_slime/flowing",
     "tint": 16777215,
-    "emission": 9
+    "emission": 9,
+    "fog": {
+      "start": 0.25,
+      "end": 2,
+      "color": 4688435
+    }
   },
   "interaction": {
     "travel": {

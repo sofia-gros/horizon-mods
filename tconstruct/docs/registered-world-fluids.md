@@ -19,7 +19,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #34](https://github.com/sofia-gros/horizon/pull/34).** Keep this
+[Horizon fork PR #36](https://github.com/sofia-gros/horizon/pull/36).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -67,8 +67,9 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   burn for 8/7/5/5/12 seconds, and emit light 6/4/3/2/3 respectively.
 - Emerald, Quartz, Amethyst and Diamond deal 6/5/5/7 damage with 10 seconds
   burning and light 9/6/11/13. Each uses its exact `molten/ore/<gem>` still/flow
-  sprites and animation metadata with white surface tint. Source camera fog
-  differences are not represented by the current host schema.
+  sprites and animation metadata with white surface tint. Source spherical
+  camera fog ranges are now declared below; their sprite-derived colors remain
+  deferred.
 - Blazing Blood deals 5 damage and burns for 15 seconds; Fiery Liquid deals 6
   and burns for 20 seconds. Both emit light 15. They retain their source
   `molten/blaze` and `slime/fiery` sprite pairs and animation metadata.
@@ -256,16 +257,17 @@ Mantle `InvertedFluid` and its type shows unchanged liquid surface/contact
 geometry: only simulation, current direction and the flowing sprite change.
 The host therefore does not invent ceiling-anchored geometry. The new upward
 simulation and current/render paths require Horizon fork PRs #27 and #28 in
-addition to the previous stack. Ichor's slime-mob drowning exemption, sound and
-fog differences remain outside the player-focused host schema.
+addition to the previous stack. Ichor's slime-mob drowning exemption,
+source-specific sounds, sprite-derived fog color and camera overlay remain
+outside this player-focused slice.
 
 Soulsteel's existing machine/bucket paths remain unchanged; declaring its world
 liquid does not introduce a new survival acquisition recipe.
 Fiery Liquid also retains its existing compatibility/acquisition conditions;
 this declaration does not add external materials, recipes or mobs.
 Molten Glass retains the exact `molten/glass` still/flow sprites and animation
-metadata with white surface tint. Its source camera fog range remains outside
-the current schema. The required host extension accepts slope distances through
+metadata with white surface tint. Its source spherical camera fog range is now
+declared as 0.25 to 8 blocks. The required host extension accepts slope distances through
 eight and bounds repeated search work with a per-spread cache, discarded before
 the next tick. Previous host drafts capped this distance at four and reject the
 new Glass declaration.
@@ -277,8 +279,10 @@ They are provisional host integration parameters, not source-parity claims.
 
 The seventy source placeable-fluid declarations are now present in this stack.
 Potion and Powdered Snow are source unplaceable fluids and are not invented as
-world liquids here. Remaining: full source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, camera fog, mixing and
-solidification, dispenser handling, final build and actual
+world liquids here. Remaining: full source-specific contact effects, item-specific
+curatives and mixed-source merge parity, mob/item/projectile interaction,
+sprite-derived fog colors and camera overlays, mixing and solidification,
+final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
 the final test batch; full tests, CI checks and merges are intentionally deferred.
@@ -289,3 +293,36 @@ silent. The ordinary hurt sound stays separate. Actual audibility and recipients
 remain unverified. This audio slice received brief static review and formatting
 only. Its packaging regression is deferred; no tests, builds, CI inspection,
 version checks or merges were performed.
+
+## Camera fog ranges and explicit tints
+
+All seventy families now declare the source spherical fog range. Earth Slime,
+Sky Slime, Ender Slime, Venom and Honey use -8 to 24 blocks. Liquid Soul,
+Molten Diamond, Emerald and Amethyst use 0.25 to 4. Molten Glass uses 0.25 to 8.
+The other sixty families use the named-fluid default, 0.25 to 2.
+
+The twelve non-white surface tints also supply their source fog multiplier.
+Queen's Slime instead explicitly uses `0x478A33`, while its surface stays white.
+These thirteen colors multiply the host's existing fog RGB, as in Mantle's
+`ClientTextureFluidType`; they do not replace it. `FluidTexture.deserialize`
+uses a non-white fluid tint before automatic still-sprite averaging. The other
+fifty-seven families intentionally omit the color field pending that averaging
+path; no color is guessed from temperature, native lava, or the white tint.
+Source references and range groups are recorded in
+`content/reference/world-fluid-fog-source.json`.
+
+The host samples the rendered camera position, not the player's body, using
+only loaded cells. Surface equality is outside; a matching fluid cell above
+fills the column. Upward liquids use their existing unmirrored geometry.
+The policy only lowers existing fog limits, remains active when ordinary
+distance fog is disabled, and leaves native mod fog callbacks last. Native
+water/lava identity and water vision remain unchanged. Exact source event order,
+third-person transitions, graphics backends and shader-pack behavior still need
+the final integration pass. Camera overlay textures are not included here.
+
+The prerequisite host stack also includes registered bucket dispenser placement
+and source pickup in [Horizon #35](https://github.com/sofia-gros/horizon/pull/35).
+The fog slice changes no fluid identities, physics, contact effects, assets,
+recipes, acquisition rules or compatibility pin. Its new resource/packaging
+regressions are written but not run; only a brief static review is performed.
+No tests, builds, CI/version checks or merges were performed.

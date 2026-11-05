@@ -13,7 +13,12 @@
     "still": "tconstruct:fluid/food/stew/still",
     "flowing": "tconstruct:fluid/food/stew/flowing",
     "tint": 9980460,
-    "emission": 0
+    "emission": 0,
+    "fog": {
+      "start": 0.25,
+      "end": 2,
+      "color": 9980460
+    }
   },
   "interaction": {
     "travel": {

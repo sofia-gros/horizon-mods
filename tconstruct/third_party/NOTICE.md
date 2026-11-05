@@ -169,3 +169,15 @@ from Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, under
 Native advancements adapt only recipe IDs, the host recipe criterion key and
 telemetry flag. SHA-256 hashes are in `tests/fixtures/scorched_recipe_unlocks/sha256.json`.
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+
+## Registered world-fluid fog declarations
+
+`content/data/tconstruct/registered_fluid/*.json` camera fog ranges and explicit
+colors follow Tinkers' Construct `FluidTextureProvider` at
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2` and Mantle `FluidTexture` /
+`ClientTextureFluidType` at `17c287ad52f7b10154e07fa7570dc7bccd74ca2b`.
+Both are Copyright (c) 2022 SlimeKnights, MIT; their complete licenses are
+preserved in `tconstruct/LICENSE` and `mantle/LICENSE` beside this notice.
+Changes: host declaration schema, explicit source tint multipliers, and deferred
+automatic sprite averaging/camera overlays. No texture assets were added or
+modified by this slice. References: `content/reference/world-fluid-fog-source.json`.

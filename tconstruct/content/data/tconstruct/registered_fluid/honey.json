@@ -13,7 +13,11 @@
     "still": "tconstruct:fluid/food/honey/still",
     "flowing": "tconstruct:fluid/food/honey/flowing",
     "tint": 16777215,
-    "emission": 0
+    "emission": 0,
+    "fog": {
+      "start": -8,
+      "end": 24
+    }
   },
   "interaction": {
     "travel": {

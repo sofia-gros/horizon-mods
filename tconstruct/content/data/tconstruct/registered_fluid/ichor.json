@@ -14,7 +14,11 @@
     "still": "tconstruct:fluid/slime/ichor/still",
     "flowing": "tconstruct:fluid/slime/ichor/flowing",
     "tint": 16777215,
-    "emission": 0
+    "emission": 0,
+    "fog": {
+      "start": 0.25,
+      "end": 2
+    }
   },
   "interaction": {
     "travel": {

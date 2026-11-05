@@ -1,0 +1,46 @@
+{
+  "tconstruct_revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "mantle_revision": "17c287ad52f7b10154e07fa7570dc7bccd74ca2b",
+  "sources": [
+    "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/data/FluidTextureProvider.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/FluidTexture.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/ClientTextureFluidType.java"
+  ],
+  "shape": "sphere",
+  "ranges": {
+    "water_fog": {
+      "families": [
+        "earth_slime",
+        "ender_slime",
+        "honey",
+        "sky_slime",
+        "venom"
+      ],
+      "start": -8,
+      "end": 24
+    },
+    "molten_fog": {
+      "families": [
+        "liquid_soul",
+        "molten_amethyst",
+        "molten_diamond",
+        "molten_emerald"
+      ],
+      "start": 0.25,
+      "end": 4
+    },
+    "glass": {
+      "families": [
+        "molten_glass"
+      ],
+      "start": 0.25,
+      "end": 8
+    },
+    "default_named": {
+      "start": 0.25,
+      "end": 2
+    }
+  },
+  "color_rule": "Explicit Queen's Slime 0x478A33 overrides the surface tint. Non-white source tints supply fog color. All colors multiply the existing host fog color.",
+  "deferred": "The other 57 untinted families need runtime still-sprite fog-color averaging. Camera overlays and live graphics parity are not implemented in this slice."
+}
