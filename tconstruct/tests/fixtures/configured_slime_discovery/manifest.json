@@ -1,0 +1,10 @@
+{
+  "lead": {
+    "source": "tools/common/slime/lead.json",
+    "sha256": "5494fc9dffa5c74a314c1ba49514f21089e07cfffbf4d2e246547984a559b6a0"
+  },
+  "sticky_piston": {
+    "source": "redstone/common/slime/sticky_piston.json",
+    "sha256": "5da667f5b294305fb75d713315eff1ee04783ac88d7dd4041e3790b35bd6b6f9"
+  }
+}

@@ -53,17 +53,27 @@ fn host_overlay_keeps_pack_priority_and_rebuilds_without_disabled_recipe() {
     std::fs::create_dir_all(root.join("config")).unwrap();
     let id = "recipe/tconstruct:common/slime/lead";
     let replacement = br#"{"type":"minecraft:crafting_shapeless","ingredients":["minecraft:diamond"],"result":{"id":"minecraft:lead","count":1}}"#.to_vec();
-    let pack = vec![(id.to_owned(), vec![replacement.clone()])];
+    let advancement_id = "advancement/tconstruct:recipes/tools/common/slime/lead";
+    let advancement = br#"{"criteria":{"custom":{"trigger":"minecraft:impossible"}}}"#.to_vec();
+    let pack = vec![(id.to_owned(), vec![replacement.clone()]),
+                    (advancement_id.to_owned(), vec![advancement.clone()])];
     std::fs::write(root.join("pack-files.json"), serde_json::to_vec(&pack).unwrap()).unwrap();
     for enabled in [true, false, true, false] {
         std::fs::write(root.join("config/tconstruct-common.toml"), format!("[recipes]\nglassRecipeFix = {enabled}")).unwrap();
         let mut files = Vec::new();
         slime::contribute(&root, &mut files);
-        assert_eq!(files.len(), if enabled { 2 } else { 0 });
+        assert_eq!(files.len(), if enabled { 4 } else { 0 });
         let overlay = host::overlay_files(&root, &root, false, &[], files);
         let lead = &overlay.iter().find(|(path, _)| path == id).unwrap().1;
         assert_eq!(lead.last(), Some(&replacement));
         assert_eq!(lead.len(), if enabled { 2 } else { 1 });
+        let discovery = &overlay.iter().find(|(path, _)| path == advancement_id).unwrap().1;
+        assert_eq!(discovery.last(), Some(&advancement));
+        assert_eq!(discovery.len(), if enabled { 2 } else { 1 });
+        for path in ["recipe/tconstruct:common/slime/sticky_piston",
+                     "advancement/tconstruct:recipes/redstone/common/slime/sticky_piston"] {
+            assert_eq!(overlay.iter().any(|(candidate, _)| candidate == path), enabled);
+        }
         assert_eq!(overlay.iter().any(|(path, _)| path.ends_with("/sticky_piston")), enabled);
     }
     std::fs::remove_dir_all(root).unwrap();

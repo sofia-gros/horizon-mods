@@ -16,14 +16,38 @@ conditions these recipes on `slime_recipe_fix`, which its implementation maps
 to `[recipes] glassRecipeFix`, **not** `slimeRecipeFix`. This port deliberately
 keeps that source mapping. Missing settings use the source default, true.
 False, invalid supported values, malformed TOML and config read failures do
-not contribute the recipes.
+not contribute the recipes or their discovery advancements.
 
 The native per-world data-file hook reads the existing config parser on each
 world load and `/reload`. Remote clients do not apply their own settings.
 Files are not written to resources; world datapacks retain higher priority,
 and an existing same-ID native contribution is preserved. Dedicated servers
 use their working directory for config, single player the game root above
-`saves`. Recipe unlock advancements are not added by this change.
+`saves`.
+
+## Recipe discovery
+
+The configured contributor now adds both source recipe-book advancements:
+`recipes/tools/common/slime/lead` and
+`recipes/redstone/common/slime/sticky_piston`. Each uses the source
+`forge:slimeballs` inventory predicate OR its own recipe-unlocked event.
+The legacy tag syntax becomes native `items: "#forge:slimeballs"`; source
+`recipe` becomes the host's `recipes` string. Criteria, OR requirements and
+reward IDs are unchanged, with no display or achievement toast.
+
+Advancements are supplied only when this contributor supplies the matching
+recipe. An earlier same-ID recipe prevents attaching our advancement to a
+replacement; an earlier same-ID advancement is independently preserved.
+World datapacks retain final precedence. Rebuilding with the config disabled
+removes these contributions; it does not revoke previously earned progress.
+No unconditional advancement files are added to the content package.
+
+Current-world tag replacement and cache invalidation additionally require
+`feat/slimeball-discovery-tags-379`, the companion extension of the bridge
+stacked on PR #790. This recipe branch deliberately does not duplicate that
+bridge. Without the companion, the host's existing tag handling applies.
+The source fixtures and SHA-256 manifest live under
+`tests/fixtures/configured_slime_discovery/`.
 
 ## Validation
 
@@ -48,3 +72,12 @@ remain. Host integration is checked separately by full Mixins/client CI.
 The Mixins validation workflow explicitly runs both Rust fixtures. The host
 overlay runner uses the checked-in fixture lockfile and runs after the pinned
 Horizon checkout is fetched; its dependency set is fetched by the first fixture.
+
+## Discovery review status
+
+This addition updates the production-contributor Rust fixture, overlay
+precedence/rebuild fixture and source translation regressions for paired
+recipe/advancement contributions. Tests were added or updated but not run.
+Only brief static review was performed. No builds, CI inspection, version
+checks or merges were performed. Gameplay, recipe-book UI, actual reload,
+advancement events and LAN remain unverified.
