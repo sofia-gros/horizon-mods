@@ -280,7 +280,8 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
 /// trait removal or changed-level validation is silently skipped.
 pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
     identities: &[String], repair: u32, reject_removed_traits: bool, reason: &mut Option<String>) -> Option<ItemStack> {
-    let old_traits = if reject_removed_traits { Some(super::tconstruct_source_material_traits::levels(world, tool)?.levels) } else { None };
+    let old_traits = super::tconstruct_source_material_traits::levels(world, tool).map(|traits| traits.levels);
+    if reject_removed_traits && old_traits.is_none() { return None; }
     let verified = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     };
@@ -296,12 +297,20 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
     // These upstream material traits have no removal hook; their supported
     // stat and repair effects are rebuilt by the station path above. Other
     // changed traits remain closed until their removal hooks are handled.
-    if old_traits.as_ref().is_some_and(|old| old.iter().chain(traits.iter()).any(|(id, _)| {
+    if reject_removed_traits && old_traits.as_ref().is_some_and(|old| old.iter().chain(traits.iter()).any(|(id, _)| {
         old.get(id).copied().unwrap_or(0) != traits.get(id).copied().unwrap_or(0)
             && !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")
+            && !(id == "tconstruct:fortified" && super::tconstruct_source_defense_slots::supported_fortified(world))
     })) { return None; }
-    if matches!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:knockback_resistance")), Some(Tag::Int(level)) if *level > 0)
-        && !super::tconstruct_source_upgrade_rules::valid_defense_slots(&output, base_slots("defense")?) { return None; }
+    let fortified_changed = old_traits.as_ref().and_then(|traits| traits.get("tconstruct:fortified")).copied().unwrap_or(0)
+        != traits.get("tconstruct:fortified").copied().unwrap_or(0);
+    if fortified_changed && !super::tconstruct_source_defense_slots::supported_fortified(world) { return None; }
+    if (fortified_changed || matches!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:knockback_resistance")), Some(Tag::Int(level)) if *level > 0))
+        && !super::tconstruct_source_upgrade_rules::valid_defense_slots(&output,
+            super::tconstruct_source_defense_slots::capacity(world, definition, &output, &traits)?) {
+        *reason = Some("Cannot remove material: the remaining defense slots do not cover installed upgrades.".into());
+        return None;
+    }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
@@ -555,10 +564,11 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
-    let defense_slots = parsed.get("modules")?.as_array()?.iter()
-        .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
-        .filter_map(|module| module.pointer("/slots/defense").and_then(serde_json::Value::as_i64)).sum::<i64>();
-    let plan = super::tconstruct_source_upgrade_rules::plan_with_defense(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, i32::try_from(defense_slots).ok()?, &traits)?;
+    // Missing or unsupported Fortified data must not become spendable slots.
+    // Other ordinary upgrade routes retain their previous behavior.
+    let defense_slots = super::tconstruct_source_material_traits::levels(world, tool)
+        .and_then(|resolved| super::tconstruct_source_defense_slots::capacity(world, definition, tool, &resolved.levels));
+    let plan = super::tconstruct_source_upgrade_rules::plan_with_defense(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, defense_slots.unwrap_or(0), &traits)?;
     if plan.id == "tconstruct:knockback_resistance" && !super::tconstruct_source_knockback_defense::supported_definition(world) {
         *reason = Some("Knockback Resistance is unavailable: the current modifier definition is unsupported.".into());
         return None;

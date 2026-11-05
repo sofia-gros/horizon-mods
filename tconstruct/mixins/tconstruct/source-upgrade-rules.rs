@@ -135,7 +135,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
-// This first ordinary defense-upgrade route uses base definition slots only.
+// Defense capacity is supplied by the world adapter, including validated traits.
 // Unknown saved modifiers and other defense upgrades remain unsupported: never
 // silently treat their occupied slots as free when admitting a new upgrade.
 fn valid_knockback_amount(tool: &ItemStack) -> bool {
@@ -146,22 +146,26 @@ fn valid_knockback_amount(tool: &ItemStack) -> bool {
 }
 
 pub(super) fn valid_defense_slots(tool: &ItemStack, defense: i32) -> bool {
-    let Some(saved) = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return defense >= 0; };
-    let Tag::Compound(entries) = saved else { return false; };
+    free_defense_slots(tool, defense).is_some()
+}
+
+pub(super) fn free_defense_slots(tool: &ItemStack, defense: i32) -> Option<i32> {
+    let Some(saved) = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return (defense >= 0).then_some(defense); };
+    let Tag::Compound(entries) = saved else { return None; };
     let mut used = 0;
     for (id, value) in entries {
         let id = id.to_string_lossy();
-        let Tag::Int(amount) = value else { return false; };
-        if *amount < 0 { return false; }
+        let Tag::Int(amount) = value else { return None; };
+        if *amount < 0 { return None; }
         if *amount == 0 { continue; }
         if id == "tconstruct:knockback_resistance" {
-            if *amount != 1 || !supported(&id, &tool.item) { return false; }
+            if *amount != 1 || !supported(&id, &tool.item) { return None; }
             used = 1;
         } else if !UPGRADES.iter().any(|(name, _)| *name == id)
             && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id)
-            && id != "tconstruct:overslime" { return false; }
+            && id != "tconstruct:overslime" { return None; }
     }
-    used <= defense
+    defense.checked_sub(used).filter(|free| *free >= 0)
 }
 
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {

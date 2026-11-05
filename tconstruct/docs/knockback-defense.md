@@ -15,7 +15,8 @@ its correct slot and unbroken. No second live attribute bonus is added.
 
 The new upgrade participates in item/workstation text and extraction. Removing
 it returns the normal modifier crystal and rebuilds the original material
-resistance. Base definition defense capacity is checked on acquisition and
+resistance. Current definition defense capacity plus supported Fortified material
+traits is checked on acquisition and
 when rebuilding a material swap that retains this purchased upgrade. Saved
 Knockback Resistance levels other than zero or one cannot be upgraded or
 extracted as though they were valid normal progress.
@@ -24,8 +25,8 @@ extracted as though they were valid normal progress.
 
 - Only the eight Travelers and Plate worn armor items are admitted. Shields,
   staffs and Slime armor are not enabled by this slice.
-- Only base definition defense slots are used. Fortified's additional slots
-  and general defense-modifier support remain separate work.
+- Fortified adds one defense slot per resolved material-trait level. General
+  defense-modifier support remains separate work; see `fortified-defense.md`.
 - Unknown saved modifiers and other purchased defense modifiers refuse this
   acquisition route rather than being counted as zero occupied slots. Material
   traits are separate and do not consume defense slots.

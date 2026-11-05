@@ -80,4 +80,12 @@ mod tests {
         assert_eq!(decode(next[0], &next[1..next.len() - 1]), None);
     }
 
+    #[test]
+    fn station_defense_slots_extend_the_frame_without_reordering_fields() {
+        let info = ["{\"tconstruct:fortified\":2}", " ", " ", "[4,5]"].map(str::to_owned);
+        let encoded = encode(&info).unwrap();
+        assert_eq!(decode(encoded[0], &encoded[1..]), Some(info.to_vec()));
+        assert_eq!(decode(encoded[0], &encoded[1..encoded.len()-1]), None);
+    }
+
 }

@@ -59,6 +59,13 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
             if let (Some(Tag::Int(amount)), Some(Tag::Int(capacity))) = (data.get("tic_overslime"), data.get("tic_overslime_capacity")) {
                 if *capacity > 0 && matches!(data.get("tic_overslime_active"), Some(Tag::Byte(v)) if *v != 0) { top.push((format!("Overslime: {amount}/{capacity}"), None)); }
             }
+            let defense = if game.remote.is_some() {
+                game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos))
+                    .and_then(|frame| frame.get(3)).and_then(|json| serde_json::from_str::<[i32; 2]>(json).ok())
+            } else { super::tconstruct_source_defense_slots::display(&game.world, &tool) };
+            if let Some([free, total]) = defense.filter(|[free, total]| *total > 0 && *free >= 0 && free <= total) {
+                top.push((format!("Defense slots: {free}/{total}"), Some("Free / total defense slots, including Fortified material traits.".into())));
+            }
             let traits = if game.remote.is_some() {
                 game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos))
                     .and_then(|frame| frame.first()).and_then(|json| serde_json::from_str::<std::collections::BTreeMap<String, i32>>(json).ok())

@@ -67,13 +67,20 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
             }
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
-            let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
+            let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
+            let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
+                .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
+            let defense = tool.and_then(|tool| crate::tconstruct_source_defense_slots::display(world, tool))
+                .and_then(|slots| serde_json::to_string(&slots).ok()).unwrap_or_else(|| " ".to_owned());
+            // Keep existing field positions for traits and both error messages.
+            let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits,
+                build_reason.clone().unwrap_or_else(|| " ".into()),
+                operation_reason.clone().unwrap_or_else(|| " ".into()), defense]).filter(|frame| frame.len() < 1767);
+            let info_sent = trait_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
+            let info_changed = world.chunks.__horizon_mixins_tconstruct_builder_info_sent().get(&key) != Some(&info_sent);
+            let changed = info_changed || world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation, old_build_reason, old_operation_reason)| *old_state != old_menu_state || old_build != &build || old_operation != &operation || old_build_reason != &build_reason || old_operation_reason != &operation_reason);
             if changed {
-                let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
-                let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
-                    .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
-                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits, build_reason.clone().unwrap_or_else(|| " ".into()), operation_reason.clone().unwrap_or_else(|| " ".into())]).filter(|frame| frame.len() < 1767);
                 let build_net = hub.stack(&build);
                 let operation_net = hub.stack(&operation);
                 let guest = &mut hub.guests[i];
@@ -91,6 +98,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 } else {
                     guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -2 }));
                 }
+                world.chunks.__horizon_mixins_tconstruct_builder_info_sent_mut().insert(key, info_sent);
                 world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation, build_reason, operation_reason));
             }
             continue;
