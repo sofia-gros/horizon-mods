@@ -39,7 +39,31 @@ fn actual_faucet_reservation_refreshes_melter_signal() {
     g.world.tags.insert((target,"tconstruct:fuel_tank".into()),Tank::new(4000).to_nbt());
     assert_eq!(super::tconstruct_source_faucet_tank::activate(&mut g,faucet,source,target,Faucet::new()),Some(true));
     let m = super::tconstruct_source_melter_state::Melter::from_nbt(&store::read(&g.world,source,"tconstruct:melter").unwrap()).unwrap();
-    assert_eq!((m.tank.amount,m.comparator(),g.signals),(90,1,1));
+    assert_eq!((m.tank.amount,m.comparator(),g.signals),(90,1,2));
+}
+#[test]
+fn tank_and_gauge_commits_notify_only_changed_levels() {
+    for (key,capacity) in [("tconstruct:fuel_tank",4000),("tconstruct:ingot_tank",4320)] {
+        let (mut g, _, pos, _) = super::fixture();
+        let mut tank=Tank::new(capacity);
+        g.world.tags.insert((pos,key.into()),tank.to_nbt());
+        assert!(tank.insert("minecraft:lava",capacity));
+        assert!(write_machine_updates(&mut g,&[(pos,key,tank.to_nbt())]));
+        assert_eq!(g.signals,1);
+        assert!(tank.take(1).is_some());
+        assert!(write_machine_updates(&mut g,&[(pos,key,tank.to_nbt())]));
+        assert_eq!(g.signals,2); // full fifteen becomes fourteen
+        assert!(tank.take(1).is_some());
+        assert!(write_machine_updates(&mut g,&[(pos,key,tank.to_nbt())]));
+        assert_eq!(g.signals,2);
+        let raw=g.world.tags.clone();g.world.fail=true;
+        assert!(tank.take(capacity-2).is_some());
+        assert!(!write_machine_updates(&mut g,&[(pos,key,tank.to_nbt())]));
+        assert_eq!(g.signals,2);assert_eq!(g.world.tags,raw);
+        g.world.fail=false;
+        assert!(write_machine_updates(&mut g,&[(pos,key,tank.to_nbt())]));
+        assert_eq!(g.signals,3);
+    }
 }
 #[test]
 fn melter_signal_published_only_after_successful_commit() {

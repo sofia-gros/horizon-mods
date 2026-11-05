@@ -40,5 +40,5 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
         let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, state.to_nbt());
         return;
     }
-    let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, tank.to_nbt());
+    let _ = crate::game::tconstruct_source_machine_runtime::write_machine_updates(game, &[(key, kind, tank.to_nbt())]);
 }

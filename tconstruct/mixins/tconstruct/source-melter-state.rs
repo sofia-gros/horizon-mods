@@ -7,9 +7,24 @@ use horizon_world::nbt::{Compound, Tag};
 
 pub(super) const MELTER_CAPACITY: u32 = 24 * 90;
 
+/// Read only the comparator-bearing machine state; unknown keys have no signal.
+pub(super) fn saved_comparator(key: &str, raw: &Tag) -> Option<i32> {
+    match key {
+        "tconstruct:melter" => Melter::from_nbt(raw).map(|state| state.comparator()),
+        "tconstruct:fuel_tank" => Tank::from_nbt(raw, 4000).map(|tank| tank.comparator()),
+        "tconstruct:ingot_tank" => Tank::from_nbt(raw, 48 * 90).map(|tank| tank.comparator()),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct Tank { pub fluid: Option<String>, pub tag: Option<Tag>, pub amount: u32, pub capacity: u32 }
 impl Tank {
+    pub(super) fn comparator(&self) -> i32 {
+        if self.amount == 0 || self.capacity == 0 { 0 } else {
+            (1 + 14 * u64::from(self.amount) / u64::from(self.capacity)) as i32
+        }
+    }
     pub(super) fn new(capacity: u32) -> Self { Self { fluid: None, tag: None, amount: 0, capacity } }
     pub(super) fn insert(&mut self, fluid: &str, amount: u32) -> bool {
         self.insert_tagged(fluid, None, amount)
@@ -150,9 +165,7 @@ pub(super) struct Melter {
 impl Melter {
     /// ITankBlockEntity: empty = 0; otherwise 1 + floor(14 * amount / capacity).
     pub(super) fn comparator(&self) -> i32 {
-        if self.tank.amount == 0 { 0 } else {
-            (1 + 14 * u64::from(self.tank.amount) / u64::from(MELTER_CAPACITY)) as i32
-        }
+        self.tank.comparator()
     }
     pub(super) fn new() -> Self {
         Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, fuel_quality: 0, temperature: 0, rate: 0 }
@@ -990,6 +1003,21 @@ mod swap_presentation_tests {
         assert_eq!(melter.comparator(), 15);
         melter.tank.take(MELTER_CAPACITY).unwrap();
         assert_eq!(melter.comparator(), 0);
+    }
+
+    #[test]
+    fn fuel_and_ingot_tank_comparators_cover_all_stored_amounts() {
+        for (key,capacity) in [("tconstruct:fuel_tank",4000),("tconstruct:ingot_tank",4320)] {
+            for amount in 0..=capacity {
+                let mut tank=Tank::new(capacity);
+                if amount>0 {assert!(tank.insert("minecraft:lava",amount));}
+                let expected=if amount==0 {0} else {1+14*amount/capacity};
+                assert_eq!(tank.comparator(),expected as i32);
+                assert_eq!(saved_comparator(key,&tank.to_nbt()),Some(expected as i32));
+            }
+            assert_eq!(saved_comparator(key,&Tag::Int(1)),None);
+        }
+        assert_eq!(saved_comparator("tconstruct:lantern",&Tank::new(50).to_nbt()),None);
     }
 
 }

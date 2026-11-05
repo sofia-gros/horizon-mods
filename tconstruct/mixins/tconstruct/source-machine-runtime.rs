@@ -10,14 +10,15 @@ type Pos = (i32, i32, i32);
 /// Publish state before notifying comparators. Includes faucet reservations,
 /// so every supported Melter extraction route observes the committed amount.
 pub(super) fn write_machine_updates(game: &mut super::Game<'_>, changes: &[(Pos, &str, Tag)]) -> bool {
-    let before: Vec<_> = changes.iter().filter(|(_, key, _)| *key == "tconstruct:melter")
-        .map(|(pos, _, _)| (*pos, store::read(&game.world, *pos, "tconstruct:melter")
-            .and_then(|tag| super::tconstruct_source_melter_state::Melter::from_nbt(&tag)).map_or(0, |state| state.comparator())))
+    let before: Vec<_> = changes.iter()
+        .filter(|(_, key, _)| matches!(*key, "tconstruct:melter" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank"))
+        .map(|(pos, key, _)| (*pos, *key, store::read(&game.world, *pos, key)
+            .and_then(|raw| super::tconstruct_source_melter_state::saved_comparator(key, &raw)).unwrap_or(0)))
         .collect();
     if !store::write_many(&mut game.world, changes) { return false; }
-    for (pos, strength) in before {
-        let after = store::read(&game.world, pos, "tconstruct:melter")
-            .and_then(|tag| super::tconstruct_source_melter_state::Melter::from_nbt(&tag)).map_or(0, |state| state.comparator());
+    for (pos, key, strength) in before {
+        let after = store::read(&game.world, pos, key)
+            .and_then(|raw| super::tconstruct_source_melter_state::saved_comparator(key, &raw)).unwrap_or(0);
         notify_casting_comparator(game, pos, strength, after);
     }
     true
@@ -235,7 +236,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     if let (Tag::Compound(fields), Some(codes)) = (&mut state_tag, heat_codes) { fields.insert("heat_codes".into(), codes); }
     let mut updates = vec![(pos, "tconstruct:smeltery", state_tag)];
     if let Some(update) = fuel_update { updates.push(update); }
-    if !store::write_many(&mut game.world, &updates) { return; }
+    if !write_machine_updates(game, &updates) { return; }
     for (index, remaining) in item_updates.into_iter().rev() {
         let item = &game.dropped[index];
         let chunk = ((item.position.x.floor() as i32) >> 4, (item.position.z.floor() as i32) >> 4);
@@ -277,7 +278,7 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
         &|item| game.res.items().get(item).is_some(),
         &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
     let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { return true; };
-    if !store::write(&mut game.world, pos, kind, updated_tank) { return false; }
+    if !write_machine_updates(game, &[(pos, kind, updated_tank)]) { return false; }
     if game.creative {
         // Preserve the held container in creative, but retain fluid removed
         // from the tank by giving the filled result to the player.
@@ -1010,7 +1011,7 @@ fn smeltery_to_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     if needs_packet && faucet.pending.amount > 0 { faucet.tick(&mut fluid, Some(&mut output)); }
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return Some(false); }
     let Some(next_controller) = patch_smeltery_controller_tank(&raw_controller, &smeltery) else { return Some(false); };
-    Some(store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",next_controller),(target,key,output.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]))
+    Some(write_machine_updates(game, &[(controller,"tconstruct:smeltery",next_controller),(target,key,output.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]))
 }
 
 fn tank_casting_recipe_current(game: &super::Game<'_>, target: Pos, kind: &str, casting: &Casting, offered: &Tank) -> bool {
