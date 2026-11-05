@@ -5354,3 +5354,29 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-cobalamin"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_cobalamin"
+source = "source-cobalamin.rs"
+
+[[module]]
+id = "source-cobalamin-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_cobalamin_world"
+source = "cobalamin-world.rs"
+
+[[injection]]
+id = "source-cobalamin-speed"
+target = "horizon_client::game::hand::Game<'_>::main_hand_attack_speed"
+kind = "RETURN"
+helper = "cobalamin-speed.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-cobalamin-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "TAIL"
+helper = "cobalamin-equipment.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
