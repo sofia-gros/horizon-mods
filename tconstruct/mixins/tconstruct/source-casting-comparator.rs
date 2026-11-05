@@ -3,6 +3,11 @@ fn tconstruct_casting_comparator(level: &crate::game::GameLevel<'_>, pos: horizo
     let name = &*level.facts.get(state).name;
     let key = (pos.x,pos.y,pos.z);
     match name {
+        "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin" => {
+            let key_name = if name.ends_with("_basin") { "tconstruct:basin" } else { "tconstruct:table" };
+            *output = crate::game::tconstruct_source_melter_store::read(level.world,key,key_name)
+                .and_then(|raw| crate::game::tconstruct_source_melter_state::saved_comparator(key_name, &raw)).unwrap_or(0);
+        }
         "tconstruct:seared_melter" => {
             *output = crate::game::tconstruct_source_melter_store::read(level.world,key,"tconstruct:melter")
                 .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag)).map_or(0, |state| state.comparator());

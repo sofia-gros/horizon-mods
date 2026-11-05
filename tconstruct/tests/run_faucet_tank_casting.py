@@ -36,6 +36,6 @@ with tempfile.TemporaryDirectory(prefix="faucet-casting-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("tconstruct_source_machine_runtime::tank_and_gauge_commits_notify_only_changed_levels", "tconstruct_source_machine_runtime::actual_faucet_reservation_refreshes_melter_signal", "tconstruct_source_melter_state::swap_presentation_tests::fuel_and_ingot_tank_comparators_cover_all_stored_amounts"):
+    for case in ("tconstruct_source_machine_runtime::casting_progress_signals_commit_only_after_success", "tconstruct_source_melter_state::casting_tests::casting_comparator_tracks_cast_filling_cooling_and_result", "tconstruct_source_machine_runtime::tank_and_gauge_commits_notify_only_changed_levels", "tconstruct_source_machine_runtime::actual_faucet_reservation_refreshes_melter_signal", "tconstruct_source_melter_state::swap_presentation_tests::fuel_and_ingot_tank_comparators_cover_all_stored_amounts"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")
