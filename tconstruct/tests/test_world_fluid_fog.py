@@ -34,6 +34,8 @@ class WorldFluidFogTests(unittest.TestCase):
                             else 8 if path.stem == 'molten_glass' else 2}
                 if path.stem in colors:
                     expected['color'] = colors[path.stem]
+                else:
+                    expected['calculate_color'] = True
                 self.assertEqual(visual['fog'], expected)
                 if path.stem == 'molten_queens_slime':
                     self.assertEqual(visual['tint'], 0xFFFFFF)

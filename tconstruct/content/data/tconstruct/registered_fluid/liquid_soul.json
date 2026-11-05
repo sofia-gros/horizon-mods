@@ -16,7 +16,8 @@
     "emission": 2,
     "fog": {
       "start": 0.25,
-      "end": 4
+      "end": 4,
+      "calculate_color": true
     }
   },
   "interaction": {

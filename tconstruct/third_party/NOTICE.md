@@ -178,6 +178,11 @@ colors follow Tinkers' Construct `FluidTextureProvider` at
 `ClientTextureFluidType` at `17c287ad52f7b10154e07fa7570dc7bccd74ca2b`.
 Both are Copyright (c) 2022 SlimeKnights, MIT; their complete licenses are
 preserved in `tconstruct/LICENSE` and `mantle/LICENSE` beside this notice.
-Changes: host declaration schema, explicit source tint multipliers, and deferred
-automatic sprite averaging/camera overlays. No texture assets were added or
+Changes: host declaration schema, explicit source tint multipliers, and automatic
+still-sprite color flags. Camera overlays remain deferred. No texture assets were added or
 modified by this slice. References: `content/reference/world-fluid-fog-source.json`.
+
+The automatic-color declaration opts into the companion host adaptation of
+Mantle `TextureColorHelper.computeAverageColor` at the same revision. That
+method is explicitly Apache-2.0; the host retains its license and attribution.
+No averaging implementation or new source texture is copied into this mod PR.
