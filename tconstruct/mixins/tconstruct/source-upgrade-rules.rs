@@ -17,9 +17,9 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
-    ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
+    ("tconstruct:knockback", 1), ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
@@ -83,6 +83,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:knockback" => matches!(item, "tconstruct:sword" | "tconstruct:cleaver"),
         "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
@@ -111,6 +112,17 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
     match upgrades.get("tconstruct:hydraulic") {
         None => true,
         Some(Tag::Int(amount)) => (0..=180).contains(amount),
+        _ => false,
+    }
+}
+
+// Ordinary Knockback has three complete levels; malformed saved progress
+// must not be treated as an empty upgrade when planning an input transaction.
+fn valid_knockback_amount(tool: &ItemStack) -> bool {
+    let Some(upgrades) = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return true; };
+    match upgrades.get("tconstruct:knockback") {
+        None => true,
+        Some(Tag::Int(level)) => (0..=3).contains(level),
         _ => false,
     }
 }
@@ -145,7 +157,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:knockback" || valid_knockback_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -166,13 +178,14 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
+    if id == "tconstruct:knockback" && !belongs("tconstruct:modifiable/melee") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
@@ -209,13 +222,17 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_hydraulic_amount(tool) { return None; }
+    if !valid_knockback_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
             continue;
         };
         let recipe_type = value.get("type").and_then(Value::as_str);
+        if value.get("result").and_then(Value::as_str) == Some("tconstruct:knockback")
+            && (recipe_type != Some("tconstruct:modifier")
+                || value.get("level") != Some(&serde_json::json!({"max":3}))
+                || value.get("slots") != Some(&serde_json::json!({"upgrades":1}))) { continue; }
         if !matches!(recipe_type, Some("tconstruct:incremental_modifier" | "tconstruct:modifier")) { continue; }
         let Some(id) = value.get("result").and_then(Value::as_str) else {
             continue;
@@ -223,21 +240,22 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:knockback" && !tags.get("tconstruct:modifiable/melee").is_some_and(|items| items.contains(tool.item.as_ref())) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:knockback") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -277,7 +295,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:knockback") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -582,6 +600,44 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn knockback_source_inputs_levels_crystal_and_extraction() {
+        use super::*;
+        let recipe = serde_json::json!({"type":"tconstruct:modifier", "allow_crystal":true,
+            "inputs":[{"item":"minecraft:piston"},{"item":"minecraft:slime_block"}],
+            "level":{"max":3}, "result":"tconstruct:knockback", "slots":{"upgrades":1},
+            "tools":[{"tag":"tconstruct:modifiable/melee"},{"tag":"tconstruct:modifiable/armor/chestplate"}]});
+        let recipes = BTreeMap::from([("knockback".into(), serde_json::to_vec(&recipe).unwrap())]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/melee".into(), HashSet::from(["tconstruct:sword".into()])),
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:sword".into()])),
+        ]);
+        let mk = |level| {
+            let mut tool = ItemStack::new("tconstruct:sword", 1);
+            tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:knockback", Tag::Int(level))])),
+            ])));
+            tool
+        };
+        let inputs = [Some(ItemStack::new("minecraft:piston",1)), Some(ItemStack::new("minecraft:slime_block",1))];
+        for level in 0..3 {
+            let plan = plan(&recipes, &tags, &mk(level), &inputs, 3).unwrap();
+            assert_eq!(plan.amount, level+1);
+            assert_eq!(plan.consumed, vec![(0,1),(1,1),(2,1)]);
+        }
+        assert!(plan(&recipes, &tags, &mk(0), &inputs[..1], 3).is_none());
+        assert!(plan(&recipes, &tags, &mk(1), &inputs, 1).is_none());
+        assert!(plan(&recipes, &tags, &mk(3), &inputs, 5).is_none());
+        assert!(plan(&recipes, &tags, &mk(-1), &inputs, 5).is_none());
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
+        crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String("tconstruct:knockback".into()))])));
+        assert_eq!(plan(&recipes, &tags, &mk(1), &[Some(crystal)], 3).unwrap().amount, 2);
+        let extraction = [Some(ItemStack::new("minecraft:wet_sponge",1)), Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+        assert_eq!(extract_upgrade(&tags, &mk(2), &extraction, "tconstruct:knockback").unwrap().upgrade.amount, 1);
+        assert!(!supported("tconstruct:knockback", "tconstruct:dagger"));
+        assert!(!supported("tconstruct:knockback", "tconstruct:plate_chestplate"));
+    }
+
     #[test]
     fn necrotic_recipe_obeys_levels_slots_and_crystal() {
         use super::*;
