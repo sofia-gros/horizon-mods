@@ -32,6 +32,8 @@ pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) 
 }
 fn bottle_fluid(item: &str) -> Option<&'static str> {
     match item {
+        // Pinned Mantle honey_bottle_empty: 250 mB and one glass bottle.
+        "minecraft:honey_bottle" => Some("tconstruct:honey"),
         "tconstruct:venom_bottle" => Some("tconstruct:venom"),
         "tconstruct:magma_bottle" => Some("tconstruct:magma"),
         "tconstruct:earth_slime_bottle" => Some("tconstruct:earth_slime"),
@@ -2101,6 +2103,90 @@ mod tests {
         for item in ["minecraft:water_bucket", "minecraft:bucket"] {
             assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
         }
+    }
+
+    #[test]
+    fn honey_bottle_empties_one_item_and_roundtrips_exactly_250_mb() {
+        for direction in [Direction::Auto, Direction::EmptyItem] {
+            let mut tank = SmelteryTank::new(1000);
+            let mut slots = [Some(ItemStack::new("minecraft:honey_bottle", 3)), None];
+            assert!(accepts(slots[0].as_ref().unwrap(), &known));
+            assert!(transfer(&mut tank, &mut slots, direction, &known, &known));
+            assert_eq!(tank.amount("tconstruct:honey"), 250);
+            assert_eq!(slots[0], Some(ItemStack::new("minecraft:honey_bottle", 2)));
+            assert_eq!(slots[1], Some(ItemStack::new("minecraft:glass_bottle", 1)));
+            slots = [slots[1].take(), None];
+            assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!(tank.total(), 0);
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1], Some(ItemStack::new("minecraft:honey_bottle", 1)));
+        }
+    }
+
+    #[test]
+    fn honey_bottle_input_click_and_shift_respect_stack_limit() {
+        for quick in [false, true] {
+            let mut slots = [None, None];
+            let mut held = Some(ItemStack::new("minecraft:honey_bottle", 20));
+            if quick { assert!(quick_input(&mut slots, &mut held, &known)); }
+            else { assert!(click(&mut slots, &mut held, 0, false, &known)); }
+            assert_eq!(slots[0], Some(ItemStack::new("minecraft:honey_bottle", 16)));
+            assert_eq!(held, Some(ItemStack::new("minecraft:honey_bottle", 4)));
+        }
+    }
+
+    #[test]
+    fn honey_bottle_failure_paths_do_not_mutate_slots_or_tank() {
+        use horizon_world::nbt::Tag;
+        for case in 0..9 {
+            let mut tank = SmelteryTank::new(if case == 0 { 249 } else { 1000 });
+            let mut input = ItemStack::new("minecraft:honey_bottle", 2);
+            if case == 5 { input.damage = 1; }
+            if case == 6 { input.count = 0; }
+            if case == 7 { input.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Keep me".into()))); }
+            if case == 8 { input.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("unknown", Tag::Int(7))]))); }
+            let mut slots = [Some(input), (case == 1).then(|| ItemStack::new("minecraft:glass_bottle", 1))];
+            let before = (tank.clone(), slots.clone());
+            let direction = if case == 2 { Direction::FillItem } else { Direction::Auto };
+            assert!(!transfer(&mut tank, &mut slots, direction,
+                &|id| case != 3 || id != "minecraft:glass_bottle", &|_| case != 4), "case {case}");
+            assert_eq!((tank, slots), before, "case {case}");
+        }
+    }
+
+    #[test]
+    fn honey_bottle_single_tank_rejects_mismatched_fluid() {
+        use super::super::tconstruct_source_melter_state::Tank;
+        let mut tank = Tank::new(1000);
+        assert!(tank.insert("minecraft:water", 1));
+        let mut slots = [Some(ItemStack::new("minecraft:honey_bottle", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!((tank, slots), before);
+    }
+
+    #[test]
+    fn honey_bottle_melter_plan_preserves_machine_metadata_and_inputs() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
+        fields.insert("future".into(), Tag::Long(99));
+        if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(7)); }
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("minecraft:honey_bottle", 2);
+        let before = (raw.clone(), held.clone());
+        let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+        assert!(!plan.drained);
+        assert_eq!(plan.remaining, Some(ItemStack::new("minecraft:honey_bottle", 1)));
+        assert_eq!(plan.result, Some(ItemStack::new("minecraft:glass_bottle", 1)));
+        let tank = plan.saved.get("tank").unwrap();
+        assert_eq!(tank.get("amount"), Some(&Tag::Int(250)));
+        assert_eq!(tank.get("fluid"), Some(&Tag::String("tconstruct:honey".into())));
+        assert_eq!(tank.get("extension"), Some(&Tag::Byte(7)));
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate", "future"] {
+            assert_eq!(plan.saved.get(key), raw.get(key), "{key}");
+        }
+        assert_eq!((raw, held), before);
     }
 
 }
