@@ -1417,8 +1417,8 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
 }
 
 /// Melters and Lanterns expose their internal tank as a fluid handler on every face.
-/// This bounded route accepts built-in tanks/gauges, Lanterns, Melters, Casting Tanks,
-/// and formed Drains without rewriting Melter inventory, heat, fuel, or progress.
+/// This bounded route accepts built-in tanks/gauges, Lanterns, Melters, Cannons,
+/// Casting Tanks, and formed Drains without rewriting Melter inventory, heat, fuel, or progress.
 fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let target_state = game.world.block(target.0, target.1, target.2);
@@ -1427,9 +1427,9 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
         "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => ("tconstruct:lantern", false, 50),
         name => {
             let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-            if !matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { return None; }
-            // Only Lantern output uses these extra destinations; existing
-            // non-Lantern tank routes retain their original dispatch.
+            if !matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "tconstruct:seared_fluid_cannon") { return None; }
+            // Only Lantern/Cannon output uses these extra destinations;
+            // other tank routes retain their original dispatch.
             let (key, capacity) = tanks::tank_kind(name)?;
             (key, false, capacity)
         },
@@ -1441,6 +1441,7 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
     let source_name = game.res.facts().get(source_state).name.clone();
     let mut smeltery_input = None;
     let mut portable_input = None;
+    let mut cannon_input = None;
     let mut input = if &*source_name == "tconstruct:seared_casting_tank" {
         let Some(state) = casting_tank_at(game, source) else { return Some(false); };
         let Some(raw) = store::read(&game.world, source, "tconstruct:casting_tank") else { return Some(false); };
@@ -1449,6 +1450,14 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
         let fluid = state.tank.clone();
         portable_input = Some(state);
         Some((source, "tconstruct:casting_tank", fluid, raw))
+    } else if &*source_name == "tconstruct:seared_fluid_cannon" {
+        let Some(state) = cannon_at(game, source) else { return Some(false); };
+        let Some(raw) = store::read(&game.world, source, "tconstruct:fluid_cannon") else { return Some(false); };
+        if state.to_nbt() != raw
+            || state.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some())) { return Some(false); }
+        let fluid = state.tank.clone();
+        cannon_input = Some(state);
+        Some((source, "tconstruct:fluid_cannon", fluid, raw))
     } else if &*source_name == "tconstruct:seared_melter" {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, "tconstruct:melter") else { return Some(false); };
@@ -1493,7 +1502,8 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
     let reserves_source = starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet);
     if !faucet_network_tag_safe(&faucet.pending) || !faucet_network_tag_safe(&output)
         || (reserves_source && input.as_ref().is_some_and(|(_, _, tank, _)| !faucet_network_tag_safe(tank))) { return Some(false); }
-    let previous_strength = portable_input.as_ref().map(|state| state.comparator());
+    let previous_strength = portable_input.as_ref().map(|state| state.comparator())
+        .or_else(|| cannon_input.as_ref().map(|state| state.comparator()));
     let previous_amount = output.amount;
     let mut empty = Tank::new(0);
     if starting && !faucet.activate(input.as_mut().map_or(&mut empty, |(_, _, tank, _)| tank), &output) { return Some(true); }
@@ -1537,6 +1547,13 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
             if !casting_tank_at(game, source).is_some_and(|current| current.to_nbt() == *raw
                 && current.slots.iter().flatten().all(|item| item.data().is_none_or(|data| data.wire.patch().is_none()))) { return Some(false); }
             state.to_nbt()
+        } else if let Some(state) = cannon_input.as_mut() {
+            if !cannon_at(game, source).is_some_and(|current| current.to_nbt() == *raw
+                && current.item.as_ref().is_none_or(|item| item.data().is_none_or(|data| data.wire.patch().is_none()))) { return Some(false); }
+            state.tank = tank.clone();
+            // Patch just the fluid, leaving the saved and live item untouched.
+            let Some(next) = tanks::patch_melter_tank(raw, tank) else { return Some(false); };
+            next
         } else if &*source_name == "tconstruct:seared_melter" {
             let Some(next) = tanks::patch_melter_tank(raw, tank) else { return Some(false); };
             next
@@ -1549,6 +1566,9 @@ fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, ta
         if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&source) {
             slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone();
         }
+        if let Some(before) = previous_strength { notify_casting_comparator(game, source, before, state.comparator()); }
+    }
+    if let Some(state) = cannon_input.as_ref() {
         if let Some(before) = previous_strength { notify_casting_comparator(game, source, before, state.comparator()); }
     }
     if let Some(at) = changed_source { game.container_changed(at); }

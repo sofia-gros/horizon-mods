@@ -1,5 +1,6 @@
 extern crate self as horizon_client;
 pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::items::ItemStack>>) } }
+#[path="__MIXINS__/source-fluid-cannon.rs"] mod tconstruct_source_fluid_cannon;
 #[path="__MIXINS__/source-casting-tank.rs"] mod tconstruct_source_casting_tank;
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-smeltery-state.rs"] mod tconstruct_source_smeltery_state;
@@ -25,7 +26,7 @@ impl Facts {
   9=>"tconstruct:seared_melter", 10=>"tconstruct:seared_faucet",
   11=>"tconstruct:seared_drain", 12=>"tconstruct:smeltery_controller",
   13=>"tconstruct:foundry_controller", 14=>"tconstruct:scorched_drain", 15=>"tconstruct:seared_duct", 16=>"tconstruct:seared_casting_tank", 17=>"tconstruct:seared_lantern",
-  18=>"tconstruct:scorched_lantern", _=>"minecraft:air",
+  18=>"tconstruct:scorched_lantern", 19=>"tconstruct:seared_fluid_cannon", _=>"minecraft:air",
  }.into() } }
 }
 struct Res;
@@ -475,6 +476,83 @@ mod tconstruct_source_machine_runtime {
    assert_eq!(lantern(&g,s).amount,if matching {45} else {50}); assert_eq!(faucet(&g,p).pending.amount,0);
   } }
  }
+ #[test]
+ fn cannon_output_all_eleven_targets_keep_saved_and_live_items() {
+  for target_id in [1,2,3,4,5,6,7,8,9,17,18] {
+   let (mut g,p,s,t,key,capacity)=cannon_output_fixture(target_id);
+   let before=store::read(&g.world,s,"tconstruct:fluid_cannon").unwrap();
+   let target_before=store::read(&g.world,t,key).unwrap();
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap(); let live_before=slots.clone();
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&t).unwrap(); let target_live=slots.clone();
+   assert_eq!(melter_lantern_transfer(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   let input=cannon_at(&g,s).unwrap();
+   let reserved=90.min(capacity);
+   assert_eq!((input.tank.amount,cannon_output(&g,t,key,capacity).amount,faucet(&g,p).pending.amount),(180-reserved,10,reserved-10));
+   assert_eq!(store::read(&g.world,s,"tconstruct:fluid_cannon"),super::tconstruct_source_faucet_tank::patch_melter_tank(&before,&input.tank));
+   if target_id==9 {
+    for field in ["slots","progress","phase","fuel","fuel_quality","temperature","rate","heat_codes"] {
+     assert_eq!(store::read(&g.world,t,key).unwrap().get(field),target_before.get(field));
+    }
+   }
+   for _ in 0..9 {let f=faucet(&g,p);assert_eq!(melter_lantern_transfer(&mut g,p,s,t,f,false),Some(true));}
+   let input=cannon_at(&g,s).unwrap();
+   if capacity==50 { assert_eq!((input.tank.amount,cannon_output(&g,t,key,capacity).amount),(130,50)); }
+   else { assert_eq!((input.tank.amount,cannon_output(&g,t,key,capacity).amount,faucet(&g,p).pending.amount),(0,100,80)); }
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap();assert_eq!(*slots,live_before);
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&t).unwrap();assert_eq!(*slots,target_live);
+   assert_eq!(g.signals,if capacity==50 {1}else{2});assert_eq!(g.process_calls,0);
+  }
+ }
+ #[test]
+ fn cannon_output_refuses_bad_source_and_failed_saves() {
+  for target_id in [1,5,9,17] { for failure in 0..7 {
+   let (mut g,p,s,t,_,_)=cannon_output_fixture(target_id);
+   match failure {
+    0=>g.world.fail=true,
+    1=>{g.world.block_entities.remove(&s);},
+    2=>{g.world.tags.remove(&(s,"tconstruct:fluid_cannon".into()));},
+    3=>{if let Tag::Compound(raw)=g.world.tags.get_mut(&(s,"tconstruct:fluid_cannon".into())).unwrap(){raw.insert("future".into(),Tag::Int(1));}},
+    4=>{let BlockEntity::Chest(slots)=g.world.block_entities.get_mut(&s).unwrap();slots[0]=None;},
+    5=>{g.world.block_entities.insert(s,BlockEntity::Chest(vec![]));},
+    _=>{g.world.chunks.loaded.remove(&(-1,0));},
+   }
+   let before=g.world.tags.clone();assert_eq!(melter_lantern_transfer(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   assert_eq!(g.world.tags,before);assert!(g.notifications.is_empty());assert_eq!(g.signals,0);
+  }}
+ }
+ #[test]
+ fn cannon_output_last_five_mb_matches_all_destination_capacities() {
+  for target_id in [1,5,9,17,18] {
+   let (mut g,p,s,t,key,capacity)=cannon_output_fixture(target_id);
+   let mut output=Tank::new(capacity);assert!(output.insert("minecraft:water",capacity-5));
+   let raw=store::read(&g.world,t,key).unwrap();
+   let next=if target_id==9 {super::tconstruct_source_faucet_tank::patch_melter_tank(&raw,&output).unwrap()}else{output.to_nbt()};
+   g.world.tags.insert((t,key.into()),next);
+   assert_eq!(melter_lantern_transfer(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!((cannon_at(&g,s).unwrap().tank.amount,cannon_output(&g,t,key,capacity).amount,faucet(&g,p).pending.amount),(175,capacity,0));
+  }
+ }
+ #[test]
+ fn cannon_output_reserved_packet_survives_potion_refill_and_custom_tags_wait() {
+  for target_id in [1,9,17] {
+   let (mut g,p,s,t,key,capacity)=cannon_output_fixture(target_id);
+   let mut input=cannon_at(&g,s).unwrap();input.tank=Tank::new(2000);assert!(input.tank.insert("minecraft:water",50));
+   g.world.tags.insert((s,"tconstruct:fluid_cannon".into()),input.to_nbt());
+   assert_eq!(melter_lantern_transfer(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   let mut input=cannon_at(&g,s).unwrap();let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);
+   assert!(input.tank.insert_tagged("tconstruct:potion",Some(&tag),250));g.world.tags.insert((s,"tconstruct:fluid_cannon".into()),input.to_nbt());
+   for _ in 0..5 {let f=faucet(&g,p);assert_eq!(melter_lantern_transfer(&mut g,p,s,t,f,false),Some(true));}
+   assert_eq!(cannon_output(&g,t,key,capacity).amount,50);assert_eq!(cannon_at(&g,s).unwrap().tank.tag,Some(tag));
+   assert!(!faucet(&g,p).active);assert_eq!(cannon_at(&g,s).unwrap().tank.amount,250);
+   let empty=Tank::new(capacity);let raw=store::read(&g.world,t,key).unwrap();
+   let next=if target_id==9 {super::tconstruct_source_faucet_tank::patch_melter_tank(&raw,&empty).unwrap()}else{empty.to_nbt()};
+   g.world.tags.insert((t,key.into()),next);
+   let mut input=cannon_at(&g,s).unwrap();if let Some(Tag::Compound(fields))=&mut input.tank.tag {fields.insert("CustomPotionColor".into(),Tag::Int(1));}
+   g.world.tags.insert((s,"tconstruct:fluid_cannon".into()),input.to_nbt());
+   let f=faucet(&g,p);let before=g.world.tags.clone();assert_eq!(melter_lantern_transfer(&mut g,p,s,t,f,true),Some(false));assert_eq!(g.world.tags,before);
+  }
+ }
+
 }
 fn faucet(g:&Game<'_>,p:Pos)->Faucet { Faucet::from_nbt(g.world.tags.get(&(p,"tconstruct:faucet".into())).unwrap()).unwrap() }
 fn melter(g:&Game<'_>,p:Pos)->Melter { Melter::from_nbt(g.world.tags.get(&(p,"tconstruct:melter".into())).unwrap()).unwrap() }
@@ -558,4 +636,21 @@ fn lantern_storage_fixture(source_id:usize,target_id:usize)->(Game<'static>,Pos,
  let (key,capacity)=tconstruct_source_faucet_tank::tank_kind(&Facts.get(target_id).name).unwrap();
  g.world.tags.insert((t,key.into()),Tank::new(capacity).to_nbt());
  (g,p,s,t,key,capacity)
+}
+
+fn cannon_output_fixture(target_id:usize)->(Game<'static>,Pos,Pos,Pos,&'static str,u32) {
+ let (mut g,p,s,t,key,_)=fixture(1);g.world.blocks.insert(s,19);g.world.tags.remove(&(s,key.into()));
+ let mut input=tconstruct_source_fluid_cannon::Cannon::new();assert!(input.tank.insert("minecraft:water",180));
+ let mut item=horizon_items::items::ItemStack::new("minecraft:stone",32);
+ item.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("keep",Tag::Int(7))])));input.item=Some(item);
+ g.world.block_entities.insert(s,containers::BlockEntity::Chest(vec![input.item.clone()]));
+ g.world.tags.insert((s,"tconstruct:fluid_cannon".into()),input.to_nbt());
+ let (target_key,capacity)=if target_id==9 {("tconstruct:melter",2160)}else{
+  let (key,capacity)=if matches!(target_id,17|18){("tconstruct:lantern",50)}else{tconstruct_source_faucet_tank::tank_kind(&Facts.get(target_id).name).unwrap()};
+  g.world.blocks.insert(t,target_id);g.world.tags.remove(&(t,"tconstruct:melter".into()));g.world.tags.insert((t,key.into()),Tank::new(capacity).to_nbt());(key,capacity)
+ };
+ (g,p,s,t,target_key,capacity)
+}
+fn cannon_output(g:&Game<'_>,at:Pos,key:&str,capacity:u32)->Tank {
+ if key=="tconstruct:melter" {melter(g,at).tank}else{storage(g,at,key,capacity)}
 }

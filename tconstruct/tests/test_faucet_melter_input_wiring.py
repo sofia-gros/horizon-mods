@@ -19,5 +19,14 @@ class FaucetMelterInputWiring(unittest.TestCase):
         self.assertLess(route.index('if !store::write_many('), route.index('slots[0] = state.slots[0].clone()'))
         self.assertIn('data.wire.patch().is_some()', route)
 
+    def test_cannon_output_is_guarded_and_preserves_inventory(self):
+        route = RUNTIME.read_text().split('fn melter_lantern_transfer(', 1)[1]
+        self.assertIn('"tconstruct:seared_fluid_cannon"', route)
+        self.assertIn('cannon_at(game, source).is_some_and', route)
+        self.assertIn('cannon_input.as_mut()', route)
+        self.assertIn('current.item.as_ref().is_none_or', route)
+        self.assertIn('tanks::patch_melter_tank(raw, tank)', route)
+        self.assertLess(route.index('if !store::write_many('), route.index('if let Some(state) = cannon_input.as_ref()'))
+
 if __name__ == '__main__':
     unittest.main()
