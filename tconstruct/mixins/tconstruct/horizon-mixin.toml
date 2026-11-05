@@ -5533,3 +5533,41 @@ kind = "HEAD"
 cancellable = true
 helper = "enderference-teleport.rs"
 bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "&*m" }]
+
+
+[[module]]
+id = "source-antitoxin"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_antitoxin"
+source = "source-antitoxin.rs"
+
+[[module]]
+id = "source-antitoxin-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_antitoxin_world"
+source = "antitoxin-world.rs"
+
+[[injection]]
+id = "source-antitoxin-crossbow-charge"
+target = "horizon_client::game::crossbow::Game<'_>::tick_crossbow"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "Self::charge_ticks(stack)"
+require = 1
+ordinal = 0
+helper = "antitoxin-crossbow-charge.rs"
+bindings = [
+  { name = "value", ty = "u32", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "source-antitoxin-crossbow-owner"
+target = "horizon_client::game::item_draw::Game<'_>::player_owner"
+kind = "RETURN"
+helper = "antitoxin-crossbow-owner.rs"
+bindings = [
+  { name = "value", ty = "horizon_assets::item_model::OwnerState", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" },
+]
