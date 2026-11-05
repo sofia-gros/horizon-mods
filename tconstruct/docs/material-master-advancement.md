@@ -43,6 +43,8 @@ harvest-tool and tier criteria. The 38 source requirements include
 late-game/compatibility materials. This slice does not
 implement missing materials or certify that all 38 are naturally obtainable.
 General stat/modifier/slot predicates remain outside this slice. The
+[installed-modifier follow-on](installed-modifier-advancements.md) adds only
+single installed-upgrade presence checks. The
 [Slimeskull follow-on](slimeskull-advancement.md) adds bounded tool conjunctions
 and item-set membership without broadening the material predicate schema.
 

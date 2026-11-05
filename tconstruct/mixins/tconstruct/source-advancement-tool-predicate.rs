@@ -16,6 +16,20 @@ fn tconstruct_advancement_tool_predicate(v: &serde_json::Value, it: &ItemView, w
         }
         Some((base, variant))
     }
+    fn has_upgrade(it: &ItemView, wanted: Option<&str>) -> bool {
+        let Some(upgrades) = it.custom_data.as_ref().and_then(|data| data.get("tic_upgrades")) else { return false; };
+        let Tag::Compound(entries) = upgrades else { return false; };
+        if entries.iter().any(|(id, amount)| {
+            let Ok(id) = id.to_string() else { return true; };
+            !valid_id(&id) || !matches!(amount, Tag::Int(level) if *level >= 0)
+        }) { return false; }
+        // Native saved amounts include progressive upgrades. Material traits
+        // and computed total modifier levels are deliberately not consulted.
+        match wanted {
+            Some(id) => matches!(upgrades.get(id), Some(Tag::Int(level)) if *level > 0),
+            None => entries.iter().any(|(_, amount)| matches!(amount, Tag::Int(level) if *level > 0)),
+        }
+    }
     fn matches(predicate: &serde_json::Value, it: &ItemView, w: &dyn World, depth: u8) -> bool {
         if depth > 8 { return false; }
         match predicate.get("type").and_then(serde_json::Value::as_str) {
@@ -52,6 +66,16 @@ fn tconstruct_advancement_tool_predicate(v: &serde_json::Value, it: &ItemView, w
                 let Ok(tier) = tier.to_string() else { return false; };
                 return TIERS.contains(&tier.as_str()) && values.iter().any(|value| value.as_str() == Some(tier.as_str()));
             }
+            Some("tconstruct:has_modifier") => {
+                // Only the source goals' installed-upgrade presence form is
+                // supported. Never ignore an explicit level or all/trait check.
+                if predicate.get("check").and_then(serde_json::Value::as_str) != Some("upgrades")
+                    || predicate.get("level").is_some() { return false; }
+                let modifier = &predicate["modifier"];
+                if modifier.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:single") { return false; }
+                let Some(id) = modifier.get("modifier").and_then(serde_json::Value::as_str).filter(|id| valid_id(id)) else { return false; };
+                return has_upgrade(it, Some(id));
+            }
             _ => {},
         }
         if predicate.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:has_material") {
@@ -84,19 +108,7 @@ fn tconstruct_advancement_tool_predicate(v: &serde_json::Value, it: &ItemView, w
             }
             return matched;
         }
-        if predicate.as_str() != Some("tconstruct:has_upgrades") {
-            return false;
-        }
-        let Some(Tag::Compound(upgrades)) = it.custom_data.as_ref().and_then(|data| data.get("tic_upgrades")) else {
-            return false;
-        };
-        if upgrades.iter().any(|(id, amount)| {
-            let Ok(id) = id.to_string() else { return true; };
-            !valid_id(&id) || !matches!(amount, Tag::Int(level) if *level >= 0)
-        }) { return false; }
-        // Native saved upgrades use positive integer amounts (including partial
-        // upgrades); material traits and total modifier levels are separate data.
-        upgrades.iter().any(|(_, amount)| matches!(amount, Tag::Int(level) if *level > 0))
+        predicate.as_str() == Some("tconstruct:has_upgrades") && has_upgrade(it, None)
     }
     if v.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:tool_stack") {
         return Continue(());

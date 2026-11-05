@@ -1,0 +1,18 @@
+{
+  "upgrade_slots.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/tools/upgrade_slots.json",
+    "sha256": "e6bb03f9e8568a1abc79de917a78520dd754f370f82a090c20b7c3c3dc36cc36"
+  },
+  "abilities.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/smeltery/abilities.json",
+    "sha256": "2f090735109373d85d9342c0378ec30333fd9f6de969498d1c344e10a82c1033"
+  },
+  "HasModifierPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/HasModifierPredicate.java",
+    "sha256": "8e14ec18957d11dab807034332575228fb76e60dc922286b45bba925cbb6ebc6"
+  },
+  "SingleModifierPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/modifier/SingleModifierPredicate.java",
+    "sha256": "fe700ec5a6752f7304564ea597849917d597aa314699b59c0cd0f5d3208611ae"
+  }
+}
