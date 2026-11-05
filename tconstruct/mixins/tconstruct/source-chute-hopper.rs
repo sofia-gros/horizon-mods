@@ -144,6 +144,7 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
             .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
         if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&controller) {
             *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, controller, offset);
         }
     }
     game.container_changed(controller);

@@ -34,6 +34,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                         game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
                         if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                             *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                         }
                     }
                 }
@@ -53,6 +54,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -80,6 +82,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), mode));
                     if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                         *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                        crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                     }
                 }
             }
@@ -118,6 +121,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
                         .get(&pos).map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -144,7 +148,10 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             };
             if !same { state.progress[index] = 0; }
         }
-        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) { return Break(handled); }
+        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
+            return Break(handled);
+        }
     }
     game.inventory = previous_inventory;
     game.carried = previous_carried;

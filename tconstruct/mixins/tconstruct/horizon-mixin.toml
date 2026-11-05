@@ -616,16 +616,6 @@ selector = "Self"
 require = 1
 
 [[state]]
-id = "smeltery-closed-projection"
-target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "std::collections::HashSet<(i32,i32,i32)>"
-initial = "::core::default::Default::default()"
-[[state.constructor]]
-target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
-selector = "Self"
-require = 1
-
-[[state]]
 id = "smeltery-ui-pages"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
@@ -2250,6 +2240,12 @@ id = "source-melter-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
+
+[[module]]
+id = "source-machine-projection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_projection_world"
+source = "source-machine-projection-world.rs"
 
 [[module]]
 id = "source-machine-destroy-guard"

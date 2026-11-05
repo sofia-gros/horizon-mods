@@ -66,6 +66,20 @@ pub(super) fn read_outer(world: &World, pos: Pos) -> Option<Tag> {
     Some(saved.block_entity_sources.iter().find(|(at, _)| *at == pos)?.1.clone())
 }
 
+/// Compare-and-swap the complete source for a projection lifecycle transition.
+/// Keep all unrelated raw fields intact; callers supply a staged replacement.
+pub(super) fn replace_outer(world: &mut World, pos: Pos, expected: &Tag, updated: Tag) -> bool {
+    let Some(chunk) = world.chunks.get_mut(&(pos.0 >> 4, pos.2 >> 4)) else { return false; };
+    let chunk = std::sync::Arc::make_mut(chunk);
+    let Some(saved) = chunk.saved.as_mut() else { return false; };
+    let saved = std::sync::Arc::make_mut(saved);
+    let Some((_, raw)) = saved.block_entity_sources.iter_mut().find(|(at, _)| *at == pos) else { return false; };
+    if raw != expected { return false; }
+    *raw = updated;
+    world.modified.insert((pos.0 >> 4, pos.2 >> 4));
+    true
+}
+
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
     let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
     let saved = chunk.saved.as_deref()?;

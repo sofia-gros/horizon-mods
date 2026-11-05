@@ -41,6 +41,7 @@ pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize
             let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
                 .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
             *slots = super::tconstruct_source_smeltery_page::project_with_containers(&state.slots, next, &containers);
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, next);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(pos, (count, next));
         }
     }

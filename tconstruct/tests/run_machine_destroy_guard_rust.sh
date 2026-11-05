@@ -21,7 +21,7 @@ from pathlib import Path
 host = Path(os.environ['HORIZON_HOST'])
 root = Path(os.environ['ROOT'])
 work = Path(os.environ['WORK'])
-for crate in ('horizon-world', 'horizon-items'):
+for crate in ('horizon-world', 'horizon-items', 'horizon-client-core'):
     if not (host / 'crates' / crate / 'Cargo.toml').is_file():
         raise SystemExit(f'missing host crate: {crate}')
 def quoted(path):
@@ -33,6 +33,7 @@ edition = "2024"
 [dependencies]
 horizon-world = {{ path = {quoted(host / 'crates/horizon-world')} }}
 horizon-items = {{ path = {quoted(host / 'crates/horizon-items')} }}
+horizon-client-core = {{ path = {quoted(host / 'crates/horizon-client-core')} }}
 [lib]
 path = {quoted(root / 'tconstruct/tests/rust/machine_destroy_guard.rs')}
 '''
@@ -48,7 +49,7 @@ cat >> "$WORK/Cargo.lock" <<'LOCK'
 [[package]]
 name = "machine-destroy-guard-fixture"
 version = "0.1.0"
-dependencies = ["horizon-items", "horizon-world"]
+dependencies = ["horizon-client-core", "horizon-items", "horizon-world"]
 LOCK
 if ! cargo metadata --offline --manifest-path "$WORK/Cargo.toml" --format-version 1 > /dev/null; then
     echo 'Offline dependencies unavailable. Set CARGO_HOME to a populated cache for the pinned host.' >&2

@@ -46,6 +46,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &slots);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -94,6 +95,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &slots);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }

@@ -103,29 +103,47 @@ it can also block breaking noncanonical but harmless old state. A localized
 action-bar message reports the refusal to the acting player. It runs before
 Overwield's break accounting. Missing source records with a nonempty or unknown live inventory are also
 rejected; empty or absent live inventory without a saved source remains allowed.
-Serialized outer inventory items must round-trip. A saved source also requires
-a live chest projection: Melter slots must match exactly. An open Smeltery
-page must match the saved page at its known offset. On local close, a complete
-page is cleared only after it matches the saved inputs and the separately
-owned container slots, with no retained wire patches or unsupported metadata.
-An ephemeral proof permits this empty retired page while the saved inventory
-continues changing. The proof is removed on opening, controller removal,
-chunk unload and world reset. Unknown live items still block destruction.
-Without that proof, an empty unprojected view is accepted only when the saved
-inventory is also empty. Reloaded filled controllers can therefore still be
-refused; no page provenance is inferred from serialized Items. Opening and
-closing a canonical machine establishes a fresh proof, but is not a recovery
-procedure for unknown live data. Unsaved items or
-open local or guest container slots can therefore block removal. This does not guard explosions,
-pistons, commands, other block-replacement paths or already-lost data. The
-fixture uses cached host libraries and mock state; actual host, world, player,
-save/reload and LAN behavior remain unverified.
+Serialized outer inventory items must round-trip. Only the host's exact empty
+`components` compound and `keepPacked: 0b` envelope are exempt from unknown-field
+protection. Melter slots must match the live inventory exactly.
 
-The destruction-guard Rust fixtures have a reproducible source-based runner:
+Smeltery and Foundry controllers persist a versioned projection record beside
+their authoritative machine state. A verified local close retires the complete
+page and clears its serialized/live view only after matching saved inputs and
+separately owned container slots. While open, each supported local projection
+update records its exact, lossless page. After reload, the full live view must
+still match that record; an old known cache is not a second inventory, even if
+guest or runtime changes have since changed authoritative inputs. Pending
+container slots remain protected, including when their local/guest registry no
+longer exists after reload. Opening refuses unexplained or opaque live data
+rather than overwriting it and creating a new trusted record.
+
+The outer `tconstruct:retired_projection` field has three supported forms:
+- `0`: explicitly unproven during local opening; this is never legacy data.
+- `1`: retired view, requiring an empty serialized Items list and 54 empty live slots.
+- `{version: 1, view: [...]}`: exactly 54 lossless item/null entries representing
+  the last verified local page. Unknown versions, extra fields and retained
+  wire patches are not trusted.
+
+Legacy records without this field are migrated only when all 54 live slots
+exactly match both serialized Items and a complete legal page of the current
+saved inputs, with empty container slots. Provenance is captured before the
+runtime changes those inputs. No default page offset or bag/subset comparison
+is used. Legacy mismatches remain protected, including old saves whose live
+projection had already gone stale or whose high slots were already truncated.
+The decoder now retains all 54 Smeltery slots. Data already absent from an old
+save cannot be reconstructed by this guard.
+
+The guard still covers only player destruction, not explosions, pistons,
+commands or other replacement. Actual in-world item drops and LAN behavior
+remain unverified. Do not use open/close as a recovery procedure for opaque or
+unexplained data.
+
+Run the source-based Rust fixtures with:
 `HORIZON_HOST=/path/to/clean/pinned/horizon bash tconstruct/tests/run_machine_destroy_guard_rust.sh`.
-It requires the pinned host revision, Rust/Cargo and its cached dependencies,
-checks dependency identities against the host lockfile, and verifies that both
-close-lifecycle tests actually ran. It does not type-check the injected game
-hooks or exercise world/LAN behavior. The close-lifecycle candidate has only
-passed Python wiring checks in the current environment; its Rust fixtures
-have not been executed here.
+The runner requires the pinned host, Rust/Cargo and cached dependencies, checks
+dependency identities against the host lockfile, and verifies selected test
+names so a zero-test run cannot pass. The suite exercises real item/NBT codecs,
+host overlay/canonicalization, the decode adapter and store/CAS code in a
+minimal world fixture. These tests pass; they are not a real world/LAN test or
+a substitute for type-checking the full injected host.

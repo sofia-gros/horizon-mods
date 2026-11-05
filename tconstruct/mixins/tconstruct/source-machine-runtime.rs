@@ -75,6 +75,7 @@ fn damaged_recipe(game: &super::Game<'_>, stack: &horizon_items::items::ItemStac
 /// Update the current candidate and capacity from loaded world blocks. Items
 /// displaced by shrinking are spilled only after the state update commits.
 pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
+    super::tconstruct_source_machine_projection_world::capture_legacy(&mut game.world, pos);
     let bounds = super::tconstruct_source_smeltery_world::detect(game, pos);
     super::tconstruct_source_smeltery_world::claim(game, pos, bounds);
     let Some(saved) = store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
@@ -234,6 +235,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
         if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
             *live = super::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
         }
     }
 }
@@ -454,12 +456,19 @@ pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool 
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
     if game.world.block_entities.get(&pos).is_some_and(|entity| !matches!(entity, BlockEntity::Chest(_))) { return false; }
     if game.world.block_entities.get(&pos).is_none() { store::clear_different(&mut game.world, pos, kind); }
+    let fresh_smeltery = kind == "tconstruct:smeltery" && store::read_outer(&game.world, pos).is_none()
+        && game.world.block_entities.get(&pos).is_none();
     if store::read(&game.world, pos, kind).is_none() {
         let Some(data) = initial(kind) else { return false; };
         if !store::write(&mut game.world, pos, kind, data) { return false; }
     }
-    let slots = match kind { "tconstruct:casting_tank" => 2, "tconstruct:fluid_cannon" => 1, _ => 27 };
+    let slots = match kind { "tconstruct:smeltery" => 54, "tconstruct:casting_tank" => 2, "tconstruct:fluid_cannon" => 1, _ => 27 };
     game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None; slots]));
+    if fresh_smeltery {
+        let Some(raw) = store::read_outer(&game.world, pos) else { return false; };
+        let Some(updated) = super::tconstruct_source_machine_destroy_guard::retire_outer(&raw) else { return false; };
+        if !store::replace_outer(&mut game.world, pos, &raw, updated) { return false; }
+    }
     game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
     true
 }

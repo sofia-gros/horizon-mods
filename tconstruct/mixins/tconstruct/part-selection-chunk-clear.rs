@@ -56,7 +56,6 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().clear();
     chunks.__horizon_mixins_tconstruct_smeltery_ui_menu_state_mut().clear();
     chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().clear();
-    chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().clear();
     chunks.__horizon_mixins_tconstruct_smeltery_ui_dragging_mut().clear();
     *chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = None;
     *chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = None;

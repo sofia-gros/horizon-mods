@@ -1,5 +1,4 @@
 fn clear_part_selection_on_unload(chunks: &mut crate::chunk_map::ChunkMap, chunk: &(i32,i32)) {
-    chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().retain(|(x, _, z)| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_info_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
