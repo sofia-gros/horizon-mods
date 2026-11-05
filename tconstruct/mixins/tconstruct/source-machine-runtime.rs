@@ -1409,11 +1409,12 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Preserve machine and casting metadata while pouring from a Melter or
-/// formed Drain. Recheck the current recipe before committing a packet.
+/// Preserve machine and casting metadata while pouring from a Melter, Lantern
+/// or formed Drain. Recheck the current recipe before committing a packet.
 fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-    if !matches!(&*source_name, "tconstruct:seared_melter" | "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
+    if !matches!(&*source_name, "tconstruct:seared_melter" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern"
+        | "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if !super::tconstruct_source_melter_state::is_casting_block(&target_name) { return None; }
     if source == target || source == pos || target == pos { return Some(false); }
@@ -1424,6 +1425,13 @@ fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target:
         let Some(state) = super::tconstruct_source_melter_state::Melter::from_nbt(&raw) else { return Some(false); };
         if raw.get("tank") != Some(&state.tank.to_nbt()) { return Some(false); }
         (source, "tconstruct:melter", None, raw, state.tank)
+    } else if matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        // Route-local adapter: Lanterns are not multiblock fuel tanks.
+        if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
+        let Some(raw) = store::read(&game.world, source, "tconstruct:lantern") else { return Some(false); };
+        let Some(tank) = Tank::from_nbt(&raw, 50) else { return Some(false); };
+        if tank.to_nbt() != raw { return Some(false); }
+        (source, "tconstruct:lantern", None, raw, tank)
     } else {
         let Some((controller, state, raw)) = validated_drain(game, source) else { return Some(false); };
         if [source, target, pos].contains(&controller) { return Some(false); }
@@ -1457,6 +1465,8 @@ fn machine_to_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target:
     let next_controller = if let Some(state) = &mut smeltery {
         if !apply_smeltery_take(state, &before, &input) { return Some(false); }
         patch_smeltery_controller_tank(&raw_controller, state)
+    } else if source_key == "tconstruct:lantern" {
+        Some(input.to_nbt())
     } else {
         // Melter items, fuel and progress remain byte-for-byte unchanged.
         super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_controller, &input)
