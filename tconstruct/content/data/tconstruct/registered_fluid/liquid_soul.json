@@ -1,0 +1,38 @@
+{
+  "source": "tconstruct:liquid_soul",
+  "flowing": "tconstruct:flowing_liquid_soul",
+  "block": "tconstruct:liquid_soul_fluid",
+  "bucket": "tconstruct:liquid_soul_bucket",
+  "policy": {
+    "drop_off": 8,
+    "slope_distance": 8,
+    "tick_delay": 30,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/slime/soul/still",
+    "flowing": "tconstruct:fluid/slime/soul/flowing",
+    "tint": 16777215,
+    "emission": 2
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": null,
+    "effect": {
+      "id": "minecraft:blindness",
+      "duration_ticks": 100,
+      "amplifier": 0
+    }
+  }
+}

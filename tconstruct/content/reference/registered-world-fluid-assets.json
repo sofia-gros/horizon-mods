@@ -832,6 +832,54 @@
     "assets/tconstruct/textures/fluid/molten/glass/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/glass/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/slime/venom/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/venom/still.png",
+      "sha256": "1c8435b7d9e6c177e21495bddc70063a563c5fe671004bc09294d0f9537ba385"
+    },
+    "assets/tconstruct/textures/fluid/slime/venom/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/venom/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/slime/venom/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/venom/flowing.png",
+      "sha256": "6c8fc54437eac7cfafbed1e5f17f3c62dbbe611100f7e56c8026144db1ad0f1c"
+    },
+    "assets/tconstruct/textures/fluid/slime/venom/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/venom/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/food/honey/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/honey/still.png",
+      "sha256": "ea40e60ff9599893dd674e2f9123f9a14b5ccda5be9e952273baf41131de57a8"
+    },
+    "assets/tconstruct/textures/fluid/food/honey/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/honey/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/food/honey/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/honey/flowing.png",
+      "sha256": "5c9e443ec878d7f3a06d420b282fe7b2570dda77927cecb435738650fe6e64fe"
+    },
+    "assets/tconstruct/textures/fluid/food/honey/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/food/honey/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/slime/soul/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/soul/still.png",
+      "sha256": "217c73d99e615c557be2c78b54d0af831d5ab04bcc11f6c18bc0e52b1e13189e"
+    },
+    "assets/tconstruct/textures/fluid/slime/soul/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/soul/still.png.mcmeta",
+      "sha256": "a13695c99e26d22baef4caa3fa7283578b579f861f346c153499ca66a99aa0f1"
+    },
+    "assets/tconstruct/textures/fluid/slime/soul/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/soul/flowing.png",
+      "sha256": "83407550959d4c8700dcb4102256195f3defc5cfe29dbaa3a1268a58fd6dd13a"
+    },
+    "assets/tconstruct/textures/fluid/slime/soul/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/soul/flowing.png.mcmeta",
+      "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
     }
   }
 }
