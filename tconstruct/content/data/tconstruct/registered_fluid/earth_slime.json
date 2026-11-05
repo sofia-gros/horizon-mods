@@ -44,5 +44,6 @@
       "amplifier": 0,
       "no_curatives": true
     }
-  }
+  },
+  "drowning_immune_tag": "forge:slimes"
 }

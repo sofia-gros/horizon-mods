@@ -41,5 +41,6 @@
       "seconds": 8,
       "damage": 3
     }
-  }
+  },
+  "drowning_immune_tag": "forge:slimes"
 }

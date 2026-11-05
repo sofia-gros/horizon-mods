@@ -39,5 +39,6 @@
     "extinguishes": true,
     "fall_distance_scale": 0.5,
     "burn": null
-  }
+  },
+  "drowning_immune_tag": "forge:slimes"
 }
