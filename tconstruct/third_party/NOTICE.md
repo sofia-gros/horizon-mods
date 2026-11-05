@@ -156,3 +156,10 @@ Eleven Seared machinery recipe-unlock advancements are adapted from
 Exact source paths and native recipe-ID adaptations are listed in
 `docs/seared-recipe-unlocks.md`. Copyright (c) 2022 SlimeKnights; MIT license,
 see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The twelve Scorched machinery recipe-unlock advancement fixtures are copied
+from Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, under
+`src/generated/resources/data/tconstruct/advancements/recipes/{building_blocks,decorations,redstone}/smeltery/scorched/`.
+Native advancements adapt only recipe IDs, the host recipe criterion key and
+telemetry flag. SHA-256 hashes are in `tests/fixtures/scorched_recipe_unlocks/sha256.json`.
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
