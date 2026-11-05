@@ -555,3 +555,9 @@ mod conditional_tests {
         assert!(conditional_recipe(outer, &tags, &config, &items, None).is_some());
     }
 }
+
+pub(super) fn crafting_material_allowed(world: &World, value: &serde_json::Value, material: &str) -> bool {
+    with_catalog(world, |catalog, registries, config| material_allowed(world, catalog,
+        &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false),
+        Some(value), material)).unwrap_or(false)
+}
