@@ -170,3 +170,11 @@ The ordinary modifier guide fixture copies twenty-three recipes and four modifie
 tags from the same pinned source archives; exact paths are recorded in `tests/fixtures/ordinary-modifier-guides.json`.
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
 The partial labels and generated recipe text are port adaptations.
+
+
+Mighty Smelting's seven broad-tool page files under
+`assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_*.json`
+(Broad Axe, Cleaver, Excavator, Longbow, Scythe, Sledge Hammer and Vein Hammer)
+are copied verbatim from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools).
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+The partial-coverage notices and bounded reader eligibility checks are port adaptations.
