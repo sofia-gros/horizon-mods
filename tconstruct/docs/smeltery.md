@@ -51,3 +51,21 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Casting Tank to Fluid Cannon
+
+The existing Faucet-to-Cannon supply route also accepts a Seared Casting Tank
+as its source. Supply remains limited to untagged fluid. A waiting source
+container is reprocessed after reserving fluid, on copies of the machine state.
+The source tank and slots, Faucet packet and Cannon fluid are committed together;
+live source slots and comparator notifications update only after that succeeds.
+The Cannon's item is unchanged. Block states, loaded chunks, saved data and both
+machines' live inventories are rechecked after source processing.
+
+An already-reserved untagged packet can finish if source reprocessing refills
+the Casting Tank with tagged fluid, but new tagged packets wait. This does not
+implement Cannon firing or arbitrary FluidHandler support. Focused regression
+cases are added for later execution; only brief static review was performed in
+this phase. Build, gameplay, save/reload, LAN and disk/network atomicity remain
+unverified. Existing source-removal and target-change fallbacks are unchanged.
