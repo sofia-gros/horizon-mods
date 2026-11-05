@@ -19,7 +19,7 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
         if !tags.get(tag)?.contains(stack.item.as_ref()) { return None; }
     }
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
-    let mut active = traits.levels;
+    let mut active = traits.levels.clone();
     let custom = stack.data()?.other("minecraft:custom_data")?;
     match custom.get("tic_upgrades") {
         None => (),
@@ -45,11 +45,16 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
             super::tconstruct_tanned_wear::loss(raw, 1, level, None)?;
         } else if id == "tconstruct:dense" {
             if !super::tconstruct_dense_armor_wear::supported(&value) { return None; }
+        } else if id == "tconstruct:reinforced" || id == "tconstruct:unbreakable" {
+            if !super::tconstruct_reinforced_armor_wear::supported(&id, &value) { return None; }
         } else if !super::tconstruct_armor_wear_definitions::supported(&id, &value) {
             // Every other active modifier must have no durability hook.
             return None;
         }
     }
+    // Validate bypass tags and equal-priority order in record/commit as well
+    // as pre-wear. An unresolved plan must never fall back to raw writeback.
+    super::tconstruct_reinforced_armor_wear::plan(raw, stack, &traits)?;
     Some(slot)
 }
 
@@ -62,13 +67,12 @@ pub(super) fn pre_native_loss(game: &mut super::Game<'_>, stack: &ItemStack, amo
     supported(game, stack)?;
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     let tanned = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tanned")?;
-    let dense = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:dense")?;
     let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
-    // Source priority 200 precedes Dense's default priority 100. Draw only for
-    // points left by Tanned; record/commit validation never rolls again.
+    let plan = super::tconstruct_reinforced_armor_wear::plan(raw, stack, &traits)?;
+    // Tanned200, Unbreakable125, then Dense/Reinforced100 in insertion order.
     let amount = super::tconstruct_tanned_wear::loss(raw, amount, tanned, None)?;
     use horizon_core::random::RandomSource;
-    Some(super::tconstruct_dense_armor_wear::reduce(amount, dense, || game.world.random.next_float()))
+    Some(super::tconstruct_reinforced_armor_wear::reduce(amount, plan, || game.world.random.next_float()))
 }
 
 pub(super) fn record(game: &mut super::Game<'_>, stack: &ItemStack, loss: u32) {

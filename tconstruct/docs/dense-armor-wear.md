@@ -1,5 +1,9 @@
 # Dense ordinary armor wear
 
+The subsequent [Reinforced/Unbreakable extension](reinforced-armor-wear.md) adds
+those hooks and preserves Dense/Reinforced insertion order at equal priority.
+The remaining exclusions below are unchanged.
+
 Partial high-priority #379 durability implementation, stacked on Tanned armor
 wear #925 and retained armor writeback #923.
 
