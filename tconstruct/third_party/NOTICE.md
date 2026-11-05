@@ -138,6 +138,13 @@ Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`. Native icon/recipe formats and the
 partial-edition notice are port adaptations.
 
+The seven Grout/Nether Grout, brick-smelting and Puny Smelting recipe-unlock
+advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes).
+`docs/grout-recipe-unlocks.md` lists source paths and native adaptations.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`.
+
 Honey Bottle draining follows MIT-licensed Mantle
 [honey_bottle_empty.json](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/generated/resources/data/mantle/mantle/fluid_transfer/honey_bottle_empty.json).
 The pinned fixture is retained in `tests/fixtures/fluid-transfer/`.

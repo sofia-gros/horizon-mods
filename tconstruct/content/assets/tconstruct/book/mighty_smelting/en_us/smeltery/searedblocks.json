@@ -1,0 +1,18 @@
+{
+  "title": "Seared Blocks",
+  "item": "tconstruct:seared_bricks",
+  "text": [
+    {
+      "text": "Under the default structure rules, full Seared Blocks such as Seared Bricks can form either the floor or walls of a smeltery. Decorative slabs, stairs and walls are not substitutes for those full blocks.",
+      "paragraph": true
+    },
+    {
+      "text": "To make Seared Bricks, craft one Clay Ball, one Sand or Red Sand, and one Gravel into two Grout. Smelt each Grout in a furnace to obtain one Seared Brick, then arrange four Seared Bricks in a 2\u00d72 square to make one Seared Bricks block.",
+      "paragraph": true
+    },
+    {
+      "text": "This page shows Seared Bricks as a representative icon, not the original cycling block-tag display. Datapacks may change valid structure blocks or recipe ingredients. The recipes are implemented; actual crafting, building, save/reload and LAN remain unverified.",
+      "paragraph": true
+    }
+  ]
+}
