@@ -1,14 +1,31 @@
 use super::tconstruct_world::World;
 
 pub(super) fn supported_definition(world: &World) -> bool {
+    supported_target_definition(world, "smite", "undead")
+}
+
+pub(super) fn supported_antiaquatic_definition(world: &World) -> bool {
+    supported_target_definition(world, "antiaquatic", "water")
+}
+
+fn supported_target_definition(world: &World, id: &str, mob_type: &str) -> bool {
     let Some(raw) = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()
         .and_then(|raw| raw.as_ref().ok()) else { return false; };
-    let Some(bytes) = raw.0.get("tconstruct:tinkering/modifiers/smite").and_then(|layers| layers.last()) else { return false; };
+    let Some(bytes) = raw.0.get(&format!("tconstruct:tinkering/modifiers/{id}")).and_then(|layers| layers.last()) else { return false; };
     serde_json::from_slice::<serde_json::Value>(bytes).ok().is_some_and(|value|
         value == serde_json::json!({"level_display":"tconstruct:default", "modules":[{
             "type":"tconstruct:conditional_melee_damage", "each_level":2.0, "percent":false,
-            "target":{"type":"mantle:mob_type", "mobs":"minecraft:undead"}
+            "target":{"type":"mantle:mob_type", "mobs":format!("minecraft:{mob_type}")}
         }]}))
+}
+
+/// Java MobType.WATER is a type classification, not wetness or swimming.
+/// Use the twelve vanilla source types; custom/newer entities remain closed.
+pub(super) fn water_mob(id: &str) -> bool {
+    matches!(id.strip_prefix("minecraft:").unwrap_or(id),
+        "cod" | "salmon" | "pufferfish" | "tropical_fish" | "tadpole"
+        | "dolphin" | "squid" | "glow_squid" | "guardian" | "elder_guardian"
+        | "axolotl" | "turtle")
 }
 
 pub(super) fn effective_level(trait_level: i32, amount: i32) -> Option<f32> {
@@ -33,4 +50,16 @@ mod tests {
         assert_eq!(effective_level(0,26), None);
         assert_eq!(effective_level(i32::MAX,1), None);
     }
+    #[test]
+    fn water_type_includes_amphibious_source_types_but_not_wet_undead() {
+        for id in ["cod","salmon","pufferfish","tropical_fish","tadpole","dolphin","squid",
+            "glow_squid","guardian","elder_guardian","axolotl","turtle"] {
+            assert!(water_mob(id));
+            assert!(water_mob(&format!("minecraft:{id}")));
+            assert!(!water_mob(&format!("custom:{id}")));
+        }
+        for id in ["minecraft:drowned","minecraft:frog","minecraft:player","minecraft:zombie",
+            "minecraft:creeper","minecraft:happy_ghast"] { assert!(!water_mob(id)); }
+    }
+
 }
