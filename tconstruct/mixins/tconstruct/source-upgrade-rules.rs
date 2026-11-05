@@ -17,14 +17,65 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:blockade", 10),
 ];
+
+// Blockade stores applied panes, not whole levels, in the incremental record.
+fn blockade_recipe() -> Value {
+    serde_json::json!({"type":"tconstruct:incremental_modifier", "allow_crystal":true,
+        "amount_per_item":1, "input":{"item":"tconstruct:obsidian_pane"},
+        "level":{"max":3}, "needed_per_level":10, "result":"tconstruct:blockade",
+        "slots":{"upgrades":1}, "tools":{"type":"forge:intersection","children":[
+            {"tag":"tconstruct:modifiable/interactable/charge"},
+            {"tag":"tconstruct:modifiable/durability"}]}})
+}
+pub(super) fn blockade_level(tool: &ItemStack, trait_level: i32) -> Option<f32> {
+    if trait_level < 0 { return None; }
+    let saved = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+    let amount = match saved {
+        None => 0,
+        Some(tag @ Tag::Compound(_)) => match tag.get("tconstruct:blockade") {
+            None => 0,
+            Some(Tag::Int(amount)) if (0..=30).contains(amount) => *amount,
+            _ => return None,
+        },
+        _ => return None,
+    };
+    Some(trait_level as f32 + amount as f32 / 10.0)
+}
+fn blocking_requirement(tool: &ItemStack, traits: &BTreeMap<String, i32>) -> bool {
+    let saved = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+    ["tconstruct:blocking", "tconstruct:parrying"].into_iter().any(|id| {
+        let upgrade = match saved.and_then(|v| v.get(id)) {
+            None => 0,
+            Some(Tag::Int(n)) if *n >= 0 => *n,
+            _ => return false,
+        };
+        let level = traits.get(id).copied().unwrap_or(0);
+        level >= 0 && level.checked_add(upgrade).is_some_and(|v| v > 0)
+    })
+}
+pub(super) fn valid_blockade(tool: &ItemStack, traits: &BTreeMap<String, i32>) -> bool {
+    blockade_level(tool, traits.get("tconstruct:blockade").copied().unwrap_or(0))
+        .is_some_and(|level| level == 0.0 || blocking_requirement(tool, traits))
+}
+pub(super) fn known_blockade_definition(bytes: Option<&[u8]>) -> bool {
+    bytes.and_then(|b| serde_json::from_slice::<serde_json::Value>(b).ok()).is_some_and(|v|
+        v == serde_json::json!({"level_display":"tconstruct:default","modules":[
+            {"type":"tconstruct:stat_boost","each_level":1.0,"operation":"multiply_base","stat":"tconstruct:block_amount"},
+            {"type":"tconstruct:requirements","display_modifiers":[{"level":1,"name":"tconstruct:blocking"}],
+             "requirement":{"type":"mantle:or","predicates":[
+                {"type":"tconstruct:has_modifier","check":"all","modifier":{"type":"tconstruct:single","modifier":"tconstruct:blocking"}},
+                {"type":"tconstruct:has_modifier","check":"all","modifier":{"type":"tconstruct:single","modifier":"tconstruct:parrying"}}]},
+             "translation_key":"modifier.tconstruct.blockade.requirements"}]}))
+}
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
 const BONUS_SLOTS: [(&str, i32, i32); 8] = [
@@ -132,6 +183,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
+    if !valid_blockade(tool, traits) { return false; }
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
     used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
@@ -145,7 +197,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:blockade" || blockade_level(tool,0).is_some()) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -166,7 +218,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -184,7 +236,7 @@ pub(super) fn extract_upgrade_with_traits(
         if netherite < 1 || reinforced < 5 { return None; }
     }
     let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, input)| input.as_ref().map(|input| (i + 1, input))).collect();
-    if present.len() != 2 { return None; }
+    if present.len() != 2 || present.iter().any(|(_, stack)| stack.count == 0) { return None; }
     let slime = present.iter().find(|(_, item)| &*item.item == "tconstruct:sky_slime_crystal")?.0;
     let sponge = present.iter().find(|(_, item)| &*item.item == "minecraft:wet_sponge")?.0;
     let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
@@ -209,7 +261,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_hydraulic_amount(tool) { return None; }
+    if blockade_level(tool, 0).is_none() || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -223,6 +275,8 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:blockade" && (value != blockade_recipe() || tool.count != 1
+            || !blocking_requirement(tool, traits) || inputs.iter().flatten().any(|stack| stack.count == 0)) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
@@ -1462,4 +1516,74 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod blockade_acquisition_tests {
+    use super::*;
+    fn recipes() -> BTreeMap<String, Vec<u8>> {
+        BTreeMap::from([("blockade".into(), serde_json::to_vec(&blockade_recipe()).unwrap())])
+    }
+    fn tags() -> HashMap<String, HashSet<String>> {
+        ["tconstruct:modifiable", "tconstruct:modifiable/durability", "tconstruct:modifiable/interactable/charge"]
+            .into_iter().map(|tag| (tag.into(), HashSet::from(["tconstruct:travelers_shield".into()]))).collect()
+    }
+    fn traits() -> BTreeMap<String, i32> { BTreeMap::from([("tconstruct:blocking".into(), 1)]) }
+    fn saved(value: Tag) -> ItemStack {
+        let mut tool = ItemStack::new("tconstruct:travelers_shield", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:blockade", value)]))])));
+        tool
+    }
+    fn panes(n: u32) -> [Option<ItemStack>; 1] { [Some(ItemStack::new("tconstruct:obsidian_pane", n))] }
+    #[test]
+    fn incremental_progress_slots_cap_and_requirement() {
+        let tool = saved(Tag::Int(0)); let recipes = recipes(); let tags = tags(); let traits = traits();
+        let plan = plan_with_traits(&recipes, &tags, &tool, &panes(64), 1, 0, &traits).unwrap();
+        assert_eq!((plan.amount, plan.consumed), (10, vec![(0, 1), (1, 10)]));
+        let half = saved(Tag::Int(5));
+        assert_eq!(plan_with_traits(&recipes, &tags, &half, &panes(64), 1, 0, &traits).unwrap().amount, 10);
+        assert!(plan_with_traits(&recipes, &tags, &saved(Tag::Int(10)), &panes(1), 1, 0, &traits).is_none());
+        assert_eq!(plan_with_traits(&recipes, &tags, &saved(Tag::Int(20)), &panes(64), 3, 0, &traits).unwrap().amount, 30);
+        assert!(plan_with_traits(&recipes, &tags, &saved(Tag::Int(30)), &panes(1), 9, 0, &traits).is_none());
+        assert!(plan_with_traits(&recipes, &tags, &tool, &panes(1), 3, 0, &BTreeMap::new()).is_none());
+        let parrying = BTreeMap::from([("tconstruct:parrying".into(), 1)]);
+        assert!(plan_with_traits(&recipes, &tags, &tool, &panes(1), 1, 0, &parrying).is_some());
+        assert!(valid_slots(&half, &traits, 1, 0));
+        assert!(!valid_slots(&half, &traits, 0, 0));
+        assert!(!valid_slots(&half, &BTreeMap::new(), 1, 0));
+        assert_eq!(blockade_level(&half, 2), Some(2.5));
+    }
+    #[test]
+    fn crystal_round_trip_preserves_partial_progress() {
+        let tags = tags(); let traits = traits(); let tool = saved(Tag::Int(15));
+        let inputs = [Some(ItemStack::new("tconstruct:sky_slime_crystal", 1)), Some(ItemStack::new("minecraft:wet_sponge", 1))];
+        let extraction = extract_upgrade_with_traits(&tags, &tool, &inputs, "tconstruct:blockade", &traits).unwrap();
+        assert_eq!(extraction.upgrade.amount, 5);
+        assert_eq!(&*extraction.sponge.item, "minecraft:sponge");
+        let crystal = extraction.upgrade.leftover.unwrap();
+        let half = saved(Tag::Int(5));
+        let plan = plan_with_traits(&recipes(), &tags, &half, &[Some(crystal.clone())], 2, 0, &traits).unwrap();
+        assert_eq!(plan.amount, 15);
+        assert!(plan_with_traits(&recipes(), &tags, &half, &[Some(crystal.clone())], 1, 0, &traits).is_none());
+        assert!(extract_upgrade_with_traits(&tags, &half, &inputs, "tconstruct:blockade", &traits).is_none());
+        let mut empty = crystal; empty.count = 0;
+        assert!(plan_with_traits(&recipes(), &tags, &half, &[Some(empty)], 3, 0, &traits).is_none());
+    }
+    #[test]
+    fn malformed_amounts_tags_and_recipe_overrides_fail_closed() {
+        for bad in [Tag::Int(-1), Tag::Int(31), Tag::String("1".into())] {
+            let tool = saved(bad);
+            assert!(blockade_level(&tool, 0).is_none());
+            assert!(plan_with_traits(&recipes(), &tags(), &tool, &panes(1), 9, 0, &traits()).is_none());
+            assert!(!extractable(&tool).contains(&"tconstruct:blockade"));
+        }
+        let tool = saved(Tag::Int(0)); let mut missing = tags(); missing.remove("tconstruct:modifiable/interactable/charge");
+        assert!(plan_with_traits(&recipes(), &missing, &tool, &panes(1), 9, 0, &traits()).is_none());
+        let mut changed = blockade_recipe(); changed["needed_per_level"] = serde_json::json!(5);
+        let changed = BTreeMap::from([("blockade".into(), serde_json::to_vec(&changed).unwrap())]);
+        assert!(plan_with_traits(&changed, &tags(), &tool, &panes(1), 9, 0, &traits()).is_none());
+        assert!(!known_blockade_definition(None));
+        assert!(!known_blockade_definition(Some(b"{}")));
+    }
 }

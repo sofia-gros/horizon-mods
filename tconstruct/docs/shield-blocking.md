@@ -14,7 +14,8 @@ unpublished armor-protection and Overshield damage-stage work.
   direction, matching `InteractionHandler`; absent or coincident sources fail.
 - Positive live Blocking is required. Blockade's supported source definition
   multiplies base block amount by `1 + level`, capped at 2048. Traits and saved
-  upgrades are combined once. This does not add a Blockade acquisition recipe.
+  upgrades are combined once. Incremental acquisition and fractional saved progress are documented in
+  [Blockade acquisition](blockade-acquisition.md).
 - Native damage-type bypass and piercing rules remain, as do nonbreaking-hit
   sounds, partial-hit knockback, projectile handling and axe disabling.
 - Damage actually blocked, not incoming damage, costs `1 + floor(blocked)` wear

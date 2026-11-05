@@ -87,7 +87,8 @@ pub(super) fn assemble(world: &super::tconstruct_world::World, definition: &[u8]
         super::tconstruct_source_material_effects::store_trait_order(&mut output, &order)?;
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
-    if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels) { return None; }
+    if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels)
+        || !super::tconstruct_source_upgrade_rules::valid_blockade(&output, &levels) { return None; }
     super::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/armor/worn"))?;
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
@@ -554,6 +555,14 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
+    if plan.id == "tconstruct:blockade" {
+        // Do not approve requirements from an absent trait snapshot or a
+        // replacement definition with different requirements/stat semantics.
+        super::tconstruct_source_material_traits::levels(world, tool)?;
+        let raw = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
+        if !super::tconstruct_source_upgrade_rules::known_blockade_definition(
+            raw.0.get("tconstruct:tinkering/modifiers/blockade").and_then(|layers| layers.last()).map(Vec::as_slice)) { return None; }
+    }
     if plan.id == "tconstruct:necrotic"
         && !tags.get("tconstruct:modifiable/melee/weapon").is_some_and(|items| items.contains(tool.item.as_ref()))
     {

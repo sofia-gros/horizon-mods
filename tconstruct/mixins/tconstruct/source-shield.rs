@@ -11,8 +11,8 @@ pub(super) fn stock(item: &str) -> bool {
         "tconstruct:travelers_shield" | "tconstruct:plate_shield" | "tconstruct:battlesign"
     )
 }
-pub(super) fn stats(bytes: &[u8], blockade: i32) -> Option<Stats> {
-    if blockade < 0 {
+pub(super) fn stats(bytes: &[u8], blockade: f32) -> Option<Stats> {
+    if !blockade.is_finite() || blockade < 0.0 {
         return None;
     }
     let definition: serde_json::Value = serde_json::from_slice(bytes).ok()?;
@@ -53,8 +53,7 @@ pub(super) fn stats(bytes: &[u8], blockade: i32) -> Option<Stats> {
         value.is_finite().then_some(value)
     };
     Some(Stats {
-        amount: (number("tconstruct:block_amount", 5.0)? * (1.0 + blockade as f32))
-            .clamp(0.0, 2048.0),
+        amount: (number("tconstruct:block_amount", 5.0)? * (1.0 + blockade)).clamp(0.0, 2048.0),
         angle: number("tconstruct:block_angle", 120.0)?.clamp(0.0, 180.0),
         speed: number("tconstruct:use_item_speed", 0.2)?.clamp(0.0, 1.0),
     })
@@ -129,14 +128,16 @@ mod tests {
     fn block_amount_is_flat_capped_and_blockade_multiplies_base() {
         let b=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:block_amount":10.0,"tconstruct:block_angle":90.0,"tconstruct:use_item_speed":0.8}}]}"#;
         assert_eq!(
-            stats(b, 2),
+            stats(b, 2.0),
             Some(Stats {
                 amount: 30.0,
                 angle: 90.0,
                 speed: 0.8
             })
         );
-        assert_eq!(stats(b, 1000).unwrap().amount, 2048.0);
-        assert!(stats(b, -1).is_none());
+        assert_eq!(stats(b, 0.5).unwrap().amount, 15.0);
+        assert!(stats(b, f32::NAN).is_none());
+        assert_eq!(stats(b, 1000.0).unwrap().amount, 2048.0);
+        assert!(stats(b, -1.0).is_none());
     }
 }

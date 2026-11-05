@@ -59,12 +59,16 @@ pub(super) fn stats(game: &Game<'_>, stack: &ItemStack) -> Option<rule::Stats> {
     {
         return None;
     }
-    let blockade = super::tconstruct_source_material_traits::level_with_upgrade(
+    let blockade = super::tconstruct_source_upgrade_rules::blockade_level(
         stack,
-        &traits,
-        "tconstruct:blockade",
+        traits
+            .levels
+            .get("tconstruct:blockade")
+            .copied()
+            .unwrap_or(0),
     )?;
-    if blockade > 0 && !rule::known_blockade(definition("tconstruct:tinkering/modifiers/blockade"))
+    if blockade > 0.0
+        && !rule::known_blockade(definition("tconstruct:tinkering/modifiers/blockade"))
     {
         return None;
     }
