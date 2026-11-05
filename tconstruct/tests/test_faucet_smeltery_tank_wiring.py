@@ -17,5 +17,13 @@ class FaucetSmelteryTankWiring(unittest.TestCase):
         self.assertIn("patch_smeltery_controller_tank(&raw_controller, &smeltery)", old_tick)
         self.assertNotIn('smeltery.to_nbt()', old_tick)
 
+    def test_lantern_drain_input_uses_local_capacity_and_guarded_save(self):
+        route = RUNTIME.read_text().split('fn tank_to_smeltery(', 1)[1]
+        self.assertIn('"tconstruct:seared_lantern" | "tconstruct:scorched_lantern"', route)
+        self.assertIn('Some(("tconstruct:lantern", 50))', route)
+        self.assertIn('if tank.to_nbt() != *source_tank', route)
+        self.assertIn('patch_smeltery_controller_tank(&raw_controller, &smeltery)', route)
+        self.assertIn('capacity != smeltery.tank.capacity', route)
+
 if __name__ == '__main__':
     unittest.main()

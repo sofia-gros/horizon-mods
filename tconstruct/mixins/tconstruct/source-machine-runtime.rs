@@ -1416,7 +1416,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Fill a formed Smeltery/Foundry through its Drain from a supported tank or Melter.
+/// Fill a formed Smeltery/Foundry through its Drain from a supported tank, Melter or Lantern.
 /// The destination proxy represents only the offered layer and available
 /// total capacity, so unrelated fluids never prevent a compatible fill.
 fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
@@ -1436,6 +1436,9 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         Some(("tconstruct:casting_tank", 4000))
     } else if &*source_name == "tconstruct:seared_melter" {
         Some(("tconstruct:melter", super::tconstruct_source_melter_state::MELTER_CAPACITY))
+    } else if matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        // Route-local capability: Lanterns are not multiblock fuel tanks.
+        Some(("tconstruct:lantern", 50))
     } else { super::tconstruct_source_faucet_tank::tank_kind(&source_name) };
     let mut input = if let Some((key, capacity)) = source_kind {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
