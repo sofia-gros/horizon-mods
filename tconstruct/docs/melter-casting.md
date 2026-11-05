@@ -189,3 +189,19 @@ checks were added. The fixture uses mocked world/storage/ensure behavior, covers
 fuel and ingot capacities and failed persistence, and does not execute guest packets.
 No tests were run. Actual host/UI, reload, LAN and generic inventory/tick writes
 remain separate or unverified.
+
+
+### Temporary fluid-container slot commits (#379)
+
+The six local/guest temporary-container paths now use the tank-only preserving
+controller codec: pickup, quick extraction to player inventory and quick insertion
+from player inventory. They compare the original raw snapshot before writing and
+retain the existing persistence-before-inventory ordering. Guest quick-extraction
+failure still restores the original temporary-slot projection. Controller inventory,
+progress, fuel and native fluid-row extensions are no longer canonicalized by these
+tank-only changes.
+
+Two production container-helper/codec cases and six-path wiring checks were added,
+including output pickup followed by reprocessing. These are not complete local-menu
+or guest packet execution fixtures. No tests were run. Normal melting-slot edits,
+generic guest writes, machine ticks and actual host/UI/reload/LAN remain separate.

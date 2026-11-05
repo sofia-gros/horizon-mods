@@ -231,3 +231,26 @@ fn direct_fixture(draining:bool,fuel_block:usize)->Game<'static>{
   assert!(result.is_none());assert_eq!(game.world.data,data);assert_eq!(game.world.raw,raw);assert_eq!(carried,previous);assert_eq!(game.world.writes,0);
  }}
 }
+
+
+#[test]fn fluid_slot_pickup_and_quick_input_preserve_machine_metadata(){
+ use tconstruct_source_fluid_container::{click_with_color,quick_input_with_color,transfer_selected_with_color,Direction};
+ for quick in [false,true]{let mut game=fixture("minecraft:stone",2000);extended_controller(&mut game);extend_drain_tank(&mut game,true);
+  let raw=game.world.raw.clone();let mut state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&raw).unwrap();
+  let mut containers=[None,None];let mut carried=Some(ItemStack::new("minecraft:water_bucket",3));
+  if quick{assert!(quick_input_with_color(&mut containers,&mut carried,&|_|true,false));}else{assert!(click_with_color(&mut containers,&mut carried,0,false,&|_|true,false));}
+  assert!(transfer_selected_with_color(&mut state.tank,&mut containers,Direction::Auto,None,&|_|true,&|_|true,None,false));
+  let saved=state.tank_to_nbt_preserving(&raw).unwrap();assert_eq!(saved.get("slots"),raw.get("slots"));assert_eq!(saved.get("progress"),raw.get("progress"));assert_eq!(saved.get("future"),raw.get("future"));
+  assert_eq!(state.tank.total(),3000);assert_eq!(carried.as_ref().unwrap().count,2);assert!(containers[0].is_none());assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
+ }
+}
+#[test]fn fluid_slot_output_pickup_and_reprocessing_keep_row_extensions(){
+ use tconstruct_source_fluid_container::{click,transfer_selected_with_tags,Direction};
+ let mut game=fixture("minecraft:stone",2000);extended_controller(&mut game);extend_drain_tank(&mut game,true);
+ let raw=game.world.raw.clone();let mut state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&raw).unwrap();
+ let mut containers=[Some(ItemStack::new("minecraft:water_bucket",1)),Some(ItemStack::new("minecraft:bucket",1))];let mut carried=None;
+ assert!(click(&mut containers,&mut carried,1,false,&|_|true));assert!(transfer_selected_with_tags(&mut state.tank,&mut containers,Direction::Auto,None,&|_|true,&|_|true,None));
+ let saved=state.tank_to_nbt_preserving(&raw).unwrap();let tank=saved.get("tank").unwrap();assert_eq!(tank.get("future_tank"),Some(&Tag::Int(7)));
+ let Tag::List(rows)=tank.get("fluids").unwrap() else{panic!()};assert_eq!(rows[0].get("future_row"),Some(&Tag::Int(8)));
+ assert_eq!(saved.get("slots"),raw.get("slots"));assert_eq!(&*carried.as_ref().unwrap().item,"minecraft:bucket");assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
+}
