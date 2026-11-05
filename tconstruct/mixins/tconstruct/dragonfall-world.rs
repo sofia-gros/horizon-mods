@@ -1,4 +1,4 @@
-use super::{tconstruct_dragonfall as rule, Game};
+use super::{Game, tconstruct_dragonfall as rule};
 use horizon_core::position::BlockPos;
 use horizon_world::{
     climbing::{self, ClimbingWorld},
@@ -134,11 +134,13 @@ pub(super) fn refresh(game: &mut Game<'_>) {
     let bonus = levels(game)
         .and_then(|(_, levels)| rule::safe_fall_bonus(&levels))
         .unwrap_or(0.0);
+    let bonus = super::tconstruct_skyfall_world::safe_fall(game, bonus);
     let Some(player) = game.player.as_mut() else {
         return;
     };
     // Native safe-fall distance is the total threshold (base three), whereas
-    // TiC's attribute is a distance reduction. Add the bounded TiC contribution.
+    // TiC's attribute is a distance reduction. Project the shared, once-capped
+    // Dragonfall + Skyfall contribution using the existing transient ID.
     let _ = player.set_modifier(
         "minecraft:safe_fall_distance",
         "tconstruct:dragonfall_worn",

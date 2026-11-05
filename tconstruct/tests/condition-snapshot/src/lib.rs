@@ -195,3 +195,7 @@ mod chain_compat_tests {
 
 #[path = "../../../mixins/tconstruct/source-dragonfall.rs"]
 mod source_dragonfall;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-skyfall.rs"]
+mod tconstruct_skyfall;

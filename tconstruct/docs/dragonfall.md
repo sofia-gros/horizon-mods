@@ -27,8 +27,8 @@ noncritical damage handling. Native hit eligibility remains in the caller.
 
 ## Safe fall distance
 
-Each intact worn piece contributes `2 * level`; the combined source bonus caps
-at 100. The bonus is added as one transient native `minecraft:safe_fall_distance`
+Each intact worn piece contributes `2 * level`; with the Skyfall extension,
+its contribution shares the same source bonus cap of 100. See `skyfall.md`. The bonus is added as one transient native `minecraft:safe_fall_distance`
 modifier. The native fall-damage consumer reads it, reducing ordinary fall damage
 through the real threshold rather than merely changing a display or tooltip.
 Equipment updates and recipe reload refresh/remove the modifier.
