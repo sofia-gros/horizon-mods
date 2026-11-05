@@ -5428,3 +5428,95 @@ target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "insatiable-damage.rs"
 bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "living", ty = "bool", value = "living" }]
+
+[[module]]
+id = "source-strong-bones"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_strong_bones"
+source = "source-strong-bones.rs"
+
+[[module]]
+id = "source-strong-bones-effect-rules"
+file = "crates/horizon-client-render/src/effects.rs"
+name = "tconstruct_strong_bones_rules"
+source = "source-strong-bones.rs"
+
+[[module]]
+id = "source-strong-bones-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_strong_bones_world"
+source = "strong-bones-world.rs"
+
+[[state]]
+id = "strong-bones-helmets"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, Option<String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "strong-bones-cure-item"
+target = "horizon_client_render::effects::EffectInstance"
+ty = "Option<String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::EffectInstance::new"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "strong-bones-pending-cure"
+target = "horizon_client_render::effects::EffectInstance"
+ty = "Option<Option<String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::EffectInstance::new"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "strong-bones-effect-begin"
+target = "horizon_client_render::effects::EffectInstance::update"
+kind = "HEAD"
+helper = "strong-bones-effect-begin.rs"
+bindings = [
+  { name = "effect", ty = "&mut crate::effects::EffectInstance", value = "&mut *self" },
+  { name = "incoming", ty = "&crate::effects::EffectInstance", value = "take" },
+]
+
+[[injection]]
+id = "strong-bones-effect-end"
+target = "horizon_client_render::effects::EffectInstance::update"
+kind = "RETURN"
+helper = "strong-bones-effect-end.rs"
+bindings = [
+  { name = "value", ty = "bool", value = "$value" },
+  { name = "effect", ty = "&mut crate::effects::EffectInstance", value = "&mut *self" },
+]
+
+[[injection]]
+id = "strong-bones-effect-downgrade"
+target = "horizon_client_render::effects::EffectInstance::downgrade"
+kind = "HEAD"
+helper = "strong-bones-effect-downgrade.rs"
+bindings = [{ name = "effect", ty = "&mut crate::effects::EffectInstance", value = "&mut *self" }]
+
+[[injection]]
+id = "strong-bones-milk-finish"
+target = "horizon_client::game::consume::Game<'_>::finish_consuming"
+kind = "TAIL"
+helper = "strong-bones-finish.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "strong-bones-helmet-change"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "TAIL"
+helper = "strong-bones-equipment.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

@@ -196,3 +196,7 @@ mod chain_compat_tests {
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/source-insatiable.rs"]
 mod tconstruct_insatiable;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-strong-bones.rs"]
+mod tconstruct_strong_bones;
