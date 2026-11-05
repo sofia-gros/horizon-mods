@@ -34,7 +34,7 @@ mod tests {
 }
 
 /// Refuse malformed durability, retained broken state, opaque wire data and
-/// stored shields. Shield/prevention-bearing armor needs its own hook chain.
+/// malformed stored shield amounts. The armor shield plan validates capacity.
 pub(super) fn valid_record(stack: &ItemStack) -> bool {
     use horizon_world::nbt::Tag;
     if stack.count != 1 || stack.wire_patch().is_some() || !stack.enchantments().is_empty() { return false; }
@@ -50,7 +50,9 @@ pub(super) fn valid_record(stack: &ItemStack) -> bool {
     for key in ["tic_broken", "Unbreakable"] {
         if !matches!(custom.get(key), None | Some(Tag::Byte(0))) { return false; }
     }
-    matches!(custom.get("tic_overslime"), None | Some(Tag::Int(0)))
+    match custom.get("tic_overslime") {
+        None => true, Some(Tag::Int(n)) => *n >= 0, _ => false,
+    }
 }
 
 /// Do not guess between nested/repeated native wear callbacks. Both the
@@ -62,6 +64,16 @@ pub(super) fn unambiguous_losses(slots: &[Option<ItemStack>; 4], losses: &[(Item
         let mut matching = losses.iter().filter(|(original, _)| original == stack);
         let (_, loss) = matching.next()?;
         matching.next().is_none().then_some((slot, *loss))
+    }).collect()
+}
+
+/// Pair the calculation and its final native return before any slot mutation.
+/// A missing/duplicate shield record must not become raw durability writeback.
+pub(super) fn paired_losses(slots: &[Option<ItemStack>; 4], losses: &[(ItemStack, u32)], shields: &[(ItemStack, u32)]) -> Vec<(usize, u32, u32)> {
+    let shields = unambiguous_losses(slots, shields);
+    unambiguous_losses(slots, losses).into_iter().filter_map(|(slot, loss)| {
+        let (_, spent) = shields.iter().find(|(index, _)| *index == slot)?;
+        Some((slot, loss, *spent))
     }).collect()
 }
 
@@ -92,12 +104,12 @@ pub(super) fn unambiguous_losses(slots: &[Option<ItemStack>; 4], losses: &[(Item
         assert!(!valid_record(&item));
         assert!(matches!(item.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_broken"), Some(Tag::Byte(1))));
     }
-    #[test] fn shielded_and_malformed_records_are_left_for_later_pipeline() {
+    #[test] fn malformed_shields_and_broken_flags_are_rejected() {
         let mut item = armor();
         item.count = 2; assert!(!valid_record(&item));
         item.count = 1;
         item.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
-            ("tic_max_damage", Tag::Int(5)), ("tic_overslime", Tag::Int(1)),
+            ("tic_max_damage", Tag::Int(5)), ("tic_overslime", Tag::Int(-1)),
         ])));
         assert!(!valid_record(&item));
         item.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([

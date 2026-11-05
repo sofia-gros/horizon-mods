@@ -1,3 +1,6 @@
+The subsequent [Overslime armor extension](overslime-armor-wear.md) adds shield
+absorption after Solar and before Unbreakable, without changing Solar draws.
+
 # Solar Powered ordinary armor wear
 
 This issue #379 slice connects Solar Powered to the retained ordinary armor-wear
