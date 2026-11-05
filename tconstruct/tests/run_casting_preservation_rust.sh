@@ -81,6 +81,8 @@ PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
 for case in \
+    'test actual_casting_failed_fluid_probe_rechecks_before_all_item_fallbacks ... ok' \
+    'test actual_casting_unchanged_probe_preserves_all_item_fallbacks ... ok' \
     'test actual_casting_held_transfers_preserve_extensions_in_all_four_blocks ... ok' \
     'test actual_casting_held_transfer_rechecks_live_saved_block_and_player_snapshots ... ok' \
     'test actual_casting_held_transfer_rejects_aliases_stale_slots_and_failed_save ... ok' \

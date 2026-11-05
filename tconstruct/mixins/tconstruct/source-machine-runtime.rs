@@ -697,7 +697,26 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
         let block_state = game.world.block(pos.0, pos.1, pos.2);
         let held_before = stack.clone();
         let creative = game.creative;
+        let Some(raw_casting) = raw_casting else { return true; };
+        let local = (game.lan.is_none(), game.lan_acting_uuid.is_none());
+        let unchanged = |game: &super::Game<'_>| {
+            if casting.to_nbt_preserving(&raw_casting).as_ref() != Some(&raw_casting)
+                || !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4))
+                || game.world.block(pos.0, pos.1, pos.2) != block_state
+                || store::read(&game.world, pos, kind).as_ref() != Some(&raw_casting)
+                || !casting_at(game, pos).is_some_and(|(fresh_kind, fresh)| fresh_kind == kind
+                    && fresh.to_nbt_preserving(&raw_casting).as_ref() == Some(&raw_casting))
+                || game.creative != creative
+                || (game.lan.is_none(), game.lan_acting_uuid.is_none()) != local
+                || !game.held().is_some_and(|held| held.count == held_before.count
+                    && held.damage == held_before.damage && held.same_item_same_components(&held_before)
+                    && super::tconstruct_source_melter_state::casting_item_save_safe(held)) { return false; }
+            true
+        };
         game.ensure_datapacks();
+        // A failed fluid probe may fall through to molding or item pickup.
+        // Validate here as well as at commit, before either path can proceed.
+        if !unchanged(game) { return true; }
         let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
@@ -728,17 +747,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             }
             // Preserve native extensions, but reject aliases, malformed owned
             // fields, lossy strings, and stale live inventory or held stacks.
-            let Some(raw_casting) = raw_casting else { return true; };
-            if casting.to_nbt_preserving(&raw_casting).as_ref() != Some(&raw_casting)
-                || !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4))
-                || game.world.block(pos.0, pos.1, pos.2) != block_state
-                || store::read(&game.world, pos, kind).as_ref() != Some(&raw_casting)
-                || !casting_at(game, pos).is_some_and(|(fresh_kind, fresh)| fresh_kind == kind
-                    && fresh.to_nbt_preserving(&raw_casting).as_ref() == Some(&raw_casting))
-                || game.creative != creative
-                || !game.held().is_some_and(|held| held.count == held_before.count
-                    && held.damage == held_before.damage && held.same_item_same_components(&held_before)
-                    && super::tconstruct_source_melter_state::casting_item_save_safe(held)) { return true; }
+            if !unchanged(game) { return true; }
             if !store::write_casting(&mut game.world, pos, kind, &next) { return false; }
             if game.creative {
                 if next.tank.amount < before { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
@@ -748,6 +757,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             } else { *game.held_mut() = slots[1].take(); }
             return true;
         }
+        if !unchanged(game) { return true; }
     }
     if casting.tank.amount != 0 || casting.recipe.is_some() { return true; }
     let held = game.held().cloned();

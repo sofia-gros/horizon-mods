@@ -151,3 +151,19 @@ and draining, and valid named/extended stacks with distinct potion layers.
 They were not run. Real inventory/menu interaction, save/reload and LAN remain
 for the final combined pass. No new fluid types or external capabilities are
 introduced by this change.
+
+### Casting item fallback after a fluid probe
+
+Datapack preparation is followed by the same exact snapshot guard whether a
+held-fluid conversion succeeds or fails. A changed block/chunk, raw casting
+state, live slot, held count/damage/components/wire data, Creative state or
+local/LAN mode consumes the interaction without applying a stale item fallback.
+The guard runs before conversion, before a successful fluid save, and before
+falling through to insertion, cast/result pickup or molding. Unchanged ordinary
+item behavior and preserving writes remain intact.
+
+The extracted production interaction fixture adds all four Table/Basin variants
+and five fallback modes, with thirteen preparation changes and unchanged controls.
+State/store/item codecs are real; recipes, portable conversion, acting hand and
+world callbacks are fixtures. Cases are added but unrun. Full host/world/LAN and
+post-save crafted-item callback behavior remain outside this change.
