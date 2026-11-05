@@ -109,6 +109,36 @@ impl Smeltery {
         Some(Tag::Compound(fields))
     }
 
+    /// Inventory-only menu commit. A page projection cannot carry unknown raw
+    /// item fields, so opaque saved slots wait instead of being reprojected.
+    pub(super) fn inventory_to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        let before = Self::from_nbt(raw)?;
+        if self.slots.len() != before.slots.len() || self.progress.len() != before.progress.len()
+            || raw.get("Items").is_some() { return None; }
+        let mut unchanged = self.clone(); unchanged.slots = before.slots.clone(); unchanged.progress = before.progress.clone();
+        if unchanged.to_nbt() != before.to_nbt() { return None; }
+        let Tag::List(raw_slots) = raw.get("slots")? else { return None; };
+        let empty = || Tag::compound(Vec::<(&str,Tag)>::new());
+        let mut slots = Vec::with_capacity(self.slots.len());
+        for (index, slot) in self.slots.iter().enumerate() {
+            let old = before.slots[index].as_ref().map(item_to_nbt).unwrap_or_else(empty);
+            if raw_slots[index] != old { return None; }
+            let next = if let Some(item) = slot {
+                if item.count == 0 || item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
+                let encoded = item_to_nbt(item); let decoded = item_from_nbt(&encoded)?;
+                if decoded.count != item.count || decoded.damage != item.damage || !decoded.same_item_same_components(item)
+                    || item_to_nbt(&decoded) != encoded { return None; }
+                encoded
+            } else { empty() };
+            if self.progress[index] != before.progress[index] && self.progress[index] != 0 { return None; }
+            slots.push(next);
+        }
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        fields.insert("slots".into(), Tag::List(slots));
+        fields.insert("progress".into(), Tag::IntArray(self.progress.clone()));
+        Some(Tag::Compound(fields))
+    }
+
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
         let mut inventory = Vec::with_capacity(slots.len());
@@ -309,5 +339,49 @@ mod tank_preservation_tests {
             7=>{assert!(state.tank.take("minecraft:lava",1000));},
             _=>unreachable!(),
         }assert!(state.tank_to_nbt_preserving(&raw).is_none());}
+    }
+}
+
+
+#[cfg(test)]
+mod inventory_preservation_tests {
+    use super::*;
+    fn fixture()->(Smeltery,Tag){
+        let mut state=Smeltery::new();state.resize(2,4000);state.slots[0]=Some(ItemStack::new("minecraft:stone",3));state.progress[0]=17;
+        assert!(state.tank.insert("minecraft:water",1000));let mut raw=state.to_nbt();
+        if let Tag::Compound(fields)=&mut raw{fields.insert("future".into(),Tag::Int(7));fields.insert("fuel_view".into(),Tag::compound([("future_fuel",Tag::Int(8))]));
+            if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("future_tank".into(),Tag::Int(9));if let Some(Tag::List(rows))=tank.get_mut(&"fluids".into()){if let Tag::Compound(row)=&mut rows[0]{row.insert("future_row".into(),Tag::Int(10));}}}
+        }
+        (Smeltery::from_nbt(&raw).unwrap(),raw)
+    }
+    #[test]
+    fn inventory_patch_preserves_all_noninventory_fields_and_progress_rules(){
+        let(mut state,raw)=fixture();assert_eq!(state.inventory_to_nbt_preserving(&raw),Some(raw.clone()));
+        state.slots[0].as_mut().unwrap().count-=1;state.slots[1]=Some(ItemStack::new("minecraft:diamond",1));
+        let saved=state.inventory_to_nbt_preserving(&raw).unwrap();let Tag::Compound(fields)=&raw else{panic!()};
+        for(key,value)in fields{if !matches!(key.to_string_lossy().as_str(),"slots"|"progress"){assert_eq!(saved.get(&key.to_string_lossy()),Some(value));}}
+        assert_eq!(saved.get("progress"),raw.get("progress"));let restored=Smeltery::from_nbt(&saved).unwrap();assert_eq!(restored.slots,state.slots);
+        state.slots[0]=None;state.progress[0]=0;assert!(state.inventory_to_nbt_preserving(&raw).is_some());
+    }
+    #[test]
+    fn inventory_patch_refuses_opaque_saved_slots_and_wire_backing(){
+        for mode in 0..4{let(mut state,mut raw)=fixture();
+            if mode<2{if let Tag::Compound(fields)=&mut raw{if let Some(Tag::List(slots))=fields.get_mut(&"slots".into()){if let Tag::Compound(item)=&mut slots[0]{item.insert("future_item".into(),Tag::Int(1));}}}if mode==1{state.slots[1]=Some(ItemStack::new("minecraft:diamond",1));}}
+            else{let item=state.slots[0].as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==3{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}}
+            assert!(state.inventory_to_nbt_preserving(&raw).is_none());
+        }
+    }
+    #[test]
+    fn inventory_patch_refuses_aliases_resize_and_unrelated_machine_changes(){
+        for mode in 0..7{let(mut state,mut raw)=fixture();match mode{
+            0=>state.fuel+=1,
+            1=>{assert!(state.tank.take("minecraft:water",1));},
+            2=>state.progress[0]=18,
+            3=>state.slots.push(None),
+            4=>state.progress.pop().map(|_|()).unwrap(),
+            5=>if let Tag::Compound(fields)=&mut raw{fields.insert("Items".into(),Tag::List(vec![]));},
+            6=>state.slots[0].as_mut().unwrap().count=0,
+            _=>unreachable!(),
+        }assert!(state.inventory_to_nbt_preserving(&raw).is_none());}
     }
 }

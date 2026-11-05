@@ -205,3 +205,22 @@ Two production container-helper/codec cases and six-path wiring checks were adde
 including output pickup followed by reprocessing. These are not complete local-menu
 or guest packet execution fixtures. No tests were run. Normal melting-slot edits,
 generic guest writes, machine ticks and actual host/UI/reload/LAN remain separate.
+
+
+### Staged melting-slot inventory commits (#379)
+
+Local quick-move, local pickup with rollback and guest quick-move now patch only
+native slots/progress in the raw controller. Tank rows/extensions, fuel, heat,
+scheduler fields and unknown controller fields remain untouched. The inventory
+codec refuses resize, unrelated machine changes, non-reset progress edits, legacy
+Items aliases, opaque saved slots and new wire-backed/unrepresentable stacks.
+Opaque inventories wait because a live page projection cannot retain unknown raw
+item fields. Relevant player inventories and the local pickup view/carried stack
+are also guarded against retained wire backing.
+
+Commits recheck chunk, block and raw save identity. Local pickup still rolls back
+player inventory/cursor on failure, but restores its old live page only when the
+original block/save and captured changed page remain in place, avoiding a stale
+restore over a replacement. Three codec cases and local/guest wiring checks were
+added; no tests were run. Full menu callbacks, gameplay/reload/LAN and generic guest
+write rollback coordination remain unverified/separate. Machine ticking is unchanged.
