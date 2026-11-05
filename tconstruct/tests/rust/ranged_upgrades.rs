@@ -1359,3 +1359,58 @@ fn guide_crystal_alternatives_match_station_level_progress_and_permission() {
         &BTreeMap::from([("scales".into(),serde_json::to_vec(disabled).unwrap())]),&tags,
         &ItemStack::new("tconstruct:pickaxe",1),&[Some(crystal("tconstruct:draconic"))],1).is_none());
 }
+
+#[test]
+fn blindshot_slotless_guide_matches_station_cost_cap_and_bow_gate() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let path = "data/tconstruct/recipes/tools/modifiers/slotless/blindshot.json";
+    let source = &fixture["slotless_incremental_recipes"][path];
+    let registry = tconstruct_source_upgrade_rules::incremental_guide_registry();
+    let supported = registry.keys().cloned().collect();
+    let mut raw = tconstruct_modifier_snapshot::Raw::default();
+    raw.1.insert("tconstruct:tinkering/tags/modifiers/slotless/general".into(), vec![serde_json::to_vec(
+        &fixture["modifier_tags"]["data/tconstruct/tinkering/tags/modifiers/slotless/general.json"]).unwrap()]);
+    let modifiers = tconstruct_modifier_snapshot::supported_guide_tag(&raw,"tconstruct:slotless/general",&supported).unwrap();
+    assert_eq!(modifiers,["tconstruct:blindshot"]);
+    let items = ["minecraft:dirt","tconstruct:modifier_crystal"].map(str::to_owned);
+    let tools = ["tconstruct:longbow","tconstruct:crossbow","tconstruct:pickaxe"].map(str::to_owned);
+    let tags: HashMap<String,HashSet<String>> = HashMap::from([("tconstruct:modifiable/ranged".into(),tools.iter().cloned().collect())]);
+    let rows = |recipe: &serde_json::Value| tconstruct_modifier_snapshot::incremental_guide_recipes_with_slotless(
+        &BTreeMap::from([(path.into(),serde_json::to_vec(recipe).unwrap())]),&modifiers,&registry,&items,&tools,
+        |value,item|tconstruct_source_upgrade_rules::ingredient_matches(value,item,&tags),
+        |modifier,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier,item,&tags),
+        tconstruct_source_upgrade_rules::incremental_limits_supported,tconstruct_source_upgrade_rules::slotless_incremental_limit);
+    let entries = rows(source); assert_eq!(entries.len(),1);
+    let row = &entries[0];
+    assert_eq!((row.needed,row.per_item,row.upgrade_cost,row.maximum),(10,1,0,32767));
+    assert!(row.default_maximum); assert!(row.crystal_alternative);
+    assert_eq!(row.tools,["tconstruct:crossbow","tconstruct:longbow"]);
+    let recipes = BTreeMap::from([(path.into(),serde_json::to_vec(source).unwrap())]);
+    let plan = |old, count| {
+        let mut tool = ItemStack::new("tconstruct:longbow",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:blindshot",Tag::Int(old))]))])));
+        assert!(tconstruct_source_upgrade_rules::valid_slots(&tool,&BTreeMap::new(),0,0));
+        assert!(!tconstruct_source_upgrade_rules::extractable(&tool).contains(&"tconstruct:blindshot"));
+        tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(ItemStack::new("minecraft:dirt",count))],0)
+    };
+    assert_eq!(plan(0,10).unwrap().amount,10);
+    assert_eq!(plan(9,10).unwrap().amount,10);
+    assert_eq!(plan(10,1).unwrap().amount,11);
+    let cap = row.needed * row.maximum;
+    assert_eq!(plan(cap-1,1).unwrap().amount,cap); assert!(plan(cap,1).is_none());
+    let mut changed = source.clone(); changed["level"] = serde_json::json!({"max":2});
+    assert_eq!(rows(&changed)[0].maximum,2); assert!(!rows(&changed)[0].default_maximum);
+    changed["slots"] = serde_json::json!({"upgrades":0}); assert_eq!(rows(&changed)[0].upgrade_cost,0);
+    changed["slots"] = serde_json::json!({}); assert_eq!(rows(&changed)[0].upgrade_cost,0);
+    for slots in [serde_json::json!({"upgrades":1}),serde_json::json!({"abilities":1}),serde_json::json!(null)] {
+        changed["slots"] = slots; assert!(rows(&changed).is_empty());
+    }
+    changed = source.clone(); changed["level"] = serde_json::json!(null); assert!(rows(&changed).is_empty());
+    changed["level"] = serde_json::json!({"max":0}); assert!(rows(&changed).is_empty());
+    changed = source.clone(); changed["needed_per_level"] = serde_json::json!(9); assert!(rows(&changed).is_empty());
+    raw.1.get_mut("tconstruct:tinkering/tags/modifiers/slotless/general").unwrap().push(br#"{"remove":["tconstruct:blindshot"]}"#.to_vec());
+    assert!(tconstruct_modifier_snapshot::supported_guide_tag(&raw,"tconstruct:slotless/general",&supported).unwrap().is_empty());
+}

@@ -215,7 +215,7 @@ recipe and tag overrides affect the next open/request. A removed recipe or
 unavailable input does not leave a static placeholder.
 
 This is still a partial port-supported view. Point values other than one/four/nine, bulk recipes without a registered
-leftover, absent/default level caps, changed effect
+leftover, unsupported absent/default level caps, changed effect
 denominators and additional requirements are omitted.
 Full source registry/redirect parity and in-game/LAN visual checks remain
 outstanding. These pages do not change modifier acquisition or effect rules.
@@ -316,3 +316,25 @@ acquisition, registry or gameplay support. Focused guide-policy and Station
 regressions cover permission/defaults, missing crystal registration, wrong or
 empty crystals, partial progress and level caps. Full host, GUI and LAN
 verification remain deferred.
+
+
+## Slotless Blindshot guide
+
+Puny's Slotless chapter now also projects current source modifier-group tags
+onto supported incremental recipes. This exposes Blindshot's existing dirt
+recipe: one point per dirt, ten points per level, no upgrade or ability slot
+cost, and the current Station's default limit of 32767 levels when the recipe
+omits a cap. The page labels that default as a port limit rather than claiming
+the source recipe explicitly sets it. Valid explicit cap overrides are read
+from the current recipe.
+
+Only the runtime-authorized slotless family may omit the slot cost or level
+cap. Other incremental recipes retain their explicit-cost/cap requirements.
+Blindshot remains restricted to supported Longbow and Crossbow items even if
+a pack broadens the tool tag. The page also states that the current modifier
+extraction operation cannot recover Blindshot. Its crystal alternative follows
+the recipe permission and registered-item checks already used by other guides.
+
+Pinned source recipe/tag fixtures and focused regressions were added but not
+run in this pass. This adds guide coverage, not new Blindshot gameplay or
+acquisition behavior. Full host, GUI, save/reload and LAN checks remain deferred.
