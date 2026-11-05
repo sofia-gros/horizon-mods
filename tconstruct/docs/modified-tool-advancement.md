@@ -42,7 +42,8 @@ tool predicate forms also fail closed rather than allowing the native matcher
 to ignore the custom `type`. Unrelated native predicate types are untouched.
 This is not a general implementation of source slot or compound tool predicates.
 The [Material Master follow-on](material-master-advancement.md) adds the bounded
-compact material-ID predicate and its goal. Slimeskull remains separate.
+compact material-ID predicate and its goal. The [Slimeskull follow-on](slimeskull-advancement.md)
+adds bounded tool conjunctions and item-set membership.
 
 ## Review scope
 
