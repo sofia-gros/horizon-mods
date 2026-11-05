@@ -183,3 +183,17 @@ Package/resource tests cover registration and visuals, with a bounded catalog
 regression in `tests/rust/soul_glass_acquisition.rs`. Actual world casting,
 Part Builder use, Venom supply, reload, saves and LAN remain unverified. This
 does not add Venombone to Creative tabs or implement its material traits.
+
+### Scorched machinery recipe-book unlocks
+
+Scorched Brick unlocks the existing native Faucet, Casting Table/Basin,
+Lantern, four tank/gauge, Drain, Chute and Scorched Glass recipes. Scorched
+Glass unlocks its pane recipe. The twelve advancements preserve the fixed
+source inventory criteria and OR requirements, while mapping recipe rewards
+to the port's existing recipe IDs and native `recipes` criterion key.
+
+These are recipe-book unlocks, not replacement recipes or new machinery.
+Existing narrowed material inputs and machine limitations remain unchanged.
+Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
+Source fixtures, recipe shapes/counts and packaged registrations are checked;
+actual book UI, crafting, save/reload and LAN remain unverified.
