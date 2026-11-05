@@ -293,3 +293,21 @@ Pure production-helper tests cover component preservation, single/stacked fuel,
 accepted/rejected/matching remainders, slot limits, zero counts and current/stale
 wire patches. Wiring checks cover grant and commit ordering. These tests are
 unrun; full Melter tick, host persistence, spill and LAN remain unverified.
+
+### Native tank payloads on drops and placement
+
+Tank removal now copies the validated raw tank payload instead of serializing a
+fresh Tank. The existing matching-item drop marker carries that payload into
+custom data unchanged. Empty tanks with extension fields also keep a marker;
+ordinary canonical empty tanks still do not. Placement restores the same raw
+payload directly, or beneath a fresh empty Casting Tank/Cannon inventory.
+This covers eight fuel/ingot tanks/gauges, both Lanterns, Casting Tank and Cannon.
+Extra aliases alongside valid native fields are copied unchanged, not interpreted
+or migrated; later mutation guards continue to refuse ambiguous state.
+
+The fixture executes production marker transport with real item/NBT codecs and
+checks all twelve item types, filled/empty extensions, tags, unrelated custom
+data, mismatched drops and malformed payload refusal. Placement/removal wiring
+is checked statically. Tests are added but unrun. This does not add pre-destruction
+cancellation or preserve unrelated machine/item-slot metadata, recover malformed
+or historical legacy state, or prove host placement/save/load/LAN behavior.

@@ -20,6 +20,13 @@ pub(super) fn item_capacity(name: &str) -> Option<u32> {
     })
 }
 
+/// Copy a readable native tank payload without normalizing extension fields.
+/// This is transport, not a debit or migration: no owned field is changed.
+pub(super) fn copy_native_tank(raw: &horizon_world::nbt::Tag, capacity: u32) -> Option<horizon_world::nbt::Tag> {
+    let tank = Tank::from_nbt(raw,capacity)?;
+    (tank.to_nbt_preserving(raw).as_ref() == Some(raw)).then(|| raw.clone())
+}
+
 /// Read the first fluid tank from the machine's saved representation.
 /// The casting tank and cannon nest their Tank beneath their inventory state;
 /// ordinary portable tanks store their Tank directly.

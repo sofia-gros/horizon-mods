@@ -364,3 +364,40 @@ fn held_melter_fixture(draining:bool,count:u32)->Game<'static>{
   assert_eq!((game.world.data,game.held),before);assert_eq!((game.world.writes,game.updates,game.menus),(0,0,1));assert!(game.gifts.is_empty());
  }
 }
+
+mod tank_drop{
+ use super::*;
+ pub(super) struct Pending{pub copied:HashMap<[i32;3],(String,horizon_world::nbt::Compound)>}
+ // __PRODUCTION_TANK_DROP__
+}
+#[test]fn portable_tank_drop_keeps_raw_payload_for_all_twelve_items(){
+ use tconstruct_source_smeltery_fuel::{copy_native_tank,item_capacity};
+ let names=["seared_fuel_tank","seared_fuel_gauge","scorched_fuel_tank","scorched_fuel_gauge","seared_ingot_tank","seared_ingot_gauge","scorched_ingot_tank","scorched_ingot_gauge","seared_lantern","scorched_lantern","seared_casting_tank","seared_fluid_cannon"];
+ for short in names{for filled in [false,true]{let name=format!("tconstruct:{short}");let capacity=item_capacity(&name).unwrap();let mut tank=tconstruct_source_melter_state::Tank::new(capacity);
+  if filled{assert!(tank.insert_tagged("minecraft:water",Some(&Tag::compound([("future_fluid",Tag::Int(3))])),capacity.min(90)));}
+  let Tag::Compound(mut fields)=tank.to_nbt()else{panic!()};fields.insert("future_tank".into(),Tag::compound([("nested",Tag::Long(17))]));let raw=Tag::Compound(fields);
+  let payload=copy_native_tank(&raw,capacity).unwrap();assert_eq!(payload,raw);
+  let mut marker=horizon_world::nbt::Compound::new();marker.insert("tconstruct:internal_tank_copy".into(),payload);
+  let mut pending=tank_drop::Pending{copied:HashMap::from([([1,2,3],(name.clone(),marker))])};let mut stack=ItemStack::new(&name,1);
+  stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("existing",Tag::Int(9))])));
+  tank_drop::smeltery_tank_drop(&mut pending,[1,2,3],&mut stack);
+  let encoded=horizon_items::item_nbt::item_to_nbt(&stack);let decoded=horizon_items::item_nbt::item_from_nbt(&encoded).unwrap();assert_eq!(decoded.count,stack.count);assert!(decoded.same_item_same_components(&stack));
+  let custom=decoded.data().unwrap().other("minecraft:custom_data").unwrap();assert_eq!(custom.get("existing"),Some(&Tag::Int(9)));assert_eq!(custom.get("tconstruct:tank"),Some(&raw));assert!(pending.copied.is_empty());
+  // Placement uses the same exact payload validator, including empty tanks.
+  let restored=copy_native_tank(custom.get("tconstruct:tank").unwrap(),capacity).unwrap();assert_eq!(restored,raw);assert_eq!(tconstruct_source_melter_state::Tank::from_nbt(&restored,capacity),Some(tank));
+ }}
+}
+#[test]fn portable_tank_payload_refuses_lossy_or_invalid_owned_fields(){
+ use tconstruct_source_smeltery_fuel::copy_native_tank;
+ for raw in [Tag::Int(1),Tag::compound([("amount",Tag::Int(1))]),Tag::compound([("amount",Tag::Int(4001)),("fluid",Tag::String("minecraft:lava".into()))]),Tag::compound([("amount",Tag::Int(1)),("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800])))]),Tag::compound([("amount",Tag::Int(0)),("fluid_tag",Tag::Int(1))])]{
+  let before=raw.clone();assert!(copy_native_tank(&raw,4000).is_none());assert_eq!(raw,before);
+ }
+}
+#[test]fn portable_tank_drop_only_consumes_matching_marker(){
+ let raw=Tag::compound([("amount",Tag::Int(0)),("future_tank",Tag::Int(1))]);let mut marker=horizon_world::nbt::Compound::new();marker.insert("tconstruct:internal_tank_copy".into(),raw.clone());marker.insert("other".into(),Tag::Int(7));
+ let mut pending=tank_drop::Pending{copied:HashMap::from([([1,2,3],("tconstruct:seared_lantern".into(),marker.clone()))])};let mut wrong=ItemStack::new("tconstruct:scorched_lantern",1);
+ tank_drop::smeltery_tank_drop(&mut pending,[1,2,3],&mut wrong);assert_eq!(pending.copied[&[1,2,3]].1,marker);assert!(wrong.data().is_none());
+ let mut right=ItemStack::new("tconstruct:seared_lantern",1);tank_drop::smeltery_tank_drop(&mut pending,[1,2,3],&mut right);
+ assert_eq!(pending.copied[&[1,2,3]].1.get(&"other".into()),Some(&Tag::Int(7)));assert!(!pending.copied[&[1,2,3]].1.contains_key(&"tconstruct:internal_tank_copy".into()));
+ let before=right.clone();tank_drop::smeltery_tank_drop(&mut pending,[1,2,3],&mut right);assert_eq!(right,before);
+}
