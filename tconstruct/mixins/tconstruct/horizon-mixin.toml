@@ -71,6 +71,13 @@ source = "source-budding-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-scute-compat"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_scute_compat"
+source = "source-scute-compat.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
