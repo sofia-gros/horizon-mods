@@ -1,11 +1,12 @@
 # Registered world-fluid draft
 
-This slice declares sixty world-liquid families. The initial families are iron, gold, copper,
+This slice declares sixty-three world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Glass, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
 Blazing Blood and Fiery Liquid. Four cool food liquids are also included:
 Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
+Venom, Honey and Liquid Soul add the first standard player contact effects.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
@@ -14,7 +15,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #25](https://github.com/sofia-gros/horizon/pull/25).** Keep this
+[Horizon fork PR #26](https://github.com/sofia-gros/horizon/pull/26).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -39,12 +40,12 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
   uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
-  tick rate 5. None of the sixty families generates new sources.
+  tick rate 5. None of the sixty-three families generates new sources.
 - Molten Glass uses `registerGlass`: level drop 8, slope distance 8, tick rate 30.
   It needs the extended host slope bound; its policy is not approximated as
   stone or clamped to four. It burns for 5 seconds with damage 2 and light 1.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning
-  for the fifty-six hot families.
+  for the fifty-seven hot families, including non-burning Liquid Soul.
 - The four soups use `TinkerFluids.cool`: the same current scale, extinguishing
   enabled, and Forge's default swimming/drowning and 0.5 fall scaling. They
   have no burn contact and emit no light. Their 400 K source temperature does
@@ -81,7 +82,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all sixty families. Queen's Slime's source camera fog color remains
+  covers all sixty-three families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -112,6 +113,23 @@ blocks use the `_fluid` suffix without replacing bowl food items. This adds no
 food consumption, nutrition, bowl transfer, Suspicious Stew or potion effects.
 Ordinary bowl supply is separate work in [PR #680](https://github.com/sofia-gros/horizon-mods/pull/680).
 The source camera fog and sound settings remain outside this declaration schema.
+
+The standard player contact-effect slice adds:
+
+- Venom: Poison for 100 ticks, amplifier 0; default drop 1, slope 4, tick rate 5.
+- Honey: Slowness for 100 ticks, amplifier 0; drop 1, slope 4, tick rate 50.
+- Liquid Soul: Blindness for 100 ticks, amplifier 0; glass drop/slope 8 and tick
+  rate 30. It emits light 2 but does not burn. Its hot-fluid properties disable
+  swimming, drowning and extinguishing; Venom and Honey enable those flags.
+
+The three retain exact `slime/venom`, `food/honey` and `slime/soul` source artwork
+and animation metadata with white surface tint. Existing bucket and acquisition
+paths remain unchanged. Only the authoritative player path adds effects, using
+positive body height for the matching family, with ordinary effect merging,
+refresh, expiry and network synchronization. The source's empty curative-item
+list is NOT implemented: milk and other existing curatives retain their current
+behavior, including after leaving the liquid. These declarations are not full
+effect parity. Mobs, custom slime/Enderference effects and fog remain separate.
 
 Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
