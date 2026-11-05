@@ -45,6 +45,33 @@ mod tconstruct_source_smeltery_fuel {
 #[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
 #[cfg(test)] mod tests {
  use super::*; use horizon_items::items::ItemStack; use std::collections::{BTreeMap,HashMap,HashSet};
+ #[test] fn remaining_reinforcements_cast_only_with_registered_output_and_consume_pattern() {
+  for (material,bytes,amount,ticks,tag) in [
+   ("iron",include_bytes!("../fixtures/iron_reinforcement.json").as_slice(),90,60,"forge:molten_iron"),
+   ("gold",include_bytes!("../fixtures/gold_reinforcement.json").as_slice(),90,57,"forge:molten_gold"),
+   ("cobalt",include_bytes!("../fixtures/cobalt_reinforcement.json").as_slice(),90,65,"forge:molten_cobalt"),
+   ("obsidian",include_bytes!("../fixtures/obsidian_reinforcement.json").as_slice(),1000,221,"tconstruct:molten_obsidian"),
+  ] {
+   let output=format!("tconstruct:{material}_reinforcement"); let fluid=format!("tconstruct:molten_{material}");
+   let recipes=BTreeMap::from([(format!("tconstruct:tools/modifiers/{material}_reinforcement"),bytes.to_vec())]);
+   let tags=HashMap::new(); let fluids=HashMap::from([(tag.into(),HashSet::from([fluid.clone()]))]);
+   let items=HashSet::from(["tconstruct:pattern".into(),output.clone()]);let known_fluids=HashSet::from([fluid.clone(),"minecraft:water".into()]);
+   let c=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&fluids,known_items:&items,known_fluids:&known_fluids};
+   let (id,r,out)=c.casting(false,Some("tconstruct:pattern"),&fluid,&|_|true).unwrap();
+   assert_eq!((r.fluid.amount,r.cooling_time,r.consumes_cast,out.as_str()),(amount,ticks,true,output.as_str()));
+   let missing_items=HashSet::from(["tconstruct:pattern".into()]);
+   let missing=tconstruct_source_melting_lookup::Catalog{known_items:&missing_items,..c};
+   assert!(missing.casting(false,Some("tconstruct:pattern"),&fluid,&|_|true).is_none());
+   assert!(c.casting(true,Some("tconstruct:pattern"),&fluid,&|_|true).is_none());
+   assert!(c.casting(false,None,&fluid,&|_|true).is_none());
+   assert!(c.casting(false,Some("tconstruct:pattern"),"minecraft:water",&|_|true).is_none());
+   let mut state=tconstruct_source_melter_state::Casting::new();state.input=Some(ItemStack::new("tconstruct:pattern",1));
+   assert!(state.prepare(&id,amount,ticks,ItemStack::new(&out,1),r.consumes_cast,r.switch_slots));
+   assert!(state.tank.insert(&fluid,amount-1));assert!(!state.tick(true));assert!(state.input.is_some());assert!(state.tank.insert(&fluid,1));
+   for _ in 0..ticks-1 {assert!(!state.tick(true));}
+   assert!(state.tick(true));assert!(state.input.is_none());assert_eq!(state.tank.amount,0);assert_eq!(state.output.unwrap().item.as_ref(),output);
+  }
+ }
  #[test] fn pinned_recipe_casts_with_each_fluid_and_consumes_pattern() {
   let bytes=include_bytes!("../fixtures/seared_reinforcement.json").to_vec();
   let recipes=BTreeMap::from([("tconstruct:tools/modifiers/seared_reinforcement".into(),bytes)]);
