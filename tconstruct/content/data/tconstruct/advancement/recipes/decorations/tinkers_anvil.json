@@ -77,42 +77,6 @@
         "recipes": "tconstruct:tinkers_anvil_slimesteel"
       }
     },
-    "has_recipe_compat_bronze": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_bronze"
-      }
-    },
-    "has_recipe_compat_constantan": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_constantan"
-      }
-    },
-    "has_recipe_compat_electrum": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_electrum"
-      }
-    },
-    "has_recipe_compat_invar": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_invar"
-      }
-    },
-    "has_recipe_compat_nicrosil": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_nicrosil"
-      }
-    },
-    "has_recipe_compat_pewter": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "tconstruct:tinkers_anvil_compat_pewter"
-      }
-    },
     "has_recipe_mixed_alloys": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
@@ -134,12 +98,6 @@
       "has_recipe_queens_slime",
       "has_recipe_rose_gold",
       "has_recipe_slimesteel",
-      "has_recipe_compat_bronze",
-      "has_recipe_compat_constantan",
-      "has_recipe_compat_electrum",
-      "has_recipe_compat_invar",
-      "has_recipe_compat_nicrosil",
-      "has_recipe_compat_pewter",
       "has_recipe_mixed_alloys"
     ]
   ],
@@ -156,12 +114,6 @@
       "tconstruct:tinkers_anvil_queens_slime",
       "tconstruct:tinkers_anvil_rose_gold",
       "tconstruct:tinkers_anvil_slimesteel",
-      "tconstruct:tinkers_anvil_compat_bronze",
-      "tconstruct:tinkers_anvil_compat_constantan",
-      "tconstruct:tinkers_anvil_compat_electrum",
-      "tconstruct:tinkers_anvil_compat_invar",
-      "tconstruct:tinkers_anvil_compat_nicrosil",
-      "tconstruct:tinkers_anvil_compat_pewter",
       "tconstruct:zz_tinkers_anvil_mixed_alloys"
     ]
   },
