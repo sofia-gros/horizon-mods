@@ -108,6 +108,42 @@ pub(super) fn puny_slotless_group(name: &str) -> Option<(&'static str, &'static 
     })
 }
 
+// The Encyclopedia uses different keys from the progression books. Only its
+// four single-type detailed material chapters share this renderer. Slimesuit
+// materials need their own five-type treatment and must not fall through.
+pub(super) fn encyclopedia_material_chapter(name: &str, data: &str, kind: &str, detailed: bool) -> Option<&'static str> {
+    if data != "no-load" || !detailed { return None; }
+    match (name, kind) {
+        ("materials_harvest", "tconstruct:melee_harvest") => Some("melee_harvest_materials"),
+        ("materials_ranged", "tconstruct:ranged") => Some("ranged_materials"),
+        ("materials_ammo", "tconstruct:ammo") => Some("ammo_materials"),
+        ("materials_armor", "tconstruct:armor") => Some("armor_materials"),
+        _ => None,
+    }
+}
+
+// Encyclopedia has a separate Slimesuit chapter, unlike the existing broad
+// armor projection used by the progression books. Do not mix those stat types.
+pub(super) const ENCYCLOPEDIA_ARMOR_STATS: &[&str] = &[
+    "tconstruct:plating_helmet", "tconstruct:plating_chestplate",
+    "tconstruct:plating_leggings", "tconstruct:plating_boots",
+    "tconstruct:plating_shield", "tconstruct:maille", "tconstruct:cuirass",
+    "tconstruct:shield_core",
+];
+
+pub(super) fn encyclopedia_armor_order(cuirass: bool, maille: bool, chestplate: bool) -> i32 {
+    if cuirass { if maille { 2 } else { 1 } }
+    else if chestplate { 4 }
+    else if maille { 3 }
+    else { 5 }
+}
+
+// Default IntRange in the source material transformer, not a progression-book
+// tier cap. Negative tiers and values outside Java's short range stay hidden.
+pub(super) fn encyclopedia_material_tier(tier: i32) -> bool {
+    (0..=i16::MAX as i32).contains(&tier)
+}
+
 // Source book tier and material-tag predicates. Stat support and hidden state
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
@@ -175,6 +211,48 @@ mod tests {
         for name in ["unknown"] {
             assert!(!mighty_smeltery_page(name));
         }
+    }
+    #[test]
+    fn encyclopedia_armor_keeps_source_stats_and_order_separate_from_slimesuit() {
+        assert_eq!(super::ENCYCLOPEDIA_ARMOR_STATS.len(), 8);
+        for stat in ["slime", "skull", "ribcage", "shell", "laces"] {
+            assert!(!super::ENCYCLOPEDIA_ARMOR_STATS.contains(&format!("tconstruct:{stat}").as_str()));
+        }
+        for (cuirass, maille, plating, expected) in [
+            (true, false, false, 1), (true, false, true, 1),
+            (true, true, false, 2), (true, true, true, 2),
+            (false, true, false, 3), (false, false, true, 4),
+            (false, true, true, 4), (false, false, false, 5),
+        ] {
+            assert_eq!(super::encyclopedia_armor_order(cuirass, maille, plating), expected);
+        }
+    }
+    #[test]
+    fn encyclopedia_uses_the_full_source_default_tier_range() {
+        for tier in [0, 1, 2, 3, 4, 5, 100, i16::MAX as i32] {
+            assert!(super::encyclopedia_material_tier(tier));
+        }
+        for tier in [i32::MIN, -1, i16::MAX as i32 + 1, i32::MAX] {
+            assert!(!super::encyclopedia_material_tier(tier));
+        }
+    }
+    #[test]
+    fn encyclopedia_requires_exact_detailed_material_chapters() {
+        for (name, kind, key) in [
+            ("materials_harvest", "tconstruct:melee_harvest", "melee_harvest_materials"),
+            ("materials_ranged", "tconstruct:ranged", "ranged_materials"),
+            ("materials_ammo", "tconstruct:ammo", "ammo_materials"),
+            ("materials_armor", "tconstruct:armor", "armor_materials"),
+        ] {
+            assert_eq!(super::encyclopedia_material_chapter(name, "no-load", kind, true), Some(key));
+            assert_eq!(super::encyclopedia_material_chapter(name, "sections/materials.json", kind, true), None);
+            assert_eq!(super::encyclopedia_material_chapter(name, "no-load", "tconstruct:unknown", true), None);
+            assert_eq!(super::encyclopedia_material_chapter(name, "no-load", kind, false), None);
+        }
+        for name in ["materials_slime", "fluid_effects", "tools", "armor", "unknown"] {
+            assert_eq!(super::encyclopedia_material_chapter(name, "no-load", "tconstruct:armor", true), None);
+        }
+        assert_eq!(super::encyclopedia_material_chapter("materials_ammo", "no-load", "tconstruct:ranged", true), None);
     }
     #[test]
     fn mighty_materials_only_include_nondistant_tier_three() {

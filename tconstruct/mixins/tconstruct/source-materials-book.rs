@@ -127,7 +127,7 @@ fn material_book_context(game: &Game<'_>) -> MaterialBookContext {
     MaterialBookContext { supports, tools }
 }
 
-fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, section: &str) -> Vec<serde_json::Value> {
+fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, section: &str, encyclopedia: bool) -> Vec<serde_json::Value> {
     let mut sidebar = Vec::new();
     let definitions = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok());
     let item_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
@@ -201,6 +201,7 @@ fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, se
             }
             let supported_types: std::collections::HashSet<_> = match section {
                 "melee_harvest_materials" => ["tconstruct:head", "tconstruct:handle", "tconstruct:binding"].as_slice(),
+                "armor_materials" if encyclopedia => super::tconstruct_materials_book_index::ENCYCLOPEDIA_ARMOR_STATS,
                 "armor_materials" => ARMOR_MATERIAL_STATS,
                 _ => ["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"].as_slice(),
             }.iter().map(|v| (*v).to_owned()).collect();
@@ -532,7 +533,7 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
     pages
 }
 
-fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Option<Vec<(String, String)>> {
+fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool, encyclopedia: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
     let whitestone_ingots = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
@@ -541,13 +542,19 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Op
     let kinds: &[&str] = match key {
         "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
         "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
+        "armor_materials" if encyclopedia => super::tconstruct_materials_book_index::ENCYCLOPEDIA_ARMOR_STATS,
         "armor_materials" => ARMOR_MATERIAL_STATS,
         "ammo_materials" => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
         _ => return None,
     };
     let mut selected: Vec<_> = definitions.iter().filter(|(id, (_, hidden, tier, _, _))| {
         let distant = tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id));
-        let allowed = if mighty {
+        // Encyclopedia keeps the source default tier range, without the
+        // progression books' distant/basic-ammo filters. Hidden entries and
+        // unsupported stat groups still stay absent.
+        let allowed = if encyclopedia {
+            super::tconstruct_materials_book_index::encyclopedia_material_tier(*tier)
+        } else if mighty {
             super::tconstruct_materials_book_index::mighty_material_tier(key, *tier, distant)
         } else if puny && key == "melee_harvest_materials" {
             super::tconstruct_materials_book_index::puny_melee_material_tier(*tier, distant, id, whitestone_ingots)
@@ -563,6 +570,8 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Op
         let group = match key {
             "melee_harvest_materials" => (i32::from(!has("tconstruct:head")), 0, 0),
             "ranged_materials" => (i32::from(!has("tconstruct:bowstring")), i32::from(has("tconstruct:limb")), 0),
+            "armor_materials" if encyclopedia => (super::tconstruct_materials_book_index::encyclopedia_armor_order(
+                has("tconstruct:cuirass"), has("tconstruct:maille"), has("tconstruct:plating_chestplate")), 0, 0),
             "armor_materials" => (i32::from(!has("tconstruct:plating_helmet")), 0, 0),
             _ => (i32::from(!has("tconstruct:arrow_head")), i32::from(has("tconstruct:fletching")), i32::from(has("tconstruct:arrow_shaft"))),
         };
@@ -618,9 +627,20 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let gadgetry_exploration = gadgetry && key == "exploration";
         if gadgetry_exploration && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("exploration.partial").copied(), labels.get("exploration.partial.notice_title").copied(), labels.get("exploration.partial.notice").copied()]) { continue; }
         if gadgetry && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
-        // Only the source introduction is supported for the Encyclopedia.
-        if encyclopedia && key != "intro" { continue; }
-        if encyclopedia && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
+        // Reject unsupported transformer options instead of silently ignoring
+        // pack-authored tier/tag filters, arrays, or an unrelated material type.
+        let encyclopedia_material = if encyclopedia {
+            chapter.pointer("/extraData/tconstruct:material_tier").and_then(|value| value.as_object())
+                .filter(|settings| settings.len() == 2)
+                .and_then(|settings| super::tconstruct_materials_book_index::encyclopedia_material_chapter(
+                    key, chapter.get("data")?.as_str()?, settings.get("type")?.as_str()?, settings.get("detailed")?.as_bool()?))
+        } else { None };
+        if encyclopedia && key != "intro" && encyclopedia_material.is_none() { continue; }
+        if encyclopedia && key == "intro" && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
+        let encyclopedia_heading = format!("{key}.partial");
+        if encyclopedia_material.is_some() && !super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get(encyclopedia_heading.as_str()).copied(), labels.get("materials.partial.notice_title").copied(), labels.get("materials.partial.notice").copied()
+        ]) { continue; }
         if foundry && !matches!(key, "intro" | "foundry") { continue; }
         // Mighty exposes selected source material chapters and partial broad-tool guidance.
         let mighty_advice = mighty && key == "tools";
@@ -656,7 +676,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         // Puny and Mighty group bounded recipe projections under source overviews.
         // Other modifier forms and a complete registry still need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if mighty_entity { labels.get("entity_melting.partial").copied().unwrap_or("Entity Melting (Reference)") } else if mighty_defense { labels.get("defense.partial").copied().unwrap_or("Defense (Partial Guide)") } else if puny_slotless { labels.get("slotless.partial").copied().unwrap_or("Supported slotless (partial)") } else if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if encyclopedia_material.is_some() { labels.get(encyclopedia_heading.as_str()).copied().unwrap_or(key) } else if mighty_entity { labels.get("entity_melting.partial").copied().unwrap_or("Entity Melting (Reference)") } else if mighty_defense { labels.get("defense.partial").copied().unwrap_or("Defense (Partial Guide)") } else if puny_slotless { labels.get("slotless.partial").copied().unwrap_or("Supported slotless (partial)") } else if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -680,17 +700,27 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                 }
                 continue;
             }
-            if let Some(materials) = dynamic_materials(game, key, puny, mighty) {
-                if !super::tconstruct_materials_book_index::show_material_chapter(puny || mighty, materials.len()) { continue; }
+            let material_key = encyclopedia_material.unwrap_or(key);
+            if let Some(materials) = dynamic_materials(game, material_key, puny, mighty, encyclopedia) {
+                if !super::tconstruct_materials_book_index::show_material_chapter(puny || mighty || encyclopedia, materials.len()) { continue; }
                 let mut chapter_pages = Vec::new();
+                if encyclopedia {
+                    let title = labels.get("materials.partial.notice_title").copied()?;
+                    let note = labels.get("materials.partial.notice").copied()?;
+                    chapter_pages.extend(split_styled(game, &Text::literal(note), 182.0, 15).into_iter().map(|part| {
+                        let mut notice = Text::styled(title, horizon_client::text::Style { insertion:Some("tconstruct:book-title".into()), underlined:Some(true), ..Default::default() });
+                        notice.push("\n\n"); notice.push(part); notice
+                    }));
+                }
                 if mighty {
                     chapter_pages.extend(split_page(game, "Material entries reflect source data. Some materials, traits, or acquisition routes may be incomplete in this port.", 17).into_iter().map(Text::literal));
                 }
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
                 if !subtext.is_empty() { chapter_pages.extend(split_page(game, subtext, 17).into_iter().map(Text::literal)); }
-                let visible: &[&str] = match key {
+                let visible: &[&str] = match material_key {
                     "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
                     "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
+                    "armor_materials" if encyclopedia => super::tconstruct_materials_book_index::ENCYCLOPEDIA_ARMOR_STATS,
                     "armor_materials" => ARMOR_MATERIAL_STATS,
                     _ => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
                 };
@@ -698,7 +728,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     let mut groups: Vec<Option<serde_json::Value>> = vec![None; visible.len()];
                     let (namespace, material) = id.split_once(':').unwrap_or(("tconstruct", &id));
                     let base = material.split('#').next().unwrap_or(material);
-                    let suffix = match key { "melee_harvest_materials" => "melee_harvest", "ranged_materials" => "ranged", "armor_materials" => "armor", _ => "ammo" };
+                    let suffix = match material_key { "melee_harvest_materials" => "melee_harvest", "ranged_materials" => "ranged", "armor_materials" => "armor", _ => "ammo" };
                     let specific = game.translate(&format!("material.{namespace}.{base}.flavor.{suffix}"), "");
                     let flavor = if specific.is_empty() { game.translate(&format!("material.{namespace}.{base}.flavor"), "") } else { specific };
                     let color_name = material.replace('#', ".");
@@ -757,8 +787,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                             }
                         }
                     }
-                    let sidebar = material_sidebar(game, &material_context, &id, key);
-                    if key == "armor_materials" {
+                    let sidebar = material_sidebar(game, &material_context, &id, material_key, encyclopedia);
+                    if material_key == "armor_materials" {
                         groups.retain(Option::is_some);
                         if groups.is_empty() { groups.push(None); }
                     }

@@ -69,4 +69,11 @@ fluid_effects=Fluid Effects
 fluid_effects.subtext=Fluid effects define the behavior when a fluid hits a block or entity through various modifiers such as spitting, spilling, and splashing.
 
 intro.partial.notice_title=Partial edition
-intro.partial.notice=Only the introduction is available in this edition. Material lists, tools, modifiers and fluid effects are not yet included. The source text describes the complete book, not the current state of this port.
+intro.partial.notice=This edition includes the introduction and partial General, Ranged, Ammo and Armor material chapters. Slimesuit materials, tools, armor equipment, modifiers and fluid effects are not yet included. The source text describes the complete book, not the current state of this port.
+
+materials_harvest.partial=General Materials (Partial Guide)
+materials_ranged.partial=Ranged Materials (Partial Guide)
+materials_ammo.partial=Ammo Materials (Partial Guide)
+materials_armor.partial=Armor Materials (Partial Guide)
+materials.partial.notice_title=Material reference (partial)
+materials.partial.notice=These entries show visible material definitions and supported stat groups from the current world data, across all tiers. Source traits and descriptions are reference information, not proof that every effect or acquisition route works. Sidebar icons reflect the existing bounded recipe and tool projections, not a complete recipe browser or survival availability guarantee. Slimesuit materials and other Encyclopedia chapters remain separate work.

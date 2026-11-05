@@ -22,7 +22,7 @@ class EncyclopediaIntro(unittest.TestCase):
                   'assets/tconstruct/book/images/covers/encyclopedia_pages.png'):
             self.assertTrue((CONTENT / p).is_file(), p)
 
-    def test_intro_only_and_notice_in_both_reader_paths(self):
+    def test_intro_and_notice_in_both_reader_paths(self):
         index = json.loads((BOOK / 'index.json').read_text())
         self.assertIn('intro', [chapter['name'] for chapter in index])
         section = json.loads((BOOK / 'sections/intro.json').read_text())
@@ -31,10 +31,10 @@ class EncyclopediaIntro(unittest.TestCase):
             self.assertTrue(json.loads((BOOK / f'en_us/intro/{name}.json').read_text())['text'])
         lang = (BOOK / 'en_us/language.lang').read_text()
         self.assertIn('intro.partial.notice_title=Partial edition', lang)
-        self.assertIn('Material lists, tools, modifiers and fluid effects are not yet included', lang)
+        self.assertIn('Slimesuit materials, tools, armor equipment, modifiers and fluid effects are not yet included', lang)
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('if encyclopedia && key != "intro" { continue; }', reader)
-        self.assertIn('mighty_advice || mighty_smeltery || encyclopedia', reader)
+        self.assertIn('if encyclopedia && key != "intro" && encyclopedia_material.is_none() { continue; }', reader)
+        self.assertIn('mighty_entity || encyclopedia || gadgetry', reader)
         self.assertIn('labels.get("intro.partial.notice").copied()', reader)
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
         self.assertIn('"tconstruct:encyclopedia"', request)

@@ -21,6 +21,28 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn encyclopedia_material_panel_and_notice_survive_book_reply() {
+        let spec = serde_json::json!({"material_panel":{"material":"test:distant_tier_four",
+            "groups":[{"title":"Head", "parts":["tconstruct:pick_head"],
+                "lines":[{"runs":[{"text":"Durability 1200"}],"tooltip":"Source stat description","continuation":false}]}],
+            "sidebar":[{"choices":["test:repair_a", "test:repair_b"]}],
+            "flavor_runs":[{"text":"Source flavor", "italic":true}]}});
+        let pages = vec![
+            Text::styled("Encyclopedia\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Material reference (partial)", Style { insertion:Some("tconstruct:book-title".into()), underlined:Some(true), ..Default::default() }),
+            Text::literal("Source traits are reference information, not a gameplay guarantee."),
+            Text::styled("Distant material", Style { insertion:Some(format!("tconstruct:book:{spec}")), color:Some(0x123456), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(19, &pages).unwrap();
+        let decoded = wire::decode_reply(19, &pages, &reply).unwrap();
+        let actual: serde_json::Value = serde_json::from_str(decoded[3].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        assert_eq!(actual, spec);
+        assert_eq!(decoded[1].spans[0].text, "Material reference (partial)");
+        assert_eq!(decoded[3].spans[0].style.color, Some(0x123456));
+        let other_book = vec![Text::styled("Materials & You\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() })];
+        assert!(wire::decode_reply(19, &other_book, &reply).is_none());
+    }
+    #[test]
     fn difference_crafting_preview_keeps_excluded_items_out_of_book_reply() {
         let source = serde_json::json!({"type":"minecraft:crafting_shapeless","ingredients":[
             {"type":"forge:difference","base":["test:workbench","test:excluded"],"subtracted":{"item":"test:excluded"}}],

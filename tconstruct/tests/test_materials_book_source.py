@@ -110,7 +110,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         self.assertIn('mighty_material_tier(key, *tier, distant)', reader)
-        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
+        self.assertIn('show_material_chapter(puny || mighty || encyclopedia, materials.len())', reader)
         self.assertIn('Material entries reflect source data.', reader)
 
     def test_mighty_smeltery_basics_are_source_faithful_and_partial(self):
@@ -292,7 +292,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual(tier['tier'], 2)
         self.assertEqual(tier['predicate'], {'type': 'mantle:inverted', 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
+        self.assertIn('show_material_chapter(puny || mighty || encyclopedia, materials.len())', reader)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
             definition = json.loads(archive.read('data/tconstruct/tinkering/materials/definition/slimewood.json'))
             stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/slimewood.json'))['stats']
@@ -310,7 +310,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         for stat in ('plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'maille', 'shield_core', 'cuirass', 'slime', 'skull', 'shell', 'laces', 'ribcage'):
             self.assertIn('"tconstruct:' + stat + '"', reader)
         self.assertIn('groups.chunks(4)', reader)
-        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
+        self.assertIn('show_material_chapter(puny || mighty || encyclopedia, materials.len())', reader)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
             stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/iron.json'))['stats']
             self.assertIn('tconstruct:plating_helmet', stats)
