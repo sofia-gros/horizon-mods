@@ -29,6 +29,12 @@
         "recipes": "tconstruct:tinkers_anvil_hepatizon"
       }
     },
+    "has_recipe_knightmetal": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:tinkers_anvil_knightmetal"
+      }
+    },
     "has_recipe_knightslime": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
@@ -45,6 +51,12 @@
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
         "recipes": "tconstruct:tinkers_anvil_netherite"
+      }
+    },
+    "has_recipe_pig_iron": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:tinkers_anvil_pig_iron"
       }
     },
     "has_recipe_queens_slime": {
@@ -114,9 +126,11 @@
       "has_recipe_amethyst_bronze",
       "has_recipe_cinderslime",
       "has_recipe_hepatizon",
+      "has_recipe_knightmetal",
       "has_recipe_knightslime",
       "has_recipe_manyullyn",
       "has_recipe_netherite",
+      "has_recipe_pig_iron",
       "has_recipe_queens_slime",
       "has_recipe_rose_gold",
       "has_recipe_slimesteel",
@@ -134,9 +148,11 @@
       "tconstruct:tinkers_anvil_amethyst_bronze",
       "tconstruct:tinkers_anvil_cinderslime",
       "tconstruct:tinkers_anvil_hepatizon",
+      "tconstruct:tinkers_anvil_knightmetal",
       "tconstruct:tinkers_anvil_knightslime",
       "tconstruct:tinkers_anvil_manyullyn",
       "tconstruct:tinkers_anvil_netherite",
+      "tconstruct:tinkers_anvil_pig_iron",
       "tconstruct:tinkers_anvil_queens_slime",
       "tconstruct:tinkers_anvil_rose_gold",
       "tconstruct:tinkers_anvil_slimesteel",

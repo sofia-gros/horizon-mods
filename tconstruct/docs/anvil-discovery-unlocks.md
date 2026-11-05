@@ -1,16 +1,16 @@
 # Tinkers' and Scorched Anvil discovery
 
 Each source Anvil has one retextured crafting recipe. The native port already
-represents it as sixteen recipes: nine fixed ordinary metal variants, six
+represents it as eighteen recipes: eleven fixed ordinary metal variants, six
 material-bearing compatibility variants, and one mixed-ordinary-alloy fallback.
-One hidden advancement for each Anvil now rewards those sixteen recipe IDs.
+One hidden advancement for each Anvil now rewards those eighteen recipe IDs.
 Both preserve the source `tconstruct:anvil_metal` inventory criterion, OR the
 unlocked event for any of that Anvil's native recipes. Every event uses its
 own string-valued `recipes` condition rather than an unsupported array.
 
-The ordinary variants are Amethyst Bronze, Cinderslime, Hepatizon, Knightslime,
-Manyullyn, Netherite, Queen's Slime, Rose Gold and Slimesteel. Compatibility
-variants are Bronze, Constantan, Electrum, Invar, Nicrosil and Pewter. Their
+The ordinary variants are Amethyst Bronze, Cinderslime, Hepatizon, Knightmetal,
+Knightslime, Manyullyn, Netherite, Pig Iron, Queen's Slime, Rose Gold and
+Slimesteel. Compatibility variants are Bronze, Constantan, Electrum, Invar, Nicrosil and Pewter. Their
 existing fake-storage-block recipes still require matching material metadata
 on all three metal inputs. Rewarding a recipe only discovers it; it neither
 supplies ingredients nor relaxes the material guard. The two mixed fallbacks
@@ -35,14 +35,14 @@ Source advancements are from Tinkers' Construct
 `src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/`.
 Exact bytes, SHA-256 hashes and attribution are retained in
 `tests/fixtures/anvil_discovery_unlocks/`. Native changes are legacy `tag` to
-`items: "#tag"`, `recipe` to `recipes`, and the one-to-sixteen recipe-ID mapping.
+`items: "#tag"`, `recipe` to `recipes`, and the one-to-eighteen recipe-ID mapping.
 No display or achievement toast is added.
 
-Existing recipes, their counts, texture metadata and crafting guards are
-unchanged. This is not arbitrary retexturing, full source metal/ingredient
-parity, or first-metal acquisition. Other source metals such as Pig Iron and
-Knightmetal are not new native Anvil variants here. Recipe-book automatic
-filling of compatibility metadata remains unverified.
+Discovery does not change crafting guards or ingredient costs. This is not
+arbitrary retexturing, full source metal/ingredient parity, or first-metal
+acquisition. Pig Iron and Knightmetal recipes, models and mixed-fallback
+extensions are described in [the native metal extension](anvil-native-metals.md).
+Recipe-book automatic filling of compatibility metadata remains unverified.
 
 Source/mapping/metadata/package regression coverage was added, and the shared
 world-tag fixture includes the new tag. No tests or compilation were run.

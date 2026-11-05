@@ -11,8 +11,8 @@ from zipfile import ZipFile
 MOD = Path(__file__).resolve().parents[1]
 DATA = MOD / 'content/data/tconstruct'
 FIXTURES = MOD / 'tests/fixtures/anvil_discovery_unlocks'
-METALS = ('amethyst_bronze', 'cinderslime', 'hepatizon', 'knightslime',
-          'manyullyn', 'netherite', 'queens_slime', 'rose_gold', 'slimesteel')
+METALS = ('amethyst_bronze', 'cinderslime', 'hepatizon', 'knightmetal', 'knightslime',
+          'manyullyn', 'netherite', 'pig_iron', 'queens_slime', 'rose_gold', 'slimesteel')
 COMPAT = ('bronze', 'constantan', 'electrum', 'invar', 'nicrosil', 'pewter')
 ANVILS = ('tinkers_anvil', 'scorched_anvil')
 sys.path.insert(0, str(MOD / 'tools'))
@@ -51,7 +51,7 @@ class AnvilDiscoveryUnlocks(unittest.TestCase):
                 expected['rewards']['recipes'] = ['tconstruct:' + recipe for _, recipe in recipes(anvil)]
                 native = json.loads((DATA / f'advancement/recipes/decorations/{anvil}.json').read_text())
                 self.assertEqual(native, expected)
-                self.assertEqual(len(native['rewards']['recipes']), 16)
+                self.assertEqual(len(native['rewards']['recipes']), 18)
                 self.assertNotIn('display', native)
                 existing = {path.stem for path in (DATA / 'recipe').glob(anvil + '_*.json')}
                 existing.update(path.stem for path in (DATA / 'recipe').glob('zz_' + anvil + '_*.json'))
@@ -90,7 +90,7 @@ class AnvilDiscoveryUnlocks(unittest.TestCase):
         self.assertIn('RequiredMaterial', guard)
         self.assertIn('fake.len() != 3', guard)
 
-    def test_package_contains_both_unlocks_and_all_thirty_two_recipes(self):
+    def test_package_contains_both_unlocks_and_all_thirty_six_recipes(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / 'tconstruct.hmod'
             package(output)
