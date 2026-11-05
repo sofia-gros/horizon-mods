@@ -181,8 +181,10 @@ fn fixture()->(Game<'static>,Pos,Pos,Pos) {
  let (mut game,pos,_source,_target)=fixture();
  let pending=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(10))]);
  let mut raw=Faucet::new().to_nbt(); if let Tag::Compound(fields)=&mut raw {fields.insert("active".into(),Tag::Byte(1));fields.insert("pending".into(),pending);}
- game.world.tags.insert((pos,"tconstruct:faucet".into()),raw.clone()); let faucet=Faucet::from_nbt(&raw).unwrap();
- assert!(!tconstruct_source_faucet_tank::stop(&mut game,pos,faucet));
+ game.world.tags.insert((pos,"tconstruct:faucet".into()),raw.clone());
+ assert!(Faucet::from_nbt(&raw).is_none());
+ // Even a stale previously decoded state cannot rewrite the invalid save.
+ assert!(!tconstruct_source_faucet_tank::stop(&mut game,pos,Faucet::new()));
  assert_eq!(game.world.tags.get(&(pos,"tconstruct:faucet".into())),Some(&raw));
 }
 #[test] fn lossy_target_id_does_not_drain_the_valid_source() {
