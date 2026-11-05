@@ -1,4 +1,4 @@
-"""Pinned Anvil acquisition criteria and the intentionally missing parent."""
+"""Pinned Anvil acquisition criteria and the Smeltery-opening parent."""
 import json
 import unittest
 from pathlib import Path
