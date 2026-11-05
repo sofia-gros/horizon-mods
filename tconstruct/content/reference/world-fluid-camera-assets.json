@@ -1,0 +1,322 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "provider": "Mantle FluidTextureCameraProvider/DeanimateTextureGenerator generates static camera textures from the first still frame. These are the exact upstream generated files.",
+  "files": {
+    "assets/tconstruct/textures/fluid/food/honey/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/food/honey/camera.png",
+      "git_blob_sha": "01b7c24562ff0bf881400103f130f08a7c8c705b",
+      "sha256": "49c601826d75e0e0bc442e7cfc1b0d95ff41f108bd1240c9f9e50026ad5141ac"
+    },
+    "assets/tconstruct/textures/fluid/food/stew/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/food/stew/camera.png",
+      "git_blob_sha": "06179f1e34826f78abc786b8c2d816ad71d50f17",
+      "sha256": "9f4fe2db5e66160b1a3dabb69c75e11873e4c67513d6062ee9c6dd59b6000dbf"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/camera.png",
+      "git_blob_sha": "4eb3e870fa4f94f5d39e8bb590f2896236b53bc0",
+      "sha256": "a610764a36b1681a2e914cc19c32847a3407e2357e2bbb39d204f5da2ef727af"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/camera.png",
+      "git_blob_sha": "5ca94ecad234fe270509bfc65c71aaaed463231d",
+      "sha256": "1266eafbb56ae238e15c17a54abd40ef5ec3131962e522fdf052d98654b7d8ff"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/hepatizon/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/hepatizon/camera.png",
+      "git_blob_sha": "5b2a4e5d742ae99bc83f8f61d99922b01e97ac32",
+      "sha256": "fecef968c0d923612f2373f3ea71936370a287a2bfdfab94a8a4423068b0a0f1"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightmetal/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/knightmetal/camera.png",
+      "git_blob_sha": "d96c8ec7f3295ebe76222a9eb8c2dab01aa665e6",
+      "sha256": "1e52c71de5116505fe9a034977582c4e3d43ded004a1e357e717185c7eac4a12"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightslime/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/knightslime/camera.png",
+      "git_blob_sha": "a3ac7c6c88eca5c4e3f0d22ce168d9a420198834",
+      "sha256": "de9db5d6efc17e65c91d82f59a9f9805072ccd527a85a4d5bdac37758ec969a3"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/manyullyn/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/manyullyn/camera.png",
+      "git_blob_sha": "f23d97c8e265eb39435bdd165c175a1230be8646",
+      "sha256": "1152c7377e8958bc3d1f455af425da372b91ce99f012b6be12158dbe99fe3b3c"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/netherite/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/camera.png",
+      "git_blob_sha": "e04d64310b0173c5211bdc33b6ae3c3097628227",
+      "sha256": "ac8a4beff8e9546714a0f5fb721e44299380e32d8c2026f80a545239014a627f"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/camera.png",
+      "git_blob_sha": "5dff0d1fd88a5868a9d452adcd972a537cc2fa61",
+      "sha256": "69ead4b0dcda9fc5ecf02d3d680433eaea56ab4a7d11ca9ad5db8fd6a27eb300"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/queens_slime/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/queens_slime/camera.png",
+      "git_blob_sha": "80bfbee0dbf60395f4e94d52855c9dc4a361937f",
+      "sha256": "5b806f9f61aee49f9666f40f90494416a933efe4fa9bcb779dddbe4284620460"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/rose_gold/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/rose_gold/camera.png",
+      "git_blob_sha": "00bd7ffbb79bfe92c7aa4c7c63f0f27acc7e3aa8",
+      "sha256": "05844fda570e3b07eb9d62634d915b6f05de7d68abe4a606b25a9e0860e41b3f"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/slimesteel/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/slimesteel/camera.png",
+      "git_blob_sha": "f3b38ef6fd3c89f394767a8811e605a17da98b4f",
+      "sha256": "dc37ef8653f80b1f40a36476f18d95dc5c53fe4a2a15521474170d161e3c1bd5"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/camera.png",
+      "git_blob_sha": "b95b0e5be06c30fcaf7259f4703e2c8e2be10056",
+      "sha256": "6ab66199c4824e865bd7c7248d0d2317db36e151538b87e1cd490541b1ec0592"
+    },
+    "assets/tconstruct/textures/fluid/molten/blaze/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/blaze/camera.png",
+      "git_blob_sha": "571e046ba8063ea5780520710b511b068a4e36ea",
+      "sha256": "c55b8f4f142b8151daf58b9424ba6230b06a57a55afd3ce72c4dfab279b1ee60"
+    },
+    "assets/tconstruct/textures/fluid/molten/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/camera.png",
+      "git_blob_sha": "49e6c830e45eb31fd549811bc150e958e14f61e1",
+      "sha256": "b220d6625e709bfc2b88f019dae3c61b1c89ac6eba574d16153b8ec9601b4960"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/brass/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/brass/camera.png",
+      "git_blob_sha": "0d33711cc26e4fc62bc0540ea82f670ab20651a7",
+      "sha256": "e9a12539b9f330213620781d55a5a38aab293ae85cfd7255144c23c922e173ad"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/camera.png",
+      "git_blob_sha": "686935267df89bec77dedec4e663d6b83aa18b35",
+      "sha256": "9ce32333d5c31c9ba845640f1af934e07d7c99c0c0342e2519083c32562eda73"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/camera.png",
+      "git_blob_sha": "a900af0baf9e6e7d2c040302979e3a9a99e1a122",
+      "sha256": "5b75bbaa007b2a433d23b9b1a4f36f51dd76a23c292fb688c60d1e614922efd1"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/camera.png",
+      "git_blob_sha": "01533f878836349840551379cd1e4e05b7a4bd90",
+      "sha256": "7b8cee812b9c2aa7aaca637368c6069cf016307f999ff40ce730c39b998ad1de"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/camera.png",
+      "git_blob_sha": "808494a107b432874a282f88856663c34f054a4d",
+      "sha256": "76a96a18917a4ba8787925ff737e244225723c1ea498a5ece2794a63944590ca"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/camera.png",
+      "git_blob_sha": "6721c15a6e44ae4f3a7ef52f475e195ae9de2371",
+      "sha256": "8c20f8f36259307e86a2ee7002548f7d5ee999ef7cb79ea287fd5abc6b0661b9"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/invar/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/invar/camera.png",
+      "git_blob_sha": "a7cfaf25d3a12904a3482ff305cf5305d0868dc6",
+      "sha256": "46276b553febe553bca3d52756b3ebdffed0c98a2c3045ebf9b460e782630cab"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/camera.png",
+      "git_blob_sha": "844990d05c1dc6f265637bfb89bf2234f0876234",
+      "sha256": "9c866f689bb9b242e77e9b16198171d9997dd3a999abb5cca01888a340929dd1"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/camera.png",
+      "git_blob_sha": "dca7846f9541951e932c86a630c9cf7750e7870a",
+      "sha256": "48d578046bac2abe15b82186250d7b712d81f34efc804102f1f6bc0ba8f5bf06"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/camera.png",
+      "git_blob_sha": "6cb91fc1096e7e5f50e13f5703e79290735977dc",
+      "sha256": "cad5ce213b92bab1fc39d95a4c7daca1dc9949dcc4e3654f10311df05c8ea6ae"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/camera.png",
+      "git_blob_sha": "3d0d601dc1fd4b873b6eeca6459a53069604a397",
+      "sha256": "9a7d58c3bc5fc535541ab191f654c92ed9930db18b64704cf8f3ec9ed0908edd"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/camera.png",
+      "git_blob_sha": "1fa987cbcef640d797c90350bc4b9771d4d16624",
+      "sha256": "f8e37bda48f719b9002eca74ac1612a70578a2c241a8040d1ae208c77b1fa7ae"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/camera.png",
+      "git_blob_sha": "2a5228d43656c42625c3a2cdb7857ce201b8d8db",
+      "sha256": "00d80c5bcd648ca221b919025f6e7abb943ce900b2516fbf305daf13312bc345"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/camera.png",
+      "git_blob_sha": "9561ea5bdf127528e7d3a10b608995b361ef2d36",
+      "sha256": "c766db354b67f95e77c0a091253c0b42815b13dc711aec2b8dcc589ee05ea134"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/lead/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/lead/camera.png",
+      "git_blob_sha": "e4726ec3603d683358f04e08b05a46893d8284f1",
+      "sha256": "9ac3b6798cd23212af55381be99d3537cf300f46a89d7c0e63fd6e0deb95ca1d"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/nickel/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/nickel/camera.png",
+      "git_blob_sha": "a31b7eaf078a14446aa622d52379010e9308eca0",
+      "sha256": "6a019198879a73e66d0a4382bd1d915dd9318ab2c7a6183c257591f3c0fec6c9"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/osmium/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/osmium/camera.png",
+      "git_blob_sha": "3c4d4326a5d65fd0fb5cab3fe9631f5cdc98f5c6",
+      "sha256": "e173bf141d86f81550cab12d8cbd49224071c0cfe099abeab636501aec5d2c62"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/platinum/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/platinum/camera.png",
+      "git_blob_sha": "870b240b4b108ba21479b4f7e55c2cc50fad8bd5",
+      "sha256": "21e17990ea7b1a37b0c1e6eec337cd67c6d23cb1b5d52e2919f126ae77710b68"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/silver/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/silver/camera.png",
+      "git_blob_sha": "f4e13b240b6339ad706ec0af8099799b085313c7",
+      "sha256": "57da7eee150e97fbd0b3db5e8a41cbdc2186edf3203f3ff74d96ba7294ec7207"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/camera.png",
+      "git_blob_sha": "044a2fcf727d0e8aa9909c70761cbfbc1106ea23",
+      "sha256": "e3270f69693a6e3b22b9078b123deb6eda787967d59d5d108437815028e5c599"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tin/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tin/camera.png",
+      "git_blob_sha": "6c64be826f272f4f1e033f4db92146575b11ceb7",
+      "sha256": "e23a4fb7b142e1eeed9e9b339f1ebfe00b1bda7466c9f36d1e299503e91c127f"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/camera.png",
+      "git_blob_sha": "5306d765d0d3f99b327e556bc2954a231185475e",
+      "sha256": "448206b2357bc1e3ae008af3bac545b31c8fea342fcdd5ac364b4bf1c6921cea"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/uranium/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/uranium/camera.png",
+      "git_blob_sha": "f5b4d2fe249dd55c0b69e37939d21221f45aa421",
+      "sha256": "7b1609c3b65f6ef8222027dbfdc0186d35c6ffbbadede1f1bbdb81f743b82e20"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/zinc/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/compat_ore/zinc/camera.png",
+      "git_blob_sha": "70e63fa1c83f1f3df68b70f6ca2e39dcaa3efb0a",
+      "sha256": "1e341ef9844949d08f20a8de176ec6c792d4ad9ff9b115a7679bde51587829c2"
+    },
+    "assets/tconstruct/textures/fluid/molten/glass/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/glass/camera.png",
+      "git_blob_sha": "8bdc5a58207f822df4ade174373de844f5c29069",
+      "sha256": "f8cb54efbcd03c8e42b9d3ae1d0d5c79326e389da42f76dc69ef6e3a34258e7e"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/amethyst/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/amethyst/camera.png",
+      "git_blob_sha": "b269472b947d11b0323ec0603da746927cae0bd2",
+      "sha256": "edf2bbdfde58dd5e44d77a69a84a20846c2374e6df8c2572c45f58561dbd61f1"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/cobalt/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/camera.png",
+      "git_blob_sha": "cb49cd423fd941c8ea79a3be2c5685b6c402ff58",
+      "sha256": "80bb2401d6d470de169b4b68fb718bda7b6383e1d93e66fbfd11cf239bbc1b0d"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/copper/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/copper/camera.png",
+      "git_blob_sha": "829bba3b91b192cd1e4e5d97848a8451e7c7aa09",
+      "sha256": "15b44036b6405793fc3893fe41b7b94f1d54ba37e1e149541a99a5f0b50cc07a"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/diamond/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/diamond/camera.png",
+      "git_blob_sha": "1ceed42ebf596fca4cebf403674f312b16ca1ae7",
+      "sha256": "837700a0cf025509473bbcee2d1677a355644fedeff1365411184db3a449400a"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/emerald/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/emerald/camera.png",
+      "git_blob_sha": "c8a4e99fa10422308983ba6f29e31033c58b5ae0",
+      "sha256": "6c93330d36736205a08db42e0f68e6d652361cec5160ff02542541d3c7feac19"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/gold/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/gold/camera.png",
+      "git_blob_sha": "74079e809e5ea0c0ebf18a6ebb9cacc336ce2e4e",
+      "sha256": "61830f64c521e5d988ddddd1bfa3371e8cce3b198eb2bb0de19c3c647b550fde"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/iron/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/iron/camera.png",
+      "git_blob_sha": "d4398019fb5b35742fae8fa1facb4ea9644425b0",
+      "sha256": "0b834727d2eb84c0e84a4e643f3552b2ace0d63f58673443eb1c615a5d29a18f"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/quartz/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/quartz/camera.png",
+      "git_blob_sha": "15f7697d3424f27a418e3d57a0e640a0fc4eb698",
+      "sha256": "8b2097f12ce321f557bf521494a0ac5778321a8f3131ee844061494cb25f9cff"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/steel/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/ore/steel/camera.png",
+      "git_blob_sha": "e8c1c55ef1a0ed4469f824b809d593ecd225493d",
+      "sha256": "daf6a82a57955e5913f1c0c46aef0ca2fa870435f54f76efb21fa6bd9d79a6c6"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/stone/camera.png",
+      "git_blob_sha": "c1a5599b126853418cf284c072b15b2361fd05ed",
+      "sha256": "8b1484e84ed943f7d147190ff85dfac2ec6b87f6fe4263db565aa00147c324cc"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/obsidian/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/camera.png",
+      "git_blob_sha": "0f3f9ece79d466670f7e0b8a3e8884bd04ae81b0",
+      "sha256": "c6106a9c7e0a19e9c7aae4083762d7d679ac5a05421913f730416cbaf39c9391"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/porcelain/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/molten/stone/porcelain/camera.png",
+      "git_blob_sha": "4aedceb983c723885a9b70451ed53acdf1147ee4",
+      "sha256": "c72dd0519eed28057abb2ef41769b01c0e1c4e56b762bf38bcc0b2b3b0109e98"
+    },
+    "assets/tconstruct/textures/fluid/slime/earth/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/earth/camera.png",
+      "git_blob_sha": "169f75fc97f363c15141fdcabd86ba3d73786b48",
+      "sha256": "0b57be5943808a61fa167e9d44071203ddf498be243bba9eabc3a0d9b23a390b"
+    },
+    "assets/tconstruct/textures/fluid/slime/ender/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/ender/camera.png",
+      "git_blob_sha": "22d5c505e31e08e51a4c58d40ab5f57e93315d97",
+      "sha256": "772de076f3dc3589f7561e0c7c84cfa3c506831a2dbb4373bd1aa623443e7780"
+    },
+    "assets/tconstruct/textures/fluid/slime/fiery/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/fiery/camera.png",
+      "git_blob_sha": "0003094bf80c45a1a058b625f80bcd4ef78c298a",
+      "sha256": "f2d55150a7e21b0461b64b499063a82936d14340078ccbe2747173e70eff767e"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/ichor/camera.png",
+      "git_blob_sha": "b21c049b57e50d88fe3e6a54591ef041a1c3830b",
+      "sha256": "cd2ec1755a6ee359e1d94bce63b02db18aa1e4aee10349df2cf2446a86750dfd"
+    },
+    "assets/tconstruct/textures/fluid/slime/magma/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/magma/camera.png",
+      "git_blob_sha": "1970b4edbd0a9c5cda8f9c1b9dff0bc7ac14035c",
+      "sha256": "ad01f7aefa1722be624045c3a9789385652c5407ac318b9a99f3aebf1d4488e4"
+    },
+    "assets/tconstruct/textures/fluid/slime/sky/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/sky/camera.png",
+      "git_blob_sha": "fb9f4819870e0d2eb29117e3a9167a49ac53a681",
+      "sha256": "05bbcdf2e74ff2bd109a349f902ba5e7690b32f5a2174f8b6a46095b41f50d5b"
+    },
+    "assets/tconstruct/textures/fluid/slime/soul/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/soul/camera.png",
+      "git_blob_sha": "28dc3a84b84eca950d983352c300f7ef43f6d618",
+      "sha256": "c755e4c35449b9cf4419580e9cabdcf67829f6b2a1856b5d59f12484c7468c23"
+    },
+    "assets/tconstruct/textures/fluid/slime/venom/camera.png": {
+      "source": "src/generated/resources/assets/tconstruct/textures/fluid/slime/venom/camera.png",
+      "git_blob_sha": "9bb68a599289f5afc3631ec96c1f8b72612f9a3b",
+      "sha256": "e6687eb4bed26df04a22d42a7e3655176017c5bed0bd5cf45de7758eb8fc8b04"
+    }
+  },
+  "mantle_revision": "17c287ad52f7b10154e07fa7570dc7bccd74ca2b",
+  "families": 70,
+  "opacity": 0.1,
+  "sources": [
+    "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/data/FluidTextureProvider.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/FluidTexture.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/ClientTextureFluidType.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/FluidTextureCameraProvider.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/data/client/DeanimateTextureGenerator.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/client/render/FluidRenderer.java"
+  ]
+}

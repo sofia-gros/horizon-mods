@@ -18,6 +18,10 @@
       "start": 0.25,
       "end": 2,
       "color": 14695989
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/food/stew/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {

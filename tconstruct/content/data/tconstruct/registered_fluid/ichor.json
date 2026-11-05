@@ -19,6 +19,10 @@
       "start": 0.25,
       "end": 2,
       "calculate_color": true
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/slime/ichor/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {
