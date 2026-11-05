@@ -20,4 +20,14 @@ class Wiring(unittest.TestCase):
         self.assertIn('Tank::from_nbt(&raw, 50)', route)
         self.assertIn('data.wire.patch().is_some()', route)
         self.assertLess(route.index('store::write_many('), route.index('slots[0] = output.slots[0].clone()'))
+    def test_cannon_source_rechecks_live_item_after_destination_processing(self):
+        code = P.read_text()
+        route = code[code.index('fn tank_to_casting_tank('):code.index('enum CastingInput')]
+        self.assertIn('CastingInput::Cannon(state, raw)', route)
+        self.assertIn('cannon_source && !cannon_at(game, source).is_some_and', route)
+        self.assertIn('guarded_item_source && output.slots', route)
+        self.assertLess(route.index('process_casting_tank(game, &mut output)'), route.index('cannon_source && !cannon_at'))
+        self.assertLess(route.index('cannon_source && !cannon_at'), route.index('store::write_many('))
+        adapter = code[code.index('enum CastingInput'):code.index('fn source_process_snapshot_valid(')]
+        self.assertIn('patch_melter_tank(raw, &state.tank)', adapter)
 if __name__ == '__main__': unittest.main()

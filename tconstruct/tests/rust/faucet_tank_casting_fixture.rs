@@ -1,5 +1,6 @@
 extern crate self as horizon_client;
 pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::items::ItemStack>>) } }
+#[path="__MIXINS__/source-fluid-cannon.rs"] mod tconstruct_source_fluid_cannon;
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-faucet-tank.rs"] mod tconstruct_source_faucet_tank;
 #[path="__MIXINS__/source-casting-tank.rs"] mod tconstruct_source_casting_tank;

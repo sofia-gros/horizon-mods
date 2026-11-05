@@ -1080,7 +1080,9 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     let source_state = game.world.block(source.0, source.1, source.2);
     let source_name = game.res.facts().get(source_state).name.clone();
     let lantern_source = matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
-    if !tanks::is_source(&source_name) && &*source_name != "tconstruct:seared_casting_tank" && !lantern_source { return None; }
+    let cannon_source = &*source_name == "tconstruct:seared_fluid_cannon";
+    let guarded_item_source = lantern_source || cannon_source;
+    if !tanks::is_source(&source_name) && &*source_name != "tconstruct:seared_casting_tank" && !guarded_item_source { return None; }
     let target_state = game.world.block(target.0, target.1, target.2);
     let target_name = game.res.facts().get(target_state).name.clone();
     if &*target_name != "tconstruct:seared_casting_tank" { return None; }
@@ -1095,6 +1097,12 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
         if tank.to_nbt() != raw { return Some(false); }
         // Route-local adapter: a Lantern is not a multiblock fuel tank.
         CastingInput::Builtin(tanks::Source::Tank("tconstruct:lantern", tank, raw))
+    } else if cannon_source {
+        let Some(state) = cannon_at(game, source) else { return Some(false); };
+        let Some(raw) = store::read(&game.world, source, "tconstruct:fluid_cannon") else { return Some(false); };
+        if state.to_nbt() != raw
+            || state.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some())) { return Some(false); }
+        CastingInput::Cannon(state, raw)
     } else if &*source_name == "tconstruct:seared_melter" {
         let Some(state) = tanks::load_source(game, source, &source_name) else { return Some(false); };
         let canonical = match &state {
@@ -1115,7 +1123,7 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     let Some(mut output) = casting_tank_at(game, target) else { return Some(false); };
     let Some(raw_output) = store::read(&game.world,target,"tconstruct:casting_tank") else { return Some(false); };
     if output.to_nbt() != raw_output
-        || (lantern_source && output.slots.iter().flatten().any(|item| item.data().is_some_and(|data| data.wire.patch().is_some()))) { return Some(false); }
+        || (guarded_item_source && output.slots.iter().flatten().any(|item| item.data().is_some_and(|data| data.wire.patch().is_some()))) { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world,pos,"tconstruct:faucet") else { return Some(false); };
     if faucet.to_nbt() != raw_faucet { return Some(false); }
     let reserves_source = starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet);
@@ -1137,21 +1145,23 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     let Some(source_processed) = input.process_after_drain(game, source_amount) else { return Some(false); };
     if output.tank.to_nbt() != before_tank { let _ = process_casting_tank(game, &mut output); }
     if !output.lossless()
-        || (lantern_source && output.slots.iter().flatten().any(|item| item.data().is_some_and(|data| data.wire.patch().is_some()))) { return Some(false); }
+        || (guarded_item_source && output.slots.iter().flatten().any(|item| item.data().is_some_and(|data| data.wire.patch().is_some()))) { return Some(false); }
     if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4)))
         || game.world.block(source.0, source.1, source.2) != source_state
         || game.world.block(target.0, target.1, target.2) != target_state
         || game.world.block(pos.0, pos.1, pos.2) != faucet_state
         || !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_)))
         || store::read(&game.world,source,source_key).as_ref() != Some(&raw_source)
-        || (source_strength.is_some() && !casting_tank_at(game, source).is_some_and(|state| state.to_nbt() == raw_source))
+        || (&*source_name == "tconstruct:seared_casting_tank" && !casting_tank_at(game, source).is_some_and(|state| state.to_nbt() == raw_source))
+        || (cannon_source && !cannon_at(game, source).is_some_and(|current| current.to_nbt() == raw_source
+            && current.item.as_ref().is_none_or(|item| item.data().is_none_or(|data| data.wire.patch().is_none()))))
         || store::read(&game.world,target,"tconstruct:casting_tank").as_ref() != Some(&raw_output)
         || store::read(&game.world,pos,"tconstruct:faucet").as_ref() != Some(&raw_faucet)
         || !casting_tank_at(game,target).is_some_and(|current| current.to_nbt() == raw_output
-            && (!lantern_source || current.slots.iter().flatten().all(|item| item.data().is_none_or(|data| data.wire.patch().is_none())))) { return Some(false); }
+            && (!guarded_item_source || current.slots.iter().flatten().all(|item| item.data().is_none_or(|data| data.wire.patch().is_none())))) { return Some(false); }
     let Some((key,data)) = input.data() else { return Some(false); };
     if !store::write_many(&mut game.world,&[(source,key,data),(target,"tconstruct:casting_tank",output.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) { return Some(false); }
-    if (&*source_name == "tconstruct:seared_melter" || lantern_source) && input.tank().amount < source_amount { game.container_changed(source); }
+    if (&*source_name == "tconstruct:seared_melter" || guarded_item_source) && input.tank().amount < source_amount { game.container_changed(source); }
     if source_processed { input.sync_slots(game, source); }
     if let (Some(before), Some(after)) = (source_strength, input.comparator()) { notify_casting_comparator(game, source, before, after); }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = output.slots[0].clone(); slots[1] = output.slots[1].clone(); }
@@ -1163,6 +1173,7 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
 enum CastingInput {
     Builtin(super::tconstruct_source_faucet_tank::Source),
     Portable(super::tconstruct_source_casting_tank::CastingTank),
+    Cannon(super::tconstruct_source_fluid_cannon::Cannon, horizon_world::nbt::Tag),
 }
 impl CastingInput {
     fn load(game: &super::Game<'_>, pos: Pos, name: &str) -> Option<Self> {
@@ -1177,8 +1188,8 @@ impl CastingInput {
             Some(Self::Builtin(state))
         }
     }
-    fn tank(&mut self) -> &mut Tank { match self { Self::Builtin(state) => state.tank(), Self::Portable(state) => &mut state.tank } }
-    fn comparator(&self) -> Option<i32> { match self { Self::Portable(state) => Some(state.comparator()), Self::Builtin(_) => None } }
+    fn tank(&mut self) -> &mut Tank { match self { Self::Builtin(state) => state.tank(), Self::Portable(state) => &mut state.tank, Self::Cannon(state, _) => &mut state.tank } }
+    fn comparator(&self) -> Option<i32> { match self { Self::Portable(state) => Some(state.comparator()), Self::Builtin(_) => None, Self::Cannon(state, _) => Some(state.comparator()) } }
     fn process_after_drain(&mut self, game: &mut super::Game<'_>, before: u32) -> Option<bool> {
         match self {
             Self::Portable(state) if state.tank.amount < before => {
@@ -1199,6 +1210,8 @@ impl CastingInput {
     fn data(&self) -> Option<(&'static str,horizon_world::nbt::Tag)> { match self {
         Self::Builtin(state) => state.data(),
         Self::Portable(state) => Some(("tconstruct:casting_tank",state.to_nbt())),
+        Self::Cannon(state, raw) => Some(("tconstruct:fluid_cannon",
+            super::tconstruct_source_faucet_tank::patch_melter_tank(raw, &state.tank)?)),
     } }
 }
 
