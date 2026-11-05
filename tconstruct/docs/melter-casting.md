@@ -277,3 +277,19 @@ stacked and Creative handling, save rejection, eleven preparation changes on
 transfer and menu-fallback paths, aliases and unchanged opaque/empty hands.
 These cases are unrun. Initialization, storage, menu opening, notifications and
 acting-hand mapping are mocked; full host/world/LAN remain unverified.
+
+### Solid Heater fuel and remainders
+
+Melter ticks now stage a solid Heater debit only when the fuel and remainder
+survive the native item codec without current or retained network wire patches.
+Count, damage and components are retained. Existing burn duration and remainder
+rules remain: only remainders burning for more than three ticks enter the Heater,
+matching stacks merge up to the source/64 limit, and other remainders spill.
+Before the machine save, the tick rechecks the loaded Heater chunk, exact block
+and original fuel stack. Slot changes and remainder spill follow a successful
+save; refused plans do not grant new fuel.
+
+Pure production-helper tests cover component preservation, single/stacked fuel,
+accepted/rejected/matching remainders, slot limits, zero counts and current/stale
+wire patches. Wiring checks cover grant and commit ordering. These tests are
+unrun; full Melter tick, host persistence, spill and LAN remain unverified.

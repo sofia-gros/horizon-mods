@@ -534,6 +534,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                 .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
     } else { vec![None; melter.slots.len()] };
     let mut heater_update = None;
+    let mut heater_before = None;
     let mut remainder_drop = None;
     if melter.phase == 0 && has_heater && melter.fuel == 0 {
         if let Some((temperature, rate)) = solid_fuel_rule(game) {
@@ -542,30 +543,21 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                 let fuel = match game.world.block_entities.get(&below) {
                     Some(BlockEntity::Chest(slots)) => slots.first().and_then(Clone::clone), _ => None,
                 };
-                if let Some(fuel) = fuel {
+                if let Some(fuel) = fuel.filter(super::tconstruct_source_smeltery_fuel::heater_stack_save_safe) {
                     let duration = game.res.providers().burn_time(game.res.items(), &fuel, false).max(0) as u32 / 4;
-                    let remainder = game.res.items().get(&fuel.item).and_then(|info| info.crafting_remainder.clone());
-                    if duration > 0 && fuel.count > 0 {
-                        let mut left = fuel.clone();
-                        left.count -= 1;
-                        let mut next = (left.count > 0).then_some(left);
-                        if let Some(id) = remainder {
-                            let remainder = horizon_items::items::ItemStack::new(&id, 1);
-                            // HeaterItemHandler accepts only items whose solid
-                            // burn time exceeds three ticks, even as remainders.
-                            if game.res.providers().burn_time(game.res.items(), &remainder, false) <= 3 {
-                                remainder_drop = Some(remainder);
-                            } else {
-                                match &mut next {
-                                    None => next = Some(remainder),
-                                    Some(stack) if stack.same_item_same_components(&remainder)
-                                        && stack.count < game.res.items().get(&stack.item).map_or(64, |item| item.max_stack).min(64) => stack.count += 1,
-                                    _ => remainder_drop = Some(remainder),
-                                }
-                            }
+                    if duration > 0 {
+                        let remainder = game.res.items().get(&fuel.item).and_then(|info| info.crafting_remainder.clone())
+                            .map(|id| horizon_items::items::ItemStack::new(&id,1));
+                        // HeaterItemHandler accepts only remainders whose
+                        // solid burn time exceeds three ticks.
+                        let accepted = remainder.as_ref().is_some_and(|item|
+                            game.res.providers().burn_time(game.res.items(), item, false) > 3);
+                        let limit = game.res.items().get(&fuel.item).map_or(64, |item| item.max_stack);
+                        if let Some((next, spill)) = super::tconstruct_source_smeltery_fuel::plan_heater_fuel(&fuel,remainder,accepted,limit) {
+                            heater_before = Some(fuel);
+                            heater_update = Some(next); remainder_drop = spill;
+                            melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
                         }
-                        heater_update = Some(next);
-                        melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
                     }
                 }
             }
@@ -634,7 +626,14 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     // The live inventories are distinct from the saved machine metadata.
     // Validate both before persisting, then publish the already-staged edits.
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(live)) if live.len() >= 3) { return; }
-    if heater_update.is_some() && !matches!(game.world.block_entities.get(&below), Some(BlockEntity::Chest(live)) if !live.is_empty()) { return; }
+    if let Some(before) = heater_before.as_ref() {
+        if !game.world.chunks.contains_key(&(below.0 >> 4,below.2 >> 4))
+            || game.world.block(below.0,below.1,below.2) != heater_state
+            || !matches!(game.world.block_entities.get(&below), Some(BlockEntity::Chest(live))
+                if live.first().and_then(Option::as_ref).is_some_and(|now|
+                    super::tconstruct_source_smeltery_fuel::heater_stack_save_safe(now)
+                        && now.count == before.count && now.damage == before.damage && now.same_item_same_components(before))) { return; }
+    }
     if !store::write_many(&mut game.world, &updates) { return; }
     if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
         for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
