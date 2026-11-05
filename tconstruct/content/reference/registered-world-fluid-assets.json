@@ -816,6 +816,22 @@
     "assets/tconstruct/textures/fluid/food/stew/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/food/stew/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/glass/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/glass/still.png",
+      "sha256": "9d1b06f9cb36e6e2924a147037296e951f1c4d6c5c742e1bb95c52ec45ac7741"
+    },
+    "assets/tconstruct/textures/fluid/molten/glass/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/glass/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/glass/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/glass/flowing.png",
+      "sha256": "0097e831cfcd70b616b16bc7ff800f1b38b78d6cc1ea28b9c37179338eb7441b"
+    },
+    "assets/tconstruct/textures/fluid/molten/glass/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/glass/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }
