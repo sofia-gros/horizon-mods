@@ -198,3 +198,8 @@ mod source_fire_duration;
 
 #[path = "../../../mixins/tconstruct/source-blast-knockback.rs"]
 mod source_blast_knockback;
+
+#[path = "../../../mixins/tconstruct/source-damage-tags.rs"]
+mod tconstruct_source_damage_tags;
+#[path = "../../../mixins/tconstruct/source-fire-protection-damage.rs"]
+mod source_fire_protection_damage;
