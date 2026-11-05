@@ -185,3 +185,11 @@ page from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersC
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
 The displayed `en_us/tools/tanks.json` is a port adaptation; the original image
 and numbered GUI instructions are deliberately omitted.
+
+Mighty Smelting's six ability category overview files under
+`assets/tconstruct/book/mighty_smelting/en_us/abilities/` (`general`, `interact`,
+`melee`, `harvest`, `ranged`, `armor`) are copied verbatim from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/abilities).
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+Source-reference notices, empty-category notices and bounded recipe grouping
+are port adaptations. Source blob hashes are in `tests/test_mighty_ability_groups.py`.

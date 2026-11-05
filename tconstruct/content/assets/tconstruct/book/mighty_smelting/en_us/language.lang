@@ -47,4 +47,8 @@ smeltery.partial=Smeltery Basics (Partial)
 smeltery.partial.notice_title=About This Section
 smeltery.partial.notice=Only selected Smeltery pages are shown. They describe the original; structures, fuels, alloys, controller casts and chute automation are limited. Entity melting is incomplete, and connected glass faces are unavailable.
 
-abilities.partial=Supported abilities (partial)
+abilities.partial=Abilities (Partial Guide)
+abilities.partial.notice_title=About This Section
+abilities.partial.notice=Source category descriptions explain the original mod, not complete Horizon support. Only currently supported recipe forms are listed beneath each category. Missing recipes do not establish that an effect is absent, and a shown recipe does not prove full gameplay parity. Repeated recipes may appear under multiple source categories. Individual recipe pages list eligible tool types; category names do not override those restrictions. Actual GUI interactions, acquisition and LAN remain unverified.
+abilities.partial.reference=Source reference: examples and controls described below may not be implemented in Horizon. Use the supported recipe pages for this port's current application rules.
+abilities.partial.empty=No supported recipe pages are available in this category for the current resource snapshot. This is a guide limitation, not proof that every described effect is absent.

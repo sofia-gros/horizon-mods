@@ -42,6 +42,25 @@ pub(super) fn mighty_advice_ready(labels: [Option<&str>; 3]) -> bool {
     labels.into_iter().all(|label| label.is_some_and(|text| !text.trim().is_empty()))
 }
 
+// The pinned source has six overview pages and five armor subgroups without
+// prose. Keep their identities bounded; actual membership comes from live tags.
+pub(super) fn mighty_ability_group(name: &str) -> Option<(&'static str, Option<&'static str>)> {
+    Some(match name {
+        "group_general" => ("tconstruct:abilities/general", Some("abilities/general.json")),
+        "group_interact" => ("tconstruct:abilities/interaction", Some("abilities/interact.json")),
+        "group_melee" => ("tconstruct:abilities/melee", Some("abilities/melee.json")),
+        "group_harvest" => ("tconstruct:abilities/harvest", Some("abilities/harvest.json")),
+        "group_ranged" => ("tconstruct:abilities/ranged", Some("abilities/ranged.json")),
+        "group_armor" => ("tconstruct:abilities/armor/general", Some("abilities/armor.json")),
+        "group_armor.helmet" => ("tconstruct:abilities/armor/helmet", None),
+        "group_armor.chestplate" => ("tconstruct:abilities/armor/chestplate", None),
+        "group_armor.leggings" => ("tconstruct:abilities/armor/leggings", None),
+        "group_armor.boots" => ("tconstruct:abilities/armor/boots", None),
+        "group_armor.shield" => ("tconstruct:abilities/armor/shield", None),
+        _ => return None,
+    })
+}
+
 // Source book tier and material-tag predicates. Stat support and hidden state
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
@@ -126,6 +145,22 @@ mod tests {
         assert!(mighty_advice_ready([Some("Partial"), Some("Notice"), Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), None, Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
+    }
+    #[test]
+    fn mighty_abilities_keep_six_overviews_and_five_bounded_subgroups() {
+        for name in ["general", "interact", "melee", "harvest", "ranged", "armor"] {
+            let (tag, page) = super::mighty_ability_group(&format!("group_{name}")).unwrap();
+            assert!(tag.starts_with("tconstruct:abilities/"));
+            assert_eq!(page, Some(format!("abilities/{name}.json").as_str()));
+        }
+        for name in ["helmet", "chestplate", "leggings", "boots", "shield"] {
+            let (tag, page) = super::mighty_ability_group(&format!("group_armor.{name}")).unwrap();
+            assert_eq!(tag, format!("tconstruct:abilities/armor/{name}"));
+            assert_eq!(page, None);
+        }
+        assert_eq!(super::mighty_ability_group("group_interact").unwrap().0, "tconstruct:abilities/interaction");
+        assert_eq!(super::mighty_ability_group("group_unknown"), None);
+        assert_eq!(super::mighty_ability_group("group_armor.unknown"), None);
     }
     #[test]
     fn mighty_advice_includes_bounded_groups_and_adapted_tank_page() {
