@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "source only; native tests unrun",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "module_inputs": {
+    "pluto-lib/mixins/pluto_native_creative/language.rs": "f587b3e7dab7da1374778b84cbd75fbe39f4b8ca664c1157e198b5c53eb2972a"
+  },
+  "official_inputs": {
+    "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+    "crates/horizon-client-core/Cargo.toml": "37de7590de671be779cb55db7dcf998646ae0b0bcc55531f517d69eb8971d180",
+    "crates/horizon-client-core/src/lang.rs": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+    "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67"
+  },
+  "expected_actual_module_tests": 8,
+  "no_native_or_metadata_execution": true,
+  "isolated_manifest_evidence": {
+    "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+    "sha256": "08076802a41cfb83480b063e95d67bd4badca088ec02d131d18af1c249524068",
+    "note": "One module in this source commit; combined package manifest is checked separately, not required to be byte-identical for the detached actual-core fixture."
+  }
+}

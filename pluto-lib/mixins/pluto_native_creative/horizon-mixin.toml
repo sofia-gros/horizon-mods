@@ -719,3 +719,10 @@ file = "crates/horizon-client/src/crafting.rs"
 name = "pluto_products"
 source = "crafting-products.rs"
 visibility = "pub"
+
+[[module]]
+id = "language"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_language"
+source = "language.rs"
+visibility = "pub"
