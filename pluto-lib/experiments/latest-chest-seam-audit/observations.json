@@ -1,0 +1,116 @@
+{
+  "actual_failure": "2080080cd86f07f06a7d67f5e21a7d5f5cc4c632",
+  "caller_excerpts": [
+    {
+      "end_line": 6479,
+      "excerpt_sha256": "a1de8e7667f91f6cc363add4173649adab3cfcae092aa01ae6db2fcac5dedcc8",
+      "matching_line": 6444,
+      "path": "crates/horizon-client/src/game.rs",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "source": "        if creative && storage::is_shulker_box(&facts.name) {\n            self.drop_creative_shulker(pos);\n        }\n        // BeehiveBlock.playerWillDestroy: a creative break still drops the hive\n        // with its bees and honey level.\n        if creative\n            && self.ui.rules.bool(\"block_drops\")\n            && let Some((h, (honey, _))) = &hive\n            && (!h.bees.is_empty() || honey.is_some_and(|l| l > 0))\n            && let Some(stack) = self.picked_stack(pos, true)\n        {\n            let at = pos.map(f64::from);\n            self.spawn_item(stack, at, dispenser::new_item_motion(), 10);\n        }\n        let correct_tool =\n            !facts.requires_tool || self.res.items().correct_for_drops(self.held(), &facts.name);\n        let removed = self.with_level(|b, level, ticks| {\n            b.player_destroy_block(\n                level,\n                ticks,\n                BlockPos::new(pos[0], pos[1], pos[2]),\n                creative,\n                correct_tool,\n            )\n        });\n        if removed && !creative {\n            let held = self.held().cloned();\n            self.mine_block_with_held(&facts.name, facts.hardness);\n            let harvest = !facts.requires_tool\n                || self\n                    .res\n                    .items()\n                    .correct_for_drops(held.as_ref(), &facts.name);\n            if harvest {\n                // Block.playerDestroy: the mined statistic, the exhaustion and the drops.\n                self.award_stat(\"mined\", &facts.name, 1);\n                if let Some(p) = self.player.as_mut() {\n                    p.cause_food_exhaustion(0.005);\n                }\n                let drops = self.block_loot_at(pos, state, held.as_ref(), loot_entity);\n                let silk = held\n                    .as_ref()\n                    .is_some_and(|h| h.enchantment_level(\"minecraft:silk_touch\") > 0);\n                for d in drops {\n                    if &*d.item != \"minecraft:air\" {\n",
+      "start_line": 6435,
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game.rs#L6444"
+    },
+    {
+      "end_line": 17579,
+      "excerpt_sha256": "8f7f7d2494e9669feefed7ae53795dce75391aff6ee9ed20824b6a25b6f66678",
+      "matching_line": 17544,
+      "path": "crates/horizon-client/src/game.rs",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "source": "                        horizon_client::pick_item::pick(\n                            &mut self.inventory[..36],\n                            &mut self.selected,\n                            &stack,\n                            infinite,\n                        );\n                    }\n                } else if let Some(hit) = self.pick() {\n                    let include_data = self.creative && self.has_control_down();\n                    if let Some(stack) = self.picked_stack(hit.pos, include_data) {\n                        let infinite = self.creative;\n                        horizon_client::pick_item::pick(\n                            &mut self.inventory[..36],\n                            &mut self.selected,\n                            &stack,\n                            infinite,\n                        );\n                    }\n                }\n            }\n            _ => {}\n        }\n        Ok(())\n    }\n    /// LOD Distance and Far Detail Reduced as the player chose them, the\n    /// distance no farther than a server sampling far terrain for us allows.\n    fn far_terrain_choice(&self) -> (u32, bool) {\n        let g = &self.settings.horizon;\n        let reduced = g.far_detail == horizon_client::graphics::FarDetail::Reduced;\n        let distance = match self.server_far_terrain() {\n            Some(offer) => g.lod_distance.min(offer.distance),\n            None => g.lod_distance,\n        };\n        (distance, reduced)\n    }\n    /// The far terrain another machine's server samples for us\n    /// (`lod_net`): a client of a dedicated server or of a LAN world, not of\n    /// its own server thread, which hands its generator over directly.\n    fn server_far_terrain(&self) -> Option<horizon_client::lod_net::Offer> {\n        if self.integrated.is_some() {\n            return None;\n        }\n        self.remote.as_ref()?.far_terrain\n    }\n    /// LOD Distance as far terrain uses it (`graphics::lod_distance_capped`).\n",
+      "start_line": 17535,
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game.rs#L17544"
+    },
+    {
+      "end_line": 2901,
+      "excerpt_sha256": "d35b9d701a5aabee161b0e51dbf8a6c5f75229e3e34f714935d923a3c671bab5",
+      "matching_line": 2866,
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "source": "                        .map(|a| {\n                            let lo = f64::from(p.pos[a]);\n                            (eye[a] - eye[a].clamp(lo, lo + 1.0)).powi(2)\n                        })\n                        .sum();\n                    let range = g.reach() + 1.0;\n                    if d2 >= range * range {\n                        return None;\n                    }\n                    g.picked_stack(p.pos, g.creative && p.include_data)\n                });\n            }\n            // handlePickItemFromEntity.\n            S::PickItemFromEntity(p) => {\n                self.guest_pick_item(host, conn, true, [0; 3], p.id, |g| {\n                    g.within_entity_range(p.id)\n                        .then(|| g.entity_pick_result(p.id))\n                        .flatten()\n                });\n            }\n            _ => {}\n        }\n    }\n\n    /// `ServerLevel.getEntity(id)`'s `Entity.saveWithoutId`: the player or\n    /// other entity of the level in place with that network id.\n    fn level_entity_tag(&mut self, host: &mut LanHost, id: i32) -> Option<horizon_world::nbt::Tag> {\n        use super::commands::Target;\n        let player = host\n            .hub\n            .guests\n            .iter()\n            .find(|g| g.entity_id == id && host.hub.here(g))\n            .map(|g| g.conn);\n        let mut tag = match player {\n            Some(player) => self\n                .as_guest(host, player, |g| g.entity_nbt(Target::Player))\n                .flatten()?,\n            None => {\n                let target = self.level_entity(id)?;\n                self.entity_nbt(target)?\n            }\n        };\n        if let horizon_world::nbt::Tag::Compound(c) = &mut tag {\n            c.remove(&\"id\".into());\n",
+      "start_line": 2857,
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_actions.rs#L2866"
+    },
+    {
+      "end_line": 2944,
+      "excerpt_sha256": "5858fe2420f4e7317e11e4ffc017aec28be80c94fd944e159266e6255c241d3e",
+      "matching_line": 2909,
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "source": "        if let horizon_world::nbt::Tag::Compound(c) = &mut tag {\n            c.remove(&\"id\".into());\n        }\n        Some(tag)\n    }\n\n    /// `ServerGamePacketListenerImpl.tryPickItem` for the guest: a matching stack\n    /// is selected, else a creative player gets the item; the held slot is sent\n    /// back and the changed slots follow with the tick's inventory changes.\n    fn guest_pick_item(\n        &mut self,\n        host: &mut LanHost,\n        conn: u32,\n        from_entity: bool,\n        pos: [i32; 3],\n        entity_id: i32,\n        stack: impl FnOnce(&mut Self) -> Option<ItemStack>,\n    ) {\n        let Some((uuid, name)) = host.hub.guest(conn).map(|g| (g.uuid, g.name.clone())) else {\n            return;\n        };\n        let picked = self.as_guest(host, conn, |g| {\n            let stack = stack(g)?;\n            let infinite = g.creative;\n            let mut cancel = false;\n            g.native_player_pick_item(uuid, &name, from_entity, pos, entity_id, &mut cancel);\n            if cancel {\n                return None;\n            }\n            horizon_client::pick_item::pick(\n                &mut g.inventory[..36],\n                &mut g.selected,\n                &stack,\n                infinite,\n            );\n            Some(())\n        });\n        if picked.flatten().is_some()\n            && let Some(g) = host.hub.guests.iter().find(|g| g.conn == conn)\n        {\n            host.hub.send_to(\n                conn,\n                &C::SetHeldSlot(play::SetHeldSlot {\n                    slot: g.selected as i32,\n                }),\n",
+      "start_line": 2900,
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_actions.rs#L2909"
+    }
+  ],
+  "callgraph_scope": "Observed two exact official source files only, not a repository-wide absence proof",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "mixins_sources": [
+    {
+      "bytes": 60607,
+      "excerpts": [
+        {
+          "end_line": 727,
+          "source": "                        \"E_VARIABLE_TYPE\",\n                        \"variable modifier value type disagrees with its declaration\",\n                    )));\n                }\n                if variable.at == manifest::Access::Load\n                    && ![\n                        \"bool\", \"char\", \"u8\", \"u16\", \"u32\", \"u64\", \"u128\", \"usize\", \"i8\", \"i16\",\n                        \"i32\", \"i64\", \"i128\", \"isize\", \"f32\", \"f64\",\n                    ]\n                    .contains(&value_type.as_str())\n                {\n                    return Err(context(Diagnostic::new(\n                        \"E_UNSUPPORTED_LOCAL\",\n                        \"LOAD modifiers currently require a primitive scalar value type\",\n                    )));\n",
+          "start_line": 713
+        },
+        {
+          "end_line": 958,
+          "source": "        .file(&f.file));\n    }\n    let mut safety = Safety {\n        error: None,\n        boundary: kind == Kind::Head,\n        // RETURN moves only exit values (`return` operands and the tail) into a helper call\n        // argument and leaves the rest of the body as it was. References to calls and closures\n        // are checked in those values only ([`exit_value_error`]). MODIFY_VARIABLE likewise\n        // replaces only the value it selects ([`modified_value_error`]).\n        rewrites_body: !matches!(kind, Kind::Return | Kind::ModifyVariable),\n        // A `?` is an exit RETURN would miss; MODIFY_VARIABLE leaves one outside its value alone.\n        try_outside_value: kind == Kind::ModifyVariable,\n        body_macros: false,\n        in_body: false,\n        macro_depth: 0,\n        policy: crate::standard_macros::Policy::for_function(index, f),\n        macro_error: None,\n",
+          "start_line": 942
+        },
+        {
+          "end_line": 1128,
+          "source": "        {\n            self.error = Some((\n                \"E_UNSUPPORTED_MACRO\",\n                \"macro inputs contain hidden control flow; move it outside the macro\",\n            ));\n            return;\n        }\n        match expr {\n            // RETURN never rewrites inside a closure; what is inside is still checked.\n            Expr::Closure(c) if !self.rewrites_body && c.asyncness.is_none() => {}\n            Expr::Try(_) if self.try_outside_value => {}\n            Expr::Closure(_)\n            | Expr::Async(_)\n            | Expr::Await(_)\n            | Expr::Try(_)\n            | Expr::TryBlock(_)\n            | Expr::Yield(_)\n            | Expr::Unsafe(_)\n            | Expr::Const(_) => self.error = Some(CLOSURES_ETC),\n            // Calls under a reference can depend on temporary lifetime extension.\n            Expr::Reference(r)\n                if self.rewrites_body && self.macro_depth == 0 && contains_call(&r.expr) =>\n",
+          "start_line": 1107
+        }
+      ],
+      "path": "crates/horizon-mixins-core/src/plan.rs",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"
+    },
+    {
+      "bytes": 21442,
+      "excerpts": [
+        {
+          "end_line": 221,
+          "source": "                    .count();\n                self.locals.push(Local {\n                    id,\n                    name,\n                    ordinal,\n                    parameter: false,\n                    mutable,\n                    supported: allow && plain,\n                    ty: ty.clone(),\n                    fingerprint: fingerprint.into(),\n                    in_closure,\n                });\n                id\n            })\n            .collect()\n    }\n    fn expose(&mut self, ids: &[usize]) {\n        for id in ids {\n            self.frames\n                .last_mut()\n                .unwrap()\n                .1\n                .insert(self.locals[*id].name.clone(), *id);\n        }\n    }\n",
+          "start_line": 197
+        },
+        {
+          "end_line": 251,
+          "source": "    pub fn declaration(&self, name: &str, ordinal: usize, parameter: bool) -> Result<&Local> {\n        self.locals\n            .iter()\n            .find(|l| {\n                l.name == name && l.ordinal == ordinal && l.parameter == parameter && !l.in_closure\n            })\n            .ok_or_else(|| {\n                Diagnostic::new(\n                    \"E_LOCAL_NOT_FOUND\",\n                    format!(\n                        \"no {} declaration {name}:{ordinal}\",\n                        if parameter { \"parameter\" } else { \"local\" }\n                    ),\n                )\n            })\n    }\n    pub fn variable_sites(&self, variable: &Variable) -> Result<Vec<&VariableSite>> {\n        let local = self.declaration(&variable.name, variable.ordinal, variable.parameter)?;\n        if !local.supported {\n            return Err(Diagnostic::new(\n                \"E_UNSUPPORTED_LOCAL\",\n                \"destructuring/conditional pattern bindings are unsupported\",\n            ));\n        }\n        Ok(self\n            .accesses\n            .iter()\n            .filter(|a| a.local == local.id && a.at == variable.at)\n            .collect())\n    }\n",
+          "start_line": 222
+        },
+        {
+          "end_line": 380,
+          "source": "        self.visit_block(&e.body);\n        self.frames.pop();\n    }\n    fn visit_expr_for_loop(&mut self, e: &'ast syn::ExprForLoop) {\n        self.visit_expr(&e.expr);\n        self.push();\n        let ids = self.add_pattern(&e.pat, false, &source::fingerprint(tokens(&e.pat)));\n        self.expose(&ids);\n        self.visit_block(&e.body);\n        self.frames.pop();\n    }\n    fn visit_expr_let(&mut self, e: &'ast syn::ExprLet) {\n        self.visit_expr(&e.expr);\n        let ids = self.add_pattern(&e.pat, false, &source::fingerprint(tokens(&e.pat)));\n        self.expose(&ids);\n    }\n    fn visit_expr_match(&mut self, e: &'ast syn::ExprMatch) {\n        self.visit_expr(&e.expr);\n        for arm in &e.arms {\n            self.push();\n            let ids = self.add_pattern(&arm.pat, false, &source::fingerprint(tokens(&arm.pat)));\n            self.expose(&ids);\n            if let Some((_, guard)) = &arm.guard {\n                self.visit_expr(guard);\n",
+          "start_line": 357
+        },
+        {
+          "end_line": 467,
+          "source": "    fn visit_generic_argument(&mut self, a: &'ast syn::GenericArgument) {\n        let old = self.constant;\n        self.constant |= matches!(\n            a,\n            syn::GenericArgument::Const(_) | syn::GenericArgument::AssocConst(_)\n        );\n        visit::visit_generic_argument(self, a);\n        self.constant = old;\n    }\n    fn visit_expr_closure(&mut self, c: &'ast syn::ExprClosure) {\n        self.closures += 1;\n        visit::visit_expr_closure(self, c);\n",
+          "start_line": 456
+        }
+      ],
+      "path": "crates/horizon-mixins-core/src/scopes.rs",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "sha256": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd"
+    },
+    {
+      "bytes": 19151,
+      "excerpts": [
+        {
+          "end_line": 193,
+          "source": "    kind: Kind,\n    cancellable: bool,\n    helper_source: &str,\n    bindings: &[Binding],\n    call: Option<&Expr>,\n    call_result: Option<&str>,\n) -> Result<Contract> {\n    let helper = parse_helper(helper_source)?;\n    let result = return_type(&f.signature);\n    let value = if matches!(\n        kind,\n        Kind::Return\n            | Kind::ModifyArg\n            | Kind::ModifyConstant\n            | Kind::ModifyVariable\n            | Kind::ModifyArgs\n            | Kind::ModifyExpressionValue\n    ) {\n        let special = if kind == Kind::ModifyArgs {\n            \"$args\"\n        } else {\n            \"$value\"\n        };\n        let values: Vec<_> = bindings.iter().filter(|b| b.value == special).collect();\n        if values.len() != 1 {\n            return Err(Diagnostic::new(\n                \"E_INVALID_BINDING\",\n                format!(\"value modifiers require exactly one {special} binding\"),\n            ));\n        }\n        let value_type = parse_type(&values[0].ty)?;\n        if unsupported_type(&value_type, false) {\n            return Err(Diagnostic::new(\n                \"E_VALUE_SIGNATURE\",\n                \"value modifiers need a concrete value type; opaque, inferred and never types are unsupported\",\n            ));\n        }\n        Some(value_type)\n    } else {\n",
+          "start_line": 155
+        }
+      ],
+      "path": "crates/horizon-mixins-core/src/helpers.rs",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "sha256": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661"
+    }
+  ],
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "schema": 1,
+  "status": "read-only source constraints, not planner execution for alternatives"
+}
