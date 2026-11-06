@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "status": "source_review_only",
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "sources": {
+    "main:tconstruct/mixins/tconstruct/horizon-mixin.toml": {
+      "bytes": 189155,
+      "sha256": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/horizon-mixin.toml"
+    },
+    "main:tconstruct/mixins/tconstruct/source-chest-pick.rs": {
+      "bytes": 521,
+      "sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-chest-pick.rs"
+    },
+    "main:tconstruct/mixins/tconstruct/source-melter-store.rs": {
+      "bytes": 11630,
+      "sha256": "9d0bcb9cb0f43f144fe2e24a6d9e564566cdc57665dc8e847a37c956b502a421",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-melter-store.rs"
+    },
+    "main:tconstruct/mixins/tconstruct/source-machine-place.rs": {
+      "bytes": 3155,
+      "sha256": "7eeca9950344a91ad4a7db9677b579c3c46c7ced2dbaf0bb07c4b579ea6243f6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-machine-place.rs"
+    },
+    "main:tconstruct/mixins/tconstruct/source-machine-remove.rs": {
+      "bytes": 3987,
+      "sha256": "7d7918a7ff1b63d1f2c0d9c9e21f423f29feb337438b94badcd284a3e79df15e",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-machine-remove.rs"
+    },
+    "main:tconstruct/mixins/tconstruct/source-smeltery-tank-drop.rs": {
+      "bytes": 2359,
+      "sha256": "ca19ade7ea21140cb20ed13755a6b161efa35f1272f3cce5425a3a98c45dcf81",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-smeltery-tank-drop.rs"
+    },
+    "horizon:crates/horizon-client/src/game/block_items.rs": {
+      "bytes": 17218,
+      "sha256": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7",
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/block_items.rs"
+    },
+    "horizon:crates/horizon-client/src/pick_item.rs": {
+      "bytes": 5027,
+      "sha256": "85a3b5b9093c0870541dc165ea8d577ff2fd6586e38fd55f0743e42840ae006e",
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/pick_item.rs"
+    },
+    "horizon:crates/horizon-client/src/game.rs": {
+      "bytes": 1031429,
+      "sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game.rs"
+    },
+    "horizon:crates/horizon-client/src/game/lan_actions.rs": {
+      "bytes": 270381,
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/lan_actions.rs"
+    },
+    "horizon:crates/horizon-client/src/game/native_hooks.rs": {
+      "bytes": 507210,
+      "sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/native_hooks.rs"
+    }
+  },
+  "common_archive_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "runtime_edited": false,
+  "native_executed": false,
+  "block_items_comparison": {
+    "old_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "latest_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "whole_file_equal": true,
+    "sha256": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7",
+    "claim": "No body-change attribution for this diagnostic; older complete hook acceptance is not asserted."
+  },
+  "actual_plan_failure": {
+    "run": 42215886835,
+    "head": "74fc9a53e4bde161f326bbd16710b625f86716e6",
+    "source_receipt_commit": "5db8371b",
+    "exit": 1,
+    "seconds": 580.106,
+    "code": "E_UNSUPPORTED_CONTROL_FLOW",
+    "target": "horizon_client::game::block_items::Game<'_>::picked_stack",
+    "injection": "tinkers-chest-pick-color",
+    "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+    "accepted_plan": false
+  },
+  "observed_callers": [
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "line": 17536,
+      "role": "local pick; remote mouse delegated first; survival or creative; include_data = creative && Ctrl"
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "line": 2866,
+      "role": "LAN server guest, loaded/eye/reach checks then as_guest; include_data = creative && packet flag"
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "line": 6442,
+      "role": "creative beehive drop under block_drops/hive gate; unrelated item must remain unchanged"
+    }
+  ],
+  "caller_inventory_limit": "These three calls were verified in the exact large Game/lan sources; not a fresh full-repository call-graph proof.",
+  "common_payloads": {
+    "mixins/pluto_native_creative/pluto_items_b2/adapter.rs": {
+      "bytes": 2473,
+      "sha256": "067756f06425d77919a714b90994bee26ffca3b873f01d9108ed4f1406a46161"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/api/src/item.rs": {
+      "bytes": 7134,
+      "sha256": "df0089940cd82573dff4ccf7481442d04066204aa9842c8105654e7504144198"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/component-view.rs": {
+      "bytes": 6400,
+      "sha256": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/crafting-products.rs": {
+      "bytes": 7844,
+      "sha256": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/nbt-storage.rs": {
+      "bytes": 5014,
+      "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/stack-storage.rs": {
+      "bytes": 5591,
+      "sha256": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76"
+    }
+  },
+  "common_pick_identifier_hits": [],
+  "required_cases": [
+    "None native result remains None; no fabricated stack.",
+    "Non-Tinkers item result is unchanged even with chest metadata at pos.",
+    "Tag::Int color overwrites only dyed_color; preserve item/count/damage/full other and runtime fields.",
+    "i32 minimum, negative values, zero and maximum are not RGB-clamped by the old policy.",
+    "Missing/wrong-typed color preserves prior dyed_color and must not allocate new default data.",
+    "Existing nested modifier_chest payload wins; malformed nested payload does not fall back to legacy top-level color.",
+    "Legacy top-level color used only when nested key is absent and raw id resolves to modifier_chest.",
+    "Existing nested payload is returned even if raw id differs; do not silently strengthen schema validation during migration.",
+    "Both include_data false/true follow the same color policy after native data collection.",
+    "Survival selects only same-item/same-component inventory stack and never grants a new item; creative may clone result.",
+    "LAN loaded/eye/reach/as_guest/cancel and later sync order remain native; local remote delegation remains native.",
+    "Native None/air, crop/pot/banner/hive/light/statue paths remain untouched for unrelated items.",
+    "No world metadata mutation, no palette/NBT migration, no codec roundtrip or global/TLS cache."
+  ]
+}
