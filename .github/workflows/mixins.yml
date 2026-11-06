@@ -72,8 +72,7 @@ jobs:
           /tmp/tconstruct-recipe-snapshot-test
           rustc --test tconstruct/tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
           /tmp/tconstruct-material-snapshot-test
-          rustc --test tconstruct/tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
-          /tmp/tconstruct-source-builder-wire-test
+          cargo test --locked --offline --manifest-path tconstruct/tests/builder-wire/Cargo.toml
           rustc --test tconstruct/tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
           /tmp/tconstruct-source-builder-layout-test
           rustc --edition=2021 --test tconstruct/tests/rust/materials_book_index.rs -o /tmp/tconstruct-materials-book-index-test

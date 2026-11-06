@@ -1,3 +1,5 @@
+extern crate self as horizon_client;
+pub use pluto_inventory_api as pluto_inventory;
 #[path = "../../mixins/tconstruct/recipe-order.rs"]
 mod recipe_order;
 use std::io::{self, Read};

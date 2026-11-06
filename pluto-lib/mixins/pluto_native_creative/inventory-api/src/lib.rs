@@ -352,3 +352,9 @@ pub mod crafting;
 
 /// Ordered lazy three-valued predicate folds, without schema or leaf policy.
 pub mod predicate_fold;
+
+/// Opt-in Java linked-bin ordering compatibility, without resource policy.
+pub mod java_hashmap;
+
+/// Pure bounded string-list framing for signed menu-data words.
+pub mod menu_words;
