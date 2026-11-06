@@ -16,6 +16,9 @@
   "prototype_validation": {
     "python_source_guards_passed": 4,
     "rust_tests_written": 10,
-    "rust_tests_executed": false
+    "rust_tests_executed": true,
+    "rust_tests_passed": 10,
+    "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
+    "scope": "UNAPPLIED proposed EffectInstance excerpt and owned record only; not actual host save/contact/cure integration"
   }
 }

@@ -1,0 +1,86 @@
+{
+  "status": "PASS, bounded UNAPPLIED proposed-source fixture only; unfinished native integration",
+  "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
+  "remote_source_checkpoint": "debfa2cf8df25745dede6b06b53b188dfe170790",
+  "rust_tests_passed": 10,
+  "python_source_guards_passed": 4,
+  "preparation": {
+    "status": "UNAPPLIED/UNFINISHED prototype fixture, not native gameplay",
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_source": "crates/horizon-client-render/src/effects.rs",
+    "official_sha256": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "original_instance_excerpt_sha256": "eed233a6d0345239a5fb0f47d990a1c17e06c6e6ae478e0e1535ac600baaa12d",
+    "proposed_full_file_sha256": "4998f06131af297da92bd170ed8841222cddea9c0855f66c29da2091c2b0c532",
+    "patch_sha256": "e98e758e79858ee1b1ac237030bf97a5fde0b4a45e2311872ca84243715dffd9",
+    "prepared_files": {
+      "extension.rs": "c9abc160f14a2d9dd586fddf1aa907c6451f781baa1b047497dcf70b8d0bad67",
+      "fixture.rs": "c8faf4793f0e5ca8a5b0ee6b780bc43e4a3dab29f0a665c790a18f96ef43e398",
+      "tests.rs": "c552b88fc72f35d9e7aeffd8b67ebdae4fd0d64be4b6724ce52cde2ac6691762"
+    },
+    "scope": "Exact pinned native EffectInstance excerpt plus proposed changes and real std types. No substituted native type. Unused potion import removed; no potion resolver mock.",
+    "excluded": [
+      "Full native crate type checking",
+      "PlayerEffects/Level/NBT save migration",
+      "Native contact or cure activation",
+      "LAN/remote protocol authority",
+      "Mob representation migration"
+    ]
+  },
+  "execution": {
+    "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
+    "remote_checkpoint": "debfa2cf8df25745dede6b06b53b188dfe170790",
+    "scope": "UNAPPLIED proposed-source EffectInstance excerpt and owned-record tests, std only; not native crate/production save/contact proof",
+    "floor": 10871635968,
+    "initial_free_bytes": 10893643776,
+    "minimum_free_bytes": 10885697536,
+    "phases": [
+      {
+        "name": "compile",
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "--test",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-instance-prototype-initial/fixture.rs",
+          "-C",
+          "debuginfo=0",
+          "-C",
+          "opt-level=0",
+          "-o",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-instance-prototype-initial/fixture-tests"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.3517869640054414,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "tests",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-instance-prototype-initial/fixture-tests",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.050879517002613284,
+        "log_sha256": "c3f7d061c8e369769d7842778c1e0ae626117c82003287f9f6e8cdf1c9d7fec3"
+      }
+    ],
+    "guard_stopped": false,
+    "source_before_verified": true,
+    "runner_sha256": "7e9be38726c6423ed11ed18d99e5af927c39ea7c37dec1feb6ec770cd7eae279",
+    "end_free_bytes": 10886443008,
+    "source_after_verified": true
+  },
+  "tests_stdout": "\nrunning 10 tests\ntest proposal_tests::extension_validation_is_atomic_and_duplicate_keys_are_not_collapsed ... ok\ntest proposal_tests::native_equality_does_not_acquire_new_payload_policy ... ok\ntest proposal_tests::new_and_cross_module_style_updates_have_empty_data ... ok\ntest proposal_tests::record_limits_and_unresolved_ids_reject_without_clamping_or_dropping ... ok\ntest proposal_tests::record_roundtrip_retains_order_unknown_namespaces_and_independence ... ok\ntest proposal_tests::recursive_hidden_update_retains_that_instances_policy ... ok\ntest proposal_tests::same_level_refresh_and_stronger_replacement_keep_active_policy ... ok\ntest proposal_tests::shorter_stronger_hides_previous_payload_and_restores_it ... ok\ntest proposal_tests::weaker_longer_copies_incoming_policy_without_incoming_hidden_chain ... ok\ntest proposal_tests::whole_clone_has_independent_active_and_hidden_payloads ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+  "evidence_sha256": "eda4fa0f0de29424e57dca9249596ab584271ea7e48c1733d8b74903128352cd",
+  "result_sha256": "c50bbbdcea0cc63a40669ecc63bff59fc308b3906521866422148bce75543655",
+  "test_executable_sha256": "99818b190dbd705732560c95939b0f162c5f349e5d85206f3bddbca9b2cd9ec9",
+  "review": "Independent source review found no serious ownership, atomicity or oracle issue; no native runtime claim.",
+  "excluded": [
+    "Full official crate type check",
+    "PlayerEffects/Level/NBT persistence migration",
+    "Real actor contact/cure execution",
+    "LAN or remote authority/wire proof",
+    "Mob effect migration",
+    "Official repository changes or upstream acceptance"
+  ]
+}

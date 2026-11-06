@@ -72,3 +72,14 @@ ordinary update, both hidden-copy branches, hidden restoration, recursive hidden
 update, proposed-record roundtrip, unknown payloads, bounds, unresolved IDs and
 atomic invalid insertion. Execution status belongs in a separate evidence
 record; the presence of test source is not a passing result.
+
+## Observed bounded result
+
+At local source `257377be7d2f1798763623b5d578783be6f98ef6` (remote checkpoint
+`debfa2cf8df25745dede6b06b53b188dfe170790`), the std-only proposed-source fixture
+compiled and all **10 tests passed**, with none skipped. Four Python source
+guards also passed. The continuous disk guard did not stop execution; its
+minimum was 10,885,697,536 bytes. Official inputs and all prepared file hashes
+were reverified before and after. See [validation.json](validation.json) for
+commands, exact hashes and test names. This result does not close any of the
+excluded native integration gates above.
