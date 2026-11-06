@@ -179,4 +179,27 @@ class EvidenceTests(unittest.TestCase):
   w=(r.ROOT/'.github/workflows/playtest-complete-plan-wip.yml').read_text();self.assertIn('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',w);self.assertIn("always() && steps.diagnostic.outputs.evidence_ready == 'true'",w);self.assertIn('retention-days: 3',w)
   code=(HERE/'run.py').read_text();self.assertLess(code.index('evidence.verify_saved(output)'),code.index("out.write('evidence_ready=true"));self.assertIn('contents: read',w)
 
+ def test_manifest_only_cannot_pass(self):
+  with tempfile.TemporaryDirectory() as d:
+   pth=Path(d);(pth/'manifest.json').write_text(json.dumps({'schema':1,'head':'a'*40,'plan_present':False,'source_verified':False,'probe_completed':False,'files':{}}))
+   with self.assertRaisesRegex(ValueError,'file set'):r.evidence.verify_saved(pth)
+ def test_manifest_types_strict(self):
+  with tempfile.TemporaryDirectory() as d:
+   out,_=r.evidence.persist(self.report(),Path(d),lambda n:None);path=out/'manifest.json';base=json.loads(path.read_text())
+   for key,value in [('schema',True),('head','../bad'),('plan_present',0),('files',[])]:
+    changed=copy.deepcopy(base);changed[key]=value;path.write_text(json.dumps(changed))
+    with self.assertRaises(ValueError):r.evidence.verify_saved(out)
+ def test_plan_presence_must_match_manifest(self):
+  with tempfile.TemporaryDirectory() as d:
+   out,m=r.evidence.persist(self.report(),Path(d),lambda n:None);m['plan_present']=True;(out/'manifest.json').write_text(json.dumps(m))
+   with self.assertRaisesRegex(ValueError,'file set'):r.evidence.verify_saved(out)
+ def test_receipt_identity_must_match_manifest(self):
+  with tempfile.TemporaryDirectory() as d:
+   out,m=r.evidence.persist(self.report(),Path(d),lambda n:None);m['head']='b'*40;(out/'manifest.json').write_text(json.dumps(m))
+   with self.assertRaisesRegex(ValueError,'identity'):r.evidence.verify_saved(out)
+ def test_accepted_plan_must_match_receipt(self):
+  with tempfile.TemporaryDirectory() as d:
+   out,m=r.evidence.persist(self.report(),Path(d),lambda n:None);rr=json.loads((out/'receipt.json').read_text());rr['plan_accepted']=True;b=r.evidence.encode(rr);(out/'receipt.json').write_bytes(b);m['files']['receipt.json']={'bytes':len(b),'sha256':p.sha(b)};(out/'manifest.json').write_text(json.dumps(m))
+   with self.assertRaisesRegex(ValueError,'accepted plan'):r.evidence.verify_saved(out)
+
 if __name__=='__main__':unittest.main()

@@ -85,11 +85,28 @@ def verify_saved(destination):
     """Use after archive extraction; does not extract or follow symlinks."""
     destination=Path(destination);no_links(destination)
     m=json.loads(read_regular(destination/'manifest.json',LIMITS['manifest.json']))
-    expected=set(m['files'])|{'manifest.json'}
-    if expected-set(LIMITS) or {p.name for p in destination.iterdir()}!=expected:raise ValueError('Wrong saved evidence file set')
+    if (not isinstance(m,dict) or set(m)!={'schema','head','plan_present','source_verified','probe_completed','files'}
+            or type(m['schema']) is not int or m['schema']!=1 or not isinstance(m['head'],str)
+            or not re.fullmatch('[0-9a-f]{40}',m['head']) or any(type(m[k]) is not bool for k in ('plan_present','source_verified','probe_completed'))
+            or not isinstance(m['files'],dict)):
+        raise ValueError('Invalid saved evidence manifest schema/head/types')
+    names=set(m['files']);expected=names|{'manifest.json'}
+    if (not {'receipt.json','package-maps.json'}.issubset(names) or 'manifest.json' in names
+            or m['plan_present']!=('plan.json' in names) or expected-set(LIMITS)
+            or {p.name for p in destination.iterdir()}!=expected):raise ValueError('Wrong saved evidence file set')
     total=0
     for name,v in m['files'].items():
+        if (not isinstance(v,dict) or set(v)!={'bytes','sha256'} or type(v['bytes']) is not int or not 0<v['bytes']<=LIMITS[name]
+                or not isinstance(v['sha256'],str) or not re.fullmatch('[0-9a-f]{64}',v['sha256'])):raise ValueError('Invalid saved file manifest')
         b=read_regular(destination/name,LIMITS[name]);total+=len(b)
         if (len(b),sha(b))!=(v['bytes'],v['sha256']):raise ValueError('Saved evidence content mismatch')
     if total+len(read_regular(destination/'manifest.json',LIMITS['manifest.json']))>MAX_TOTAL:raise ValueError('Saved evidence total exceeded')
+    receipt=json.loads(read_regular(destination/'receipt.json',LIMITS['receipt.json']))
+    if (receipt.get('head')!=m['head'] or receipt.get('source_verified',False)!=m['source_verified']
+            or receipt.get('probe_completed',False)!=m['probe_completed']):raise ValueError('Saved receipt identity/status mismatch')
+    if receipt.get('plan_accepted') is True:
+        expected_plan=receipt.get('gates',{}).get('plan_diagnostic',{})
+        entry=m['files'].get('plan.json',{})
+        if expected_plan.get('accepted') is not True or (entry.get('bytes'),entry.get('sha256'))!=(expected_plan.get('plan_bytes'),expected_plan.get('plan_sha256')):
+            raise ValueError('Saved accepted plan differs from receipt')
     return m
