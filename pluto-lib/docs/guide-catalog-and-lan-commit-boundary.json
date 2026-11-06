@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "status": "read-only source design; no new runtime/test result",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_source_sha256": {
+    "crates/horizon-client-core/src/lang.rs": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1"
+  },
+  "mod_source_commit": "aa235fe7c363e0cf91bf9fcf4cc52e7ec910f95d",
+  "mod_source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+    "pluto-lib/mixins/pluto_native_creative/client-payload.rs": "e5d7d3a48b098a2f70610accffd1be2bbecd59d153b7d6ca7109c4904ed28a9e",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/client_payload.rs": "19f9f81c866508be1d73ec092274766479ad6cb90384d5f7fc4221e1a90031d4",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+    "tconstruct/mixins/tconstruct/source-materials-book-request.rs": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+    "tconstruct/mixins/tconstruct/source-materials-book-wire.rs": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e"
+  },
+  "claims": {
+    "native_arc_identity": "retained strong Arc equality can identify a live catalog allocation, not a generation or commit lock",
+    "packet_phase": "after native_client_packet mod observation, before ordinary handle_packet match",
+    "legacy_body_limit": 262144,
+    "legacy_modern_envelope_limit": 262152,
+    "observer_whole_payload_limit": 262144
+  },
+  "not_proved": [
+    "atomic catalog consistency through commit",
+    "scope/bidi/resource snapshot coherence",
+    "admitted owned native opening",
+    "legacy LAN safe connection",
+    "actual UI/translation redraw"
+  ]
+}
