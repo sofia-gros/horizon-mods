@@ -1,0 +1,123 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-terrain-author-ci-20261106",
+  "local_source": "4826da31d040d273fd0e90d8edd6ae1c0b2b2730",
+  "remote_source": "e210b8c162496b83fec3adca7099ea10cf49b2e8",
+  "bundle_sha256": "cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+    }
+  },
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "std_modules": {
+    "pluto_terrain_bindings": "terrain-bindings.rs",
+    "pluto_terrain_cell_geometry": "terrain-cell-geometry.rs",
+    "pluto_terrain_cells": "terrain-cell-providers.rs"
+  },
+  "std_tests": [
+    "pluto_terrain_bindings::tests::exact_owner_triple_survives_arc_clones_not_identical_reload_values",
+    "pluto_terrain_bindings::tests::same_owner_snapshot_cannot_be_changed_by_late_registration",
+    "pluto_terrain_bindings::tests::weak_cache_does_not_retain_values_and_expired_entries_are_pruned",
+    "pluto_terrain_bindings::tests::live_owner_budget_never_evicts_an_existing_resource_set",
+    "pluto_terrain_bindings::tests::snapshot_failure_is_not_an_empty_catalog",
+    "pluto_terrain_bindings::tests::request_validation_precedes_native_resolution",
+    "pluto_terrain_bindings::revision_view_tests::stale_before_inspection_is_explicitly_unavailable",
+    "pluto_terrain_bindings::revision_view_tests::revision_changed_during_inspection_discards_return_value",
+    "pluto_terrain_bindings::appearance_tests::legacy_empty_and_single_appearance_validate",
+    "pluto_terrain_bindings::appearance_tests::duplicate_unknown_and_invalid_material_selectors_fail",
+    "pluto_terrain_bindings::appearance_tests::material_text_is_charged_to_the_same_total_budget",
+    "pluto_terrain_cell_geometry::tests::fixed_capacity_order_and_paired_back_winding",
+    "pluto_terrain_cell_geometry::tests::diagonal_rotates_position_uv_pairs_only_on_top",
+    "pluto_terrain_cell_geometry::tests::omissions_and_section_boundary_remain_bounded",
+    "pluto_terrain_cell_geometry::tests::invalid_inputs_fail_before_returning_any_batch",
+    "pluto_terrain_cell_geometry::tests::bottom_orientation_is_exact_legacy_output",
+    "pluto_terrain_cell_geometry::tests::top_reflects_positions_uv_pairs_faces_and_back_winding",
+    "pluto_terrain_cell_geometry::tests::top_orientation_keeps_section_origin_and_shared_validation",
+    "pluto_terrain_cells::tests::first_empty_snapshot_freezes_registration",
+    "pluto_terrain_cells::tests::duplicates_bounds_and_freeze_are_atomic",
+    "pluto_terrain_cells::tests::poison_cannot_publish_a_partial_registry",
+    "pluto_terrain_cells::tests::section_relative_geometry_is_not_admitted_as_cell_local",
+    "pluto_terrain_cells::tests::output_budget_does_not_wrap_or_mutate_on_failure",
+    "pluto_terrain_cells::tests::seventy_groups_share_one_function_without_exceeding_budget",
+    "pluto_terrain_cells::tests::batch_duplicates_and_invalid_groups_publish_nothing",
+    "pluto_terrain_cells::tests::exact_capacity_and_overflow_are_atomic",
+    "pluto_terrain_cells::tests::opacity_uv_envelope_handles_reverse_degenerate_and_nonfinite",
+    "pluto_terrain_cells::tests::geometry_and_material_callbacks_share_capacity_identity_and_freeze",
+    "pluto_terrain_cells::tests::tint_keeps_white_identity_and_multiplies_rgb_without_losing_alpha",
+    "pluto_terrain_cells::tests::painting_preserves_fixed_geometry_and_paired_back_selection"
+  ],
+  "fluid_tests": [
+    "fluid::tests::source_spreads_and_entire_pool_decays_after_pickup",
+    "fluid::tests::falls_before_spreading_and_preserves_obstacles",
+    "fluid::tests::missing_chunk_is_not_air_and_refused_write_is_noop",
+    "fluid::tests::registry_is_idempotent_and_rejects_identity_replacement",
+    "fluid::tests::batch_conflict_preserves_existing_and_does_not_publish_valid_prefix",
+    "fluid::tests::batch_rejects_internal_identity_collisions_and_invalid_members_atomically",
+    "fluid::tests::successful_batch_is_idempotent_and_snapshot_indexes_are_consistent",
+    "fluid::tests::captured_snapshots_do_not_change_with_later_registration",
+    "fluid::tests::concurrent_snapshot_reader_never_observes_part_of_a_batch",
+    "fluid::tests::validates_ids_bounds_and_generated_levels",
+    "fluid::revision_tests::successful_addition_invalidates_only_previous_revision_and_keeps_old_values",
+    "fluid::revision_tests::idempotent_empty_and_failed_batches_keep_the_same_valid_revision",
+    "fluid::render_registration_tests::legacy_registration_keeps_its_single_texture_default",
+    "fluid::render_registration_tests::custom_display_and_definition_publish_under_one_revision",
+    "fluid::render_registration_tests::legacy_repeat_does_not_erase_custom_display_or_invalidate",
+    "fluid::render_registration_tests::conflicting_batch_rolls_back_both_maps_and_keeps_revision",
+    "fluid::render_registration_tests::conflicting_batch_internal_styles_leave_empty_registry",
+    "fluid::render_registration_tests::retained_render_values_survive_new_registration_with_stale_token",
+    "fluid::render_registration_tests::long_legacy_texture_and_explicit_default_have_one_validation_contract",
+    "fluid::render_registration_tests::invalid_rgb_and_texture_identity_are_rejected",
+    "fluid::render_registration_tests::render_content_is_additive_and_default_bytes_remain_semantically_exact"
+  ],
+  "native_tests": [
+    "mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes",
+    "mesher::pluto_terrain_cell_host::material_contract_tests::every_nontexture_attribute_mismatch_rejects_the_template"
+  ],
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "180ba04c5507535441011ea40e255cdd1e8373462056026dd66daf112b12e43a",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "pluto-lib/tests/fluid-api.Cargo.lock": "a256e8b9e85dcd613f31149f5cd7f120e1666a54f0979bb022823c73cb47ead5",
+    "pluto-lib/mixins/pluto_native_creative/rendering.rs": "66f92506471343fb24e6397e4fa5c8bcc9c43701bf81f9d5f7bd2238ae10410e",
+    "pluto-lib/tests/test_terrain_author_api.py": "60ff5183c3b21386fc6fe5a677423f555ef934a5dad6a26b02402b758748e76a",
+    "pluto-lib/docs/terrain-author-api-source.json": "05bacae280bad2b5533b4547baeeb2981547bc807a420eef45d1a50a2851db0f"
+  },
+  "native_filter": "mesher::pluto_terrain_cell_host::material_contract_tests::",
+  "fluid_groups": [
+    {
+      "filter": "fluid::tests::",
+      "count": 10
+    },
+    {
+      "filter": "fluid::revision_tests::",
+      "count": 2
+    },
+    {
+      "filter": "fluid::render_registration_tests::",
+      "count": 9
+    }
+  ],
+  "facade_source": "2457469595416fe8417b7e34ad2e5dc82a5ffaf7",
+  "facade_filter": "pluto_render::terrain::tests::",
+  "facade_tests": [
+    "pluto_render::terrain::tests::facade_types_are_the_implementation_types",
+    "pluto_render::terrain::tests::invalid_registration_retains_existing_validation_without_publishing"
+  ],
+  "prior_runtime_corrections": [
+    {
+      "path": "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs",
+      "before_sha256": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+      "after_sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+      "reason": "Run42172857479 actual std compile E0277: make tint closure shift/masks/divisor explicitly u32; arithmetic unchanged"
+    }
+  ],
+  "runtime_corrections": []
+}
