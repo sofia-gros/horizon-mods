@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "source integration; actual full plan accepted, 2/12 original guards passed; reviewed metadata adaptation pending full replay; no native build yet",
+  "stage": "source integration; actual full plan accepted,2/12 original guards passed; five guards have reviewed metadata adaptations pending full replay; no native build",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -36,7 +36,7 @@
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Actual complete plan reached all12 guards: protection and station_ingredient passed;10 rejected. Reviewed advancement/damage and terrain source/identity metadata is now adapted without changing guard algorithms or runtime. Full replay is pending. Crafting/placement exclusivity, Guide observer, Wire and cloud still require exact evidence or code migration. Cloud constructors and20 ownership conflicts are not solved by hash updates."
+      "reason": "Actual original guards:2/12 passed and10 rejected. Reviewed advancement/damage,terrain,current-book metadata is now adapted without changing guard algorithms or runtime. Full replay is pending. Crafting/placement exclusivity,Guide payload observer,Wire andcloud still require exact evidence or code migration. Cloud constructors/ownership conflicts are not solved by hash updates."
     },
     {
       "subject": "Windows execution validation",
@@ -80,7 +80,7 @@
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
       "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run",
       "windows_source": "actual Windows Server2025 PowerShell parser+43 source tests passed on exact5e14,run42233831944; noCargo/game",
-      "metadata_adaptation": "advancement/damage8 pure and terrain12 pure independently passed;6 metadata JSON only ordinary changes; fullguard replay not yet executed"
+      "metadata_adaptation": "advancement/damage8,terrain12,current-book8 pure independently passed;7 metadata JSON only ordinary changes; fullguard replay pending"
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -375,6 +375,17 @@
       "pure_checks": 12,
       "independent_review": "World plus central source review and replay of retained selected witness",
       "delta": "8 metadata leaves only; original2 JSON files reconstruct exactly; checker/Rust/body-hunk invariants retained",
+      "actual_full_guard_replay": false,
+      "apply_or_type": false
+    },
+    {
+      "subject": "Current-book latest source metadata",
+      "source": "f04f0fc3d140693d2d7b181f9b55f67127a76417",
+      "ordinary_paths": 1,
+      "proof_paths": 3,
+      "pure_checks": 8,
+      "independent_review": "Rendering read-only plus central8-check rerun and4published blobs",
+      "delta": "Only official revisions and3 whole-source hashes; helper/guard/turn fingerprint unchanged; books2line full-file inverse",
       "actual_full_guard_replay": false,
       "apply_or_type": false
     }
