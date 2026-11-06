@@ -1,0 +1,98 @@
+{
+  "status": "PASS, UNAPPLIED proposed-source codec/instance fixture only",
+  "source_commit": "2d7c48031e8a589da0ac5e0021e43841cb0c7241",
+  "remote_source_checkpoint": "58f9d88138da16124fe60989b580bb1ac0ed1e2d",
+  "rust_tests_passed": 19,
+  "native_nbt_tests_filtered_not_run": 12,
+  "python_source_guards_passed": 6,
+  "preparation": {
+    "status": "UNAPPLIED/UNFINISHED prototype fixture, not native gameplay",
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_source": "crates/horizon-client-render/src/effects.rs",
+    "official_sha256": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "original_instance_excerpt_sha256": "eed233a6d0345239a5fb0f47d990a1c17e06c6e6ae478e0e1535ac600baaa12d",
+    "proposed_full_file_sha256": "4998f06131af297da92bd170ed8841222cddea9c0855f66c29da2091c2b0c532",
+    "patch_sha256": "e910df6dddf9f55a281d781edc0a3c405de78019ccaef04ba504701882ab5e10",
+    "codec_patch_sha256": "0867170f112b41ab10a1ab2bf2b006930c35ebc2b397b9b3e94913604504d2c9",
+    "official_nbt_sha256": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c",
+    "with_nbt": true,
+    "prepared_files": {
+      "codec_tests.rs": "d045ba1a9d2edb45d167385de54588817453315d035fd047560cc36dfe1f7f0f",
+      "extension.rs": "55db4daa71b57ef8f6ad430c4415a0c1ce1ce9f60fdcc6b8c338bf6eb161d722",
+      "fixture.rs": "18134513bdc2cb87884c53c7c7d104016b6d5b9eb8a6304923da8184f0194d4c",
+      "official-nbt.rs": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c",
+      "record_nbt.rs": "bcfa9482ffd092ae0adba5353a5e9e0cf27deb15158d38a68e27f3143d3877f3",
+      "tests.rs": "c552b88fc72f35d9e7aeffd8b67ebdae4fd0d64be4b6724ce52cde2ac6691762"
+    },
+    "scope": "Exact pinned native EffectInstance excerpt plus proposed changes and real std types. No substituted native type. Unused potion import removed; no potion resolver mock.",
+    "excluded": [
+      "Full native crate type checking",
+      "PlayerEffects/Level/NBT save migration",
+      "Native contact or cure activation",
+      "LAN/remote protocol authority",
+      "Mob representation migration"
+    ]
+  },
+  "execution": {
+    "source_commit": "2d7c48031e8a589da0ac5e0021e43841cb0c7241",
+    "remote_checkpoint": "58f9d88138da16124fe60989b580bb1ac0ed1e2d",
+    "scope": "UNAPPLIED proposed-source EffectInstance excerpt plus complete unchanged official NBT module; selected instance/codec tests only, not native crate/production save/contact proof",
+    "floor": 10871635968,
+    "initial_free_bytes": 10908311552,
+    "minimum_free_bytes": 10897723392,
+    "phases": [
+      {
+        "name": "compile",
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "--test",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-record-nbt-prototype-corrected/fixture.rs",
+          "-C",
+          "debuginfo=0",
+          "-C",
+          "opt-level=0",
+          "-o",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-record-nbt-prototype-corrected/fixture-tests"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.9583935940027004,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "tests",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/effect-record-nbt-prototype-corrected/fixture-tests",
+          "proposal_",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.05060503901040647,
+        "log_sha256": "6967dc952c14da6e058c681714dc7c097165ee4521aadf2dde0e1557aa25d249"
+      }
+    ],
+    "guard_stopped": false,
+    "source_before_verified": true,
+    "proposed_runtime_unchanged_from_failed_cutoff": true,
+    "runner_sha256": "6388786c49f77b9a368fcd128d0a2cc676d51c220fa2b0cc1107751ab0b83a01",
+    "end_free_bytes": 10900283392,
+    "source_after_verified": true
+  },
+  "tests_stdout": "\nrunning 19 tests\ntest proposal_codec_tests::actual_named_nbt_roundtrip_preserves_hidden_order_and_unknown_payload_bytes ... ok\ntest proposal_codec_tests::empty_extension_state_is_explicit_and_not_an_implicit_curative_list ... ok\ntest proposal_codec_tests::hidden_layer_and_aggregate_payload_limits_are_enforced ... ok\ntest proposal_codec_tests::malformed_types_utf16_and_amplifiers_are_not_normalized ... ok\ntest proposal_codec_tests::native_duplicate_keys_and_list_wrappers_are_semantic_not_raw_wire_validation ... ok\ntest proposal_codec_tests::native_legacy_player_tags_are_not_misrepresented_as_this_new_schema ... ok\ntest proposal_codec_tests::native_wire_limits_truncation_trailing_bytes_and_named_roots_fail ... ok\ntest proposal_codec_tests::oversized_modified_utf_is_rejected_before_native_disk_writer_can_empty_it ... ok\ntest proposal_codec_tests::unknown_version_and_fields_fail_without_mutating_input ... ok\ntest proposal_tests::extension_validation_is_atomic_and_duplicate_keys_are_not_collapsed ... ok\ntest proposal_tests::native_equality_does_not_acquire_new_payload_policy ... ok\ntest proposal_tests::new_and_cross_module_style_updates_have_empty_data ... ok\ntest proposal_tests::record_limits_and_unresolved_ids_reject_without_clamping_or_dropping ... ok\ntest proposal_tests::record_roundtrip_retains_order_unknown_namespaces_and_independence ... ok\ntest proposal_tests::recursive_hidden_update_retains_that_instances_policy ... ok\ntest proposal_tests::same_level_refresh_and_stronger_replacement_keep_active_policy ... ok\ntest proposal_tests::shorter_stronger_hides_previous_payload_and_restores_it ... ok\ntest proposal_tests::weaker_longer_copies_incoming_policy_without_incoming_hidden_chain ... ok\ntest proposal_tests::whole_clone_has_independent_active_and_hidden_payloads ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s\n\n",
+  "preparation_sha256": "d52e242cee40f66b657993f497c524e7ce034398cf8eaf76a7432d021087ca86",
+  "result_sha256": "f49bdb745ce94c3d7ba8467537457b5650d20ea89a2852df1b79a0613fb080b9",
+  "test_executable_sha256": "a83aae26660f124ddffd34e9ea2b79c204004c10cbaff877c34f3be3dde89e3f",
+  "initial_failed_attempt": "nbt-validation-attempt1.json",
+  "initial_failed_attempt_sha256": "9bd9fbf771a20098b09e7289e5ec15b4de28a73abdafdd71149dff88a53a3ded",
+  "actual_native_nbt_source_unchanged": true,
+  "strictness": "Schema validation applies after native NBT parsing; crafted tests demonstrate last-duplicate-key and synthetic-wrapper normalization, plus writer escaping of real wrappers. No raw-byte preservation claim.",
+  "excluded": [
+    "Actual Level.active_effects schema or legacy save migration",
+    "Filesystem/compressed saves and local/LAN reload",
+    "Applied whole-host type proof",
+    "Synchronous contact authority or complete add/status/callback operation",
+    "Item curing, remote authority or mob migration",
+    "Official repository changes, outreach or activation"
+  ]
+}

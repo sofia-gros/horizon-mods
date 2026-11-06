@@ -21,15 +21,17 @@
     "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
     "scope": "UNAPPLIED proposed EffectInstance excerpt and owned record only; not actual host save/contact/cure integration"
   },
-  "record_codec_status": "Standalone version1 NBT prototype prepared; not native Level or old-save migration",
+  "record_codec_status": "Standalone version1 NBT prototype19-test proof passed; still not native Level or old-save migration",
   "record_codec_validation": {
     "source_guards_passed": 6,
     "combined_rust_tests_written": 19,
-    "combined_rust_tests_executed": false,
-    "last_attempt_source_commit": "4cece6ae8314ec58c2266491bff15b260d9edfbc",
-    "last_attempt_passed": 18,
-    "last_attempt_failed": 1,
-    "last_attempt_failure": "Test fixture expected native writer to omit its protective wrapper",
-    "corrected_tests_executed": false
+    "combined_rust_tests_executed": true,
+    "last_attempt_source_commit": "2d7c48031e8a589da0ac5e0021e43841cb0c7241",
+    "last_attempt_passed": 19,
+    "last_attempt_failed": 0,
+    "corrected_tests_executed": true,
+    "combined_rust_tests_passed": 19,
+    "native_nbt_tests_filtered_not_run": 12,
+    "initial_failed_attempt": "../../experiments/effect-instance-proposal/nbt-validation-attempt1.json"
   }
 }
