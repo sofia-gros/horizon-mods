@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "observed_at": "2026-11-06T09:32:11.101491+00:00",
+  "status": "blocked before local baseline setup; no guard relaxation",
+  "guard_source_commit": "e33fa3282ef90e0116c623b171e8dbe2a4da41f8",
+  "guard_source_sha256": "5203d61d9121eaa61d6dcd61d58591f3482926f9a954ec09d87a08724a7f7eab",
+  "guard_source_path": "pluto-lib/experiments/outer-tank-ci/run.py",
+  "result": {
+    "accepted": false,
+    "type": "ValueError",
+    "message": "Require one unambiguous cgroup2 mount"
+  },
+  "facts": {
+    "host_memory": {
+      "MemTotal": "10206472 kB",
+      "MemAvailable": "2884492 kB"
+    },
+    "self_cgroup": {
+      "text": "0::/\n"
+    },
+    "cgroup2_mounts": [],
+    "cgroup_root_exists": false,
+    "mountinfo_sha256": "8beb053d45e14a11f90499237787e5fe252bc4b5126e19b3beb7b1dd4c1e5e85"
+  },
+  "capacity": {
+    "overlay_free_bytes": 10876526592,
+    "tmp_free_bytes": 3374387200
+  },
+  "not_executed": [
+    "source export",
+    "isolated index creation",
+    "packager",
+    "cargo metadata",
+    "official planner",
+    "apply",
+    "build",
+    "test"
+  ],
+  "next": "Source-only controller may retain this fail-closed predicate. Execution needs a separately reviewed environment with observable enclosing memory limits; host MemAvailable alone is insufficient."
+}
