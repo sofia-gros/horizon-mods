@@ -1,7 +1,7 @@
 {
-  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "file": "crates/horizon-items/src/item_data.rs",
-  "file_sha256": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+  "file_sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402",
   "declaration": "pub struct Wire(Option<Arc<(ItemStack, Arc<[u8]>)>>);",
   "reader_sha256": "4d24575901fb3ffe8913bdfdf27f60043ed543532e605b3ae9f5f8c55e56c0a7"
 }
