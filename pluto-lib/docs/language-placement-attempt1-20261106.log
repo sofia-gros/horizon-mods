@@ -1,0 +1,206 @@
+﻿2026-11-06T12:03:21.3991613Z Current runner version: '2.338.2'
+2026-11-06T12:03:21.4017494Z ##[group]Runner Image Provisioner
+2026-11-06T12:03:21.4018388Z Hosted Compute Agent
+2026-11-06T12:03:21.4019016Z Version: 20261028.624
+2026-11-06T12:03:21.4019962Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-06T12:03:21.4020829Z Build Date: 2026-10-28T21:51:42Z
+2026-11-06T12:03:21.4021597Z Worker ID: {a37e4ede-2c42-4f52-846d-ed961246f415}
+2026-11-06T12:03:21.4022340Z Region: westus2
+2026-11-06T12:03:21.4022923Z Cloud: Azure
+2026-11-06T12:03:21.4023508Z ##[endgroup]
+2026-11-06T12:03:21.4025052Z ##[group]Operating System
+2026-11-06T12:03:21.4025819Z Ubuntu
+2026-11-06T12:03:21.4026436Z 24.04.5
+2026-11-06T12:03:21.4027156Z LTS
+2026-11-06T12:03:21.4027786Z ##[endgroup]
+2026-11-06T12:03:21.4028415Z ##[group]Runner Image
+2026-11-06T12:03:21.4029057Z Image: ubuntu-24.04
+2026-11-06T12:03:21.4030065Z Version: 20261101.360.1
+2026-11-06T12:03:21.4031370Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-06T12:03:21.4033109Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-06T12:03:21.4034080Z ##[endgroup]
+2026-11-06T12:03:21.4035293Z ##[group]GITHUB_TOKEN Permissions
+2026-11-06T12:03:21.4037149Z Contents: read
+2026-11-06T12:03:21.4037877Z Metadata: read
+2026-11-06T12:03:21.4038446Z ##[endgroup]
+2026-11-06T12:03:21.4041343Z Secret source: Actions
+2026-11-06T12:03:21.4042341Z Cache mode: write
+2026-11-06T12:03:21.4043090Z Prepare workflow directory
+2026-11-06T12:03:21.4503802Z Prepare all required actions
+2026-11-06T12:03:21.4552902Z Getting action download info
+2026-11-06T12:03:21.7714613Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-11-06T12:03:21.9743442Z Complete job name: language-placement
+2026-11-06T12:03:22.0729111Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-11-06T12:03:22.0730426Z with:
+2026-11-06T12:03:22.0730934Z   ref: 150acf22dda956979805da9d3a26c8a4feee8654
+2026-11-06T12:03:22.0731554Z   persist-credentials: false
+2026-11-06T12:03:22.0732059Z   fetch-depth: 1
+2026-11-06T12:03:22.0732535Z   repository: sofia-gros/horizon-mods
+2026-11-06T12:03:22.0736263Z   token: ***
+2026-11-06T12:03:22.0736705Z   ssh-strict: true
+2026-11-06T12:03:22.0737148Z   ssh-user: git
+2026-11-06T12:03:22.0737567Z   clean: true
+2026-11-06T12:03:22.0738013Z   sparse-checkout-cone-mode: true
+2026-11-06T12:03:22.0738532Z   fetch-tags: false
+2026-11-06T12:03:22.0738978Z   show-progress: true
+2026-11-06T12:03:22.0739628Z   lfs: false
+2026-11-06T12:03:22.0740055Z   submodules: false
+2026-11-06T12:03:22.0740517Z   set-safe-directory: true
+2026-11-06T12:03:22.0741255Z env:
+2026-11-06T12:03:22.0741721Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T12:03:22.0742245Z   CARGO_BUILD_JOBS: 1
+2026-11-06T12:03:22.0742755Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-11-06T12:03:22.0743266Z   CARGO_INCREMENTAL: 0
+2026-11-06T12:03:22.0743721Z ##[endgroup]
+2026-11-06T12:03:22.3990705Z Syncing repository: sofia-gros/horizon-mods
+2026-11-06T12:03:22.3993109Z ##[group]Getting Git version info
+2026-11-06T12:03:22.3994698Z Working directory is '/home/runner/work/horizon-mods/horizon-mods'
+2026-11-06T12:03:22.3996439Z [command]/usr/bin/git version
+2026-11-06T12:03:22.4172145Z git version 2.56.0
+2026-11-06T12:03:22.4198087Z ##[endgroup]
+2026-11-06T12:03:22.4216398Z Temporarily overriding HOME='/home/runner/work/_temp/5077a83c-204d-463b-ad52-2215fdcfc105' before making global git config changes
+2026-11-06T12:03:22.4219252Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T12:03:22.4224787Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T12:03:22.4285119Z Deleting the contents of '/home/runner/work/horizon-mods/horizon-mods'
+2026-11-06T12:03:22.4288873Z ##[group]Initializing the repository
+2026-11-06T12:03:22.4294500Z [command]/usr/bin/git init /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T12:03:22.4425460Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-06T12:03:22.4427468Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-06T12:03:22.4428810Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-06T12:03:22.4430533Z hint: call:
+2026-11-06T12:03:22.4431665Z hint:
+2026-11-06T12:03:22.4432968Z hint: 	git config --global init.defaultBranch <name>
+2026-11-06T12:03:22.4434169Z hint:
+2026-11-06T12:03:22.4434972Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-06T12:03:22.4436030Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-06T12:03:22.4436865Z hint:
+2026-11-06T12:03:22.4437333Z hint: 	git branch -m <name>
+2026-11-06T12:03:22.4438137Z hint:
+2026-11-06T12:03:22.4439685Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-06T12:03:22.4441992Z Initialized empty Git repository in /home/runner/work/horizon-mods/horizon-mods/.git/
+2026-11-06T12:03:22.4455798Z [command]/usr/bin/git remote add origin https://github.com/sofia-gros/horizon-mods
+2026-11-06T12:03:22.4508222Z ##[endgroup]
+2026-11-06T12:03:22.4509133Z ##[group]Disabling automatic garbage collection
+2026-11-06T12:03:22.4513224Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-06T12:03:22.4582322Z ##[endgroup]
+2026-11-06T12:03:22.4583851Z ##[group]Setting up auth
+2026-11-06T12:03:22.4585468Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T12:03:22.4640845Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T12:03:22.5191875Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T12:03:22.5248844Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T12:03:22.5505223Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-06T12:03:22.5556441Z ##[endgroup]
+2026-11-06T12:03:22.5558150Z ##[group]Fetching the repository
+2026-11-06T12:03:22.5571016Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 150acf22dda956979805da9d3a26c8a4feee8654
+2026-11-06T12:03:24.1546876Z From https://github.com/sofia-gros/horizon-mods
+2026-11-06T12:03:24.1549532Z  * branch            150acf22dda956979805da9d3a26c8a4feee8654 -> FETCH_HEAD
+2026-11-06T12:03:24.1554324Z ##[endgroup]
+2026-11-06T12:03:24.1556433Z ##[group]Determining the checkout info
+2026-11-06T12:03:24.1558188Z ##[endgroup]
+2026-11-06T12:03:24.1560244Z [command]/usr/bin/git sparse-checkout disable
+2026-11-06T12:03:24.1626907Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-06T12:03:24.1668332Z ##[group]Checking out the ref
+2026-11-06T12:03:24.1672746Z [command]/usr/bin/git checkout --progress --force 150acf22dda956979805da9d3a26c8a4feee8654
+2026-11-06T12:03:24.6051891Z Note: switching to '150acf22dda956979805da9d3a26c8a4feee8654'.
+2026-11-06T12:03:24.6052440Z 
+2026-11-06T12:03:24.6060753Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-06T12:03:24.6061716Z changes and commit them, and you can discard any commits you make in this
+2026-11-06T12:03:24.6063011Z state without impacting any branches by switching back to a branch.
+2026-11-06T12:03:24.6063748Z 
+2026-11-06T12:03:24.6064498Z If you want to create a new branch to retain commits you create, you may
+2026-11-06T12:03:24.6065486Z do so (now or later) by using -c with the switch command. Example:
+2026-11-06T12:03:24.6065987Z 
+2026-11-06T12:03:24.6066206Z   git switch -c <new-branch-name>
+2026-11-06T12:03:24.6067018Z 
+2026-11-06T12:03:24.6067245Z Or undo this operation with:
+2026-11-06T12:03:24.6067577Z 
+2026-11-06T12:03:24.6067944Z   git switch -
+2026-11-06T12:03:24.6068331Z 
+2026-11-06T12:03:24.6068789Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-06T12:03:24.6069767Z 
+2026-11-06T12:03:24.6070461Z HEAD is now at 150acf2 Prepare excluded language writer and stamp placement diagnostic CI
+2026-11-06T12:03:24.6081088Z ##[endgroup]
+2026-11-06T12:03:24.6145296Z [command]/usr/bin/git log -1 --format=%H
+2026-11-06T12:03:24.6189619Z 150acf22dda956979805da9d3a26c8a4feee8654
+2026-11-06T12:03:24.6199875Z ##[group]Removing auth
+2026-11-06T12:03:24.6204088Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T12:03:24.6246027Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T12:03:24.6502163Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T12:03:24.6540500Z http.https://github.com/.extraheader
+2026-11-06T12:03:24.6549684Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-06T12:03:24.6593545Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T12:03:24.6841106Z ##[endgroup]
+2026-11-06T12:03:24.7061435Z ##[group]Run python3 pluto-lib/experiments/language-placement-ci/run.py
+2026-11-06T12:03:24.7062109Z [36;1mpython3 pluto-lib/experiments/language-placement-ci/run.py[0m
+2026-11-06T12:03:24.7086064Z shell: /usr/bin/bash -e {0}
+2026-11-06T12:03:24.7086351Z env:
+2026-11-06T12:03:24.7086570Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T12:03:24.7086824Z   CARGO_BUILD_JOBS: 1
+2026-11-06T12:03:24.7087050Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-11-06T12:03:24.7087322Z   CARGO_INCREMENTAL: 0
+2026-11-06T12:03:24.7087534Z ##[endgroup]
+2026-11-06T12:03:25.8050826Z PHASE_START runner-checks ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-placement-ci/test_runner.py", "-v"]
+2026-11-06T12:03:26.2110273Z Ran 18 tests in 0.063s
+2026-11-06T12:03:26.2110682Z OK
+2026-11-06T12:03:26.2111837Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "runner-checks", "raw_bytes": 2123, "raw_sha256": "03546ba29e0daaca0f92e5eaed959c4afdb0a77f422e18489905cdb9c5e85e79", "seconds": 0.406}
+2026-11-06T12:03:26.2125107Z PHASE_START toolchain ["rustup", "toolchain", "install", "1.95.0", "--profile", "minimal", "--component", "rustfmt"]
+2026-11-06T12:03:34.8895082Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "toolchain", "raw_bytes": 257, "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea", "seconds": 8.677}
+2026-11-06T12:03:34.8908405Z PHASE_START horizon-init ["git", "init", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git"]
+2026-11-06T12:03:35.0954350Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-init", "raw_bytes": 724, "raw_sha256": "61522dd7f632fd406e9167a9a7ef2506a2ab8130ab88c559817446dfcf95aafd", "seconds": 0.204}
+2026-11-06T12:03:35.0967373Z PHASE_START horizon-origin ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git", "remote", "add", "origin", "https://github.com/horizon-rust/horizon.git"]
+2026-11-06T12:03:35.3005424Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-origin", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 0.204}
+2026-11-06T12:03:35.3018271Z PHASE_START horizon-fetch ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git", "fetch", "--depth", "1", "origin", "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"]
+2026-11-06T12:03:40.1457647Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-fetch", "raw_bytes": 121, "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a", "seconds": 4.844}
+2026-11-06T12:03:40.1469588Z PHASE_START horizon-checkout ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git", "checkout", "--detach", "FETCH_HEAD"]
+2026-11-06T12:03:40.7541260Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-checkout", "raw_bytes": 84, "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b", "seconds": 0.607}
+2026-11-06T12:03:41.7664291Z PHASE_START mixins-init ["git", "init", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git"]
+2026-11-06T12:03:41.9700010Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-init", "raw_bytes": 723, "raw_sha256": "14de2f07de1af17b062baa477b8fd0aa362049a64f60f526920a1d8df08c4054", "seconds": 0.203}
+2026-11-06T12:03:41.9712073Z PHASE_START mixins-origin ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git", "remote", "add", "origin", "https://github.com/horizon-rust/horizon-mixins.git"]
+2026-11-06T12:03:42.1755431Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-origin", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 0.204}
+2026-11-06T12:03:42.1767070Z PHASE_START mixins-fetch ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git", "fetch", "--depth", "1", "origin", "5a64af938ec86b00d53d16a408aabc0038fb3e57"]
+2026-11-06T12:03:42.5823442Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-fetch", "raw_bytes": 128, "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541", "seconds": 0.406}
+2026-11-06T12:03:42.5835440Z PHASE_START mixins-checkout ["git", "-C", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git", "checkout", "--detach", "FETCH_HEAD"]
+2026-11-06T12:03:42.7881216Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-checkout", "raw_bytes": 103, "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983", "seconds": 0.204}
+2026-11-06T12:03:42.8423410Z PHASE_START horizon-export ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-placement-ci/run.py", "--export", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git", "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon"]
+2026-11-06T12:03:44.4593290Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-export", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 1.617}
+2026-11-06T12:03:44.4679457Z PHASE_START repair-source-checks ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-overlay-repair/test_source.py", "-v"]
+2026-11-06T12:03:44.6722141Z Ran 13 tests in 0.034s
+2026-11-06T12:03:44.6722926Z OK
+2026-11-06T12:03:44.6724468Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "repair-source-checks", "raw_bytes": 1903, "raw_sha256": "75cbdf40fb167cf51f5bd534fdecb457b3d3c01c7c661be9f7d5d0101b1bf123", "seconds": 0.204}
+2026-11-06T12:03:44.6736354Z PHASE_START placement-source-checks ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-overlay-placement/test_source.py", "-v"]
+2026-11-06T12:03:45.0791569Z Ran 12 tests in 0.226s
+2026-11-06T12:03:45.0792169Z OK
+2026-11-06T12:03:45.0793861Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "placement-source-checks", "raw_bytes": 1673, "raw_sha256": "8323fb65c880f4a998983f0ffc65cb2568ad41f2a3045c042024962ade6afffd", "seconds": 0.405}
+2026-11-06T12:03:45.7102524Z PHASE_START cli-locked-fetch ["cargo", "fetch", "--locked", "--manifest-path", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git/Cargo.toml"]
+2026-11-06T12:03:46.9245218Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "cli-locked-fetch", "raw_bytes": 2175, "raw_sha256": "5e49664d8534bfbb8ca87e79806ebd1721de4ac47e55c6db04799b193add3f52", "seconds": 1.214}
+2026-11-06T12:03:46.9257394Z PHASE_START cli-cold-build ["cargo", "build", "--release", "--offline", "--locked", "-p", "horizon-mixins-cli", "--bin", "horizon-mixins", "--target-dir", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/cli-target", "-vv"]
+2026-11-06T12:06:13.5863432Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "cli-cold-build", "raw_bytes": 291789, "raw_sha256": "af931dcaee3ce1e2f1cfc866749117dec514c95ad831cef09e43c6718835b93b", "seconds": 146.577}
+2026-11-06T12:06:13.6920262Z PHASE_START cargo-path ["rustup", "which", "--toolchain", "1.95.0", "cargo"]
+2026-11-06T12:06:13.8959782Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "cargo-path", "raw_bytes": 74, "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494", "seconds": 0.204}
+2026-11-06T12:06:13.8972754Z PHASE_START rustc-path ["rustup", "which", "--toolchain", "1.95.0", "rustc"]
+2026-11-06T12:06:14.1018825Z PHASE_RECEIPT {"compilers": [], "error": null, "exit_code": 0, "name": "rustc-path", "raw_bytes": 74, "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc", "seconds": 0.204}
+2026-11-06T12:06:14.1042049Z PHASE_START official-plan ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-placement-ci/observe_plan.py", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/cli-target/release/horizon-mixins", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/language-placement-probe", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/plan.json", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/plan-cpu.jsonl"]
+2026-11-06T12:06:21.1684465Z FAILURE_DIAGNOSTICS 
+2026-11-06T12:06:21.1685071Z FAILURE_TAIL {
+2026-11-06T12:06:21.1686854Z   "code": "E_UNSUPPORTED_CONTROL_FLOW",
+2026-11-06T12:06:21.1687464Z   "message": "nested items in target functions are unsupported",
+2026-11-06T12:06:21.1688134Z   "file": "crates/horizon-client/src/mod_content.rs",
+2026-11-06T12:06:21.1688704Z   "mod_id": "pluto_language_repair_probe",
+2026-11-06T12:06:21.1689211Z   "injection_id": "language-policy-stamp",
+2026-11-06T12:06:21.1693927Z   "target": "horizon_client_lib::mod_content::stamp"
+2026-11-06T12:06:21.1694271Z }
+2026-11-06T12:06:21.1694370Z 
+2026-11-06T12:06:21.1695112Z PHASE_RECEIPT {"compilers": [], "error": "RuntimeError: official-plan exited 1", "exit_code": 1, "name": "official-plan", "raw_bytes": 302, "raw_sha256": "60f30fa61d9e34b240735166527ac6dca73935ca1477be0ddc32d8e36f0987d3", "seconds": 7.064}
+2026-11-06T12:06:23.2216807Z FINAL_RECEIPT {"artifact_seals": {}, "compatibility": null, "complete_guards": "not run: reduced probe is not a complete candidate", "diagnostic_complete": true, "error": null, "full_composition_tested": false, "gates": {"candidate_sources": {"candidate_source": "489f63c54861225874efe99f11dbb0399fe8e1c7", "native_plan_verified": false, "passed": true, "placement_python": 12, "repair_python": 13}, "cli_compile": {"binary_sha256": "b2cc103d3dbc5944d6a9de7c9a90662b01a2a33ac69f515703aa9037995ef296", "passed": true, "scope": "official tool only; no Game or consumer build", "witness": {"crate": "horizon_mixins", "invocation_sha256": "bf7f692705c3b4c4e075854a838b9b3610dd3ab8645a0c7fd026f28dc70c7244", "source": ["crates/horizon-mixins-cli/src/main.rs"]}}, "fixed_checkouts": {"candidate_official_sources": {"Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f", "crates/horizon-client-core/src/lang.rs": "743734901c1fd5e0c3c2822ea0207d46c4ac04ad7768b6d93f3b0e235e72f417", "crates/horizon-client-lib/Cargo.toml": "40dc61e95122f5318a63d83a6564d23ca9ed47cf938b457fa53153bfc533c9fc", "crates/horizon-client-render/src/packs.rs": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783", "crates/horizon-client/src/client_lib.rs": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc", "crates/horizon-client/src/mod_content.rs": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c", "crates/horizon-mods/src/content.rs": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"}, "contract_sources": [{"path": "Cargo.lock", "repo": "horizon", "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"}, {"path": "Cargo.toml", "repo": "horizon", "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"}, {"path": "Cargo.lock", "repo": "horizon-mixins", "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"}, {"path": "Cargo.toml", "repo": "horizon-mixins", "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197"}, {"path": "crates/horizon-mixins-cli/Cargo.toml", "repo": "horizon-mixins", "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e"}, {"path": "crates/horizon-mixins-cli/src/main.rs", "repo": "horizon-mixins", "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678"}, {"path": "crates/horizon-mixins-core/src/index.rs", "repo": "horizon-mixins", "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711"}, {"path": "crates/horizon-mixins-core/src/manifest.rs", "repo": "horizon-mixins", "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"}, {"path": "crates/horizon-mixins-core/src/diagnostic.rs", "repo": "horizon-mixins", "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068"}, {"path": "crates/horizon-mixins-core/src/plan.rs", "repo": "horizon-mixins", "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"}, {"path": "crates/horizon-mixins-core/src/native.rs", "repo": "horizon-mixins", "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85"}], "ir_contract_sources": {"crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661", "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"}, "official": {"horizon": {"lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f", "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd", "url": "https://github.com/horizon-rust/horizon.git"}, "mixins": {"lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca", "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57", "url": "https://github.com/horizon-rust/horizon-mixins.git"}}, "passed": true}, "memory_admission": {"admission_available_minimum": 2147483648, "available_bytes": 15740653568, "capacity_minimum": 6442450944, "passed": true}, "plan_diagnostic": {"accepted": false, "diagnostic": {"code": "E_UNSUPPORTED_CONTROL_FLOW", "file": "crates/horizon-client/src/mod_content.rs", "injection_id": "language-policy-stamp", "message": "nested items in target functions are unsupported", "mod_id": "pluto_language_repair_probe", "target": "horizon_client_lib::mod_content::stamp"}, "passed": true, "tool_calls": [{"allowed": true, "argv": ["metadata", "--format-version", "1", "--no-deps", "--manifest-path", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon/Cargo.toml", "--offline", "--locked"], "kind": "cargo", "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"}]}, "runner": {"passed": true, "tests": 18}, "small_probe": {"crates": 0, "injections": 2, "member_sha256": {"pluto_language_repair_probe/horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693", "pluto_language_repair_probe/merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117", "pluto_language_repair_probe/stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e", "pluto_language_repair_probe/write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4"}, "members": 4, "modules": 1, "passed": true, "scope": "Exact shared helper and separately proposed HEAD/STORE placement. No application, native typing, helper execution or build/cache proof.", "states": 0}}, "head": "150acf22dda956979805da9d3a26c8a4feee8654", "input_seals": {"/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon": "333ac5fce63c1028a1db26f9968e6e4eeced64ca89557a0d6fa65827948d46ed", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon-git": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/language-placement-probe": "91f6aed0a903460771566d3e97096d8f28e8ef1ba1d5cffa52de5af6789bbd2b", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/metadata-only": "74536acc3ed892e63b4e5823790d5c339d05e97a56bfadb22918c43c65bc3c45", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/mixins-git": "69dcea38dfa0e9e77ac0228d9ee5727a95fdaa7b1c175624263549bcb25d368e"}, "memory_observation": {"admission": "not determined by this observation; guard remains independent", "cgroup2_mounts": [{"filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot", "mount_point": "/sys/fs/cgroup", "options": "rw,nosuid,nodev,noexec,relatime", "root": "/"}], "host_memory": {"MemAvailable": "15371732 kB", "MemTotal": "16371756 kB"}, "self_cgroup": {"text": "0::/system.slice/hosted-compute-agent.service\n"}, "visible_ancestors": [{"facts": {"cgroup.controllers": {"text": "cpuset cpu io memory pids\n"}, "cgroup.events": {"text": "populated 1\nfrozen 0\n"}, "cgroup.type": {"text": "domain\n"}, "memory.current": {"text": "504832000\n"}, "memory.max": {"text": "max\n"}}, "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"}, {"facts": {"cgroup.controllers": {"text": "cpuset cpu io memory pids\n"}, "cgroup.events": {"text": "populated 1\nfrozen 0\n"}, "cgroup.type": {"text": "domain\n"}, "memory.current": {"text": "1354952704\n"}, "memory.max": {"text": "max\n"}}, "path": "/sys/fs/cgroup/system.slice"}, {"facts": {"cgroup.controllers": {"text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"}, "cgroup.events": {"error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"}, "cgroup.type": {"error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"}, "memory.current": {"error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"}, "memory.max": {"error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"}}, "path": "/sys/fs/cgroup"}]}, "minimum_free_bytes": 90683207680, "minimum_memory_bytes": 13648277504, "native_type_verified": false, "phases": [{"compilers": [], "error": null, "exit_code": 0, "name": "runner-checks", "raw_bytes": 2123, "raw_sha256": "03546ba29e0daaca0f92e5eaed959c4afdb0a77f422e18489905cdb9c5e85e79", "seconds": 0.406}, {"compilers": [], "error": null, "exit_code": 0, "name": "toolchain", "raw_bytes": 257, "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea", "seconds": 8.677}, {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-init", "raw_bytes": 724, "raw_sha256": "61522dd7f632fd406e9167a9a7ef2506a2ab8130ab88c559817446dfcf95aafd", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-origin", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-fetch", "raw_bytes": 121, "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a", "seconds": 4.844}, {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-checkout", "raw_bytes": 84, "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b", "seconds": 0.607}, {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-init", "raw_bytes": 723, "raw_sha256": "14de2f07de1af17b062baa477b8fd0aa362049a64f60f526920a1d8df08c4054", "seconds": 0.203}, {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-origin", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-fetch", "raw_bytes": 128, "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541", "seconds": 0.406}, {"compilers": [], "error": null, "exit_code": 0, "name": "mixins-checkout", "raw_bytes": 103, "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "horizon-export", "raw_bytes": 0, "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "seconds": 1.617}, {"compilers": [], "error": null, "exit_code": 0, "name": "repair-source-checks", "raw_bytes": 1903, "raw_sha256": "75cbdf40fb167cf51f5bd534fdecb457b3d3c01c7c661be9f7d5d0101b1bf123", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "placement-source-checks", "raw_bytes": 1673, "raw_sha256": "8323fb65c880f4a998983f0ffc65cb2568ad41f2a3045c042024962ade6afffd", "seconds": 0.405}, {"compilers": [], "error": null, "exit_code": 0, "name": "cli-locked-fetch", "raw_bytes": 2175, "raw_sha256": "5e49664d8534bfbb8ca87e79806ebd1721de4ac47e55c6db04799b193add3f52", "seconds": 1.214}, {"compilers": [], "error": null, "exit_code": 0, "name": "cli-cold-build", "raw_bytes": 291789, "raw_sha256": "af931dcaee3ce1e2f1cfc866749117dec514c95ad831cef09e43c6718835b93b", "seconds": 146.577}, {"compilers": [], "error": null, "exit_code": 0, "name": "cargo-path", "raw_bytes": 74, "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494", "seconds": 0.204}, {"compilers": [], "error": null, "exit_code": 0, "name": "rustc-path", "raw_bytes": 74, "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc", "seconds": 0.204}, {"compilers": [], "error": "RuntimeError: official-plan exited 1", "exit_code": 1, "name": "official-plan", "raw_bytes": 302, "raw_sha256": "60f30fa61d9e34b240735166527ac6dca73935ca1477be0ddc32d8e36f0987d3", "seconds": 7.064}], "plan_accepted": false, "plan_cpu_observation": {"cli_exit_code": 1, "complete": true, "observer_exit_code": 1, "present": true, "raw_bytes": 365, "raw_sha256": "be3a5ff583e73088f1ce19c7d614e0a464ca57ca95445a36eaebb70b0b9943cf", "records": [{"kind": "start", "owner_pid": 4138, "pgid": 4138, "pid": 4139, "session": 4138, "start_ticks": 19843, "ticks_per_second": 100}, {"elapsed_seconds": 0.001, "kind": "sample", "system_ticks": 0, "user_ticks": 0}, {"elapsed_seconds": 5.004, "kind": "sample", "system_ticks": 85, "user_ticks": 410}, {"elapsed_seconds": 7.005, "exit_code": 1, "kind": "end", "samples": 2}], "scope": "Samples of the direct owned CLI PID only; no child aggregation, CPU percentage, completion or planner target inference."}, "probe_completed": true, "scope": "Exact shared helper module plus cancellable Overlay::write HEAD and stamp parts STORE only. Placement acceptance is not type/build/cache proof. CLI cold-build only; no apply/Game/consumer build; one600-second plan.", "source_seal_sha256": "524066925b556a605e76f15095f24049eedce22ceecd1b69444ffea0eb491e25", "source_verified": true, "tool_argv": {"calls": [{"allowed": true, "argv": ["metadata", "--format-version", "1", "--no-deps", "--manifest-path", "/home/runner/work/_temp/language-placement-150acf22dda956979805da9d3a26c8a4feee8654/horizon/Cargo.toml", "--offline", "--locked"], "kind": "cargo", "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"}], "log_present": true, "mtime_ns": 1793966774363156664, "raw_bytes": 330, "raw_sha256": "246f3f3b9dced78443bf3843361c18d3301d142042a668704d3afda8dae80041", "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.", "validated": true, "validation_error": null, "wrapper_installed": true}}
+2026-11-06T12:06:23.2535151Z Post job cleanup.
+2026-11-06T12:06:23.3412852Z [command]/usr/bin/git version
+2026-11-06T12:06:23.3459773Z git version 2.56.0
+2026-11-06T12:06:23.3499128Z Temporarily overriding HOME='/home/runner/work/_temp/5a917a16-9208-45c7-9907-c0e553d368cc' before making global git config changes
+2026-11-06T12:06:23.3500655Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T12:06:23.3504718Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T12:06:23.3547734Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T12:06:23.3590687Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T12:06:23.3904164Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T12:06:23.3949271Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T12:06:23.4453846Z Cleaning up orphan processes
+2026-11-06T12:06:23.4857603Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
