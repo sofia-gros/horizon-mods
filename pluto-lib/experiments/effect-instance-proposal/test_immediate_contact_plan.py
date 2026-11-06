@@ -29,6 +29,20 @@ class ImmediateContactPlan(unittest.TestCase):
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError('G4 official source drift: ' + path)
             cls.sources[path] = raw.decode()
+        for path, expected in cls.plan['fixture_admission_followup']['official_source_sha256'].items():
+            raw = (cls.official / path).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != expected:
+                raise ValueError('fixture admission official source drift: ' + path)
+            cls.sources[path] = raw.decode()
+        evidence = cls.plan['fixture_admission_followup']['game_ci']
+        ci_root = Path(os.environ['PLUTO_GAME_CI_SOURCE']).resolve()
+        cls.game_ci = {}
+        for path, expected in evidence['source_sha256'].items():
+            raw = subprocess.check_output(['git', '-C', str(ci_root), 'show',
+                                           evidence['source_commit'] + ':' + path])
+            if hashlib.sha256(raw).hexdigest() != expected:
+                raise ValueError('frozen Game CI source drift: ' + path)
+            cls.game_ci[Path(path).name] = raw.decode()
         raw = Path(os.environ['PLUTO_ORDINARY_PLAN']).read_bytes()
         expected = cls.plan['g4_followup']['ordinary_plan']
         if len(raw) != expected['bytes'] or hashlib.sha256(raw).hexdigest() != expected['sha256']:
@@ -185,9 +199,100 @@ class ImmediateContactPlan(unittest.TestCase):
         self.assertEqual([s['target'] for s in self.ordinary['states']], evidence['state_targets'])
         self.assertEqual(next(g['status'] for g in self.plan['gates'] if g['id'] == 'G4_operation_continuation'), 'blocked_design')
 
+    def test_fixture_constructor_and_remote_test_are_not_server_open(self):
+        game = self.src('game.rs')
+        body = game.split("    fn new(\n        res: &'a Arc<Resources>,", 1)[1].split('/// CPU-only startup data', 1)[0]
+        self.order(body, 'streaming.paused = true', 'player: None',
+                   'native_lifecycle: Default::default()', 'if game.native_window()',
+                   'game.native_client_start()', 'Ok(game)')
+        self.assertNotIn('native_lifecycle_world_ready', body)
+        loader = game.split('fn load_resources(', 1)[1]
+        self.order(loader, 'if headless {', 'UiResources::server(root)', 'UiResources::load(root, vanilla_root)')
+        remote = self.src('game/native_entity_refs.rs').split('fn a_client_reads_the_entities_and_menu_the_server_shows_it()', 1)[1]
+        self.order(remote, 'HORIZON_TEST_RESOURCES', 'load_resources(', 'Game::new(',
+                   'Pipe::pair()', 'game.connect_local(pipe, "Steve")', 'game.remote.as_ref()')
+
+    def test_fixture_manual_roster_is_not_native_ready_history(self):
+        body = self.src('game/building_players.rs').split('fn for_player_keeps_the_outer_body_in_its_original_dimension()', 1)[1]
+        self.order(body, 'ExecutionRole::IntegratedServer', 'Game::new(', 'game.player = Some(',
+                   'game.lan_host(', 'Guest::new(', 'guest.placed = true', 'guest.loaded = true',
+                   'hub.guests.push(guest)', 'game.for_player(')
+        self.assertNotIn('native_lifecycle_', body)
+        self.assertNotIn('integrated_open', body)
+        host = self.src('game/lan.rs').split('fn lan_host(', 1)[1].split('pub(super) fn lan_close(', 1)[0]
+        self.assertIn('self.lan = Some(LanHost {', host)
+        self.assertNotIn('native_lifecycle_', host)
+        lifecycle = self.src('game/native_lifecycle.rs')
+        self.order(lifecycle, '#[derive(Default)]', 'pub(super) struct NativeLifecycle',
+                   'attempt: Option<OpenAttempt>', 'pub(super) fn begin_open(',
+                   'session: OpenState::Opening', 'pub(super) fn world_open_ready(',
+                   'let attempt = self.attempt.as_mut()?', 'attempt.session != OpenState::Opening',
+                   'attempt.session = OpenState::Ready')
+
+    def test_fixture_real_integrated_open_precedes_ready_and_harness(self):
+        integrated = self.src('game/integrated.rs')
+        opening = integrated.split('    fn integrated_open(', 1)[1].split('    fn stop_integrated(', 1)[0]
+        self.order(opening, 'self.native_server_about_to_start(false)', 'self.native_lifecycle_open_started()',
+                   'self.join_world_rest()', 'self.finish_open_world(', 'self.start_mods()',
+                   'self.lan_host(settings, net, config)', 'self.serving = Some(Serving {', 'self.settle_spawn()')
+        running = integrated.split('    fn run_integrated_inner(', 1)[1].split('    fn integrated_open(', 1)[0]
+        self.order(running, 'if let Err(e) = self.integrated_open(', 'self.native_lifecycle_world_failed(',
+                   'return Err(e)', 'self.native_lifecycle_world_ready()', 'HORIZON_COMMAND_SCRIPT',
+                   'self.run_command_harness(', 'self.stop_integrated()', 'return result.and(stopped)')
+
+    def test_fixture_harness_entry_conflicts_with_frozen_observer(self):
+        harness = self.src('game/command_harness.rs')
+        run = harness.split('pub(super) fn run_command_harness(', 1)[1]
+        self.order(run, 'guests.iter().any(|g| g.placed && g.loaded)', 'self.tick_server(true)?',
+                   'Instant::now() > deadline', 'owner did not connect',
+                   'self.harness_owner(|g| g.harness_settle(deadline, None))?')
+        owner = harness.split('    fn harness_owner<T>(', 1)[1].split('    fn harness_owner_menu(', 1)[0]
+        self.order(owner, '.serving', '.owner', 'self.lan.take()',
+                   'find(|g| g.uuid == owner && g.placed)', 'self.enter_level(',
+                   '.enter_guest(', 'self.lan = Some(host)', 'let result = f(self)',
+                   'self.lan.take()', 'self.leave_guest(', 'host.hub.sync_all_effects()',
+                   'self.run_level_teleports(', 'self.enter_level(', 'self.lan = Some(host)',
+                   'restored?', 'result')
+        observer = (ROOT / 'pluto-lib/experiments/effect-instance-proposal/guest_continuation_observer.rs').read_text()
+        self.assertIn('game.remote.is_some() || game.lan.is_some() || game.lan_acting.is_some()', observer)
+        self.assertIn('server is not Ready; an epoch alone is insufficient', observer)
+        wrapper = self.src('game/lan_actions.rs').split('pub(super) fn as_guest_with_host<R>(', 1)[1].split('pub(super) fn as_guest_messaged', 1)[0]
+        self.order(wrapper, 'self.enter_guest(',
+                   '(self.serving.is_some() || self.options.dedicated.is_some()).then_some(self.dim.id())',
+                   'block_contact::in_level(', 'self.leave_guest(')
+
+    def test_fixture_native_loaded_facts_have_different_meanings(self):
+        hub = self.src('lan/hub.rs')
+        placement = hub.split('pub fn place_new_player(', 1)[1]
+        self.order(placement, 'self.guests[i].placed = true', 'self.resend_teleport(')
+        packet = hub.split('S::PlayerLoaded(_) => {', 1)[1].split('S::ChunkBatchReceived(', 1)[0]
+        self.order(packet, 'g.loaded = true', 'g.loading = false', 'g.load_timeout = 0',
+                   'events.push(HostEvent::PlayerLoaded(conn))')
+        method = self.src('lan/guest.rs').split('pub fn client_loaded(&self) -> bool {', 1)[1].split('    }', 1)[0]
+        self.assertEqual(method.strip(), '!self.dead && self.load_timeout == 0')
+        self.assertIn('motion.client_loaded = g.client_loaded()', self.src('game/lan_actions.rs'))
+        findings = self.plan['fixture_admission_followup']['findings']
+        self.assertEqual(len(findings), 7)
+        self.assertEqual(len({f['id'] for f in findings}), 7)
+        self.assertTrue(all(f['contract'] and f['limit'] and f['source'] for f in findings))
+
+    def test_fixture_existing_ci_is_compile_only_and_probes_unchanged(self):
+        ci = self.game_ci['ci.py']
+        self.order(ci, 'for kind in ("positive", "negative")', 'expected_overlay(',
+                   'command = ["cargo", "check", "--locked"]', '"-p", "horizon-client", "--lib"',
+                   '"--no-default-features", "--message-format=json", "-vv"',
+                   'runner.check(kind, command, stage, 0 if kind == "positive" else 101)',
+                   'checks.reject_diagnostic(messages, content)')
+        self.assertNotIn('guest_continuation_observer', ci)
+        for name in ['game_borrow_positive.rs', 'game_borrow_negative.rs']:
+            self.assertEqual(self.game_ci[name],
+                             (ROOT / 'pluto-lib/experiments/effect-instance-proposal' / name).read_text())
+        self.assertEqual(self.plan['fixture_admission_followup']['game_ci']['execution'], 'not_run')
+
     def test_official_inputs_unchanged_after_source_checks(self):
         self.assertEqual(len(self.plan['official_sha256']), 19)
-        sources = {**self.plan['official_sha256'], **self.plan['g4_followup']['official_source_sha256']}
+        sources = {**self.plan['official_sha256'], **self.plan['g4_followup']['official_source_sha256'],
+                   **self.plan['fixture_admission_followup']['official_source_sha256']}
         for path, expected in sources.items():
             self.assertEqual(hashlib.sha256((self.official / path).read_bytes()).hexdigest(), expected, path)
 

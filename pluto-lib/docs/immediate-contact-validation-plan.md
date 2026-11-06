@@ -310,3 +310,81 @@ not a type/runtime/ownership result.
 G4 follow-up source/ordinary-plan checks: **13/13 passed in 0.036 seconds**.
 The frozen ordinary plan was read, not regenerated; no metadata, planner, apply,
 Cargo, runtime or full-installed-composition check was executed.
+
+
+## Fixture admission follow-up: real Game is necessary, not sufficient
+
+This is a source-only refinement of G1 and the missing G3 runtime setup, not a
+new gate, runner, public API or permission to run CI. The existing Game CI is
+frozen at local `19059bb96ae954876ea99b7f8eb5e1b36cfbe42f`, published as
+[`9385b77a37f19fab517b5a1ec09b4e1f8c824408`](https://github.com/sofia-gros/horizon-mods/commit/9385b77a37f19fab517b5a1ec09b4e1f8c824408).
+Its exact probe and runner hashes are recorded in the JSON. It checks the real
+host library's positive borrow and precise negative E0499 diagnostic; it does
+not construct a live Game, load runtime resources, or include the guest observer.
+That compile gate remains unexecuted in this evidence.
+
+The pinned official sources do contain genuine CPU/headless Game setup paths,
+but the existing tests are not interchangeable with the proposed fixture:
+
+- `Game::new` initializes paused streaming, no player and default lifecycle.
+  It can call `native_client_start` when `native_window()` is true; successful
+  construction is not evidence of a server world-open transition. Headless
+  `load_resources` selects the smaller `UiResources::server`, but still loads
+  real core/world data. It does not make a resource-free runtime fixture.
+- `native_entity_refs::client_tests` uses real resources and `Game::new`, then
+  `connect_local` and remote state. Its scope is a remote client, not a server
+  guest's mutable authority. It is ignored without prepared resources.
+- `building_players::for_player_keeps_the_outer_body_in_its_original_dimension`
+  also uses a real Game. It sets the role, supplies a player, starts `lan_host`
+  and manually pushes a Guest with `placed` and `loaded` true. The test checks
+  building boxes during a dimension swap, not a real world-open/guest-loading
+  lifecycle. It does not drive `integrated_open` or readiness. Copying that
+  setup and forcing a Ready flag would not close G3's admission contract.
+
+A genuine future setup candidate exists in `integrated_open`: lifecycle opening,
+world installation, mod startup, `lan_host`, `serving = Some(...)`, then spawn
+settlement. Only after this succeeds does `run_integrated_inner` emit world
+Ready and enter the existing command harness. The harness pumps the actual
+`tick_server(true)` until a guest is placed and loaded, with timeout failure.
+This is **not yet a prepared or executed fixture**. Resource identity, startup
+callbacks and the complete installed composition still need verification.
+
+Two specific traps must be rejected before adapting that harness:
+
+1. The wait checks **any** placed/loaded guest. `harness_owner` later resolves
+   `Serving.owner`, enters its level and guest, puts the host back in
+   `Game.lan`, then invokes its closure. Our frozen observer instead requires
+   `Game.lan == None` and no outer `lan_acting`. Calling it inside that closure
+   is inadmissible, not an opportunity to clear fields or weaken its checks.
+   A future test-only entry would have to run before the owner swap, select
+   the actual owner, enter its real level and honor host/level restoration on
+   ordinary errors. No such entry is implemented here; this is not a panic
+   rollback claim. Preserve the existing leave/effect-sync/teleport/level-restore
+   order when comparing any future adapter with `harness_owner`.
+2. Role, readiness and contact scope are distinct. `as_guest_with_host` supplies
+   a contact dimension only for `serving.is_some()` or `options.dedicated.is_some()`.
+   Merely setting the IntegratedServer role does not establish that condition.
+   Likewise the raw `loaded` flag differs from `Guest::client_loaded()`
+   (`!dead && load_timeout == 0`), which is copied into PlayerMotion and also has
+   timeout semantics. Native PlayerLoaded handling sets `loaded`, `loading` and
+   `load_timeout` together. Neither flag alone proves loaded collision resources.
+
+Before an authorized runtime attempt, record the exact resource/world inputs,
+real world-open and guest join/load history, selected owner/body/level, Ready
+phase, contact dimension and loaded shape data. Missing resources, the wrong
+owner, a nested guest turn, unavailable collision data or zero executed cases
+must fail or remain blocked, never become a successful skip. Observe outer
+state only after the real leave/notification and level-restoration path.
+
+Even a passing observer would only describe its selected native operations. It
+would not implement the cross-crate suspended frame, close the complete native
+callback graph, establish post-mutation continuation, or attach curatives to
+native effect instances. G2-G6 and all 21 runtime cases retain their prior
+unproved status. Mob paths remain separate. No official/production/probe source,
+CI workflow or existing prototype is changed by this follow-up.
+
+Fixture admission source checks: **19/19 passed in 0.061 seconds**, including
+the prior 13 checks. The additional checks read eight pinned official files and
+the four exact frozen CI files; both CI probe bodies match their unchanged saved
+proposals. This was Python source/plan inspection only, not a compiler, resource
+loader, network, native test, CI dispatch or runtime admission result.
