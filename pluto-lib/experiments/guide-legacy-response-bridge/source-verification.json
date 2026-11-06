@@ -4,16 +4,17 @@
     "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040",
     "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
     "pluto-lib/mixins/pluto_native_creative/client-payload-updates.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
-    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "29430f915be9be5cdf69bacdf648d87b701d7d9bc9d19a5678eb07ab59ef27c3",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "b72ff3bac4855727e28adc573cb4be7d6a63aa8370d57b43f479ec8c42f9c8b6",
     "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed",
     "tconstruct/mixins/tconstruct/source-materials-book-response-update.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
     "tconstruct/mixins/tconstruct/source-materials-book.rs": "3cec1b81f40c4f657348ad56e8681a1d68d88149400e59a648460caff0f6a36f"
   },
   "python_source_tests": {
-    "passed": 10,
+    "passed": 12,
     "failed": 0,
     "initial_failure": "A source guard searched comments for the word sequence; corrected only that test to inspect non-comment lines. No implementation change.",
-    "log_sha256": "d4c052cf044cf5b5c9547784c9b5518f59be73e4a910ae1bc7499e6ca6a60604"
+    "log_sha256": "0fdc7e484d7533ac65853056dec44059fbe9249ad858b55c41382ac02f685de0",
+    "rebase_initial_warning": "Initial 12 checks passed but mock fallback opened files without context and emitted ResourceWarning; changed only mock fallback to the saved original Path.read_bytes and reran cleanly."
   },
   "actual_rust_tests": {
     "written": 6,
@@ -23,7 +24,14 @@
   "actual_typecheck": false,
   "actual_transport_or_ui": false,
   "ordinary_runtime_changed": false,
-  "independent_review": "Initial33fb limited review found no further registry/order issue. Function visibility gap was subsequently found by author and acknowledged by reviewer; this corrected/rebased cutoff awaits its own review.",
-  "integration_base": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
-  "correction": "ensure_registered is pub(in crate::game), permitting sibling remote bootstrap. Old prototype33fb remains source-only."
+  "independent_review": "709a corrected source reviewed independently without additional concrete blocker. Bff chest-deferral rebase is a separate source-only follow-up awaiting review.",
+  "integration_base": "bff3c42e99f7c80f82f5f840ff5042b6f1425a40",
+  "correction": "ensure_registered is pub(in crate::game), permitting sibling remote bootstrap. Old prototype33fb remains source-only.",
+  "rebase_preservation": {
+    "before_manifest": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+    "approved_removed_block_not_reintroduced": true,
+    "original_bridge_helpers_unchanged": true,
+    "full_manifest_book_inverse": true,
+    "old_manifest_rejected": true
+  }
 }

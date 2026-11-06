@@ -46,3 +46,14 @@ Reproduce the pure checks with GUIDE_BRIDGE_INPUTS pointing to the exact common/
 The next source cutoff is based on cb7909c4e48a50d8b17e0d829a9ac22f0201ca27 for both manifests. Its41f pins, mining corrections and adopted B/C+navigation are preserved by full inverse reconstruction; no other injection changes. The book runtime blob remains exact d9f8. The old33fb prototype remains published as historical source, not typed evidence.
 
 Review of the concrete caller modules found that ensure_registered's initial pub(super) only allowed books and its descendants, excluding the sibling remote bootstrap. The corrected function uses pub(in crate::game), while the library's game-level pub(super) helpers already have that boundary. Official Mixins default module visibility is pub(crate), which alone does not widen function visibility. This correction is pinned and source-tested; only an actual Game check can establish final typing. No public facade or external Game permission is added.
+
+## Integration rebase after approved chest deferral
+
+The next generated postimage is pinned to integration bff3c42e, not the older
+cb7909 manifest. The user's approved temporary removal of the one
+`tinkers-chest-pick-color` block remains absent. Reintroducing the old manifest
+fails admission; full inverse reconstruction retains every other existing
+mining, Guide navigation, module, state and 41f declaration. The exact deleted
+366 bytes and their original offset/hash are retained as source evidence only,
+not reinstalled. All four bridge Rust helper bodies and the ten reply cases are
+unchanged. This is a source rebase, not ordinary activation or native proof.

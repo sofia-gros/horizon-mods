@@ -77,14 +77,32 @@
   "actual_rust_tests_run": false,
   "activation": false,
   "limit": "Source-only private compatibility proposal. Ordinary guards remain unchanged; full41f plan/guard/type/transport/UI proof pending.",
-  "integration_commit": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
-  "integration_manifest_sha256": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
-  "integration_consumer_manifest_git_blob": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+  "integration_commit": "bff3c42e99f7c80f82f5f840ff5042b6f1425a40",
+  "integration_manifest_sha256": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+  "integration_consumer_manifest_git_blob": "084fc3031940bfabfae05cad27f9e1751be3c53d",
   "module_visibility_evidence": {
     "repository": "horizon-rust/horizon-mixins",
     "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
     "path": "crates/horizon-mixins-core/src/manifest.rs",
     "git_blob": "c0b5b57c5ae55f151cb8736a664d07a589520cfb",
     "contract": "ModuleVisibility default is Crate, serialized as pub(crate). Function visibility must separately allow its caller module."
+  },
+  "integration_deferral": {
+    "source": "bff3c42e99f7c80f82f5f840ff5042b6f1425a40",
+    "path": "pluto-lib/experiments/playtest-chest-deferral/intake.json",
+    "git_blob": "d7b1b3286884720dbe62c087bd505ded1267e701",
+    "hook": "tinkers-chest-pick-color",
+    "before": {
+      "sha256": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
+      "git_blob": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+      "bytes": 189095
+    },
+    "after": {
+      "sha256": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+      "git_blob": "084fc3031940bfabfae05cad27f9e1751be3c53d",
+      "bytes": 188729
+    },
+    "removed_block": "[[injection]]\nid = \"tinkers-chest-pick-color\"\ntarget = \"horizon_client::game::block_items::Game<'_>::picked_stack\"\nkind = \"RETURN\"\nhelper = \"source-chest-pick.rs\"\nbindings = [\n  { name = \"value\", ty = \"Option<ItemStack>\", value = \"$value\" },\n  { name = \"game\", ty = \"&crate::game::Game<'_>\", value = \"&*self\" },\n  { name = \"pos\", ty = \"[i32;3]\", value = \"pos\" },\n]\n\n",
+    "block_offset": 138593
   }
 }

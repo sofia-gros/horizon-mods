@@ -36,6 +36,27 @@ class SourceTests(unittest.TestCase):
             self.assertEqual(own[0]["kind"], "RETURN" if prefix == render.NATIVE else "HEAD")
         # render itself checks both full manifest and full book inverse equality.
 
+    def test_approved_chest_deferral_is_preserved(self):
+        facts = META["integration_deferral"]
+        path = render.CONSUMER + "horizon-mixin.toml"
+        for body in [self.before[path], self.after[path]]:
+            self.assertNotIn(facts["removed_block"], body)
+            self.assertNotIn(facts["hook"], {x["id"] for x in tomllib.loads(body)["injection"]})
+        raw = self.before[path].encode(); at = facts["block_offset"]
+        restored = raw[:at] + facts["removed_block"].encode() + raw[at:]
+        self.assertEqual(render.sha(restored), facts["before"]["sha256"])
+        self.assertEqual(render.sha(raw), facts["after"]["sha256"])
+
+    def test_prior_manifest_with_chest_hook_cannot_be_admitted(self):
+        facts = META["integration_deferral"]
+        raw = self.before[render.CONSUMER + "horizon-mixin.toml"].encode(); at = facts["block_offset"]
+        restored = raw[:at] + facts["removed_block"].encode() + raw[at:]
+        from unittest.mock import patch
+        read_bytes = Path.read_bytes
+        with patch.object(Path, "read_bytes", autospec=True, side_effect=lambda path: restored if path == MANIFEST else read_bytes(path)):
+            with self.assertRaisesRegex(ValueError, "Integration consumer manifest drift"):
+                render.inputs(ROOT, MANIFEST)
+
     def test_existing_guard_explicitly_allows_only_noncancellable_bootstrap(self):
         path = ROOT / "pluto-lib/tools/check_client_payload_plan.py"
         spec = importlib.util.spec_from_file_location("existing_guard", path)
