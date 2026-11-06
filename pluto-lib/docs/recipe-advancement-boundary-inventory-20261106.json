@@ -1,0 +1,949 @@
+{
+  "schema": 1,
+  "kind": "scoped_source_inventory_not_original_pr_reclassification",
+  "central_source": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "central_library_runtime": "f5a83539525c26fd2142e26e43789a3dd0107033",
+  "central_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "counts_are_boundaries_not_completion_or_pr_counts": true,
+  "counts": {
+    "shared": 17,
+    "local_policy": 8,
+    "blocked": 3,
+    "unnecessary_wrapper": 0
+  },
+  "review_buckets_are_not_final_pr_plan": true,
+  "rows": [
+    {
+      "id": "S01",
+      "classification": "shared",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Inventory metadata and component event keys",
+      "current_scope": "Default-off generic metadata scope and component-aware inventory event adapter are in the central foundation.",
+      "next_review": "Verify startup opt-in before first event in the actual consumer bundle, preserving native authority/progress.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs",
+        "8715b123:pluto-lib/docs/advancements.md"
+      ]
+    },
+    {
+      "id": "S02",
+      "classification": "shared",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Item predicate callback dispatch",
+      "current_scope": "One registry, lossless component facts and explicit Unsupported/Handled/Conflict; no TConstruct predicate interpretation.",
+      "next_review": "Port the feature-branch predicates and remove competing direct hooks in one coherent consumer review.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs",
+        "8715b123:pluto-lib/mixins/pluto_native_creative/advancement-item-predicate.rs"
+      ]
+    },
+    {
+      "id": "S03",
+      "classification": "shared",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Synchronous custom advancement events",
+      "current_scope": "Borrowed EventSink uses native current-actor/player-condition/progress path; Submitted is not an award receipt.",
+      "next_review": "Validate both successful local and authoritative guest open callers; no fabricated open event.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs",
+        "47deda7b:tconstruct/mixins/tconstruct/source-container-advancement.rs"
+      ]
+    },
+    {
+      "id": "S04",
+      "classification": "shared",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Resolved tags and per-world candidate index",
+      "current_scope": "Owned-empty/unavailable/unmanaged states and separate per-world cache preserve native no-provider fallback.",
+      "next_review": "Connect ready snapshots and clear/invalidation lifecycle without bypassing exclusive-target guards.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs",
+        "8715b123:pluto-lib/docs/advancement-tag-validation-20261105.md"
+      ]
+    },
+    {
+      "id": "S05",
+      "classification": "shared",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Loaded advancement-tree projection",
+      "current_scope": "Normalized full-definition comparison and atomic loaded-tree replacement; no progress/event hash reset.",
+      "next_review": "Keep criteria/rewards/IDs local and validate actual producer lifecycle.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs",
+        "8715b123:pluto-lib/docs/advancement-projection-validation-20261105.md"
+      ]
+    },
+    {
+      "id": "S06",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Recipe UI invalidation",
+      "current_scope": "Explicit shared reset of native presentation caches, without changing knowledge or current selection policy.",
+      "next_review": "Adopt at the existing successful definition-publication tail, not earlier.",
+      "evidence": [
+        "8715b123:pluto-lib/docs/recipe-book-invalidation.md"
+      ]
+    },
+    {
+      "id": "S07",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Current-value recipe-index compare-and-apply",
+      "current_scope": "Exact records, explicit removals and caller-selected Append/FirstGap; no persistent owner token.",
+      "next_review": "Stage crafting/meta/index together before no-fail publication; retain each family allocation policy.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs",
+        "8715b123:pluto-lib/docs/recipe-index-patch.md"
+      ]
+    },
+    {
+      "id": "S08",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Explicit component-rich ghost preview",
+      "current_scope": "Current-entry/type/fit checks and read-only native ghost projection, without placement or knowledge authority.",
+      "next_review": "Keep preview opt-in separate from authoritative ID-only placement denial.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs",
+        "8715b123:pluto-lib/docs/recipe-book-preview.md"
+      ]
+    },
+    {
+      "id": "S09",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Automatic placement veto",
+      "current_scope": "Deny-only callback boundary protects local/LAN/native entry routes with mandatory composition guards.",
+      "next_review": "Wire source policy without converting Continue into a grant or weakening denial on preview failure.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs",
+        "8715b123:pluto-lib/docs/recipe-placement-veto.md"
+      ]
+    },
+    {
+      "id": "S10",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Crafting-match veto",
+      "current_scope": "Cheap-interest filtering, semantic input facts, preserved cropped holes/order and denial before assembly.",
+      "next_review": "Keep copied result facts read-only; do not add output/remainder authority to this API.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs",
+        "8715b123:pluto-lib/docs/crafting-match-veto.md"
+      ]
+    },
+    {
+      "id": "S11",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Station item-ID ingredient parsing",
+      "current_scope": "Generic registry queries and Unsupported versus owned-empty/invalid results; native fallback without providers.",
+      "next_review": "Retain Forge/schema/depth policy and component-sensitive restrictions in consumers.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs",
+        "8715b123:pluto-lib/docs/station-ingredient-parsing.md"
+      ]
+    },
+    {
+      "id": "S12",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Explicit output/remainder pair staging",
+      "current_scope": "One synchronous staged pair uses full native clones, recursive wire refusal and codec eligibility; no live-slot authority.",
+      "next_review": "Keep frozen explicit API while automatic consuming boundary remains blocked.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs",
+        "8715b123:pluto-lib/docs/crafting-products.md"
+      ]
+    },
+    {
+      "id": "S13",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Prepared-world saved knowledge handoff",
+      "current_scope": "Explicit capture/ready/restore mechanics with consumer-selected IDs; no automatic restore hook.",
+      "next_review": "Verify exact prepared-world and actor/reset boundaries in the consuming workflow.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs",
+        "8715b123:pluto-lib/docs/saved-book-handoff.md"
+      ]
+    },
+    {
+      "id": "S14",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Lazy three-valued predicate folds",
+      "current_scope": "Three real callers delegate ordered decisive/unknown folds; strict station semantics remain separate.",
+      "next_review": "Review preserved visitation alongside full parser integration, not just fold results.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs",
+        "8715b123:pluto-lib/docs/predicate-folds.md"
+      ]
+    },
+    {
+      "id": "S15",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Opt-in Java linked-bin ordering",
+      "current_scope": "Published focused-tested checkpoint, not yet part of the audited central8715 tree; no native ordering replacement.",
+      "next_review": "Integrate runtime18976165 plus test correction/proof; keep source ID/sort/dedup/eligibility local.",
+      "evidence": [
+        "18976165:pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs",
+        "544419e7:pluto-lib/docs/java-hashmap-validation-20261106.json"
+      ]
+    },
+    {
+      "id": "S16",
+      "classification": "shared",
+      "review_bucket": "transport_utilities",
+      "boundary": "Signed menu-word UTF-8 list codec",
+      "current_scope": "Published focused-tested checkpoint; unchanged actor/reset/commit/receive callers.",
+      "next_review": "Integrate codec, actual-Cargo CI step and proof with both existing workflow changes preserved.",
+      "evidence": [
+        "a709cb16:pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs",
+        "74205318:pluto-lib/docs/menu-word-validation-20261106.json"
+      ]
+    },
+    {
+      "id": "S17",
+      "classification": "shared",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Raw resource layers and tag graph",
+      "current_scope": "Generic traversal/read-error/layer and graph mechanics already exist; no recipe/material interpretation.",
+      "next_review": "Prefer existing services for future producers rather than another registry/resolver.",
+      "evidence": [
+        "8715b123:pluto-lib/mixins/pluto_native_creative/api/src/resources.rs",
+        "8715b123:pluto-lib/docs/tag-graph.md"
+      ]
+    },
+    {
+      "id": "P01",
+      "classification": "local_policy",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Tool and tank predicate meaning",
+      "current_scope": "Feature branch owns component keys, modifier/material/tank rules and fail-closed missing-data decisions.",
+      "next_review": "Keep these modules in TConstruct; do not infer central activation from their existence.",
+      "evidence": [
+        "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs",
+        "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-tank-predicate.rs",
+        "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-predicate-startup.rs"
+      ]
+    },
+    {
+      "id": "P02",
+      "classification": "local_policy",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Acquisition tag selection and readiness",
+      "current_scope": "Managed-tag allowlist, source completeness and resolution remain consumer responsibilities.",
+      "next_review": "Publish only a correctly scoped ready snapshot; absent state is not empty membership.",
+      "evidence": [
+        "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+        "8715b123:pluto-lib/docs/advancements.md"
+      ]
+    },
+    {
+      "id": "P03",
+      "classification": "local_policy",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Container-open trigger/type mapping",
+      "current_scope": "Consumer maps successful smeltery/foundry opens to its own trigger and condition schema.",
+      "next_review": "Do not move content IDs into Pluto or emit on failed/predicted opens.",
+      "evidence": [
+        "47deda7b:tconstruct/mixins/tconstruct/source-container-advancement.rs",
+        "47deda7b:tconstruct/mixins/tconstruct/source-machine-open.rs",
+        "47deda7b:tconstruct/mixins/tconstruct/guest-open.rs"
+      ]
+    },
+    {
+      "id": "P04",
+      "classification": "local_policy",
+      "review_bucket": "advancement_acquisition",
+      "boundary": "Discovery definitions and rewards",
+      "current_scope": "Recipe-family IDs, criteria/rewards and grant/restore selection remain local.",
+      "next_review": "Use generic projection/event mechanisms while keeping full eligibility decisions local.",
+      "evidence": [
+        "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-discovery.rs",
+        "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-discovery-world.rs"
+      ]
+    },
+    {
+      "id": "P05",
+      "classification": "local_policy",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Recipe/schema/unknown and source order policy",
+      "current_scope": "Forge forms, empty-array handling, strict unknown semantics, ID composition and material eligibility are distinct local rules.",
+      "next_review": "Do not unify strict station matching with decisive logical folds, or Java ordering with current native registration.",
+      "evidence": [
+        "8715b123:tconstruct/mixins/tconstruct/source-conditions.rs",
+        "8715b123:tconstruct/mixins/tconstruct/source-station-recipes.rs",
+        "18976165:tconstruct/mixins/tconstruct/recipe-order.rs"
+      ]
+    },
+    {
+      "id": "P06",
+      "classification": "local_policy",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Family-specific index and placement choice",
+      "current_scope": "Fake-material append and preview-only behavior differ from Travelers gap reuse and ordinary placement.",
+      "next_review": "Preserve both choices during staged index adoption; never enable ID-only component-sensitive placement.",
+      "evidence": [
+        "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-world.rs",
+        "a8fc1e18:tconstruct/mixins/tconstruct/source-travelers-world.rs",
+        "8715b123:pluto-lib/docs/recipe-book-preview.md"
+      ]
+    },
+    {
+      "id": "P07",
+      "classification": "local_policy",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Overslime materials/output/remainders",
+      "current_scope": "Owned custom_data schema, refill arithmetic, material selection and output choice remain TConstruct logic.",
+      "next_review": "Use explicit pair staging only; do not reconstruct full stacks from semantic component facts.",
+      "evidence": [
+        "8715b123:tconstruct/mixins/tconstruct/source-overslime-crafting.rs",
+        "8715b123:pluto-lib/docs/crafting-products.md"
+      ]
+    },
+    {
+      "id": "P08",
+      "classification": "local_policy",
+      "review_bucket": "transport_utilities",
+      "boundary": "Menu routing and snapshot actor/cadence policy",
+      "current_scope": "Data-slot ranges, reset/commit, parsing, actor/generation/cache keys and refresh interval remain local.",
+      "next_review": "Keep these unchanged until lifecycle-specific proof exists; the codec is not a receiver transaction.",
+      "evidence": [
+        "8715b123:tconstruct/mixins/tconstruct/part-selection-send-data.rs",
+        "8715b123:tconstruct/mixins/tconstruct/part-selection-remote-data.rs",
+        "8715b123:tconstruct/mixins/tconstruct/source-broad-wire-send.rs",
+        "8715b123:tconstruct/mixins/tconstruct/source-haste-wire-send.rs"
+      ]
+    },
+    {
+      "id": "B01",
+      "classification": "blocked",
+      "review_bucket": "recipes_crafting",
+      "boundary": "One authoritative automatic pair consumption",
+      "current_scope": "Three attempted receipt/interior transforms were rejected; different no-op HEAD probes resolve entry points only. No same-pair operation covering normal click/quick move/LAN/crafter is proved.",
+      "next_review": "Retain unapplied minimum contract; do not enable speculative hooks or independent result/remainder recomputation.",
+      "evidence": [
+        "80edc321:pluto-lib/docs/crafting-products-automatic-route-audit-20261106.md",
+        "80edc321:pluto-lib/docs/crafting-products-alternative-seams-20261106.md",
+        "80edc321:pluto-lib/proposals/crafting-products-authority-20261106/contract.md"
+      ]
+    },
+    {
+      "id": "B02",
+      "classification": "blocked",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Persistent RecipeIndex ownership across reload/clone",
+      "current_scope": "Current-value comparison cannot distinguish identical reloads; supported lifecycle/state ownership remains unproved.",
+      "next_review": "Use invocation-local CAS only; no prefixes, raw pointers or cached hashes as ownership proof.",
+      "evidence": [
+        "8715b123:pluto-lib/docs/recipe-book-preview.md",
+        "8715b123:pluto-lib/docs/recipe-index-patch.md"
+      ]
+    },
+    {
+      "id": "B03",
+      "classification": "blocked",
+      "review_bucket": "recipes_crafting",
+      "boundary": "Dynamic recipe guest publication/lifecycle",
+      "current_scope": "Native source-file synchronization and distinct LAN display index do not prove publication of in-memory projected records.",
+      "next_review": "Validate complete reload/listener/order/guest lifecycle separately from local index staging.",
+      "evidence": [
+        "8715b123:pluto-lib/docs/recipe-index-patch.md"
+      ]
+    }
+  ],
+  "unconditional_safe_wrapper_removals": [],
+  "retirement_candidates_after_migration": [
+    {
+      "candidate": "Original direct ItemView/World predicate hooks",
+      "prerequisite": "Select and activate the stable callback consumer, preserve conflicts/default fallback, then remove competing target hooks in the same reviewed consumer bundle.",
+      "evidence": [
+        "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-predicate-startup.rs",
+        "8715b123:pluto-lib/docs/advancements.md"
+      ]
+    },
+    {
+      "candidate": "Old TConstruct native tag/index replacement bodies",
+      "prerequisite": "Publish the complete ready tag snapshot and prove reset/invalidation; retain the mandatory exclusive-target composition guard.",
+      "evidence": [
+        "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag-index.rs",
+        "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag-predicate.rs",
+        "8715b123:pluto-lib/docs/advancement-tag-validation-20261105.md"
+      ]
+    },
+    {
+      "candidate": "Old recipe preview/index/UI native boilerplate",
+      "prerequisite": "Port exact family selection and all-or-nothing publication first. Retain family policy and ID-only denial; do not simply delete the complete wrapper.",
+      "evidence": [
+        "8715b123:pluto-lib/docs/recipe-book-preview.md",
+        "8715b123:pluto-lib/docs/recipe-index-patch.md"
+      ]
+    }
+  ],
+  "deferred_candidates": [
+    {
+      "candidate": "Changed-or-expired byte snapshot refresh",
+      "implementation": "not_started",
+      "reason": "Exact duplicate exists in broad/Haste; defer new small API while coherent feature review is prioritized.",
+      "contract_notes": "Caller-owned bytes/countdown; call-count cadence, not time or delivery acknowledgment. Actor scope,20-call choice and sends remain local.",
+      "evidence": [
+        "8715b123:tconstruct/mixins/tconstruct/source-broad-wire.rs",
+        "8715b123:tconstruct/mixins/tconstruct/source-haste-wire.rs"
+      ]
+    },
+    {
+      "candidate": "Indexed menu-word receive assembly",
+      "implementation": "not_started",
+      "reason": "Five repeated append/mismatch paths exist, but migration would touch actor/reset/commit lifecycle; no new owner/state is justified by duplication alone.",
+      "evidence": [
+        "8715b123:tconstruct/mixins/tconstruct/part-selection-remote-data.rs"
+      ]
+    }
+  ],
+  "sources": {
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs",
+      "sha256": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/advancements.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/advancements.md",
+      "sha256": "07dae3e2f0c5a6767b3f2fe082af7de90a8c5d0d6e5524aec48d0b3b7ddb1fb3",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/advancements.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs",
+      "sha256": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/advancement-item-predicate.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/advancement-item-predicate.rs",
+      "sha256": "977b86e8db4e9811359b40e8574bfd89f8e3045bf7e58ac5bbc6d0e183ddc5f2",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/advancement-item-predicate.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs",
+      "sha256": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/source-container-advancement.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/source-container-advancement.rs",
+      "sha256": "7f1f06dc6f8cfd90f6393f2b21e322586a2825a46d0190ce49afa644ffb06732",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs",
+      "sha256": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/advancement-tag-validation-20261105.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/advancement-tag-validation-20261105.md",
+      "sha256": "6cb04d7dc738b08e1dbb7ed525b1af4db7969726f296a83402cc631e43aeec07",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/advancement-tag-validation-20261105.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs",
+      "sha256": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/advancement-projection-validation-20261105.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/advancement-projection-validation-20261105.md",
+      "sha256": "f7a10ad8851c3c80f818675e0f39232648b3b280ba83a86f4d335a9ec2735e18",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/advancement-projection-validation-20261105.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/recipe-book-invalidation.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/recipe-book-invalidation.md",
+      "sha256": "e8754747dd9d3729aab801b51d69130129e7c2e18ff1e73f7528ab9c49775d2f",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/recipe-book-invalidation.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs",
+      "sha256": "b38293600d3650f2da9102e0932006c517b90ae980675f8f36b3846f581d6fbd",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/recipe-index-patch.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/recipe-index-patch.md",
+      "sha256": "ebecef9e984f6912610936b1dbf6d588b972898a29c29e8b6a285f568b32798b",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/recipe-index-patch.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs",
+      "sha256": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/recipe-book-preview.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/recipe-book-preview.md",
+      "sha256": "b0622fb68b62d18da940ff43fb1477c5a91ea922a2df614ed644dbe6a3c9f9ff",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/recipe-book-preview.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs",
+      "sha256": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/recipe-placement-veto.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/recipe-placement-veto.md",
+      "sha256": "002125d2b9a7d53a28e67077468efe1ece1790a9d0c3f28026e4b55f740f4ebe",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/recipe-placement-veto.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs",
+      "sha256": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/crafting-match-veto.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/crafting-match-veto.md",
+      "sha256": "3c8a96240b63d3bfed30ee73e5f32c41a9b2763a77010144057f569d50db5eb8",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/crafting-match-veto.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs",
+      "sha256": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/station-ingredient-parsing.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/station-ingredient-parsing.md",
+      "sha256": "bc8457cd55b8193ed29ae18d0f3fb6d26a18bae00519b3d53511eaba1a2d0d33",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/station-ingredient-parsing.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs",
+      "sha256": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/crafting-products.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/crafting-products.md",
+      "sha256": "04e26f3bdd3fd497475dbcf0e2915602901632e1bae2db6b45f527b3426d5109",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/crafting-products.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs",
+      "sha256": "0bb631eb80bd5a2a2f22979668eb6dd6f8695653d1d06b81ffd6f5c08f45e65d",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/saved-book-handoff.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/saved-book-handoff.md",
+      "sha256": "15c5d6e24d3876235421e5181d9f9a213b68b6375a07abb88bcfb1cce837bbbe",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/saved-book-handoff.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs",
+      "sha256": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/predicate-folds.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/predicate-folds.md",
+      "sha256": "0897f518949f0b0256c9650a107d0ed9158c32f5da93942cbf0e5f0e2f09728a",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/predicate-folds.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "18976165:pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "18976165d9623057730464c277a55a22c6af53fd",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs",
+      "sha256": "ac5125fe098dd7d132ea0436a7d70f9d4a15a247f15c9b041e9fb671413e41c3",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/5254ee9e8fc4a9fc7aecdd2b78438175ecc48a5c/pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs",
+      "published_commit": "5254ee9e8fc4a9fc7aecdd2b78438175ecc48a5c",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "544419e7:pluto-lib/docs/java-hashmap-validation-20261106.json": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "544419e72f65abe20180a24f4d82ee69886620f4",
+      "path": "pluto-lib/docs/java-hashmap-validation-20261106.json",
+      "sha256": "3126df7f6cb442e891a92990036dc749c6a0c93004786b9c315f2f6ac0a07fd9",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/b4be4b1347ad5168fc63a6227f9759ae55e30041/pluto-lib/docs/java-hashmap-validation-20261106.json",
+      "published_commit": "b4be4b1347ad5168fc63a6227f9759ae55e30041",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "a709cb16:pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "a709cb16ac5af4aa10bae0d27a0f7e23dee6fdb2",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs",
+      "sha256": "0501660a8f866ef1bc143f3dcd209108d05ebed8a49a0df2994e2b8cbfe6c536",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/d1c52d28a56696b5364246c03abaa658b0c2e454/pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs",
+      "published_commit": "d1c52d28a56696b5364246c03abaa658b0c2e454",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "74205318:pluto-lib/docs/menu-word-validation-20261106.json": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "7420531890068474c189424b44f2da9a6e2f60b1",
+      "path": "pluto-lib/docs/menu-word-validation-20261106.json",
+      "sha256": "67abd454c2bf5138fbd671b97f9367ad7cfb7f11752feb3cf10327897506809e",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/d1c52d28a56696b5364246c03abaa658b0c2e454/pluto-lib/docs/menu-word-validation-20261106.json",
+      "published_commit": "d1c52d28a56696b5364246c03abaa658b0c2e454",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/mixins/pluto_native_creative/api/src/resources.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/api/src/resources.rs",
+      "sha256": "c03ce7942eb71cbe7dfa2947b0ffbea381975e1e687f5f585e6c8338c93a1f2a",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/api/src/resources.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:pluto-lib/docs/tag-graph.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/tag-graph.md",
+      "sha256": "037c4e0b5e7d916be1d25c82dc19c55fb4f5047710beab4e988c6e4bc805594c",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/tag-graph.md",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "b259ae7d3e090df1f8f96ac796d6076b2925d24f",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs",
+      "sha256": "754d62cd0c28b82c298cab60f141c3d6356ee90cfd52aa8d2d02f58198f7d0eb",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-tank-predicate.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "b259ae7d3e090df1f8f96ac796d6076b2925d24f",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tank-predicate.rs",
+      "sha256": "0dc3525b17f34f9e471bd45308add4a77c24935f2ed3c66245a293695f79c177",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "b259ae7d:tconstruct/mixins/tconstruct/source-advancement-predicate-startup.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "b259ae7d3e090df1f8f96ac796d6076b2925d24f",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-predicate-startup.rs",
+      "sha256": "60b5e9b21e090d80fc066828f73f8b68413fc39a378600c6f29fcf43c01942ff",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+      "sha256": "b76ada4d8ccc5f5e4b86cd44e2cf31b14caf3efcbb8e2271ed7eda58c5573227",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/source-machine-open.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/source-machine-open.rs",
+      "sha256": "4b96c6cccea625435acec06d06289a4798d0deec8acf036f9d3d571bba4f08cf",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/guest-open.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/guest-open.rs",
+      "sha256": "abb0121fec57930ff197c4a6bd7c9c34617954d76b07e878dec6fa8d918ad51b",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-discovery.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-fake-material-discovery.rs",
+      "sha256": "ebd7a8fee354cc70aa95c4c552768569dec8f974a42afa4ca1145ed51afb263a",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-fake-material-discovery.rs",
+      "published_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-discovery-world.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-fake-material-discovery-world.rs",
+      "sha256": "45ceaf33dae6e7024a8c5e3f1988517761491583e0ad93218a6e3fd14ca7f7c3",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-fake-material-discovery-world.rs",
+      "published_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-conditions.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-conditions.rs",
+      "sha256": "c7e801191b2d1d90752412c915ba38f855277cb7ef69e1eb3f50488d066de6c4",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-conditions.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-station-recipes.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-station-recipes.rs",
+      "sha256": "bb6419d9c8ebbfb46f3b4185e87316583c5ed95709d42d9d3473e9d6ed1215cc",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-station-recipes.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "18976165:tconstruct/mixins/tconstruct/recipe-order.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "18976165d9623057730464c277a55a22c6af53fd",
+      "path": "tconstruct/mixins/tconstruct/recipe-order.rs",
+      "sha256": "05165c2048630b454b027e036d94f7fd9f0739f94d4ba4ce3b121227ab50a9a9",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/5254ee9e8fc4a9fc7aecdd2b78438175ecc48a5c/tconstruct/mixins/tconstruct/recipe-order.rs",
+      "published_commit": "5254ee9e8fc4a9fc7aecdd2b78438175ecc48a5c",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8c56bb52:tconstruct/mixins/tconstruct/source-fake-material-world.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-fake-material-world.rs",
+      "sha256": "df9ff01b0d4c93a7f14d09ef2e03a3dee8078cb642895361d1fc4c903f44f968",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-fake-material-world.rs",
+      "published_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "a8fc1e18:tconstruct/mixins/tconstruct/source-travelers-world.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "path": "tconstruct/mixins/tconstruct/source-travelers-world.rs",
+      "sha256": "d77ed2b4915e4d7ff60f04ba26f288d2835ac872b56253f936dd7f6afbb5c2ac",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/a8fc1e18e9c819c93a60cd50aea87dc8a099efaa/tconstruct/mixins/tconstruct/source-travelers-world.rs",
+      "published_commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-overslime-crafting.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-overslime-crafting.rs",
+      "sha256": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-overslime-crafting.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/part-selection-send-data.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/part-selection-send-data.rs",
+      "sha256": "e7b27821013cdb8b4f2e79687f7aa495c61133b505551b892664991354c2a9a8",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/part-selection-send-data.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/part-selection-remote-data.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/part-selection-remote-data.rs",
+      "sha256": "7261cb0991a812d4c941d2a1b0b8b58ee4152fab7c856951b0b627d623cd0b50",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/part-selection-remote-data.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-broad-wire-send.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-broad-wire-send.rs",
+      "sha256": "4a9375d76e92190922051623834d808cf1c93f12c821606fa521a9c2a7870310",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-broad-wire-send.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-haste-wire-send.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-haste-wire-send.rs",
+      "sha256": "605f636856ba71b1b7d482d99946f7965a0e126d7314bc8fc3c110a8e5b09e66",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-haste-wire-send.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "80edc321:pluto-lib/docs/crafting-products-automatic-route-audit-20261106.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "80edc32131cc18ce2a82ca3dacd8fd804bcf973a",
+      "path": "pluto-lib/docs/crafting-products-automatic-route-audit-20261106.md",
+      "sha256": "4dfa4e1ca9f10d866834009c22ac6488e3ec7cbc2e57b34d0b14c8a712710060",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/20b926bc3fd521b56d53ec3d06a701ec74497df6/pluto-lib/docs/crafting-products-automatic-route-audit-20261106.md",
+      "published_commit": "20b926bc3fd521b56d53ec3d06a701ec74497df6",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "80edc321:pluto-lib/docs/crafting-products-alternative-seams-20261106.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "80edc32131cc18ce2a82ca3dacd8fd804bcf973a",
+      "path": "pluto-lib/docs/crafting-products-alternative-seams-20261106.md",
+      "sha256": "4c9777944f7a1410c1f572345fb9cbb56bab7b82f300d711da4abbfd162c42f1",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/20b926bc3fd521b56d53ec3d06a701ec74497df6/pluto-lib/docs/crafting-products-alternative-seams-20261106.md",
+      "published_commit": "20b926bc3fd521b56d53ec3d06a701ec74497df6",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "80edc321:pluto-lib/proposals/crafting-products-authority-20261106/contract.md": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "80edc32131cc18ce2a82ca3dacd8fd804bcf973a",
+      "path": "pluto-lib/proposals/crafting-products-authority-20261106/contract.md",
+      "sha256": "5fb0adbd4c49f524f21f64e994223e713ad8b7a950d64bb4b56c3ae925c93672",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/20b926bc3fd521b56d53ec3d06a701ec74497df6/pluto-lib/proposals/crafting-products-authority-20261106/contract.md",
+      "published_commit": "20b926bc3fd521b56d53ec3d06a701ec74497df6",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag-index.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tag-index.rs",
+      "sha256": "bfb6afbf4e34369e706c24b55c46bda865375d616e9053b63ca9bd3502e53be7",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "47deda7b:tconstruct/mixins/tconstruct/source-advancement-tag-predicate.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "47deda7baef7dc99f57607abed5381706844f305",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tag-predicate.rs",
+      "sha256": "09d88bc42df8568c6606548623f090fde1d263c42b6264f796e76d4faafeb385",
+      "url": null,
+      "published_commit": null,
+      "publication_scope": "Local MOD acquisition prototype source. Remote commit lookup did not resolve; no public source URL or central inclusion claimed."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-broad-wire.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-broad-wire.rs",
+      "sha256": "9548d5e3f1dfbeb657c65d1d350b948a55a60b871b802a8d7ccd7e705577a3c6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-broad-wire.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    },
+    "8715b123:tconstruct/mixins/tconstruct/source-haste-wire.rs": {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-haste-wire.rs",
+      "sha256": "28d75e2c8796c06c26b2acc3c67c89bc532c7c93e202507a69ef1e49577c7a84",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-haste-wire.rs",
+      "published_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "publication_scope": "Verified remote original commit or published checkpoint containing the same file bytes."
+    }
+  },
+  "validation": "Read-only source/path/hash audit; no new code/build/CI/gameplay/network check; existing proofs remain at their own immutable cutoffs.",
+  "actions_not_taken": [
+    "No new refresh API",
+    "No native job",
+    "No fork access",
+    "No upstream edits/outreach",
+    "No PR closure or merge"
+  ],
+  "read_only_validation": {
+    "unique_boundary_ids": 28,
+    "exact_source_path_hashes_checked": 58,
+    "reference_integrity": "pass",
+    "classification_counts": "pass",
+    "remote_links": "Verified original source commits or same-file published checkpoints; unresolved local acquisition prototypes have no public link.",
+    "native_test_jobs": 0,
+    "code_changes": 0
+  }
+}
