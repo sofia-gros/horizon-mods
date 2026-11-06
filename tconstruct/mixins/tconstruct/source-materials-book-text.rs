@@ -67,3 +67,31 @@ impl Lines {
         None
     }
 }
+
+/// Source-page generation retains its original legacy resolution and row policy.
+/// This is not a screen operation or a new wire/document acceptance policy.
+/// Resolve once before admission, then query the native splitter exactly once.
+pub fn paginate(font: &Font, text: &Text, width: f32, rows: usize) -> Vec<Text> {
+    let resolved = text.resolve_legacy();
+    let lines = generation_lines(font, &resolved, width);
+    lines.as_slice().chunks(rows.max(1)).map(|chunk| {
+        let mut page = Text::empty();
+        for (i, line) in chunk.iter().enumerate() {
+            if i > 0 { page.push("\n"); }
+            page.push(line.clone());
+        }
+        page
+    }).collect()
+}
+
+fn generation_lines(font: &Font, resolved: &Text, width: f32) -> Lines {
+    // This is a temporary one-page projection, never an emitted document.
+    // Existing cross-page actions or unsupported content use the old splitter;
+    // conversion/admission failure occurs before any glyph/cache query.
+    if let Some(lines) = pluto_guide_text::from_native(std::slice::from_ref(resolved), |_| true)
+        .ok().and_then(|doc| layout::split_raw(font, &doc, 0, width).ok())
+    {
+        return Lines::Shared(lines);
+    }
+    Lines::Legacy(font.split(resolved, width))
+}

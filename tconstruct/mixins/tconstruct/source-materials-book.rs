@@ -18,16 +18,7 @@ fn split_page_width(game: &Game<'_>, text: &str, width: f32, rows: usize) -> Vec
 }
 
 fn split_styled(game: &Game<'_>, text: &Text, width: f32, rows: usize) -> Vec<Text> {
-    let resolved = text.resolve_legacy();
-    let lines = game.gui.atlas.font.split(&resolved, width);
-    lines.chunks(rows.max(1)).map(|chunk| {
-        let mut page = Text::empty();
-        for (i, line) in chunk.iter().enumerate() {
-            if i > 0 { page.push("\n"); }
-            page.push(line.clone());
-        }
-        page
-    }).collect()
+    tconstruct_materials_book_text::paginate(&game.gui.atlas.font, text, width, rows)
 }
 
 fn item_choices(value: &serde_json::Value, tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> Vec<String> {

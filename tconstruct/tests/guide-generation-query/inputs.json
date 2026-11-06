@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "base": "8b32beceb00333f93fce251b4915f431b2c071ef",
+  "old_sha256": {
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+    "tconstruct/mixins/tconstruct/source-materials-book-text.rs": "8ba768fe48bacb248f795c058ff8ea5a7c94e2446eb2c6557b3651ee53ea1a59"
+  },
+  "new_sha256": {
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "479ac6702319866bae0e3279c8ac4b9386d38b7593c3b746a5ea3b4c752cd70f",
+    "tconstruct/mixins/tconstruct/source-materials-book-text.rs": "a90616b4d8ce46b488b5d3463c17b2ed80cee6d2139cea7a97e16e09eb80a513"
+  },
+  "unchanged_sha256": {
+    "tconstruct/mixins/tconstruct/source-materials-book-wire.rs": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e",
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+    "tconstruct/mixins/tconstruct/source-materials-book-request.rs": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+    "tconstruct/mixins/tconstruct/source-materials-book-draw.rs": "d68d218488ec7f1cf47443a85d54df24973563771aab3f429ab19e098f8328aa",
+    "tconstruct/mixins/tconstruct/source-materials-book-click.rs": "07cd0d0442e57aadff7e48a30b26e4ebe6d60464b4235e44fae85d998117e6c4",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "214548c68cafdd46859937e8d280b1b2139cc1657936c68918c5f13a34182107",
+    "pluto-lib/mixins/pluto_native_creative/guide-layout.rs": "e64ff9944ca685faaa01dc7d2a4fd04b0513116b1514ba168d56472081b824dc",
+    "pluto-lib/mixins/pluto_native_creative/guide-text.rs": "591ebaba601061d3ae2fe0bc4d9ac8f1e97cf0eaf275b029499f846329d933e7",
+    "tconstruct/tests/guide-text-migration/native.rs": "89321fd1fc47db765eaa763ae59536736a5ab1910a05d64ba27d676cd63f11de"
+  },
+  "old_body": "    let resolved = text.resolve_legacy();\n    let lines = game.gui.atlas.font.split(&resolved, width);\n    lines.chunks(rows.max(1)).map(|chunk| {\n        let mut page = Text::empty();\n        for (i, line) in chunk.iter().enumerate() {\n            if i > 0 { page.push(\"\\n\"); }\n            page.push(line.clone());\n        }\n        page\n    }).collect()\n",
+  "replacement": "    tconstruct_materials_book_text::paginate(&game.gui.atlas.font, text, width, rows)\n",
+  "addition": "\n/// Source-page generation retains its original legacy resolution and row policy.\n/// This is not a screen operation or a new wire/document acceptance policy.\n/// Resolve once before admission, then query the native splitter exactly once.\npub fn paginate(font: &Font, text: &Text, width: f32, rows: usize) -> Vec<Text> {\n    let resolved = text.resolve_legacy();\n    let lines = generation_lines(font, &resolved, width);\n    lines.as_slice().chunks(rows.max(1)).map(|chunk| {\n        let mut page = Text::empty();\n        for (i, line) in chunk.iter().enumerate() {\n            if i > 0 { page.push(\"\\n\"); }\n            page.push(line.clone());\n        }\n        page\n    }).collect()\n}\n\nfn generation_lines(font: &Font, resolved: &Text, width: f32) -> Lines {\n    // This is a temporary one-page projection, never an emitted document.\n    // Existing cross-page actions or unsupported content use the old splitter;\n    // conversion/admission failure occurs before any glyph/cache query.\n    if let Some(lines) = pluto_guide_text::from_native(std::slice::from_ref(resolved), |_| true)\n        .ok().and_then(|doc| layout::split_raw(font, &doc, 0, width).ok())\n    {\n        return Lines::Shared(lines);\n    }\n    Lines::Legacy(font.split(resolved, width))\n}\n",
+  "native_tests_executed": false,
+  "scope": "Source-only generation query delegation; no screen/LAN/runtime activation claim.",
+  "fixture_sha256": "ca4d3b44c05c0d6b54cd0edbc82d5ddaf0cf717e40003401c010ceb63fdd0561",
+  "test_names": [
+    "legacy_resolution_empty_spans_and_row_boundaries_match_native",
+    "unsupported_styles_and_cross_page_actions_keep_native_fallback",
+    "rejected_document_and_work_budgets_do_not_erase_content",
+    "nonfinite_widths_and_native_metrics_keep_original_arithmetic",
+    "actual_cpu_generation_patch_order_matches_native",
+    "actual_full_cpu_region_keeps_native_missing_glyph_fallback"
+  ]
+}
