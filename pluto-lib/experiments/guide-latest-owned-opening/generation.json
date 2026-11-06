@@ -9,10 +9,13 @@
   "source_sha256": {
     "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
     "crates/horizon-client/src/game/agent.rs": "83a1c7ea70cfb5da4dabf89e3752c0f453912beca19223ea47129fae6e9ae13a",
+    "crates/horizon-client/src/game/boat_authority_fixture.rs": "39e89a7a05d9afe324120220c5f49bf3534dcc3563c75565957687b814ddcc75",
+    "crates/horizon-client/src/game/boat_rider_fixture.rs": "91fa5383a873eaca9be301e342e957196ed9fc50a40307396f988b3c93b53c5d",
     "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
     "crates/horizon-client/src/game/control.rs": "58f16db676c0c29f3d0cfa22a23d21bb11ce04c9619cf78090574dea5299c4ed",
     "crates/horizon-client/src/game/debug_keys.rs": "e272735f133a05202c14b5129101d47d954b39328719695fcdb203a4f7ee182f",
     "crates/horizon-client/src/game/dedicated.rs": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
     "crates/horizon-client/src/game/dispense_fixture.rs": "26e46944b020c64ac1d298f8338c7855f440e385692411afa66e44e9a23e159b",
     "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
     "crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
@@ -24,16 +27,18 @@
     "crates/horizon-client/src/game/remote_chat.rs": "7d91a2678595c184e6d4adad0282336c2ac3ade9fb13152fde4f7c1e6a02a063",
     "crates/horizon-client/src/game/saving.rs": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
     "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
-    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
-    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94"
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698"
   },
   "output_sha256": {
     "crates/horizon-client/src/game.rs": "63457c67c439e6a92431d6d78f2c531dc509423c6f2585013aff376527ecf36d",
     "crates/horizon-client/src/game/agent.rs": "83a1c7ea70cfb5da4dabf89e3752c0f453912beca19223ea47129fae6e9ae13a",
+    "crates/horizon-client/src/game/boat_authority_fixture.rs": "9b28900490b38d1020053d02f73d706c2d817d63ee04eff8d0349fb64c225d02",
+    "crates/horizon-client/src/game/boat_rider_fixture.rs": "0f10d1a9d2fc0d77839fb68f744c10827af365d04341fba05734d98ab0eebc06",
     "crates/horizon-client/src/game/books.rs": "9dc7bef003253d0089e16d27821fe1eed437cab4fe34d54ec75bb9d344dd2a2b",
     "crates/horizon-client/src/game/control.rs": "58f16db676c0c29f3d0cfa22a23d21bb11ce04c9619cf78090574dea5299c4ed",
     "crates/horizon-client/src/game/debug_keys.rs": "e272735f133a05202c14b5129101d47d954b39328719695fcdb203a4f7ee182f",
     "crates/horizon-client/src/game/dedicated.rs": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
     "crates/horizon-client/src/game/dispense_fixture.rs": "26e46944b020c64ac1d298f8338c7855f440e385692411afa66e44e9a23e159b",
     "crates/horizon-client/src/game/ime.rs": "79068b892b2e6c62463ad2ea524d7185216d8f2294061d645d841f372423ec18",
     "crates/horizon-client/src/game/lan_actions.rs": "b778959bb210e25e589b1ae185160dbab02f3b03ac66baeddda390029dd9a401",
@@ -46,16 +51,18 @@
     "crates/horizon-client/src/game/saving.rs": "22c5f050d531706c1546156a5b14207f106aafd43c1694be41f0c80c37fea7eb",
     "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
     "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
-    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
     "crates/horizon-client/src/game/retained_book.rs": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398"
   },
   "restored_sha256": {
     "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
     "crates/horizon-client/src/game/agent.rs": "83a1c7ea70cfb5da4dabf89e3752c0f453912beca19223ea47129fae6e9ae13a",
+    "crates/horizon-client/src/game/boat_authority_fixture.rs": "39e89a7a05d9afe324120220c5f49bf3534dcc3563c75565957687b814ddcc75",
+    "crates/horizon-client/src/game/boat_rider_fixture.rs": "91fa5383a873eaca9be301e342e957196ed9fc50a40307396f988b3c93b53c5d",
     "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
     "crates/horizon-client/src/game/control.rs": "58f16db676c0c29f3d0cfa22a23d21bb11ce04c9619cf78090574dea5299c4ed",
     "crates/horizon-client/src/game/debug_keys.rs": "e272735f133a05202c14b5129101d47d954b39328719695fcdb203a4f7ee182f",
     "crates/horizon-client/src/game/dedicated.rs": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
     "crates/horizon-client/src/game/dispense_fixture.rs": "26e46944b020c64ac1d298f8338c7855f440e385692411afa66e44e9a23e159b",
     "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
     "crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
@@ -67,11 +74,10 @@
     "crates/horizon-client/src/game/remote_chat.rs": "7d91a2678595c184e6d4adad0282336c2ac3ade9fb13152fde4f7c1e6a02a063",
     "crates/horizon-client/src/game/saving.rs": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
     "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
-    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
-    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94"
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698"
   },
-  "patch_sha256": "ec2c42984fb34da64e2dafa626972d5d531a32936dfcf26122974e86f477b6f0",
-  "reverse_patch_sha256": "8847cd8e735f2458b33bd5e3319e41faf0105358fcedb662902defab00b25a89",
+  "patch_sha256": "e35455951b4bc7e3aa01912f348a4c178523dc128c712ece6c7413a7c2d987d0",
+  "reverse_patch_sha256": "c8293976922d96e1934c0abc783bec75644cd47e75137c9a784ad808e7100acc",
   "rewrites": [
     {
       "file": "crates/horizon-client/src/game.rs",
@@ -199,10 +205,33 @@
       "file": "crates/horizon-client/src/game/saving.rs",
       "kind": "actual-remote-take",
       "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/boat_authority_fixture.rs",
+      "kind": "reviewed-fixture-assignment",
+      "before": "                self.player = Some(player);\n",
+      "after": "                self.book.invalidate_attachment();\n                self.player = Some(player);\n",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/boat_rider_fixture.rs",
+      "kind": "reviewed-fixture-assignment",
+      "before": "        self.player = Some(PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?);\n",
+      "after": "        let player = PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?;\n        self.book.invalidate_attachment();\n        self.player = Some(player);\n",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/boat_rider_fixture.rs",
+      "kind": "reviewed-fixture-assignment",
+      "before": "        self.remote = None;\n",
+      "after": "        self.book.invalidate_attachment();\n        self.remote = None;\n",
+      "count": 1
     }
   ],
   "changed_files": [
     "crates/horizon-client/src/game.rs",
+    "crates/horizon-client/src/game/boat_authority_fixture.rs",
+    "crates/horizon-client/src/game/boat_rider_fixture.rs",
     "crates/horizon-client/src/game/books.rs",
     "crates/horizon-client/src/game/ime.rs",
     "crates/horizon-client/src/game/lan_actions.rs",

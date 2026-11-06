@@ -16,7 +16,7 @@ class LatestSource(unittest.TestCase):
         pins = m.config()
         self.assertEqual(pins["official_horizon"], m.PIN)
         self.assertEqual(pins["official_mixins"], "5a64af938ec86b00d53d16a408aabc0038fb3e57")
-        self.assertEqual(len(pins["source_sha256"]), 19)
+        self.assertEqual(len(pins["source_sha256"]), 21)
 
     def test_single_unchanged_helper_and_owned_fragments(self):
         pins = m.config()
@@ -28,8 +28,8 @@ class LatestSource(unittest.TestCase):
         result = json.loads((HERE / "generation.json").read_text())
         self.assertEqual(result["source_sha256"], pins["source_sha256"])
         self.assertEqual(result["restored_sha256"], pins["source_sha256"])
-        self.assertEqual(len(result["rewrites"]), 22)
-        self.assertEqual(len(result["changed_files"]), 11)
+        self.assertEqual(len(result["rewrites"]), 25)
+        self.assertEqual(len(result["changed_files"]), 13)
         self.assertEqual(m.sha((HERE / "prototype.patch").read_bytes()), result["patch_sha256"])
 
     def test_partial_receipt_never_claims_full_inventory_or_runtime(self):
@@ -83,6 +83,49 @@ class LatestSource(unittest.TestCase):
         damaged["demo.rs"] = "different\nold\nthree\n"
         with self.assertRaisesRegex(ValueError, "context mismatch"):
             old.apply_in_memory(patch, damaged)
+
+
+    def fixture_transitions(self):
+        return {path: "".join(before for before, _ in rules)
+                for path, rules in m.FIXTURE_TRANSITIONS.items()}
+
+    def test_reviewed_fixture_assignments_are_all_transformed_and_invertible(self):
+        source = self.fixture_transitions()
+        result, changes = m.extend_fixture_transitions(source)
+        self.assertEqual(len(changes), 3)
+        self.assertEqual(sum(v.count("invalidate_attachment()") for v in result.values()), 3)
+        self.assertNotEqual(result, source)
+        for path, rules in m.FIXTURE_TRANSITIONS.items():
+            restored = result[path]
+            for before, after in reversed(rules): restored = restored.replace(after, before)
+            self.assertEqual(restored, source[path])
+
+    def test_fallible_rhs_finishes_before_invalidation_or_assignment(self):
+        result, _ = m.extend_fixture_transitions(self.fixture_transitions())
+        source = result[m.PREFIX + "game/boat_rider_fixture.rs"]
+        self.assertLess(source.index("PlayerMotion::new("), source.index("?;"))
+        self.assertLess(source.index("?;"), source.index("self.book.invalidate_attachment();"))
+        self.assertLess(source.index("self.book.invalidate_attachment();"), source.index("self.player = Some(player);"))
+        self.assertEqual(source.count("PlayerMotion::new("), 1)
+
+    def test_fixture_missing_duplicate_or_changed_assignment_stops(self):
+        for path, rules in m.FIXTURE_TRANSITIONS.items():
+            for before, _ in rules:
+                for replacement in ["", before + before, before.replace("self.", "other.")]:
+                    source = self.fixture_transitions()
+                    source[path] = source[path].replace(before, replacement)
+                    with self.assertRaisesRegex(ValueError, "fixture transition drift"):
+                        m.extend_fixture_transitions(source)
+
+    def test_reviewed_fixture_inventory_does_not_exclude_another_new_site(self):
+        source = self.fixture_transitions()
+        book, transitions = m.inventory(source)
+        self.assertEqual(sum(len(x["sites"]) for x in transitions), 3)
+        pins = {"book_field_inventory": book, "attachment_inventory": transitions}
+        m.check_inventory(source, pins)
+        source[m.PREFIX + "game/boat_rider_fixture.rs"] += "self.remote = None;\n"
+        with self.assertRaisesRegex(ValueError, "boat_rider_fixture.rs"):
+            m.check_inventory(source, pins)
 
 
 if __name__ == "__main__":

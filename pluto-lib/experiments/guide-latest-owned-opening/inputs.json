@@ -6,14 +6,17 @@
   "official_lock_git_blob_sha1": "c36265b38ba51ab546d73a58a7af8e263bc69572",
   "old_runtime_publication": "dc2bc59fab4629b6255fa992a1f9f4460c4f65f8",
   "old_untriggered_ci": "aa235fe7c363e0cf91bf9fcf4cc52e7ec910f95d",
-  "inventory_status": "Provisional nineteen-file inventory; complete latest game subtree scan unrun. Fail closed on any additional or changed site.",
+  "inventory_status": "Provisional 21-file inventory after c5e identified two extra native fixtures; complete fresh latest subtree rescan still required. No fixtures excluded.",
   "source_sha256": {
     "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
     "crates/horizon-client/src/game/agent.rs": "83a1c7ea70cfb5da4dabf89e3752c0f453912beca19223ea47129fae6e9ae13a",
+    "crates/horizon-client/src/game/boat_authority_fixture.rs": "39e89a7a05d9afe324120220c5f49bf3534dcc3563c75565957687b814ddcc75",
+    "crates/horizon-client/src/game/boat_rider_fixture.rs": "91fa5383a873eaca9be301e342e957196ed9fc50a40307396f988b3c93b53c5d",
     "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
     "crates/horizon-client/src/game/control.rs": "58f16db676c0c29f3d0cfa22a23d21bb11ce04c9619cf78090574dea5299c4ed",
     "crates/horizon-client/src/game/debug_keys.rs": "e272735f133a05202c14b5129101d47d954b39328719695fcdb203a4f7ee182f",
     "crates/horizon-client/src/game/dedicated.rs": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
     "crates/horizon-client/src/game/dispense_fixture.rs": "26e46944b020c64ac1d298f8338c7855f440e385692411afa66e44e9a23e159b",
     "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
     "crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
@@ -25,8 +28,7 @@
     "crates/horizon-client/src/game/remote_chat.rs": "7d91a2678595c184e6d4adad0282336c2ac3ade9fb13152fde4f7c1e6a02a063",
     "crates/horizon-client/src/game/saving.rs": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
     "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
-    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
-    "crates/horizon-client/src/game/dialogs.rs": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94"
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698"
   },
   "book_field_inventory": [
     {
@@ -439,6 +441,28 @@
       ]
     },
     {
+      "file": "crates/horizon-client/src/game/boat_authority_fixture.rs",
+      "sites": [
+        {
+          "line": 75,
+          "text": "self.player = Some(player);"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/boat_rider_fixture.rs",
+      "sites": [
+        {
+          "line": 27,
+          "text": "self.player = Some(PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?);"
+        },
+        {
+          "line": 86,
+          "text": "self.remote = None;"
+        }
+      ]
+    },
+    {
       "file": "crates/horizon-client/src/game/dedicated.rs",
       "sites": [
         {
@@ -683,6 +707,20 @@
       "bytes": 47937,
       "sha256": "81d0ff6f46b00ac576f0c9e787d286c2f0c29f5f5f44eaf1306d4b8092635f94",
       "retrieval": "latest immutable connector"
+    },
+    {
+      "path": "crates/horizon-client/src/game/boat_authority_fixture.rs",
+      "git_blob_sha1": "1910c6d5c665189304b2bbf987d6073837a815f1",
+      "bytes": 5636,
+      "sha256": "39e89a7a05d9afe324120220c5f49bf3534dcc3563c75565957687b814ddcc75",
+      "retrieval": "latest immutable connector after c5e inventory stop"
+    },
+    {
+      "path": "crates/horizon-client/src/game/boat_rider_fixture.rs",
+      "git_blob_sha1": "c1dc893d422fcba7e89cf44c3fa2bb9b07e5477b",
+      "bytes": 3632,
+      "sha256": "91fa5383a873eaca9be301e342e957196ed9fc50a40307396f988b3c93b53c5d",
+      "retrieval": "latest immutable connector after c5e inventory stop"
     }
   ],
   "combined_helper_sha256": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398",
@@ -700,10 +738,10 @@
     "pluto-lib/experiments/guide-owned-opening/check_source.py": "b0c1891c5cc314ae8afb9bed136a110b5bb71eec86a2c9236869649561c39820",
     "pluto-lib/experiments/guide-owned-opening/inputs.json": "e79331988d99941e139f9197aab714a5832e93c8e39c830812da880bb4046eef",
     "pluto-lib/experiments/guide-owned-opening/README.md": "d3c1bd91bfd8049fcaccfd185a8f09a27e5bb2d9210cd165878aa5caf3468ce1",
-    "pluto-lib/experiments/guide-latest-owned-opening/generate.py": "a5c7d06e5aa7a8bbafa73455832eea61985e6bb3fe46940e424c4159f94fad95",
-    "pluto-lib/experiments/guide-latest-owned-opening/test_source.py": "2d13d706be1331e78b6464ef6334712739d72665728b9084fb29c3fb32263d19",
-    "pluto-lib/experiments/guide-latest-owned-opening/README.md": "155b3f9cec2db2b9a0f7439ecdf85da732ce91be1499f54332edd10200ec2ec7",
-    "pluto-lib/experiments/guide-latest-owned-opening/prototype.patch": "ec2c42984fb34da64e2dafa626972d5d531a32936dfcf26122974e86f477b6f0",
-    "pluto-lib/experiments/guide-latest-owned-opening/generation.json": "9cc5f1245e616b8fbe322583eb6ae9e769c2df965b0b1844a6e5045a7310b713"
+    "pluto-lib/experiments/guide-latest-owned-opening/generate.py": "d78979425a469ae1da29ebabc9fd2466bb46bbc2cbb09d99cf09f860351d5cad",
+    "pluto-lib/experiments/guide-latest-owned-opening/test_source.py": "924116e979a1076f68b559500d0b04cb5957b721e5309b52f39253cf1ebc43fd",
+    "pluto-lib/experiments/guide-latest-owned-opening/README.md": "3568a51c4676f6876865c859df3fa647bb419d564ab33c1d7842d950c24e96d1",
+    "pluto-lib/experiments/guide-latest-owned-opening/prototype.patch": "e35455951b4bc7e3aa01912f348a4c178523dc128c712ece6c7413a7c2d987d0",
+    "pluto-lib/experiments/guide-latest-owned-opening/generation.json": "8ee02d0d449268dec3e831ee3983a399cca2d13b40b913d23e6781ebad7c8bd4"
   }
 }

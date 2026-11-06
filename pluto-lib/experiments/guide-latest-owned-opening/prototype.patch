@@ -58,6 +58,37 @@
              book_last_click: None,
              lectern_pulses: Vec::new(),
              loading_progress: 0.0,
+--- a/crates/horizon-client/src/game/boat_authority_fixture.rs
++++ b/crates/horizon-client/src/game/boat_authority_fixture.rs
+@@ -72,6 +72,7 @@
+                     attack.player_velocity[2],
+                 );
+                 player.set_sprinting(attack.sprint)?;
++                self.book.invalidate_attachment();
+                 self.player = Some(player);
+                 self.inventory.fill(None);
+                 self.selected = 0;
+--- a/crates/horizon-client/src/game/boat_rider_fixture.rs
++++ b/crates/horizon-client/src/game/boat_rider_fixture.rs
+@@ -24,7 +24,9 @@
+         let (client, peer) = Pipe::pair();
+         self.connect_local(client, "BoatSeatFixture")?;
+         self.remote.as_mut().unwrap().entity_id = 1;
+-        self.player = Some(PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?);
++        let player = PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?;
++        self.book.invalidate_attachment();
++        self.player = Some(player);
+ 
+         let mut output = Vec::new();
+         for case in cases {
+@@ -83,6 +85,7 @@
+             output.push(json!({"name": case.name, "steps": steps}));
+         }
+         peer.shutdown();
++        self.book.invalidate_attachment();
+         self.remote = None;
+         std::fs::write(directory.join("rust.json"), serde_json::to_vec(&output)?)?;
+         Ok(())
 --- a/crates/horizon-client/src/game/books.rs
 +++ b/crates/horizon-client/src/game/books.rs
 @@ -260,7 +260,7 @@

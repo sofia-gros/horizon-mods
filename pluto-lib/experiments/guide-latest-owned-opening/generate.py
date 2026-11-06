@@ -76,8 +76,40 @@ def check_inventory(sources, pins):
         raise ValueError("Latest direct-site inventory drift; review, do not auto-convert: " + ", ".join(sorted(paths)))
 
 
+# Reviewed after c5e's complete-tree gate stopped on these two native fixtures.
+# Never infer irrelevance from a fixture name: Game starts mods before dispatch.
+FIXTURE_TRANSITIONS = {
+    PREFIX + "game/boat_authority_fixture.rs": [(
+        "                self.player = Some(player);\n",
+        "                self.book.invalidate_attachment();\n                self.player = Some(player);\n",
+    )],
+    PREFIX + "game/boat_rider_fixture.rs": [(
+        "        self.player = Some(PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?);\n",
+        "        let player = PlayerMotion::new(self.motion, Vec3::new(0.0, 100.0, 0.0))?;\n        self.book.invalidate_attachment();\n        self.player = Some(player);\n",
+    ), (
+        "        self.remote = None;\n",
+        "        self.book.invalidate_attachment();\n        self.remote = None;\n",
+    )],
+}
+
+
+def extend_fixture_transitions(output):
+    """Three exact successful assignments only; no filtering or broad rewrite."""
+    result, changes = dict(output), []
+    for path, rules in FIXTURE_TRANSITIONS.items():
+        source = result[path]
+        for before, after in rules:
+            if source.count(before) != 1:
+                raise ValueError("Reviewed fixture transition drift: " + path)
+            source = source.replace(before, after)
+            changes.append({"file": path, "kind": "reviewed-fixture-assignment",
+                            "before": before, "after": after, "count": 1})
+        result[path] = source
+    return result, changes
+
+
 def build_known_inputs(sources, pins):
-    """Read-only transform of 19 known sources, NOT a complete-tree gate."""
+    """Read-only transform of 21 known sources, NOT a complete-tree gate."""
     if set(sources) != set(pins["source_sha256"]):
         raise ValueError("Known source file set differs")
     for path, expected in pins["source_sha256"].items():
@@ -86,6 +118,8 @@ def build_known_inputs(sources, pins):
     check_inventory(sources, pins)
     old = legacy()
     output, rewrites = old.transform(sources)
+    output, additional = extend_fixture_transitions(output)
+    rewrites.extend(additional)
     output[HELPER] = combined_helper()
     patch = old.patch_text(sources, output)
     if old.apply_in_memory(patch, sources) != output:
@@ -111,7 +145,7 @@ def build_known_inputs(sources, pins):
         "rewrites": rewrites,
         "changed_files": [p for p in output if output[p] != sources.get(p)],
     }
-    if len(rewrites) != 22 or len(receipt["changed_files"]) != 11:
+    if len(rewrites) != 25 or len(receipt["changed_files"]) != 13:
         raise ValueError("Reviewed transformation shape changed")
     return patch, receipt
 
@@ -134,7 +168,7 @@ def generate(official):
     all_sources = {path.relative_to(official).as_posix(): old.regular(official, path.relative_to(official).as_posix()).decode() for path in paths}
     if HELPER in all_sources:
         raise ValueError("Official helper path already exists")
-    # In particular, every new/changed file outside the 19 known inputs is
+    # In particular, every new/changed file outside the 21 known inputs is
     # scanned. A new site is an error with exact paths, never an exclusion.
     check_inventory(all_sources, pins)
     sources = {p: all_sources[p] for p in pins["source_sha256"]}
