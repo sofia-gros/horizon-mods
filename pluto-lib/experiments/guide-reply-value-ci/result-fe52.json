@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "source": "fe52ae4cc3b3a0b68b337019de643dc7271b4402",
+  "run": 42241486458,
+  "job": 127972609168,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42241486458",
+  "terminal_utc": "2026-11-06T15:17:33Z",
+  "status": "success",
+  "previous_false_result": "result-5eae.json",
+  "job_log": {
+    "bytes": 52907,
+    "sha256": "5eecfd023e66ca0dd1e871bf95d3ebe987fe4ffa0371535e9a3798df1afac47e",
+    "local_only": true
+  },
+  "final_receipt": {
+    "cargo_stdout": {
+      "build_script_lines": 81,
+      "build_script_owners": {
+        "generic-array@0.14.7": 1,
+        "horizon-world@0.1.0": 6,
+        "libm@0.2.16": 13,
+        "proc-macro2@1.0.107": 23,
+        "quote@1.0.47": 2,
+        "serde@1.0.229": 13,
+        "serde_core@1.0.229": 11,
+        "serde_json@1.0.151": 3,
+        "thiserror@2.0.21": 5,
+        "zmij@1.0.23": 4
+      },
+      "bytes": 265948,
+      "json_lines": 146,
+      "sha256": "beed513967d8aa86b6ebd3e85008837e7daed17e151e4dff22c8a236698a25a4"
+    },
+    "compiler_witnesses": [
+      {
+        "command_sha256": "13fdbd522336481ff0878163a5460c47bfea9780751f257d144de32fba6da656",
+        "crate": "horizon_client_core",
+        "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/official/crates/horizon-client-core/src/lib.rs",
+        "test": false
+      },
+      {
+        "command_sha256": "2715634a0875ac3f24010584c0864983c891aad973a87bc91c2e25e03fd49ebd",
+        "crate": "pluto_inventory_api",
+        "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/fixture/inventory-api/src/lib.rs",
+        "test": false
+      },
+      {
+        "command_sha256": "3210a654713dca23b275b7e97ca3bd002594e0bed24c79bf13380977d4c6c57a",
+        "crate": "pluto_guide_reply_tests",
+        "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/fixture/lib.rs",
+        "test": true
+      }
+    ],
+    "error": null,
+    "fixture_seal_sha256": "e27a5cf4efe43aebd290214cae5ac9d500c6e7338c80117079e1ab8f601cf992",
+    "gates": {
+      "compile": {
+        "actual_compilers": [
+          {
+            "command_sha256": "13fdbd522336481ff0878163a5460c47bfea9780751f257d144de32fba6da656",
+            "crate": "horizon_client_core",
+            "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/official/crates/horizon-client-core/src/lib.rs",
+            "test": false
+          },
+          {
+            "command_sha256": "2715634a0875ac3f24010584c0864983c891aad973a87bc91c2e25e03fd49ebd",
+            "crate": "pluto_inventory_api",
+            "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/fixture/inventory-api/src/lib.rs",
+            "test": false
+          },
+          {
+            "command_sha256": "3210a654713dca23b275b7e97ca3bd002594e0bed24c79bf13380977d4c6c57a",
+            "crate": "pluto_guide_reply_tests",
+            "source": "/home/runner/work/_temp/guide-reply-value-fe52ae4cc3b3a0b68b337019de643dc7271b4402/fixture/lib.rs",
+            "test": true
+          }
+        ],
+        "binary": {
+          "mode": 493,
+          "sha256": "b4c87b7e66dc954a656f8edc5217ed533a634f4f3ffed7115d841b11af6fd08b",
+          "size": 3580576
+        },
+        "passed": true
+      },
+      "inventory21": {
+        "names": [
+          "regression_tests::all_six_legacy_titles_refresh_without_new_title_identity",
+          "regression_tests::cover_sentinel_and_current_page_clamp_match_original_assignment",
+          "regression_tests::current_view_values_can_be_supplied_without_an_owned_opening_token",
+          "regression_tests::decoded_span_and_metadata_filtering_remains_the_legacy_policy",
+          "regression_tests::invalid_current_root_or_unknown_title_does_not_borrow_another_book",
+          "regression_tests::invalid_replies_do_not_prevent_later_valid_same_sequence_refresh",
+          "regression_tests::maximum_body_plus_eight_byte_header_is_not_the_observer_ceiling",
+          "regression_tests::subsequent_same_sequence_reply_is_applied_again_not_consumed",
+          "regression_tests::truncated_header_malformed_empty_and_oversize_body_preserve_current",
+          "regression_tests::wrong_sequence_or_other_book_keeps_all_current_values",
+          "tconstruct_materials_book_identity::tests::item_ids_are_exact_and_not_translated_titles_or_prefixes",
+          "tconstruct_materials_book_identity::tests::near_titles_do_not_normalize_case_space_or_newlines",
+          "tconstruct_materials_book_identity::tests::six_legacy_titles_and_body_suffixes_match_the_old_branches",
+          "tconstruct_materials_book_identity::tests::source_item_root_and_title_pairs_are_unchanged",
+          "tconstruct_materials_book_identity::tests::unknown_and_translated_titles_preserve_the_asymmetric_fallback",
+          "tconstruct_materials_book_wire::tests::bounded_material_panel_metadata_survives_guest_transfer",
+          "tconstruct_materials_book_wire::tests::page_and_byte_limits_are_enforced_at_the_boundary",
+          "tconstruct_materials_book_wire::tests::page_links_and_graphics_round_trip_and_other_actions_are_omitted",
+          "tconstruct_materials_book_wire::tests::rejects_oversize_and_unmarked_pages",
+          "tconstruct_materials_book_wire::tests::replies_match_both_open_request_and_book",
+          "tconstruct_materials_book_wire::tests::source_title_style_survives_guest_transfer"
+        ],
+        "tests": 21
+      },
+      "metadata": {
+        "lock_sha256": "e4da882d7c5754dd7196f9e02d3f5dd2c7547be948981974dce8bae2583285d5",
+        "packages": 39,
+        "sha256": "3c407a4e0c3adce9875924a04c678116d4a637e0435b9fa3b834fde3244f7341"
+      },
+      "mod_inputs": {
+        "api_files": 33,
+        "commit": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+        "legacy_files": 3
+      },
+      "official": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+        "selected_files": 4
+      },
+      "preparer21": {
+        "passed": true,
+        "tests": 21
+      },
+      "reply10": {
+        "filtered": 11,
+        "ignored": 0,
+        "names": [
+          "regression_tests::all_six_legacy_titles_refresh_without_new_title_identity",
+          "regression_tests::cover_sentinel_and_current_page_clamp_match_original_assignment",
+          "regression_tests::current_view_values_can_be_supplied_without_an_owned_opening_token",
+          "regression_tests::decoded_span_and_metadata_filtering_remains_the_legacy_policy",
+          "regression_tests::invalid_current_root_or_unknown_title_does_not_borrow_another_book",
+          "regression_tests::invalid_replies_do_not_prevent_later_valid_same_sequence_refresh",
+          "regression_tests::maximum_body_plus_eight_byte_header_is_not_the_observer_ceiling",
+          "regression_tests::subsequent_same_sequence_reply_is_applied_again_not_consumed",
+          "regression_tests::truncated_header_malformed_empty_and_oversize_body_preserve_current",
+          "regression_tests::wrong_sequence_or_other_book_keeps_all_current_values"
+        ],
+        "tests": 10
+      },
+      "runner": {
+        "passed": true,
+        "tests": 29
+      },
+      "source6": {
+        "passed": true,
+        "tests": 6
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "fe52ae4cc3b3a0b68b337019de643dc7271b4402",
+    "minimum_free_bytes": 89840324608,
+    "mod_inputs_seal_sha256": "c066b329f2ba9ec020ad536e7f1beb1b3bf10ddea57e6830d0ff5fb4eb54f77d",
+    "official_seal_sha256": "d683b44fe2b8d827acfb0b501e249f9b712043f4d8bb9e272a77cc4205d8cf6a",
+    "output_seal_sha256": "e3cfb176d2d9ad742f23f6efa6cc463a206fb34804d5e4a0933c031773263923",
+    "passed": true,
+    "scope": "Ten legacy/proposed reply value cases using actual 41f core Text and the actual API Payload. Eleven old wire/identity tests are compiled/inventoried only. No Game acquisition, registry, observer, UI/lifetime, transport or installed package proof.",
+    "source_seal_sha256": "773606f4adc3419201c6ba30181002f84d9a7eabf7d0af0a3431b0809b271393",
+    "verified": true
+  },
+  "limit": "Actual 41f Text/API finite reply-value comparison. No installed Game, registry/bootstrap, packet observer, UI, lifetime or real transport/LAN execution."
+}
