@@ -42,7 +42,7 @@ fn main() -> Result<(), MoveError> {
         |_, item| *item == quartz,
         |left, right| left == right,
     )?;
-    let Some(movement) = planned else { return Ok(()); };
+    let movement = planned.expect("this example must plan the four available spaces");
     assert_eq!((movement.from, movement.to, movement.count), (0, 1, 4));
     let amount = i32::try_from(movement.count).expect("this example is bounded to 64");
 
