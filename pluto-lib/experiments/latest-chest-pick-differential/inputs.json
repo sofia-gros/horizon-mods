@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "candidate": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "old_source_scope": "main08afa original; candidate runtime body68bdd remains f4dc historical candidate; this is a separate41f fixture target",
+  "input_sha256": {
+    "old_helper": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+    "metadata_store": "9d0bcb9cb0f43f144fe2e24a6d9e564566cdc57665dc8e847a37c956b502a421",
+    "native_pick": "85a3b5b9093c0870541dc165ea8d577ff2fd6586e38fd55f0743e42840ae006e"
+  },
+  "new_helper_sha256": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc",
+  "oracles_sha256": "d381999c676f3646aad9b25351b113dd66b70f3292c71d2e5b56ca669b51a9e0",
+  "regression_sha256": "04d312f8e245e0c92f31abfd4a361773203720c84fa4d133bd7814f844d2c0fe",
+  "actual_native_sources": {
+    "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "previous": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "sources_equal_to_previous": true,
+    "files": {
+      "itemdata.rs": {
+        "bytes": 76150,
+        "sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402"
+      },
+      "items.rs": {
+        "bytes": 127617,
+        "sha256": "9259af2f27a631ab21f1c62a67cec231e5410b32e1bdd4e4eb11656fe82db393"
+      },
+      "nbt.rs": {
+        "bytes": 42213,
+        "sha256": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c"
+      },
+      "pick.rs": {
+        "bytes": 5027,
+        "sha256": "85a3b5b9093c0870541dc165ea8d577ff2fd6586e38fd55f0743e42840ae006e"
+      }
+    },
+    "claim": "Source identity only; no type/codec/game execution."
+  },
+  "expected_tests": {
+    "original3": [
+      "native_pick::tests::survival_selects_a_matching_hotbar_stack",
+      "native_pick::tests::survival_swaps_a_main_inventory_stack_into_the_hotbar",
+      "native_pick::tests::survival_without_the_item_does_nothing_and_creative_adds_it"
+    ],
+    "additional14": [
+      "regression_tests::actual_stack_fields_and_runtime_selection_survive_color_only_change",
+      "regression_tests::all_signed_color_boundaries_are_copied_without_rgb_clamp",
+      "regression_tests::creative_clones_collected_payload_with_color_when_no_match_exists",
+      "regression_tests::foreign_utf16_and_nested_metadata_remain_unmodified",
+      "regression_tests::legacy_fallback_requires_matching_string_id",
+      "regression_tests::malformed_or_empty_nested_payload_does_not_fall_back_to_legacy",
+      "regression_tests::missing_or_wrong_typed_colors_preserve_existing_color_and_empty_extra",
+      "regression_tests::nested_color_wins_over_valid_legacy_color",
+      "regression_tests::none_bypasses_both_metadata_and_new_owned_policy",
+      "regression_tests::other_block_items_preserve_every_supplied_value_without_metadata_read",
+      "regression_tests::present_nested_payload_preserves_original_loose_id_policy",
+      "regression_tests::retained_wire_bytes_are_not_reconstructed_but_a_changed_color_stales_use",
+      "regression_tests::survival_does_not_grant_or_select_a_different_colored_stack",
+      "regression_tests::survival_selects_the_matching_colored_stack"
+    ]
+  },
+  "native_executed": false,
+  "game_type_verified": false,
+  "installed_hook_verified": false
+}

@@ -1,0 +1,73 @@
+{
+  "source_checks": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python -B test_render.py -v",
+    "passed": 14,
+    "failed": 0,
+    "native_executed": false
+  },
+  "composition": {
+    "status": "source_composed_only",
+    "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+    "candidate": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+    "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "files": {
+      "lib.rs": {
+        "bytes": 1025,
+        "sha256": "8dd2bb3d18bd0ac42fab86c2267502f8f95764f70a98cab584d008e2b65eb735"
+      },
+      "old_policy.rs": {
+        "bytes": 491,
+        "sha256": "3da30d1385cba3e2f69b040d32de975edcfe93f4483b5f8bcde155a8945f838a"
+      },
+      "new_policy.rs": {
+        "bytes": 444,
+        "sha256": "448d26f203880aefb48cb37621054b738c45fbee9c1a054dd655fc5fe5ac781c"
+      },
+      "native_pick.rs": {
+        "bytes": 5027,
+        "sha256": "85a3b5b9093c0870541dc165ea8d577ff2fd6586e38fd55f0743e42840ae006e"
+      },
+      "regression_tests.rs": {
+        "bytes": 8843,
+        "sha256": "04d312f8e245e0c92f31abfd4a361773203720c84fa4d133bd7814f844d2c0fe"
+      }
+    },
+    "reader_suffix_sha256": "5b7dbed31740398f5d46c21371e06184be78d9aaa64242fd2462a406eef2eb5b",
+    "test_names": {
+      "original3": [
+        "native_pick::tests::survival_selects_a_matching_hotbar_stack",
+        "native_pick::tests::survival_swaps_a_main_inventory_stack_into_the_hotbar",
+        "native_pick::tests::survival_without_the_item_does_nothing_and_creative_adds_it"
+      ],
+      "additional14": [
+        "regression_tests::actual_stack_fields_and_runtime_selection_survive_color_only_change",
+        "regression_tests::all_signed_color_boundaries_are_copied_without_rgb_clamp",
+        "regression_tests::creative_clones_collected_payload_with_color_when_no_match_exists",
+        "regression_tests::foreign_utf16_and_nested_metadata_remain_unmodified",
+        "regression_tests::legacy_fallback_requires_matching_string_id",
+        "regression_tests::malformed_or_empty_nested_payload_does_not_fall_back_to_legacy",
+        "regression_tests::missing_or_wrong_typed_colors_preserve_existing_color_and_empty_extra",
+        "regression_tests::nested_color_wins_over_valid_legacy_color",
+        "regression_tests::none_bypasses_both_metadata_and_new_owned_policy",
+        "regression_tests::other_block_items_preserve_every_supplied_value_without_metadata_read",
+        "regression_tests::present_nested_payload_preserves_original_loose_id_policy",
+        "regression_tests::retained_wire_bytes_are_not_reconstructed_but_a_changed_color_stales_use",
+        "regression_tests::survival_does_not_grant_or_select_a_different_colored_stack",
+        "regression_tests::survival_selects_the_matching_colored_stack"
+      ]
+    },
+    "native_executed": false,
+    "scope": "Finite policy/value tests, exact native pick_item only; no Game, world lookup, actor, hook IR or installation proof."
+  },
+  "source_sha256": {
+    "render.py": "7000ce8accc9b01a76acdd26310f6a2bdb3c04326a2d2bb1000860f194e6a34f",
+    "test_render.py": "f5c513e13e8f6d8a1c2e1f4f22f50942eee3ca69d29d8b3e1fbad15f7c0836a2",
+    "inputs.json": "7691c2b718a10ae499f87e2336f62781a98bc5f80860ee59e217097587c3d2a4",
+    "oracles.json": "d381999c676f3646aad9b25351b113dd66b70f3292c71d2e5b56ca669b51a9e0",
+    "regression_tests.rs": "04d312f8e245e0c92f31abfd4a361773203720c84fa4d133bd7814f844d2c0fe",
+    "README.md": "12da9151ca58a468c516d643e38296d98a9a49cad8f88f0f0a21243a531112b7"
+  },
+  "publication_parent": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+  "runtime_candidate_edited": false,
+  "ordinary_manifest_edited": false
+}
