@@ -2,7 +2,7 @@
 
 **Pure contract code only, not a runnable CI or a compatibility result.**
 There is no workflow, command launcher, fetch, apply, compile or filesystem
-mutation in `contract.py`. Twenty-four Python parser/source regressions pass on synthetic
+mutation in `contract.py`. Twenty-five Python parser/source regressions pass on synthetic
 strings. Those strings are not compiler output or Rust results. The latest
 complete plan and its actual rendering identities remain unavailable.
 
@@ -127,5 +127,11 @@ A read-only parser audit of the already retained historical log from
 confirmed the 4/51 replay split, resumed index 18 and exact 32 fallback tuples.
 Only GitHub timestamp prefixes were removed for that array comparison. Its
 old compiler profile label and evidence scope were not relabeled or used as
-a latest-cutoff execution. The 24 committed regression tests use synthetic
+a latest-cutoff execution. The 25 committed regression tests use synthetic
 strings and do not depend on that private local log being present.
+
+Independent source review caught a profile-parser arithmetic edge: Python's
+integer ratio and Rust's separate `u64 as f64` conversions can round differently
+above 2^53. Both legacy and profile validators now explicitly cast each median
+before division. A regression with medians 2^53+1 and 2^53+2 rejects the other ratio.
+This corrects the pure checker only, not a recorded native timing result.

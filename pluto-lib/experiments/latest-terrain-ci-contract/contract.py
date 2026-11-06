@@ -220,7 +220,7 @@ def validate_profile(log, opt, inventory):
                 'constant fixture callbacks, adapter and native emission remain together', 'paired scope')
         left, right = samples(row['left_total_ns']), samples(row['right_total_ns'])
         median = sorted(left)[3]
-        ratio = None if median == 0 else sorted(right)[3] / median
+        ratio = None if median == 0 else float(sorted(right)[3]) / float(median)
         require(row['right_over_left_median'] == ratio and
                 (ratio is None or type(row['right_over_left_median']) in (int, float)), 'paired median')
         require(row['timing_inconclusive_short_samples'] is any(x < 1_000_000 or x < floor for x in left+right),

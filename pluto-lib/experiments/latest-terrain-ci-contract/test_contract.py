@@ -212,6 +212,17 @@ class Contracts(unittest.TestCase):
             with self.assertRaises(ValueError): m.validate_profile(change(profile(),'PLUTO_PROFILE_PAIR','right_over_left_median',ratio),0,NAMES)
         with self.assertRaises(ValueError): m.validate_profile(profile().replace('1.5','NaN',1),0,NAMES)
 
+    def test_profile_ratio_matches_native_u64_cast_before_division(self):
+        left,right=2**53+1,2**53+2
+        good=change(profile(),'PLUTO_PROFILE_PAIR','left_total_ns',[left]*7)
+        good=change(good,'PLUTO_PROFILE_PAIR','right_total_ns',[right]*7)
+        native=float(right)/float(left)
+        self.assertNotEqual(native,right/left)
+        good=change(good,'PLUTO_PROFILE_PAIR','right_over_left_median',native)
+        m.validate_profile(good,0,NAMES)
+        with self.assertRaises(ValueError):
+            m.validate_profile(change(good,'PLUTO_PROFILE_PAIR','right_over_left_median',right/left),0,NAMES)
+
     def test_short_samples_must_be_marked_inconclusive(self):
         bad = change(profile(),'PLUTO_PROFILE_MICRO','total_ns',[0]*7)
         with self.assertRaises(ValueError): m.validate_profile(bad,0,NAMES)
