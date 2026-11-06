@@ -20,14 +20,12 @@ fn conditional_test(value: &serde_json::Value, registries: &HashMap<String, Tags
         kind @ ("forge:and" | "forge:or") => {
             let values = value.get("values")?.as_array()?;
             if values.is_empty() { return None; }
-            let mut unknown = false;
-            for child in values {
-                match conditional_test(child, registries, config, items, mods) {
-                    Some(result) if (kind == "forge:and" && !result) || (kind == "forge:or" && result) => return Some(result),
-                    Some(_) => {}, None => unknown = true,
-                }
+            let results = values.iter().map(|child| conditional_test(child, registries, config, items, mods));
+            if kind == "forge:and" {
+                horizon_client::pluto_inventory::predicate_fold::all(results)
+            } else {
+                horizon_client::pluto_inventory::predicate_fold::any(results)
             }
-            if unknown { None } else { Some(kind == "forge:and") }
         }
         _ => super::tconstruct_tx::source_conditions_match(std::slice::from_ref(value), registries, config),
     }

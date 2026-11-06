@@ -1,0 +1,28 @@
+{
+  "status": "source_checkpoint_rust_unverified",
+  "baseline": "91fa95fd",
+  "source_boundary_tests": {
+    "passed": 5,
+    "failed": 0
+  },
+  "rust_differential_tests": {
+    "status": "not_run",
+    "prepared_tests": 4,
+    "prepared_result_and_visit_comparisons": 6558
+  },
+  "complete_inventory_api_tests": "not_run_for_this_change",
+  "native_host_or_gameplay": "not_run",
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+    "pluto-lib/tests/predicate-fold/src/lib.rs": "17d05a6ec1d2f47d39dba8d017b26f9c61a4e0825bc2d46f758d965b0af02c08",
+    "pluto-lib/tests/predicate-fold/legacy-oracle.json": "7dd36ceed869f436aba99c1c169c902e2050d11f5d88457271841d9bcce343a6"
+  },
+  "no_new_hooks_registries_or_state": true,
+  "strict_station_semantics_unchanged": true,
+  "consumer_schema_and_leaf_policy_unchanged": true,
+  "limitations": [
+    "Prepared Rust fixtures are not passed tests.",
+    "The frozen oracle models already-resolved leaf values; it does not execute native parsers or gameplay.",
+    "The broader condition/casting harnesses have real dependency wiring but have not been run for this change."
+  ]
+}

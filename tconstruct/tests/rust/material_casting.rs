@@ -1,4 +1,6 @@
 extern crate self as horizon_client;
+// Link the real shared package; do not substitute a predicate implementation.
+pub use pluto_inventory_api as pluto_inventory;
 // Real PlutoLib graph engine under the native library export name.
 #[path = "../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
 pub mod pluto_tag_graph;
