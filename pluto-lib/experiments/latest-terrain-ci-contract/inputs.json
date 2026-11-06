@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "status": "pure CI contract preparation only; no launch route",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "admission": {
+    "latest_production_bundle_sha256": null,
+    "latest_reviewed_guard_cutoff": null,
+    "accepted_complete_plan_sha256": null
+  },
+  "source_sha256": {
+    "pluto-lib/experiments/latest-terrain-cpu/compose.py": "6d9c4c081f468cf3e633382500491f3a4f4ed59dd0f52e34a627f34c3ae12a15",
+    "pluto-lib/experiments/latest-terrain-cpu/inputs.json": "555d6821434b9351f33b85ed0d336f8ef94fb385e2c0ea752e9d91d390812810",
+    "pluto-lib/experiments/terrain-cpu-profile/profile.rs": "9b74ecc336a82bec0328a6252f44f71ef97eb27af8eb6fbd2a2ed73facc52266",
+    "pluto-lib/experiments/latest-terrain-reload/native.rs": "c609e86aa17e1246a21edc2d6d698bc89a0cda44fa7b8c8a339668c26b995bfd",
+    "pluto-lib/experiments/terrain-material-cpu/fixture.rs": "682ac48e12dfd7367fc19a6fca758293df9c7c7f82872b058c8d7654ef04644c",
+    "pluto-lib/experiments/latest-terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
+    "pluto-lib/experiments/latest-terrain-witness/contract.json": "c518e3588e8b00134ce519c50f08ddc70f326b14698660aa8f87c5a7f2962ff6"
+  },
+  "contract_sha256": {
+    "contract.py": "aab75d63e6dc3974d540df3f3f8bd7aeb34dc9b15f06a46a16c5fa222579f2f9",
+    "test_contract.py": "d99f3b21f7d765a27434339b5571863363f7fe618282b25133a6e2ce44e67078",
+    "README.md": "f41b6528724ca22a8c2ec1151fad556d0e7b8a6908be9fd57da841952a21a5fe"
+  },
+  "profiles": [
+    {
+      "opt_level": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debug": 0,
+      "codegen_units": 16,
+      "incremental": false,
+      "lto": false,
+      "jobs": 1
+    },
+    {
+      "opt_level": 3,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debug": 0,
+      "codegen_units": 16,
+      "incremental": false,
+      "lto": false,
+      "jobs": 1
+    }
+  ],
+  "execution": {
+    "workflow_created": false,
+    "triggered": false,
+    "plan": false,
+    "apply": false,
+    "rust": false,
+    "cpu": false,
+    "gpu": false
+  }
+}
