@@ -2870,5 +2870,184 @@
     "horizon_client::game::tconstruct_source_splashing_player::",
     "horizon_client_lib::pluto_cloud::",
     "horizon_client_lib::pluto_potions::"
-  ]
+  ],
+  "hook_order": [
+    {
+      "file": "crates/horizon-client-render/src/world.rs",
+      "node": [
+        9,
+        5
+      ],
+      "injection_ids": [
+        "part-selection-block-change"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        74
+      ],
+      "injection_ids": [
+        "source-splashing-player-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        77
+      ],
+      "injection_ids": [
+        "source-crop-use",
+        "source-machine-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        227
+      ],
+      "injection_ids": [
+        "source-splashing-block",
+        "source-transform-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "injection_ids": [
+        "pluto_items_b2-use",
+        "material-bow-use",
+        "source-slurping-use",
+        "source-tasty-use",
+        "pluto_native_creative-world-fluid-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/commands.rs",
+      "node": [
+        38,
+        2
+      ],
+      "injection_ids": [
+        "command"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        3
+      ],
+      "injection_ids": [
+        "glow-resolve-guest-protection"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        10
+      ],
+      "injection_ids": [
+        "guest-station-open"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        14
+      ],
+      "injection_ids": [
+        "fluid-guest-close"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "injection_ids": [
+        "glow-left-guest",
+        "materials-book-request",
+        "source-area-guest-hit",
+        "source-splashing-guest-head",
+        "source-transform-guest-hit"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        42
+      ],
+      "injection_ids": [
+        "source-splashing-guest-aim"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        55
+      ],
+      "injection_ids": [
+        "crafting-station-lan-update",
+        "fluid-guest-tick"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        81
+      ],
+      "injection_ids": [
+        "source-area-guest-destroy"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        94
+      ],
+      "injection_ids": [
+        "source-splashing-guest-return"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "node": [
+        40,
+        40
+      ],
+      "injection_ids": [
+        "source-splashing-interact"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "node": [
+        28,
+        0
+      ],
+      "injection_ids": [
+        "source-empty-bottle-use"
+      ]
+    }
+  ],
+  "order_evidence": {
+    "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "planner_blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+    "transform_blob": "f4edd3dbe1278be696d56405b4cf7d47e7b105bb",
+    "meaning": "Planner sorts by file/node/sites, descending priority, owner and injection ID; transform preserves per-node plan order. Contract uses actual observed groups, not recomputed guessed order."
+  }
 }

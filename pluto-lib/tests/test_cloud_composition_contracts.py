@@ -38,10 +38,28 @@ def synthetic():
                 entry.pop(body_key + '_sha256')
                 entry[body_key] = text
             p[kind].append(entry)
+    by_id={row['injection_id']:row for row in p['injections']}
+    p['injections']=[by_id[ident] for group in c['hook_order'] for ident in group['injection_ids']]
     return p, c
 
 
 class Contracts(unittest.TestCase):
+    def test_same_priority_hook_reordering_rejects(self):
+        p,c=synthetic()
+        group=next(g for g in c['hook_order'] if 'source-splashing-block' in g['injection_ids'])
+        self.assertEqual(group['injection_ids'],['source-splashing-block','source-transform-use'])
+        indexes=[i for i,r in enumerate(p['injections']) if r['injection_id'] in group['injection_ids']]
+        a,b=indexes; p['injections'][a],p['injections'][b]=p['injections'][b],p['injections'][a]
+        with self.assertRaisesRegex(ValueError,'execution order'): validate_contracts(p,c)
+
+    def test_order_contract_cannot_omit_duplicate_or_merge_sites(self):
+        for mutation in ['omit','repeat','wrong_node']:
+            p,c=synthetic()
+            if mutation=='omit':c['hook_order'][0]['injection_ids'].pop()
+            elif mutation=='repeat':c['hook_order'].append(copy.deepcopy(c['hook_order'][0]))
+            else:c['hook_order'][0]['node']=[999]
+            with self.assertRaises(ValueError):validate_contracts(p,c)
+
     def test_old_checker_and_metadata_inverse_are_exact(self):
         delta=json.loads((ROOT/'tests/cloud-composition-guard-delta.json').read_text())
         for name, spec in delta['originals'].items():

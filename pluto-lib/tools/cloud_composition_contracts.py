@@ -59,6 +59,23 @@ def validate_entries(plan, contract):
                 raise ValueError('Missing/duplicated/relocated cloud dependency: ' + required[identity])
             if canonical(projection(chosen[0], kind)) != canonical(required):
                 raise ValueError('Cloud dependency source/IR differs: ' + required[identity])
+    groups = contract.get('hook_order')
+    if not isinstance(groups, list) or not groups:
+        raise ValueError('Missing cloud hook execution order')
+    ordered_ids = [ident for group in groups for ident in group['injection_ids']]
+    required_ids = [row['injection_id'] for row in contract['injections']]
+    if len(set(ordered_ids)) != len(ordered_ids) or set(ordered_ids) != set(required_ids):
+        raise ValueError('Cloud hook order does not cover each reviewed entry once')
+    seen_sites = set()
+    for group in groups:
+        site = group['file'], tuple(group['node'])
+        if site in seen_sites:
+            raise ValueError('Duplicated cloud hook-order site')
+        seen_sites.add(site)
+        actual_order = [row.get('injection_id') for row in plan['injections']
+                        if (row.get('file'), tuple(row.get('node', []))) == site]
+        if canonical(actual_order) != canonical(group['injection_ids']):
+            raise ValueError('Cloud hook execution order differs at reviewed site')
 
 
 def validate_contracts(plan, contract):

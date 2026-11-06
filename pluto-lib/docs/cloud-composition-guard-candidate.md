@@ -41,6 +41,10 @@ exact contract matching, not an ID, file, phase or count allowance:
   selector, ordinal, require, output contract and node/fingerprints. Extra fields
   and boolean/integer substitutions reject. Default omitted `pub(crate)` is the
   sole module serialization normalization.
+- The per-node execution sequence is also the exact observed sequence. Equal
+  priority does not make the splashing and transform hooks interchangeable. The
+  order contract must cover every reviewed injection exactly once; missing,
+  duplicate or changed sites and unknown/interleaved hooks reject.
 - Reviewed direct state rows bind actual type, initializer, owner, placement and
   constructors. Missing, duplicated, aliased or changed rows reject.
 - Unknown hooks on the original exclusive files/prefixes, known item entry
@@ -101,7 +105,7 @@ guards and actual build remain required.
 
 ## Pure checks and history
 
-Thirty-five pure Python tests passed: twenty-seven new checker regressions and
+Thirty-seven pure Python tests passed: twenty-nine new checker regressions and
 the eight existing cloud plan tests adapted to a complete synthetic contract.
 The old test that used an arbitrary `use_tool` hook as an unrelated hook now
 uses `unrelated_draw`: `use_tool` is deliberately protected for the new native
@@ -110,7 +114,7 @@ item connection, and unknown hooks there reject in the new tests.
 The first development run was 16/20: the metadata generator retained the old
 `source` field when replacing a candidate body. The positive synthetic tests
 correctly rejected that inconsistent record. The generator was corrected to
-remove the original body before storing its digest; the final 35 pass. No Rust
+remove the original body before storing its digest; the final 37 pass. No Rust
 or native job was involved, and no failed test was reclassified as a pass.
 
 Pure tests use explicitly synthetic IR/source text to exercise checker behavior.
@@ -119,3 +123,28 @@ the five known c977 modules differ: descriptor, insertion, potion facts,
 splashing source and cloud source/placement. Existing entry identities and
 all selected hook/state records are actual-plan-derived. The production
 pending-observation rejection was also exercised against that old real plan.
+
+## Order-only follow-up and later source intake
+
+The first saved guard candidate `a3dd25ac` fixed each hook's complete identity,
+priority and body but did not separately compare the list order at a shared
+node. The follow-up adds only that stricter check and its two pure regressions.
+Official Mixins `5a64af93`, planner blob
+`4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839`, sorts by file/node/sites, descending
+priority, Mod ID and injection ID. Transformer blob
+`f4edd3dbe1278be696d56405b4cf7d47e7b105bb` pushes entries into each node group in
+plan order. The new contract preserves the actual observed groups, rather than
+guessing or changing the execution order. The ordinary planner already sorts
+them; this also rejects a malformed/reordered supplied plan.
+
+A read-only comparison of integration `6ec43252` to `59c23ce3` returned all
+34 changed paths, below the API truncation cap. None changes the nineteen cloud
+entries or the ten explicitly selected dependency modules. The server-side
+materials-book-request raw Git blob remains
+`13f06d5c1f90f74b6d88855772f005cbff6c74f2`. The book module itself, outside that
+selected dependency set, adds `ensure_registered` only in its open branch;
+its `source_pages` and the request helper are unchanged. The other ordinary
+changes are the separate remote response hooks, payload update module/borrow
+and manifests. This is not a claim about every transitive dependency or an
+actual new plan. The planned runtime/observation pin still awaits the final
+combined source and real observation; no 59c fingerprint is inferred here.
