@@ -24,7 +24,7 @@
   "record_codec_status": "Standalone version1 NBT prototype prepared; not native Level or old-save migration",
   "record_codec_validation": {
     "source_guards_passed": 6,
-    "combined_rust_tests_written": 18,
+    "combined_rust_tests_written": 19,
     "combined_rust_tests_executed": false
   }
 }

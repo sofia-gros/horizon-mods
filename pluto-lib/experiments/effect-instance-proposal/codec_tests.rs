@@ -90,3 +90,40 @@ fn oversized_modified_utf_is_rejected_before_native_disk_writer_can_empty_it() {
     // Logical UTF-8 bytes alone are not the native modified-UTF length.
     assert_eq!(r.layers[0].id.len(), 32768);
 }
+#[test]
+fn native_duplicate_keys_and_list_wrappers_are_semantic_not_raw_wire_validation() {
+    let original = record();
+    let bytes = codec::encode(&original, limits(), wire()).unwrap();
+    let key = b"unknown:future";
+    let entry = |value: &[u8]| {
+        let mut bytes = vec![7]; // Actual NBT ByteArray tag and modified-UTF ASCII name.
+        bytes.extend_from_slice(&(key.len() as u16).to_be_bytes());
+        bytes.extend_from_slice(key);
+        bytes.extend_from_slice(&(value.len() as i32).to_be_bytes());
+        bytes.extend_from_slice(value);
+        bytes
+    };
+    let first = entry(&[0, 128, 255]);
+    let matches: Vec<_> = bytes.windows(first.len()).enumerate()
+        .filter_map(|(at, window)| (window == first).then_some(at)).collect();
+    assert_eq!(matches.len(), 1);
+    let mut duplicate = bytes;
+    let at = matches[0] + first.len();
+    duplicate.splice(at..at, entry(&[42]));
+    let decoded = codec::decode(&duplicate, limits(), wire()).unwrap();
+    let mut expected = original.clone();
+    expected.layers[0].extensions.insert("unknown:future".into(), vec![42], limits()).unwrap();
+    assert_eq!(decoded, expected); // Native compound parser keeps the last value.
+    assert_ne!(codec::encode(&decoded, limits(), wire()).unwrap(), duplicate);
+
+    let mut wrapped = codec::to_tag(&original, limits()).unwrap();
+    let Tag::List(layers) = field(&mut wrapped, "layers") else { panic!() };
+    for layer in layers {
+        let value = std::mem::replace(layer, Tag::End);
+        *layer = Tag::compound([("", value)]);
+    }
+    assert_eq!(codec::from_tag(&wrapped, limits()), Err(Error::Schema));
+    let encoded = nbt::write_named(&NamedTag { name: JavaString::default(), tag: wrapped }, wire()).unwrap();
+    // Native list decoding unwraps a singleton empty-name compound first.
+    assert_eq!(codec::decode(&encoded, limits(), wire()).unwrap(), original);
+}

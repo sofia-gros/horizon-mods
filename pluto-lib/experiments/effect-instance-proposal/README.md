@@ -92,7 +92,7 @@ patch and still does not wire Level, local/LAN saves or contact/cure operations.
 `prepare.py --with-nbt` copies the complete hash-pinned official `nbt.rs`
 unchanged into the MOD-local fixture, using its actual Tag and codec. No Cargo
 dependency or substitute NBT type is needed. Run only the `proposal_` tests to
-select the ten instance tests plus eight codec tests; native NBT tests compile
+select the ten instance tests plus nine codec tests; native NBT tests compile
 but are not included in that selected execution count.
 
 The codec is strict about its own schema and rejects native legacy player tags
@@ -102,6 +102,10 @@ It prechecks modified-UTF string lengths to avoid the native disk writer
 replacing an overlong string with empty. See the [minimum contract](../../docs/persistence-contact-minimum.md).
 
 The earlier ten-test result above applies to its exact prior cutoff. The new
-eighteen-test proposed-source fixture is prepared but not yet executed; source
+nineteen-test proposed-source fixture is prepared but not yet executed; source
 guards currently pass six checks. Neither result establishes actual native
 save migration or synchronous effect mutation authority.
+
+The crafted duplicate-key and empty-name-list-wrapper cases explicitly test
+normalization by the actual native NBT parser. Strict schema validation applies
+to its resulting Tag, not to raw duplicate-free/canonical byte encoding.

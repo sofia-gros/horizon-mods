@@ -33,7 +33,10 @@ The minimum codec guarantees are:
   insufficient for NUL or supplementary characters.
 - Unknown **schema** fields are rejected, not confused with supported unknown
   **extension namespaces**. Native NBT parsing has its own normalization rules,
-  including compound map semantics. The codec does not claim to preserve raw
+  including last-duplicate-key-wins compound maps and singleton empty-name list
+  wrapper unwrapping. Strict schema checks apply to the resulting native Tag,
+  not arbitrary raw NBT encoding. Crafted tests demonstrate both rules. The
+  codec does not claim to preserve raw
   wire ordering, duplicate keys or arbitrary original bytes.
 
 ## Required legacy/native migration, still not implemented
@@ -88,7 +91,7 @@ The exact inside-contact point is still within `check_inside_blocks`, after
 its geometry and visited-position test and before native per-block actions.
 For guest authority, `guest_server_tick` enters `as_guest`, samples base fluid
 state and executes `server_block_damage` in that live context. Conversely,
-`remote_player_tick` constructs MotionWorld for a client-side body, and prediction
+`tick_remote_level` constructs MotionWorld for a client-side body, and prediction
 replay also constructs MotionWorld. Constructor presence, a matching entity ID,
 or a dimension string is not server mutation authority. Replay, remote-client,
 collision-only probes, missing actors, and unsupported lifecycle states must
