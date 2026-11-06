@@ -1,0 +1,44 @@
+{
+  "candidate_only": true,
+  "outputs": {
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": {
+      "bytes": 23263,
+      "sha256": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040"
+    },
+    "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": {
+      "bytes": 878,
+      "sha256": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b"
+    },
+    "pluto-lib/mixins/pluto_native_creative/client-payload-updates.rs": {
+      "bytes": 8469,
+      "sha256": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055"
+    },
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": {
+      "bytes": 188919,
+      "sha256": "f9356fc8c3925bbe77930f7648bdbc4fff9fd2925680d0791d6b8c1c17b1ff62"
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": {
+      "bytes": 382,
+      "sha256": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed"
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book-response-update.rs": {
+      "bytes": 2394,
+      "sha256": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e"
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": {
+      "bytes": 57945,
+      "sha256": "3cec1b81f40c4f657348ad56e8681a1d68d88149400e59a648460caff0f6a36f"
+    },
+    "tconstruct/mixins/tconstruct/source-broad-wire-receive.rs": {
+      "bytes": 579,
+      "sha256": "5847d2f93fa323f06e9a590a0f001a343892410cdbc6dd65c53ed51e37105edf"
+    },
+    "tconstruct/mixins/tconstruct/source-haste-wire-receive.rs": {
+      "bytes": 498,
+      "sha256": "fa5f337585952e909361f700331a90ce0ac4499d6356d85051fdeab56829a38f"
+    }
+  },
+  "actual_plan": false,
+  "actual_game_type": false,
+  "actual_lan": false
+}

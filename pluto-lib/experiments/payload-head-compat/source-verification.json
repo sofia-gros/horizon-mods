@@ -1,0 +1,24 @@
+{
+  "candidate_only": true,
+  "source_sha256": {
+    "README.md": "c271a23296855cfb3b8f753aaffbb64863db3c20d1e21dfe48aceef9cb807e8d",
+    "compose.py": "11dd0ae710360fd3b92a9ed88ad27cb7777947fbf55003f275f5b1cc9a3a4107",
+    "inputs.json": "f7b1a265bff7a3e7b10d521074ae7e29fbaf0293510f1c1785f65dcfd340e904",
+    "oracles.json": "6434cf7ce68b4a9b4ed91d04318df34d2bc6fbe0e57aab0ebdb54ba28d5b6438",
+    "outputs.json": "528b08f38676cc41b36a3e0d93bb69c20a2457217f5d1400840c6e2fc0cff3be",
+    "source-broad-wire-receive.rs": "5847d2f93fa323f06e9a590a0f001a343892410cdbc6dd65c53ed51e37105edf",
+    "source-haste-wire-receive.rs": "fa5f337585952e909361f700331a90ce0ac4499d6356d85051fdeab56829a38f",
+    "test_source.py": "342be7910e226081046ee2d3cd11a7ef1c542bf6172d52ad5cefe4a2aa283478"
+  },
+  "pure_source_tests": 11,
+  "finite_symbolic_cases": 48,
+  "source_log": {
+    "bytes": 1523,
+    "sha256": "726f79465f4d4701ad6d705afeaf729c45d92de5b2a0b2fa48842427eec0e989"
+  },
+  "initial_preparation_failure": "First source render rejected a non-unique inverse header marker before output. The marker was narrowed to the complete function declaration. Runtime transformation unchanged.",
+  "rust_executed": false,
+  "new_plan_executed": false,
+  "game_type_checked": false,
+  "lan_executed": false
+}
