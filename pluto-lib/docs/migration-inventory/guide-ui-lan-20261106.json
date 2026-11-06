@@ -1,0 +1,2200 @@
+{
+  "schema": "guide-migration-ledger-v1",
+  "date_utc": "2026-11-06",
+  "inventory_mode": "read-only; no PR state/metadata action, CI inspection, merge, native jobs or new tests",
+  "cutoffs": {
+    "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+    "central_local": "8715b1232c0fca133fe012f35830e2108e653d59",
+    "central_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+    "central_tree": "267be30ceab0c59e8763a1e2de4db0f4fff83cf5",
+    "ordinary_v15_runtime": "f5a83539525c26fd2142e26e43789a3dd0107033",
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "repository_snapshot_sha256": "74a47c168c8c2963c32b7bbeaece8d8a6a7304612ba62cf781984305fcd78f9c"
+  },
+  "counts": {
+    "pr_rows": 25,
+    "primary_guide_pr_rows": 24,
+    "shared_foundation_dependency_pr_rows": 1,
+    "content_chain_prs": 23,
+    "contract_rows": 8,
+    "open_draft_pr_rows": 25,
+    "new_tests_run": 0
+  },
+  "pr_rows": [
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-945",
+      "source_pr": 945,
+      "source_head_sha": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+      "source_base_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "source_base_ref": "recovery/plutolib-verified-v13-20261106",
+      "parent_pr": 944,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/945",
+      "title": "Isolate guide navigation from Pluto native page turns",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "source-materials-book-key.rs",
+        "source-materials-book-click.rs",
+        "source-materials-book-control.rs -> source-materials-book-navigation.rs"
+      ],
+      "pluto_migration": "Consumer-local navigation isolated for coexistence; not a durable Pluto session migration",
+      "consumer_policy_to_preserve": "Cover/two-page spread/history, PageUp/PageDown, native control JSON shape and one sound; ordinary/edit/lectern paths stay native; LAN refresh unchanged",
+      "unproven_or_blocked": [
+        "materials-book-response HEAD remains a payload-guard conflict",
+        "No navigation apply/native typecheck, real input/audio, live Client or LAN proof",
+        "Full consumer plan attempt exited130 without diagnostic: inconclusive"
+      ],
+      "verification": {
+        "cutoff": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+        "passed": [
+          "27 source/manifest/guard cases",
+          "8 production-helper cases with modeled Game/audio",
+          "Actual navigation-only overlay + full v13 Pluto plan and all11guards"
+        ],
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/docs/guide-pluto-navigation-recovery.md",
+        "tconstruct/docs/guide-pluto-navigation-validation.json",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-control.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-key.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-navigation.rs",
+        "tconstruct/tests/book-wire/src/lib.rs",
+        "tconstruct/tests/rust/book_keyboard_navigation.rs",
+        "tconstruct/tests/test_book_keyboard_navigation.py",
+        "tconstruct/tests/test_guide_pluto_composition.py"
+      ],
+      "conditional_retirement": "Only a tested grouped guide replacement containing this delta can supersede it; no status change is requested.",
+      "evidence": {
+        "files": [
+          {
+            "path": "tconstruct/docs/guide-pluto-navigation-recovery.md",
+            "sha": "ce6eea67c09c8cf84bc83edaf76a5a1a2cf5cc11",
+            "status": "added"
+          },
+          {
+            "path": "tconstruct/docs/guide-pluto-navigation-validation.json",
+            "sha": "17beded4e82b5dc6a9182febe2972a98ab40a551",
+            "status": "added"
+          },
+          {
+            "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+            "sha": "18fb0e8d6c67efd30858634113e93a19c886c87a",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+            "sha": "9aa39dc706c5412e1483ae827f74d2b616ed2d8a",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/mixins/tconstruct/source-materials-book-control.rs",
+            "sha": "bd7bf84c897aa9b22b6693ded5a2ec68e303ec08",
+            "status": "added"
+          },
+          {
+            "path": "tconstruct/mixins/tconstruct/source-materials-book-key.rs",
+            "sha": "0d2c1333ae3c6f7fa6e39960b99a7a11485d33e9",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/mixins/tconstruct/source-materials-book-navigation.rs",
+            "sha": "15b9b0aa3de05e2feb544c79aad1bbf205855c58",
+            "status": "renamed"
+          },
+          {
+            "path": "tconstruct/tests/book-wire/src/lib.rs",
+            "sha": "965874d90b548491c05417ad33e45c0555fa5320",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/tests/rust/book_keyboard_navigation.rs",
+            "sha": "0c7c16f7c5969ceef37b2dbb3122f6cb20de1be8",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/tests/test_book_keyboard_navigation.py",
+            "sha": "b621a140febb4c957e75a609a71b3589454f2e7f",
+            "status": "modified"
+          },
+          {
+            "path": "tconstruct/tests/test_guide_pluto_composition.py",
+            "sha": "8b10cf1d0f3152ab31fbd944dac39a465b230b1b",
+            "status": "added"
+          }
+        ]
+      }
+    },
+    {
+      "scope": "01_shared_foundation_dependency",
+      "id": "pr-944",
+      "source_pr": 944,
+      "source_head_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "source_base_sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "source_base_ref": "main",
+      "parent_pr": null,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/944",
+      "title": "Preserve verified PlutoLib shared foundation (official v13)",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "Pluto explicit API callers and read-only native packet adapter; legacy guide consumer not migrated"
+      ],
+      "pluto_migration": "Shared foundation only; v13 PR snapshot does not automatically contain v14/v15 or guide recovery",
+      "consumer_policy_to_preserve": "All guide content, layout, legacy metadata and recipe eligibility remain TConstruct-owned",
+      "unproven_or_blocked": [
+        "Original guide turn/response conflicts prevent full consumer proof",
+        "Ordinary launcher does not run mandatory Python composition guards",
+        "Persistent guide lifetime and LAN reply authority unresolved"
+      ],
+      "verification": {
+        "runtime_cutoff": "31cf76672d3a7b982aebab86a91a78440afd163e",
+        "package_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+        "passed": [
+          "ordinary library plan/all11guards/apply/client lib+bin"
+        ],
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "pluto-lib/tools/check_client_payload_plan.py",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml"
+      ],
+      "conditional_retirement": "Shared foundation belongs to category01; do not close it as though it were duplicate guide content.",
+      "evidence": {
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+        "paths": [
+          "pluto-lib/docs/shared-foundation-validation-20261105.md",
+          "pluto-lib/docs/shared-foundation-validation-20261105.json"
+        ],
+        "published_tree": "9a97a8870625af2c16a53400b1643a29a090a6f3"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-805",
+      "source_pr": 805,
+      "source_head_sha": "0e334211ddcbeda22430063af4c185a32cd7803b",
+      "source_base_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "source_base_ref": "feat/mighty-defense-guide-379",
+      "parent_pr": 803,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/805",
+      "title": "Show qualified Mighty entity-melting reference chapter",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-layout.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show qualified Mighty entity-melting reference chapter",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/entitymelting.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/intro.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/notable.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/entitymelting.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-layout.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_materials_book_source.py",
+          "tconstruct/tests/test_mighty_entity_melting_guide.py",
+          "tconstruct/third_party/mighty-entity-melting-NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 6
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 6
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/entitymelting.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/intro.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/notable.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/entitymelting.json",
+          "tconstruct/tests/test_mighty_entity_melting_guide.py",
+          "tconstruct/third_party/mighty-entity-melting-NOTICE.md"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/0e334211ddcbeda22430063af4c185a32cd7803b"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-803",
+      "source_pr": 803,
+      "source_head_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "source_base_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "source_base_ref": "feat/book-difference-ingredients-379",
+      "parent_pr": 800,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/803",
+      "title": "Show Mighty defense overviews with bounded recipe guidance",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show Mighty defense overviews with bounded recipe guidance",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/protection.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/special.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/defense.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/tests/test_materials_book_source.py",
+          "tconstruct/tests/test_mighty_ability_groups.py",
+          "tconstruct/tests/test_mighty_defense_guide.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py",
+          "tconstruct/third_party/mighty-defense-guide-NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 7
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 7
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/protection.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/special.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/defense.json",
+          "tconstruct/tests/test_mighty_ability_groups.py",
+          "tconstruct/tests/test_mighty_defense_guide.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py",
+          "tconstruct/third_party/mighty-defense-guide-NOTICE.md"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-800",
+      "source_pr": 800,
+      "source_head_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "source_base_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "source_base_ref": "fix/book-crafting-preview-gates-379",
+      "parent_pr": 797,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/800",
+      "title": "Explain Crafting Station recipes with bounded difference inputs",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Explain Crafting Station recipes with bounded difference inputs",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/intro/craftingstation_port.json",
+          "tconstruct/content/assets/tconstruct/book/materials_and_you/sections/introduction.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/test_book_difference_ingredients.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 2
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 2
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/intro/craftingstation_port.json",
+          "tconstruct/tests/test_book_difference_ingredients.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/75bcec5209af49452f44bf802e5d2c1e2d52c4c7"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-797",
+      "source_pr": 797,
+      "source_head_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "source_base_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "source_base_ref": "feat/puny-slotless-groups-379",
+      "parent_pr": 787,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/797",
+      "title": "Gate static book crafting previews on live recipe support",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Gate static book crafting previews on live recipe support",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/test_book_crafting_preview_gates.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_book_crafting_preview_gates.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/1103b360ba7fe0534e18aa90a7b8dc8185f35342"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-787",
+      "source_pr": 787,
+      "source_head_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "source_base_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "source_base_ref": "feat/puny-upgrade-groups-379",
+      "parent_pr": 782,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/787",
+      "title": "Keep Puny slotless recipes with their source categories",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Keep Puny slotless recipes with their source categories",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/tests/test_puny_slotless_groups.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 2
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 2
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_puny_slotless_groups.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/d213d18065ed3cc85688cf32b0a323be238d6c7d"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-782",
+      "source_pr": 782,
+      "source_head_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "source_base_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "source_base_ref": "feat/material-composite-alternatives-379",
+      "parent_pr": 776,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/782",
+      "title": "Group Puny upgrade recipes under source categories",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Group Puny upgrade recipes under source categories",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/tests/test_mighty_ability_groups.py",
+          "tconstruct/tests/test_modifier_input_display.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 3
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 3
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_mighty_ability_groups.py",
+          "tconstruct/tests/test_modifier_input_display.py",
+          "tconstruct/tests/test_puny_upgrade_groups.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/22abb2f0cc2219d7334257215bdb74d262c0f254"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-776",
+      "source_pr": 776,
+      "source_head_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "source_base_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "source_base_ref": "fix/material-fluid-tooltip-379",
+      "parent_pr": 774,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/776",
+      "title": "Show all bounded composite material fluid alternatives",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show all bounded composite material fluid alternatives",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/test_material_composite_options.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_material_composite_options.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/1031e51e4bcb58d73f076848d4a05405c227a3d5"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-774",
+      "source_pr": 774,
+      "source_head_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "source_base_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "source_base_ref": "feat/mighty-structure-diagram-379",
+      "parent_pr": 767,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/774",
+      "title": "Keep material casting buckets paired with fluid tooltips",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Keep material casting buckets paired with fluid tooltips",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/test_material_fluid_tooltips.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_material_fluid_tooltips.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/134a84f61ac500cd758f9e0d668202157dcab6e9"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-767",
+      "source_pr": 767,
+      "source_head_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "source_base_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "source_base_ref": "feat/modifier-progress-display-379",
+      "parent_pr": 758,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/767",
+      "title": "Show a bounded two-layer Smeltery construction plan",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show a bounded two-layer Smeltery construction plan",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/multiblock.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/structurerequirements.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/fixtures/mighty_structure_source.json",
+          "tconstruct/tests/test_mighty_structure_diagram.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 9,
+          "absent": 3
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 9,
+          "absent": 3
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/multiblock.json",
+          "tconstruct/tests/fixtures/mighty_structure_source.json",
+          "tconstruct/tests/test_mighty_structure_diagram.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/1b60557838c4724dd4dba6964566f8870d0ff8cb"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-758",
+      "source_pr": 758,
+      "source_head_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "source_base_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "source_base_ref": "feat/modifier-input-display-379",
+      "parent_pr": 753,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/758",
+      "title": "Show incremental modifier progress and conditional returns",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show incremental modifier progress and conditional returns",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/book-wire/src/lib.rs",
+          "tconstruct/tests/test_modifier_progress_display.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_modifier_progress_display.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/647173b15a93dcb44fd85306abcc22c6ecefa4e9"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-753",
+      "source_pr": 753,
+      "source_head_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "source_base_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "source_base_ref": "feat/mighty-ability-groups-guide-379",
+      "parent_pr": 746,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/753",
+      "title": "Display five separate modifier recipe inputs in guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Display five separate modifier recipe inputs in guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_modifier_input_display.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 5,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/test_modifier_input_display.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/74e4ced389cec03cd17fb9d2954ab989571fcbb3"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-746",
+      "source_pr": 746,
+      "source_head_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "source_base_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "source_base_ref": "feat/mighty-tool-tank-guide-379",
+      "parent_pr": 737,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/746",
+      "title": "Restore Mighty ability overviews and source recipe groups",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Restore Mighty ability overviews and source recipe groups",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/armor.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/general.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/harvest.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/interact.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/melee.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/ranged.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/tests/test_mighty_ability_groups.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 7
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 7
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/armor.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/general.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/harvest.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/interact.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/melee.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/ranged.json",
+          "tconstruct/tests/test_mighty_ability_groups.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/132521b8a144e3dbf16972b001fb69b44efa9cf3"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-737",
+      "source_pr": 737,
+      "source_head_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "source_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "source_base_ref": "feat/mighty-broad-tool-guide-379",
+      "parent_pr": 732,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/737",
+      "title": "Explain supported tool tanks and capacity loss in Mighty",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Explain supported tool tanks and capacity loss in Mighty",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/tests/fixtures/mighty_tool_tanks_source.json",
+          "tconstruct/tests/test_mighty_broad_tools.py",
+          "tconstruct/tests/test_mighty_tool_tanks.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 4
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 4,
+          "absent": 4
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json",
+          "tconstruct/tests/fixtures/mighty_tool_tanks_source.json",
+          "tconstruct/tests/test_mighty_broad_tools.py",
+          "tconstruct/tests/test_mighty_tool_tanks.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/486995af9353a56598bf6217b9a381b3db3d321d"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-732",
+      "source_pr": 732,
+      "source_head_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "source_base_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "source_base_ref": "feat/blindshot-modifier-guide-379",
+      "parent_pr": 725,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/732",
+      "title": "Show seven broad-tool pages in Mighty Smelting",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show seven broad-tool pages in Mighty Smelting",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_broad_axe.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_cleaver.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_excavator.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_longbow.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_scythe.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_sledge_hammer.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_vein_hammer.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/test_materials_book_source.py",
+          "tconstruct/tests/test_mighty_broad_tools.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 8
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 8
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_broad_axe.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_cleaver.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_excavator.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_longbow.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_scythe.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_sledge_hammer.json",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_vein_hammer.json",
+          "tconstruct/tests/test_mighty_broad_tools.py"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/9567553edd0c932d9ceca32524ef44b008904771"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-725",
+      "source_pr": 725,
+      "source_head_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "source_base_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "source_base_ref": "feat/crystal-modifier-guide-379",
+      "parent_pr": 718,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/725",
+      "title": "Show slotless Blindshot recipe in Puny Smelting",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show slotless Blindshot recipe in Puny Smelting",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/ff81d20ac675992f4217a316e9e29d2192729f3b"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-718",
+      "source_pr": 718,
+      "source_head_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "source_base_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "source_base_ref": "feat/level-range-guide-379",
+      "parent_pr": 712,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/718",
+      "title": "Show modifier-crystal alternatives in Puny and Mighty guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show modifier-crystal alternatives in Puny and Mighty guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 0
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 0
+        },
+        "absent_from_both": [],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/5e9d740e7e229e2107e5da3d2106ecc229c14310"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-712",
+      "source_pr": 712,
+      "source_head_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "source_base_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "source_base_ref": "feat/multi-input-bonus-guide-379",
+      "parent_pr": 711,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/712",
+      "title": "Show Step Up, Necrotic and Gilded level-range guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show Step Up, Necrotic and Gilded level-range guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/33e2f40b167ff8fcf0ae71de4c8f84300076d167"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-711",
+      "source_pr": 711,
+      "source_head_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "source_base_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "source_base_ref": "feat/fluid-modifier-guide-379",
+      "parent_pr": 709,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/711",
+      "title": "Show multi-input bonus recipes and bottle returns in Puny",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show multi-input bonus recipes and bottle returns in Puny",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/22f34b2b749038aacb616df7a985057c96b1c07a"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-709",
+      "source_pr": 709,
+      "source_head_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "source_base_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "source_base_ref": "feat/bulk-modifier-guide-379",
+      "parent_pr": 708,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/709",
+      "title": "Show repeatable fluid modifier recipes and empty containers",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show repeatable fluid modifier recipes and empty containers",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/416850d40eb3aa46d12c2a2d4145ed9360fcc266"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-708",
+      "source_pr": 708,
+      "source_head_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "source_base_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "source_base_ref": "feat/incremental-modifier-guide-379",
+      "parent_pr": 707,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/708",
+      "title": "Show bulk modifier inputs and leftover outputs in guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show bulk modifier inputs and leftover outputs in guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-707",
+      "source_pr": 707,
+      "source_head_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "source_base_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "source_base_ref": "feat/ordinary-modifier-guide-379",
+      "parent_pr": 698,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/707",
+      "title": "Show supported incremental modifier recipe guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show supported incremental modifier recipe guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 7,
+          "absent": 1
+        },
+        "absent_from_both": [
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/c20813dcbdd1a1a18e60bbedc7d2741324b44e88"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-698",
+      "source_pr": 698,
+      "source_head_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "source_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "source_base_ref": "feat/supported-bonus-guide-379",
+      "parent_pr": 693,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/698",
+      "title": "Show ordinary modifier recipes in Puny and Mighty guides",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show ordinary modifier recipes in Puny and Mighty guides",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/abilities.json",
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "tconstruct/tests/rust/ranged_upgrades.rs",
+          "tconstruct/tests/test_book_showcase_tags.py",
+          "tconstruct/tests/test_materials_book_source.py",
+          "tconstruct/third_party/NOTICE.md"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 10,
+          "absent": 2
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 10,
+          "absent": 2
+        },
+        "absent_from_both": [
+          "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/abilities.json",
+          "tconstruct/tests/fixtures/ordinary-modifier-guides.json"
+        ],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/a17b0566acd81d584bfaec84caf8ca2558482c76"
+      }
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "pr-693",
+      "source_pr": 693,
+      "source_head_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "source_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "source_base_ref": "main",
+      "parent_pr": null,
+      "live_state": "open",
+      "live_draft": true,
+      "published_url": "https://github.com/sofia-gros/horizon-mods/pull/693",
+      "title": "Show supported bonus modifier recipes in Puny Smelting",
+      "pr_state_action": "none",
+      "automatic_retirement_allowed": false,
+      "actual_callers": [
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-tags.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs"
+      ],
+      "shared_services_available": [
+        "guide-document-text",
+        "guide-font-layout",
+        "client-payload-observer",
+        "current-book-call",
+        "request-correlation"
+      ],
+      "pluto_migration": "shared_available_consumer_not_migrated",
+      "consumer_policy_to_preserve": "Show supported bonus modifier recipes in Puny Smelting",
+      "unproven_or_blocked": [
+        "full-consumer-proof-absent",
+        "legacy-turn-response-conflicts"
+      ],
+      "verification": {
+        "classification": "unverified_original_head",
+        "source_inventory_only": true,
+        "new_tests_run": 0
+      },
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "pluto-lib/tools/check_client_payload_plan.py"
+      ],
+      "conditional_retirement": "guide-content-replacement",
+      "evidence": {
+        "changed_paths": [
+          "tconstruct/docs/materials-and-you.md",
+          "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "tconstruct/mixins/tconstruct/source-tags.rs",
+          "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "tconstruct/tests/test_book_showcase_tags.py"
+        ],
+        "head_is_ancestor_of_main": false,
+        "main_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 0
+        },
+        "central_blob_counts": {
+          "equal": 0,
+          "different": 6,
+          "absent": 0
+        },
+        "absent_from_both": [],
+        "source_tree_url": "https://github.com/sofia-gros/horizon-mods/tree/38a804e4543cde5172763469e36e313b50897e4b"
+      }
+    }
+  ],
+  "contract_rows": [
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "guide-content-chain",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "No generic chapter/content policy migration",
+      "actual_callers": [
+        "23 original PR incremental helpers and content/index/recipe presentation paths"
+      ],
+      "consumer_policy_to_preserve": "Book/item identities; chapter text; source attribution; modifier/recipe eligibility; material/tooltips; spread/layout",
+      "verification": {
+        "status": "Original exact-head latest-host proof unverified; source-only inventory"
+      },
+      "unproven_or_blocked": [
+        "Nine early guide PRs also change modifier/tag/upgrade eligibility helpers; they are not docs-only changes.",
+        "Content-chain coverage is not established by the shared foundation."
+      ],
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-wire.rs"
+      ],
+      "conditional_retirement": "Retain every scoped content/eligibility delta or explicitly document an authorized replacement; no automatic PR closure.",
+      "evidence": [
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "sha256": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book.rs"
+        },
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+          "sha256": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book-wire.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "guide-document-text",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Restricted Document/style codec and actual native Text converter",
+      "actual_callers": [
+        "Explicit pluto_guide_text conversion; no direct legacy *book* consumer delegation found at central cutoff"
+      ],
+      "consumer_policy_to_preserve": "Metadata schema, labels and allowed legacy wire subset",
+      "verification": {
+        "status": "ordinary library available",
+        "installed_cutoff": "d039d95c",
+        "focused": "3 actual native Text conversion tests; not UI"
+      },
+      "unproven_or_blocked": [
+        "Legacy array/insertion codec is not interchangeable with Document/versioned metadata/canonical limits",
+        "Local guide content may exceed wire subset"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs",
+        "pluto-lib/mixins/pluto_native_creative/guide-text.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-wire.rs"
+      ],
+      "conditional_retirement": "Migrate only after actual legacy codec/Text equivalence and budget tests, without silently dropping styles or content.",
+      "evidence": [
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs",
+          "sha256": "5540cffa93542600cdad7f0800c29a93045a0aeaf1dcf185b18b026333f3fd12",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs"
+        },
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/guide-text.rs",
+          "sha256": "591ebaba601061d3ae2fe0bc4d9ac8f1e97cf0eaf275b029499f846329d933e7",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/guide-text.rs"
+        },
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+          "sha256": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book-wire.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "guide-font-layout",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Read-only native Font measurement/split/style-hit facts",
+      "actual_callers": [
+        "Explicit guide-layout API; old guide click/draw still own direct font/layout work"
+      ],
+      "consumer_policy_to_preserve": "Spread dimensions, widths/line heights, pagination/regions/actions; logical not bidi visual hit policy",
+      "verification": {
+        "status": "ordinary library available",
+        "installed_cutoff": "b19b35a1",
+        "focused": "8 actual Font metric cases +3 converter cases, separate filters"
+      },
+      "unproven_or_blocked": [
+        "No actual rendering/input/GPU or font lifetime claim",
+        "No migrated full guide UI consumer"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/mixins/pluto_native_creative/guide-layout.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-click.rs"
+      ],
+      "conditional_retirement": "Only after consumer call-site conversion preserving exact native split/legacy-style semantics and bounded work.",
+      "evidence": [
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/guide-layout.rs",
+          "sha256": "6a460b292cf628388315bb81a1bc54dd33344b5ba24ed39337fdf2561ae4bb9a",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/guide-layout.rs"
+        },
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+          "sha256": "0d3e040e11f1679519f0c6a0f15a1e145f667907a02227798d6a9dfdbf9c618e",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book-click.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "client-payload-observer",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Single post-native read-only bounded CustomPayload observation",
+      "actual_callers": [
+        "native_client_packet RETURN -> pluto_client_payload::observe"
+      ],
+      "consumer_policy_to_preserve": "Consumer channel, body schema, request/reply authorization",
+      "verification": {
+        "status": "ordinary library available",
+        "installed_cutoff": "fb96dd82",
+        "focused": "actual protocol projection; not delivery/owned response mutation"
+      },
+      "unproven_or_blocked": [
+        "Legacy response HEAD cancels before native observation",
+        "Legacy maximum envelope262152 exceeds observer whole-payload262144 ceiling",
+        "No effect/transport capability installed"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/mixins/pluto_native_creative/client-payload.rs",
+        "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs",
+        "pluto-lib/tools/check_client_payload_plan.py",
+        "tconstruct/mixins/tconstruct/source-materials-book-response.rs"
+      ],
+      "conditional_retirement": "Remove legacy response hook only after safe feature-equivalent single-boundary connection and combined guard/order/LAN proof.",
+      "evidence": [
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/client-payload.rs",
+          "sha256": "e5d7d3a48b098a2f70610accffd1be2bbecd59d153b7d6ca7109c4904ed28a9e",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/client-payload.rs"
+        },
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs",
+          "sha256": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs"
+        },
+        {
+          "path": "pluto-lib/tools/check_client_payload_plan.py",
+          "sha256": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/tools/check_client_payload_plan.py"
+        },
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+          "sha256": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book-response.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "current-book-call",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Invocation-local inspect/conditional native page-turn capability",
+      "actual_callers": [
+        "Explicit pluto_current_book::with_current; no durable opening token"
+      ],
+      "consumer_policy_to_preserve": "TConstruct cover, spreads, history and input policy remain separate",
+      "verification": {
+        "status": "ordinary library available",
+        "installed_cutoff": "c55f4985",
+        "focused": "pure contract/guard tests;3 private BookScreen tests still unrun"
+      },
+      "unproven_or_blocked": [
+        "No real native turn/audio/input proof",
+        "Native page-turn hook conflicts;#945 isolates consumer navigation",
+        "Not retained-overlay refresh or session ownership"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/mixins/pluto_native_creative/current-book.rs",
+        "pluto-lib/tools/check_current_book_plan.py",
+        "tconstruct/mixins/tconstruct/source-materials-book-turn.rs"
+      ],
+      "conditional_retirement": "Maintain native one-page guard; consumer-specific navigation does not certify session lifetime.",
+      "evidence": [
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/current-book.rs",
+          "sha256": "ecc1847d15830381acf8e8fea4bb8e4790bbb006e5ba24b267bd7561af96cff9",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/current-book.rs"
+        },
+        {
+          "path": "pluto-lib/tools/check_current_book_plan.py",
+          "sha256": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/tools/check_current_book_plan.py"
+        },
+        {
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-turn.rs",
+          "sha256": "1fabc6505f1ae93520f71718797a439fd6fdd7d0c91147331563c17e2e7f7d57",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-materials-book-turn.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "request-correlation",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Explicit pure RequestTracker with checked nonreuse/latest/one-time consumption",
+      "actual_callers": [
+        "Caller-owned in-process tracker; not automatically tied to Game"
+      ],
+      "consumer_policy_to_preserve": "Owner/channel labels and explicit invalidation; no wire protocol invented",
+      "verification": {
+        "status": "ordinary library available",
+        "installed_cutoff": "921bb12d",
+        "focused": "9API cases +1actual CustomPayload projection fixture; counts overlap wider suites"
+      },
+      "unproven_or_blocked": [
+        "No native opening identity, network send, delayed delivery or automatic lifecycle invalidation"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs"
+      ],
+      "conditional_retirement": "Only a proven native ownership adapter may authorize response effects.",
+      "evidence": [
+        {
+          "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs",
+          "sha256": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "guide-navigation-repair",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Consumer-local #945 navigation isolation",
+      "actual_callers": [
+        "Key/click/control -> source-materials-book-navigation"
+      ],
+      "consumer_policy_to_preserve": "Cover/two-page/history/audio and PageUp/PageDown behavior",
+      "verification": {
+        "status": "partial consumer repair",
+        "source_pr": 945,
+        "cutoff": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+        "passed": "27source/guard;8modeledhelper;actual isolated plan+11guards"
+      },
+      "unproven_or_blocked": [
+        "No apply/type/live UI/LAN proof; response collision remains"
+      ],
+      "dependency_conflict_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "pluto-lib/tools/check_current_book_plan.py"
+      ],
+      "conditional_retirement": "Only grouped guide recovery with equivalent behavior and complete gates can replace this delta.",
+      "evidence": [
+        {
+          "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+          "sha256": "4ac1fc2101e37574c6dda5761ebb3d0cca13975da3ca517a4e847e2522ce3504",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/horizon-mixin.toml"
+        },
+        {
+          "path": "pluto-lib/tools/check_current_book_plan.py",
+          "sha256": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/tools/check_current_book_plan.py"
+        }
+      ]
+    },
+    {
+      "scope": "08_guide_ui_lan",
+      "id": "guide-native-lifetime",
+      "shared_dependency_scope": "01_shared_foundation",
+      "service": "Excluded model/storage/typecheck proposals only",
+      "actual_callers": [
+        "No installed native caller or reply update subscription"
+      ],
+      "consumer_policy_to_preserve": "Retained overlay versus input; cover/page clamp; wire/book identity; valid LAN refresh",
+      "verification": {
+        "status": "unapplied/uninstalled",
+        "research_commit": "b434e9a4c11f355875ed0f3df38a2474d2f20478",
+        "focused": "12retained model+7genericstorage tests;21source regressions; no Game typecheck"
+      },
+      "unproven_or_blocked": [
+        "Original/pristine11-file patch and separately sealed-v15delta have not been applied",
+        "ActualGame metadata/capacity gate pending; CIcurrentlyWorldprobeonly",
+        "Observed stamps/raw mutable borrow do not provide owner handle/update authority",
+        "LiveClient/renderer resources not established; delayed/duplicate/restore behavior unproved"
+      ],
+      "dependency_conflict_paths": [
+        "pluto-lib/tools/check_client_payload_plan.py",
+        "pluto-lib/tools/check_current_book_plan.py"
+      ],
+      "conditional_retirement": "Do not promote experiments or disable LAN before actual ownership/type/composition/runtime proof.",
+      "evidence": [
+        {
+          "path": "pluto-lib/tools/check_client_payload_plan.py",
+          "sha256": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/tools/check_client_payload_plan.py"
+        },
+        {
+          "path": "pluto-lib/tools/check_current_book_plan.py",
+          "sha256": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+          "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/tools/check_current_book_plan.py"
+        }
+      ]
+    }
+  ],
+  "cross_links": [
+    {
+      "scope": "recipe/acquisition",
+      "source_prs": [
+        713,
+        943,
+        930,
+        935,
+        938,
+        941
+      ],
+      "reason": "Recipe-book index/discovery/placement/save knowledge, not guide-screen content or lifetime; exclude from guide PR count."
+    }
+  ],
+  "classification_limits": [
+    "All23 original heads are not ancestors of exact main; changed-blob comparison is not semantic absence/supersession proof.",
+    "No exact changed-head blob match found against main/central for scoped original deltas; many added chapter/fixture paths absent.",
+    "No guide *book* module directly delegates to Pluto APIs at central cutoff; underlying resource helpers may use shared mechanics.",
+    "Stored PR base SHA is a snapshot, not necessarily current main; main ref was verified separately.",
+    "Five available shared guide services do not equal completed consumer migration or verified original PR heads.",
+    "No conditional retirement statement is permission to close, rebase, retarget, mark ready or merge a PR."
+  ],
+  "published_sources": {
+    "research": "https://github.com/sofia-gros/horizon-mods/commit/b434e9a4c11f355875ed0f3df38a2474d2f20478",
+    "shared": "https://github.com/sofia-gros/horizon-mods/commit/89744814b8d536a117e82f8ea3c8cdc9798faa95",
+    "navigation": "https://github.com/sofia-gros/horizon-mods/pull/945"
+  },
+  "common_conditions": {
+    "full-consumer-proof-absent": "No established latest-official combined apply/type/game/LAN proof for the original exact head; library proof cannot substitute.",
+    "legacy-turn-response-conflicts": "Combination with current Pluto conflicts at old turn_page and handle_packet response hooks; #945 repairs only navigation.",
+    "guide-content-replacement": "Retire only after a grouped replacement explicitly preserves this delta/dependencies, removes old conflicting hooks, passes exact combined official gates and required gameplay/LAN cases, and a separately authorized PR-state decision is made. No action requested now."
+  },
+  "shared_source_evidence": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs": "5540cffa93542600cdad7f0800c29a93045a0aeaf1dcf185b18b026333f3fd12",
+    "pluto-lib/mixins/pluto_native_creative/guide-text.rs": "591ebaba601061d3ae2fe0bc4d9ac8f1e97cf0eaf275b029499f846329d933e7",
+    "pluto-lib/mixins/pluto_native_creative/guide-layout.rs": "6a460b292cf628388315bb81a1bc54dd33344b5ba24ed39337fdf2561ae4bb9a",
+    "pluto-lib/mixins/pluto_native_creative/client-payload.rs": "e5d7d3a48b098a2f70610accffd1be2bbecd59d153b7d6ca7109c4904ed28a9e",
+    "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+    "pluto-lib/mixins/pluto_native_creative/current-book.rs": "ecc1847d15830381acf8e8fea4bb8e4790bbb006e5ba24b267bd7561af96cff9",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+    "pluto-lib/tools/check_client_payload_plan.py": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
+    "pluto-lib/tools/check_current_book_plan.py": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+    "tconstruct/mixins/tconstruct/source-materials-book-wire.rs": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96",
+    "tconstruct/mixins/tconstruct/source-materials-book-click.rs": "0d3e040e11f1679519f0c6a0f15a1e145f667907a02227798d6a9dfdbf9c618e",
+    "tconstruct/mixins/tconstruct/source-materials-book-turn.rs": "1fabc6505f1ae93520f71718797a439fd6fdd7d0c91147331563c17e2e7f7d57",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "4ac1fc2101e37574c6dda5761ebb3d0cca13975da3ca517a4e847e2522ce3504",
+    "pluto-lib/docs/shared-api-migration-status.md": "5bc73ed2fbe7447e6e0832873cc383d806dc846e4b4cc1819015fadf32a1553e"
+  }
+}
