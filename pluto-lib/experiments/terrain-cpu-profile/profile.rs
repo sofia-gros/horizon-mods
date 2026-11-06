@@ -30,8 +30,35 @@
             }
         }
         fn lean(context: &cells::CellContext<'_>) -> Option<geometry::Batch> {
-            if context.binding.variant != 1 { return None; }
-            Some(geometry::build(&shape()).unwrap())
+            if context.binding.variant == 0 {
+                return None;
+            }
+            let surface = Some(geometry::Surface {
+                uv: [[0., 0.], [0., 1.], [1., 1.], [1., 0.]],
+                back: false,
+            });
+            Some(
+                geometry::build(&geometry::Cell {
+                    origin: if context.binding.variant == 2 {
+                        [1, 0, 0]
+                    } else {
+                        [0; 3]
+                    },
+                    heights: geometry::Heights {
+                        north_west: 0.5,
+                        north_east: 0.5,
+                        south_west: 0.5,
+                        south_east: 0.5,
+                    },
+                    bottom: 0.,
+                    side_inset: 0.,
+                    top_diagonal: geometry::TopDiagonal::NorthWestSouthEast,
+                    top: surface,
+                    down: surface,
+                    sides: [surface; 4],
+                })
+                .unwrap(),
+            )
         }
         fn cloned(context: &cells::CellContext<'_>) -> Option<geometry::Batch> {
             if context.binding.variant != 1 { return None; }

@@ -26,7 +26,9 @@ Seven groups are registered before the first mesh: five measured callbacks and
 two verification-only callbacks. The latter receive the real native adapter
 context and compare direct original/build/clone batches and material slots.
 The fixed geometry is initialized once before any registration or timing. It
-uses six front faces, half height, full UVs and no backfaces. The fixed callbacks
+uses six front faces, half height, full UVs and no backfaces. The lean callback
+retains the original body except its two neighborhood assertions, checked by
+source inversion. The fixed callbacks
 explicitly decline other variants and the Top material orientation. This is a
 fixture-only immutable constant, not a cache proposal for arbitrary Mods.
 
@@ -54,7 +56,7 @@ auto-tuning. Actual compiler settings, binary identity, all raw case receipts,
 resource/lock/source seals and the original end-to-end modes still require the
 separate future runner and serial release.
 
-Ten source-only Python checks passed on 2026-11-06. They check pins, exact insertion/inverse, native oracle
+Eleven source-only Python checks passed on 2026-11-06. They check pins, exact insertion/inverse, native oracle
 preservation and bounded source contracts. They cannot type-check this Rust or
 prove equivalence/performance. The strict extended-overlay verifier and planner
 guard are not implemented yet. Do not call the old verifier on changed source

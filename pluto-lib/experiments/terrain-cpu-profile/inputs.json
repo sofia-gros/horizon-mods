@@ -13,10 +13,10 @@
     "mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
     "mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
     "mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
-    "experiments/terrain-cpu-profile/profile.rs": "d83f13722ee11ea0768bc3dffbbf848c1f3d3f612bcbdf2392234595ec2eb575",
+    "experiments/terrain-cpu-profile/profile.rs": "9b74ecc336a82bec0328a6252f44f71ef97eb27af8eb6fbd2a2ed73facc52266",
     "experiments/terrain-cpu-profile/source.py": "b8b1fd4e07d4d9b37df80e7ee06c6a84e07cf1f163d6d0ab3cc2c9fad363b04e",
-    "experiments/terrain-cpu-profile/test_source.py": "193db7422f03e997f804de1e494144d94bbddaf659d40914dfa3447c7dc4b2ab",
-    "experiments/terrain-cpu-profile/README.md": "7452b84ad2f5cd5b0567366c35801a3290439529a627d2a88b915e6b64b971e9"
+    "experiments/terrain-cpu-profile/test_source.py": "4419e0cc698fe5ea3dfffe2aea12eaa757344b645e91b5e11f6bded005ca4e18",
+    "experiments/terrain-cpu-profile/README.md": "c588187675df5923924ab676e5e2d1effe88f14c757894ebb1aa953f9b9082cd"
   },
   "test": "mesher::pluto_terrain_material_cpu::tests::profile::same_output_callbacks_and_microkernels",
   "expected_profile_equal_rows": 20,

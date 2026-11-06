@@ -27,6 +27,20 @@ class Source(unittest.TestCase):
         self.assertEqual(result.count(extra),1)
         self.assertEqual(result.count(b'fn real_native_mesh_differential_and_timing()'),1)
 
+    def test_lean_removes_only_two_original_assertions(self):
+        old = (m.BASE/'fixture.rs').read_text()
+        a = old.index('    fn provider(');b = old.index('    struct Fixture {',a)
+        expected = old[a:b]
+        for line in [
+            '        assert_eq!(context.neighborhood.binding([0; 3]), Some(context.binding));\n',
+            '        assert!(context.neighborhood.binding([2, 0, 0]).is_none());\n',
+        ]:
+            self.assertEqual(expected.count(line),1);expected = expected.replace(line,'')
+        expected = expected.replace('fn provider(','fn lean(',1)
+        expected = ''.join('    '+line if line.strip() else line for line in expected.splitlines(keepends=True))
+        new = (HERE/'profile.rs').read_text();a = new.index('        fn lean(');b = new.index('        fn cloned(',a)
+        self.assertEqual(new[a:b],expected)
+
     def test_ambiguous_empty_or_unbounded_insertions_reject(self):
         t = (m.BASE/'fixture.rs').read_bytes()
         for template in [b'', t+t, t+m.START, t+m.END]:
