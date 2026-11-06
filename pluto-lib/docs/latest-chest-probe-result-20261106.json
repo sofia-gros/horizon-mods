@@ -1,0 +1,563 @@
+{
+  "candidate_source": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+  "final_receipt": {
+    "artifact_seals": {},
+    "compatibility": null,
+    "complete_guards": "not run: reduced probe is not a complete candidate",
+    "diagnostic_complete": true,
+    "error": null,
+    "full_composition_tested": false,
+    "gates": {
+      "candidate_sources": {
+        "candidate_source": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+        "passed": true,
+        "tests": 16
+      },
+      "cli_compile": {
+        "binary_sha256": "3cd782df273ea441abc30acd45640ec8e39778f7ccf2c96a755f4d23da0c1c25",
+        "passed": true,
+        "scope": "official tool only; no Game or consumer build",
+        "witness": {
+          "crate": "horizon_mixins",
+          "invocation_sha256": "d3f30e10905bc89e5189c11c9c95f6087b225f14b52b436d93ba405edf7fa060",
+          "source": [
+            "crates/horizon-mixins-cli/src/main.rs"
+          ]
+        }
+      },
+      "fixed_checkouts": {
+        "candidate_official_sources": {
+          "actual_ir_verified": false,
+          "native_type_verified": false,
+          "required_inputs": {
+            "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+            "crates/horizon-client/src/game/block_items.rs": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7"
+          },
+          "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+          "source_verified": true,
+          "static_loads": [
+            {
+              "expression": "components(&stack)",
+              "ordinal": 0,
+              "place": true,
+              "supported_candidate": false
+            },
+            {
+              "expression": "stack.damage",
+              "ordinal": 1,
+              "place": true,
+              "supported_candidate": false
+            },
+            {
+              "expression": "stack.extra",
+              "ordinal": 2,
+              "place": true,
+              "supported_candidate": false
+            },
+            {
+              "expression": "Some(stack)",
+              "ordinal": 3,
+              "place": false,
+              "supported_candidate": true
+            }
+          ]
+        },
+        "contract_sources": [
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon",
+            "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon",
+            "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"
+          },
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon-mixins",
+            "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/src/main.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/index.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/manifest.rs",
+            "repo": "horizon-mixins",
+            "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/plan.rs",
+            "repo": "horizon-mixins",
+            "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/native.rs",
+            "repo": "horizon-mixins",
+            "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85"
+          }
+        ],
+        "ir_contract_sources": {
+          "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+          "crates/horizon-mixins-core/src/scopes.rs": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd",
+          "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"
+        },
+        "official": {
+          "horizon": {
+            "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+            "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        },
+        "passed": true
+      },
+      "memory_admission": {
+        "admission_available_minimum": 2147483648,
+        "available_bytes": 15675211776,
+        "capacity_minimum": 6442450944,
+        "passed": true
+      },
+      "plan_diagnostic": {
+        "accepted": false,
+        "diagnostic": {
+          "code": "E_UNSUPPORTED_LOCAL",
+          "file": "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/chest-probe/tconstruct_native/horizon-mixin.toml",
+          "injection_id": "tinkers-chest-pick-color",
+          "message": "LOAD modifiers currently require a primitive scalar value type",
+          "mod_id": "tconstruct_native",
+          "target": "horizon_client::game::block_items::Game<'_>::picked_stack"
+        },
+        "passed": true,
+        "tool_calls": [
+          {
+            "allowed": true,
+            "argv": [
+              "metadata",
+              "--format-version",
+              "1",
+              "--no-deps",
+              "--manifest-path",
+              "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/horizon/Cargo.toml",
+              "--offline",
+              "--locked"
+            ],
+            "kind": "cargo",
+            "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+          }
+        ]
+      },
+      "runner": {
+        "passed": true,
+        "tests": 24
+      },
+      "small_probe": {
+        "crates": 0,
+        "injections": 1,
+        "member_sha256": {
+          "tconstruct_native/horizon-mixin.toml": "95b04fbb60489364577643696e841703407c896a1680640bfff6cae8235c0bf4",
+          "tconstruct_native/source-chest-pick.rs": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc"
+        },
+        "members": 2,
+        "modules": 0,
+        "passed": true,
+        "revision_change": {
+          "after_line": "horizon_revision = \"41f822b659789780f58d32c63ddfb6887ea1b8bf\"",
+          "before_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\"",
+          "candidate_header_sha256": "4261ae2bf0ec846e059b4f55cc3246d09fbed05914bb53ae075cff9e60a76268",
+          "inverse_verified": true,
+          "original_header_sha256": "cc958d7f20f6e325401b5800e75f684cb2cecd3019cf994ec6da9e0eaed12ed9"
+        },
+        "scope": "Reduced formal LOAD only. Exact helper references real storage owner not supplied or stubbed here. No Rust type or complete646 proof.",
+        "states": 0
+      }
+    },
+    "head": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
+    "input_seals": {
+      "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/chest-probe": "1d5382da4e8045e0521ba68ccd265b1ccf16db81dc81d7e4529cf7e49f63effa",
+      "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/horizon": "0caf0041061f162395c37a220a013e7546116e0c1803734202c01d1e051366b9",
+      "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/horizon-git": "4166d46ba5d1ac93ba439e6bbf2f7396165872556c929718d192df55640ba82b",
+      "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/metadata-only": "7cd03993472722fc1018ddebb98a7853c27c0840a16ed4dd60bd6ecb4711c767",
+      "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/mixins-git": "69dcea38dfa0e9e77ac0228d9ee5727a95fdaa7b1c175624263549bcb25d368e"
+    },
+    "memory_observation": {
+      "admission": "not determined by this observation; guard remains independent",
+      "cgroup2_mounts": [
+        {
+          "filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot",
+          "mount_point": "/sys/fs/cgroup",
+          "options": "rw,nosuid,nodev,noexec,relatime",
+          "root": "/"
+        }
+      ],
+      "host_memory": {
+        "MemAvailable": "15307824 kB",
+        "MemTotal": "16367524 kB"
+      },
+      "self_cgroup": {
+        "text": "0::/system.slice/hosted-compute-agent.service\n"
+      },
+      "visible_ancestors": [
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "512307200\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "1355096064\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"
+            },
+            "cgroup.events": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"
+            },
+            "cgroup.type": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"
+            },
+            "memory.current": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"
+            },
+            "memory.max": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"
+            }
+          },
+          "path": "/sys/fs/cgroup"
+        }
+      ]
+    },
+    "minimum_free_bytes": 90682253312,
+    "minimum_memory_bytes": 13613338624,
+    "native_type_verified": false,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 2115,
+        "raw_sha256": "e88276c97333470d622410edc67d22c586d5ce838c236ef81a8211275d079c74",
+        "seconds": 9.279
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "candidate-source-checks",
+        "raw_bytes": 1581,
+        "raw_sha256": "b1b350b3773506cc7cec9205594389915c4e4c61a3b4063746428f65f2668fcf",
+        "seconds": 0.608
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "seconds": 8.275
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 724,
+        "raw_sha256": "e4104f0ae1e5c54cb02e452cb487b46e1dc85bb2c1ca0eb5941ddcae563d614b",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "3c1a6c498d59d25c3ccff8b21d34bb434593673059e1f5430c5ef424e23a19b0",
+        "seconds": 4.644
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 104,
+        "raw_sha256": "51c937b84b2ecf4b309ecbc2bf592d9270030cd9c249fb8f95f2152ba72494c1",
+        "seconds": 0.607
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 723,
+        "raw_sha256": "c9901fef91869b2bdfab8becb0cdb7a812056eac56985aab292d90b2a2fa4eb0",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541",
+        "seconds": 0.608
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 103,
+        "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.619
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-locked-fetch",
+        "raw_bytes": 2175,
+        "raw_sha256": "a355b2e770d3fa296a943889d91686c5bac1fa2e987d225fcb55027c842114c0",
+        "seconds": 1.214
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-cold-build",
+        "raw_bytes": 291789,
+        "raw_sha256": "1394622d55d3d4ce3277f6ed61a59d988266451f284d6a64a8a8aae4f4418b80",
+        "seconds": 148.283
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cargo-path",
+        "raw_bytes": 74,
+        "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "rustc-path",
+        "raw_bytes": 74,
+        "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": "RuntimeError: official-plan exited 1",
+        "exit_code": 1,
+        "name": "official-plan",
+        "raw_bytes": 413,
+        "raw_sha256": "5dfbb1c06b92ea854b0b4f1788dd095589158cc4a7b053b3ca32b72053425588",
+        "seconds": 7.27
+      }
+    ],
+    "plan_accepted": false,
+    "plan_cpu_observation": {
+      "cli_exit_code": 1,
+      "complete": true,
+      "observer_exit_code": 1,
+      "present": true,
+      "raw_bytes": 365,
+      "raw_sha256": "b8b2341c7c0501eb7f0740fffcfb45348b5d4900df2865c174fbe73b989ef65a",
+      "records": [
+        {
+          "kind": "start",
+          "owner_pid": 4153,
+          "pgid": 4153,
+          "pid": 4154,
+          "session": 4153,
+          "start_ticks": 20488,
+          "ticks_per_second": 100
+        },
+        {
+          "elapsed_seconds": 0.001,
+          "kind": "sample",
+          "system_ticks": 0,
+          "user_ticks": 0
+        },
+        {
+          "elapsed_seconds": 5.004,
+          "kind": "sample",
+          "system_ticks": 84,
+          "user_ticks": 410
+        },
+        {
+          "elapsed_seconds": 7.206,
+          "exit_code": 1,
+          "kind": "end",
+          "samples": 2
+        }
+      ],
+      "scope": "Samples of the direct owned CLI PID only; no child aggregation, CPU percentage, completion or planner target inference."
+    },
+    "probe_completed": true,
+    "scope": "Exact candidate owned-stack helper and one MODIFY_VARIABLE LOAD only, official41f. Formal target/owner/binding probe, not full646 compatibility or Rust type proof. CLI cold-build only; no apply/Game/consumer build; one600-second plan.",
+    "source_seal_sha256": "6daddf57b12f9d757e0a1e4adff0583282df8039296aca11ec06850a8f2cd5af",
+    "source_verified": true,
+    "tool_argv": {
+      "calls": [
+        {
+          "allowed": true,
+          "argv": [
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+            "/home/runner/work/_temp/latest-chest-probe-40a0ee25e73aa7fd641b2bc0fa50a677d457e072/horizon/Cargo.toml",
+            "--offline",
+            "--locked"
+          ],
+          "kind": "cargo",
+          "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+        }
+      ],
+      "log_present": true,
+      "mtime_ns": 1793970267177504315,
+      "raw_bytes": 330,
+      "raw_sha256": "1701018c7cf9df8545022a6b429804dc7459081fed444058b86af388eadb35fb",
+      "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.",
+      "validated": true,
+      "validation_error": null,
+      "wrapper_installed": true
+    }
+  },
+  "full_console": {
+    "bytes": 34694,
+    "encoding": "gzip+base64",
+    "gzip_bytes": 8992,
+    "payload": "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",
+    "sha256": "add0dd6526fea3ae533fbe4c93886945430d6547b1597aaab3f54132a59323ad"
+  },
+  "interpretation": [
+    "GitHub job success means the bounded diagnostic was collected and source verified, not that this hook was accepted.",
+    "Actual plan exit1 E_UNSUPPORTED_LOCAL establishes a primitive-scalar restriction. ItemStack LOAD is not supported by exact official Mixins5a64.",
+    "No accepted plan, selected IR, target input map or full-plan hash exists for this attempt. The candidate static require4/ordinal3 inference is not accepted IR evidence.",
+    "The pure 24 runner and 16 candidate checks do not prove official capability, Rust types, installed Game semantics or playability.",
+    "The two direct-CLI CPU samples do not aggregate children or identify planner-internal phases. Tool JSONL is a pre-exec metadata start witness.",
+    "Complete fetched job console and final receipt are embedded without lossy integer conversion. Raw verbose phase files were not downloaded.",
+    "Original main/PR/archive/history/official CLI and guards remain unchanged. This rejected chest LOAD must not be installed as a verified compatibility fix. No automatic retry."
+  ],
+  "job_id": 127906499815,
+  "reconstructed_exact_records": {
+    "plan-cpu-reconstructed.jsonl": {
+      "bytes": 365,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 188,
+      "payload": "H4sIAAAAAAACA42Q2wqDMAyG730K6bVI6uome5kiGkbx0GI6tiG++9Iy3YENdlX+L82XtLPozNiKYyrI15MXWSrsZcRJOxOokuWOkTu9pTUoDoRExo7PavRob5qOGBagqoppzNqxmLCxcaIEWJJZYF87wvbBQw/kAJJ7ts3qwfUYVqMbeRw2OTA6Ezs38F1YslD9I6zUp1HJH85DXsCeb+PVeN3YFsOLXmYgH9k6Kv7EktwB4DmUSW0BAAA=",
+      "sha256": "b8b2341c7c0501eb7f0740fffcfb45348b5d4900df2865c174fbe73b989ef65a"
+    },
+    "tool-argv-reconstructed.jsonl": {
+      "bytes": 330,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 250,
+      "payload": "H4sIAAAAAAACA1WQTU7EMAyF95xilDVp0tKfgS3HQGjkNs40amJXaTIzAnF3GrpiZfnzk5+fv8XiyIi3k5ggXlk8n8Rebzv4EAETGEhQoJSWY4Akbxg3x1RYfQyIpcF1O5oA5CxuSa6Q5oLUzAFVzEQY1Z3joi4Jw6o8pCKb5j9x5BFlq0EjNh0OLwCDNX1bj804aQudhn4YTNsNqIdmXxndF5N6LydXiYM/zNla7wiPxvO0oBGfJZH3fMeSMsWMO4gIvmT+d1wV85byqhKzn2ZwtKm6eu0qLR/n/tK3MtNCfCe5e+SHvFJWoyN1/O3n6Rd/czj3SgEAAA==",
+      "sha256": "1701018c7cf9df8545022a6b429804dc7459081fed444058b86af388eadb35fb"
+    }
+  },
+  "run": {
+    "conclusion": "success",
+    "created_at": "2026-11-06T13:01:20Z",
+    "head_branch": "checkpoint/plutolib-latest-chest-probe-ci-20261106",
+    "head_sha": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
+    "html_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42222131283",
+    "id": 42222131283,
+    "status": "completed",
+    "updated_at": "2026-11-06T13:04:40Z"
+  },
+  "schema": 1,
+  "status": "formal owned ItemStack LOAD rejected by actual official planner; no apply/type/full composition"
+}
