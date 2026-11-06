@@ -1,0 +1,121 @@
+{
+  "status": "source-review-only; no plan, apply, Cargo or tests",
+  "latest_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "latest_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "sources": [
+    {
+      "source": "mixins-scopes.rs",
+      "sha256": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd",
+      "size": 21442
+    },
+    {
+      "source": "official-break-speed-fragment.json",
+      "sha256": "7fa78b5ec0ebe6d7c13aaed740e8eb057621f0d2e21ac2e2a9268581e15a3c8a",
+      "size": 658
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "path": "crates/horizon-client/src/game.rs",
+      "local_path": "/tmp/guide-latest-official-f4dc/game.rs",
+      "sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "git_blob_sha1": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "size": 1031429
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "path": "crates/horizon-client/src/game/hand.rs",
+      "local_path": "/tmp/guide-latest-official-f4dc/game/hand.rs",
+      "sha256": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f",
+      "git_blob_sha1": "d9c071860d1f49b19c08ddad18058e98ba6393a9",
+      "size": 41866
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "path": "crates/horizon-client/src/game/native_hooks.rs",
+      "local_path": "/tmp/guide-latest-official-f4dc/game/native_hooks.rs",
+      "sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "git_blob_sha1": "c33bf2d3f91ec010c11b041ff0f899e70e2b4522",
+      "size": 507210
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+      "sha256": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+      "size": 189155
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-context-host.rs",
+      "sha256": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+      "size": 352
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-context.rs",
+      "sha256": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+      "size": 302
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-context-shared.rs",
+      "sha256": "22a8cf9b0e2671be1ee3f4bae292d43cd3f4f59bf8be2d174c3a755c1bf70193",
+      "size": 4399
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-return.rs",
+      "sha256": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+      "size": 1582
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-rules.rs",
+      "sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+      "size": 21886
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "path": "tconstruct/mixins/tconstruct/source-mining-math.rs",
+      "sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+      "size": 10477
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_tool_rules/horizon-mixin.toml",
+      "sha256": "f96fe307e97791eb6a6ef97f9fdfb06885c61ca0aa7a484a9c690c84b60e7c89",
+      "size": 981
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_tool_rules/rules.rs",
+      "sha256": "9aa2c2d0643c7079baacdcc8da6af8e77b6d8aff659d05b481e71981f3f165b3",
+      "size": 7148
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_tool_rules/speed.rs",
+      "sha256": "08a7fd39745e83f7aecafb9a670f23275dd313fa0ebb7b7e48da8b33a69f7f93",
+      "size": 267
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_tool_rules/drops.rs",
+      "sha256": "b722fac2733170b697ad8aade0bc6ced5fbfd2f73cbac2de39f2e56602dba5e1",
+      "size": 281
+    }
+  ]
+}

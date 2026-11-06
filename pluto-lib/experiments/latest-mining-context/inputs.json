@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "status": "source-only; 16 pure guards and 4 exact official file/hash comparisons passed; no full payload preparation, planner, Rust type or runtime proof",
+  "official": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "baseline_proof": "fb96cb825a5cb54b42a5914923e823ee09289890",
+  "source_inputs": {
+    "crates/horizon-client/src/game.rs": {
+      "sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "bytes": 1031429,
+      "git_blob_sha": "03a5dfb9ae627157a2637fc8c95633748ca39b4e"
+    },
+    "crates/horizon-client/src/game/hand.rs": {
+      "sha256": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f",
+      "bytes": 41866,
+      "git_blob_sha": "d9c071860d1f49b19c08ddad18058e98ba6393a9"
+    },
+    "crates/horizon-client/src/game/native_hooks.rs": {
+      "sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "bytes": 507210,
+      "git_blob_sha": "c33bf2d3f91ec010c11b041ff0f899e70e2b4522"
+    },
+    "crates/horizon-client/src/game/lan_actions.rs": {
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "bytes": 270381,
+      "git_blob_sha": "935a38f8dc5652920ebcd38746b484945bbaaab8"
+    }
+  },
+  "candidate_helper_sha256": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+  "source_sha256": {
+    "README.md": "05b453ec5dd454eca494fe6cf88b9debd9710f4f44cfbcd94b06e49fdcad43e3",
+    "candidate.py": "b771888e1b5a476eea333a2e3ff003d024d47d7c6aa30447a0adfce54f25c6e0",
+    "mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+    "oracles.json": "709da5be03f0af3ef03dc8ecae4ea028d3c13285a98ed242053e095747620baf",
+    "review/recipe-evidence.json": "86dc8c455b6ff9f1921944e0c4e3371e74d1b496573bdce1320cc09522bbaac6",
+    "review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
+    "source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+    "test_candidate.py": "18207c9451daeb8a9e5d80232a9c34bae50415d2c90964ef20027cb5da1ce50a"
+  },
+  "verification": {
+    "pure_python_tests": 16,
+    "official_exact_file_comparisons": 4,
+    "local_native_started": false,
+    "local_metadata_started": false,
+    "full_payload_transform_executed": false,
+    "rust_tests_executed": false
+  },
+  "private_adapter_sha256": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+  "candidate_paths": [
+    "tconstruct_native/horizon-mixin.toml",
+    "tconstruct_native/source-mining-context-native.rs",
+    "pluto_native_creative/horizon-mixin.toml",
+    "pluto_native_creative/mining-context.rs"
+  ],
+  "candidate_members": 646
+}
