@@ -80,3 +80,15 @@ The original runtime fragments, 13-file output delta, 10 requested test names
 and all host gates are unchanged. Prior fixture/runner input hash lists are
 refreshed solely for this test-only annotation and dependent pin files. Earlier
 immutable cutoffs remain unchanged. No new run is implied by this source fix.
+
+## Terse inventory correction after run 42210426433
+
+The annotated fixture compiled and emitted its exact 17-name terse inventory.
+The runner incorrectly required a non-terse summary and stopped before the ten
+tests. `result-fece.json` preserves the false receipt. The known sorted rows
+reproduce the actual log's complete 1,589-byte SHA-256, so the parser now demands
+that exact full output rather than accepting arbitrary extra lines or summaries.
+The regression covers the observed bytes, duplicates, missing/extra rows,
+benchmark substitutions, unexpected text, wrong order and extra newline.
+The subsequent exact ten-case execution parser and all source/host gates remain
+unchanged. This correction is not a successful run or implicit retry.

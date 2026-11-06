@@ -11,9 +11,9 @@
   "source_sha256": {
     ".github/workflows/guide-latest-owned-opening-wip.yml": "f639fd6e48a7e0e736ccf4cbd2604a178ab21ad2838c022275c3a8630865b331",
     ".github/workflows/guide-owned-opening-wip.yml": "ad6c50d74a7410bba073980f1c820767de1796a28ab3abff0c74a7fcc7098a3a",
-    "pluto-lib/experiments/guide-latest-owned-opening-ci/README.md": "e152fb4ca37e9e37c467e3b8d1e0d7912f315b4fbdcbeed06348a77df5f9cd46",
-    "pluto-lib/experiments/guide-latest-owned-opening-ci/run.py": "ab366b014ee4d14c3a24ca08d62f28ba82423f68c5787d7226f47a03b2c1cd2d",
-    "pluto-lib/experiments/guide-latest-owned-opening-ci/test_runner.py": "48ff7e16ac00aadf35d26c98eacb9242a91557faca086544115c3897dcb74e19",
+    "pluto-lib/experiments/guide-latest-owned-opening-ci/README.md": "b9d2b72de2291987d6deaea18b975efea6654d3482d4b93a23b670cd5454b658",
+    "pluto-lib/experiments/guide-latest-owned-opening-ci/run.py": "a1eaa379a4e61aa4e0fe30da1b6a99b3b2a275d51bde6b65efdc10f66607ccc8",
+    "pluto-lib/experiments/guide-latest-owned-opening-ci/test_runner.py": "eea16705d2842ea19b176bcb4515d433320d2b7a62931f8aea53df669f9abeec",
     "pluto-lib/experiments/guide-latest-owned-opening/README.md": "3568a51c4676f6876865c859df3fa647bb419d564ab33c1d7842d950c24e96d1",
     "pluto-lib/experiments/guide-latest-owned-opening/generate.py": "d78979425a469ae1da29ebabc9fd2466bb46bbc2cbb09d99cf09f860351d5cad",
     "pluto-lib/experiments/guide-latest-owned-opening/generation.json": "8ee02d0d449268dec3e831ee3983a399cca2d13b40b913d23e6781ebad7c8bd4",

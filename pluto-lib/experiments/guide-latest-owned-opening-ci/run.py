@@ -72,10 +72,12 @@ def validate_event(env, event, head):
         raise ValueError('Require exact authorized public push')
 
 def inventory(log, names):
-    rows = re.findall(r'^(\S+): test$', log, re.M)
-    if len(rows)!=17 or set(rows)!=set(names): raise ValueError('Wrong complete test inventory')
-    if re.findall(r'^(\d+) tests, (\d+) benchmarks$',log,re.M)!=[('17','0')]:
-        raise ValueError('Wrong inventory summary')
+    # rustc 1.95 --list --format terse emits only sorted test rows, no summary.
+    # Compare the whole stream, not selected regex matches that hide extra text.
+    if len(names)!=17 or len(set(names))!=17:
+        raise ValueError('Wrong expected inventory')
+    expected=''.join(name+': test\n' for name in sorted(names))
+    if log!=expected: raise ValueError('Wrong complete terse test inventory')
 
 def tests(log, names):
     rows = re.findall(r'^test (\S+) \.\.\. (\w+)\s*$',log,re.M)

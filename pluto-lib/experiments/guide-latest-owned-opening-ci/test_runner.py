@@ -34,11 +34,18 @@ class Checks(unittest.TestCase):
             with self.assertRaises(ValueError):m.validate_event(bad,event,'head')
         with self.assertRaises(ValueError):m.validate_event(env,{'repository':{'private':True,'full_name':m.REPOSITORY}},'head')
 
-    def test_inventory_rejects_missing_duplicate_extra_or_wrong_summary(self):
-        names=m.config()['inventory_names'];good=''.join(n+': test\n' for n in names)+'17 tests, 0 benchmarks\n'
+    def test_inventory_matches_recorded_terse_bytes_and_rejects_any_extra_output(self):
+        names=m.config()['inventory_names'];good=''.join(n+': test\n' for n in sorted(names))
+        self.assertEqual(len(good.encode()),1589)
+        self.assertEqual(m.sha(good.encode()),'6c8956115e348eda2885f926e55c035df43121dd67652cd2ee4100f09c6956c0')
         m.inventory(good,names)
-        for bad in ['',good.replace(names[0],names[1]),good+names[0]+': test\n',good.replace('17 tests','16 tests')]:
+        for bad in ['',good.replace(names[0],names[1]),good+names[0]+': test\n',
+                    good+'17 tests, 0 benchmarks\n','warning\n'+good,good+'\n',
+                    good.replace(': test',': benchmark',1),good.replace(names[0]+': test\n',''),
+                    ''.join(n+': test\n' for n in reversed(sorted(names)))]:
             with self.assertRaises(ValueError):m.inventory(bad,names)
+        with self.assertRaises(ValueError):m.inventory(good,names[:-1])
+        with self.assertRaises(ValueError):m.inventory(good,names[:-1]+[names[0]])
 
     def test_exact_ten_seven_filtered_and_no_ignored_or_replayed_rows(self):
         names=m.config()['ownership_names'];good=''.join('test '+n+' ... ok\n' for n in names)+'test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out;\n'
