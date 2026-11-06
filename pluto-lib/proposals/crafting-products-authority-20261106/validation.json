@@ -1,0 +1,51 @@
+{
+  "status": "unapplied_design_only",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "tconstruct_reference": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+  "model_tests": {
+    "passed": 16,
+    "failed": 0,
+    "command": [
+      "python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "pluto-lib/proposals/crafting-products-authority-20261106",
+      "-p",
+      "test_model.py",
+      "-v"
+    ],
+    "log_sha256": "37391351bc71d8a79c7838c2d96b327dbb3f358fca6ac66cedeb6c70e9deb877",
+    "scope": "Python symbolic protocol only; not native allocation/consumption/effects/network or callback isolation"
+  },
+  "required_native_tests": {
+    "count": 29,
+    "passed": 0,
+    "not_run": 29
+  },
+  "file_sha256": {
+    "README.md": "f0bae4bf652ef8e0f7f2043ae0911807dfdad09e9250845eea1de2ef1bb2cf14",
+    "acceptance.json": "643f4d044fa273fb096e12f2cf6868e0248baacfa8333c54da0f1e2bf5e41388",
+    "contract.md": "5fb0adbd4c49f524f21f64e994223e713ad8b7a950d64bb4b56c3ae925c93672",
+    "model.py": "0dacd25761183223f38edebddadc2ccca8b906252fb939d5d56d7d9b16364137",
+    "test_model.py": "d98879b1b770fe8309c4d2a9339853a33cb3ff54eb1ec598189f32860bfd7b71"
+  },
+  "official_repo_edits": false,
+  "official_outreach": false,
+  "fork_access": false,
+  "native_plan_or_apply_run_for_proposal": false,
+  "runtime_or_manifest_changes": false,
+  "production_activation": false,
+  "review_corrections": [
+    "Full inventory is not universally failure: respect the route's permitted drop/ejection destinations.",
+    "Include preparation/allocation RNG and native hooks in the effect/abort contract; a copied Menu is not their rollback."
+  ],
+  "unproven_assumptions": [
+    "A native authority owner and generation/exclusive-borrow mechanism covers every relevant mutation.",
+    "Real native allocation can be staged and installed under one protected boundary.",
+    "Native RNG/hooks/maps/world ejection can obey an explicit tested abort and effect order.",
+    "Action-time results differing from preview can be correctly synchronized on supported clients."
+  ]
+}

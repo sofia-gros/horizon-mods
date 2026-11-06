@@ -1,0 +1,186 @@
+{
+  "status": "unapplied_specification",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "existing_evidence_not_native_acceptance": [
+    "22 source-order assertions for current official paths.",
+    "Three exact read-only planner candidates rejected E_UNSUPPORTED_CONTROL_FLOW; no accepted automatic hook.",
+    "Explicit staging runtime 54037209 passed 15 bounded native tests and complete v14 ordinary-library plan/apply/client lib+bin type gate; no automatic consumption proof."
+  ],
+  "required_native_tests": [
+    {
+      "id": "P01",
+      "family": "protocol",
+      "requirement": "One selected stateful provider invocation yields output and remainder sequence N; commit never invokes it again.",
+      "status": "not_run"
+    },
+    {
+      "id": "P02",
+      "family": "protocol",
+      "requirement": "Replayed, dropped, aborted or forged/cross-owner receipts cannot publish; identical-valued unrelated grids and A-to-B-to-A edits are rejected.",
+      "status": "not_run"
+    },
+    {
+      "id": "P03",
+      "family": "protocol",
+      "requirement": "Recipe/provider reload, world/menu/block replacement, source or destination mutation and reentrant same-owner operations invalidate or exclude a pending operation.",
+      "status": "not_run"
+    },
+    {
+      "id": "P04",
+      "family": "protocol",
+      "requirement": "Unsupported, NoMatch, MatchedEmpty, Prepared, Refused and conflicting claims preserve explicit selection/stop semantics and existing recipe order.",
+      "status": "not_run"
+    },
+    {
+      "id": "P05",
+      "family": "protocol",
+      "requirement": "Matching/placement denial, limited crafting and authority failure cannot be overridden by a product proposal; no-provider path has native behavior and no new snapshots.",
+      "status": "not_run"
+    },
+    {
+      "id": "P06",
+      "family": "protocol",
+      "requirement": "Late remainder failure, invalid output/count, holes/crop mapping failure and unsupported native value abort the whole pair before native storage or effects.",
+      "status": "not_run"
+    },
+    {
+      "id": "P07",
+      "family": "protocol",
+      "requirement": "Preparation/allocation RNG draws and native hooks are staged/deferred or have an explicit tested abort/order contract; copied Menu data alone is not a rollback.",
+      "status": "not_run"
+    },
+    {
+      "id": "P08",
+      "family": "protocol",
+      "requirement": "Staged output/remainders retain complete native stack identity, unknown/UTF16 fields and runtime state; current recursive retained-wire refusal remains conservative.",
+      "status": "not_run"
+    },
+    {
+      "id": "L01",
+      "family": "local",
+      "requirement": "Normal and right-click slot200 reach the new operation despite menu_ops bypass, transfer full native result and consume the same pair.",
+      "status": "not_run"
+    },
+    {
+      "id": "L02",
+      "family": "local",
+      "requirement": "Cursor compatible/incompatible/full and allowed inventory/drop destinations are preflighted using actual finished output identity and limits, without using mutating give as a dry run.",
+      "status": "not_run"
+    },
+    {
+      "id": "L03",
+      "family": "local",
+      "requirement": "Legacy shift fallback reachability is established; no live duplication bug is inferred from an isolated source branch.",
+      "status": "not_run"
+    },
+    {
+      "id": "M01",
+      "family": "menu",
+      "requirement": "Pickup, quick move, swap, throw and carried-bundle extraction validate before any output leaves; crafting pickup-all remains excluded.",
+      "status": "not_run"
+    },
+    {
+      "id": "M02",
+      "family": "menu",
+      "requirement": "QuickMove loop: each successful craft uses one new pair; no movement, exhausted inputs, output mismatch or cancelled later iterations cannot replay earlier pairs.",
+      "status": "not_run"
+    },
+    {
+      "id": "M03",
+      "family": "menu",
+      "requirement": "Menu session Some(false) and partial candidate failures cannot leak output, grid edits, events or unjournaled side effects.",
+      "status": "not_run"
+    },
+    {
+      "id": "M04",
+      "family": "menu",
+      "requirement": "Late native_prepare_item_craft output replacement invalidates only the affected preview and cannot splice old remainder data into a later take.",
+      "status": "not_run"
+    },
+    {
+      "id": "N01",
+      "family": "lan",
+      "requirement": "Authenticated inventory and table clicks preserve state-ID/menu lifetime/spectator/table-range checks and exact authoritative copy-back.",
+      "status": "not_run"
+    },
+    {
+      "id": "N02",
+      "family": "lan",
+      "requirement": "Prediction has no authority; stale/replayed/reordered requests, disconnect/reconnect and world change never grant duplicate products.",
+      "status": "not_run"
+    },
+    {
+      "id": "N03",
+      "family": "lan",
+      "requirement": "Stateful preview versus action-time output has explicit full-stack resynchronization and supported-client behavior; no silently changed wire format.",
+      "status": "not_run"
+    },
+    {
+      "id": "N04",
+      "family": "lan",
+      "requirement": "No client-supplied output/remainder pair or value-equal grid can replace server preparation; slot hashes are not commit authorization.",
+      "status": "not_run"
+    },
+    {
+      "id": "C01",
+      "family": "crafter",
+      "requirement": "Same pair spans real block/trigger lifetime, all neighboring target allocation, output/remainder ejection and input decrement.",
+      "status": "not_run"
+    },
+    {
+      "id": "C02",
+      "family": "crafter",
+      "requirement": "Native allowed drop/ejection policy is retained when neighbor storage is full; unsupported or failing publication is rejected before partial effects.",
+      "status": "not_run"
+    },
+    {
+      "id": "C03",
+      "family": "crafter",
+      "requirement": "Map finalization, saved-map registration, RNG, event callbacks and reentrant neighbor behavior share a proved effect boundary or refuse custom paired processing before effects.",
+      "status": "not_run"
+    },
+    {
+      "id": "C04",
+      "family": "crafter",
+      "requirement": "Repeated scheduled ticks, removed/replaced blocks, disabled slots and target changes cannot reuse a previous receipt.",
+      "status": "not_run"
+    },
+    {
+      "id": "K01",
+      "family": "compatibility",
+      "requirement": "No-provider vanilla shaped/shapeless/special map, banner duplication, book cloning and recipe ordering remain unchanged.",
+      "status": "not_run"
+    },
+    {
+      "id": "K02",
+      "family": "compatibility",
+      "requirement": "Event identity/count/order, statistics, advancement ingredients, tutorial signals and awarded output use the exact selected/committed pair.",
+      "status": "not_run"
+    },
+    {
+      "id": "K03",
+      "family": "compatibility",
+      "requirement": "Existing complete-plan guards reject earlier cancellation/later resurrection or competing replacement that bypasses paired authority; no weakening by installation order.",
+      "status": "not_run"
+    },
+    {
+      "id": "K04",
+      "family": "compatibility",
+      "requirement": "Source-derived Overslime policy preserves tool metadata and used/unused bottle mapping; all IDs/formulas remain TConstruct-owned.",
+      "status": "not_run"
+    },
+    {
+      "id": "K05",
+      "family": "compatibility",
+      "requirement": "Independent catalyst/fresh-output policy exercises the same generic contract without TConstruct schemas; synthetic evidence is labeled.",
+      "status": "not_run"
+    },
+    {
+      "id": "K06",
+      "family": "compatibility",
+      "requirement": "Packaging, native types, full host build and actual local/LAN/Crafter integration pass on the exact official implementation revision before enabling each route.",
+      "status": "not_run"
+    }
+  ]
+}
