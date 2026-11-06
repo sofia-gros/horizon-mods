@@ -27,8 +27,9 @@ EmptyStrings::Allow or Reject is an explicit generic structural option. The
 TConstruct wrapper selects Reject at the original validation point. Its encoder
 still accepts empty strings, preserving the original asymmetric behavior. An
 empty list is distinct from a list containing empty fields. No callback, user
-code, receiver update, transport or I/O runs inside either operation. Partial
-failure only discards local allocations.
+code, receiver update, transport or I/O runs inside either operation. Validation
+failure only discards local allocations. This is not allocator-failure recovery
+or an OOM rollback guarantee.
 
 ## Ownership stays in the consumer
 
@@ -62,7 +63,18 @@ step order. No permissions, billing, native job scope or broad CI changes are
 added. During integration, preserve both this narrow step replacement and the
 independent manual CPU-mode workflow changes from the rendering group.
 
-Initial status: source prepared; six Python source/dependency guards pass.
-Rust execution is queued behind the central
-native slot; no native plan/apply/build, full consumer or live-network test is
-claimed. See the validation receipt for the exact focused result when available.
+Exact source `a709cb16ac5af4aa10bae0d27a0f7e23dee6fdb2` passed eleven Rust
+tests and six Python source/dependency guards. The Rust fixture covers 390
+encode/round-trip scenarios and 7,600 malformed-frame comparisons plus capacity,
+UTF-8, signed-word and empty-field boundaries. All 40 captured API/fixture/lock/
+caller/workflow hashes matched before and after the run. Registry package
+identities match the pinned official host lock, and the continuous disk floor
+held (minimum 10,884,431,872 bytes).
+
+The Cargo fixture compiles the real API crate and actual consumer wrapper. Its
+non-test library compilation reports only expected unused-wrapper warnings.
+No full API unit suite, native package/apply/build, live transport, reassembly,
+reconnect or complete consumer test was run. The source trace and byte codec
+proof do not establish those later lifecycle guarantees. The
+[receipt](menu-word-validation-20261106.json) records the immutable cutoff,
+result, and before/after hashes.
