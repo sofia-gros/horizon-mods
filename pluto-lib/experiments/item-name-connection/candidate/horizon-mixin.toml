@@ -1,0 +1,61 @@
+[mod]
+id = "pluto_item_name_removal_candidate"
+version = "0.1.0"
+
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[module]]
+id = "name-removal"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_name_removal"
+source = "name-removal.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "name-entry-gate"
+file = "crates/horizon-client/src/lan/guest.rs"
+name = "pluto_name_entry_gate"
+source = "entry-gate.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "top-level-component-result"
+target = "horizon_client_lib::item_sync::from_network"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "components_tag(s, builtin, synced)"
+require = 1
+ordinal = 0
+fingerprint = "45734cf2949ca44358cf6a028c2560fe8619822099c6529e6ab65ee69059fd33"
+helper = "receive.rs"
+bindings = [
+ {name="value",ty="Option<Tag>",value="$value"},
+ {name="stack",ty="&Stack",value="s"},
+]
+
+[[injection]]
+id = "nested-template-component-result"
+target = "horizon_client_lib::item_sync::template_tag"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "components_tag(t, builtin, synced)"
+require = 1
+ordinal = 0
+fingerprint = "6852e1fa531cf248aca2ed86a4fd798239f4e00ed0680ed2f1afd176d8b066ba"
+helper = "receive.rs"
+bindings = [
+ {name="value",ty="Option<Tag>",value="$value"},
+ {name="stack",ty="&Stack",value="t"},
+]
+
+[[injection]]
+id = "recursive-network-entry"
+target = "horizon_client_lib::lan::guest::network_stack"
+kind = "HEAD"
+cancellable = true
+fingerprint = "647463c3760283da417aec8f1b4fa765f38726b6bc9e4db42a1b020ce6e5898e"
+helper = "send.rs"
+bindings = [
+ {name="item_id",ty="&dyn Fn(&str) -> i32",value="item_id"},
+ {name="synced_id",ty="&dyn Fn(&str, &str) -> Option<i32>",value="synced_id"},
+ {name="stack",ty="&Option<ItemStack>",value="s"},
+]
