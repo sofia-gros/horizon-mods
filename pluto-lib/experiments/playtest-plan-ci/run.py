@@ -21,7 +21,7 @@ OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
 BRANCH='checkpoint/tinkers-playtest-next-plan-ci-20261106'
-RUNNER_TESTS=64
+RUNNER_TESTS=68
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
 OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py','index_probe.py','test_index_probe.py','packet_index.rs','INDEX_PROBE.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
@@ -262,12 +262,124 @@ def execute(report):
         report['diagnostic_complete']=True
         if set(report['gates'])!=required_gates(report):raise ValueError('Missing required diagnostic gates')
 
+
+    except BaseException as exc:common.record_error(report,exc)
+    finally:
+        try:collect_tool_calls(report,wrapper_log,official,real_tools,wrappers_ready)
+        except BaseException as exc:common.record_error(report,exc,'tool-argv verification: ')
+        try:
+            cpu_path=work/'plan-cpu.jsonl'
+            observation=observer.collect(cpu_path)
+            if observation['present']:observation['raw_sha256']=sha(cpu_path.read_bytes())
+            phase=next((p for p in report['phases'] if p['name']=='official-plan'),None)
+            observation['observer_exit_code']=phase['exit_code'] if phase else None
+            report['plan_cpu_observation']=observation
+            if phase and phase['exit_code'] in (0,1) and (not observation['complete'] or observation.get('cli_exit_code')!=phase['exit_code']):
+                raise ValueError('Observer/CLI completion mismatch')
+        except BaseException as exc:common.record_error(report,exc,'CPU observation verification: ')
+        try:
+            common.assert_git_clean(ROOT);common.assert_full_seal(ROOT,original)
+            if prepare.git_state(ROOT)!=original_git:raise ValueError('Original checkout refs/index/HEAD drift')
+            for path,before in snapshots.items():common.assert_full_seal(Path(path),before)
+            for path,before in git_snapshots.items():
+                common.assert_git_clean(Path(path))
+                if prepare.git_state(Path(path))!=before:raise ValueError('Fixed checkout refs/index/HEAD drift')
+            for path,before in artifact_seals.items():
+                if sha(Path(path).read_bytes())!=before:raise ValueError('Artifact drift')
+            if cli is not None and sha(cli.read_bytes())!=cli_hash:raise ValueError('Official CLI drift')
+            runner.guard();report['source_verified']=True
+        except BaseException as exc:common.record_error(report,exc,'verification: ')
+        report.update(minimum_free_bytes=runner.minimum_free,minimum_memory_bytes=getattr(runner,'minimum_memory',None),
+          source_seal_sha256=sha(json.dumps(original,sort_keys=True).encode()),
+          input_seals={p:sha(json.dumps(v,sort_keys=True).encode()) for p,v in snapshots.items()},
+          artifact_seals=artifact_seals,
+          git_state_seals={p:sha(json.dumps(v,sort_keys=True).encode()) for p,v in git_snapshots.items()},
+          controller_git_state_sha256=sha(json.dumps(original_git,sort_keys=True).encode()))
+
+def main():
+    report={'head':os.environ.get('GITHUB_SHA'),'gates':{},'phases':[],'error':None,'source_verified':False,
+      'diagnostic_complete':False,'plan_accepted':None,'compatibility':None,'probe_completed':False,
+      'native_type_verified':False,'apply_executed':False,
+      'scope':'Exact integration checkout with both real packages. One complete plan only, bounded terrain observation and all12 independent unchanged guards. The subsequent workflow step has an independent Index receipt and cannot change this primary artifact. No apply/Game/consumer build or compatibility-success claim.'}
+    try:execute(report)
+    except BaseException as exc:common.record_error(report,exc)
+    if report['diagnostic_complete'] and (set(report['gates'])!=required_gates(report) or type(report['plan_accepted']) is not bool or report['compatibility'] is True):
+        common.record_error(report,ValueError('Terminal gates or diagnostic scope mismatch'))
+    report['probe_completed']=report['diagnostic_complete'] and report['source_verified'] and report['error'] is None
+    try:
+        with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:out.write('## Integrated playtest plan-only diagnostic\n\n```json\n'+json.dumps(report,indent=2)+'\n```\n')
+    except BaseException as exc:common.record_error(report,exc,'summary: ');report['probe_completed']=False
+    try:
+        # Reuse the existing guards after all owned subprocesses and source seals finish.
+        temp=Path(os.environ['RUNNER_TEMP']);plan,_=evidence.paths(temp,report['head'])
+        guard_runner=Runner(plan.parent,{'CARGO_HOME':str(plan.parent/'cargo-home'),'RUSTUP_HOME':os.environ.get('RUSTUP_HOME',str(Path.home()/'.rustup'))})
+        output,_=evidence.persist(report,temp,guard_runner.guard)
+        evidence.verify_saved(output)
+        with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+            out.write('evidence_ready=true\n')
+            out.write('primary_complete='+str(report['probe_completed']).lower()+'\n')
+    except BaseException as exc:
+        common.record_error(report,exc,'artifact preservation: ');report['probe_completed']=False
+    print('MAIN_RECEIPT',json.dumps(report,sort_keys=True),flush=True)
+    if not report['probe_completed']:raise SystemExit(1)
+
+
+def index_main():
+    # Separate workflow step: primary four-file artifact is already uploaded.
+    report={'head':os.environ.get('GITHUB_SHA'),'phases':[],'error':None,'source_verified':False,'completed':False,
+      'index_receipt':{'attempted':False,'completed':False,'error':None,'scope':'Separate auxiliary source identity observation; no apply/Game type/compatibility proof'}}
+    runner=None;snapshots={};git_snapshots={};artifacts={};original=None;original_git=None
+    wrapper_log=None;official=None;real_tools=None;wrappers_ready=False
+    try:
+        config=inputs();validate(config)
+        if not event_allowed(os.environ,json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())):raise ValueError('Exact public Index step only')
+        if common.git(ROOT,'rev-parse','HEAD')!=report['head']:raise ValueError('Wrong Index controller head')
+        temp=Path(os.environ['RUNNER_TEMP']);work=temp/('playtest-complete-plan-'+report['head'])
+        _,saved=evidence.paths(temp,report['head']);evidence.verify_saved(saved)
+        primary=json.loads(evidence.read_regular(saved/'receipt.json',evidence.LIMITS['receipt.json']))
+        if primary['head']!=report['head'] or not all(primary.get(k) is True for k in ('probe_completed','diagnostic_complete','source_verified')):raise ValueError('Primary diagnostic was not complete')
+        roots={n:work/(n+'-git') for n in ('horizon','mixins','integration')};official=work/'horizon';bindir=work/'metadata-only'
+        expected={str(p) for p in [*roots.values(),official,work/'combined-mods',bindir]}
+        if set(primary['input_seals'])!=expected:raise ValueError('Unexpected primary source seal paths')
+        for name,digest in primary['input_seals'].items():
+            before=common.checkout_seal(Path(name))
+            if sha(json.dumps(before,sort_keys=True).encode())!=digest:raise ValueError('Primary input changed before Index')
+            snapshots[name]=before
+        for name,digest in primary['git_state_seals'].items():
+            if name not in {str(p) for p in roots.values()}:raise ValueError('Unexpected primary Git path')
+            before=prepare.git_state(Path(name));common.assert_git_clean(Path(name))
+            if sha(json.dumps(before,sort_keys=True).encode())!=digest:raise ValueError('Primary Git state changed before Index')
+            git_snapshots[name]=before
+        if set(git_snapshots)!={str(p) for p in roots.values()}:raise ValueError('Missing primary Git states')
+        original=common.checkout_seal(ROOT);original_git=prepare.git_state(ROOT);common.assert_git_clean(ROOT)
+        if sha(json.dumps(original,sort_keys=True).encode())!=primary['source_seal_sha256'] or sha(json.dumps(original_git,sort_keys=True).encode())!=primary['controller_git_state_sha256']:raise ValueError('Primary controller changed before Index')
+        snapshots[str(saved)]=common.checkout_seal(saved)
+        artifacts=dict(primary['artifact_seals'])
+        if set(artifacts)!={str(p) for p in [work/'tconstruct.hnmod',work/'plutolib.hnmod',*([work/'plan.json'] if primary['plan_accepted'] else [])]}:raise ValueError('Unexpected primary artifact paths')
+        cli=work/'cli-target/release/horizon-mixins';artifacts[str(cli)]=primary['gates']['cli_compile']['binary_sha256']
+        for path,digest in artifacts.items():
+            if sha(package.regular(Path(path),128*1024**2))!=digest:raise ValueError('Primary artifact changed before Index')
+        env=os.environ.copy()
+        for key in ('RUSTFLAGS','CARGO_ENCODED_RUSTFLAGS','RUSTC_WRAPPER','RUSTC_WORKSPACE_WRAPPER','CARGO','RUSTC','GIT_DIR','GIT_INDEX_FILE','GIT_WORK_TREE'):env.pop(key,None)
+        env.update(RUSTUP_TOOLCHAIN='1.95.0',CARGO_HOME=str(work/'cargo-home'),CARGO_TARGET_DIR=str(work/'cli-target'),CARGO_NET_OFFLINE='true',CARGO_BUILD_JOBS='1',CARGO_PROFILE_RELEASE_DEBUG='0',CARGO_INCREMENTAL='0',TMPDIR=str(work/'tmp'),PYTHONDONTWRITEBYTECODE='1',GIT_OPTIONAL_LOCKS='0',CARGO=str(bindir/'cargo'),RUSTC=str(bindir/'rustc'),PATH=str(bindir)+os.pathsep+env['PATH'])
+        runner=Runner(work,env,report);runner.guard(reserve=4*1024**3)
+        real_cargo=Path(runner.run('index-cargo-path',['rustup','which','--toolchain','1.95.0','cargo']).strip()).resolve()
+        real_rustc=Path(runner.run('index-rustc-path',['rustup','which','--toolchain','1.95.0','rustc']).strip()).resolve()
+        toolchain=Path(env.get('RUSTUP_HOME',str(Path.home()/'.rustup'))).resolve()/'toolchains'
+        if not real_cargo.is_relative_to(toolchain) or not real_rustc.is_relative_to(toolchain):raise ValueError('Unexpected Index toolchain binaries')
+        wrapper_log=work/'tool-argv.jsonl';real_tools={'cargo':str(real_cargo),'rustc':str(real_rustc)};wrappers_ready=True
+        calls=[json.loads(line) for line in wrapper_log.read_text().splitlines()]
+        if calls!=primary['gates']['plan_diagnostic']['tool_calls']:raise ValueError('Primary metadata witness changed')
+        artifact_seals=artifacts
         # Primary plan/guard evidence is complete before any auxiliary Cargo/Index work.
         aux=report['index_receipt'];aux['attempted']=True
         build_env=dict(env)
         build_env.update(CARGO=str(real_cargo),RUSTC=str(real_rustc),PATH=str(real_cargo.parent)+os.pathsep+env['PATH'])
         try:
-            core_witness=core_compile_witness((work/'cli-cold-build.log').read_text(),roots['mixins'])
+            cold=package.regular(work/'cli-cold-build.log',128*1024**2)
+            original_phase=[p for p in primary['phases'] if p['name']=='cli-cold-build']
+            if len(original_phase)!=1 or (len(cold),sha(cold))!=(original_phase[0]['raw_bytes'],original_phase[0]['raw_sha256']):raise ValueError('Original actual core compiler log changed')
+            core_witness=core_compile_witness(cold.decode(),roots['mixins'])
             try:
                 # Only this named auxiliary tool phase gets actual compiler paths.
                 runner.env=build_env
@@ -310,62 +422,30 @@ def execute(report):
     except BaseException as exc:common.record_error(report,exc)
     finally:
         try:collect_tool_calls(report,wrapper_log,official,real_tools,wrappers_ready)
-        except BaseException as exc:common.record_error(report,exc,'tool-argv verification: ')
+        except BaseException as exc:common.record_error(report,exc,'Index tool-argv verification: ')
         try:
-            cpu_path=work/'plan-cpu.jsonl'
-            observation=observer.collect(cpu_path)
-            if observation['present']:observation['raw_sha256']=sha(cpu_path.read_bytes())
-            phase=next((p for p in report['phases'] if p['name']=='official-plan'),None)
-            observation['observer_exit_code']=phase['exit_code'] if phase else None
-            report['plan_cpu_observation']=observation
-            if phase and phase['exit_code'] in (0,1) and (not observation['complete'] or observation.get('cli_exit_code')!=phase['exit_code']):
-                raise ValueError('Observer/CLI completion mismatch')
-        except BaseException as exc:common.record_error(report,exc,'CPU observation verification: ')
-        try:
+            if original is None or original_git is None:raise ValueError('Index admission incomplete')
             common.assert_git_clean(ROOT);common.assert_full_seal(ROOT,original)
-            if prepare.git_state(ROOT)!=original_git:raise ValueError('Original checkout refs/index/HEAD drift')
+            if prepare.git_state(ROOT)!=original_git:raise ValueError('Index controller Git changed')
             for path,before in snapshots.items():common.assert_full_seal(Path(path),before)
             for path,before in git_snapshots.items():
                 common.assert_git_clean(Path(path))
-                if prepare.git_state(Path(path))!=before:raise ValueError('Fixed checkout refs/index/HEAD drift')
-            for path,before in artifact_seals.items():
-                if sha(Path(path).read_bytes())!=before:raise ValueError('Artifact drift')
-            if cli is not None and sha(cli.read_bytes())!=cli_hash:raise ValueError('Official CLI drift')
+                if prepare.git_state(Path(path))!=before:raise ValueError('Index fixed Git state changed')
+            for path,digest in artifacts.items():
+                if sha(package.regular(Path(path),128*1024**2))!=digest:raise ValueError('Index artifact changed')
+            if runner is None:raise ValueError('Index runner not admitted')
             runner.guard();report['source_verified']=True
-        except BaseException as exc:common.record_error(report,exc,'verification: ')
-        report.update(minimum_free_bytes=runner.minimum_free,minimum_memory_bytes=getattr(runner,'minimum_memory',None),
-          source_seal_sha256=sha(json.dumps(original,sort_keys=True).encode()),
-          input_seals={p:sha(json.dumps(v,sort_keys=True).encode()) for p,v in snapshots.items()},
-          artifact_seals=artifact_seals)
-
-def main():
-    report={'head':os.environ.get('GITHUB_SHA'),'gates':{},'phases':[],'error':None,'source_verified':False,
-      'diagnostic_complete':False,'plan_accepted':None,'compatibility':None,'probe_completed':False,
-      'native_type_verified':False,'apply_executed':False,
-      'index_receipt':{'attempted':False,'completed':False,'error':None,'scope':'Independent auxiliary official Index observation; never substitutes for complete plan or guard evidence'},
-      'scope':'Exact integration checkout with both real packages. One complete plan only, bounded terrain observation and all12 independent unchanged guards. Adds a standalone official-core Index observer tool with two controls and one new identity observation. No apply/Game/consumer build or compatibility-success claim.'}
-    try:execute(report)
-    except BaseException as exc:common.record_error(report,exc)
-    if report['diagnostic_complete'] and (set(report['gates'])!=required_gates(report) or type(report['plan_accepted']) is not bool or report['compatibility'] is True):
-        common.record_error(report,ValueError('Terminal gates or diagnostic scope mismatch'))
-    report['probe_completed']=report['diagnostic_complete'] and report['source_verified'] and report['error'] is None
-    try:
-        with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:out.write('## Integrated playtest plan-only diagnostic\n\n```json\n'+json.dumps(report,indent=2)+'\n```\n')
-    except BaseException as exc:common.record_error(report,exc,'summary: ');report['probe_completed']=False
-    try:
-        # Reuse the existing guards after all owned subprocesses and source seals finish.
-        temp=Path(os.environ['RUNNER_TEMP']);plan,_=evidence.paths(temp,report['head'])
-        guard_runner=Runner(plan.parent,{'CARGO_HOME':str(plan.parent/'cargo-home'),'RUSTUP_HOME':os.environ.get('RUSTUP_HOME',str(Path.home()/'.rustup'))})
-        output,_=evidence.persist(report,temp,guard_runner.guard)
-        evidence.verify_saved(output)
-        with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('evidence_ready=true\n')
-    except BaseException as exc:
-        common.record_error(report,exc,'artifact preservation: ');report['probe_completed']=False
-    print('FINAL_RECEIPT',json.dumps(report,sort_keys=True),flush=True)
-    if not report['probe_completed'] or not report['index_receipt']['completed']:raise SystemExit(1)
+        except BaseException as exc:common.record_error(report,exc,'Index final seals: ')
+        if runner is not None:report.update(minimum_free_bytes=runner.minimum_free,minimum_memory_bytes=getattr(runner,'minimum_memory',None))
+    report['completed']=report['source_verified'] and report['error'] is None and report['index_receipt']['completed']
+    raw=json.dumps(report,sort_keys=True)
+    if len(raw.encode())>128*1024:raise ValueError('Index receipt exceeds limit')
+    print('INDEX_RECEIPT',raw,flush=True)
+    if not report['completed']:raise SystemExit(1)
 
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--export':export_latest(Path(sys.argv[2]),sys.argv[3],Path(sys.argv[4]))
     elif len(sys.argv)==5 and sys.argv[1]=='--index-metadata':capture_index_metadata(sys.argv[2],sys.argv[3],sys.argv[4])
+    elif sys.argv[1:]==['--index-phase']:index_main()
     elif len(sys.argv)==1:main()
     else:raise SystemExit('Invalid controller arguments')

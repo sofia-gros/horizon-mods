@@ -37,3 +37,6 @@ jobs:
           include-hidden-files: false
           compression-level: 6
           retention-days: 3
+      - name: Observe official packet Index after primary evidence upload
+        if: ${{ steps.diagnostic.outputs.primary_complete == 'true' }}
+        run: python3 pluto-lib/experiments/playtest-plan-ci/run.py --index-phase

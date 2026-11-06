@@ -161,9 +161,19 @@ class IndexControllerTests(unittest.TestCase):
 
 class AuxiliaryReceiptTests(unittest.TestCase):
  def test_auxiliary_receipt_separate(self):
-  src=(HERE/'run.py').read_text();self.assertIn("aux=report['index_receipt']",src);self.assertIn('common.record_error(aux,exc)',src);self.assertIn("not report['index_receipt']['completed']",src)
+  src=(HERE/'run.py').read_text();self.assertIn("aux=report['index_receipt']",src);self.assertIn('common.record_error(aux,exc)',src);self.assertIn("report['completed']=report['source_verified']",src)
  def test_compiler_environment_restored(self):
   src=(HERE/'run.py').read_text();self.assertIn('runner.env=build_env',src);self.assertGreaterEqual(src.count('runner.env=env'),2);self.assertLess(src.index('runner.env=env'),src.index("index_output=runner.run('index-observation'"))
+
+class PrimaryPersistenceTests(unittest.TestCase):
+ def test_upload_before_index(self):
+  text=(HERE.parents[2]/'.github/workflows/playtest-complete-plan-wip.yml').read_text();self.assertLess(text.index('uses: actions/upload-artifact@'),text.index('run.py --index-phase'));self.assertIn("outputs.primary_complete == 'true'",text)
+ def test_primary_never_calls_index(self):
+  tree=ast.parse((HERE/'run.py').read_text());main=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main');exe=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='execute');self.assertNotIn('index_main(',ast.unparse(main));self.assertNotIn('index-build',ast.unparse(exe));self.assertIn('MAIN_RECEIPT',ast.unparse(main))
+ def test_index_cannot_rewrite_primary_artifact(self):
+  tree=ast.parse((HERE/'run.py').read_text());node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='index_main');src=ast.unparse(node);self.assertNotIn('evidence.persist(',src);self.assertIn('evidence.verify_saved(',src);self.assertIn('INDEX_RECEIPT',src);self.assertIn('git_state_seals',src);self.assertIn('controller_git_state_sha256',src)
+ def test_primary_persists_git_seals(self):
+  tree=ast.parse((HERE/'run.py').read_text());node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='execute');src=ast.unparse(node);self.assertIn('git_state_seals=',src);self.assertIn('controller_git_state_sha256=',src)
 
 class EvidenceTests(unittest.TestCase):
  def report(self):return {'head':'a'*40,'gates':{},'error':'synthetic failure','probe_completed':False,'source_verified':False,'plan_accepted':None}
