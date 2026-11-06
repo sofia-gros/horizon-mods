@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "foundation assembled; not yet runnable",
+  "stage": "Guide consumer composition integrated; latest full validation pending",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -19,25 +19,16 @@
   "included": [
     "PR #944 shared-foundation source and TConstruct migrations",
     "PR #945 navigation/control changes, including preserved LAN behavior",
-    "Later common035273 ordinary library and consumer source changes"
+    "Later common035273 ordinary library and consumer source changes",
+    "Guide lazy page text/query plus stable BookId/modifier anchors from d9f8, preserving all PR945 navigation injections and control behavior"
   ],
   "pending": [
-    {
-      "subject": "Guide lazy text, stable BookId and modifier anchors",
-      "source": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
-      "reason": "Merge two overlapping consumer files with PR #945 navigation before adoption."
-    },
     {
       "subject": "Latest mining and chest-pick compatibility",
       "mining": "b78ee288d7627e1be1c046db73541fab1d40c249",
       "chest": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
       "probe": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
       "reason": "Prior full646 base was main08afa, not this PR945 composition. Preserve new shared/store policies and revalidate exact full payload inverse and latest plan."
-    },
-    {
-      "subject": "Latest terrain plan observations",
-      "source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
-      "reason": "Observation-only collector; no latest complete plan or guard approval yet."
     },
     {
       "subject": "Guide LAN response",
@@ -49,7 +40,11 @@
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "41f source differences require per-boundary review and real plan identity, not blind hash replacement."
+      "reason": "41f pin changes require reviewed boundaries and actual plan identities. Cloud exclusivity also rejects 20 active consumer declarations by source inspection. TConstruct source-fluid-cloud directly constructs Breath/PotionCloud without required fields and bypasses Pluto ownership checks; no compiler run yet. Hash updates or broad allowlists cannot solve this."
+    },
+    {
+      "subject": "Legacy Windows launch target and cache",
+      "reason": "The legacy launcher is not yet validated on the latest official target. Cache correction and a latest Windows launch contract are in preparation."
     }
   ],
   "excluded_activation": [
@@ -73,7 +68,14 @@
       "native_build": "not run on this branch",
       "windows_link": "not run",
       "game_start": "not run",
-      "gpu_or_lan": "not verified"
+      "gpu_or_lan": "not verified",
+      "guide_source_merge": "8 pure source checks passed; both original whole files reconstruct exactly",
+      "terrain_collector_source": "22 pure checks passed; no complete latest plan collected"
+    },
+    "current_chest_probe": {
+      "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
+      "run": 42222131283,
+      "status": "in progress when this intake was prepared; not evidence for this complete branch"
     }
   },
   "safety": {
@@ -83,5 +85,41 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "The same integration branch will receive reviewed latest deltas and build evidence. An executable or launcher-ready release is not claimed."
+  "next": "The same integration branch will receive reviewed latest deltas and build evidence. An executable or launcher-ready release is not claimed.",
+  "intakes": [
+    {
+      "subject": "Guide B/C consumer source merge",
+      "source": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "evidence": "73f9ea2c67a89ab38bace6249e5e1746a19cac98",
+      "paths": 27,
+      "merged_paths": 2,
+      "source_checks": 8,
+      "full_inverse_verified": true,
+      "native_on_this_composition": false
+    },
+    {
+      "subject": "41f terrain observation collector",
+      "source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
+      "paths": 5,
+      "source_checks": 22,
+      "activation": "excluded observation tool; no guard approval or runtime change"
+    },
+    {
+      "subject": "41f cloud/language source audit",
+      "source": "06b5bff675efe1c96c55fe3ae01cc670cd6e1c94",
+      "paths": 2,
+      "activation": "documentation only"
+    },
+    {
+      "subject": "Windows/41f delivery audit",
+      "source": "cc141a8a157f06cde9ddeb45d3acc80857f8a03f",
+      "paths": 2,
+      "activation": "documentation only; historical main script defects are not claims about this branch's script"
+    }
+  ],
+  "guide_limits": [
+    "Native 41f draw_book invokes the new transparent-background API; TConstruct custom draw retains its own fill and bypasses that new path.",
+    "Legacy oracle scripts still pin their original candidate and are not relabeled as tests of this merged composition.",
+    "Guide LAN conflict remains; no response behavior is silently disabled."
+  ]
 }

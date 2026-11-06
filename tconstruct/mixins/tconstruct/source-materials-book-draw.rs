@@ -3,13 +3,8 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let Some(BookScreen::View { pages, page, lectern: None }) = game.book.as_ref() else { return Continue(()); };
     if pages.first().and_then(|p| p.spans.first()).and_then(|s| s.style.insertion.as_deref()) != Some("tconstruct:materials-book-root") { return Continue(()); }
     let atlas = &game.gui.atlas;
-    let puny = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Puny Smelting\n"));
-    let mighty = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Mighty Smelting\n"));
-    let encyclopedia = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Encyclopedia\n"));
-    let gadgetry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Tinkers' Gadgetry\n"));
-    let foundry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Fantastic Foundry\n"));
-    let cover_sprite = if gadgetry { "gui/tconstruct_book_covers_gadgetry_cover" } else if foundry { "gui/tconstruct_book_covers_fantastic_foundry_cover" } else if puny { "gui/tconstruct_book_covers_puny_smelting_cover" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_cover" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_cover" } else { "gui/tconstruct_book_covers_materials_and_you_cover" };
-    let pages_sprite = if gadgetry { "gui/tconstruct_book_covers_gadgetry_pages" } else if foundry { "gui/tconstruct_book_covers_fantastic_foundry_pages" } else if puny { "gui/tconstruct_book_covers_puny_smelting_pages" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_pages" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_pages" } else { "gui/tconstruct_book_covers_materials_and_you_pages" };
+    let title = pages.first().and_then(|p| p.spans.first()).map(|s| s.text.as_str()).unwrap_or("");
+    let (cover_sprite, pages_sprite) = tconstruct_materials_book_identity::legacy_draw_sprites(title);
     let center = batch.width / 2.0;
     let top = (batch.height / 2.0 - 100.0).floor();
     let cover = *page == usize::MAX;
@@ -70,11 +65,13 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         game.draw_item(batch, &stack, x, y);
         stack
     };
+    let book_text = tconstruct_materials_book_text::Book::new(pages);
     for offset in 0..if cover { 0 } else { 2 } {
     let Some(text) = pages.get(base + offset) else { continue; };
     let left = if offset == 0 { center - 206.0 + 16.0 - 36.0 } else { center + 8.0 - 36.0 };
     let is_title = text.spans.first().and_then(|span| span.style.insertion.as_deref()).is_some_and(|id| id.starts_with("tconstruct:book:") || id == "tconstruct:book-title");
-    for (i, line) in game.gui.atlas.font.split(text, 182.0).iter().take(17).enumerate() {
+    let Some(lines) = book_text.page(&game.gui.atlas.font, base + offset, 182.0) else { continue; };
+    for (i, line) in lines.as_slice().iter().take(17).enumerate() {
         let x = if is_title && i == 0 { left + 36.0 + (182.0 - HudBatch::text_width(atlas, &text.spans.first().map(|s| s.text.as_str()).unwrap_or(""))) / 2.0 } else { left + 36.0 };
         let material_title = i == 0 && text.spans.first().and_then(|span| span.style.insertion.as_deref()).is_some_and(|id| id.starts_with("tconstruct:book:") && id.contains("\"material_panel\""));
         batch.text_styled(atlas, line, x, top + 12.0 + i as f32 * 9.0, BLACK, material_title);

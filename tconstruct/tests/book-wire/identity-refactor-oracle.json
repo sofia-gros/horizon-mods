@@ -1,0 +1,36 @@
+{
+  "source_base": "bbb4948b98672ab3cb3a59178eab103b51229902",
+  "claim": "Inverse source reconstruction only, not native execution. The existing book-wire Text fixture is a mock.",
+  "records": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "before_sha256": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96",
+      "old": "    let (root, book_title) = match book {\n        \"tconstruct:fantastic_foundry\" => (\"assets/tconstruct/book/fantastic_foundry/\", \"Fantastic Foundry\"),\n        \"tconstruct:puny_smelting\" => (\"assets/tconstruct/book/puny_smelting/\", \"Puny Smelting\"),\n        \"tconstruct:mighty_smelting\" => (\"assets/tconstruct/book/mighty_smelting/\", \"Mighty Smelting\"),\n        \"tconstruct:tinkers_gadgetry\" => (\"assets/tconstruct/book/tinkers_gadgetry/\", \"Tinkers' Gadgetry\"),\n        \"tconstruct:encyclopedia\" => (\"assets/tconstruct/book/encyclopedia/\", \"Encyclopedia\"),\n        \"tconstruct:materials_and_you\" => (\"assets/tconstruct/book/materials_and_you/\", \"Materials & You\"),\n        _ => return None,\n    };\n",
+      "new": "    let identity = super::tconstruct_materials_book_identity::BookId::from_item(book)?;\n    let (root, book_title) = identity.source_parts();\n"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+      "before_sha256": "403881773d69d2b08073293df5085e2b189199bed4c55f7ec5c6e0c0b5c95c41",
+      "old": "    let puny = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with(\"Puny Smelting\\n\"));\n    let mighty = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with(\"Mighty Smelting\\n\"));\n    let encyclopedia = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with(\"Encyclopedia\\n\"));\n    let gadgetry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with(\"Tinkers' Gadgetry\\n\"));\n    let foundry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with(\"Fantastic Foundry\\n\"));\n    let cover_sprite = if gadgetry { \"gui/tconstruct_book_covers_gadgetry_cover\" } else if foundry { \"gui/tconstruct_book_covers_fantastic_foundry_cover\" } else if puny { \"gui/tconstruct_book_covers_puny_smelting_cover\" } else if mighty { \"gui/tconstruct_book_covers_mighty_smelting_cover\" } else if encyclopedia { \"gui/tconstruct_book_covers_encyclopedia_cover\" } else { \"gui/tconstruct_book_covers_materials_and_you_cover\" };\n    let pages_sprite = if gadgetry { \"gui/tconstruct_book_covers_gadgetry_pages\" } else if foundry { \"gui/tconstruct_book_covers_fantastic_foundry_pages\" } else if puny { \"gui/tconstruct_book_covers_puny_smelting_pages\" } else if mighty { \"gui/tconstruct_book_covers_mighty_smelting_pages\" } else if encyclopedia { \"gui/tconstruct_book_covers_encyclopedia_pages\" } else { \"gui/tconstruct_book_covers_materials_and_you_pages\" };\n",
+      "new": "    let title = pages.first().and_then(|p| p.spans.first()).map(|s| s.text.as_str()).unwrap_or(\"\");\n    let (cover_sprite, pages_sprite) = tconstruct_materials_book_identity::legacy_draw_sprites(title);\n"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+      "before_sha256": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7",
+      "old": "    if title.starts_with(\"Materials & You\\n\") { Some(\"materials\") }\n    else if title.starts_with(\"Puny Smelting\\n\") { Some(\"puny\") }\n    else if title.starts_with(\"Mighty Smelting\\n\") { Some(\"mighty\") }\n    else if title.starts_with(\"Encyclopedia\\n\") { Some(\"encyclopedia\") }\n    else if title.starts_with(\"Tinkers' Gadgetry\\n\") { Some(\"gadgetry\") }\n    else if title.starts_with(\"Fantastic Foundry\\n\") { Some(\"foundry\") }\n    else { None }",
+      "new": "    super::tconstruct_materials_book_identity::legacy_wire_id(title)"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+      "before_sha256": "57c8fab0ce1eec48141a7d61fc8d03364b2999ed4d07f46e6003341e1a9ea448",
+      "old": "[[module]]\nid = \"materials-book-wire\"",
+      "new": "[[module]]\nid = \"materials-book-identity\"\nfile = \"crates/horizon-client/src/game/books.rs\"\nname = \"tconstruct_materials_book_identity\"\nsource = \"source-materials-book-identity.rs\"\n\n[[module]]\nid = \"materials-book-wire\""
+    },
+    {
+      "path": "tconstruct/tests/book-wire/src/lib.rs",
+      "before_sha256": "4c6b9cc275d81c54aec1776d63416827a9cc30e988784cc0515cd90573550ef4",
+      "old": "#[path = \"../../../mixins/tconstruct/source-materials-book-wire.rs\"] mod wire;",
+      "new": "#[path = \"../../../mixins/tconstruct/source-materials-book-identity.rs\"] mod tconstruct_materials_book_identity;\n#[path = \"../../../mixins/tconstruct/source-materials-book-wire.rs\"] mod wire;"
+    }
+  ]
+}

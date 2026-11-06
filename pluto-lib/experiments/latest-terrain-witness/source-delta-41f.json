@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "status": "source-only; no actual 41f complete plan, compatibility or native execution",
+  "old_collector": "5b87b28da1e707ca68367ca454bd3defb0256402",
+  "old_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "old_contract_sha256": "c518e3588e8b00134ce519c50f08ddc70f326b14698660aa8f87c5a7f2962ff6",
+  "collector_sha256": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
+  "official_tree_rows": [
+    {
+      "path": "Cargo.lock",
+      "sha": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "size": 135677,
+      "mode": "100644",
+      "local_f4dc_git_blob": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "local_f4dc_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-assets/src/bake.rs",
+      "sha": "d1ba340999f7326bf721e33e208e9b45c940612f",
+      "size": 24154,
+      "mode": "100644",
+      "local_f4dc_git_blob": "d1ba340999f7326bf721e33e208e9b45c940612f",
+      "local_f4dc_sha256": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-assets/src/model.rs",
+      "sha": "d369adf703855731fe101730a20c031679cdc6b5",
+      "size": 18879,
+      "mode": "100644",
+      "local_f4dc_git_blob": "d369adf703855731fe101730a20c031679cdc6b5",
+      "local_f4dc_sha256": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/assets.rs",
+      "sha": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+      "size": 21279,
+      "mode": "100644",
+      "local_f4dc_git_blob": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+      "local_f4dc_sha256": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/fusion.rs",
+      "sha": "51df969e4b4d346a14ff0386c4b5ac60c91d09be",
+      "size": 26743,
+      "mode": "100644",
+      "local_f4dc_git_blob": "51df969e4b4d346a14ff0386c4b5ac60c91d09be",
+      "local_f4dc_sha256": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher.rs",
+      "sha": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "size": 89342,
+      "mode": "100644",
+      "local_f4dc_git_blob": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "local_f4dc_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher/fluid.rs",
+      "sha": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+      "size": 19833,
+      "mode": "100644",
+      "local_f4dc_git_blob": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+      "local_f4dc_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/models/catalog.rs",
+      "sha": "feee0a0ba94a18d888ffa3a775abeee424dce587",
+      "size": 24987,
+      "mode": "100644",
+      "local_f4dc_git_blob": "feee0a0ba94a18d888ffa3a775abeee424dce587",
+      "local_f4dc_sha256": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/sprites.rs",
+      "sha": "756099c4bc4d256462adca09480cf90347358200",
+      "size": 61256,
+      "mode": "100644",
+      "local_f4dc_git_blob": "756099c4bc4d256462adca09480cf90347358200",
+      "local_f4dc_sha256": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "sha": "46c0c168f739bc4bd64fd944b9b98c1974ebf731",
+      "size": 190929,
+      "mode": "100644",
+      "local_f4dc_git_blob": "46c0c168f739bc4bd64fd944b9b98c1974ebf731",
+      "local_f4dc_sha256": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "sha": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "size": 1032243,
+      "mode": "100644",
+      "local_f4dc_git_blob": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "local_f4dc_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "same_blob": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/mods.rs",
+      "sha": "75925d940913bb124b4ef94ff13009205b35aedd",
+      "size": 39343,
+      "mode": "100644",
+      "local_f4dc_git_blob": "75925d940913bb124b4ef94ff13009205b35aedd",
+      "local_f4dc_sha256": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+      "size": 28416,
+      "mode": "100644",
+      "local_f4dc_git_blob": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+      "local_f4dc_sha256": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
+      "same_blob": true
+    }
+  ],
+  "game_reconstruction": {
+    "file": "crates/horizon-client/src/game.rs",
+    "method": "complete official compare hunks applied in memory; every old context line checked; resulting full Git blob verified against latest tree",
+    "bytes": 1032243,
+    "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+    "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+    "hunks": [
+      {
+        "old_start": 3170,
+        "old_count": 6,
+        "new_count": 8
+      },
+      {
+        "old_start": 9664,
+        "old_count": 14,
+        "new_count": 7
+      },
+      {
+        "old_start": 15594,
+        "old_count": 14,
+        "new_count": 7
+      },
+      {
+        "old_start": 16633,
+        "old_count": 6,
+        "new_count": 7
+      },
+      {
+        "old_start": 17050,
+        "old_count": 12,
+        "new_count": 31
+      },
+      {
+        "old_start": 20220,
+        "old_count": 6,
+        "new_count": 7
+      }
+    ]
+  },
+  "target_source_checks": {
+    "PackResources_impl": {
+      "bytes": 2583,
+      "sha256": "db92017bff8481741595c0b687011a92af2b3f3caa3b451e460621925bca63e7",
+      "unchanged": true,
+      "method": "full literal-bounded impl equals between old and independently blob-verified reconstructed new source"
+    },
+    "Mesher_mesh_reusing": {
+      "unchanged": true,
+      "method": "entire mesher.rs Git blob and SHA256 are equal",
+      "file_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19"
+    }
+  },
+  "payloads": [
+    {
+      "file": "fluid-render-before-assemble.rs",
+      "sha256": "80be25bd7c82ff6cfc54aaceedd33cd91237679dee97961b425cc5ff44829c7e"
+    },
+    {
+      "file": "terrain-cell-head.rs",
+      "sha256": "a8bddde88b0daa5a8f0e61632f5918bca4221bfcfc7319a2c39eb0d04e72f09c"
+    },
+    {
+      "file": "terrain-binding-host.rs",
+      "sha256": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4"
+    },
+    {
+      "file": "terrain-bindings.rs",
+      "sha256": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c"
+    },
+    {
+      "file": "fluid-render-prepare.rs",
+      "sha256": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6"
+    },
+    {
+      "file": "terrain-cell-geometry.rs",
+      "sha256": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994"
+    },
+    {
+      "file": "terrain-cell-providers.rs",
+      "sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
+    },
+    {
+      "file": "terrain-cell-host.rs",
+      "sha256": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4"
+    }
+  ],
+  "links": {
+    "compare": "https://github.com/horizon-rust/horizon/compare/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd...41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "game": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game.rs",
+    "old_collector": "https://github.com/sofia-gros/horizon-mods/tree/5b87b28da1e707ca68367ca454bd3defb0256402/pluto-lib/experiments/latest-terrain-witness"
+  }
+}

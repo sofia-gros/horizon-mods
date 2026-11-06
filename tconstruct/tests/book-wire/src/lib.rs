@@ -9,6 +9,7 @@ pub mod text {
     #[derive(Clone)] pub struct Text { pub spans: Vec<Span> }
     impl Text { pub fn styled(s: impl Into<String>, style: Style) -> Self { Self { spans: vec![Span { text: s.into(), style }] } } pub fn literal(s: impl Into<String>) -> Self { Self::styled(s, Style::default()) } pub fn empty() -> Self { Self { spans: Vec::new() } } pub fn push(&mut self, other: Text) { self.spans.extend(other.spans); } }
 }
+#[path = "../../../mixins/tconstruct/source-materials-book-identity.rs"] mod tconstruct_materials_book_identity;
 #[path = "../../../mixins/tconstruct/source-materials-book-wire.rs"] mod wire;
 
 #[path = "../../../mixins/tconstruct/source-materials-book-recipe.rs"] mod recipe;
@@ -59,10 +60,3 @@ mod showcase_wire_tests {
         assert!(wire::decode_reply(8, &pages, &bytes).is_none());
     }
 }
-
-// Production input adapters with a modeled Game and real serde_json output.
-// This proves local guide navigation only, not native input or lifetime safety.
-#[cfg(test)]
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-#[cfg(test)]
-#[path = "../../rust/book_keyboard_navigation.rs"] mod book_keyboard_navigation;

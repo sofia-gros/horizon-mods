@@ -12,19 +12,13 @@ fn tconstruct_materials_book_click(game: &mut Game<'_>, size: [u32; 2]) -> std::
     let (mx, my) = game.cursor;
     let inside = |x: f32, y: f32, w: f32, h: f32| mx >= x && my >= y && mx < x + w && my < y + h;
     let mut link = None;
+    let book_text = tconstruct_materials_book_text::Book::new(pages);
     for offset in 0..if cover { 0 } else { 2 } {
-        let Some(text) = pages.get(base + offset) else { continue; };
         let origin = if offset == 0 { center - 206.0 + 16.0 } else { center + 8.0 };
         let row = ((my - (top + 12.0)) / 9.0).floor();
         if row < 0.0 || row >= 17.0 || mx < origin { continue; }
-        let lines = game.gui.atlas.font.split(text, 182.0);
-        let Some(line) = lines.get(row as usize) else { continue; };
-        let line = line.resolve_legacy();
-        let mut x = mx - origin;
-        for (c, style) in line.chars() {
-            x -= game.gui.atlas.font.advance(c, style);
-            if x < 0.0 { link = style.click.clone(); break; }
-        }
+        let Some(lines) = book_text.page(&game.gui.atlas.font, base + offset, 182.0) else { continue; };
+        link = lines.click(&game.gui.atlas.font, mx - origin, row as usize);
         if link.is_some() { break; }
     }
     if let Some(link) = link {

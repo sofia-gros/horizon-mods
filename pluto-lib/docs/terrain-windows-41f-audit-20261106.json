@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "status": "source-only, no latest complete plan or Windows executable/gameplay proof",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "previous_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "main_mods": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "compare": {
+    "commits": 26,
+    "changed_paths": 50,
+    "url": "https://github.com/horizon-rust/horizon/compare/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd...41f822b659789780f58d32c63ddfb6887ea1b8bf"
+  },
+  "terrain_rows": [
+    {
+      "path": "Cargo.lock",
+      "sha": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "size": 135677,
+      "mode": "100644",
+      "local_f4dc_git_blob": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "local_f4dc_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-assets/src/bake.rs",
+      "sha": "d1ba340999f7326bf721e33e208e9b45c940612f",
+      "size": 24154,
+      "mode": "100644",
+      "local_f4dc_git_blob": "d1ba340999f7326bf721e33e208e9b45c940612f",
+      "local_f4dc_sha256": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-assets/src/model.rs",
+      "sha": "d369adf703855731fe101730a20c031679cdc6b5",
+      "size": 18879,
+      "mode": "100644",
+      "local_f4dc_git_blob": "d369adf703855731fe101730a20c031679cdc6b5",
+      "local_f4dc_sha256": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/assets.rs",
+      "sha": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+      "size": 21279,
+      "mode": "100644",
+      "local_f4dc_git_blob": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+      "local_f4dc_sha256": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/fusion.rs",
+      "sha": "51df969e4b4d346a14ff0386c4b5ac60c91d09be",
+      "size": 26743,
+      "mode": "100644",
+      "local_f4dc_git_blob": "51df969e4b4d346a14ff0386c4b5ac60c91d09be",
+      "local_f4dc_sha256": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher.rs",
+      "sha": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "size": 89342,
+      "mode": "100644",
+      "local_f4dc_git_blob": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "local_f4dc_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher/fluid.rs",
+      "sha": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+      "size": 19833,
+      "mode": "100644",
+      "local_f4dc_git_blob": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+      "local_f4dc_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/models/catalog.rs",
+      "sha": "feee0a0ba94a18d888ffa3a775abeee424dce587",
+      "size": 24987,
+      "mode": "100644",
+      "local_f4dc_git_blob": "feee0a0ba94a18d888ffa3a775abeee424dce587",
+      "local_f4dc_sha256": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/sprites.rs",
+      "sha": "756099c4bc4d256462adca09480cf90347358200",
+      "size": 61256,
+      "mode": "100644",
+      "local_f4dc_git_blob": "756099c4bc4d256462adca09480cf90347358200",
+      "local_f4dc_sha256": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "sha": "46c0c168f739bc4bd64fd944b9b98c1974ebf731",
+      "size": 190929,
+      "mode": "100644",
+      "local_f4dc_git_blob": "46c0c168f739bc4bd64fd944b9b98c1974ebf731",
+      "local_f4dc_sha256": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "sha": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "size": 1032243,
+      "mode": "100644",
+      "local_f4dc_git_blob": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "local_f4dc_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "same_blob": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/mods.rs",
+      "sha": "75925d940913bb124b4ef94ff13009205b35aedd",
+      "size": 39343,
+      "mode": "100644",
+      "local_f4dc_git_blob": "75925d940913bb124b4ef94ff13009205b35aedd",
+      "local_f4dc_sha256": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+      "same_blob": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+      "size": 28416,
+      "mode": "100644",
+      "local_f4dc_git_blob": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+      "local_f4dc_sha256": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
+      "same_blob": true
+    }
+  ],
+  "game": {
+    "file": "crates/horizon-client/src/game.rs",
+    "method": "complete official compare hunks applied in memory; every old context line checked; resulting full Git blob verified against latest tree",
+    "bytes": 1032243,
+    "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+    "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+    "hunks": [
+      {
+        "old_start": 3170,
+        "old_count": 6,
+        "new_count": 8
+      },
+      {
+        "old_start": 9664,
+        "old_count": 14,
+        "new_count": 7
+      },
+      {
+        "old_start": 15594,
+        "old_count": 14,
+        "new_count": 7
+      },
+      {
+        "old_start": 16633,
+        "old_count": 6,
+        "new_count": 7
+      },
+      {
+        "old_start": 17050,
+        "old_count": 12,
+        "new_count": 31
+      },
+      {
+        "old_start": 20220,
+        "old_count": 6,
+        "new_count": 7
+      }
+    ]
+  },
+  "source_links": [
+    {
+      "path": ".github/workflows/game-build.yml",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/.github/workflows/game-build.yml"
+    },
+    {
+      "path": ".github/workflows/nightly-build.yml",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/.github/workflows/nightly-build.yml"
+    },
+    {
+      "path": "Cargo.toml",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/Cargo.toml"
+    },
+    {
+      "path": "crates/horizon-client/Cargo.toml",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/Cargo.toml"
+    },
+    {
+      "path": "docs/native-mods.md",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/docs/native-mods.md"
+    },
+    {
+      "path": "launcher/src/rust_toolchain.rs",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/launcher/src/rust_toolchain.rs"
+    },
+    {
+      "path": "launcher/src/native_mods.rs",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/launcher/src/native_mods.rs"
+    },
+    {
+      "path": "xtask/src/main.rs",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/xtask/src/main.rs"
+    },
+    {
+      "path": "packaging/PLAY.txt",
+      "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/packaging/PLAY.txt"
+    }
+  ],
+  "windows": {
+    "official_release": {
+      "runner": "windows-latest",
+      "architecture": "x64",
+      "rust": "stable in reviewed workflow, not pinned by that file",
+      "abi": "runner default Windows host; verify actual target in any new proof",
+      "rustflags": "-C target-feature=+crt-static",
+      "profile": "release",
+      "features": "default audio/controllers retained",
+      "binaries": [
+        "horizon-client.exe",
+        "horizon-ctl.exe",
+        "horizon-prepare.exe",
+        "horizon-server.exe"
+      ],
+      "checks": [
+        "PE x64",
+        "only system imports",
+        "baseline CPU",
+        "--help/version starts"
+      ]
+    },
+    "official_launcher_native": {
+      "rust": "1.99.1 (source-declared; tool downloads not attempted)",
+      "target": "x86_64-pc-windows-gnu",
+      "c_toolchain": "WinLibs GCC 16.2.0 / MinGW-w64 14.0.0 MSVCRT (source-declared SHA-pinned bundle)",
+      "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "profile_default": "performance => fast",
+      "features": "default audio/controllers; mods only if present in staged manifest",
+      "system_toolchain_used": false
+    },
+    "existing_tconstruct_script": {
+      "horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+      "mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+      "toolchain": "user installed stable MSVC/VS C++ tools",
+      "features": "--no-default-features",
+      "profile": "fast",
+      "runtime": "prepared Horizon26.3 resources + matching Pluto bundle + tconstruct preparation; not latest verified"
+    },
+    "packaging": {
+      "hnmod_max_entries": 512,
+      "hnmod_max_unpacked_bytes": 67108864,
+      "local_folder_build_limit_different": true,
+      "full646_is_not_single_deliverable_archive": true,
+      "xtask_needs_exporter_manifest": true,
+      "mojang_assets_in_artifact": false,
+      "resource_preparation": "user-owned Minecraft Java26.3; packaged manual flow documents Java25; launcher performs preparation"
+    },
+    "gpu_and_user_machine": "not observed or accessed",
+    "native_trust_and_security": "No trust bypass, sign-in, security change, installation, or build performed"
+  }
+}

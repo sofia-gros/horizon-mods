@@ -1,0 +1,70 @@
+{
+  "base": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "head": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "compare_commits": 26,
+  "changed_file_count": 50,
+  "source_only": true,
+  "files": [
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "git_blob": "3f67345a0faf08c593f2999f25a7df70ca7e108b",
+      "sha256": "2b522a5b424deba493e166550d5f3646b59b9284fcae1e4013037d9d68c145a9",
+      "bytes": 62381,
+      "reverse_patch_matches_pinned_f4dc": true,
+      "methods": [
+        {
+          "signature": "fn open_book(",
+          "unchanged": true,
+          "sha256": "bf7a16f0222599c8774557d75307ede1814f90f1a9aa1f2ce08145af66b85ff1",
+          "bytes": 174
+        },
+        {
+          "signature": "fn close_book(",
+          "unchanged": true,
+          "sha256": "b8737b5bb1d30644c997a7efbf0bc7333802a8e51c925a56e7846784ffff555b",
+          "bytes": 489
+        },
+        {
+          "signature": "fn book_input(",
+          "unchanged": true,
+          "sha256": "9b3cbb70de1b73e993da392b5e282be81242432fde1f107d52566c16bec7292c",
+          "bytes": 2371
+        }
+      ]
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_hooks.rs",
+      "git_blob": "3ac4cfe8772b62c5735c628c1065a9be3f777800",
+      "sha256": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833",
+      "bytes": 510174,
+      "reverse_patch_matches_pinned_f4dc": true,
+      "methods": [
+        {
+          "signature": "fn native_client_packet(",
+          "unchanged": true,
+          "sha256": "2830086193f2c47884d7bd44022d477709127c4813e4e75f10fd7e4487650adf",
+          "bytes": 162
+        }
+      ]
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "git_blob": "adef7e6c240adacc6178d8bffffcdde7fdc62bc7",
+      "sha256": "346d48f3372d4cfe135982d5f40a7306d79b7f9cbc80a3a8c306648adfdf06c2",
+      "bytes": 536633,
+      "reverse_patch_matches_pinned_f4dc": true,
+      "methods": [
+        {
+          "signature": "fn handle_packet(",
+          "unchanged": true,
+          "sha256": "75fcb20347a46b79e47fd8ebac8610770c20f41a104bcfc9d3b993d5842ddf2e",
+          "bytes": 99420
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Only the three fetched files were reconstructed and hashed. No complete 41f game subtree inventory, plan, apply, typecheck or runtime test was run.",
+    "The prior f4dc successful owner typing and failed Font attempt do not establish 41f compatibility."
+  ]
+}

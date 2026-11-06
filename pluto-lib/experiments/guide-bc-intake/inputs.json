@@ -1,0 +1,13 @@
+{
+  "navigation": {
+    "horizon-mixin.toml": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2",
+    "source-materials-book-click.rs": "4ef0c216c644d6a9f16684cdaf8b289e57e1037ec9d9c2d1a7c581ba25493bb2"
+  },
+  "consumer": {
+    "horizon-mixin.toml": "214548c68cafdd46859937e8d280b1b2139cc1657936c68918c5f13a34182107",
+    "source-materials-book-click.rs": "07cd0d0442e57aadff7e48a30b26e4ebe6d60464b4235e44fae85d998117e6c4"
+  },
+  "navigation_commit": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+  "consumer_commit": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+  "scope": "Only merge raw/lazy query and two modules; preserve PR945 navigation. Shared Pluto and LAN are untouched."
+}
