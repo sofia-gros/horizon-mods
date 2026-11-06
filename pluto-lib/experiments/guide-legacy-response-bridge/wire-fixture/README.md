@@ -45,3 +45,27 @@ GUIDE_WIRE_BRIDGE for709a's source proposal, then run
 PYTHONDONTWRITEBYTECODE=1 python3 test_wire_source.py -v. The exact source hashes,
 planned named inventory and generated source hashes are saved alongside this
 document; source composition is not Rust execution.
+
+## Bounded preparer (separate source follow-up)
+
+prepare.py adds source-only preparation and strict post-metadata verification.
+It does not launch any subprocess. The outer controller must fetch and verify a
+clean official41f Git checkout and its complete seal, and the exact33-file API
+from cb7909. It owns process groups, cold dependency fetch, the one unlocked
+metadata lock adaptation followed by locked metadata, actual Rust compilation,
+artifact/test inventory and all final file/lock/OUT_DIR/source seals. This script
+alone does not establish those controller requirements.
+
+The manifest has one explicit root/default member; the copied inventory API is
+excluded as a workspace member but remains its real path dependency. It imports
+actual core Text and pins direct serde_json1.0.151/log0.4.34 to official lock
+identities. Original three path patches are retained with confined paths. No
+renderer, Game, assets or Mixins are needed for this value differential. Unknown
+local/registry packages, wrong native owner, member/default drift, altered source,
+symlinks, extra files, duplicate identities and stale receipt fields reject.
+
+Twenty synthetic filesystem/metadata admission checks passed. These use tiny
+synthetic files only to test the preparer's rejection paths. They do not mean a
+real41f fixture has been prepared, Cargo metadata has run, or any of the21 Rust
+cases has compiled/executed. The original ten differential Rust sources and their
+source extraction are unchanged. Actual execution remains separately gated.

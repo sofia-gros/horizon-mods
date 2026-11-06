@@ -1,0 +1,71 @@
+{
+  "api_source_commit": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+  "api_git_blobs": {
+    "Cargo.toml": "004152cd315f34088bbe64d3589ea78ec0dd51eb",
+    "src/advancements.rs": "01c891a6791007b6635a906bc8d86e00bf41ea69",
+    "src/advancements/events.rs": "a9f959564d6c7acf394f5f7e11b204d6ec705c05",
+    "src/advancements/predicates.rs": "358ea1fbcfccf4a811916e855fe64695e32fb54c",
+    "src/advancements/projection.rs": "8928a55a548d7938afa7bbcaf2cb13302467f6c1",
+    "src/advancements/tags.rs": "4d64ee2c46b4f203d1ae31cc0f978bdebf55c74c",
+    "src/armor_wear.rs": "f6ab63b36660e8e6a6515be8639dabf55d3d17e6",
+    "src/blocking.rs": "447d6b9161a07c1baaa589cff8db5fdba336e66d",
+    "src/client_payload.rs": "1c357b5b2ec1a2fc05f31acd20d1d2e0db81f787",
+    "src/crafting.rs": "36129df0ff9483a228648692b8f20f6509276e3e",
+    "src/crafting/ingredients.rs": "fc5735c824fb2995353a5c6b89ec964e8156e1e4",
+    "src/crafting/matching.rs": "13d797532675d78b4260d7b3dbb2375256c3f7e9",
+    "src/crafting/products.rs": "fe8e96d033df37d707a99ae5e42405bb67a8f08a",
+    "src/equipment.rs": "4a2344f511fa95f6e825c343362d991d2fa99782",
+    "src/guide/current_book.rs": "af2624f1d29ef791fb0e4612d229dd444bf97692",
+    "src/guide/document.rs": "1399b58f54a75168bb882bef7f3f3c30212155a5",
+    "src/guide/mod.rs": "05ab31146258f8c0d9c8816afb32af0a145a88dd",
+    "src/guide/requests.rs": "c1b8b7b29d93ad7583f885f7f7686da1346c9210",
+    "src/inventory.rs": "8de10a2345574ca9df79e9b53dfcc8f24165cc73",
+    "src/java_hashmap.rs": "afed33ea36fc33a6294761e7d8f46038e96ebc75",
+    "src/lib.rs": "5c20d25165df9d38fc011d50ea96b4b8ccd2c0be",
+    "src/menu_words.rs": "771ca6fe77334fcb46518ee968465bf10cae54c1",
+    "src/predicate_fold.rs": "eff5c1be8008b5f982f475796f42eb5633f31b66",
+    "src/projection.rs": "03bc283ae528069ce8771fbd1e40d4c1091a6ea3",
+    "src/protection.rs": "2431009ae2898428c81b137f1b41546dacedee66",
+    "src/recipe_book.rs": "d30b5bb59d4c3a5f53940c0c1524de68769f9f04",
+    "src/recipe_book/handoff.rs": "d5fc4b52a957f4b57d8c0461d7a8472f1983feb2",
+    "src/recipe_book/index.rs": "d3e85aef6351926c7018f8bc566466b06afa706e",
+    "src/recipe_book/placement.rs": "d2cd0ec0d08cd86194f2891366645c9ba581713c",
+    "src/recipe_book/presentation.rs": "73be191ac4b025be95f8b5638efc05dc9dd63a6e",
+    "src/recipe_book/preview.rs": "27e9d5cce9807c04b8e87b4c3d0216cb33ca05e6",
+    "src/storage.rs": "d41a33c2e7112de5c58928cbb67859a2bdc0481c",
+    "examples/guide_observer.rs": "dda9575dce071f3eb4564c7c66e51b4fc0f45e6d"
+  },
+  "official_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_git_blobs": {
+    "Cargo.toml": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+    "Cargo.lock": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+    "crates/horizon-client-core/Cargo.toml": "8809a5216455ace851044f69a633e8adaabbc576",
+    "crates/horizon-client-core/src/text.rs": "094f7b2e5e151e1d52aebdfb32a69b44d738628a"
+  },
+  "fixture_name": "pluto-guide-reply-tests",
+  "bridge_source": "709a2b9456cbbed876240fb6de9a93d2f6d6543f",
+  "wire_source": "c5b6d462a654246ce9215498a6c31ddc08286bfe",
+  "fixture_source_sha256": {
+    "prepare.py": "baa93e1d44aa097e3a1c9a93ce62a01a4ebd44ff4f2725002f1235a39a7699a6",
+    "test_prepare.py": "4e65488c4cf68a946937bc9e7924a092b4975753096083ce0e2bd9255f52edde",
+    "render_wire.py": "077fad84e0261670e70235ce707c4e3b105e7a7b10c3c64d327b623689757b79",
+    "regression_tests.rs": "8e268d99320492939bc1b64dc51fa647f4fea4832e19ffef72179b6f4e0ea453",
+    "wire-inputs.json": "efee6133ca863599e217bdd9571b27726314f5c92fced8859d7dda125bc7a8ca",
+    "test_wire_source.py": "40e059335ed32160337f314e0df7c5c37ed2742f330f668941e7983d69e2d5d9",
+    "source-extraction.json": "608ffe3f8717d205b8a30d0754d42869d29d268ce177333aaa6e051bd020615f"
+  },
+  "bridge_source_sha256": {
+    "native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
+    "consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e"
+  },
+  "legacy_paths": {
+    "old_response": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+    "wire": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+    "identity": "tconstruct/mixins/tconstruct/source-materials-book-identity.rs"
+  },
+  "expected_new_tests": 10,
+  "expected_total_inventory": 21,
+  "actual_preparation_executed": false,
+  "metadata_executed": false,
+  "rust_executed": false
+}
