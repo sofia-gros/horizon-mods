@@ -4,6 +4,7 @@ import copy
 import importlib.util
 import tempfile
 import unittest
+from test_cloud_composition_contracts import synthetic
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('cloud_plan', ROOT / 'tools/check_cloud_insertion_plan.py')
@@ -22,19 +23,19 @@ class CloudInsertionPlan(unittest.TestCase):
             path = self.workspace / name; path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('native fixture input ' + name)
             self.meta['official_source_sha256'][name] = GUARD.digest(path.read_bytes())
-        self.plan = {'schema': 6, 'inputs': dict(self.meta['official_source_sha256']),
-            'injections': [], 'states': [], 'modules': []}
+        self.plan, self.composition = synthetic()
+        self.plan['inputs'] = dict(self.meta['official_source_sha256'])
         for module in self.meta['modules']:
-            entry = {key: module[key] for key in ('module_id', 'file', 'name')}
-            entry.update(mod_id='pluto_native_creative',
-                source=(ROOT / 'mixins/pluto_native_creative' / module['source_file']).read_text())
-            if module['visibility'] == 'pub':
-                entry['visibility'] = 'pub'
-            self.plan['modules'].append(entry)
+            entry = next(e for e in self.plan['modules'] if e['module_id'] == module['module_id'])
+            entry['source'] = (ROOT / 'mixins/pluto_native_creative' / module['source_file']).read_text()
+            expected = next(e for e in self.composition['modules'] if e['module_id'] == module['module_id'])
+            expected['source_sha256'] = GUARD.digest(entry['source'].encode())
+            if entry.get('visibility') == 'pub(crate)':
+                entry.pop('visibility')
 
     def check(self, plan=None, meta=None):
         GUARD.check(self.plan if plan is None else plan, self.workspace,
-                    self.meta if meta is None else meta)
+                    self.meta if meta is None else meta, composition=self.composition)
 
     def test_exact_modules_and_omitted_default_visibility_are_accepted(self):
         self.check()
@@ -93,7 +94,7 @@ class CloudInsertionPlan(unittest.TestCase):
 
     def test_other_game_hooks_are_not_blanket_blocked_but_game_state_is(self):
         file = 'crates/horizon-client/src/game.rs'
-        self.plan['injections'].append({'file': file, 'target': "horizon_client::game::Game<'_>::use_tool"})
+        self.plan['injections'].append({'file': file, 'target': "horizon_client::game::Game<'_>::unrelated_draw"})
         self.check()
         for entry in ({'file': file}, {'file': 'elsewhere.rs', 'constructors': [{'file': file}]}):
             plan = copy.deepcopy(self.plan); plan['states'].append(entry)

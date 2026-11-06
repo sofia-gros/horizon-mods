@@ -8,6 +8,14 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import importlib.util
+
+# Load the reviewed sibling, not an ambient sys.path module with the same name.
+_spec = importlib.util.spec_from_file_location('pluto_cloud_composition_contracts',
+    Path(__file__).with_name('cloud_composition_contracts.py'))
+_contracts = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_contracts)
+validate_contracts = _contracts.validate_contracts
 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_ID = 'pluto_native_creative'
@@ -21,7 +29,7 @@ def metadata():
     return json.loads((ROOT / 'tools/cloud-insertion-boundaries.json').read_text())
 
 
-def check(plan, workspace, meta=None, helpers=None):
+def check(plan, workspace, meta=None, helpers=None, composition=None):
     meta = metadata() if meta is None else meta
     helpers = ROOT / 'mixins/pluto_native_creative' if helpers is None else Path(helpers)
     workspace = Path(workspace).resolve()
@@ -33,6 +41,8 @@ def check(plan, workspace, meta=None, helpers=None):
             raise ValueError('Official cloud authority/publication source drift: ' + relative)
         if plan.get('inputs', {}).get(relative) != expected:
             raise ValueError('Cloud plan is not bound to the reviewed official input: ' + relative)
+    composition = json.loads((ROOT / 'tools/cloud-composition-contracts.json').read_text()) if composition is None else composition
+    reviewed = validate_contracts(plan, composition)
     expected_slots = set()
     for required in meta['modules']:
         expected_slots.add((required['file'], required['name']))
@@ -52,6 +62,7 @@ def check(plan, workspace, meta=None, helpers=None):
         helper = (helpers / required['source_file']).read_bytes()
         if digest(helper) != required['source_sha256'] or entry.get('source', '').encode() != helper:
             raise ValueError('Reviewed cloud source differs from actual packaged module: ' + required['name'])
+    expected_slots.update(reviewed['module_slots'])
     exclusive = set(meta['exclusive_files'])
     protected_states = exclusive | set(meta['protected_state_files'])
     prefixes = tuple(meta['protected_target_prefixes'])
@@ -60,8 +71,10 @@ def check(plan, workspace, meta=None, helpers=None):
         if entry.get('file') in exclusive and slot not in expected_slots:
             raise ValueError('Unreviewed module at a private cloud authority boundary')
     for entry in plan.get('injections', []):
-        if entry.get('file') in exclusive or entry.get('target', '').startswith(prefixes):
-            raise ValueError('Hook changes a reserved cloud authority/publication function')
+        if (entry.get('file') in exclusive or entry.get('target', '').startswith(prefixes)
+                or reviewed['protects_hook'](entry)):
+            if reviewed['allows_hook'](entry) is not True:
+                raise ValueError('Hook changes a reserved cloud authority/publication function')
     for entry in plan.get('states', []):
         if entry.get('file') in protected_states or entry.get('target', '').startswith(prefixes):
             raise ValueError('State changes a reserved cloud authority/publication type')
