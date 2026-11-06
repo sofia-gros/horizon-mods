@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only memory topology observation only. No compiler, fixture test, host apply, or native authority is verified.",
+  "diagnostic_check_completed": true,
+  "native_160_status": "not_run",
+  "source_local": "391019eb8ad0e7d3f34b8c03b15b94515f583c82",
+  "source_remote": "9db4f9a26ed45f2d3eb79ca243c5d598fb48293a",
+  "source_tree": "fa1d34c16dbfc5634f23c0d5ff94580f6153cb0a",
+  "source_parent": "392d7017e5ae0daa60391c900a8432fa4a0c8320",
+  "workflow_run": 42183008828,
+  "workflow_job": 127776717424,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42183008828",
+  "conclusion": "failure",
+  "exit_code": 1,
+  "interpretation": "Expected diagnostic-only stop, not a failed or passed native test.",
+  "publication_checks": [
+    {
+      "path": ".github/workflows/outer-tank-wip.yml",
+      "sha": "6110f1d1dde27322d609fe0e44ea2fa7bda2e4c1",
+      "mode": "100644",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/README.md",
+      "sha": "76791045d6ac3c8e67b46d3307cde6c8cc0e9762",
+      "mode": "100644",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/inputs.json",
+      "sha": "60b25ee7dee4788fba213ef80b8e8c04fc3abb97",
+      "mode": "100644",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/preparation.json",
+      "sha": "a03a0fb4cd68924fa0b89eef3a8adac97ea31346",
+      "mode": "100644",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/run.py",
+      "sha": "3a27646a68058fad0e049d55d52d8ba08c16da06",
+      "mode": "100644",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/rustc_gate.py",
+      "sha": "7077451809477a7d47f77aca23f03349d4d04abd",
+      "mode": "100755",
+      "content_equal": true
+    },
+    {
+      "path": "pluto-lib/experiments/outer-tank-ci/test_runner.py",
+      "sha": "6bdf6d7b53781fddaf7918d3e6977c140b877cb5",
+      "mode": "100644",
+      "content_equal": true
+    }
+  ],
+  "receipt": {
+    "error": "RuntimeError: Unverified memory topology: diagnostic-only checkpoint cannot start setup or compilation",
+    "execution_mode": "memory-diagnostic-only",
+    "gates": {},
+    "head": "9db4f9a26ed45f2d3eb79ca243c5d598fb48293a",
+    "memory_preflight_observation": {
+      "admission": "not determined by this observation; guard remains independent",
+      "cgroup2_mounts": [
+        {
+          "filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot",
+          "mount_point": "/sys/fs/cgroup",
+          "options": "rw,nosuid,nodev,noexec,relatime",
+          "root": "/"
+        }
+      ],
+      "host_memory": {
+        "MemAvailable": "15411796 kB",
+        "MemTotal": "16366512 kB"
+      },
+      "self_cgroup": {
+        "text": "0::/system.slice/hosted-compute-agent.service\n"
+      },
+      "visible_ancestors": [
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "497414144\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "1309007872\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"
+            },
+            "cgroup.events": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"
+            },
+            "cgroup.type": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"
+            },
+            "memory.current": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"
+            },
+            "memory.max": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"
+            }
+          },
+          "path": "/sys/fs/cgroup"
+        }
+      ]
+    },
+    "native_started": false,
+    "passed": false,
+    "setup_started": false,
+    "verified": false
+  },
+  "log_readback": {
+    "tool": "github_fetch_workflow_job_logs",
+    "exact_head_checked": true,
+    "setup_step_name": "Observe memory topology without setup or compilation",
+    "checkout_only_before_observation": true,
+    "sha256_utf8": "6a3ecac73069f343a6700bfd3c58b8120326dabf6a18c1e193e7bb44bd2859a2"
+  },
+  "memory_admission": "not established; no guard relaxation or automatic retry authorized"
+}
+
