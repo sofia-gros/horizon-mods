@@ -1,0 +1,146 @@
+{
+  "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "remote_source": "7aaf04c6091b74a6d343137a26aa95069c9b7e7a",
+  "source_tree": "2127bbe9cd8d3f073abdf58153000a56dc70d7fd",
+  "result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 10882441216,
+    "timed_out": false,
+    "elapsed_seconds": 3.4033585019933525,
+    "command": [
+      "python",
+      ".work/java-menu-foundation-proof-20261106/run_api_unit.py"
+    ]
+  },
+  "source_seal": {
+    "exit_code": 0,
+    "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+    "real_source": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api",
+    "unchanged_copy": "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/api-unit-fixture/inventory-api",
+    "api_file_count": 30,
+    "checks": {
+      "all_materialized_source_hashes_before_after": true,
+      "seed_lock_before_after": true,
+      "copy_unchanged": true
+    },
+    "command": [
+      "cargo",
+      "test",
+      "--lib",
+      "--locked",
+      "--offline",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/api-unit-fixture/inventory-api/Cargo.toml"
+    ],
+    "profile": {
+      "CARGO_TARGET_DIR": "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_BUILD_JOBS": "1",
+      "RUSTFLAGS": null,
+      "RUSTC_WRAPPER": "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/rustc_budget_wrapper.py"
+    }
+  },
+  "passed": 125,
+  "failed": 0,
+  "ignored": 0,
+  "actual_rustc_invocations": [
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-vV"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "version_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-",
+        "--crate-name",
+        "___",
+        "--print=file-names",
+        "--crate-type",
+        "bin",
+        "--crate-type",
+        "rlib",
+        "--crate-type",
+        "dylib",
+        "--crate-type",
+        "cdylib",
+        "--crate-type",
+        "staticlib",
+        "--crate-type",
+        "proc-macro",
+        "--print=sysroot",
+        "--print=split-debuginfo",
+        "--print=crate-name",
+        "--print=cfg",
+        "-Wwarnings"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "print_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-vV"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "version_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "--crate-name",
+        "pluto_inventory_api",
+        "--edition=2021",
+        "src/lib.rs",
+        "--error-format=json",
+        "--json=diagnostic-rendered-ansi,artifacts,future-incompat",
+        "--emit=dep-info,link",
+        "-C",
+        "embed-bitcode=no",
+        "--test",
+        "--check-cfg",
+        "cfg(docsrs,test)",
+        "--check-cfg",
+        "cfg(feature, values())",
+        "-C",
+        "metadata=5dec96ebc9b236a0",
+        "-C",
+        "extra-filename=-b7ba4f27806deed3",
+        "--out-dir",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "-C",
+        "strip=debuginfo",
+        "-L",
+        "dependency=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "--extern",
+        "serde_json=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/libserde_json-0a4071db5543ad61.rlib"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/api-unit-fixture/inventory-api",
+      "manifest": "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/api-unit-fixture/inventory-api",
+      "decision": "api_test_compilation"
+    }
+  ],
+  "proof_file_sha256": {
+    "api-unit-result.json": "0b6818682156936d4f8313e89cc5f45d0c7ac9fafe3df08d1eba8f3e055e65d0",
+    "api-unit-source-check.json": "11208e45f7da01bb11598e3394b32bb8ac810ad4e330a32f4d24b77b0f1d9b55",
+    "rustc-invocations.jsonl": "4b2901b518840e7ad677eea02138a7cd519bebbb3724f0e4ade664e315b35e9d",
+    "api-unit-result.log": "438004d1a9e462614285b14c0b8daeb3a2f4f62fa099fb8ae8d95c93e92f6c2f",
+    "run_api_unit.py": "032871ce93dd36d8deb8d1a4a5620856351a57d96712ec8c5e34299e45d261ff",
+    "rustc_budget_wrapper.py": "9dcd4502339bf8f6dce1cbe0318760d9e4d3b8cbbe0bfb3b764b719f634644d9",
+    "guard_api.py": "a9886574dab19880ceca6b6b0f9b434ed70ae62e737a941cf8d29912297880e5"
+  },
+  "limits": [
+    "No combined consumer differential fixture run yet",
+    "No official host plan/apply/type run yet",
+    "No gameplay or production consumer activation"
+  ]
+}

@@ -497,6 +497,14 @@ name = "pluto_guide_text"
 source = "guide-text.rs"
 visibility = "pub"
 
+# Read-only bounded native Font queries; no screen/input/transport hooks.
+[[module]]
+id = "guide-layout"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_guide_layout"
+source = "guide-layout.rs"
+visibility = "pub"
+
 [[module]]
 id = "recipe-book-preview"
 file = "crates/horizon-client/src/game/recipe_book.rs"
@@ -681,3 +689,55 @@ kind = "HEAD"
 cancellable = true
 helper = "station-ingredient-head.rs"
 bindings = [{ name = "value", ty = "&serde_json::Value", value = "v" }, { name = "items", ty = "&Items", value = "items" }]
+
+# Startup-only pure geometry providers; native shading/culling stay native.
+[[module]]
+id = "terrain-cell-providers"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_terrain_cells"
+source = "terrain-cell-providers.rs"
+visibility = "pub"
+
+[[module]]
+id = "terrain-cell-host"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_terrain_cell_host"
+source = "terrain-cell-host.rs"
+
+[[injection]]
+id = "terrain-cell-head"
+target = "horizon_client_render::mesher::Mesher<'_>::mesh_reusing"
+kind = "HEAD"
+priority = -2147483648
+cancellable = true
+helper = "terrain-cell-head.rs"
+bindings = [{ name = "mesher", ty = "&mut Mesher<'_>", value = "self" }, { name = "region", ty = "&[[Option<&Chunk>; 3]; 3]", value = "region" }, { name = "sy", ty = "i32", value = "sy" }, { name = "out", ty = "&mut SectionMesh", value = "&mut out" }, { name = "scratch", ty = "&mut MeshScratch", value = "scratch" }]
+
+[[module]]
+id = "crafting-products"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_products"
+source = "crafting-products.rs"
+visibility = "pub"
+
+# No hook or state: caller explicitly stages an owned book value.
+[[module]]
+id = "recipe-book-presentation"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "pluto_presentation"
+source = "recipe-book-presentation.rs"
+visibility = "pub"
+
+[[module]]
+id = "language"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_language"
+source = "language.rs"
+visibility = "pub"
+
+[[module]]
+id = "language-text"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_language_text"
+source = "language-text.rs"
+visibility = "pub"

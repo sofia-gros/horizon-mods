@@ -43,7 +43,7 @@ supported `ChunkMap` constructor: transient landing context, advancement tag
 snapshots/custom index cache and one-shot saved recipe knowledge. All clear
 with their owning world. They do not
 inject fields into public `StatusFlags` or constructor-free `AdvState` types.
-At the exact `31cf7667` cutoff, the complete packaged declarations, constructor
+At the exact `f5a83539` cutoff, the complete packaged declarations, constructor
 coverage, source guards, application and native lib/bin type-check passed. See
 [the complete-library proof](shared-foundation-validation-20261105.md).
 This does not establish TConstruct landing behavior, tag producer activation or
@@ -74,8 +74,8 @@ placement veto targets, current-book native page-turn composition, and the exact
 private Wire source/declaration and additive reader/comparator modules. Deny-only
 crafting admission and resource-owned terrain preparation also have exclusive,
 source-pinned boundaries in the same preflight. Explicit cloud authority/publication
-and station ingredient parsing add two further checked boundaries, for eleven
-mandatory groups. A failed guard
+and station ingredient parsing add two further checked boundaries. The terrain
+cell dispatch adapter adds a twelfth mandatory source/composition group. A failed guard
 stops before application. Do not validate Pluto in isolation and then append
 consumer bundles to that result.
 

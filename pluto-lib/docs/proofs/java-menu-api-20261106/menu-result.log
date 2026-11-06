@@ -1,0 +1,20 @@
+   Compiling tconstruct-builder-wire-tests v0.1.0 (/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/tconstruct/tests/builder-wire)
+    Finished `test` profile [unoptimized] target(s) in 0.36s
+     Running unittests ../rust/source_builder_wire.rs (.work/official-advancement-recovery/host-target/debug/deps/tconstruct_builder_wire_tests-60344e2d53527a86)
+
+running 11 tests
+test compatibility::empty_field_policy_remains_an_explicit_consumer_choice ... ok
+test compatibility::legacy::tests::material_information_round_trips_with_json_and_unicode ... ok
+test compatibility::legacy::tests::complete_updates_round_trip_and_partial_updates_are_rejected ... ok
+test compatibility::signed_words_utf8_and_noncanonical_padding_stay_exact ... ok
+test compatibility::legacy::tests::station_reason_frames_replace_failures_and_clear_on_success ... ok
+test source_builder_wire::tests::material_information_round_trips_with_json_and_unicode ... ok
+test source_builder_wire::tests::complete_updates_round_trip_and_partial_updates_are_rejected ... ok
+test source_builder_wire::tests::station_reason_frames_replace_failures_and_clear_on_success ... ok
+test compatibility::malformed_frames_preserve_all_7600_legacy_results ... ok
+test compatibility::encoding_and_consumer_results_match_frozen_source ... ok
+test compatibility::declared_length_count_and_byte_limits_preserve_failures ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+

@@ -324,6 +324,9 @@ pub mod advancements;
 /// Non-mutating proposal staging for caller-owned partitioned storage.
 pub mod storage;
 
+/// Public inventory planning and proposal entry points; existing types and owners.
+pub mod inventory;
+
 /// Host-independent read-only raised-item block events.
 pub mod blocking;
 
@@ -349,3 +352,12 @@ pub mod client_payload;
 
 /// Deny-only native crafting admission without output or inventory authority.
 pub mod crafting;
+
+/// Ordered lazy three-valued predicate folds, without schema or leaf policy.
+pub mod predicate_fold;
+
+/// Opt-in Java linked-bin ordering compatibility, without resource policy.
+pub mod java_hashmap;
+
+/// Pure bounded string-list framing for signed menu-data words.
+pub mod menu_words;

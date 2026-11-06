@@ -58,3 +58,36 @@ pub(super) fn pickup_all_ordered(
     }
     cursor.count!=before
 }
+
+use crate::consumer::{ChestKind, insert_slot};
+
+pub(super) fn pickup_slot(
+    kind: ChestKind, slots: &mut [Option<horizon_items::items::ItemStack>],
+    slot: usize, carried: &mut Option<horizon_items::items::ItemStack>,
+    right: bool, item_limit: u32, tagged_part: bool,
+) -> bool {
+    if slots.len() != kind.slots() || slot >= slots.len() { return false; }
+    let Some(mut cursor) = carried.take() else {
+        let Some(mut existing) = slots[slot].take() else { return false; };
+        if right && existing.count > 1 {
+            let count = existing.count.div_ceil(2);
+            let mut taken = existing.clone(); taken.count = count;
+            existing.count -= count; slots[slot] = Some(existing); *carried = Some(taken);
+        } else { *carried = Some(existing); }
+        return true;
+    };
+    if slots[slot].as_ref().is_some_and(|existing| !existing.same_item_same_components(&cursor)) {
+        let first = slots.iter().position(|current| current.as_ref().is_some_and(|s| s.same_item_same_components(&cursor)));
+        if !kind.accepts(slot, first, tagged_part) || cursor.count > kind.slot_limit(item_limit) { *carried = Some(cursor); return false; }
+        *carried = slots[slot].replace(cursor);
+        return true;
+    }
+    let requested = if right { 1 } else { cursor.count };
+    let mut offered = cursor.clone(); offered.count = requested;
+    let remainder = insert_slot(kind, slots, slot, offered, item_limit, tagged_part);
+    let unmoved = remainder.map_or(0, |stack| stack.count);
+    let moved = requested - unmoved;
+    cursor.count -= moved;
+    if cursor.count != 0 { *carried = Some(cursor); }
+    moved != 0
+}

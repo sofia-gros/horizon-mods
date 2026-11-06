@@ -1,0 +1,55 @@
+{
+  "source_cutoff": "831b92ff5ac523344761edb69b08dd7090b1743b",
+  "production_source_cutoff": "4e2e3f96d450c49cdbfdcc1dfae1da7ea7195b32",
+  "production_module_sha256": "47015d67867a5ef2e90bc9481cfbdd36ebc1d8b8540d446b2a87044cd573d1d6",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "scope": "Bounded actual ItemStack/NBT fixture with the real single inventory API crate, additive ordered insertion, frozen old helper bodies, and prior plain-cell regressions. No production consumer migration.",
+  "result": "passed",
+  "rust_tests_passed": 39,
+  "rust_tests_failed": 0,
+  "source_guards_passed": 4,
+  "new_ordered_insertion_tests": 6,
+  "new_positive_comparisons": {
+    "give_inventory": 1920,
+    "quick_move_player": 1280,
+    "total": 3200
+  },
+  "new_boundary_tests": [
+    "distinct orders, duplicates, absent indexes and disabled merges",
+    "preflight malformed-value refusal with no mutation or equality calls",
+    "receiving opaque identity controlled by supplied comparison",
+    "explicit unadopted zero-count legacy difference"
+  ],
+  "prior_tests_repeated": 33,
+  "prior_comparisons_repeated": 9572,
+  "total_comparisons_this_fixture": 12772,
+  "full_tracked_source_files_unchanged": 6597,
+  "full_source_seal_sha256": "99365413ed09badc9ea8fc3ed620b8c3fca82103387c27ff624124605c317579",
+  "log_path": "/tmp/pluto-ordered-insertion-final-20261106.log",
+  "log_sha256": "0e2a416a12da2b05b40c25caea38b40b8d459f2c491da088a6dae9d553948811",
+  "official_tracked_source_clean": true,
+  "locked_official_dependency_identity_verified_before_and_after": true,
+  "production_consumers_unchanged": true,
+  "native_profile": {
+    "jobs": 2,
+    "debug": 0,
+    "incremental": false
+  },
+  "disk_guard_bytes": 10871635968,
+  "disk_guard_stopped": false,
+  "minimum_free_bytes": 10898489344,
+  "free_bytes_after": 10899779584,
+  "prior_compile_failures_preserved": [
+    "ordered-insertion-first-attempt-20261106.json",
+    "ordered-insertion-second-attempt-20261106.json"
+  ],
+  "not_verified": [
+    "Full updated Pluto native package plan/apply/check",
+    "Production consumer adoption",
+    "Complete TConstruct bundle",
+    "Live native menu dispatch",
+    "Storage save/reload",
+    "LAN synchronization"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "status": "combined_focused_and_official_plan_pass_apply_type_pending",
+  "base": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "java_local": "544419e72f65abe20180a24f4d82ee69886620f4",
+  "menu_local": "7420531890068474c189424b44f2da9a6e2f60b1",
+  "changed_paths": [
+    ".github/workflows/mixins.yml",
+    "pluto-lib/docs/java-hashmap-compatibility.md",
+    "pluto-lib/docs/java-hashmap-validation-20261106.json",
+    "pluto-lib/docs/menu-word-framing.md",
+    "pluto-lib/docs/menu-word-validation-20261106.json",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs",
+    "pluto-lib/tests/java-hashmap/Cargo.lock",
+    "pluto-lib/tests/java-hashmap/Cargo.toml",
+    "pluto-lib/tests/java-hashmap/legacy_recipe_order.rs",
+    "pluto-lib/tests/java-hashmap/provenance.json",
+    "pluto-lib/tests/java-hashmap/src/lib.rs",
+    "pluto-lib/tests/test_java_hashmap.py",
+    "pluto-lib/tests/test_menu_words.py",
+    "tconstruct/mixins/tconstruct/recipe-order.rs",
+    "tconstruct/mixins/tconstruct/source-builder-wire.rs",
+    "tconstruct/tests/builder-wire/Cargo.lock",
+    "tconstruct/tests/builder-wire/Cargo.toml",
+    "tconstruct/tests/builder-wire/compatibility.rs",
+    "tconstruct/tests/builder-wire/legacy_codec.rs",
+    "tconstruct/tests/builder-wire/provenance.json",
+    "tconstruct/tests/recipe-order/Cargo.lock",
+    "tconstruct/tests/recipe-order/Cargo.toml",
+    "tconstruct/tests/rust/recipe_order_dump.rs",
+    "tconstruct/tests/rust/source_builder_wire.rs",
+    "tconstruct/tools/verify_recipe_order.py"
+  ],
+  "changed_path_count": 27,
+  "only_overlap": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+  "runtime_modules_byte_exact": true,
+  "manual_ci_checkpoint_imported": false,
+  "automatic_crafting_added": false,
+  "workflow_change_only_existing_test_command": true,
+  "exact_runtime_source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "api_unit": {
+    "passed": 125,
+    "failed": 0,
+    "ignored": 0,
+    "compiler_invocations": 1,
+    "dependency_compilations": 0,
+    "minimum_free_bytes": 10882441216,
+    "receipt": "proofs/java-menu-api-20261106/receipt.json"
+  },
+  "consumer_fixture_retests": {
+    "java": "pass",
+    "menu": "pass"
+  },
+  "complete_native_gate": "plan_and_guards_passed_apply_and_typecheck_not_run",
+  "java_consumer": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "api_library_compilations": 1,
+    "consumer_test_compilations": 1,
+    "minimum_free_bytes": 10886770688,
+    "receipt": "proofs/java-menu-api-20261106/java-receipt.json"
+  },
+  "menu_consumer": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "api_library_compilations": 0,
+    "consumer_test_compilations": 1,
+    "minimum_free_bytes": 10885468160,
+    "receipt": "proofs/java-menu-api-20261106/menu-receipt.json"
+  },
+  "focused_rust_total": 144,
+  "package_plan": {
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "archive_sha256": "5adf8885829c7665a01f477099cb0e0125362e1bc12cf20d1536726e999b09ce",
+    "guards_passed": 12,
+    "plan_sha256": "caa249909e9ecb47ba3c9ea0bb7695e18aad9e62beaee802cb5b75927475cff8",
+    "receipt": "proofs/java-menu-api-20261106/package-plan-receipt.json"
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "branch": "integration/tinkers-latest-playtest-20261106",
+  "stage": "foundation assembled; not yet runnable",
+  "requested_target": {
+    "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "platform": "Windows 11 x64"
+  },
+  "main_unchanged": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "composition": {
+    "base": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+    "left": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+    "right": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+    "method": "Three-way merge of exact Git blob type, mode and SHA for every file. If only one side differs from the common base, retain that side. Identical changes coalesce. Divergent changes stop for review.",
+    "conflicts": [],
+    "source_files": 6749
+  },
+  "included": [
+    "PR #944 shared-foundation source and TConstruct migrations",
+    "PR #945 navigation/control changes, including preserved LAN behavior",
+    "Later common035273 ordinary library and consumer source changes"
+  ],
+  "pending": [
+    {
+      "subject": "Guide lazy text, stable BookId and modifier anchors",
+      "source": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "reason": "Merge two overlapping consumer files with PR #945 navigation before adoption."
+    },
+    {
+      "subject": "Latest mining and chest-pick compatibility",
+      "mining": "b78ee288d7627e1be1c046db73541fab1d40c249",
+      "chest": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+      "probe": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
+      "reason": "Prior full646 base was main08afa, not this PR945 composition. Preserve new shared/store policies and revalidate exact full payload inverse and latest plan."
+    },
+    {
+      "subject": "Latest terrain plan observations",
+      "source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
+      "reason": "Observation-only collector; no latest complete plan or guard approval yet."
+    },
+    {
+      "subject": "Guide LAN response",
+      "reason": "Existing response/observer composition conflict remains. Internal compatibility bridge is in preparation; no feature is silently removed."
+    },
+    {
+      "subject": "Crafting composition",
+      "reason": "Existing policy hooks require distinct matching-veto, output/remainder and placement authority review."
+    },
+    {
+      "subject": "Latest whole-source guard pins",
+      "reason": "41f source differences require per-boundary review and real plan identity, not blind hash replacement."
+    }
+  ],
+  "excluded_activation": [
+    "Retained/owned Guide native-storage experiments",
+    "Item-name removal/default ownership experiments",
+    "Locale overlay repair and root-key experiments",
+    "Terrain optimization/profile/reload experiments",
+    "Unexecuted Font generation query changes"
+  ],
+  "evidence": {
+    "latest_prior_full_probe": {
+      "source": "74fc9a53e4bde161f326bbd16710b625f86716e6",
+      "proof": "5db8371b1018355c9686e5e801c76900cabd5750",
+      "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "result": "Rejected at tinkers-chest-pick-color; different composition from this branch"
+    },
+    "gates": {
+      "git_blob_composition": "passed",
+      "complete_latest_plan": "not run on this branch",
+      "composition_guards": "not passed on this branch",
+      "native_build": "not run on this branch",
+      "windows_link": "not run",
+      "game_start": "not run",
+      "gpu_or_lan": "not verified"
+    }
+  },
+  "safety": {
+    "main_and_existing_prs_unchanged": true,
+    "no_horizon_fork_access": true,
+    "minimum_free_bytes": 10737418240,
+    "existing_stronger_floors_preserved": true,
+    "experiments_not_automatically_enabled": true
+  },
+  "next": "The same integration branch will receive reviewed latest deltas and build evidence. An executable or launcher-ready release is not claimed."
+}

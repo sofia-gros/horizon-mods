@@ -1,0 +1,171 @@
+{
+  "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "remote_runtime": "7aaf04c6091b74a6d343137a26aa95069c9b7e7a",
+  "result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 10886770688,
+    "timed_out": false,
+    "elapsed_seconds": 2.604700373005471,
+    "command": [
+      "python",
+      ".work/java-menu-foundation-proof-20261106/run_consumer.py",
+      "java"
+    ]
+  },
+  "source_seal": {
+    "family": "java",
+    "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+    "cargo_exit_code": 0,
+    "strict_success": true,
+    "source_api_seed_seals_unchanged": true,
+    "real_manifest_path": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/tests/java-hashmap/Cargo.toml",
+    "real_api_path": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api",
+    "command": [
+      "cargo",
+      "test",
+      "--lib",
+      "--locked",
+      "--offline",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/tests/java-hashmap/Cargo.toml"
+    ]
+  },
+  "actual_rustc_invocations": [
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-vV"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "version_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-",
+        "--crate-name",
+        "___",
+        "--print=file-names",
+        "--crate-type",
+        "bin",
+        "--crate-type",
+        "rlib",
+        "--crate-type",
+        "dylib",
+        "--crate-type",
+        "cdylib",
+        "--crate-type",
+        "staticlib",
+        "--crate-type",
+        "proc-macro",
+        "--print=sysroot",
+        "--print=split-debuginfo",
+        "--print=crate-name",
+        "--print=cfg",
+        "-Wwarnings"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "print_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "-vV"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393",
+      "manifest": null,
+      "decision": "version_query"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "--crate-name",
+        "pluto_inventory_api",
+        "--edition=2021",
+        "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+        "--error-format=json",
+        "--json=diagnostic-rendered-ansi,artifacts,future-incompat",
+        "--crate-type",
+        "lib",
+        "--emit=dep-info,metadata,link",
+        "-C",
+        "embed-bitcode=no",
+        "--check-cfg",
+        "cfg(docsrs,test)",
+        "--check-cfg",
+        "cfg(feature, values())",
+        "-C",
+        "metadata=cc267e2cb845adae",
+        "-C",
+        "extra-filename=-1bb2b278d4d89e5f",
+        "--out-dir",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "-C",
+        "strip=debuginfo",
+        "-L",
+        "dependency=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "--extern",
+        "serde_json=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/libserde_json-0a4071db5543ad61.rmeta"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api",
+      "manifest": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api",
+      "decision": "api_library_compilation"
+    },
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "--crate-name",
+        "pluto_java_hashmap_tests",
+        "--edition=2021",
+        "src/lib.rs",
+        "--error-format=json",
+        "--json=diagnostic-rendered-ansi,artifacts,future-incompat",
+        "--emit=dep-info,link",
+        "-C",
+        "embed-bitcode=no",
+        "--test",
+        "--check-cfg",
+        "cfg(docsrs,test)",
+        "--check-cfg",
+        "cfg(feature, values())",
+        "-C",
+        "metadata=8bb0af9312f6baa7",
+        "-C",
+        "extra-filename=-2b6ca2cfb872c022",
+        "--out-dir",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "-C",
+        "strip=debuginfo",
+        "-L",
+        "dependency=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "--extern",
+        "pluto_inventory_api=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/libpluto_inventory_api-1bb2b278d4d89e5f.rlib"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/tests/java-hashmap",
+      "manifest": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/tests/java-hashmap",
+      "decision": "consumer_test_compilation"
+    }
+  ],
+  "proof_file_sha256": {
+    "java-result.json": "20abd25bd52a6a84860e0d22e189e438060f887b678b1196c7bd4b7930b78317",
+    "java-source-check.json": "5e437c20fd6f0b6c873b961271b20301e64e3b0ec75d8d7b9cd7b32ee629e601",
+    "java-rustc-invocations.jsonl": "f1bed67180baf9c75a420984bdb1f3db40814349f4820cde96541dde75987e7e",
+    "java-result.log": "ff93af23f36fa332f0ff1272c360179850506c6ad7cc57829b578d5011ed3c38",
+    "run_consumer.py": "f3abe422b734e521bdc6437052f492d09dee264df5b6aa378c582ef582c70eeb",
+    "rustc_consumer_wrapper.py": "cd1e0a6d762959ca2ce1ff1474c7641f0a6d303ec2f9ac186f8db80f220866d4",
+    "guard_consumer.py": "0e3278948079b9ac4821cf361a1ffa53c50a460c8eac3dde48755101b8a0a871"
+  },
+  "tests": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0
+  },
+  "limitations": [
+    "Frozen Rust oracle comparison; no live Java execution",
+    "Menu consumer not yet rerun",
+    "No combined official native host gate or gameplay proof"
+  ]
+}

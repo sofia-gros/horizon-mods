@@ -1,0 +1,115 @@
+{
+  "file": "crates/horizon-client-render/src/mesher.rs",
+  "file_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+  "start": "    pub fn mesh_reusing(\n",
+  "end": "    /// `BlockColors` tint source",
+  "function_sha256": "5cbeb23de61b6cf8092a436c7eb2cea410fb9fba7b71c5fa08669d30c54b739f",
+  "changes": [
+    {
+      "old": "        scratch: &mut MeshScratch,\n",
+      "new": "        scratch: &mut MeshScratch,\n        bindings: &bindings::Catalog,\n        providers: &std::collections::BTreeMap<String, api::RegisteredProvider>,\n        materials: &super::pluto_terrain_binding_host::Materials,\n        invalid: &mut bool,\n"
+    },
+    {
+      "old": "        out.clear();",
+      "new": "        let mut budget = api::Budget::default();\n        out.clear();"
+    },
+    {
+      "old": "                    let connected = &mesher.render.connected;",
+      "new": "                    match emit(mesher, pad, &mut tints, &mut out, [x, y, z], origin,\n                        &models, ao, (id, state), world, interior_leaf, &visible,\n                        bindings, providers, &mut budget, materials) {\n                        Emission::Native => {},\n                        Emission::Emitted => continue,\n                        Emission::Invalid => { *invalid = true; return out; },\n                    }\n                    let connected = &mesher.render.connected;"
+    }
+  ],
+  "face_start": "                            if face.quad.cull.is_some_and",
+  "face_end": "                        }\n                    }\n                }",
+  "target": "horizon_client_render::mesher::Mesher<'_>::mesh_reusing",
+  "injection_id": "terrain-cell-head",
+  "function_fingerprint": "9d7573393aca97ab7afc1a96c71c30262cc9d18f45c3e35e3379ae771c97f0ce",
+  "location": {
+    "file": "crates/horizon-client-render/src/mesher.rs",
+    "node": [
+      76,
+      1
+    ]
+  },
+  "bindings": [
+    {
+      "name": "mesher",
+      "ty": "&mut Mesher<'_>",
+      "value": "self"
+    },
+    {
+      "name": "region",
+      "ty": "&[[Option<&Chunk>; 3]; 3]",
+      "value": "region"
+    },
+    {
+      "name": "sy",
+      "ty": "i32",
+      "value": "sy"
+    },
+    {
+      "name": "out",
+      "ty": "&mut SectionMesh",
+      "value": "&mut out"
+    },
+    {
+      "name": "scratch",
+      "ty": "&mut MeshScratch",
+      "value": "scratch"
+    }
+  ],
+  "kind": "HEAD",
+  "cancellable": true,
+  "priority": -2147483648,
+  "helper_sha256": "a8bddde88b0daa5a8f0e61632f5918bca4221bfcfc7319a2c39eb0d04e72f09c",
+  "source_sha256": {
+    "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+    "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+    "crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+    "crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+    "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+    "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
+  },
+  "modules": [
+    {
+      "module_id": "terrain-bindings",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_bindings",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-bindings.rs",
+      "sha256": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c"
+    },
+    {
+      "module_id": "terrain-binding-host",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_binding_host",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-binding-host.rs",
+      "sha256": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4"
+    },
+    {
+      "module_id": "terrain-cell-geometry",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_cell_geometry",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-cell-geometry.rs",
+      "sha256": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994"
+    },
+    {
+      "module_id": "terrain-cell-providers",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_cells",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-cell-providers.rs",
+      "sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
+    },
+    {
+      "module_id": "terrain-cell-host",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_cell_host",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-cell-host.rs",
+      "sha256": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4"
+    }
+  ]
+}

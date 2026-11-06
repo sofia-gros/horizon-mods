@@ -1,0 +1,19 @@
+# Negative capability probe only. Never include this module in a shipped package.
+[mod]
+id = "pluto_effect_state_probe"
+version = "0.0.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[state]]
+id = "owned-curatives"
+target = "horizon_client_render::effects::EffectInstance"
+ty = "Option<Vec<String>>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client_render::effects::EffectInstance::new"
+selector = "Self"
+require = 1

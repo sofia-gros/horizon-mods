@@ -216,6 +216,11 @@ schema, aliases, raw-slot rules and authoritative commit policy.
 
 ## Stage changes across storage partitions
 
+For pickup, take and ordered collection on explicitly borrowed native stack
+cells, see [plain inventory cell operations](plain-stack-cells.md). Those
+operations retain caller-supplied admission, limits and merge policy; they do
+not provide native menu hooks, storage authority, saving or synchronization.
+
 `pluto_inventory::storage::stage_updates(changes, partition_key, load_copy,
 apply_to_copy)` returns a sorted map of staged proposals only after all changes
 succeed. Changes run in their supplied order and each partition is loaded once.

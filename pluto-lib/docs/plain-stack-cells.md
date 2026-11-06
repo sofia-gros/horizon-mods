@@ -84,8 +84,8 @@ NBT tests. The six boundary tests include the 3,058 differential comparisons
 above. All 6,586 tracked source hashes and strict official dependency identities
 were unchanged after execution. The continuous disk guard did not stop; minimum
 free space was 11,053,699,072 bytes. See the [machine-readable receipt](plain-stack-cells-validation-20261106.json).
-The separate source/package guard suite passed three checks. A complete packaged
-plan/apply/type-check has not yet been recorded for this additive slice.
+The separate source/package guard suite passed three checks. At that initial
+cutoff, the complete package gate was pending; the later v13 result is recorded below.
 
 
 ## Narrow consumer adoption gate
@@ -106,6 +106,98 @@ guards also passed. See the [adoption receipt](plain-stack-cells-adoption-valida
 Before that final run, the unsupported `//!` support-module header was corrected
 to ordinary comments and checked by the native package's generic header guard.
 The first `538c0fa4` fixture result remains evidence only for its earlier bytes;
-it never proved official package planning. The final adapter still needs its
-complete native-package integration gate. There is no live native-menu, save or
+it never proved official package planning. The corrected adapter subsequently passed the complete v13 native-package
+integration gate described below. There is no live native-menu, save or
 LAN proof.
+
+
+## Additional policy-preserving chest pickup delegation
+
+A separate post-v13 source delta delegates `pickup_slot` to the same API. The
+consumer still checks exact ChestKind length and index, first-equal/parts-tag
+admission for incoming stacks, and its effective capped slot limit. Taking with
+an empty cursor deliberately bypasses part admission, as before. The shared
+module, four caller files, native notification order and all other source helper
+bodies are unchanged.
+
+The original `pickup_slot` body is added to the immutable oracle. The source
+guard reconstructs the entire original file using all four frozen bodies, so the
+remaining consumer policy cannot accidentally drift. A new 3,456-case native
+matrix covers all three chest kinds, tagged/untagged incoming stacks, a matching
+stack in another slot, limits, left/right clicks, empty cursor, opaque metadata
+and large counts. Invalid shapes and malformed values are tested separately.
+The exact native fixture rerun at `acd47001` passed 33 tests, including
+all 3,456 new cases and the earlier 3,058 cases, for 9,572 total comparisons.
+The original source reconstruction, four unchanged caller files, official lock
+and path identities, and all 6,591 tracked source hashes passed. Minimum free
+space was 10,976,231,424 bytes; the disk guard did not stop. See the
+[separate pickup delegation receipt](chest-pickup-delegation-validation-20261106.json).
+This new proof is separate from the earlier 31-test receipt and v13 library
+package gate; it still does not execute native Game/Hub or whole-mod behavior.
+
+
+## Complete library package gate
+
+The corrected plain-cell module is included in the complete Pluto library at
+`31cf76672d3a7b982aebab86a91a78440afd163e`, package SHA-256
+`20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5`.
+The packaged module bytes match the tested `f2b2cb17` source exactly. Inspection
+of the sealed applied module found only formatter-added trailing commas after
+removing comments/whitespace; all remaining text matched. All 11 guards, native
+plan, apply, and client library/binary checks passed. The 193-check source suite
+includes 43 fluid and 115 inventory API tests, not additional disjoint counts.
+
+The completed 5,045-file stage was fully archived as tar.xz, with every file hash
+read back and exact mtime-ns preserved before its unused working copy was
+removed. This recovered 100,995,072 bytes without deleting shared compiled
+caches. See the [complete-package receipt](plain-stack-cells-v13-validation-20261106.json).
+The focused 31-test consumer proof and this full library composition proof remain
+separate. Neither proves the complete TConstruct package, live gameplay, saved
+world reload, LAN synchronization, or the later pickup_slot source delta.
+
+## Additive ordered insertion (focused validation)
+
+The subsequent source-only `insert_ordered` addition visits caller-specified
+occupied cells first, then caller-specified empty cells. Its merge and empty
+orders are independent; an empty merge order disables merging. It reuses
+`pluto-inventory-api::plan_between` for each quantity rather than defining
+another arithmetic planner. The caller provides the resolved limit and
+`same(receiving, incoming)` merge policy. Missing indexes are ignored and
+duplicates remain visits. The uninserted remainder stays in the borrowed input.
+
+Like the other plain-cell operations, this API rejects zero limit, zero input
+count and zero-count cells named in either order before mutation or equality
+calls. Unlisted cells are not inspected. This is a new explicit API contract,
+not a change to existing consumers: `source_give_inventory` and
+`source_quick_move_player` remain byte-for-byte unchanged. In particular, the
+former's legacy zero-count behavior differs and must not be called parity.
+
+The native fixture freezes both old helpers unchanged and adds 1,920
+positive give cases and 1,280 positive quick-move cases, plus distinct orders,
+duplicates, missing indexes, disabled merges, retained-wire policy, overflow
+limits and separately named malformed-input cases. At exact source `831b92ff`, all 39 tests passed, including the 3,200 new
+positive comparisons and four new boundary tests. The production adapter is
+byte-identical to `4e2e3f96`; only test accessors and failure documentation changed
+between those cutoffs. Earlier fixture/package receipts do not cover this addition.
+No consumer migration, native dispatch, save/sync authority or registry is added.
+
+The first ordered-insertion attempt at `4e2e3f96` stopped during test
+compilation: the new opaque-policy regression used `data` instead of the
+actual native `data()` accessor. No Rust tests executed. The correction changes
+only that test accessor; the production adapter and consumers are unchanged.
+See the [failed-attempt receipt](ordered-insertion-first-attempt-20261106.json).
+This failed cutoff is not relabelled by the later successful rerun.
+
+The second attempt at `e006dced` also stopped before tests: `data()` returns
+`Option<&StackData>`. Native source inspection confirmed both optional return
+types; the next test-only correction uses the existing adapter pattern
+`data().and_then(|data| data.wire.patch())`. Its
+[separate failure receipt](ordered-insertion-second-attempt-20261106.json)
+retains that outcome. Production code remains unchanged.
+
+The final [ordered-insertion receipt](ordered-insertion-validation-20261106.json)
+records all 39 passing tests, 12,772 total comparisons including repeated prior
+coverage, four source guards, strict official dependency identity and all 6,597
+unchanged tracked source files. Minimum disk space was 10,898,489,344 bytes;
+the usual guard did not stop. The updated complete native package and consumer
+adoption still need their own gates. No live-menu, save or LAN proof is claimed.

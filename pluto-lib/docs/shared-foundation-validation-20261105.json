@@ -1,27 +1,27 @@
 {
-  "mod_head": "31cf76672d3a7b982aebab86a91a78440afd163e",
+  "mod_head": "f5a83539525c26fd2142e26e43789a3dd0107033",
   "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
-  "archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
-  "scope": "Complete Pluto library with synchronous explicit immersion-height kernel, immutable curative policy values and borrowed plain stack-cell mechanics. No native effect-instance attachment or contact hook; three old consumer helper wrappers delegate mechanically with explicit malformed-zero rejection.",
+  "archive_sha256": "7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386",
+  "scope": "Complete ordinary library official apply and cached host lib/bin check; not full consumer or renderer CPU execution.",
   "counts": {
     "crate": 2,
-    "module": 62,
-    "injection": 33,
+    "module": 66,
+    "injection": 34,
     "state": 3
   },
   "exit_code": 0,
   "disk_guard_stopped": false,
-  "minimum_free_bytes": 10905317376,
+  "minimum_free_bytes": 10888589312,
   "plan": {
     "bridges": 0,
     "crates": 2,
     "data": 0,
-    "injections": 33,
-    "modules": 62,
-    "plan": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v13/plan.json",
+    "injections": 34,
+    "modules": 66,
+    "plan": "/tmp/pluto-v15-plan-20261106/plan.json",
     "post_build": 0,
-    "seconds": 23.863420446,
+    "seconds": 23.384923625,
     "states": 3,
     "status": "ok"
   },
@@ -29,29 +29,34 @@
     "bridges": 0,
     "crates": 2,
     "data": 0,
-    "injections": 33,
-    "modules": 62,
+    "injections": 34,
+    "modules": 66,
     "post_build": 0,
-    "seconds": 24.634006935,
-    "stage": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+    "seconds": 24.81353863,
+    "stage": "/tmp/pluto-v15-host-proof-20261106/staged",
     "stage_changed": true,
     "states": 3,
     "status": "ok",
-    "transformation_seconds": 24.633999093
+    "transformation_seconds": 24.813529767
   },
-  "native_complete_plan_preflight": "Passed all eleven groups: protection, advancement, damage callers, client payload, recipe placement, current book, retained Wire, crafting match, terrain binding preparation, cloud insertion and station ingredient parsing.",
+  "native_complete_plan_preflight": "Passed all twelve groups: protection, advancement, damage callers, client payload, recipe placement, current book, retained Wire, crafting match, terrain binding preparation, cloud insertion, station ingredient parsing and terrain cell dispatch.",
   "host_check": {
     "passed": true,
-    "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
-    "profile": "dev debug=0, incremental=0, jobs=2",
-    "duration_reported": "1m 12s"
+    "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features -vv",
+    "profile": "dev debug=0, incremental=0, jobs=1",
+    "seconds": 83.44788947599591,
+    "duration_reported": "1m 23s",
+    "cache_evidence": "Actual changed inventory API and client-lib plus host lib/bin rustc commands required; logical package/source IDs and native generated input hashes checked."
   },
   "api_source_checks": {
-    "python_checks": 193,
+    "python_checks": 215,
     "included_actual_fluid_api_tests": 43,
-    "included_actual_inventory_api_tests": 115,
-    "mod_head": "31cf76672d3a7b982aebab86a91a78440afd163e",
-    "scope": "Python checks include both complete real API crates under standalone locks with identical pinned registry package identities. Counts are not all distinct runtime cases."
+    "included_actual_inventory_api_tests": 125,
+    "insertion_composition_guards": 8,
+    "predicate_fold_fixture_tests": 4,
+    "predicate_comparisons": 6558,
+    "mod_head": "f5a83539525c26fd2142e26e43789a3dd0107033",
+    "scope": "Nested and focused counts overlap. Full real API tests use locked registry identities; fold tests compare result and visitation, not complete parser/gameplay behavior."
   },
   "supporting_proofs": [
     {
@@ -237,6 +242,45 @@
       "valid_differential_comparisons": 6116,
       "report": "plain-stack-cells-adoption-validation-20261106.json",
       "scope": "Actual native ItemStack/old helper reference: 3058 valid cases compared through direct API and delegated wrappers. Malformed zero-count/limit rejection is a deliberate separate correction; four callers unchanged. Not live Game/LAN/menu or notification proof."
+    },
+    {
+      "mod_head": "d63a7c8effcd3fa52b956141317a357a07f6780f",
+      "std_tests": 17,
+      "python_checks": 19,
+      "report": "terrain-cell-adapter-validation.json",
+      "scope": "Exact copied-body regeneration, bounded dispatch contract, actual full library plan/apply/type proof. No registered consumer provider, real CPU equivalence/timing or GPU proof."
+    },
+    {
+      "mod_head": "5403720990fdef9560dbe80695f94f42da0e5a89",
+      "test_correction": "46984bd227d073b8cd299406af6a5c610c857f45",
+      "native_tests": 15,
+      "api_tests": 80,
+      "report": "crafting-products-validation-20261106.json",
+      "scope": "Explicit staged output/remainder pair with actual native clones/codecs, test-only source policy and independent example. No automatic crafting hooks, consumption transaction or live menu/world authority."
+    },
+    {
+      "mod_head": "0d67efc71cd65c0727f66ab2cc9b170c22e5c355",
+      "native_font_tests": 8,
+      "converter_tests": 3,
+      "report": "guide-font-layout-validation.json",
+      "scope": "Actual Font::metrics with original synthetic provider and production adapter. Logical hit facts only; no rendered bidi/input/UI/resource lifetime proof."
+    },
+    {
+      "mod_head": "acd47001057e5bfa81d3634bd1112badc4d92119",
+      "runtime_delta": "e509f6501b87c58207a31cbb2a05df705bd9d7cf",
+      "native_tests": 33,
+      "valid_cases": 6514,
+      "differential_comparisons": 9572,
+      "report": "chest-pickup-delegation-validation-20261106.json",
+      "scope": "Actual pickup_slot delegation retains local ChestKind admission/order/limits. Malformed rejection remains an explicit correction, not exact legacy parity; no live Game/LAN proof."
+    },
+    {
+      "mod_head": "831b92ff5ac523344761edb69b08dd7090b1743b",
+      "scope": "39 native plain-cell tests with 3,200 new ordered insertion comparisons. Original consumers unchanged; two prior fixture compilation failures are preserved."
+    },
+    {
+      "mod_head": "3c5f56e2",
+      "scope": "Four real-API fixture tests with 6,558 predicate-fold result/visitation comparisons, rerun centrally. Five existing caller bodies delegate; strict station predicates unchanged."
     }
   ],
   "limits": [
@@ -252,11 +296,13 @@
     "Current-book private projection/audio tests remain unrun. Native fluid sampling passed against explicit minimal generated resources; production assets, Game-wrapper runtime and gameplay remain unproved.",
     "Terrain bindings are immutable derived preparation facts, not custom-fluid mesh generation. Current-revision checks are point-in-time; read callbacks cannot publish side effects and rely on rollback.",
     "The explicit insertion capability checks actual native Ready/server role and level/entity lookup before publication, but no consumer activates it. Entity presence does not prove action causation or permission. Four new private lifecycle/insertion helper tests and two existing factory tests remain unrun; type-check is not live insertion proof.",
-    "Fixed-size terrain geometry has no native mesher dispatch or old-model suppression. Caller visibility, family, lighting and render-pass policy remain outside this primitive.",
     "The isolated guide lifetime experiment passed its own library-plus-experiment plan/apply/type proof and pure tests, but remains excluded from the ordinary native package; live client activation, screen ownership and delayed network updates were not proved.",
     "RequestTracker supplies only explicit caller-owned, in-process correlation. Callers must separately prove native lifetime/ownership and semantic validity. No native invalidation, screen update, transport or payload envelope was activated.",
     "Plain-cell helpers operate only on caller-borrowed cells and explicit merge equivalence/limits. They run no menu permission/result-slot hooks or save/sync/notifications. Merges may discard distinct opaque identities under the supplied policy; no general lossless merge or authority claim.",
-    "Curative values are not attached to native EffectInstance. Immersion inputs are explicit adjusted bounds and surface observations; no native tick/contact callback, effect application, deferred queue or actor context was activated."
+    "Curative values are not attached to native EffectInstance. Immersion inputs are explicit adjusted bounds and surface observations; no native tick/contact callback, effect application, deferred queue or actor context was activated.",
+    "The version-pinned terrain cell adapter is type-checked and unactivated without providers. Its pure geometry remains caller-policy driven; actual CPU equivalence/timing, GPU and full assets are unproved.",
+    "Product/remainder staging is explicit and synchronous. It does not hook automatic recipe assembly or grant inventory/world authority; separate assembly/remainder calls are not treated as a transaction.",
+    "Native Font layout snapshots expose raw wrapping, measured widths and logical legacy-resolved hit facts, not visual bidi correctness, input admission, active screen ownership or a resource reload lease."
   ],
   "previous_complete_library_proofs": [
     {
@@ -417,23 +463,124 @@
         "sha256_manifest": "grouped-v12/stage-source-sha256.json",
         "purpose": "Fixed generated path; every cutoff retains immutable package, full source seal and archived prior bytes."
       }
+    },
+    {
+      "mod_head": "31cf76672d3a7b982aebab86a91a78440afd163e",
+      "archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 12s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5045,
+        "sha256_manifest": "grouped-v13/stage-source-sha256.json",
+        "purpose": "Immutable source seal; fixed generated working path is reused only after verified archival."
+      }
+    },
+    {
+      "mod_head": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+      "archive_sha256": "80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2",
+      "scope": "Complete ordinary Pluto library with bounded terrain-cell adapter, synchronous product/remainder staging and native Font layout facts. No registered custom renderer, automatic crafting pair consumption or guide transport activation; consumer helper proofs remain separate.",
+      "counts": {
+        "crate": 2,
+        "module": 66,
+        "injection": 34,
+        "state": 3
+      },
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 04s"
+      },
+      "api_source_checks": {
+        "python_checks": 210,
+        "included_actual_fluid_api_tests": 43,
+        "included_actual_inventory_api_tests": 122,
+        "mod_head": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+        "scope": "Python checks invoke both complete real API crates under standalone locks with identical pinned registry package identities. Counts overlap supporting tests and must not be summed as distinct runtime cases."
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5046,
+        "sha256_manifest": "grouped-v14/stage-source-sha256.json",
+        "purpose": "Immutable source seal; fixed generated working path is reused only after verified archival."
+      },
+      "stage_archival": {
+        "status": "completed",
+        "base_sha256": "782aaff29f61cd385fa2c77ff633e9e7d5f69e5431acd9504602f44e18ab60aa",
+        "delta_sha256": "1a7e3c75891b7be0ca1fa96aa3e19b0597208487c9a996b2eda3a06288bdca59",
+        "delta_bytes": 743068,
+        "state_manifest_sha256": "50797be4968cd9cd01207e82f3792a6389ad643cfaa5277f8ffbd3122dbdf2f4",
+        "source_seal_sha256": "feac81ddd13fdccdf91030999129504e6d2b161b9ed0d717d06da9cff1b56b3d",
+        "verified_files": 5046,
+        "verified_attribute_entries": 5792,
+        "verified_directory_entries": 746,
+        "verified_regular_file_entries": 5046,
+        "full_physical_restoration": true,
+        "restored_only_from_base_and_persisted_delta": true,
+        "original_stage_unchanged_before_removal": true,
+        "archives_and_restore_script_fsynced_before_restoration": true,
+        "attribute_scope": [
+          "entry type",
+          "permission mode",
+          "uid",
+          "gid",
+          "exact mtime_ns",
+          "all extended attribute names and byte values"
+        ],
+        "access_time_excluded": true,
+        "symlink_policy": "All source, base/delta archive, and restored entries must be regular files or directories; symlinks are rejected.",
+        "hardlink_policy": "Every source and restored regular file must have st_nlink == 1; archive hardlink entries are rejected.",
+        "minimum_free_bytes": 10786127872,
+        "free_bytes_after": 10919260160,
+        "net_recovered_bytes": 132358144,
+        "recovery_floor_bytes": 10770972672,
+        "usual_native_build_floor_bytes": 10871635968,
+        "base_archive": "grouped-v13-staged.tar.xz",
+        "delta_archive": "grouped-v14-from-v13-delta.tar.gz",
+        "receipt": "grouped-v14-base-delta-recovery.json",
+        "scope": "Generated working stage removed only after durable base/delta preservation and complete independent tmpfs restoration. This archival-only exception did not lower the native build guard."
+      },
+      "proof_url": "https://github.com/sofia-gros/horizon-mods/blob/7d35632557d4667e1f6eb4fde9ee34eb3c772031/pluto-lib/docs/shared-foundation-validation-20261105.json"
     }
   ],
   "log_sha256": {
-    "plan.log": "5fedc4020fc96604fe0920bf2dd5a79ed34d4089ba5e41bc7c5fd9d6e35a4b9b",
-    "apply.log": "1e15177fc57337b4d040862fd4eb8adca99e9927ee37df600ae2cbcf049f103b",
-    "host-check.log": "5aabe2198074e30aae73810c9bcf4cdf89c1bf10648a980de7628d1a3edd86c8",
-    "native-preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
-    "api-source-tests.log": "7bd4f8900e476e326635572c6500bb3fca49ed9c47f113c81236525ee911a92e",
-    "stage-source-sha256.json": "dba302cbfbfb4bb2afd399df7a1c0344fd087a51331ba316e9d85644078f5b23",
-    "unchanged-source-timestamps.json": "4e779d19050084eb187a8b22c2a2b9c78f6b4f0fd1782aa234c2aeda6135826b"
+    ".staged.horizon-mixins-stage.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "actual-rustc-rechecks.json": "479a9ce2e9276f819179ff23359b8abb3787d2a4fbb28b50466ab5a3a7d80a7c",
+    "apply.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "apply.out": "3f0ba6ce19d7bc3daeaca908a3c21720a7ae470e4b3ae91f684d0f42043c58ff",
+    "host-check.err": "3a6b3c724c067d06cc78772670ea443f2da8f1937d641113e0eeb527e20d65a1",
+    "host-check.out": "05095e73a6df60207bac7441729e181b5d7464f65c42c6198a74f34502caebc1",
+    "metadata-identity.json": "4594e2696d147b0963a3887af4f248cbd8d34c7ab6d353b5bdf04a3fe76be2ae",
+    "metadata.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metadata.out": "34d7b2723634ef067a0d04a05308954e2d42dc41303ed0fa00669289131c3bce",
+    "mod-source-sha256.json": "08bc6aed8db7f9f7afe30e4e2725814ec28a6af9274ee5a22e976f8a448eea4e",
+    "mtime-reuse.json": "1a0107b1589eae2f3e9156c226cc0ae29bac182ded594333082fdf5c512442ef",
+    "native-generated-inputs-before.json": "6daa2e012fcb9a7dee7e207bbfa31b7764986b100a5a455bec84f631a518c9c9",
+    "native-generated-inputs-used.json": "ef6a6783b9581ca1e98b6f1efdea34f53d756551f8b48bbbd94316712bb1de88",
+    "official-source-sha256.json": "ba8ff2c7cb9d0093a24d20680324e695584e1a9a2ee33def428d659f17e2389e",
+    "package-source-sha256.json": "770a3f424efcd08a1931655cd79bf903bd7aa2a22384e926389ff35ac6bc05b5",
+    "preflight.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight.out": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+    "previous-stage-identity.json": "10248fc862dbd26a23a56be88856eb33ff9e70e4e38aa652cdfece6720cded95",
+    "result.json": "ccca310f860d9300d215dc0436e52f5be025dc5afa3304d363cacded03eab47b",
+    "stage-source-mtime-ns.json": "8f155a6d313aa530240d1ff028d413b959537c1535254567a29d3302cb49d9a6",
+    "stage-source-sha256.json": "e16a3781aae1dea6d1a627f4bd28641469e16e822dae9704d0507a75a8d02428",
+    "toolchain.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "toolchain.out": "4fdff2578428e9c5c08ddd7a0d3079c1a106b1cdaa46e73e46f7cd32b0fb9cad"
   },
-  "stage_path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+  "stage_path": "/tmp/pluto-v15-host-proof-20261106/staged",
   "stage_integrity": {
-    "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
-    "files": 5045,
-    "sha256_manifest": "grouped-v13/stage-source-sha256.json",
-    "purpose": "Immutable source seal; fixed generated working path is reused only after verified archival."
+    "path": "/tmp/pluto-v15-host-proof-20261106/staged",
+    "logical_path_used_for_check": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+    "logical_alias_removed": true,
+    "files": 5047,
+    "sha256_manifest_hash": "e16a3781aae1dea6d1a627f4bd28641469e16e822dae9704d0507a75a8d02428",
+    "before_after_unchanged": true
   },
   "retained_baseline_native_tests": {
     "tests": 8,
@@ -444,11 +591,11 @@
     "report": "item-private-baseline-validation-20261105.md",
     "scope": "Actual applied native items reader, unchanged client helpers and one packaged API; complete 5,039-file stage verified before and after. No caller activation or live write authority."
   },
-  "preflight_revision": "Eleven mandatory source/composition groups; ordinary native package explicitly excludes the guide lifetime experiment.",
+  "preflight_revision": "Twelve mandatory source/composition groups; ordinary package excludes native lifetime and CPU-test experiments.",
   "unchanged_source_timestamp_restore": {
-    "files": 5038,
+    "files": 5043,
     "content_changed": false,
-    "scope": "Only byte-identical files from the verified previous archive received their recorded nanosecond timestamps before Cargo. New or changed files were left fresh."
+    "scope": "Recorded v14 mtimes restored only after full SHA256 equality. Four changed/new files retained fresh mtimes. Previous v14 bytes and mtimes were checked before and after."
   },
   "earlier_failed_attempts": [
     {
@@ -470,5 +617,110 @@
     "report": "../experiments/guide-lifetime/validation.json",
     "scope": "11 pure state and 12 guard tests; actual combined plan/guards/apply/lib+bin type-check passed. No native activation/transport or UI execution."
   },
-  "validated_utc": "2026-11-06T02:02:40.259809+00:00"
+  "validated_utc": "2026-11-06T04:10:34.520131+00:00",
+  "publication": {
+    "source_snapshot": "5e04dc4a1807dee17059fb1e4fafc41f0663c5ab",
+    "source_tree": "cd3644b9a214bd400bb8c241d30e39ab4be54a60",
+    "verified_v13_draft_pr": 944,
+    "original_history_checkpoint": "00895c5549a31be940781d8d250b96d63534abf4",
+    "main_merged": false,
+    "full_consumer_blocker": "Existing guide response and turn hooks conflict with required composition guards. Navigation-only repair has separate evidence; dynamic LAN response remains unchanged and unresolved.",
+    "branch": "checkpoint/plutolib-commonization-v15-20261106"
+  },
+  "stage_archival": {
+    "scope": "The v15 generated working stage remains on tmpfs; no complete v15 stage archive claimed. Reproducible source/package and all proof evidence are preserved. Prior v14 durable base+delta archives remain unchanged.",
+    "evidence": {
+      "archive_sha256": "623f2b9686bb2e169a82994797e15799702d1ad4d178248cab8faade57551731",
+      "archive_bytes": 921583,
+      "readback_verified": true,
+      "source_plan_evidence_sha256": "df3f2cba3b2a972d24a1191b033b0680827f4dbfedd308685242151949fea502",
+      "generated_stage_preserved_in_tmp": "/tmp/pluto-v15-host-proof-20261106/staged",
+      "not_a_complete_stage_archive": true
+    }
+  },
+  "cache_reuse_validation": {
+    "metadata_identity": {
+      "local_packages": 40,
+      "exact_ids_manifests_targets_equal_v14": true,
+      "logical_workspace_root": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+      "command_paths_not_canonicalized": true
+    },
+    "required_rustc_targets": [
+      [
+        "pluto_inventory_api",
+        "lib"
+      ],
+      [
+        "horizon_client_lib",
+        "lib"
+      ],
+      [
+        "horizon_client",
+        "lib"
+      ],
+      [
+        "horizon_client",
+        "bin"
+      ]
+    ],
+    "observed_rustc_targets": [
+      [
+        "horizon_client",
+        "bin"
+      ],
+      [
+        "horizon_client",
+        "lib"
+      ],
+      [
+        "horizon_client_core",
+        "lib"
+      ],
+      [
+        "horizon_client_input",
+        "lib"
+      ],
+      [
+        "horizon_client_lib",
+        "lib"
+      ],
+      [
+        "horizon_client_render",
+        "lib"
+      ],
+      [
+        "horizon_command",
+        "lib"
+      ],
+      [
+        "horizon_items",
+        "lib"
+      ],
+      [
+        "horizon_protocol",
+        "lib"
+      ],
+      [
+        "horizon_server_files",
+        "lib"
+      ],
+      [
+        "horizon_world",
+        "lib"
+      ],
+      [
+        "pluto_inventory_api",
+        "lib"
+      ]
+    ],
+    "all_required_executed": true,
+    "native_generated_out_dirs_unchanged": 3,
+    "restored_identical_file_mtimes": 5043,
+    "changed_sources_left_fresh": [
+      ".horizon-mixins-stage.json",
+      "crates/horizon-client/src/client_lib.rs",
+      "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/lib.rs",
+      "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/predicate_fold.rs"
+    ]
+  }
 }

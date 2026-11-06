@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "guard_stopped": false,
+  "minimum_free_bytes": 10880692224,
+  "timed_out": false,
+  "elapsed_seconds": 3.606621725994046,
+  "command": [
+    "python",
+    ".work/recipe-presentation-proof-20261106/run_api_unit.py"
+  ],
+  "owned_process_group_absent": true,
+  "error": null
+}

@@ -5,4 +5,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
+pluto-inventory-api = { path = "../../../pluto-lib/mixins/pluto_native_creative/inventory-api" }
 serde_json = "1"

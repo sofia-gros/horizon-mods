@@ -109,29 +109,14 @@ pub(super) fn pickup_slot(
     right: bool, item_limit: u32, tagged_part: bool,
 ) -> bool {
     if slots.len() != kind.slots() || slot >= slots.len() { return false; }
-    let Some(mut cursor) = carried.take() else {
-        let Some(mut existing) = slots[slot].take() else { return false; };
-        if right && existing.count > 1 {
-            let count = existing.count.div_ceil(2);
-            let mut taken = existing.clone(); taken.count = count;
-            existing.count -= count; slots[slot] = Some(existing); *carried = Some(taken);
-        } else { *carried = Some(existing); }
-        return true;
-    };
-    if slots[slot].as_ref().is_some_and(|existing| !existing.same_item_same_components(&cursor)) {
-        let first = slots.iter().position(|current| current.as_ref().is_some_and(|s| s.same_item_same_components(&cursor)));
-        if !kind.accepts(slot, first, tagged_part) || cursor.count > kind.slot_limit(item_limit) { *carried = Some(cursor); return false; }
-        *carried = slots[slot].replace(cursor);
-        return true;
+    // Taking with an empty cursor has never required part admission. Keep that
+    // distinction; only incoming stacks use the consumer's uniqueness/tag rule.
+    if let Some(cursor) = carried.as_ref() {
+        let first = slots.iter().position(|cell| cell.as_ref().is_some_and(|stack| stack.same_item_same_components(cursor)));
+        if !kind.accepts(slot, first, tagged_part) { return false; }
     }
-    let requested = if right { 1 } else { cursor.count };
-    let mut offered = cursor.clone(); offered.count = requested;
-    let remainder = insert_slot(kind, slots, slot, offered, item_limit, tagged_part);
-    let unmoved = remainder.map_or(0, |stack| stack.count);
-    let moved = requested - unmoved;
-    cursor.count -= moved;
-    if cursor.count != 0 { *carried = Some(cursor); }
-    moved != 0
+    horizon_client::pluto_stack_cells::pickup(&mut slots[slot], carried, right,
+        kind.slot_limit(item_limit), |left, right| left.same_item_same_components(right)).unwrap_or(false)
 }
 
 /// Normal click in the player's own inventory while a source chest is open.
