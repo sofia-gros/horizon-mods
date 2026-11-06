@@ -1,0 +1,904 @@
+{
+  "schema": 1,
+  "status": "source-reviewed candidate only; complete composition still blocked",
+  "integration_base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "main_reference": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "audit_commit": "06b5bff675efe1c96c55fe3ae01cc670cd6e1c94",
+  "audit_json_sha256": "f38cf84f07fc0e2a4772e600de5c1eb097fca5d339eaee36290cac54799ec976",
+  "original_metadata_sha256": "480ffb9eaa859b9a023b4f98fa4ab3da30790dc74867b1318cc81423b06bb807",
+  "old_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "old_official_source_sha256": {
+    "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+    "crates/horizon-client/src/game/native_entity_refs.rs": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+    "crates/horizon-client/src/game/native_level_refs.rs": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+    "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+    "crates/horizon-client/src/game/commands/players.rs": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/lan_entities.rs": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
+    "crates/horizon-client/src/mod_api.rs": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
+    "crates/horizon-client/src/game/commands.rs": "415bda393e631faa8e125bd115b63ad911467efce723bae5e76b71b4461902bd",
+    "crates/horizon-client/src/game/integrated.rs": "c185c500e00a28bd3ab33af90df04ad1c1b2ff964c481de49b2e91bf99624a36",
+    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+    "crates/horizon-client/src/game/dragon.rs": "1543d9cb792a7d2227c3b54f1767bf657fb438723b3871df632b4021ab293a3b",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+    "crates/horizon-client-render/src/world.rs": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772"
+  },
+  "candidate_metadata_sha256": "7d5e9031722c8ae78926c9107c1c982271efef6cf80a4e9427b3d452b67780a1",
+  "unchanged_guard_sha256": "47b7f1577470c00d1335133933a191046c9cc2a32c710cbb0748e64191853746",
+  "runtime_changed": false,
+  "guard_algorithm_changed": false,
+  "guard_restrictions_relaxed": false,
+  "actual_plan": null,
+  "actual_module_identities": null,
+  "host_type_result": null,
+  "counts": {
+    "official_inputs": 17,
+    "changed_input_hashes": 10,
+    "changed_revision": 1,
+    "unchanged_runtime_modules": 5,
+    "conflicting_modules": 4,
+    "conflicting_hooks": 16,
+    "conflicts_with_same_manifest_and_payload_as_main": 20
+  },
+  "integration_manifest": {
+    "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+    "git_blob": "18fb0e8d6c67efd30858634113e93a19c886c87a",
+    "sha256": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2"
+  },
+  "official_inputs": [
+    {
+      "path": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "guard_sha256": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+      "latest_sha256": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+      "latest_blob": "77e7f4d994f87b6bf2ed3c286220197e17bbbb80",
+      "latest_size": 13356,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "guard_sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "latest_sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "latest_blob": "488625055753dfe9ae714fbd0ab854e37040fa0e",
+      "latest_size": 20171,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_level_refs.rs",
+      "guard_sha256": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+      "latest_sha256": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+      "latest_blob": "be33b4b4314ec3974ce45af0942287ee8c6e2bdc",
+      "latest_size": 4247,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/mod_api_host.rs",
+      "guard_sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+      "latest_sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+      "latest_blob": "c34b42fdfc2be8b743ca5eb6458cf4ebbc7abf24",
+      "latest_size": 9498,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands/players.rs",
+      "guard_sha256": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+      "latest_sha256": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+      "latest_blob": "62f058a4ef2687e79a6864f7ba8587e9c4ccece4",
+      "latest_size": 9188,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "guard_sha256": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+      "latest_sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "latest_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "latest_size": 270381,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_entities.rs",
+      "guard_sha256": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
+      "latest_sha256": "d0186d3b27e24ffff154d5f072368cc392ffdbdd1e8b6fe29f29e616c1568222",
+      "latest_blob": "cc0addcffd8bdcc80fd1ee43bd3179279a8617c7",
+      "latest_size": 40526,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "guard_sha256": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
+      "latest_sha256": "2e98e4ed3b0f289fc6f042fd8ad29fa3b3b96486e6599b719f55e2be6c602230",
+      "latest_blob": "56b2f5f10b51b5d07a373d613fe2a6184cc1b644",
+      "latest_size": 39728,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "guard_sha256": "415bda393e631faa8e125bd115b63ad911467efce723bae5e76b71b4461902bd",
+      "latest_sha256": "9015feebb6bb93fec6c26812d433d5a6e93b5d435f82917fd0034cc208f4a28f",
+      "latest_blob": "0ccf3e5eb02d8fe03fe300988c1d74a2832e3498",
+      "latest_size": 190411,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "guard_sha256": "c185c500e00a28bd3ab33af90df04ad1c1b2ff964c481de49b2e91bf99624a36",
+      "latest_sha256": "652f308b15c2c32ac0d4354a568869d629d67e03329c6238586f3ac398a40197",
+      "latest_blob": "e875a3dfeddca7c3390d60738e60bbbb1ec1c499",
+      "latest_size": 57194,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "guard_sha256": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+      "latest_sha256": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+      "latest_blob": "aab5daf74f947831d10b0fa748a6119e8196861c",
+      "latest_size": 110946,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "guard_sha256": "1543d9cb792a7d2227c3b54f1767bf657fb438723b3871df632b4021ab293a3b",
+      "latest_sha256": "fe106da1a95376f4ef262978d91f74a3a6f41f1829bcbe16dfd9b6e3b41959d1",
+      "latest_blob": "e898fed03062609ed9bf08df22a8e934f6228bfb",
+      "latest_size": 226308,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "guard_sha256": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+      "latest_sha256": "635fda59a1ba10db646caf82669362678e12b4c5a16159067c404cd1c11795d7",
+      "latest_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+      "latest_size": 100019,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "guard_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "latest_sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "latest_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "latest_size": 1032243,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "guard_sha256": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+      "latest_sha256": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
+      "latest_blob": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+      "latest_size": 5563,
+      "identical": false
+    },
+    {
+      "path": "crates/horizon-client-render/src/world.rs",
+      "guard_sha256": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+      "latest_sha256": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+      "latest_blob": "64320776e43920fe441611737950b3b72109908b",
+      "latest_size": 27285,
+      "identical": true
+    },
+    {
+      "path": "crates/horizon-client-core/src/potions.rs",
+      "guard_sha256": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+      "latest_sha256": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+      "latest_blob": "832d1fc0174693ef3b9db956153cd87bb73bd913",
+      "latest_size": 13499,
+      "identical": true
+    }
+  ],
+  "conflicts": [
+    {
+      "kind": "module",
+      "id": "source-workstation-tabs-lan",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_workstation_tabs_lan",
+      "source": "source-workstation-tabs-lan.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-workstation-tabs-lan.rs",
+      "payload_sha256": "2abd453fcd90d8997525b2b85c59bda080df0d7028cd57d31eaa9fe01f88ad66",
+      "payload_git_blob": "065634c4a32fa6d9ded193e12c9c25283c2dd6ee",
+      "payload_same_as_main08afa": true,
+      "entry_section": "module",
+      "category": "delegating_module",
+      "observed_effect": "Calls native lan_open_container with explicit Game/host/conn/position; re-enters a separately hooked menu-open path.",
+      "required_followup": "Review exact called open hook and guest/menu lifetime; module location alone is not an authority violation or an approval.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "exclusive destination file",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-workstation-tabs-lan.rs"
+    },
+    {
+      "kind": "module",
+      "id": "source-area-protection",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_area_protection",
+      "source": "source-area-protection.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-protection.rs",
+      "payload_sha256": "abe353e52947e87df5a0ee036f7f33c2e47792851cfbcad11a7ebea826d58114",
+      "payload_git_blob": "4649c0873a74660f2bff9e1d23a7310a6cb58602",
+      "payload_same_as_main08afa": true,
+      "entry_section": "module",
+      "category": "read_only_query_module",
+      "observed_effect": "Reads roster/held item, native spawn-protection and area shape; returns a set of protected columns.",
+      "required_followup": "Bound exact read-only callees and allocations; preserve native roster/protection policy.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "exclusive destination file",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-area-protection.rs"
+    },
+    {
+      "kind": "module",
+      "id": "source-bottle-fill",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "tconstruct_source_bottle_fill",
+      "source": "source-bottle-fill.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-bottle-fill.rs",
+      "payload_sha256": "e3cc43c30309c5d02b1cdf923e63714afd989216ad49246c8fd651b9ca4adc5d",
+      "payload_git_blob": "aa24e817994c1cd93424613abcf82b8c9c9dca37",
+      "payload_same_as_main08afa": true,
+      "entry_section": "module",
+      "category": "mutating_delegate_module",
+      "observed_effect": "Calls private native fill_held on the current actor.",
+      "required_followup": "Prove caller actor/held-stack phase and private fill behavior; do not replace with an unbound public write.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "exclusive destination file",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-bottle-fill.rs"
+    },
+    {
+      "kind": "module",
+      "id": "source-fluid-cloud",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "tconstruct_source_fluid_cloud",
+      "source": "source-fluid-cloud.rs",
+      "visibility": "pub",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-fluid-cloud.rs",
+      "payload_sha256": "fa7b4725935aaa139585d1e507b8ceedc0cadbff3323347a74829322dd91dd18",
+      "payload_git_blob": "f7cdc81907a4a3c0fc2fcd0e5b68bff3fceb52c2",
+      "payload_same_as_main08afa": true,
+      "entry_section": "module",
+      "category": "direct_native_publication_and_static_type_blocker",
+      "observed_effect": "Calls take_entity_id and pushes Breath directly. Breath initializer omits victims; PotionCloud omits settings/owner/guest required by 41f.",
+      "required_followup": "Migrate construction/publication only after source policy and explicit owner/guest context are established. No default owner guess, guard exemption or automatic Pluto insertion activation.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "exclusive destination file",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-fluid-cloud.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "command",
+      "target": "horizon_client::game::commands::Game<'_>::run_command",
+      "cancellable": true,
+      "helper": "command.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "command",
+          "ty": "&str",
+          "value": "command"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/command.rs",
+      "payload_sha256": "e1984d42c532a0a3f6da600b3e9fb274869b784d3e221a29d57a76b68667a905",
+      "payload_git_blob": "62fbb0e88c484c0ed6b638116784f415e74a50ad",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_inventory_command",
+      "observed_effect": "Handles two TConstruct commands with inventory mutation and Break(true); otherwise Continue.",
+      "required_followup": "Review command authority and exact branches independently from native EntityRef/LevelRef lookup.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/command.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "fluid-guest-close",
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_container_closed",
+      "helper": "source-fluid-guest-close.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-fluid-guest-close.rs",
+      "payload_sha256": "18c91ef33f01fd66d3dc0dcdde691d1e65805433c4f3ac8b318fd9dcea00b83f",
+      "payload_git_blob": "3b3621b73d71a15ef34461c22ed2631c25d1f5ee",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "container_cleanup_delegate",
+      "observed_effect": "Locates guest index and invokes fluid_return::live before native close.",
+      "required_followup": "Inspect return helper, item ownership and native close ordering, not merely target file.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-fluid-guest-close.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "fluid-guest-tick",
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "helper": "source-fluid-guest-tick.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-fluid-guest-tick.rs",
+      "payload_sha256": "60ba223b5d30f348411360cb527a4f6bd24c26c2d1ee813f468dd9367007d3e8",
+      "payload_git_blob": "255520570733634e15270ed94342225b4fdeeb9f",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "container_cleanup_delegate",
+      "observed_effect": "Collects guest indices with closed custom menu and invokes fluid_return::live before native tick.",
+      "required_followup": "Inspect cleanup side effects, stable roster indexing and native tick phase.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-fluid-guest-tick.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "guest-station-open",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_open_container",
+      "cancellable": true,
+      "helper": "guest-open.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "(i32, i32, i32)",
+          "value": "pos"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/guest-open.rs",
+      "payload_sha256": "fa684e7c084fb8e3f2cfe2577a2d0cabb26beb4cbbf858ed1c692f3e1891e1d5",
+      "payload_git_blob": "59c09b754d63d8a7bccbc11117c98d622cf48331",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_container_world_mutation",
+      "observed_effect": "May refresh machine/block entities, close menus, open container and send layout data, then replace native result.",
+      "required_followup": "Container owner must review all delegated operations and held guest/menu continuity.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/guest-open.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "part-selection-block-change",
+      "target": "horizon_client_render::world::World::set",
+      "helper": "part-selection-block-change.rs",
+      "bindings": [
+        {
+          "name": "world",
+          "ty": "&mut crate::world::World",
+          "value": "&mut *self"
+        },
+        {
+          "name": "x",
+          "ty": "i32",
+          "value": "x"
+        },
+        {
+          "name": "y",
+          "ty": "i32",
+          "value": "y"
+        },
+        {
+          "name": "z",
+          "ty": "i32",
+          "value": "z"
+        },
+        {
+          "name": "state",
+          "ty": "horizon_world::registry::BlockStateId",
+          "value": "state"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/part-selection-block-change.rs",
+      "payload_sha256": "dde4d05436d6f0ee5c2fb60408be2f04401a06764985ac9a4025ca434d581ba5",
+      "payload_git_blob": "9bf5f775844e733d82535b7588eadfb9d8172c48",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "world_write_observer_with_mutation",
+      "observed_effect": "Before native World::set, may remove remote saved material entity and clear TConstruct selection/menu caches.",
+      "required_followup": "Retain block-set order and client/server distinction; audit callbacks/recursive writes and persistence effects.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/part-selection-block-change.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-area-guest-hit",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-area-guest-hit.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-guest-hit.rs",
+      "payload_sha256": "6feb049447f6e6c944f101fbdc0a413ea4cedd5f7ed2f218b0c48d2741edd149",
+      "payload_git_blob": "9efec83913cdf97849f17668b211fe1d7b524c1b",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "consumer_state_capture",
+      "observed_effect": "Reads PlayerAction then writes/removes per-guest area-hit state after native protection query.",
+      "required_followup": "Pin packet phase, ChunkMap state and protection callees.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-area-guest-hit.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-area-guest-destroy",
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_destroy",
+      "helper": "source-area-guest-destroy.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-guest-destroy.rs",
+      "payload_sha256": "20f21f55364b5d32e0e2d21e28ac248b2782ab8c8751fd80eed5f790d3ed3241",
+      "payload_git_blob": "5931a61b1239bce5b07d803c5da4074b78df37cc",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "consumer_state_capture",
+      "observed_effect": "Rechecks protection and updates stored hit information before native guest destruction.",
+      "required_followup": "Pin authoritative break phase and exact protection helper.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-area-guest-destroy.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-transform-guest-hit",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-transform-guest-hit.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-transform-guest-hit.rs",
+      "payload_sha256": "f78cf51599612f1b01982fe2a99c0bae05dd0e8991859d07ef496e6d42598816",
+      "payload_git_blob": "f681f385483c14828e6118cb1038a8571456f635",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "consumer_state_capture",
+      "observed_effect": "Reads UseItemOn and writes/removes transform state before guest swap.",
+      "required_followup": "Pin pre-swap phase and protection helper; no inferred post-swap authority.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-transform-guest-hit.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "glow-left-guest",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "cancellable": true,
+      "helper": "source-glowing-left-guest.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-glowing-left-guest.rs",
+      "payload_sha256": "d2d201817599c85bd247fd263c9b8017447853f2228960c6277a273b8833a3ec",
+      "payload_git_blob": "5bcf655f13b468dd75c306059e3a9b77a81aff6b",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_actor_swap_world_action",
+      "observed_effect": "Checks guest/protection, may call as_guest with glowing activation, acknowledge and send block updates, then Break.",
+      "required_followup": "Requires callback/owner restoration and block-effect audit; not a harmless read-only overlap.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-glowing-left-guest.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "glow-resolve-guest-protection",
+      "target": "horizon_client::game::lan_actions::Game<'_>::enter_guest",
+      "helper": "source-glowing-guest-policy.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-glowing-guest-policy.rs",
+      "payload_sha256": "1d5f73288379209f027b1e0bd6399a9526238fc3bf2bacf160b91daac01c0ae1",
+      "payload_git_blob": "9c5a2b503102dfb24aaf7d8e750dffcbd91dae7c",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "direct_protected_actor_entry_overlap",
+      "observed_effect": "HEAD of enter_guest writes/removes only the TConstruct protection map after roster and under_spawn_protection reads.",
+      "required_followup": "Direct overlap with audited enter_guest; preserve exact noncancelling phase and transitive read-only native query, prove actual resolved target and ordering before any exception.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-glowing-guest-policy.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "materials-book-request",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "cancellable": true,
+      "helper": "source-materials-book-request.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&S",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "payload_sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+      "payload_git_blob": "13f06d5c1f90f74b6d88855772f005cbff6c74f2",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_packet_reply",
+      "observed_effect": "For its custom channel, validates held book, resolves pages and sends reply; Break prevents native processing.",
+      "required_followup": "Guide owner must preserve identity, source-page callbacks and packet authority; not covered by cloud source audit.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-materials-book-request.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "crafting-station-lan-update",
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "helper": "source-crafting-lan-update.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-crafting-lan-update.rs",
+      "payload_sha256": "9304d3c33e5ffc22b778a1bf028f689eb7565fd4739ec0ba6e1bce02f8af4ffe",
+      "payload_git_blob": "3ae5d49052cbec27ad776ae21a8d66c246386a5a",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "viewer_update_delegate",
+      "observed_effect": "Delegates to custom crafting update_viewers before native guest tick.",
+      "required_followup": "Crafting owner must audit viewer synchronization/callbacks and ordering.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-crafting-lan-update.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-empty-bottle-use",
+      "target": "horizon_client::game::potions::Game<'_>::use_potion_item",
+      "cancellable": true,
+      "helper": "source-empty-bottle-use.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_items::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-empty-bottle-use.rs",
+      "payload_sha256": "f4597e95a005cba55a64ea8b439a91706f4c20163d23b6f17a8371577a4429d3",
+      "payload_git_blob": "a5e9ae7c745ebaa27980faa5d78a5d116433221f",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_held_item_world_event",
+      "observed_effect": "Ray/protection checks, audio, fill_held, block event and statistic; returns replacement result for custom bottles.",
+      "required_followup": "Preserve held actor and native event order; do not infer cloud ownership from this action.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-empty-bottle-use.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-head",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-splashing-guest-head.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-head.rs",
+      "payload_sha256": "0fa5c60a5495d485fdfe225d5a83dde857b9bebf87bc355ab92322699386df1a",
+      "payload_git_blob": "2400e1591ee9fdc69ac5e245997d58803a8b428d",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "packet_snapshot_and_queue_state",
+      "observed_effect": "Captures actor/nearby bounds and packet information into ChunkMap; clears pending state.",
+      "required_followup": "Snapshot is not a durable authority token; validate use/clear points and actor/world continuity.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-splashing-guest-head.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-return",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_swing_back",
+      "helper": "source-splashing-guest-return.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "swung",
+          "ty": "Option<bool>",
+          "value": "swung"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-return.rs",
+      "payload_sha256": "fc8e706c911b8413b9293b884e9d0e5d561e3ceeb72d2e8b68948e506a937e86",
+      "payload_git_blob": "3a2964d12d090fa9de96bfeedffb0312604a856e",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "repeated_actor_swap_effect_and_item_mutation",
+      "observed_effect": "At lan_swing_back HEAD, consumes pending operation, swaps actor/targets, applies effects and writes drained item/wear.",
+      "required_followup": "Multiple effectful callbacks require per-continuation validity and actor restoration; initial validation alone is not a blanket guarantee.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-splashing-guest-return.rs"
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-aim",
+      "target": "horizon_client::game::lan_actions::Game<'_>::look_at_entity",
+      "cancellable": true,
+      "helper": "source-splashing-guest-aim.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "gi",
+          "ty": "usize",
+          "value": "gi"
+        },
+        {
+          "name": "id",
+          "ty": "i32",
+          "value": "id"
+        },
+        {
+          "name": "location",
+          "ty": "Option<[f64; 3]>",
+          "value": "location"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-aim.rs",
+      "payload_sha256": "37956ed81ffef59db816b260fd1bb0c9ec43e4eddcfdb289f0b2b66b1f2c62e5",
+      "payload_git_blob": "42745746c8f2568ae26b4aa7d91499968a002749",
+      "payload_same_as_main08afa": true,
+      "entry_section": "injection",
+      "category": "cancellable_targeting_and_roster_mutation",
+      "observed_effect": "Resolves a guest target, mutates actor yaw/pitch and replaces look_at_entity result.",
+      "required_followup": "Review targeting/range/packet ownership and mutation relative to native continuation.",
+      "allowed_by_candidate": false,
+      "transitive_runtime_verified": false,
+      "rejection_reason": "protected target prefix; actual resolved file also requires full-plan review",
+      "source_url": "https://github.com/sofia-gros/horizon-mods/blob/e128d61478971e247b1e3e2e09516cf99652f9fc/tconstruct/mixins/tconstruct/source-splashing-guest-aim.rs"
+    }
+  ],
+  "required_gates": [
+    "Independent review of this source-only metadata delta and exact conflicting caller bodies.",
+    "Explicit resolution of all reserved-boundary conflicts without broad path allowlists, deleting existing features or guessing authority.",
+    "Accepted actual complete installed 41f/5a64 plan including TConstruct and Pluto, then all native guards with actual owner/placement/payload evidence.",
+    "Guarded actual apply and host library/binary type checks; old 624c successes are not latest proof.",
+    "Real native rejection/construction and actor/publication tests as separately authorized; source and synthetic guard tests do not run Game.",
+    "Windows build, resources, launch and gameplay separately; no locale repair/contact experiment activation."
+  ]
+}
