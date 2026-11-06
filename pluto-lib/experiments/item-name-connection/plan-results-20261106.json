@@ -1,0 +1,202 @@
+{
+  "scope": "three inert read-only plans, not implementation or runtime proof",
+  "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff",
+  "source_commit": "0fba3bd003ab56a6a53c28647d85dd30c63deb5e",
+  "input_hashes": {
+    "README.md": "e7b804f4f0ddfd72e534e89215f8b4d265432c76847ab84de69356fda8cc1ab9",
+    "probes/defaults/horizon-mixin.toml": "53d2c57ea6045526b0e427225e5ba2b4fcb7943e19c0d82d7559585708e61ae4",
+    "probes/defaults/load.rs": "5a4a69e5f1cea146b4ac516816fdb513c3e1129f4541a31421af3944dfeb2d5f",
+    "probes/receive/components.rs": "59ed936e4c38ca495d2c6b5bc2aad155e9cd352a7f53a2be93c80fa9ece36619",
+    "probes/receive/horizon-mixin.toml": "80866f63e46c9fbee49c94c26c7733b2f363a5bffb2d0fce35667acf1f7420e4",
+    "probes/send/horizon-mixin.toml": "359e7244d7314859ad93f6e16c70cd7a4b9cf0c60c9533775c27a112b1318e72",
+    "probes/send/network.rs": "b9513be97f7c0e3ec5019c3c159e382d23e937bb5450a6a26844bf3e89b9e9bf"
+  },
+  "official_seal": "870c38c09491691896ef4a38f13616965055ba0e226567fdc8fa6a60fa161c8b",
+  "floor_bytes": 10871635968,
+  "tmp_reserve_bytes": 2147483648,
+  "output_budget_bytes": 3145728,
+  "minimum_free_bytes": 10878734336,
+  "minimum_tmp_free_bytes": 3384152064,
+  "guard_stopped": false,
+  "source_seals_unchanged": true,
+  "unexpected_target_directory": false,
+  "metadata_wrapper_sha256": "56b20eb7cc4bab610ab4b125acb63d275f9f8d6a42eac3b90bb8fb86ab341e7b",
+  "output_bytes_before_receipt": 1828535,
+  "complete": true,
+  "status": "inert_read_only_plans_accepted_not_type_or_behavior_verified",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "runner_sha256": "40100c1452a46e357eb959c042de846af6a77dde8df908ded9f23108a804beba",
+  "actual_metadata_argv": [
+    {
+      "argv": [
+        "metadata",
+        "--format-version",
+        "1",
+        "--no-deps",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon/Cargo.toml",
+        "--offline",
+        "--locked"
+      ],
+      "allowed": true,
+      "real_cargo": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+    },
+    {
+      "argv": [
+        "metadata",
+        "--format-version",
+        "1",
+        "--no-deps",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon/Cargo.toml",
+        "--offline",
+        "--locked"
+      ],
+      "allowed": true,
+      "real_cargo": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+    },
+    {
+      "argv": [
+        "metadata",
+        "--format-version",
+        "1",
+        "--no-deps",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon/Cargo.toml",
+        "--offline",
+        "--locked"
+      ],
+      "allowed": true,
+      "real_cargo": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+    }
+  ],
+  "initial_attempt": {
+    "receipt_sha256": "4f5747984f8215d3056bffe952145c826529e11f4efa23abd13577c73b7a6598",
+    "each_plan_exit_code": 1,
+    "diagnostic": {
+      "code": "E_METADATA",
+      "message": "failed to start `cargo metadata`: No such file or directory (os error 2)"
+    },
+    "stage": "metadata executable discovery, no target resolution",
+    "preserved": true
+  },
+  "plans": [
+    {
+      "name": "receive",
+      "exit_code": 0,
+      "guard_stop": null,
+      "elapsed_seconds": 8.941796940009226,
+      "log_sha256": "8970b4955d88987fc588fc3e9c7dcc2afc044273af8cb9b8d06343bd6c5cd666",
+      "plan_sha256": "91e83f5e761a9d091940da6b253e29bd42d0b06aa5cc3d6b63a8a6651888fa85",
+      "plan_bytes": 609505,
+      "injections": [
+        {
+          "target": "horizon_client_lib::item_sync::from_network",
+          "file": "crates/horizon-client/src/item_sync.rs",
+          "function_fingerprint": "45734cf2949ca44358cf6a028c2560fe8619822099c6529e6ab65ee69059fd33",
+          "kind": "MODIFY_EXPRESSION_VALUE",
+          "contract": {
+            "output": "Option < Tag >",
+            "value": "Option < Tag >",
+            "operation": null
+          },
+          "call_site": null,
+          "site_fingerprint": "df3ec5f3f3250792dbcaff0ab4884a24cc9fc52a2562d769c6112eb191e9916a",
+          "selector": "components_tag(s, builtin, synced)",
+          "ordinal": 0,
+          "require": 1,
+          "expression_site": 13
+        },
+        {
+          "target": "horizon_client_lib::item_sync::template_tag",
+          "file": "crates/horizon-client/src/item_sync.rs",
+          "function_fingerprint": "6852e1fa531cf248aca2ed86a4fd798239f4e00ed0680ed2f1afd176d8b066ba",
+          "kind": "MODIFY_EXPRESSION_VALUE",
+          "contract": {
+            "output": "Option < Tag >",
+            "value": "Option < Tag >",
+            "operation": null
+          },
+          "call_site": null,
+          "site_fingerprint": "61d2e5768fb0db0396de6769a09a162aa06269e03f5550030f25439f3f4d61aa",
+          "selector": "components_tag(t, builtin, synced)",
+          "ordinal": 0,
+          "require": 1,
+          "expression_site": 3
+        }
+      ]
+    },
+    {
+      "name": "send",
+      "exit_code": 0,
+      "guard_stop": null,
+      "elapsed_seconds": 8.443998582006316,
+      "log_sha256": "e07b3d848660dd3ab5db4b5c3260c54765ae678bc0aba87b47d818ceecc9ec7d",
+      "plan_sha256": "652b9d50bc4504dd6a70245c8dfcabda6b234341a3ec45e61e36b29986a05e19",
+      "plan_bytes": 608429,
+      "injections": [
+        {
+          "target": "horizon_client_lib::lan::guest::network_stack",
+          "file": "crates/horizon-client/src/lan/guest.rs",
+          "function_fingerprint": "647463c3760283da417aec8f1b4fa765f38726b6bc9e4db42a1b020ce6e5898e",
+          "kind": "HEAD",
+          "contract": {
+            "output": ":: core :: ops :: ControlFlow < Option < Stack > >",
+            "value": null,
+            "operation": null
+          },
+          "call_site": null,
+          "site_fingerprint": null,
+          "selector": null,
+          "ordinal": null,
+          "require": null
+        }
+      ]
+    },
+    {
+      "name": "defaults",
+      "exit_code": 0,
+      "guard_stop": null,
+      "elapsed_seconds": 8.13809805699566,
+      "log_sha256": "d84270018f2b5fcd4ab1aee1b837f7dde138c63b343fc93cd7af5ee0e8b77acf",
+      "plan_sha256": "853a15504f1c9d27c787679b3b84e8045a80624c9c9f2bbdb033c8349cc1bb61",
+      "plan_bytes": 608896,
+      "injections": [
+        {
+          "target": "horizon_items::items::Items::load",
+          "file": "crates/horizon-items/src/items.rs",
+          "function_fingerprint": "bca3a00c0f2ba2fafda78a8ef02eb077f269f72e2563a53f19f03e8648fbf91b",
+          "kind": "WRAP_OPERATION",
+          "contract": {
+            "output": "Result < Items >",
+            "value": null,
+            "operation": {
+              "inputs": [
+                "& Path",
+                "& HashMap < & str , BlockStateId >",
+                "& PackOverlay < '_ >"
+              ],
+              "output": "Result < Items >",
+              "method": false
+            }
+          },
+          "call_site": 9,
+          "site_fingerprint": "7f1410141a05dd6fbcfb5434b6c6e6e8d7f2f88993d834f0d72a12335f799606",
+          "selector": "Self::load_with",
+          "ordinal": 0,
+          "require": 1,
+          "expression_site": 38
+        }
+      ]
+    }
+  ],
+  "not_run": [
+    "apply",
+    "Rust compilation",
+    "native runtime fixture",
+    "full Game",
+    "production activation",
+    "fork access"
+  ]
+}
