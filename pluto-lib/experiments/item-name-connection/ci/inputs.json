@@ -79,17 +79,17 @@
     "pluto-lib/experiments/item-name-connection/candidate/name-removal.rs": "8d7db15c670a52bba0be89710cd9800e5db3451f64331ef5eae147b15d96fa80",
     "pluto-lib/experiments/item-name-connection/candidate/receive.rs": "c804971285ef2ca3e9adadbc2c85a0f33dbfef578e951dcc183ef9d3aaab61c2",
     "pluto-lib/experiments/item-name-connection/candidate/send.rs": "72e4d068a22f98b8df84c52f750937ef2d9a820fdad74693c272f3f9c7d1442d",
-    "pluto-lib/experiments/item-name-connection/ci/README.md": "09cd65744f16a6335d7852918409aa485a81fe86ce57bdce910a68545caf79e0",
-    "pluto-lib/experiments/item-name-connection/ci/run.py": "395d06fe609fdeb496eb2676fbd242c2acb4f577a038166672d54cd12ecaa53b",
+    "pluto-lib/experiments/item-name-connection/ci/README.md": "84e745c62adf4f76d89033118f1cd00ad95be6993ed94e6f824ec0bc070a055e",
+    "pluto-lib/experiments/item-name-connection/ci/run.py": "61abe64a7c4f366aa45803d04cc7cfeb1aa5b85eda519486aaf6c5e5dc93ed7b",
     "pluto-lib/experiments/item-name-connection/ci/test_runner.py": "6c9c51c30cb36f5652936d01e5c119bcafbe0d3f09ada67fee62926f56f04d2e",
-    "pluto-lib/experiments/item-name-connection/validation/README.md": "b77fbb33d0978b5b574c07a4d2263a67a386d1554f4a9a697ac1f2e058308876",
+    "pluto-lib/experiments/item-name-connection/validation/README.md": "64cb28a045adb859833b815331087ebcaf20399f9b591100627beb99c3a266a0",
     "pluto-lib/experiments/item-name-connection/validation/check_plan.py": "04060fa1776a7b09941c4c952e715cc72fe9ba8a145ad3bf9edeaded7cd42952",
     "pluto-lib/experiments/item-name-connection/validation/codec_tests.rs": "987cf59a489471565fceaacd162ada5ff607530643739d8bce0fcb4a346ad7b1",
-    "pluto-lib/experiments/item-name-connection/validation/fixture-inputs.json": "d99ede72a70d55bb4cd548fc6c36cd61cd42276d1dad0aef62cd8d3a69cf0c54",
+    "pluto-lib/experiments/item-name-connection/validation/fixture-inputs.json": "4a34e9f6a1f2a91f7a6d5e76072be1b40ff350430c2ce77843c405a07ac7ca60",
     "pluto-lib/experiments/item-name-connection/validation/inputs.json": "54d3aa3d03469ade09afc3e455961424f4a48eaaaec7362443a54c311d6a9c83",
-    "pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py": "6fb14a27f3b4c08681316257add0ce927e721089a195f33e651faa5315601057",
+    "pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py": "f1071ac6d273de94a611632c89ee28ebe86dbb79977860477fdd7ba5c7ca4c4b",
     "pluto-lib/experiments/item-name-connection/validation/test_plan.py": "0183b3a800621c1052189bc7ca77716e654284a6d021bc562baaa0e1465f7662",
-    "pluto-lib/experiments/item-name-connection/validation/test_prepare.py": "9c2b39282a2c4f02efcb137491f3af4956009aed405f785845f9c5019d60481c",
+    "pluto-lib/experiments/item-name-connection/validation/test_prepare.py": "00652748173c8ac4c533deb3a459d13a7e65fb0494f8c295f9767b284e913494",
     "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
   }
 }

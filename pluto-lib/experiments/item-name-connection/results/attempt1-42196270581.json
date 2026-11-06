@@ -1,0 +1,302 @@
+{
+  "status": "failed_preparer_before_native_tests",
+  "run_id": 42196270581,
+  "job_id": 127820165797,
+  "attempt": 1,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42196270581",
+  "head": "014d99aaca6fbcf71dc57b01171a58a60aa0f1de",
+  "source_runtime": "0f528de0332afc5d86910dd07b08dcebe98a04dd",
+  "failure_excerpt": "FAILURE_TAIL Traceback (most recent call last):\n2026-11-06T09:39:16.0516112Z   File \"/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py\", line 200, in <module>\n2026-11-06T09:39:16.0517241Z     if __name__ == '__main__': main()\n2026-11-06T09:39:16.0517765Z                                ^^^^^^\n2026-11-06T09:39:16.0519264Z   File \"/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py\", line 197, in main\n2026-11-06T09:39:16.0520400Z     result = prepare(args.official, args.stage, args.plan, args.output)\n2026-11-06T09:39:16.0521134Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-06T09:39:16.0522471Z   File \"/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py\", line 96, in prepare\n2026-11-06T09:39:16.0523653Z     evidence = source_evidence(host, stage, plan_path)\n2026-11-06T09:39:16.0524314Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-06T09:39:16.0525288Z   File \"/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py\", line 84, in source_evidence\n2026-11-06T09:39:16.0526390Z     raise ValueError('Applied stage file-set differs from official inputs')\n2026-11-06T09:39:16.0527153Z ValueError: Applied stage file-set differs from official inputs\n2026-11-06T09:39:16.0527630Z \n2026-11-06T09:39:16.0528701Z ",
+  "final_receipt": {
+    "error": "RuntimeError: prepare-applied-regions exited 1",
+    "fixture_seal_sha256": null,
+    "floor_bytes": 10871635968,
+    "gates": {
+      "apply": {
+        "passed": true,
+        "stage_seal_sha256": "cb400b1279b2b99992e5cfac7d3f63aa8b50cd3090f6b5eb17a093df018d65ad"
+      },
+      "exclusive_guard": {
+        "passed": true,
+        "scope": "three targets plus all guest/receive extensions reserved"
+      },
+      "guard_checks": {
+        "passed": true,
+        "tests": 12
+      },
+      "mixins_compile": {
+        "compilers": [
+          {
+            "crate": "horizon_mixins",
+            "invocation_sha256": "961e2093c5bb969a392d57805f36f4449d9b7cc0e799d1db9bdbb46f21a3cfe6",
+            "source": [
+              "crates/horizon-mixins-cli/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "passed": true
+      },
+      "official_sources": {
+        "passed": true,
+        "pins": {
+          "horizon": {
+            "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+            "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock_sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        }
+      },
+      "plan": {
+        "cli_sha256": "3448cb5f4c7ab93541306eaadf4a783886879bc72abba21d74da33d109fceafa",
+        "counts": {
+          "bridges": 0,
+          "crates": 0,
+          "data": 0,
+          "injections": 3,
+          "modules": 2,
+          "post_build": 0,
+          "states": 0
+        },
+        "passed": true,
+        "sha256": "ae7a27d14dcab8945deaea08a201cf10bfe4d09569907730f1cb1bfc1c349b04"
+      },
+      "preparer_checks": {
+        "passed": true,
+        "tests": 5
+      },
+      "runner": {
+        "passed": true,
+        "tests": 23
+      }
+    },
+    "generated_output_seal_sha256": null,
+    "head": "014d99aaca6fbcf71dc57b01171a58a60aa0f1de",
+    "minimum_free_bytes": 89636102144,
+    "official_checkout_seals": {
+      "/home/runner/work/_temp/item-name-removal-014d99aaca6fbcf71dc57b01171a58a60aa0f1de/horizon-git": "a8eeccb44e97655a0e8bdfcf378fedaf4b97d4d5a4bbf9a2050a96fd62139f6e",
+      "/home/runner/work/_temp/item-name-removal-014d99aaca6fbcf71dc57b01171a58a60aa0f1de/mixins-git": "174c7135030b7f3d7364678a92275009fa0512ce452c4c9b399f6c40211581de"
+    },
+    "passed": false,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 2926,
+        "raw_sha256": "e91b2c7421d5f11d0b1dbe438d6271b691e709bf6600cfa9bac4736850d082ee",
+        "seconds": 0.402
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "guard_checks",
+        "raw_bytes": 1457,
+        "raw_sha256": "53f148abe484fa26faee21770e978b03073cc4aed8f2a53439af5d8be73bd0b1",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "preparer_checks",
+        "raw_bytes": 777,
+        "raw_sha256": "8ee1f61514ece974ee1027ac55c581be85a264e9ebbfcf00ce82e64b1cd6adb3",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+        "seconds": 9.021
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 723,
+        "raw_sha256": "b85e3b06493092082f5a8e1db44422ef6cdf30e5a08c46f4f78e67ed9b91fce2",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+        "seconds": 5.212
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 89,
+        "raw_sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+        "seconds": 0.602
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.003
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-locked-fetch",
+        "raw_bytes": 15993,
+        "raw_sha256": "1e3d9d30a176816b18bcb995dfc8264388756f0a4d87c5c4e5262d22e032b043",
+        "seconds": 4.01
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 722,
+        "raw_sha256": "58edb63ffd9bb9c44dee9206540dbe4485988e16d218083a07809c873473c6da",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "46a3acfd7e87f0064127d1e269a4b136861d8c1b27609da1093b39edb1fedbc7",
+        "seconds": 0.602
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 98,
+        "raw_sha256": "3c31bc675aaba31de4e14000d71e185be8792b43943bc4d4ed9a55ac2df21963",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-locked-fetch",
+        "raw_bytes": 1207,
+        "raw_sha256": "4830da63861f6a0456e8f1900d61619acbfeb0f395eae78f5c348301c28ad4da",
+        "seconds": 1.004
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_mixins",
+            "invocation_sha256": "961e2093c5bb969a392d57805f36f4449d9b7cc0e799d1db9bdbb46f21a3cfe6",
+            "source": [
+              "crates/horizon-mixins-cli/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-build",
+        "raw_bytes": 292313,
+        "raw_sha256": "fac51571c09569dfdd1871e78782fefb932124782ba129d34d7e375b00b91818",
+        "seconds": 153.553
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "actual-plan",
+        "raw_bytes": 266,
+        "raw_sha256": "2dc8ada7ee7100f1fcfd41b3557c4b2b38a652ee33461969bdad72fde484d1a8",
+        "seconds": 6.618
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "exclusive-guard",
+        "raw_bytes": 87,
+        "raw_sha256": "aa1d28e22d9554fdc5e91f4353bbd977158357f9b7c7233706bb25c69439e12d",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "actual-apply",
+        "raw_bytes": 336,
+        "raw_sha256": "ce47de8746aebb84c6d655de5257e4f60f8c88e943e814e6388e23093f3ad3ba",
+        "seconds": 6.818
+      },
+      {
+        "compilers": [],
+        "error": "RuntimeError: prepare-applied-regions exited 1",
+        "exit_code": 1,
+        "name": "prepare-applied-regions",
+        "raw_bytes": 1101,
+        "raw_sha256": "1c96bcdb0628d15702c3dc10793bc0fd83fee806f1b7121bae923bbecab018f9",
+        "seconds": 1.003
+      }
+    ],
+    "scope": "Excluded candidate only: actual official plan/exclusive guard/apply, actual applied regions and codec32. Not installed common package, Game, LAN delivery, default ownership, universal TLS/depth safety or gameplay.",
+    "source_seal_sha256": "e6b170309354d06bd94697419bf22b5edb81b927f352cd65ce6160ea5da32ec4",
+    "stage_seal_sha256": "cb400b1279b2b99992e5cfac7d3f63aa8b50cd3090f6b5eb17a093df018d65ad",
+    "verified": true
+  },
+  "diagnosis": {
+    "kind": "source_derived_generated_file_mismatch_not_recovered_remote_file_listing",
+    "file": "native-post-build.json",
+    "expected_native_bytes": "[]\n",
+    "official_mixins_source": "crates/horizon-mixins-core/src/native.rs:630-694",
+    "official_mixins_source_sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85",
+    "limitations": "Initial log does not print extra/missing filenames; actual stage listing has not been recovered. No native fixture compiler or 32 tests ran. No automatic retry or production activation."
+  },
+  "retrieved_job_log_sha256": "0efd43ddf54bb94092bd46b7acc2d5a38283d152824f9d9a6eb6f06b192679e5",
+  "retrieved_job_log_bytes": 31985,
+  "raw_log_availability": "Retrieved job log preserved locally in /tmp; GitHub retention applies. Phase raw-log hashes alone do not make original runner files retrievable."
+}

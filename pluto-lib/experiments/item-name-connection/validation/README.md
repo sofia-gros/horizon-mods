@@ -2,12 +2,11 @@
 
 Status: source prepared only. Runtime remains exactly the five Rust/manifest
 inputs in candidate commit `0f528de0332afc5d86910dd07b08dcebe98a04dd`.
-No candidate plan, apply, Rust compilation, model or codec test has run.
+Initial CI run 42196270581 accepted the actual plan, exclusive guard and apply, then failed the preparer file-set check before native compilation. Rust/model/codec tests remain unrun. See results/attempt1-42196270581.json.
 The candidate is still excluded from the normal PlutoLib manifest/package.
 
 This follow-up provides the guard previously listed as missing in the candidate
-README. It has only synthetic/adversarial Python proof until the real candidate
-plan is produced. Twelve guard tests and five preparer checks are separate from
+README. The first actual candidate plan passed this guard. Twelve guard tests and eight preparer checks are separate from
 the **32 pending Rust tests**: 18 native codec cases, eight actual entry-gate
 model cases and six owned-Tag adapter cases. All exact names are in
 `fixture-inputs.json`, split into nonoverlapping groups. Run the complete fixture
@@ -51,7 +50,8 @@ each have one actual official local package identity. A cold CI owner seeds
 the official locked dependency cache first, never an inferred substitute graph.
 
 The preparer verifies that the stage marker equals the checked plan, the
-complete stage file-set matches the native plan inputs plus the marker, and
+complete stage file-set matches the native plan inputs plus the stage marker and
+exact generated `native-post-build.json` bytes `[]\n`, and
 only `client_lib.rs`, `item_sync.rs` and `lan/guest.rs` changed. The single
 export-only `.horizon-revision` input must equal the exact official revision
 plus one newline in both the plan hash and stage bytes. It is not read from the
@@ -96,3 +96,7 @@ CI must run on its own approved slot with normal filesystem floors, a bounded
 timeout, actual compiler evidence, strict complete test-name checks, pre/post
 source/lock/stage/fixture seals and no surviving process group. This source
 checkpoint does not dispatch CI or authorize local native work.
+
+## First-attempt preparer correction
+
+Official Mixins `native.rs` 630–694 unconditionally emits `native-post-build.json`, even for an empty post-build list. The first fixture file-set expectation omitted it. The source-derived diagnosis is concrete, but the first remote stage's file listing was not recovered from that job's log. This correction permits only the exact empty generated file, rejects it as an original input, still rejects every unknown extra/missing file, and reports the exact missing/unexpected names on failure. Nonempty or differently serialized contents are rejected. No runtime helper, codec case or pristine oracle is changed. A corrected retry has not run.

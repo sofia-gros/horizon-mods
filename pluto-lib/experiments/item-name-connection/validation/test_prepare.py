@@ -32,6 +32,36 @@ class PreparationTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 prepare.verify_official_input(host, stage, 'ordinary-missing.rs', prepare.sha(expected))
 
+    def test_only_exact_empty_native_post_build_file_is_allowed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); post = root / prepare.POST_BUILD
+            actual = {'source.rs': 'hash', prepare.MARKER: 'hash', prepare.POST_BUILD: 'hash'}
+            post.write_bytes(b'[]\n')
+            prepare.verify_stage_file_set(root, actual, {'source.rs': 'hash'})
+            for wrong in [b'[]', b'[ ]\n', b'[{"bin":"unexpected"}]\n']:
+                post.write_bytes(wrong)
+                with self.assertRaises(ValueError): prepare.verify_stage_file_set(root, actual, {'source.rs': 'hash'})
+
+    def test_missing_or_unknown_stage_files_keep_exact_difference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root / prepare.POST_BUILD).write_bytes(b'[]\n')
+            good = {'source.rs': 'hash', prepare.MARKER: 'hash', prepare.POST_BUILD: 'hash'}
+            for missing in ['source.rs', prepare.MARKER, prepare.POST_BUILD]:
+                actual = dict(good); actual.pop(missing)
+                with self.assertRaises(ValueError) as caught: prepare.verify_stage_file_set(root, actual, {'source.rs': 'hash'})
+                self.assertIn(missing, str(caught.exception)); self.assertIn('missing', str(caught.exception))
+            with self.assertRaises(ValueError) as caught:
+                prepare.verify_stage_file_set(root, dict(good, **{'unknown.rs': 'hash'}), {'source.rs': 'hash'})
+            self.assertIn('unknown.rs', str(caught.exception)); self.assertIn('unexpected', str(caught.exception))
+
+    def test_generated_names_cannot_be_shadowed_by_official_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root / prepare.POST_BUILD).write_bytes(b'[]\n')
+            good = {'source.rs': 'hash', prepare.MARKER: 'hash', prepare.POST_BUILD: 'hash'}
+            for key in [prepare.MARKER, prepare.POST_BUILD]:
+                with self.assertRaisesRegex(ValueError, 'shadows reserved'):
+                    prepare.verify_stage_file_set(root, good, {'source.rs': 'hash', key: 'hash'})
+
     def test_source_boundaries_must_be_unique_and_ordered(self):
         self.assertEqual(prepare.section('a START body END z', 'START', 'END'), 'START body ')
         for text in ('START START END', 'END START', 'START only'):

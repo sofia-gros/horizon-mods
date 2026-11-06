@@ -23,6 +23,8 @@ SPEC.loader.exec_module(guard)
 MODIFIED = {'crates/horizon-client/src/client_lib.rs', guard.GUEST, guard.SYNC}
 MARKER = '.horizon-mixins-stage.json'
 REVISION_MARKER = '.horizon-revision'
+POST_BUILD = 'native-post-build.json'
+EMPTY_POST_BUILD = b'[]\n'
 
 def sha(data): return hashlib.sha256(data).hexdigest()
 
@@ -69,6 +71,20 @@ def verify_official_input(host, stage, relative, digest):
     elif sha((host / relative).read_bytes()) != digest:
         raise ValueError('Official input changed: ' + relative)
 
+def verify_stage_file_set(stage, actual, inputs):
+    generated = {MARKER, POST_BUILD}
+    overlap = set(inputs) & generated
+    if overlap:
+        raise ValueError('Official input shadows reserved generated file: ' + ', '.join(sorted(overlap)))
+    expected = set(inputs) | generated
+    if set(actual) != expected:
+        differences = {'missing': sorted(expected - set(actual)), 'unexpected': sorted(set(actual) - expected)}
+        raise ValueError('Applied stage file-set differs from official inputs: ' + json.dumps(differences, sort_keys=True))
+    # e8 native::stage always writes its empty post-build manifest, even when
+    # this isolated plan has no crates, data or post-build commands.
+    if (stage / POST_BUILD).read_bytes() != EMPTY_POST_BUILD:
+        raise ValueError('Native generated post-build file is not exact empty []\\n')
+
 def source_evidence(host, stage, plan_path):
     clean_official(host)
     plan = json.loads(plan_path.read_text())
@@ -80,8 +96,7 @@ def source_evidence(host, stage, plan_path):
     if any(plan.get(key) for key in ('bridges', 'states', 'crates', 'data', 'post_build')):
         raise ValueError('Additional applied capabilities are outside this fixture')
     actual = files(stage)
-    if set(actual) != set(plan['inputs']) | {MARKER}:
-        raise ValueError('Applied stage file-set differs from official inputs')
+    verify_stage_file_set(stage, actual, plan['inputs'])
     changed = set()
     for relative, digest in plan['inputs'].items():
         verify_official_input(host, stage, relative, digest)

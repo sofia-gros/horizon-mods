@@ -293,7 +293,7 @@ def execute(report):
     try:
         output=runner.run('runner-checks',[sys.executable,str(HERE/'test_runner.py'),'-v'])
         validate_python_checks(output,config['runner_tests']);gates['runner']={'passed':True,'tests':config['runner_tests']}
-        for filename,count,gate in [('test_plan.py',12,'guard_checks'),('test_prepare.py',5,'preparer_checks')]:
+        for filename,count,gate in [('test_plan.py',12,'guard_checks'),('test_prepare.py',8,'preparer_checks')]:
             output=runner.run(gate,[sys.executable,str(BASE/'validation'/filename),'-v'])
             validate_python_checks(output,count);gates[gate]={'passed':True,'tests':count}
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal'],timeout=600)

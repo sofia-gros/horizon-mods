@@ -1,6 +1,6 @@
 # Excluded item-name removal CI
 
-Status: source prepared; the actual candidate plan, apply, compiler and 32 Rust tests have not run. This workflow does not activate the candidate in the ordinary PlutoLib package.
+Status: first actual candidate plan/guard/apply passed in run 42196270581, but the fixture preparer failed before native test compilation. The 32 Rust tests remain unrun. The fixture-only correction and original partial receipt are preserved; no corrected retry has run. This workflow does not activate the candidate in the ordinary PlutoLib package.
 
 Source base: `47422d690b08f9db0575e5b5cb5d2260cb04f02f`. The five runtime inputs are unchanged from `0f528de0332afc5d86910dd07b08dcebe98a04dd`; the validation body/oracle remain the originals from `29a34ed5`. Only the narrowly checked official export marker handling was corrected at the later base.
 
@@ -27,3 +27,7 @@ All writable filesystems must retain 10 GiB + 128 MiB, with another 2 GiB availa
 A successful result would establish this isolated composition and its finite regression cases, including panic restoration, concurrent thread independence, nested one-shot consumption, native codec preservation and raw-versus-canonical send distinctions. It would not establish universal TLS safety, unbounded-depth stack safety, arbitrary third-party hook composition, full Game execution, LAN delivery, gameplay, all opaque/NBT preservation or a default item-name owner.
 
 The sender reserves the relevant native boundary; an extra hook/module/state in the reserved files fails before apply. The ordinary package remains disconnected regardless of this job's result. Raw usable wire is deliberately echoed through the native raw path; a semantically edited stack uses a separate canonical proposal. Unknown Tag preservation is only claimed at the adapter's tested input/output boundary, not across native lossy decoding. Default component ownership and the actual Game raw-path call site remain separate work.
+
+## First attempt
+
+Run 42196270581 at exact source `014d99aaca6fbcf71dc57b01171a58a60aa0f1de` failed before fixture extraction/metadata/native compilation. Its Python 23+12+5 checks, actual official CLI, plan, exclusivity guard and apply passed. Final source/stage verification passed; overall result was false. The preparer omitted the native CLI's unconditional empty post-build manifest from its expected file set. The correction adds only that exact generated empty file, reserves both generated names against input collisions, and preserves unknown-file rejection. Preparer regression count is now eight; all 32 runtime test bodies and candidate runtime are unchanged.
