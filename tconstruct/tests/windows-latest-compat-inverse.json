@@ -1,0 +1,14 @@
+{
+  "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "base_sha256": "bd06550790e9c44b474b54d22fdf1f175a439790e3d4c3eae348e5d00504d560",
+  "changes": {
+    "horizon_revision": [
+      "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "41f822b659789780f58d32c63ddfb6887ea1b8bf"
+    ],
+    "mixins_revision": [
+      "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+    ]
+  }
+}

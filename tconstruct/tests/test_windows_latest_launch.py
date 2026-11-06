@@ -45,9 +45,15 @@ class Tests(unittest.TestCase):
         stage=self.workspace(); p=stage/'crates/horizon-client/Cargo.toml'; p.write_text('[features]\ndefault=[]\n')
         with self.assertRaises(ValueError):m.feature_contract(stage)
     def test_environment_scrub_and_cli_selected_toolchain(self):
-        env=m.build_environment({'PATH':'original','RUSTFLAGS':'bad','RUSTUP_TOOLCHAIN':'old','RUSTC_WRAPPER':'wrap','CC':'bad','CARGO_BUILD_TARGET':'wrong','CARGO_PROFILE_FAST_OPT_LEVEL':'0'},Path('tool'),Path('home'))
+        env=m.build_environment({'PATH':'original','RUSTFLAGS':'bad','RUSTUP_TOOLCHAIN':'old','RUSTC_WRAPPER':'wrap','CC':'bad','CARGO_BUILD_TARGET':'wrong','CARGO_PROFILE_FAST_OPT_LEVEL':'0','CARGO':'foreign-cargo','GIT_DIR':'elsewhere','GIT_WORK_TREE':'elsewhere','GIT_INDEX_FILE':'elsewhere','GIT_OBJECT_DIRECTORY':'elsewhere','GIT_CONFIG_COUNT':'9','GIT_CONFIG_KEY_9':'include.path'},Path('tool'),Path('home'))
         for key in ('RUSTFLAGS','RUSTUP_TOOLCHAIN','RUSTC_WRAPPER','CARGO_BUILD_TARGET','CARGO_PROFILE_FAST_OPT_LEVEL'):self.assertNotIn(key,env)
         self.assertEqual(env['RUSTC'],str(Path('tool/bin/rustc.exe')))
+        self.assertEqual(env['CARGO'],str(Path('tool/bin/cargo.exe')))
+        for key in ('GIT_DIR','GIT_WORK_TREE','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY','GIT_CONFIG_KEY_9'):self.assertNotIn(key,env)
+        self.assertEqual(env['GIT_CONFIG_COUNT'],'1')
+        self.assertEqual(env['GIT_CONFIG_NOSYSTEM'],'1')
+        self.assertEqual(env['GIT_NO_REPLACE_OBJECTS'],'1')
+        self.assertEqual(env['GIT_CONFIG_KEY_0'],'core.attributesfile')
         self.assertEqual(env['CARGO_NET_OFFLINE'],'true')
         self.assertTrue(env['PATH'].startswith(str(Path('tool/bin'))))
         self.assertEqual(env['CC'],str(Path('tool/mingw64/bin/gcc.exe')))
@@ -93,6 +99,42 @@ class Tests(unittest.TestCase):
         self.assertIn('play_windows_latest.py',s)
         for token in ('Get-ChildItem','A:\\Project\\horizon','Checkout-Pinned','git clone','rustup install','--no-default-features'):self.assertNotIn(token,s)
         for name in ('horizon','mixins','pluto-bundle','resources','toolchain','home'):self.assertIn('--'+name,s)
+    def test_source_identity_requires_exact_origin_lock_and_clean_tree(self):
+        root=self.root/'official';root.mkdir();(root/'Cargo.lock').write_bytes(b'lock')
+        answers={'HEAD':m.HORIZON,'origin':'https://github.com/horizon-rust/horizon.git','status':'','HEAD^{tree}':'1'*40,'info/attributes':'.git/info/attributes'}
+        def fake(argv,**kwargs):
+            if argv[3]=='status':return answers['status']
+            return answers[argv[-1]]
+        with patch.object(m,'run',fake):
+            result=m.source_identity(root,'horizon',m.HORIZON,m.sha(b'lock'),'git',{})
+            self.assertEqual(result['tree'],'1'*40)
+            for key,value in [('HEAD','2'*40),('origin','https://example.invalid/unapproved'),('status','?? extra')]:
+                old=answers[key];answers[key]=value
+                with self.assertRaises(ValueError):m.source_identity(root,'horizon',m.HORIZON,m.sha(b'lock'),'git',{})
+                answers[key]=old
+            with self.assertRaises(ValueError):m.source_identity(root,'horizon',m.HORIZON,'0'*64,'git',{})
+    def test_local_git_archive_attributes_rejected(self):
+        root=self.root/'official';(root/'.git/info').mkdir(parents=True);(root/'Cargo.lock').write_bytes(b'lock')
+        (root/'.git/info/attributes').write_text('* export-ignore')
+        def fake(argv,**kwargs):
+            if argv[3]=='status':return ''
+            return {'HEAD':m.HORIZON,'origin':'https://github.com/horizon-rust/horizon.git','info/attributes':'.git/info/attributes'}[argv[-1]]
+        with patch.object(m,'run',fake):
+            with self.assertRaisesRegex(ValueError,'archive attributes'):m.source_identity(root,'horizon',m.HORIZON,m.sha(b'lock'),'git',{})
+    def test_toolchain_seal_precedes_version_execution(self):
+        s=(ROOT/'tools/play_windows_latest.py').read_text()
+        self.assertLess(s.index('toolchain_before = tree_digest(toolchain)'),s.index("rust = run([toolchain/'bin/rustc.exe'"))
+        self.assertLess(s.index("gcc_version = run("),s.index("if tree_digest(toolchain) != toolchain_before"))
+
+    def test_compatibility_only_official_two_revision_delta(self):
+        value=json.loads((ROOT/'compatibility.json').read_text());m.validate_compat(value)
+        contract=json.loads((ROOT/'tests/windows-latest-compat-inverse.json').read_text())
+        self.assertEqual(set(contract['changes']),{'horizon_revision','mixins_revision'})
+        for key,pair in contract['changes'].items():
+            self.assertEqual(value[key],pair[1]);value[key]=pair[0]
+        raw=json.dumps(value,indent=2)+'\n'
+        self.assertEqual(hashlib.sha256(raw.encode()).hexdigest(),contract['base_sha256'])
+
     def test_launch_order_no_fallback_or_automatic_fetch(self):
         s=(ROOT/'tools/play_windows_latest.py').read_text();ast.parse(s)
         self.assertLess(s.index("repo/'tools/stage.py','--horizon'"),s.index('run(compile_args('))

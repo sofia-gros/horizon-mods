@@ -1,15 +1,17 @@
 {
   "schema": 1,
-  "parent": "60e42cfc21f130e79670ffe1c591fc74a1ef23e1",
-  "status": "source-only; 16 latest pure checks + 12 historical reconstructed cache checks passed; no PowerShell/Windows/native execution",
+  "parent": "5c290af141ea23f44d3a7f816c0d414262654ac9",
+  "status": "source-only; 20 latest pure + 12 historical reconstructed checks passed; PowerShell/Windows/native unrun",
   "files": {
     "tconstruct/tools/play-windows.ps1": "92dbf7fe3cec09e501b088e845271654413dba9f023c9f60cc705c312bd49768",
-    "tconstruct/tools/play_windows_latest.py": "73ac54363b8e5bc43b4b397d548f57c0a9d0ddd329be1008edcfef7405acdce3",
+    "tconstruct/tools/play_windows_latest.py": "4bb33dae6d8aa66cc1c3062c3df5da626b5f5ee74130f06f988de0d667302a04",
     "tconstruct/tools/stage.py": "e431bc36a06f30a4bb872d14280e38fccaa94ffc1dfbf7088143b56e5dd97c76",
-    "tconstruct/tests/test_windows_latest_launch.py": "15430ab3449a61284b60e8fef5bb4f2142a796f18b47b8b139cebd9bcbb09468",
+    "tconstruct/tests/test_windows_latest_launch.py": "6b63fc98405de3433df43daed2d40b09714c1d663c06415043857cd8fa5d6ee5",
     "tconstruct/tests/windows-latest-stage-inverse.json": "5b09c157886d3242fc62045f6e7a1aeb6f809a3a1f943f58c5432469a62b0963",
     "tconstruct/tests/test_windows_pluto_cache.py": "b2c538f2c37a486782cb9c16e900b0f78ce06ba75db04281e1c20837cecfb4c5",
     "tconstruct/tests/windows-latest-entry-inverse.json": "1c919fb7bcd448dc84b26168ec87e132549f56918c08fa6531975f786e951cce",
-    "tconstruct/docs/windows-latest-launch.md": "d66712c7cfed51718fc4abc0c6aca729f48a378a080b5323d16a12884f097c53"
+    "tconstruct/docs/windows-latest-launch.md": "4a06b318190c75c22d56ab6271ef122f7a3330f296556c22686f01fef98513d6",
+    "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
+    "tconstruct/tests/windows-latest-compat-inverse.json": "9d32830cc32dee7869455079ad3194bf2e63e65ef71de7e02f4e09d7c4c7fd09"
   }
 }

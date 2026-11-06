@@ -34,7 +34,7 @@ MAX_TOTAL = 64 * 1024**3
 SCRUB = {'RUSTUP_TOOLCHAIN', 'RUSTC_WRAPPER', 'RUSTC_WORKSPACE_WRAPPER',
          'RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTDOCFLAGS',
          'CARGO_ENCODED_RUSTDOCFLAGS', 'CARGO_INCREMENTAL',
-         'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
+         'CARGO', 'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
          'CFLAGS', 'CXXFLAGS', 'LDFLAGS', 'HORIZON_MOD_INJECTIONS'}
 
 
@@ -121,6 +121,10 @@ def source_identity(path, repo, revision, lock, git, env):
     if get('status', '--porcelain', '--untracked-files=all', '--ignored=matching'):
         raise ValueError('Official checkout contains edits, untracked or ignored inputs: '+repo)
     if sha(read(path/'Cargo.lock')) != lock: raise ValueError('Official Cargo.lock differs: '+repo)
+    attributes = Path(get('rev-parse', '--git-path', 'info/attributes'))
+    if not attributes.is_absolute(): attributes = path/attributes
+    if attributes.exists() or attributes.is_symlink():
+        raise ValueError('Local Git archive attributes are not admitted: '+str(attributes))
     # stage.py exports these committed trees rather than compiling dirty checkout bytes.
     return {'head': revision, 'tree': get('rev-parse', 'HEAD^{tree}'), 'lock': lock,
             'files': tree_digest(path, skip=frozenset({'.git'}))}
@@ -129,9 +133,9 @@ def source_identity(path, repo, revision, lock, git, env):
 def build_environment(original, toolchain, home):
     env = {k: v for k, v in original.items() if k.upper() not in SCRUB and
            not k.upper().startswith(('CARGO_BUILD_', 'CARGO_TARGET_', 'CARGO_PROFILE_',
-                                     'CC_', 'CXX_', 'AR_', 'RANLIB_', 'CFLAGS_', 'CXXFLAGS_', 'HORIZON_'))}
+                                     'CC_', 'CXX_', 'AR_', 'RANLIB_', 'CFLAGS_', 'CXXFLAGS_', 'HORIZON_', 'GIT_'))}
     env.update(PATH=str(toolchain/'bin')+os.pathsep+str(toolchain/'mingw64/bin')+os.pathsep+original.get('PATH',''),
-               RUSTC=str(toolchain/'bin/rustc.exe'), RUSTDOC=str(toolchain/'bin/rustdoc.exe'),
+               CARGO=str(toolchain/'bin/cargo.exe'), RUSTC=str(toolchain/'bin/rustc.exe'), RUSTDOC=str(toolchain/'bin/rustdoc.exe'),
                CARGO_HOME=str(home/'cargo-home-latest-gnu'), CARGO_NET_OFFLINE='true',
                CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
                TMP=str(home/'tmp-latest-gnu'), TEMP=str(home/'tmp-latest-gnu'),
@@ -139,7 +143,10 @@ def build_environment(original, toolchain, home):
                CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=str(toolchain/'mingw64/bin/gcc.exe'),
                CC=str(toolchain/'mingw64/bin/gcc.exe'), CXX=str(toolchain/'mingw64/bin/g++.exe'),
                AR=str(toolchain/'mingw64/bin/ar.exe'), RANLIB=str(toolchain/'mingw64/bin/ranlib.exe'),
-               WINDRES=str(toolchain/'mingw64/bin/windres.exe'))
+               WINDRES=str(toolchain/'mingw64/bin/windres.exe'),
+               GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
+               GIT_NO_REPLACE_OBJECTS='1', GIT_ATTR_NOSYSTEM='1',
+               GIT_CONFIG_COUNT='1', GIT_CONFIG_KEY_0='core.attributesfile', GIT_CONFIG_VALUE_0=os.devnull)
     return env
 
 
@@ -204,12 +211,15 @@ def execute(args):
         path.mkdir(parents=True, exist_ok=True); directory(path)
     # CWD at the volume root prevents home/repository Cargo config discovery.
     cwd = Path(home.anchor); no_parent_configs(cwd)
+    # Reject toolchain links/reparse/special entries BEFORE executing even a version query.
+    toolchain_before = tree_digest(toolchain)
     rust = run([toolchain/'bin/rustc.exe', '-vV'], cwd=cwd, env=env, capture=True); validate_rust(rust)
     cargo = run([toolchain/'bin/cargo.exe', '-vV'], cwd=cwd, env=env, capture=True)
     if not cargo.startswith('cargo '+VERSION+' '): raise ValueError('Cargo version differs from selected Rust toolchain')
     gcc = run([toolchain/'mingw64/bin/gcc.exe', '-dumpmachine'], cwd=cwd, env=env, capture=True)
     gcc_version = run([toolchain/'mingw64/bin/gcc.exe', '-dumpfullversion'], cwd=cwd, env=env, capture=True)
     if gcc != 'x86_64-w64-mingw32' or gcc_version != '16.2.0': raise ValueError('Expected official launcher WinLibs GCC 16.2.0 x64. No installer was run.')
+    if tree_digest(toolchain) != toolchain_before: raise ValueError('Toolchain changed during version queries')
     import shutil
     git = shutil.which('git', path=env['PATH'])
     if not git: raise ValueError('Git is required; it was not installed automatically')
@@ -272,6 +282,6 @@ def main():
     for name in ('horizon','mixins','pluto-bundle','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
     try: execute(p.parse_args())
     except (OSError,ValueError,subprocess.CalledProcessError) as exc:
-        p.exit(1,'Latest playtest stopped: '+str(exc)+'\nNo automatic cleanup, source fetch, installation or guard bypass was attempted. Existing worlds were not selected.\n')
+        p.exit(1,'Latest playtest stopped: '+str(exc)+'\nNo automatic cleanup, source fetch, installation or guard bypass was attempted. Normal/legacy worlds were not selected; an already started isolated playtest may have written its own world.\n')
 
 if __name__=='__main__': main()

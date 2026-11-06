@@ -1,6 +1,6 @@
 # Latest guarded Windows launch candidate
 
-Source-only follow-up to `60e42cfc21f130e79670ffe1c591fc74a1ef23e1`, based on integration `e128d61478971e247b1e3e2e09516cf99652f9fc`. The PowerShell entry is wired to a Python controller; it is not merely an admission design. No PowerShell interpreter, Windows host, Cargo build, source fetch, toolchain installation or game startup was available/run in this validation environment. Sixteen latest pure Python/source checks passed; twelve historical cache checks also passed against the exact reconstructed 60e42 entry, not against the replaced entry as if behavior were unchanged. This is not a playable-release claim.
+Source-only follow-up to `60e42cfc21f130e79670ffe1c591fc74a1ef23e1`, based on integration `e128d61478971e247b1e3e2e09516cf99652f9fc`. The PowerShell entry is wired to a Python controller; it is not merely an admission design. No PowerShell interpreter, Windows host, Cargo build, source fetch, toolchain installation or game startup was available/run in this validation environment. Twenty latest pure Python/source checks passed; twelve historical cache checks also passed against the exact reconstructed 60e42 entry, not against the replaced entry as if behavior were unchanged. This is not a playable-release claim.
 
 ## Fixed client contract
 
@@ -10,7 +10,7 @@ Source-only follow-up to `60e42cfc21f130e79670ffe1c591fc74a1ef23e1`, based on in
 - Only the repository's reviewed `stage.py` may stage. Its complete plan must pass `pluto-lib/tools/check_native_plan.py` before apply. No official-launcher direct-apply fallback, unconditional acceptance, assumed latest nodes or relaxed guards.
 - `stage.py` has exactly two additive/compatible edits: an optional `--cli-target-dir`, and use of that explicit isolated directory instead of the old default. Exact inverse reconstruction and wholefile hashes are tested. Without the option, prior behavior is unchanged.
 
-The current integration still has older compatibility/guard metadata. This controller intentionally rejects it before compilation until the integration owner lands genuinely reviewed latest manifests/guards after actual plan evidence. Changing this launcher is not a substitute for that work.
+This follow-up also changes only the two revision values in compatibility.json to41f/5a64; the official repository URLs and all other fields are unchanged, with an exact inverse test. That pin delta is not guard, type or game compatibility proof. The controller still requires actual reviewed complete-plan guards; old incompatible guard metadata must reject before apply. It never updates guard identities automatically.
 
 ## Explicit preparation, without an automatic installer
 
@@ -40,3 +40,9 @@ Worlds use `game-latest-41f822b65978` below PlaytestHome and world name `TConstr
 ## Remaining execution gates
 
 Actual latest complete-plan/guard admission, Windows GNU build and DLL/runtime checks, actual resource preparation including link behavior (official Windows mod_content uses hard links/copies, which regular-file seals admit; Unix symlinks are not the Windows contract), PowerShell syntax/runtime validation, startup and GPU/playability checks are still required. Source tests do not simulate the native game. Operational free-space/time/process-tree bounds for the authorized Windows runner must be reviewed before a remote build is launched; this controller is not a hard disk or group-memory limit. The current task's local disk floor remains in force, and no local native work was started.
+
+## Review follow-up
+
+The selected absolute Cargo executable is now set in CARGO as well as PATH, because Mixins Index::load reads CARGO directly. All inherited GIT_* redirects are removed; process-local global/system configs and external attributes are disabled, replacement objects are disabled, and local info/attributes rejects. This neither edits Git configuration nor changes permissions. The complete selected toolchain tree is link/reparse-checked before the first version subprocess and checked again afterwards. Error wording now distinguishes preserved normal/legacy saves from writes an already started isolated playtest may have made.
+
+One intermediate pure run stopped on a missing newly planned inverse JSON fixture (17 successful tests, one FileNotFoundError); after writing that fixture, the full18 passed, then20 passed after adding exact-source/attribute regressions. No runtime failure was hidden and no Windows process ran.
