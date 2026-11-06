@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "status": "passed_bounded_native_fixture",
+  "repository": "sofia-gros/horizon-mods",
+  "ci_head": "0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5",
+  "run": 42181415662,
+  "job": 127771667512,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "cutoffs": {
+    "composed_language": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+    "fixture": "df0645ec2bdd1063364eb82d85c45ef45d61c876"
+  },
+  "key_source_sha256": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2",
+  "source_seal_sha256": "b6dfaa9dbc7faf2dc6e90797b6c143590ed306b9ba413ba5ce0590c65f0b741d",
+  "fixture_seal_sha256": "428b475b4a6fe4ee783e117190a223d639e8d5e30488dffab9c2eee8d028c793",
+  "official_seal_sha256": "3fd9eb59fd89d315f9db87792b584e7f727b9565b000b5814c8b289da83310a1",
+  "generated_output_seal_sha256": "2e0cccec72c5324ed5fe44c504d31bc7a7e1592914235ca20fa7f1186fd21bff",
+  "minimum_free_bytes": 90025824256,
+  "floor_bytes": 10871635968,
+  "gates": {
+    "actual_compile": {
+      "example": "original author example included and type-checked in bounded fixture with explicit horizon_client alias, not installed client library",
+      "native_crates": [
+        "horizon_client_core",
+        "horizon_items",
+        "horizon_world"
+      ],
+      "passed": true
+    },
+    "item_display_tests::": {
+      "names": [
+        "item_display_tests::construction_does_not_fabricate_an_item_name_patch",
+        "item_display_tests::custom_name_wins_and_preserves_explicit_italic",
+        "item_display_tests::item_name_is_resolved_again_without_mutating_the_component",
+        "item_display_tests::missing_key_and_explicit_fallback_are_native",
+        "item_display_tests::native_codec_keeps_translate_arguments_and_style",
+        "item_display_tests::standard_keys_use_current_then_english_fallback",
+        "item_display_tests::standard_paths_preserve_slashes_and_implicit_namespace",
+        "item_display_tests::styled_name_defers_unadorned_stack_to_current_default"
+      ],
+      "passed": true,
+      "tests": 8
+    },
+    "pluto_language::tests::": {
+      "names": [
+        "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+        "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+        "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery",
+        "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+        "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+        "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+        "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+        "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority"
+      ],
+      "passed": true,
+      "tests": 8
+    },
+    "pluto_language_text::tests::": {
+      "names": [
+        "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+        "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+        "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+        "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+        "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+        "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+      ],
+      "passed": true,
+      "tests": 6
+    },
+    "runner": {
+      "passed": true,
+      "tests": 15
+    },
+    "source": {
+      "passed": true,
+      "tests": 25
+    }
+  },
+  "rust_result": {
+    "passed": 22,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "scope": "Actual official Language/Text/ItemStack plus exact native Names/styled_name fragments. No installed Game, live GUI, pack/content overlay, LAN, retained-page refresh or general NBT losslessness claim.",
+  "excluded": [
+    "Installed client-library/package composition",
+    "Execution of the original example main",
+    "Game or Client/window construction",
+    "Live language selection or same-code resource reload",
+    "Retained Guide refresh or opening/reply authority",
+    "LAN delivery/protocol compatibility",
+    "GPU or visual bidi layout"
+  ],
+  "evidence": "Decoded job log and FINAL_RECEIPT independently read; exact six Key test names and 22-test terminal result match. This docs closure changes no successful fixture source."
+}

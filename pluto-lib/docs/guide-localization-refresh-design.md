@@ -56,7 +56,7 @@ The exact bounded envelope, legacy decoder policy and 262,152-byte edge case mus
 
 | Gate | Required cases | Present status |
 | --- | --- | --- |
-| Thin Key/native Text | Selected/English/missing fallback, source component and styled arguments, old snapshot/new resolution, borrowed fallback, actual public imports | Six native tests and example supplied; source guards pass; native execution queued with World/Recipe. |
+| Thin Key/native Text | Selected/English/missing fallback, source component and styled arguments, old snapshot/new resolution, borrowed fallback, actual public imports | Key 6 passed in the 22-test actual core/items fixture at CI `0e4d68ea`, run 42181415662. Original example type-checked with an explicit crate alias; installed client-library import remains a separate gate. |
 | Existing language settings | Selection during resource reload; same-code changed resources; no false per-guest/global-bidi claim | Source behavior audited; no live UI test. |
 | Stable identity/anchors | Six books, translated equal titles, title change, duplicate chapter labels, removed entries, cover selection | No consumer change or runtime test. |
 | Legacy compatibility | Exact old packet bytes, old peers, maximum body/envelope, existing overlays, cover/clamp/history | Source oracle retained; no new connection test. |

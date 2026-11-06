@@ -1,6 +1,6 @@
 # Translation keys at the display boundary
 
-This is an additive source candidate, separate from the successful Guide authoring CI at `2ee73a7`. The native language adapter and this author-facing layer must be composed and verified together before this entry point is available in an installed package. No consumer or existing LAN handler is changed here.
+This additive layer has passed the bounded native Language/Text/item fixture below, separately from the successful Guide authoring CI at `2ee73a7`. Full installed package composition still needs its own gate. No consumer or existing LAN handler is changed here.
 
 ## Intended author API
 
@@ -33,9 +33,11 @@ The shared adapter's exact source/commit, installed module entries and re-export
 ## Verification boundaries
 
 - Three Python source guards check the one-call delegation, borrowed configuration and test inventory. They are not Rust compilation.
-- Six native tests are supplied in the helper and are **not run yet**. They require actual official core `Language`, `ResourceSource`, thread-scoped lookup and Text, plus the actual shared `language.rs` adapter. The fixture must not replace those methods with mocks. They cover retained-key re-resolution versus old Text snapshots, missing keys/fallback components, English fallback, styled reordered arguments, malformed placeholders and a shorter borrowed fallback.
-- A fixture should also compile the exact public re-export/example above, not just private helper names. Full installed module composition still needs its own official plan/apply/type gate.
+- All six helper tests passed against actual official core `Language`, `ResourceSource`, thread-scoped lookup and Text, using the actual composed `language.rs` adapter. They cover retained-key re-resolution versus old Text snapshots, missing keys/fallback components, English fallback, styled reordered arguments, malformed placeholders and a shorter borrowed fallback.
+- The original public example compiled through the actual re-export in that bounded fixture, with an explicit `horizon_client` crate alias. This is not an installed client-library import test, and the example's `main` was not executed. Full installed module composition still needs its own official plan/apply/type gate.
 - No renderer, glyph atlas, bidirectional visual layout, open-book lifetime, pack reload UI action or LAN response test is included. `lang::scoped` is suitable for isolated text lookup tests but does not change the process-global bidirectional setting.
+
+The successful input was composed language `ea7095d80b67ab8659b26b3e0e32a92d77de2cae`, fixture `df0645ec2bdd1063364eb82d85c45ef45d61c876`, and CI head `0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5`. [Run 42181415662](https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662), job `127771667512`, passed 22 Rust tests: internal language 8, Key 6, and native item display 8, with zero failures, ignored tests or filtered tests. The 25 source checks and 15 runner checks also passed. Actual core/items/world and fixture compilation, source/lock/file-set and generated-output seals were verified. The [bounded receipt](language-key-native-result-20261106.json) records exact source hashes and limits. These results do not extend the separate Font12 or 207-test authoring proof scopes.
 
 ## Existing UI connections remain explicit
 
