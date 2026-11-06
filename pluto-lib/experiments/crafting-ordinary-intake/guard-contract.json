@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "status": "design only; no guard success claimed",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "previous_complete_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "boundaries": [
+    {
+      "target": "horizon_client_lib::crafting::Recipes::assemble_if_matches",
+      "owner": "pluto_native_creative",
+      "injection_id": "crafting-match-veto",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "required_complete_plan_hook_count": 1,
+      "helper_path": "pluto-lib/mixins/pluto_native_creative/crafting-match-veto.rs",
+      "helper_sha256": "814dce596098aeaae669e5748f4138d18521ff45e87c0d73a00b2676aa24f16f",
+      "native_file": "crates/horizon-client/src/crafting.rs",
+      "previous_native_function_fingerprint": "4df48b30b17f2c4d735e45b54ae2e5c7d23f679c993b3d942c07f5aaecbf401c",
+      "previous_native_node": [
+        42,
+        8
+      ],
+      "candidate_actual_plan_observed": false
+    },
+    {
+      "target": "horizon_client_lib::crafting::Recipes::remainders",
+      "owner": "pluto_native_creative",
+      "injection_id": "crafting-pure-remainders",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "required_complete_plan_hook_count": 1,
+      "helper_path": "pluto-lib/mixins/pluto_native_creative/crafting-pure-remainders.rs",
+      "helper_sha256": "ff061e793e9d8da4029fda367003c3df326c1c3555af8866a4ce8cf5cba01f16",
+      "native_file": "crates/horizon-client/src/crafting.rs",
+      "previous_native_function_fingerprint": "79da2517a399a5350807b33ca619bc45c1136e9475c6234a1c394fa6040e9ef0",
+      "previous_native_node": [
+        42,
+        11
+      ],
+      "candidate_actual_plan_observed": false
+    },
+    {
+      "target": "horizon_client::game::recipe_book::Game<'_>::place_recipe",
+      "owner": "pluto_native_creative",
+      "injection_id": "recipe-placement-click",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "required_complete_plan_hook_count": 1,
+      "helper_path": "pluto-lib/mixins/pluto_native_creative/recipe-placement-click.rs",
+      "helper_sha256": "8e9f6f8046ec8269c268082ebd91340ed6dfee48c164e2e18cc85e7c365546ac",
+      "native_file": "crates/horizon-client/src/game/recipe_book.rs",
+      "previous_native_function_fingerprint": "89ef9141412aa60155e3adebf0c255e27dcd2a0e2c93ffb407cdc81871d92452",
+      "previous_native_node": [
+        16,
+        45
+      ],
+      "candidate_actual_plan_observed": false
+    },
+    {
+      "target": "horizon_client_lib::crafting::Recipes::empty",
+      "owner": "tconstruct_native",
+      "injection_id": "crafting-shared-empty-startup",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "required_complete_plan_hook_count": 1,
+      "helper_path": "tconstruct/mixins/tconstruct/source-crafting-empty-startup.rs",
+      "helper_sha256": "99e9a9f1c523ada4c42060a6ada88e2b3df8d84f5afa53db155fd5c6c4f86792",
+      "native_file": "crates/horizon-client/src/crafting.rs",
+      "previous_native_function_fingerprint": null,
+      "previous_native_node": null,
+      "candidate_actual_plan_observed": false
+    },
+    {
+      "target": "horizon_client_lib::crafting::Recipes::from_sources",
+      "owner": "tconstruct_native",
+      "injection_id": "crafting-shared-sources-startup",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "required_complete_plan_hook_count": 1,
+      "helper_path": "tconstruct/mixins/tconstruct/source-crafting-sources-startup.rs",
+      "helper_sha256": "b29394b2230c1363801ba93e89b2b099017fb6b3016f5d0546b89c4cec731632",
+      "native_file": "crates/horizon-client/src/crafting.rs",
+      "previous_native_function_fingerprint": null,
+      "previous_native_node": null,
+      "candidate_actual_plan_observed": false
+    }
+  ],
+  "must_validate_before_apply": [
+    "Actual new complete-plan source/owner inventory, not metadata-only acceptance",
+    "Both new constructor target/file/node/function fingerprint/void contract/empty bindings from actual plan",
+    "Sole HEAD on all five targets, exact phase/priority/cancellable/bindings and helper bytes",
+    "No additional hooks/bridges/state/constructors that bypass constructor initialization, matching denial, derived result, remainder or placement authority",
+    "Exact API crate identity/source, no competing registry instance",
+    "Pinned matching and derivation modules plus unchanged Overslime body/callees, TConstruct denial consumer and combined bootstrap; callbacks outside locks and constructor initializer no callback/reentry",
+    "Pinned station dispatcher, unchanged transaction body, exact open registration line/session-accessor closure; LAN handler retained separately",
+    "Official native whole-file hashes and actual plan.inputs; packaged accessor prefix transformations checked against raw source postimage",
+    "Update mandatory guard implementation/metadata only after this reviewed contract and actual selected IR are fixed; fail closed while any required fingerprint remains unobserved"
+  ],
+  "unrun_gates": [
+    "Combined bootstrap helper5 and actual constructor startup",
+    "Pure pair finite16",
+    "Installed native module/Game typing",
+    "Complete-plan new guards and actual apply",
+    "Station local/LAN behavioral integration"
+  ]
+}

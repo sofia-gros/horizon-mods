@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Development source integration. Native item-cloud and three client-payload caller migrations are included. The recovered 9cc1 plan remains reference-only; fresh full plan, guards, types and build are required.",
+  "stage": "Development source integration includes cloud, payload, crafting and local station delegation. Fresh complete plan, reviewed guard observations, apply, host types and Windows build remain required.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -32,7 +32,7 @@
     },
     {
       "subject": "Crafting composition",
-      "reason": "API 153 and finite native 16 tests passed. Ordinary policy, pure-pair and placement delegation, constructor registration, actual Game types and new full-plan contracts remain."
+      "reason": "Sixteen ordinary source files now delegate the five old hooks through matching, pure-pair and local transaction owners. The stored API 153 and finite 16 tests passed before composition. Constructor identities, strict combined contracts, bootstrap, pure-pair 16, actual Game types and station behavior remain unverified."
     },
     {
       "subject": "Latest whole-source guard pins",
@@ -59,8 +59,7 @@
     "Item-name removal/default ownership experiments",
     "Locale overlay repair and root-key experiments",
     "Terrain optimization/profile/reload experiments",
-    "Unexecuted Font generation query changes",
-    "Crafting stored-value admission candidate until actual types, registration and complete ownership contracts are verified"
+    "Unexecuted Font generation query changes"
   ],
   "evidence": {
     "latest_prior_full_probe": {
@@ -71,7 +70,7 @@
     },
     "gates": {
       "git_blob_composition": "passed",
-      "complete_latest_plan": "Accepted only for reference9cc1; current native item-cloud delta requires fresh complete plan",
+      "complete_latest_plan": "Accepted only for reference 9cc1. Current cloud, payload and crafting/station source requires a fresh complete plan.",
       "composition_guards": "Actual fixed17f all12 CLI reached:7PASS/5refuse, including1.95 formatter regeneration. Current cloud/payload delta requires fresh fullplan and allguards.",
       "native_build": "not run on this branch",
       "windows_link": "not run",
@@ -156,7 +155,7 @@
       "repeat_plan_identical_to_first": true,
       "repeat_guard_results_identical": true,
       "current_runtime_changed_after_reference_plan": true,
-      "current_runtime_change": "Cloud c977 and3payload caller46fee source are integrated; old9cc1 plan is reference only."
+      "current_runtime_change": "Cloud c977, payload 46fee and crafting/station ordinary delegation are included. The old 9cc1 plan is reference-only."
     },
     "windows_source_ci": {
       "source": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
@@ -298,6 +297,27 @@
       "new_module_fingerprint": null,
       "admission": "Mandatory rejection until the new complete plan is observed and reviewed.",
       "actual_full_guard_passed": false
+    },
+    "crafting_ordinary": {
+      "base": "59c23ce300e40eb6a477bb55f33552fddbc04599",
+      "ordinary_paths": 16,
+      "proof_paths": 9,
+      "source_checks": 13,
+      "existing_inputs_exact": 14,
+      "removed_delegated_hooks": [
+        "anvil-material-recipe",
+        "survival-melter-no-container",
+        "overslime-crafting-assemble",
+        "overslime-crafting-remainders",
+        "crafting-station-recipe-placement-guard"
+      ],
+      "old_helper_files_retained": true,
+      "other_manifest_tables_retained": true,
+      "independent_review": "World combined registration and exact manifest/body comparison; prior stored, pair and station reviews retained.",
+      "constructor_observation": null,
+      "guard_admission_verified": false,
+      "native_type_verified": false,
+      "record": "pluto-lib/experiments/crafting-ordinary-intake/receipt.json"
     }
   },
   "safety": {
@@ -307,7 +327,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Finish the reviewed crafting and placement source integration, collect a fresh complete plan and missing native fingerprints, then run all guards, apply, actual host type tests and Windows build/start checks before main.",
+  "next": "Freeze the combined runtime for a fresh complete plan. Preserve its primary artifact before the separate official Index observation. Review actual constructor and module identities, finish exact guards, then apply and run host type/tests and Windows build/error checks.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -615,6 +635,18 @@
       "pending_observation_rejects": true,
       "rust_or_manifest_changed": false,
       "actual_plan_or_type_verified": false
+    },
+    {
+      "subject": "Crafting and local station ordinary delegation",
+      "ordinary_paths": 16,
+      "proof_paths": 9,
+      "pure_checks": 13,
+      "independent_review": "World combined-bootstrap/compose and complete existing manifest preservation; central 13 tests and all 14 existing input Git blobs.",
+      "scope": "Five old hooks delegate to one matching, pure derivation and transaction boundary. Old policy and transaction bodies, independent remainder calculation and separate LAN handler are retained.",
+      "initialization": "Two noncancellable library-owned constructors share stored-then-pair registration. Second failure leaves first registration; cached error prevents returning a new Recipes value. No rollback guarantee.",
+      "constructor_ir_observed": false,
+      "full_guards_passed": false,
+      "actual_host_or_gameplay": false
     }
   ],
   "guide_limits": [

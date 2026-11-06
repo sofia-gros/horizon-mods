@@ -1,0 +1,63 @@
+{
+  "base": "59c23ce300e40eb6a477bb55f33552fddbc04599",
+  "production_paths": 16,
+  "removed_hook_ids": [
+    "anvil-material-recipe",
+    "survival-melter-no-container",
+    "overslime-crafting-assemble",
+    "overslime-crafting-remainders",
+    "crafting-station-recipe-placement-guard"
+  ],
+  "before_sha256": {
+    "tconstruct/mixins/tconstruct/source-crafting-station.rs": "7fa0ea9aa143beff70b771c89fc427be14c499c5bcf6318971f9cc6673aca523",
+    "pluto-lib/mixins/pluto_native_creative/crafting-match.rs": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1",
+    "pluto-lib/mixins/pluto_native_creative/crafting-match-veto.rs": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2",
+    "pluto-lib/mixins/pluto_native_creative/recipe-placement-click.rs": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+    "tconstruct/mixins/tconstruct/source-crafting-recipe-guard.rs": "5bd672d074ab4f29c43aec1c56b84abac3d1e62591bd6a1dcd9781bd80bc0857",
+    "tconstruct/mixins/tconstruct/anvil-material-recipe.rs": "a4f4029c37bf153e42f5714cfe4834ad8d542fc244f53ac221b0013ef3cfd70b",
+    "tconstruct/mixins/tconstruct/survival-melter-recipe.rs": "03a5ac0d50b0bb63af7597710702b022f8404b93f8fe0f66e32a900d390bdcc3",
+    "tconstruct/mixins/tconstruct/source-overslime-craft-assemble.rs": "bfa08e9dfff0b0685dd976e6f5dbc33c9789a65fdd6946ea68176627c9c97663",
+    "tconstruct/mixins/tconstruct/source-overslime-craft-remainders.rs": "abf3c55dabefc1a96701a9c90f605d3a0167819f272f8473b4cf8409c44b3493",
+    "tconstruct/mixins/tconstruct/source-overslime.rs": "da80c34ee5b8ebb88be5bb863371ca4bc887fca4e395f72b62552cce00866b7f",
+    "tconstruct/mixins/tconstruct/source-overslime-crafting.rs": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "f9356fc8c3925bbe77930f7648bdbc4fff9fd2925680d0791d6b8c1c17b1ff62",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040"
+  },
+  "after_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "f65da372b2c9fb6accf0cd5fa847990fe6c13d7bc3d8c1f9d9364ca7ba6c9e59",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "1888496f46e8c06411e2d06f1a41b477a8c42d7f600abafc516985671685fe95",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f",
+    "pluto-lib/mixins/pluto_native_creative/crafting-match.rs": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83",
+    "pluto-lib/mixins/pluto_native_creative/crafting-match-veto.rs": "814dce596098aeaae669e5748f4138d18521ff45e87c0d73a00b2676aa24f16f",
+    "pluto-lib/mixins/pluto_native_creative/crafting-derivations.rs": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e",
+    "pluto-lib/mixins/pluto_native_creative/crafting-pure-remainders.rs": "ff061e793e9d8da4029fda367003c3df326c1c3555af8866a4ce8cf5cba01f16",
+    "pluto-lib/mixins/pluto_native_creative/recipe-transactions.rs": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2",
+    "pluto-lib/mixins/pluto_native_creative/recipe-placement-click.rs": "8e9f6f8046ec8269c268082ebd91340ed6dfee48c164e2e18cc85e7c365546ac",
+    "tconstruct/mixins/tconstruct/source-crafting-deny-policies.rs": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+    "tconstruct/mixins/tconstruct/source-overslime-derivation.rs": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+    "tconstruct/mixins/tconstruct/source-crafting-bootstrap.rs": "382ca263fa9510f6df5adb2c98c474b6cc7d25672735a29577ab0ca68ec93a65",
+    "tconstruct/mixins/tconstruct/source-crafting-empty-startup.rs": "99e9a9f1c523ada4c42060a6ada88e2b3df8d84f5afa53db155fd5c6c4f86792",
+    "tconstruct/mixins/tconstruct/source-crafting-sources-startup.rs": "b29394b2230c1363801ba93e89b2b099017fb6b3016f5d0546b89c4cec731632",
+    "tconstruct/mixins/tconstruct/source-station-transaction.rs": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9",
+    "tconstruct/mixins/tconstruct/source-crafting-station.rs": "1b90ba100e00c37170893683bf5a33f22c882c515f5ca4aec784ae3ca13038a3"
+  },
+  "preserved_legacy_files": {
+    "tconstruct/mixins/tconstruct/source-crafting-recipe-guard.rs": "5bd672d074ab4f29c43aec1c56b84abac3d1e62591bd6a1dcd9781bd80bc0857",
+    "tconstruct/mixins/tconstruct/anvil-material-recipe.rs": "a4f4029c37bf153e42f5714cfe4834ad8d542fc244f53ac221b0013ef3cfd70b",
+    "tconstruct/mixins/tconstruct/survival-melter-recipe.rs": "03a5ac0d50b0bb63af7597710702b022f8404b93f8fe0f66e32a900d390bdcc3",
+    "tconstruct/mixins/tconstruct/source-overslime-craft-assemble.rs": "bfa08e9dfff0b0685dd976e6f5dbc33c9789a65fdd6946ea68176627c9c97663",
+    "tconstruct/mixins/tconstruct/source-overslime-craft-remainders.rs": "abf3c55dabefc1a96701a9c90f605d3a0167819f272f8473b4cf8409c44b3493",
+    "tconstruct/mixins/tconstruct/source-overslime.rs": "da80c34ee5b8ebb88be5bb863371ca4bc887fca4e395f72b62552cce00866b7f",
+    "tconstruct/mixins/tconstruct/source-overslime-crafting.rs": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13"
+  },
+  "inverse_checks": {
+    "tc_manifest_removal": true,
+    "pluto_click_formals": true,
+    "station_registration_line": true,
+    "old_transaction_body": true
+  },
+  "ordinary_installed": false,
+  "native_executed": false,
+  "constructor_fingerprints_observed": false
+}

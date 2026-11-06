@@ -3075,16 +3075,7 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_armor_wear"
 source = "source-armor-wear.rs"
 
-[[injection]]
-id = "anvil-material-recipe"
-target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
-kind = "HEAD"
-cancellable = true
-helper = "anvil-material-recipe.rs"
-bindings = [
-  { name = "input", ty = "&Input<'_>", value = "input" },
-  { name = "recipe", ty = "&Recipe", value = "recipe" },
-]
+# Delegated to stored matching policy (old injection id: anvil-material-recipe).
 
 [[module]]
 id = "survival-empty-tank"
@@ -3092,16 +3083,7 @@ file = "crates/horizon-client/src/crafting.rs"
 name = "tconstruct_survival_empty_tank"
 source = "survival-empty-tank.rs"
 
-[[injection]]
-id = "survival-melter-no-container"
-target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
-kind = "HEAD"
-cancellable = true
-helper = "survival-melter-recipe.rs"
-bindings = [
-  { name = "input", ty = "&Input<'_>", value = "input" },
-  { name = "recipe", ty = "&Recipe", value = "recipe" },
-]
+# Delegated to stored matching policy (old injection id: survival-melter-no-container).
 
 [[injection]]
 id = "netherite-dropped-item-environment"
@@ -3157,21 +3139,9 @@ name = "tconstruct_source_overslime_crafting"
 source = "source-overslime-crafting.rs"
 visibility = "pub"
 
-[[injection]]
-id = "overslime-crafting-assemble"
-target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
-kind = "HEAD"
-cancellable = true
-helper = "source-overslime-craft-assemble.rs"
-bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+# Delegated to pure derivation assembly (old injection id: overslime-crafting-assemble).
 
-[[injection]]
-id = "overslime-crafting-remainders"
-target = "horizon_client_lib::crafting::Recipes::remainders"
-kind = "HEAD"
-cancellable = true
-helper = "source-overslime-craft-remainders.rs"
-bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
+# Delegated to pure derivation remainders (old injection id: overslime-crafting-remainders).
 
 [[state]]
 id = "glow-left-held"
@@ -4248,18 +4218,7 @@ name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
 
 # Stage local recipe placement and persist its validated menu grid.
-[[injection]]
-id = "crafting-station-recipe-placement-guard"
-target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
-kind = "HEAD"
-cancellable = true
-helper = "source-crafting-recipe-guard.rs"
-bindings = [
-    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
-    { name = "book_type", ty = "horizon_client::recipe_book::BookType", value = "book_type" },
-    { name = "entry_index", ty = "usize", value = "entry_index" },
-    { name = "use_max", ty = "bool", value = "use_max" },
-]
+# Delegated to local station transaction (old injection id: crafting-station-recipe-placement-guard).
 
 [[module]]
 id = "source-chute-hopper"
@@ -5360,3 +5319,47 @@ id = "materials-book-response-update"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_response"
 source = "source-materials-book-response-update.rs"
+
+[[module]]
+id = "crafting-stored-deny-policies"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_crafting_deny_policies"
+source = "source-crafting-deny-policies.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "crafting-shared-bootstrap"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_crafting_bootstrap"
+source = "source-crafting-bootstrap.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "overslime-derivation"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_overslime_derivation"
+source = "source-overslime-derivation.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "station-transaction"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "tconstruct_station_transaction"
+source = "source-station-transaction.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "crafting-shared-empty-startup"
+target = "horizon_client_lib::crafting::Recipes::empty"
+kind = "HEAD"
+cancellable = false
+helper = "source-crafting-empty-startup.rs"
+bindings = []
+
+[[injection]]
+id = "crafting-shared-sources-startup"
+target = "horizon_client_lib::crafting::Recipes::from_sources"
+kind = "HEAD"
+cancellable = false
+helper = "source-crafting-sources-startup.rs"
+bindings = []

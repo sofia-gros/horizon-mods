@@ -68,9 +68,10 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
         .iter()
         .map(|cell| cell.as_ref().map(ItemFacts::view))
         .collect();
-    let result = template.map(|template| template.create());
-    let result = result.as_ref().map(ItemFacts::capture);
-    evaluation.evaluate(&Request {
+    let result_stack = template.map(|template| template.create());
+    let result = result_stack.as_ref().map(ItemFacts::capture);
+    let stored = StoredStacks { cells: &input.cells, result: result_stack.as_ref() };
+    evaluation.evaluate_with_stored(&Request {
         recipe: &facts,
         input: InputFacts {
             width: input.width,
@@ -80,5 +81,37 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
             cells: &cells,
         },
         result: result.as_ref().map(ItemFacts::view),
-    })
+    }, &stored)
+}
+
+// Exact borrowed saved-field access; never derives an effective component patch
+// and never rejects the reader merely because a stack retains opaque wire.
+fn stored_value(value: &horizon_world::nbt::Tag) -> matching::StoredValue<'_> {
+    use horizon_world::nbt::Tag as T;
+    use matching::StoredValue as V;
+    match value {
+        T::End => V::End, T::Byte(v) => V::Byte(*v), T::Short(v) => V::Short(*v),
+        T::Int(v) => V::Int(*v), T::Long(v) => V::Long(*v), T::Float(v) => V::Float(*v),
+        T::Double(v) => V::Double(*v), T::ByteArray(v) => V::ByteArray(v),
+        T::String(v) => V::String(&v.0), T::List(_) => V::List,
+        T::Compound(_) => V::Compound, T::IntArray(v) => V::IntArray(v),
+        T::LongArray(v) => V::LongArray(v),
+    }
+}
+fn stored_path<'a>(stack: &'a crate::items::ItemStack, id: &str, path: &[&str]) -> Option<matching::StoredValue<'a>> {
+    let mut value = stack.data()?.other(id)?;
+    for key in path { value = value.get(key)?; }
+    Some(stored_value(value))
+}
+struct StoredStacks<'a> {
+    cells: &'a [Option<&'a crate::items::ItemStack>],
+    result: Option<&'a crate::items::ItemStack>,
+}
+impl matching::StoredComponents for StoredStacks<'_> {
+    fn input_other(&self, cell: usize, id: &str, path: &[&str]) -> Option<matching::StoredValue<'_>> {
+        stored_path(self.cells.get(cell).copied().flatten()?, id, path)
+    }
+    fn result_other(&self, id: &str, path: &[&str]) -> Option<matching::StoredValue<'_>> {
+        stored_path(self.result?, id, path)
+    }
 }

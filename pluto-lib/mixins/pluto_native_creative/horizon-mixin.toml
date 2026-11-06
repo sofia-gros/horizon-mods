@@ -615,7 +615,7 @@ target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
 kind = "HEAD"
 cancellable = true
 helper = "recipe-placement-click.rs"
-bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "book_type", ty = "BookType", value = "book_type" }, { name = "entry_index", ty = "usize", value = "entry_index" }]
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "book_type", ty = "BookType", value = "book_type" }, { name = "entry_index", ty = "usize", value = "entry_index" }, { name = "use_max", ty = "bool", value = "use_max" }]
 
 [[module]]
 id = "current-book"
@@ -754,3 +754,25 @@ id = "client-payload-updates"
 file = "crates/horizon-client/src/game.rs"
 name = "pluto_client_payload_updates"
 source = "client-payload-updates.rs"
+
+[[module]]
+id = "crafting-derivations"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_derivations"
+source = "crafting-derivations.rs"
+visibility = "pub"
+
+[[module]]
+id = "recipe-transactions"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "pluto_transactions"
+source = "recipe-transactions.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "crafting-pure-remainders"
+target = "horizon_client_lib::crafting::Recipes::remainders"
+kind = "HEAD"
+cancellable = true
+helper = "crafting-pure-remainders.rs"
+bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]

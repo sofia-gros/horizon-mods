@@ -17,6 +17,7 @@ pub(super) fn open(game: &mut Game<'_>, pos: [i32; 3]) -> bool {
         game.craft_table = Some(pos);
         return true;
     }
+    crate::game::recipe_book::tconstruct_station_transaction::ensure();
     let key = (pos[0], pos[1], pos[2]);
     let entity = game.world.block_entities.get_or_insert_with(key, || BlockEntity::Chest(vec![None; 9]));
     let BlockEntity::Chest(items) = entity else { return false; };

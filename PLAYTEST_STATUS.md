@@ -110,3 +110,12 @@ The repository stores small public summaries of these results. Full raw logs and
 The reviewed cloud composition guard now checks exact hook, module and state contracts, payload bytes and per-node execution order. All 37 pure checker tests pass. This is not a blanket allowance for the old conflicts.
 
 The new cloud module fingerprint and candidate-plan observation deliberately remain null. The production guard must reject until a fresh complete plan provides the actual identities and they are reviewed. No runtime Rust or manifest is changed by this guard update, and no apply, Game test or build success is implied.
+
+
+## Crafting and local station source delegation
+
+Sixteen ordinary files now connect the stored matching policies, legacy pure Overslime derivation and local station transaction through shared owners. Exactly five old hooks were removed only because their behavior is delegated. Their helper and policy files remain. Separate LAN handling, cloud and payload changes, saved chest color and the approved pick-color deferral are preserved.
+
+All 13 source/inverse tests pass and all 14 existing inputs match the current integration tree. Independent review found no concrete source blocker. Stored API 153 and finite native 16 tests had already passed, but this does not establish constructor registration, pure-pair tests, station transactions or full Game types.
+
+The two library-owned constructors share one cached stored-then-pair registration result. A later failure does not roll back the first registration; it prevents returning a new Recipes value. Constructor identities and strict full-composition guard acceptance must come from the fresh actual plan. Main remains unchanged, with no build or launch success claimed.
