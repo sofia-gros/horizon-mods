@@ -9,6 +9,7 @@ def load(name,path):
 common=load('verified_common_helpers',ROOT/'pluto-lib/experiments/common-composite-ci/run.py')
 prepare=load('baseline_prepare',HERE/'prepare.py')
 safety=load('baseline_safety',HERE.parent/'main-common-ci/safety.py')
+observer=load('bounded_plan_observer',HERE/'observe_plan.py')
 sha=common.sha
 REPOSITORY='sofia-gros/horizon-mods'
 BRANCH='checkpoint/plutolib-latest-main-common-plan-ci-20261106'
@@ -17,9 +18,9 @@ OFFICIAL={'horizon':{'url':'https://github.com/horizon-rust/horizon.git','revisi
  'lock':'0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'},
  'mixins':{'url':'https://github.com/horizon-rust/horizon-mixins.git','revision':prepare.MIXINS,
  'lock':'35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca'}}
-RUNNER_TESTS=32
+RUNNER_TESTS=40
 PREFIX='pluto-lib/experiments/latest-main-common-ci/'
-INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','README.md','official-contract.json']}
+INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','observe_plan.py','README.md','official-contract.json']}
 INPUT_PATHS|={'.github/workflows/latest-main-common-plan-wip.yml','pluto-lib/experiments/common-composite-ci/run.py',
  'pluto-lib/experiments/common-composite-ci/inputs.json','tconstruct/tools/portable_archive.py',
  'pluto-lib/experiments/main-common-ci/prepare.py','pluto-lib/experiments/main-common-ci/safety.py'}
@@ -70,7 +71,7 @@ def cli_witness(log):
 def attempt_plan(runner,cli,official,mods,plan):
     # One invocation only. Expected planner rejection is evidence, never a retry.
     try:
-        output=runner.run('official-plan',[str(cli),'plan','--workspace',str(official),'--mods',str(mods),'--out',str(plan)],timeout=180)
+        output=runner.run('official-plan',[sys.executable,str(HERE/'observe_plan.py'),str(cli),str(official),str(mods),str(plan),str(runner.work/'plan-cpu.jsonl')],timeout=600)
     except RuntimeError:
         phase=runner.report['phases'][-1] if runner.report['phases'] else {}
         if phase.get('name')!='official-plan' or phase.get('exit_code')!=1 or phase.get('error')!='RuntimeError: official-plan exited 1':raise
@@ -230,6 +231,16 @@ def execute(report):
     finally:
         try:collect_tool_calls(report,wrapper_log,official,real_tools,wrappers_ready)
         except BaseException as exc:common.record_error(report,exc,'tool-argv verification: ')
+        try:
+            cpu_path=work/'plan-cpu.jsonl'
+            observation=observer.collect(cpu_path)
+            if observation['present']:observation['raw_sha256']=sha(cpu_path.read_bytes())
+            phase=next((p for p in report['phases'] if p['name']=='official-plan'),None)
+            observation['observer_exit_code']=phase['exit_code'] if phase else None
+            report['plan_cpu_observation']=observation
+            if phase and phase['exit_code'] in (0,1) and (not observation['complete'] or observation.get('cli_exit_code')!=phase['exit_code']):
+                raise ValueError('Observer/CLI completion mismatch')
+        except BaseException as exc:common.record_error(report,exc,'CPU observation verification: ')
         try:
             common.assert_git_clean(ROOT);common.assert_full_seal(ROOT,original)
             if prepare.git_state(ROOT)!=original_git:raise ValueError('Original checkout refs/index/HEAD drift')

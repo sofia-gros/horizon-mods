@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "source-only observability follow-up; 32 Python tests; latest retry unrun",
+  "status": "source-only 600-second observer; 40 Python regressions passed; latest retry unrun",
   "repository": "sofia-gros/horizon-mods",
   "branch": "checkpoint/plutolib-latest-main-common-plan-ci-20261106",
   "main": "08afa992d5091e03360f3473ea93fd17aa793987",
@@ -17,19 +17,20 @@
     }
   },
   "common_bundle_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
-  "source_base": "ac311972dfb0bce806e35bb2dc209a059a52871f",
+  "source_base": "e28b972ba903817445c59e884be9daebff360922",
   "source_sha256": {
     ".github/workflows/latest-main-common-plan-wip.yml": "85dd64d1c0608a262263414ab094ed832b8dcea2bbd8520ad0fe0b2df3c4b6ab",
     "pluto-lib/experiments/common-composite-ci/inputs.json": "e564c7306e228676165aa5cb7454d8f5452d98f4b2bdaebb7513c43e129fc36e",
     "pluto-lib/experiments/common-composite-ci/run.py": "a9efcb9f10a99c77ac9f36f6967253aa9d085452a6e9087f76edf82f80ea8959",
-    "pluto-lib/experiments/latest-main-common-ci/README.md": "1eb795a99c4b94e7eec7c1572220b0fa322365b9eeb95d8aee00b74044448142",
+    "pluto-lib/experiments/latest-main-common-ci/README.md": "1195f9dd069431274467a03a5ba66f110b1b21ab030c2ea5c966274b36367cb6",
     "pluto-lib/experiments/latest-main-common-ci/official-contract.json": "992d090a06a0d3199c178de1679dbbb69679fc521d8ba24d0bbeafa551f86c06",
     "pluto-lib/experiments/latest-main-common-ci/prepare.py": "67b30000ff52b6705381bca3bcee4f851f78375f69b59509cdb9c4895d208b96",
-    "pluto-lib/experiments/latest-main-common-ci/run.py": "c19b7692cf514eaf908f489838f512fa8b85e098bd85c5ef8753a407f068fd6b",
-    "pluto-lib/experiments/latest-main-common-ci/test_runner.py": "4030454532dc5016d9eb146212d1df2569a9d0805ff1cdbfdba65181b59aa704",
+    "pluto-lib/experiments/latest-main-common-ci/run.py": "95636ad5327e83fb20874c7d91bb73a5f2215f56fa5782ecf72e6cb4452634b5",
+    "pluto-lib/experiments/latest-main-common-ci/test_runner.py": "b7fe95997d7966fed777d7032220e42803f7da7220da5fe931c5f88ef76ce94e",
     "pluto-lib/experiments/main-common-ci/prepare.py": "7b3357c8b103e18fba7cf220393bee955dd1581a12f59936674455579dd3f233",
     "pluto-lib/experiments/main-common-ci/safety.py": "447d5b86fd2c0b0459d6d8cda6841386751e89ee2eb6930d23530e78f1f293f0",
-    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10",
+    "pluto-lib/experiments/latest-main-common-ci/observe_plan.py": "1ce6e1d17787e8b16070d0845a7d0d38ca0661c8a0d378cd1ec8c7697307024c"
   },
   "memory_original_commit": "e33fa3282ef90e0116c623b171e8dbe2a4da41f8",
   "memory_original_source_sha256": "5203d61d9121eaa61d6dcd61d58591f3482926f9a954ec09d87a08724a7f7eab",

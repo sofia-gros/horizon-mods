@@ -52,13 +52,13 @@ class Tests(unittest.TestCase):
    result=m.attempt_plan(runner,Path('/cli'),Path('/official'),Path('/mods'),work/'plan.json')
    self.assertFalse(result['accepted']);self.assertEqual(result['diagnostic']['code'],'E_CRATE');self.assertEqual(runner.run.call_count,1)
  def test_12_guard_failure_is_not_compatibility_result(self):
-  runner=mock.Mock(report={'phases':[{'name':'official-plan','exit_code':-9,'error':'RuntimeError: Disk floor reached'}]})
+  runner=mock.Mock(work=Path('/work'),report={'phases':[{'name':'official-plan','exit_code':-9,'error':'RuntimeError: Disk floor reached'}]})
   runner.run.side_effect=RuntimeError('Disk floor reached')
   with self.assertRaisesRegex(RuntimeError,'Disk floor'):m.attempt_plan(runner,Path('/c'),Path('/h'),Path('/m'),Path('/p'))
   self.assertEqual(runner.run.call_count,1)
  def test_13_plan_success_requires_plan_file(self):
   with tempfile.TemporaryDirectory() as d:
-   path=Path(d)/'plan.json';runner=mock.Mock();runner.run.return_value='{"status":"ok"}'
+   path=Path(d)/'plan.json';runner=mock.Mock(work=Path(d));runner.run.return_value='{"status":"ok"}'
    with self.assertRaises(ValueError):m.attempt_plan(runner,Path('/c'),Path('/h'),Path('/m'),path)
  def test_14_zip_duplicate_and_traversal_rejected(self):
   import warnings
@@ -197,13 +197,77 @@ class Tests(unittest.TestCase):
    with self.assertRaises(ValueError):m.collect_tool_calls({},log,Path('/official'),{},True)
    link=root/'link';link.symlink_to(log)
    with self.assertRaises(ValueError):m.collect_tool_calls({},link,Path('/official'),{},True)
- def test_32_final_collection_is_exception_path_and_timeout_unchanged(self):
+ def test_32_final_collection_is_exception_path_and_timeout_bounded(self):
   text=(HERE/'run.py').read_text();tree=ast.parse(text);execute=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='execute')
   tries=[n for n in ast.walk(execute) if isinstance(n,ast.Try) and n.finalbody]
   self.assertTrue(any(any(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='collect_tool_calls' for b in t.finalbody for n in ast.walk(b)) for t in tries))
   attempt=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='attempt_plan')
   calls=[n for n in ast.walk(attempt) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='run']
-  self.assertEqual(len(calls),1);self.assertEqual(next(k.value.value for k in calls[0].keywords if k.arg=='timeout'),180)
+  self.assertEqual(len(calls),1);self.assertEqual(next(k.value.value for k in calls[0].keywords if k.arg=='timeout'),600)
   self.assertEqual(p.write_wrappers,p.baseline.write_wrappers)
 
+ def cpu_rows(self):
+  return [{'kind':'start','pid':321,'owner_pid':300,'pgid':300,'session':300,'start_ticks':40,'ticks_per_second':100},
+    {'kind':'sample','elapsed_seconds':0.1,'user_ticks':2,'system_ticks':1}]
+ def test_33_proc_stat_discards_name_and_requires_numeric_identity(self):
+  values=['S','300','300','300']+['0']*7+['2','1']+['0']*6+['40','0','0']
+  with mock.patch.object(Path,'open',return_value=io.StringIO('321 (private ) name) '+' '.join(values))):r=m.observer.read_stat(321)
+  self.assertEqual(r,{'ppid':300,'pgid':300,'session':300,'user_ticks':2,'system_ticks':1,'start_ticks':40})
+  self.assertNotIn('name',json.dumps(r));m.observer.identity(r,300,300,300,40)
+  for key in ('ppid','pgid','session','start_ticks'):
+   with self.assertRaises(ValueError):m.observer.identity({**r,key:r[key]+1},300,300,300,40)
+ def test_34_bounded_cpu_collection_distinguishes_timeout_and_exit(self):
+  with tempfile.TemporaryDirectory() as d:
+   out=Path(d)/'cpu';rows=self.cpu_rows();out.write_text(''.join(json.dumps(x)+'\n' for x in rows));r=m.observer.collect(out)
+   self.assertFalse(r['complete']);self.assertIsNone(r['cli_exit_code'])
+   rows.append({'kind':'end','elapsed_seconds':1.2,'exit_code':1,'samples':1});out.write_text(''.join(json.dumps(x)+'\n' for x in rows));r=m.observer.collect(out)
+   self.assertTrue(r['complete']);self.assertEqual(r['cli_exit_code'],1)
+ def test_35_cpu_untrusted_shapes_partial_regression_and_bound_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   out=Path(d)/'cpu';rows=self.cpu_rows()
+   variants=[rows+[{'kind':'sample','elapsed_seconds':0.2,'user_ticks':1,'system_ticks':1}],rows+[{'kind':'sample','elapsed_seconds':float('nan'),'user_ticks':3,'system_ticks':1}],rows+[{'kind':'unexpected','cmdline':'must reject'}],rows[:1]+[rows[1]]*129]
+   for value in variants:
+    out.write_text(''.join(json.dumps(x)+'\n' for x in value))
+    with self.assertRaises(ValueError):m.observer.collect(out)
+   for data in [json.dumps(rows[0]),'x'*(64*1024+1)]:
+    out.write_text(data)
+    with self.assertRaises(ValueError):m.observer.collect(out)
+ def test_36_observer_only_constructs_one_fixed_plan_command(self):
+  command,out=m.observer.validate_paths(['/work/cli-target/release/horizon-mixins','/work/horizon','/work/revision-only-candidate','/work/plan.json','/work/plan-cpu.jsonl'])
+  self.assertEqual(command,['/work/cli-target/release/horizon-mixins','plan','--workspace','/work/horizon','--mods','/work/revision-only-candidate','--out','/work/plan.json'])
+  for bad in [[],['relative']*5,['/work/cli-target/release/horizon-mixins','/other/horizon','/work/revision-only-candidate','/work/plan.json','/work/plan-cpu.jsonl']]:
+   with self.assertRaises(ValueError):m.observer.validate_paths(bad)
+ def test_37_known_child_only_no_process_scan_or_secrets(self):
+  text=(HERE/'observe_plan.py').read_text();tree=ast.parse(text)
+  paths=[n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str)]
+  self.assertNotIn('cmdline',paths);self.assertNotIn('environ',paths);self.assertNotIn('status',paths)
+  self.assertFalse(any(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr in ('rglob','glob','iterdir','listdir','walk') for n in ast.walk(tree)))
+  self.assertIn('start_new_session=False',text);self.assertEqual(m.observer.INTERVAL,5.0);self.assertEqual(m.observer.MAX_SAMPLES,128)
+ def test_38_own_cli_exit_and_read_race_are_separate(self):
+  with tempfile.TemporaryDirectory() as d:
+   out=Path(d)/'cpu';proc=mock.Mock(pid=321,returncode=0);proc.poll.return_value=0
+   with mock.patch.object(m.observer.os,'getpid',return_value=300),mock.patch.object(m.observer.os,'getpgrp',return_value=300),mock.patch.object(m.observer.os,'getsid',return_value=300),mock.patch.object(m.observer.subprocess,'Popen',return_value=proc) as launch,mock.patch.object(m.observer,'read_stat',side_effect=FileNotFoundError):
+    self.assertEqual(m.observer.observe(['/cli','plan'],out),0)
+   launch.assert_called_once_with(['/cli','plan'],start_new_session=False);r=m.observer.collect(out);self.assertTrue(r['complete']);self.assertEqual(r['cli_exit_code'],0);self.assertEqual(r['records'][0]['kind'],'early_end')
+   normal=Path(d)/'normal';proc=mock.Mock(pid=321,returncode=1);proc.poll.return_value=1
+   value={'ppid':300,'pgid':300,'session':300,'user_ticks':2,'system_ticks':1,'start_ticks':40}
+   with mock.patch.object(m.observer.os,'getpid',return_value=300),mock.patch.object(m.observer.os,'getpgrp',return_value=300),mock.patch.object(m.observer.os,'getsid',return_value=300),mock.patch.object(m.observer.subprocess,'Popen',return_value=proc),mock.patch.object(m.observer,'read_stat',return_value=value),contextlib.redirect_stdout(io.StringIO()) as stdout,contextlib.redirect_stderr(io.StringIO()) as stderr:
+    self.assertEqual(m.observer.observe(['/cli','plan'],normal),1)
+   self.assertEqual(stdout.getvalue(),'');self.assertEqual(stderr.getvalue(),'');self.assertEqual(m.observer.collect(normal)['cli_exit_code'],1)
+ def test_39_unavailable_live_identity_is_not_silently_accepted(self):
+  with tempfile.TemporaryDirectory() as d:
+   out=Path(d)/'cpu';proc=mock.Mock(pid=321,returncode=None);proc.poll.return_value=None
+   with mock.patch.object(m.observer.os,'getpid',return_value=300),mock.patch.object(m.observer.os,'getpgrp',return_value=300),mock.patch.object(m.observer.os,'getsid',return_value=300),mock.patch.object(m.observer.subprocess,'Popen',return_value=proc),mock.patch.object(m.observer,'read_stat',side_effect=FileNotFoundError):
+    with self.assertRaises(FileNotFoundError):m.observer.observe(['/cli','plan'],out)
+   proc.terminate.assert_called_once();proc.wait.assert_called_once_with(timeout=0.2);self.assertFalse(m.observer.collect(out)['complete'])
+ def test_40_old_group_teardown_remains_and_cpu_file_is_separate(self):
+  text=(HERE/'run.py').read_text();old=(m.ROOT/'pluto-lib/experiments/common-composite-ci/run.py').read_text()
+  self.assertIn('ensure_group_gone(proc.pid, name)',old);self.assertIn("'observer_exit_code'",text)
+  self.assertIn("observation.get('cli_exit_code')!=phase['exit_code']",text)
+  self.assertIn("observer.collect(cpu_path)",text);self.assertIn("str(runner.work/'plan-cpu.jsonl')],timeout=600",text)
+  self.assertEqual(p.write_wrappers,p.baseline.write_wrappers)
+  with self.assertRaises(m.observer.ObservationInterrupted):m.observer.interrupted(None,None)
+
 if __name__=='__main__':unittest.main()
+
+
