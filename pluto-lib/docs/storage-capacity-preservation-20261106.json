@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "scope": "Preservation of two completed, reproducible dedicated test executables only",
+  "scope": "Preservation of completed, reproducible dedicated test executables only",
   "source_implementation": "feeedb14a863c48cc1940e7014768cd3af4bbdda",
   "operations": [
     {
@@ -94,6 +94,29 @@
         "unreadable_processes": 0
       },
       "terminal_tests": 11
+    },
+    {
+      "executable": "pluto_inventory_api-b7ba4f27806deed3",
+      "source_cutoff": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+      "remote_proof": "e42f9a7db11752a92f7bc0a4041d400572d8aea4",
+      "original_sha256": "2ba0c224218aa9a89afadf87227a0aaa34cbdceb303bcfd5263be7e2445eac28",
+      "original_bytes": 4720840,
+      "archive": "completed-java-menu-api125-pluto_inventory_api-b7ba4f27806deed3-20261106.tar.gz",
+      "archive_bytes": 1233589,
+      "archive_sha256": "95beb950f40b793aee143fafc26cee2bc724591d80166ca4bb376c62bc8789f3",
+      "receipt": "java-menu-api125-executable-cleanup-20261106.json",
+      "receipt_sha256": "5b1b75fef616bed709515e89e277c34f5724ef84e6462dba7ef8d6d8e14a6e73",
+      "payload_count": 9,
+      "initial_free_bytes": 10884878336,
+      "minimum_free_bytes": 10883641344,
+      "free_before_receipt": 10888359936,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 125,
+      "identity_note": "The newly compiled 125-test binary, not the earlier v15 executable that used the same basename. Proof byte hashes match the remote receipt."
     }
   ],
   "attributes_verified": [
@@ -125,7 +148,10 @@
     "normal_native_threshold_unchanged": true,
     "last_observed_after_final_receipt": 10890149888,
     "last_two_net_recovered_bytes": 11476992,
-    "last_two_used_normal_floor_plus_2MiB": true
+    "last_two_used_normal_floor_plus_2MiB": true,
+    "last_observed_after_api125_receipt": 10888355840,
+    "api125_net_recovered_bytes": 3477504,
+    "api125_used_normal_floor_plus_2MiB": true
   },
   "limits": [
     "No new native build was authorized by this preservation work.",
