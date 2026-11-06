@@ -1,0 +1,25 @@
+{
+  "status": "source checkpoint; new native/Rust execution pending",
+  "base": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "python_source_package_checks": 19,
+  "new_rust_tests_written": 15,
+  "new_rust_tests_executed": 0,
+  "official_copied_body_and_face_filter": "source regeneration passed",
+  "new_official_plan_apply_type": "not run",
+  "cpu_differential_timing": "not run",
+  "gpu": "not run",
+  "consumer_activation": false,
+  "nondefault_render_projection": "explicit UnsupportedAppearance until material-aware adapter",
+  "source_sha256": {
+    "mixins/pluto_native_creative/api/src/fluid.rs": "ace21204424f51b931b6548016919ad2d4d8175157fc8e7a2c006c27390b01e9",
+    "mixins/pluto_native_creative/fluid-render-prepare.rs": "b5855866778cea9aef58852639e38a8ec50877395655a59cc676392e8a03cb1d",
+    "mixins/pluto_native_creative/terrain-bindings.rs": "e063b8f6a9d88fd17ad5d1196e819d9b74aee3b575b72addacead6ce42ab6214",
+    "mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "mixins/pluto_native_creative/terrain-cell-host.rs": "2af3a9b1248c8e8d82003c3d5a71415e105eb9c21dceddd7e8f48399a5eb6003",
+    "mixins/pluto_native_creative/terrain-cell-providers.rs": "1a10634a3cf02f95e1aacb28a7400a10041c50983de075829477db444c742edf",
+    "tools/terrain-binding-source.json": "59e484b9e37c57bfd59378e9be1756ee7184f82cbb282650c05161380dd3f267",
+    "tools/terrain-cell-source.json": "3620cca305a3dcf04ec6f34bf6ad7254259732d47d20587fc393d81cd4a1a4fe"
+  }
+}

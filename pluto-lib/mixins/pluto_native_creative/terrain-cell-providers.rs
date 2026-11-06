@@ -5,7 +5,9 @@ use super::pluto_terrain_cell_geometry::Batch;
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
-pub const MAX_PROVIDERS: usize = 64;
+// Startup-only bounded map: enough for the complete 70-family consumer set
+// and other mods, without changing per-section or per-cell output limits.
+pub const MAX_PROVIDERS: usize = 256;
 pub const MAX_GROUP_BYTES: usize = 256;
 pub const MAX_SECTION_QUADS: usize = 8192;
 pub const MAX_SECTION_VERTICES: usize = 262_144;
@@ -54,21 +56,44 @@ impl Registry {
         }
     }
     fn register(&self, group: &str, provider: Provider) -> Result<(), RegisterError> {
-        if group.is_empty() || group.len() > MAX_GROUP_BYTES || group.chars().any(char::is_control)
-        {
-            return Err(RegisterError::InvalidGroup);
+        self.register_all(&[(group, provider)])
+    }
+    fn register_all(&self, entries: &[(&str, Provider)]) -> Result<(), RegisterError> {
+        if entries.len() > MAX_PROVIDERS {
+            return Err(RegisterError::Limit);
+        }
+        let mut staged = BTreeMap::new();
+        for &(group, provider) in entries {
+            if group.is_empty()
+                || group.len() > MAX_GROUP_BYTES
+                || group.chars().any(char::is_control)
+            {
+                return Err(RegisterError::InvalidGroup);
+            }
+            if staged.insert(group.to_owned(), provider).is_some() {
+                return Err(RegisterError::Duplicate);
+            }
         }
         let mut pending = self.pending.lock().map_err(|_| RegisterError::Poisoned)?;
         if pending.frozen {
             return Err(RegisterError::Frozen);
         }
-        if pending.providers.contains_key(group) {
+        if staged
+            .keys()
+            .any(|group| pending.providers.contains_key(group))
+        {
             return Err(RegisterError::Duplicate);
         }
-        if pending.providers.len() >= MAX_PROVIDERS {
+        if pending
+            .providers
+            .len()
+            .checked_add(staged.len())
+            .is_none_or(|n| n > MAX_PROVIDERS)
+        {
             return Err(RegisterError::Limit);
         }
-        pending.providers.insert(group.to_owned(), provider);
+        // All checks completed before publishing any member of the batch.
+        pending.providers.extend(staged);
         Ok(())
     }
     fn snapshot(&self) -> Option<&BTreeMap<String, Provider>> {
@@ -89,6 +114,12 @@ static REGISTRY: Registry = Registry::new();
 pub fn register(group: &str, provider: Provider) -> Result<(), RegisterError> {
     REGISTRY.register(group, provider)
 }
+/// Register a bounded set atomically. Reusing a callback for different groups
+/// is supported; duplicate groups, capacity errors or a frozen registry publish
+/// nothing. Empty batches do not reopen a frozen registry.
+pub fn register_all(entries: &[(&str, Provider)]) -> Result<(), RegisterError> {
+    REGISTRY.register_all(entries)
+}
 pub(super) fn snapshot() -> Option<&'static BTreeMap<String, Provider>> {
     REGISTRY.snapshot()
 }
@@ -101,6 +132,35 @@ pub(super) fn cell_local(batch: &Batch) -> bool {
                 .chain(vertex.uv)
                 .all(|value| value.is_finite() && (0.0..=1.0).contains(&value))
         })
+    })
+}
+// Baked opacity proves only the original UV rectangle (in every sprite frame).
+// Reusing it for a larger rectangle would silently skip alpha testing. No
+// epsilon expansion is safe: the proof is an exact conservative subset check.
+pub(super) fn opacity_allows(
+    opaque: bool,
+    explicit_pass: bool,
+    source: &[[f32; 2]; 4],
+    target: &[[f32; 2]; 4],
+) -> bool {
+    !opaque || explicit_pass || uv_subset(source, target)
+}
+pub(super) fn uv_subset(source: &[[f32; 2]; 4], target: &[[f32; 2]; 4]) -> bool {
+    if source
+        .iter()
+        .chain(target)
+        .flatten()
+        .any(|v| !v.is_finite())
+    {
+        return false;
+    }
+    (0..2).all(|axis| {
+        let lo = source.iter().map(|p| p[axis]).fold(f32::INFINITY, f32::min);
+        let hi = source
+            .iter()
+            .map(|p| p[axis])
+            .fold(f32::NEG_INFINITY, f32::max);
+        target.iter().all(|p| p[axis] >= lo && p[axis] <= hi)
     })
 }
 #[derive(Default)]
@@ -201,5 +261,78 @@ mod tests {
         assert!(!b.vertices(1));
         assert!(!b.vertices(usize::MAX));
         assert!(b.vertices(0));
+    }
+    #[test]
+    fn seventy_groups_share_one_function_without_exceeding_budget() {
+        let r = Registry::new();
+        let names: Vec<_> = (0..70).map(|i| format!("family:{i}")).collect();
+        let entries: Vec<(&str, Provider)> = names
+            .iter()
+            .map(|s| (s.as_str(), native as Provider))
+            .collect();
+        r.register_all(&entries).unwrap();
+        assert_eq!(r.snapshot().unwrap().len(), 70);
+        assert_eq!(r.register_all(&[]), Err(RegisterError::Frozen));
+    }
+    #[test]
+    fn batch_duplicates_and_invalid_groups_publish_nothing() {
+        let r = Registry::new();
+        r.register("existing", native).unwrap();
+        for (entries, error) in [
+            (
+                vec![("new", native as Provider), ("existing", native)],
+                RegisterError::Duplicate,
+            ),
+            (
+                vec![("new", native as Provider), ("new", native)],
+                RegisterError::Duplicate,
+            ),
+            (
+                vec![("new", native as Provider), ("", native)],
+                RegisterError::InvalidGroup,
+            ),
+        ] {
+            assert_eq!(r.register_all(&entries), Err(error));
+        }
+        assert_eq!(
+            r.snapshot()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["existing"]
+        );
+    }
+    #[test]
+    fn exact_capacity_and_overflow_are_atomic() {
+        let r = Registry::new();
+        let names: Vec<_> = (0..=MAX_PROVIDERS).map(|i| format!("budget:{i}")).collect();
+        let entries: Vec<(&str, Provider)> = names
+            .iter()
+            .map(|s| (s.as_str(), native as Provider))
+            .collect();
+        assert_eq!(r.register_all(&entries), Err(RegisterError::Limit));
+        r.register_all(&entries[..MAX_PROVIDERS]).unwrap();
+        assert_eq!(r.register("overflow", native), Err(RegisterError::Limit));
+        assert_eq!(r.snapshot().unwrap().len(), MAX_PROVIDERS);
+    }
+    #[test]
+    fn opacity_uv_envelope_handles_reverse_degenerate_and_nonfinite() {
+        let source = [[0.75, 0.75], [0.25, 0.75], [0.25, 0.25], [0.75, 0.25]];
+        assert!(opacity_allows(false, false, &source, &[[0.0, 1.0]; 4]));
+        assert!(opacity_allows(true, true, &source, &[[0.0, 1.0]; 4]));
+        assert!(!opacity_allows(true, false, &source, &[[0.0, 1.0]; 4]));
+        assert!(uv_subset(&source, &source));
+        assert!(uv_subset(&source, &[[0.5, 0.5]; 4]));
+        assert!(!uv_subset(&source, &[[0.0, 0.5]; 4]));
+        assert!(!uv_subset(
+            &source,
+            &[[f32::from_bits(0.75f32.to_bits() + 1), 0.5]; 4]
+        ));
+        assert!(uv_subset(&[[0.5, 0.5]; 4], &[[0.5, 0.5]; 4]));
+        for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert!(!uv_subset(&source, &[[value, 0.5]; 4]));
+            assert!(!uv_subset(&[[value, 0.5]; 4], &source));
+        }
     }
 }

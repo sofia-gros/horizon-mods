@@ -75,7 +75,7 @@
       "name": "pluto_terrain_bindings",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-bindings.rs",
-      "sha256": "78505730a703d25a9b74ad4dc46230815287198cf4a57640e070c634a207145a"
+      "sha256": "e063b8f6a9d88fd17ad5d1196e819d9b74aee3b575b72addacead6ce42ab6214"
     },
     {
       "module_id": "terrain-binding-host",
@@ -91,7 +91,7 @@
       "name": "pluto_terrain_cell_geometry",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-cell-geometry.rs",
-      "sha256": "d99be52aa776daf98d6f66ae6c8b148f51c7b118a55ab8381d6e5321fd0fb6d0"
+      "sha256": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994"
     },
     {
       "module_id": "terrain-cell-providers",
@@ -99,7 +99,7 @@
       "name": "pluto_terrain_cells",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-cell-providers.rs",
-      "sha256": "bd750751b779b4dbb90a4793209f3832714ac1c17471504e4fb4260dc8683301"
+      "sha256": "1a10634a3cf02f95e1aacb28a7400a10041c50983de075829477db444c742edf"
     },
     {
       "module_id": "terrain-cell-host",
@@ -107,7 +107,7 @@
       "name": "pluto_terrain_cell_host",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-cell-host.rs",
-      "sha256": "ae9a688ec9aa784785d231f32028bcf423d8183a2ae48355ebb592077793ce35"
+      "sha256": "2af3a9b1248c8e8d82003c3d5a71415e105eb9c21dceddd7e8f48399a5eb6003"
     }
   ]
 }

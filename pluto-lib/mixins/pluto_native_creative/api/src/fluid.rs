@@ -4,7 +4,7 @@
 //! pickup and ordinary block-state persistence. It is not a Forge FluidType API.
 pub mod contact;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
     sync::{Arc, OnceLock, RwLock},
@@ -44,6 +44,37 @@ pub struct Definition {
     pub tick_delay: u16,
     pub drop_off: u8,
     pub light: u8,
+}
+/// Display facts owned by the same immutable registration as `Definition`.
+/// This does not change flow/contact behavior or claim an installed renderer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderOrientation {
+    Bottom,
+    Top,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderDefinition {
+    /// The primary/still texture remains `Definition::texture`.
+    pub flowing_texture: String,
+    /// Packed RGB only. Application requires explicit native-adapter admission.
+    pub tint: u32,
+    /// Geometry anchoring only; Top does not enable upward flow simulation.
+    pub orientation: RenderOrientation,
+}
+impl RenderDefinition {
+    pub fn default_for(definition: &Definition) -> Self {
+        Self {
+            flowing_texture: definition.texture.clone(),
+            tint: 0xFF_FFFF,
+            orientation: RenderOrientation::Bottom,
+        }
+    }
+    pub fn validate(&self) -> Result<(), String> {
+        if !identifier(&self.flowing_texture) || self.tint > 0xFF_FFFF {
+            return Err("invalid fluid render identity or RGB".into());
+        }
+        Ok(())
+    }
 }
 fn identifier(id: &str) -> bool {
     let Some((ns, path)) = id.split_once(':') else {
@@ -138,12 +169,14 @@ impl RegistryRevision {
 }
 struct Registry {
     definitions: BTreeMap<String, Arc<Definition>>,
+    renders: BTreeMap<String, Arc<RenderDefinition>>,
     revision: RegistryRevision,
 }
 impl Default for Registry {
     fn default() -> Self {
         Self {
             definitions: BTreeMap::new(),
+            renders: BTreeMap::new(),
             revision: RegistryRevision::new(),
         }
     }
@@ -178,14 +211,56 @@ pub fn register_all(definitions: impl IntoIterator<Item = Definition>) -> Result
     register_validated(&mut all, definitions)
 }
 
+/// Atomically register explicit display facts together with their definition.
+/// Existing `register` callers keep their literals and single-texture default.
+/// Definitions and display facts are immutable: conflicts never replace either.
+/// Repeating a legacy registration preserves an existing explicit display style.
+pub fn register_with_render(
+    definition: Definition,
+    render: RenderDefinition,
+) -> Result<(), String> {
+    register_all_with_render([(definition, render)])
+}
+pub fn register_all_with_render(
+    definitions: impl IntoIterator<Item = (Definition, RenderDefinition)>,
+) -> Result<(), String> {
+    let entries = definitions
+        .into_iter()
+        .map(|(definition, render)| {
+            definition.validate()?;
+            render.validate()?;
+            Ok((definition, Some(render)))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let mut all = registry().write().map_err(|_| "fluid registry poisoned")?;
+    register_entries(&mut all, entries)
+}
 fn register_validated(all: &mut Registry, definitions: Vec<Definition>) -> Result<(), String> {
+    register_entries(all, definitions.into_iter().map(|d| (d, None)).collect())
+}
+fn register_entries(
+    all: &mut Registry,
+    entries: Vec<(Definition, Option<RenderDefinition>)>,
+) -> Result<(), String> {
     let mut candidate = all.definitions.clone();
-    for definition in definitions {
+    let mut renders = all.renders.clone();
+    for (definition, render) in entries {
         if let Some(old) = candidate.get(&definition.id) {
-            if **old == definition {
-                continue;
+            if **old != definition {
+                return Err("fluid already has another definition".into());
             }
-            return Err("fluid already has another definition".into());
+            if let Some(render) = render {
+                if renders
+                    .get(&definition.id)
+                    .is_none_or(|old| **old != render)
+                {
+                    return Err("fluid already has another render definition".into());
+                }
+            }
+            continue;
         }
         if candidate
             .values()
@@ -193,14 +268,17 @@ fn register_validated(all: &mut Registry, definitions: Vec<Definition>) -> Resul
         {
             return Err("fluid block or bucket already belongs to another fluid".into());
         }
+        let render = render.unwrap_or_else(|| RenderDefinition::default_for(&definition));
+        renders.insert(definition.id.clone(), Arc::new(render));
         candidate.insert(definition.id.clone(), Arc::new(definition));
     }
     if candidate.len() != all.definitions.len() {
-        // All validation finished. Publish the map and new revision under the
-        // same write lock; old readers can only observe monotonic invalidation.
+        // One transaction owns both maps and the validity token. Neither a
+        // failed nor an idempotent batch invalidates previous readers.
         all.revision.invalidate();
         all.revision = RegistryRevision::new();
         all.definitions = candidate;
+        all.renders = renders;
     }
     Ok(())
 }
@@ -214,8 +292,13 @@ pub struct RegistrySnapshot {
     by_id: BTreeMap<String, Arc<Definition>>,
     by_block: BTreeMap<String, Arc<Definition>>,
     by_bucket: BTreeMap<String, Arc<Definition>>,
+    renders: BTreeMap<String, Arc<RenderDefinition>>,
 }
 impl RegistrySnapshot {
+    /// Display facts from exactly the same registration revision as `get`.
+    pub fn render(&self, id: &str) -> Option<&RenderDefinition> {
+        self.renders.get(id).map(Arc::as_ref)
+    }
     pub fn revision(&self) -> RegistryRevision {
         self.revision.clone()
     }
@@ -243,9 +326,13 @@ impl RegistrySnapshot {
 /// Capture one complete registry revision. All lookups in this snapshot refer
 /// to that same set, even if another startup participant registers later.
 pub fn registry_snapshot() -> Result<RegistrySnapshot, String> {
-    let (by_id, revision) = {
+    let (by_id, renders, revision) = {
         let registry = registry().read().map_err(|_| "fluid registry poisoned")?;
-        (registry.definitions.clone(), registry.revision.clone())
+        (
+            registry.definitions.clone(),
+            registry.renders.clone(),
+            registry.revision.clone(),
+        )
     };
     let by_block = by_id
         .values()
@@ -260,6 +347,7 @@ pub fn registry_snapshot() -> Result<RegistrySnapshot, String> {
         by_id,
         by_block,
         by_bucket,
+        renders,
     })
 }
 
@@ -709,8 +797,8 @@ mod tests {
     #[test]
     fn concurrent_snapshot_reader_never_observes_part_of_a_batch() {
         use std::sync::{
-            atomic::{AtomicBool, Ordering},
             Barrier,
+            atomic::{AtomicBool, Ordering},
         };
         let done = AtomicBool::new(false);
         let start = Barrier::new(2);
@@ -803,5 +891,129 @@ mod revision_tests {
         invalid.drop_off = 0;
         assert!(invalid.validate().is_err());
         assert!(revision.is_current());
+    }
+}
+
+#[cfg(test)]
+mod render_registration_tests {
+    use super::*;
+    fn def(id: &str) -> Definition {
+        Definition {
+            id: format!("render:{id}"),
+            block: format!("render:{id}_block"),
+            bucket: format!("render:{id}_bucket"),
+            texture: "render:still".into(),
+            tick_delay: 30,
+            drop_off: 3,
+            light: 12,
+        }
+    }
+    fn style() -> RenderDefinition {
+        RenderDefinition {
+            flowing_texture: "render:flowing".into(),
+            tint: 0x12_3456,
+            orientation: RenderOrientation::Top,
+        }
+    }
+    #[test]
+    fn legacy_registration_keeps_its_single_texture_default() {
+        let mut r = Registry::default();
+        let d = def("old");
+        register_validated(&mut r, vec![d.clone()]).unwrap();
+        assert_eq!(
+            r.renders.get(&d.id).map(Arc::as_ref),
+            Some(&RenderDefinition::default_for(&d))
+        );
+    }
+    #[test]
+    fn custom_display_and_definition_publish_under_one_revision() {
+        let mut r = Registry::default();
+        let previous = r.revision.clone();
+        let d = def("new");
+        register_entries(&mut r, vec![(d.clone(), Some(style()))]).unwrap();
+        assert!(!previous.is_current());
+        assert!(r.revision.is_current());
+        assert_eq!(r.definitions.get(&d.id).map(Arc::as_ref), Some(&d));
+        assert_eq!(r.renders.get(&d.id).map(Arc::as_ref), Some(&style()));
+    }
+    #[test]
+    fn legacy_repeat_does_not_erase_custom_display_or_invalidate() {
+        let mut r = Registry::default();
+        let d = def("repeat");
+        register_entries(&mut r, vec![(d.clone(), Some(style()))]).unwrap();
+        let revision = r.revision.clone();
+        register_validated(&mut r, vec![d.clone()]).unwrap();
+        register_entries(&mut r, vec![(d.clone(), Some(style()))]).unwrap();
+        assert!(Arc::ptr_eq(&revision.0, &r.revision.0));
+        assert!(revision.is_current());
+        assert_eq!(r.renders.get(&d.id).map(Arc::as_ref), Some(&style()));
+    }
+    #[test]
+    fn conflicting_batch_rolls_back_both_maps_and_keeps_revision() {
+        let mut r = Registry::default();
+        let d = def("old");
+        register_validated(&mut r, vec![d.clone()]).unwrap();
+        let revision = r.revision.clone();
+        assert!(
+            register_entries(
+                &mut r,
+                vec![(def("new"), Some(style())), (d, Some(style()))]
+            )
+            .is_err()
+        );
+        assert_eq!(r.definitions.len(), 1);
+        assert_eq!(r.renders.len(), 1);
+        assert!(Arc::ptr_eq(&revision.0, &r.revision.0));
+        assert!(revision.is_current());
+    }
+    #[test]
+    fn conflicting_batch_internal_styles_leave_empty_registry() {
+        let mut r = Registry::default();
+        let revision = r.revision.clone();
+        let d = def("duplicate");
+        assert!(register_entries(&mut r, vec![(d.clone(), None), (d, Some(style()))]).is_err());
+        assert!(r.definitions.is_empty());
+        assert!(r.renders.is_empty());
+        assert!(revision.is_current());
+    }
+    #[test]
+    fn retained_render_values_survive_new_registration_with_stale_token() {
+        let mut r = Registry::default();
+        let d = def("first");
+        register_entries(&mut r, vec![(d.clone(), Some(style()))]).unwrap();
+        let old = r.renders.clone();
+        let revision = r.revision.clone();
+        register_validated(&mut r, vec![def("second")]).unwrap();
+        assert!(!revision.is_current());
+        assert_eq!(old.len(), 1);
+        assert_eq!(old.get(&d.id).map(Arc::as_ref), Some(&style()));
+        assert_eq!(r.renders.len(), 2);
+    }
+    #[test]
+    fn long_legacy_texture_and_explicit_default_have_one_validation_contract() {
+        let mut r = Registry::default();
+        let mut d = def("long");
+        d.texture = "render:".to_owned() + &"a".repeat(2048);
+        d.validate().unwrap();
+        let render = RenderDefinition::default_for(&d);
+        render.validate().unwrap();
+        register_validated(&mut r, vec![d.clone()]).unwrap();
+        let revision = r.revision.clone();
+        register_entries(&mut r, vec![(d, Some(render))]).unwrap();
+        assert!(Arc::ptr_eq(&revision.0, &r.revision.0));
+        assert!(revision.is_current());
+    }
+    #[test]
+    fn invalid_rgb_and_texture_identity_are_rejected() {
+        let good = style();
+        assert!(good.validate().is_ok());
+        for texture in ["minecraft:water".to_owned(), "render:../escape".to_owned()] {
+            let mut bad = good.clone();
+            bad.flowing_texture = texture;
+            assert!(bad.validate().is_err());
+        }
+        let mut bad = good;
+        bad.tint = 0x100_0000;
+        assert!(bad.validate().is_err());
     }
 }

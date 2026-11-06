@@ -15,7 +15,7 @@ remain in the existing upper API. No reverse renderer-to-game dependency or copy
 of that fluid registry is introduced.
 
 Registration closes on the first `mesh_reusing` invocation, even if the registry
-is empty. Duplicate groups, poisoned state, more than 64 providers, control
+is empty. Duplicate groups, poisoned state, more than 256 providers, control
 characters, and group names exceeding 256 bytes are rejected. Late registration
 is rejected rather than changing only newly rebuilt sections. Registration must
 finish before meshing starts; no runtime remove/replace capability is provided.
@@ -128,3 +128,7 @@ new proof; they are not silently accepted. Native code attribution is retained.
 No content callback, corner-height/flow policy, inverted-volume support, fog,
 fluid current, multiplayer rendering, resource-reload gameplay or performance
 result is claimed by this groundwork. Those are separate consumer/runtime gates.
+
+## Later source checkpoint
+
+The render-contract extension is described in `fluid-render-contracts.md`. It adds bounded batch registration and an opaque-UV-envelope guard. The earlier native/CPU proof statements above apply only to their exact recorded revisions, not to this changed runtime. Independent flow-texture/tint material selection remains explicitly unavailable.

@@ -251,6 +251,36 @@ pub fn build(cell: &Cell) -> Result<Batch, Error> {
     }
     Ok(batch)
 }
+/// Where the explicit extents are anchored inside their cell. This is a
+/// coordinate transform, not a rule about the direction a fluid should flow.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VerticalAnchor {
+    Bottom,
+    Top,
+}
+/// Additive orientation API. Bottom is exactly `build`; Top reflects the
+/// validated result about the cell's horizontal middle plane, swaps Up/Down,
+/// and reverses vertex/UV pairs to preserve outward winding. Back-face flags
+/// and all other face identities remain unchanged. No allocation or world read.
+pub fn build_oriented(cell: &Cell, anchor: VerticalAnchor) -> Result<Batch, Error> {
+    let mut batch = build(cell)?;
+    if anchor == VerticalAnchor::Top {
+        let plane_twice = 2.0 * f32::from(cell.origin[1]) + 1.0;
+        for quad in &mut batch.quads[..usize::from(batch.len)] {
+            for vertex in &mut quad.vertices {
+                vertex.position[1] = plane_twice - vertex.position[1];
+            }
+            quad.face = match quad.face {
+                Face::Up => Face::Down,
+                Face::Down => Face::Up,
+                face => face,
+            };
+            let v = quad.vertices;
+            quad.vertices = [v[0], v[3], v[2], v[1]];
+        }
+    }
+    Ok(batch)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,12 +340,14 @@ mod tests {
         let mut c = cell();
         c.origin = [15; 3];
         let batch = build(&c).unwrap();
-        assert!(batch
-            .as_slice()
-            .iter()
-            .flat_map(|q| q.vertices)
-            .flat_map(|v| v.position)
-            .all(|v| (0.0..=16.0).contains(&v)));
+        assert!(
+            batch
+                .as_slice()
+                .iter()
+                .flat_map(|q| q.vertices)
+                .flat_map(|v| v.position)
+                .all(|v| (0.0..=16.0).contains(&v))
+        );
         c.top = None;
         c.down = None;
         c.sides = [None; 4];
@@ -345,5 +377,57 @@ mod tests {
             c.sides[3].as_mut().unwrap().uv[3][1] = bad;
             assert_eq!(build(&c), Err(Error::Uv));
         }
+    }
+    #[test]
+    fn bottom_orientation_is_exact_legacy_output() {
+        let c = cell();
+        assert_eq!(build(&c), build_oriented(&c, VerticalAnchor::Bottom));
+    }
+    #[test]
+    fn top_reflects_positions_uv_pairs_faces_and_back_winding() {
+        let c = cell();
+        let low = build(&c).unwrap();
+        let high = build_oriented(&c, VerticalAnchor::Top).unwrap();
+        for (a, b) in low.as_slice().iter().zip(high.as_slice()) {
+            assert_eq!(a.back, b.back);
+            assert_eq!(
+                b.face,
+                match a.face {
+                    Face::Up => Face::Down,
+                    Face::Down => Face::Up,
+                    f => f,
+                }
+            );
+            for (out, input) in [0, 3, 2, 1].into_iter().enumerate() {
+                assert_eq!(b.vertices[out].uv, a.vertices[input].uv);
+                assert_eq!(b.vertices[out].position[0], a.vertices[input].position[0]);
+                assert_eq!(b.vertices[out].position[2], a.vertices[input].position[2]);
+                assert_eq!(
+                    b.vertices[out].position[1],
+                    1.0 - a.vertices[input].position[1]
+                );
+            }
+        }
+        for pair in high.as_slice().chunks_exact(2) {
+            let v = pair[0].vertices;
+            assert_eq!(pair[1].vertices, [v[0], v[3], v[2], v[1]]);
+        }
+    }
+    #[test]
+    fn top_orientation_keeps_section_origin_and_shared_validation() {
+        let mut c = cell();
+        c.origin = [15, 15, 15];
+        let top = build_oriented(&c, VerticalAnchor::Top).unwrap();
+        assert!(
+            top.as_slice()
+                .iter()
+                .flat_map(|q| q.vertices)
+                .all(|v| v.position.iter().all(|n| (15.0..=16.0).contains(n)))
+        );
+        c.heights.north_west = f32::NAN;
+        assert_eq!(build_oriented(&c, VerticalAnchor::Top), Err(Error::Height));
+        c = cell();
+        c.bottom = 1.0;
+        assert_eq!(build_oriented(&c, VerticalAnchor::Top), Err(Error::Bottom));
     }
 }

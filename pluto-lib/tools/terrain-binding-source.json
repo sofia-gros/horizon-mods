@@ -52,7 +52,7 @@
       "name": "pluto_terrain_bindings",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-bindings.rs",
-      "sha256": "78505730a703d25a9b74ad4dc46230815287198cf4a57640e070c634a207145a"
+      "sha256": "e063b8f6a9d88fd17ad5d1196e819d9b74aee3b575b72addacead6ce42ab6214"
     },
     {
       "module_id": "fluid-render-prepare",
@@ -60,7 +60,7 @@
       "name": "pluto_fluid_render_prepare",
       "fingerprint": "314ce4bc0108b8ac41dc95e98c67a8cb693a985060c1808aa9526274814ebe26",
       "source": "fluid-render-prepare.rs",
-      "sha256": "eb9e2002b607a4130cee7d5a094d9980ddeabcb77857224b2a246ee2cd36c76d"
+      "sha256": "b5855866778cea9aef58852639e38a8ec50877395655a59cc676392e8a03cb1d"
     }
   ],
   "scope": "Exclusive preparation only. No native fluid coercion or chunk-mesher dispatch. Official source hashes pin loader/reload ownership evidence; they are not gameplay proof."

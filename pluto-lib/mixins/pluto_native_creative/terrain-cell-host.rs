@@ -205,6 +205,20 @@ fn emit(
     {
         return Emission::Invalid;
     }
+    // Original baked opacity is only proven over its original UV envelope.
+    // Explicit render types deliberately override sprite alpha; otherwise a
+    // broadened opaque claim falls back before writing any custom vertex.
+    if batch.as_slice().iter().any(|quad| {
+        let source = faces[direction(quad.face) as usize].expect("validated direction");
+        !api::opacity_allows(
+            source.opaque,
+            source.quad.render_type.is_some(),
+            &source.quad.uv,
+            &quad.vertices.map(|v| v.uv),
+        )
+    }) {
+        return Emission::Invalid;
+    }
     let [x, y, z] = pos;
     let connected = &mesher.render.connected;
     for quad in batch.as_slice() {

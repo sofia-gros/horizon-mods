@@ -3,9 +3,8 @@
 use horizon_client::{
     assets::{Assets, RenderAssets},
     mesher::{
-        pluto_terrain_binding_host,
+        MeshTables, pluto_terrain_binding_host,
         pluto_terrain_bindings::{CurrentRevision, Error, Request},
-        MeshTables,
     },
 };
 use std::sync::Arc;
@@ -14,6 +13,17 @@ fn requests() -> Result<(Vec<Request>, CurrentRevision), Error> {
     let snapshot = pluto_api::fluid::registry_snapshot().map_err(|_| Error::RegistryUnavailable)?;
     if snapshot.len() > horizon_client::mesher::pluto_terrain_bindings::MAX_BINDINGS / 9 {
         return Err(Error::LimitExceeded);
+    }
+    // Explicit display facts must not be silently projected as a single still
+    // texture. A material-aware adapter is a separate gate; until installed,
+    // nondefault facts make this prepared catalog explicitly unavailable.
+    for definition in snapshot.iter() {
+        let render = snapshot
+            .render(&definition.id)
+            .ok_or(Error::RegistryUnavailable)?;
+        if render != &pluto_api::fluid::RenderDefinition::default_for(definition) {
+            return Err(Error::UnsupportedAppearance(definition.id.clone()));
+        }
     }
     // Bound projected text before multiplying it into nine owned descriptors.
     let mut text_bytes = 0usize;

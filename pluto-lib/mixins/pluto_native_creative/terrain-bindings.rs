@@ -21,6 +21,7 @@ pub struct Request {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     RegistryUnavailable,
+    UnsupportedAppearance(String),
     StaleRegistry,
     LimitExceeded,
     InvalidRequest,
