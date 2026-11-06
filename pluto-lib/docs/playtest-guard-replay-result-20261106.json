@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "scope": "Public project result summary only; not a complete or verbatim receipt. Raw console, compressed console, full input maps, environment and local paths are excluded.",
+  "controller_head": "888a1c34ffe110ce973e8a85359f3c28ac920d0a",
+  "integration_head": "17f44dc36fc2df28547328aa8554286ae965b208",
+  "integration_tree": "34642d22ef46cbc1dc804916e2a99c7809a7df1b",
+  "run_id": 42246975270,
+  "job_id": 127991632763,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42246975270",
+  "started_at": "2026-11-06T15:51:46Z",
+  "final_receipt_at": "2026-11-06T15:52:21.9603415Z",
+  "terminal_at": "2026-11-06T15:52:25Z",
+  "flags": {
+    "source_verified": true,
+    "diagnostic_complete": true,
+    "probe_completed": true,
+    "error": null,
+    "compatibility": false,
+    "plan_regenerated": false,
+    "apply_executed": false,
+    "native_type_verified": false
+  },
+  "gate_names": [
+    "artifact",
+    "complete_guards",
+    "fixed_checkouts",
+    "formatter",
+    "full_plan_contract",
+    "official_inputs",
+    "package_equality",
+    "package_headers",
+    "runner"
+  ],
+  "phase_count": 27,
+  "minimum_disk_bytes": 90806120448,
+  "minimum_memory_bytes": 14952861696,
+  "formatter": {
+    "sha256": "56b31ad3ec8fe0277a2884a189e243b8f04e9b48e5fd22e547c1516c5f8fd34c",
+    "version": "rustfmt 1.9.0-stable (59807616e1 2026-04-14)",
+    "scope": "Existing Linux1.95 guard normalization only; not latest Windows formatter proof"
+  },
+  "official_input_count": 5214,
+  "plan": {
+    "plan_bytes": 6383021,
+    "plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+    "counts": {
+      "bridges": 3,
+      "crates": 3,
+      "injections": 322,
+      "modules": 321,
+      "states": 111
+    },
+    "input_count": 5214,
+    "input_map_sha256": "2f7c9425cedbdec39af2f937f2178dabe11630e4c3116bb825a81d6ad20e815b",
+    "manifest_map_sha256": "8a6500cea74b3cae0155243b875b3e8853d57da5a3d661b9424f490ab9e71da1"
+  },
+  "package_equality": {
+    "combined_map_sha256": "65987a65817d2e11b5064a274d44b190abd8b0ce7a064d1040e9981e4595c5f1",
+    "combined_members": 649,
+    "passed": true,
+    "pluto_archive_sha256": "8adbd7e3f87d746582deceb604dbc953137eb7a87395359105a0f93d0e399a2e",
+    "tconstruct_archive_sha256": "9bc1073220496d24435a013ece84ea01532e8e79c1a0e15b7b7395a96cb30c5d"
+  },
+  "guards": [
+    {
+      "script": "check_protection_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Protection ordering verified for the supplied complete plan.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_advancement_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Copied advancement boundaries, exact source and complete-plan exclusivity verified.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_damage_equipment_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Damage equipment source, adapter hunks and combined hook ordering verified.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_client_payload_plan.py",
+      "reached": true,
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "client payload observer rejected: native observer resolved location changed\n"
+    },
+    {
+      "script": "check_recipe_placement_plan.py",
+      "reached": true,
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Recipe placement composition rejected: placement veto requires exclusive native target: horizon_client::game::recipe_book::Game<'_>::place_recipe\n"
+    },
+    {
+      "script": "check_current_book_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Current-book source and native turn composition verified.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_wire_snapshot_plan.py",
+      "reached": true,
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Wire snapshot guard rejected: Official private Wire declaration/source differs from the reviewed target\n"
+    },
+    {
+      "script": "check_crafting_match_plan.py",
+      "reached": true,
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Crafting-match composition rejected: crafting-match veto requires exclusive native target: horizon_client_lib::crafting::Recipes::assemble_if_matches\n"
+    },
+    {
+      "script": "check_terrain_binding_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Terrain binding preparation source, owners and exclusive assembly phase verified.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_cloud_insertion_plan.py",
+      "reached": true,
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Cloud insertion composition rejected: Official cloud authority/publication source drift: crates/horizon-client/src/game/lan_actions.rs\n"
+    },
+    {
+      "script": "check_station_ingredient_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Station-ingredient parser ownership, native fingerprint and helper source verified.\n",
+      "stderr": ""
+    },
+    {
+      "script": "check_terrain_cell_plan.py",
+      "reached": true,
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "Terrain cell official body, cull/emission filter and exclusive plan verified.\n",
+      "stderr": ""
+    }
+  ],
+  "published_evidence_limit": "Only this bounded project summary is published. Complete CI receipt and console remain at the original GitHub job and in the verified working copy, not embedded here.",
+  "console_sha256": "058ffc35cb45a4b071a6424cc0d099abedd82205ea14b8b6fd0c2a424c9b611b",
+  "console_bytes": 661623
+}

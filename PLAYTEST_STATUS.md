@@ -94,3 +94,12 @@ Payload guard metadata and the unobserved poll fingerprint are not guessed or re
 [Run42246975270](https://github.com/sofia-gros/horizon-mods/actions/runs/42246975270) completed at2026-11-06T15:52:25Z on controller `888a1c34`, inspecting exact `17f44dc3`. It verified the complete5,214 official input map and actual repackaged headers/members before running all12 original guard CLIs. Seven passed: protection, advancement, damage/equipment, current-book, terrain binding, station ingredient and terrain cell. Five still refused: client payload, recipe placement, Wire snapshot, crafting match and cloud insertion. All seals held, no diagnostic error; compatibility remains false.
 
 The damage/cell results include actual Linux1.95 formatter regeneration. They do not verify the separate Windows1.99.1 formatter. This replay did not regenerate a plan, apply code or build native consumers. Current cloud/payload changes are newer and still require a fresh complete plan and allguards.
+
+
+## Latest source and verification update
+
+The Wire guard metadata now names the exact official 41f source. Only the revision and whole-file hash changed. The original checker passes against the recovered complete reference plan; this is not a fresh plan or a type check of the current runtime.
+
+The fixed 17f guard replay reached all 12 guards and passed seven, including actual Linux 1.95 formatter regeneration for damage and terrain cells. Its five refusals remain recorded. Separately, exact source 86617 passed all 153 API and 16 finite native crafting tests with zero skipped or filtered cases. Constructor registration, Overslime derivation, station transactions and full Game typing are still separate requirements.
+
+The repository stores small public summaries of these results. Full raw logs and input maps are not included in this update. Main is unchanged. The current cloud and payload runtime requires a fresh complete plan before apply or build.

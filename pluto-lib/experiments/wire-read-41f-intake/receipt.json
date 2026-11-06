@@ -1,0 +1,40 @@
+{
+  "plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "plan_bytes": 6383021,
+  "guard_sha256": "4323be93b2f8b773f747e3a982291c226eaf7f085b58a329eda4a59e4c89979b",
+  "target_head": "17f44dc36fc2df28547328aa8554286ae965b208",
+  "actual_full_plan_check_passed": true,
+  "changed_fields": [
+    "horizon_revision",
+    "file_sha256"
+  ],
+  "runtime_changed": false,
+  "native_or_metadata_executed": false,
+  "extra_item_data_injections_states": 0,
+  "source_review": "399aa28e33656664a47455941e32c9a8014572dc",
+  "scope": "Actual pure guard on full recovered IR and exact source. No runtime type, transport, or live actor proof.",
+  "before_bytes": 366,
+  "before_sha256": "214a4dd86235d2c98b0aefb34182775be323f566df75f1a2a74e6987e79beae3",
+  "after_bytes": 366,
+  "after_sha256": "17c7f3e44f9766c6922a8aa38c045766c0799a74f9de86397e46795abc3e6bf5",
+  "before": {
+    "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "file": "crates/horizon-items/src/item_data.rs",
+    "file_sha256": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "declaration": "pub struct Wire(Option<Arc<(ItemStack, Arc<[u8]>)>>);",
+    "reader_sha256": "4d24575901fb3ffe8913bdfdf27f60043ed543532e605b3ae9f5f8c55e56c0a7"
+  },
+  "after": {
+    "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "file": "crates/horizon-items/src/item_data.rs",
+    "file_sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402",
+    "declaration": "pub struct Wire(Option<Arc<(ItemStack, Arc<[u8]>)>>);",
+    "reader_sha256": "4d24575901fb3ffe8913bdfdf27f60043ed543532e605b3ae9f5f8c55e56c0a7"
+  },
+  "ordinary_path": "pluto-lib/tools/wire-read-source.json",
+  "module_sources_sha256": {
+    "wire-read.rs": "4d24575901fb3ffe8913bdfdf27f60043ed543532e605b3ae9f5f8c55e56c0a7",
+    "stack-snapshot.rs": "9d79c08588a3d243a2904d42b12204f1b55053e52c53d5143b9ea20d551f3bf6",
+    "stack-storage.rs": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76"
+  }
+}

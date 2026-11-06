@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Development source integration with native item-cloud and3 client-payload caller migrations; recovered9cc1 plan is reference only; fresh whole plan/guards/type/build required",
+  "stage": "Development source integration. Native item-cloud and three client-payload caller migrations are included. The recovered 9cc1 plan remains reference-only; fresh full plan, guards, types and build are required.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -32,11 +32,11 @@
     },
     {
       "subject": "Crafting composition",
-      "reason": "Existing policy hooks require distinct matching-veto, output/remainder and placement authority review."
+      "reason": "API 153 and finite native 16 tests passed. Ordinary policy, pure-pair and placement delegation, constructor registration, actual Game types and new full-plan contracts remain."
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Fixed17f real replay7/12PASS,5refuse:payload/recipe-placement/Wire/crafting/cloud. Wire2field fullplan adaptation prepared; other ownership migrations/newfullplan remain. Linux1.95 formatter passed, Windows1.99.1 unrun."
+      "reason": "Fixed 17f real replay passed 7 of 12 guards. Wire now has a reviewed two-field metadata update which passes the original checker against the complete reference plan. Current runtime changes still require a fresh plan and full guard replay. Linux 1.95 formatter passed; Windows 1.99.1 remains unrun."
     },
     {
       "subject": "Windows execution validation",
@@ -82,7 +82,7 @@
       "mining_source_adaptation": "16 pure source checks and complete selected-source inverse passed; exact ten input Git blobs checked against integration tree",
       "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution",
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
-      "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run",
+      "crafting_candidate_source": "Actual run 42247376045 passed API 153 and finite native 16 tests at source 86617, with all names, compiler witnesses and seals verified. Constructor bootstrap, pure pair, station and full Game are unverified.",
       "windows_source": "actual Windows Server2025 PowerShell parser+43 source tests passed on exact5e14,run42233831944; noCargo/game",
       "metadata_adaptation": "All5 adapted guards passed actual fullCLI on fixed17f; advancement,damage,current-book,terrain-binding,terrain-cell. No Windows1.99.1/apply/type proof."
     },
@@ -255,7 +255,39 @@
       "formatter": "Linux1.95; not Windows1.99.1",
       "plan_regenerated": false,
       "apply_executed": false,
-      "native_type_verified": false
+      "native_type_verified": false,
+      "record": "pluto-lib/docs/playtest-guard-replay-result-20261106.json"
+    },
+    "crafting_stored_values": {
+      "source": "86617f80fc7d927bfc2971cedacb35783b189ce9",
+      "run": 42247376045,
+      "job": 127993024798,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42247376045",
+      "api_passed": 153,
+      "finite_passed": 16,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "phases": 21,
+      "all_seals": true,
+      "scope": "Real API and finite stored-value policy tests only; not constructor registration, pure pair, station, full Game or complete composition.",
+      "record": "pluto-lib/docs/crafting-stored-proof-20261106/verification.json"
+    },
+    "wire_source_adaptation": {
+      "source": "7c948bd17237bb0362d379bd12ad9259f15eb094",
+      "ordinary_paths": 1,
+      "changed_fields": [
+        "horizon_revision",
+        "file_sha256"
+      ],
+      "whole_metadata_inverse": true,
+      "unchanged_guard_and_modules": true,
+      "reference_plan": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+      "reference_full_check": "passed",
+      "latest_composition_check": false,
+      "native_type_verified": false,
+      "record": "pluto-lib/experiments/wire-read-41f-intake/receipt.json",
+      "independent_review": "Rendering verified the two-field inverse, exact old/new official source and full reference plan modules; no concrete blocker."
     }
   },
   "safety": {
@@ -265,7 +297,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Collect exact17f guard7PASS/5refuse proof and actual crafting153/16; integrate reviewed Wire pin, finish cloud/payload observation and crafting/placement, then fresh wholeplan/allguards/apply/type/build/Windows checks before main.",
+  "next": "Finish the reviewed crafting and placement source integration, collect a fresh complete plan and missing native fingerprints, then run all guards, apply, actual host type tests and Windows build/start checks before main.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -553,6 +585,15 @@
       "actual_plan_or_game_or_lan": false,
       "guard_metadata_adapted": false,
       "poll_remote_fingerprint_observed": false
+    },
+    {
+      "subject": "Wire latest source metadata",
+      "source": "7c948bd17237bb0362d379bd12ad9259f15eb094",
+      "ordinary_paths": 1,
+      "proof_paths": 3,
+      "scope": "Only official revision and whole-file hash change. Existing private Wire declaration, reader, three modules and checker are unchanged.",
+      "reference_full_guard_function": "passed by Storage and central replay",
+      "current_complete_plan_or_type": false
     }
   ],
   "guide_limits": [

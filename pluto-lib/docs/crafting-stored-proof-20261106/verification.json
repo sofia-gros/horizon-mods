@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "run_id": 42247376045,
+  "job_id": 127993024798,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42247376045",
+  "head": "86617f80fc7d927bfc2971cedacb35783b189ce9",
+  "first_attempt": true,
+  "workflow_conclusion": "success",
+  "source_input_count": 52,
+  "full_console_utf8_bytes": 199973,
+  "full_console_utf8_sha256": "ef3944f961efb06b64acfbae230f5bd5e24eb8b307c26ef749517b928339ee72",
+  "full_console_retained_locally": true,
+  "full_console_published": false,
+  "final_receipt_sha256": "0807c4d44f184b25ff80c411022df6c002626ecbfe4a3b0b0e04fdd878d14550",
+  "independent_checks": {
+    "console_final_receipt_exact": true,
+    "phase_receipts_exact": 21,
+    "phase_exit_and_error_checks": true,
+    "fixture_receipts_exact": 2,
+    "actual_named_tests_and_summaries": {
+      "api153": 153,
+      "finite16": 16
+    },
+    "api_subgroups": {
+      "existing": 147,
+      "added": 6
+    },
+    "pure_counts": {
+      "runner": 31,
+      "preparer": 21,
+      "renderer": 13
+    },
+    "actual_native_crates": 4,
+    "actual_api_library_compile": true,
+    "separate_actual_harness_compiles": 2,
+    "final_seals_nonempty": true,
+    "minimum_free_bytes": 89852682240
+  },
+  "not_proved": [
+    "Mixins plan/apply",
+    "actual recipe-constructor bootstrap",
+    "installed native Game adapters",
+    "Overslime pair provider",
+    "station transaction",
+    "LAN/gameplay",
+    "complete composition guards"
+  ],
+  "final_receipt_published": false,
+  "source_hashes": {
+    "controller_sha256": "03610a8b0ea163cb70b51df7ee92ffd3d19262e06aa814a7497a8d88044bbb1e",
+    "inputs_sha256": "b09b1c2c1d2956e3a72c04046493289c75c47271ed1e923529d98007bf247f2e",
+    "workflow_sha256": "bf1144ba4976cdf1746565370144ab4652ec0195bd93bb973664490e9b6dec5b",
+    "official_lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+  }
+}
