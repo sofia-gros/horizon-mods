@@ -6,6 +6,7 @@ rendering-performance claim follows from this source/plan guard.
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +17,10 @@ def digest(text): return hashlib.sha256(text.encode()).hexdigest()
 def metadata(): return json.loads((ROOT/'tools/terrain-cell-source.json').read_text())
 def ids(raw): return {raw, 'pluto_native_creative-'+raw}
 def formatted(text):
-    return subprocess.run(['rustfmt','--edition','2024','--emit','stdout'],input=text,text=True,capture_output=True,check=True).stdout
+    formatter = os.environ.get('PLUTO_GUARD_RUSTFMT', 'rustfmt')
+    if 'PLUTO_GUARD_RUSTFMT' in os.environ and not Path(formatter).is_absolute():
+        raise ValueError('Explicit guard formatter must be an absolute path')
+    return subprocess.run([formatter,'--edition','2024','--emit','stdout'],input=text,text=True,capture_output=True,check=True).stdout
 
 def extract(text,start,end):
     if text.count(start)!=1: raise ValueError('native extraction start is missing or ambiguous')

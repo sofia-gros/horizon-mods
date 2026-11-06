@@ -53,3 +53,14 @@ Four advancement/damage source metadata files, two terrain metadata files and on
 [The corrected Windows source check](tconstruct/docs/windows-source-ci-success-20261106.md) passed PowerShell syntax and all20+12+11 source tests on Windows Server2025. Its four owned jobs terminated and file seals matched. It did not run Cargo, prepare assets, open the game or test the user's Windows11 computer. The [first failure](tconstruct/docs/windows-source-ci-first-result-20261106.md) remains recorded.
 
 The stored crafting fixture preparer has21 pure checks, but its planned API153/native16 tests have not run. Guide LAN, crafting and cloud runtime migrations remain separate unresolved work. Main is unchanged pending the user's actual build/no-error condition.
+
+
+## Recovered full plan and next execution gates
+
+The same-input repeat [run42236543685](https://github.com/sofia-gros/horizon-mods/actions/runs/42236543685) ended at2026-11-06T14:57:00Z. Its complete plan was recovered:6,383,021bytes, SHA256 `7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b`, identical to the first plan. The original full CLI result remains2/12 guards passing,10 refusing. Later read-only full-plan function replays passed advancement order/source, current-book and both terrain IR checks with official source pins. Damage order/helper bytes matched. Rustfmt regeneration and new complete guard CLI rerun remain pending; no apply or native build ran.
+
+Finite native Text reply tests passed at exact `fe52ae4c`, [run42241486458](https://github.com/sofia-gros/horizon-mods/actions/runs/42241486458), completed15:17:33Z:10/10 executed,21 inventory,11 filtered,0 ignored,3 actual compilers and all seals. This is not Game, registry, observer, UI or LAN proof. The complete plan has3 cancellable packet HEAD callers; a Guide-only bridge is insufficient.
+
+Windows source now requires a separately prepared official rustfmt archive and byte-identical executable. Two existing guards receive the verified formatter by absolute path without changing comparisons or transformation hunks. Child Python runs UTF-8 without changing system locale or user settings. The12-path intake from `f9fcdd39`, `6ecd8daa` and `3da8fe52` passed13 formatter plus7 UTF-8 pure checks and independent review. No archive installation, new PowerShell execution, formatter regeneration, native compile or game startup ran for this intake. Historical43-test Windows success does not cover these changes. See [explicit preparation requirements](tconstruct/docs/windows-latest-launch.md).
+
+The guard-only diagnostic remains pinned to `17f44dc3` and need not wait for this tooling intake. Native mod/content and the approved chest-color deferral are unchanged. Main remains unmerged.

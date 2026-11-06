@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "source integration; actual full plan accepted,2/12 original guards passed; five guards have reviewed metadata adaptations pending full replay; no native build",
+  "stage": "Source integration; actual full plan accepted and recovered; original guard CLI 2/12 passed, partial metadata replays passed; no native build",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -28,7 +28,7 @@
   "pending": [
     {
       "subject": "Guide LAN response",
-      "reason": "Existing response/observer composition conflict remains. Internal compatibility bridge is in preparation; no feature is silently removed."
+      "reason": "Native Text old/new response10 tests passed, but Game/registry/observer/UI/LAN unverified. Actual full plan has3 cancellable packet HEAD callers; preserve all behavior while migrating."
     },
     {
       "subject": "Crafting composition",
@@ -36,11 +36,11 @@
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Actual original guards:2/12 passed and10 rejected. Reviewed advancement/damage,terrain,current-book metadata is now adapted without changing guard algorithms or runtime. Full replay is pending. Crafting/placement exclusivity,Guide payload observer,Wire andcloud still require exact evidence or code migration. Cloud constructors/ownership conflicts are not solved by hash updates."
+      "reason": "Original12 guard CLI reached:2 pass/10 refuse. Recovered full-plan function replays pass advancement order/source, current-book check, terrain IR+sourcepins; damage order/helperbytes also match. Formatter regeneration/full CLI replay pending. Payload3 cancellable callers, crafting/placement, Wire and cloud need migrations/evidence."
     },
     {
       "subject": "Windows execution validation",
-      "reason": "Actual Windows Server2025 PowerShell parser and20+12+11 source tests passed after test-only UTF8 correction. This is not Windows11 gameplay. Full guard acceptance, apply/native build, Windows link/resources/startup remain unrun."
+      "reason": "Historical5e14 Windows source43 tests/parser passed only. New explicit rustfmt archive admission, absolute guard routing and child Python UTF-8 are source-integrated but unexecuted on Windows. Regeneration, allguards, apply/build/link/startup pending."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -68,19 +68,19 @@
     "gates": {
       "git_blob_composition": "passed",
       "complete_latest_plan": "accepted on exact9cc1 by run42231588813 in570.20926098s;322 injections/321 modules/111 states/3 crates/3 bridges",
-      "composition_guards": "all12 reached;protection and station_ingredient passed,10 rejected. New metadata not fully replayed yet",
+      "composition_guards": "Original2/12 CLI pass; recovered full-plan function replays are separate, full CLI rerun pending",
       "native_build": "not run on this branch",
       "windows_link": "not run",
       "game_start": "not run",
       "gpu_or_lan": "not verified",
       "guide_source_merge": "8 pure source checks passed; both original whole files reconstruct exactly",
-      "terrain_collector_source": "actual whole-plan collector observed2 hooks/6 modules/no competitors; raw full plan was not retained in first run",
+      "terrain_collector_source": "Actual2hooks/6modules observed; full plan recovered on same-input repeat with identical6383021bytes/SHA.",
       "mining_source_adaptation": "16 pure source checks and complete selected-source inverse passed; exact ten input Git blobs checked against integration tree",
       "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution",
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
       "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run",
       "windows_source": "actual Windows Server2025 PowerShell parser+43 source tests passed on exact5e14,run42233831944; noCargo/game",
-      "metadata_adaptation": "advancement/damage8,terrain12,current-book8 pure independently passed;7 metadata JSON only ordinary changes; fullguard replay pending"
+      "metadata_adaptation": "7metadataJSON: advancement order+source PASS, current-book PASS, bothterrain IR+12sourcepins PASS. Damage order/helperbytes PASS. Rustfmt regeneration/fullCLI unrun."
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -143,8 +143,14 @@
       "repeat_scope": "Same fixed9cc1 inputs, bounded four-file artifact retention; noapply",
       "repeat_run": 42236543685,
       "repeat_started_at": "2026-11-06T14:44:02Z",
-      "repeat_state": "in_progress",
-      "repeat_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42236543685"
+      "repeat_state": "completed",
+      "repeat_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42236543685",
+      "repeat_completed_at": "2026-11-06T14:57:00Z",
+      "repeat_plan_seconds": 580.98182329,
+      "repeat_artifact_id": 13513252348,
+      "repeat_raw_plan_recovered": true,
+      "repeat_plan_identical_to_first": true,
+      "repeat_guard_results_identical": true
     },
     "windows_source_ci": {
       "source": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
@@ -187,6 +193,21 @@
       "cargo": false,
       "game_started": false,
       "record": "tconstruct/docs/windows-source-ci-success-20261106.json"
+    },
+    "guide_reply_values": {
+      "source": "fe52ae4cc3b3a0b68b337019de643dc7271b4402",
+      "proof": "79b36f7e8db11b580f2c70136d82567d4b128ce9",
+      "run": 42241486458,
+      "job": 127972609168,
+      "completed_at": "2026-11-06T15:17:33Z",
+      "executed": 10,
+      "passed": 10,
+      "filtered": 11,
+      "ignored": 0,
+      "inventory": 21,
+      "actual_compilers": 3,
+      "all_seals": true,
+      "scope": "Finite actual core Text response values only; not Game/registry/observer/UI/LAN"
     }
   },
   "safety": {
@@ -196,7 +217,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Recover the fixed complete plan artifact and replay reviewed guard adaptations, finish Guide/crafting/cloud ownership migrations, then guarded apply/type/build and Windows link/startup. Main remains unchanged until actual build/error conditions pass.",
+  "next": "Replay all12 guards on fixed17f/recovered9cc1 plan; finish payload/crafting/cloud migrations, then guarded apply/type/build and Windows link/startup. Do not delay or retarget fixed guard-only for new Windows tooling. Main unchanged until actual build/error conditions pass.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -388,6 +409,22 @@
       "delta": "Only official revisions and3 whole-source hashes; helper/guard/turn fingerprint unchanged; books2line full-file inverse",
       "actual_full_guard_replay": false,
       "apply_or_type": false
+    },
+    {
+      "subject": "Windows explicit guard formatter and UTF-8 child execution",
+      "sources": [
+        "f9fcdd39f13979af817ee4db970dcc43f58697d6",
+        "6ecd8daa3f3b5d3764b29afb3198fac482f821cd",
+        "3da8fe527e286dd433e076771b0e75351503ce78"
+      ],
+      "paths": 12,
+      "pure_checks": {
+        "formatter": 13,
+        "utf8": 7
+      },
+      "independent_review": "Guide immutable12paths and central source/pure/old-base checks",
+      "scope": "Two guards change only executable routing. Exact official rustfmt archive/exe admission precedes execution. UTF-8 child-only. No installation/global settings/native content change.",
+      "windows_executed": false
     }
   ],
   "guide_limits": [

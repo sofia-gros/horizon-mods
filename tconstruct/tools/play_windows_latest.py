@@ -19,6 +19,7 @@ import tomllib
 
 from playtest_pluto_inputs import directory, plain, signature, fingerprint
 import prepare_playtest_bundles as bundles
+import playtest_guard_rustfmt as guard_format
 
 HORIZON = '41f822b659789780f58d32c63ddfb6887ea1b8bf'
 MIXINS = '5a64af938ec86b00d53d16a408aabc0038fb3e57'
@@ -35,7 +36,7 @@ MAX_TOTAL = 64 * 1024**3
 SCRUB = {'RUSTUP_TOOLCHAIN', 'RUSTC_WRAPPER', 'RUSTC_WORKSPACE_WRAPPER',
          'RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTDOCFLAGS',
          'CARGO_ENCODED_RUSTDOCFLAGS', 'CARGO_INCREMENTAL',
-         'CARGO', 'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
+         'PYTHONUTF8', 'PYTHONIOENCODING', 'PLUTO_GUARD_RUSTFMT', 'CARGO', 'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
          'CFLAGS', 'CXXFLAGS', 'LDFLAGS', 'HORIZON_MOD_INJECTIONS'}
 
 
@@ -136,11 +137,13 @@ def build_environment(original, toolchain, home):
            not k.upper().startswith(('CARGO_BUILD_', 'CARGO_TARGET_', 'CARGO_PROFILE_',
                                      'CC_', 'CXX_', 'AR_', 'RANLIB_', 'CFLAGS_', 'CXXFLAGS_', 'HORIZON_', 'GIT_'))}
     env.update(PATH=str(toolchain/'bin')+os.pathsep+str(toolchain/'mingw64/bin')+os.pathsep+original.get('PATH',''),
+               PLUTO_GUARD_RUSTFMT=str(toolchain/'bin/rustfmt.exe'),
                CARGO=str(toolchain/'bin/cargo.exe'), RUSTC=str(toolchain/'bin/rustc.exe'), RUSTDOC=str(toolchain/'bin/rustdoc.exe'),
                CARGO_HOME=str(home/'cargo-home-latest-gnu'), CARGO_NET_OFFLINE='true',
                CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
                TMP=str(home/'tmp-latest-gnu'), TEMP=str(home/'tmp-latest-gnu'),
                TMPDIR=str(home/'tmp-latest-gnu'), PYTHONDONTWRITEBYTECODE='1',
+               PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
                CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=str(toolchain/'mingw64/bin/gcc.exe'),
                CC=str(toolchain/'mingw64/bin/gcc.exe'), CXX=str(toolchain/'mingw64/bin/g++.exe'),
                AR=str(toolchain/'mingw64/bin/ar.exe'), RANLIB=str(toolchain/'mingw64/bin/ranlib.exe'),
@@ -192,16 +195,19 @@ def execute(args):
         raise ValueError('This launch route requires Windows 11 x64. Nothing was installed or compiled.')
     repo = directory(Path(__file__).parents[1]); pluto = directory(repo.parent/'pluto-lib')
     validate_compat(json.loads(read(repo/'compatibility.json')))
+    guard_format.require_guard_routing(pluto)
     horizon, mixins, resources, toolchain = map(directory,
         (args.horizon, args.mixins, args.resources, args.toolchain))
     external_bundle = directory(args.pluto_bundle) if args.pluto_bundle else None
+    rustfmt_archive = Path(os.path.abspath(args.rustfmt_archive))
+    directory(rustfmt_archive.parent)
     home = Path(os.path.abspath(args.home))
     # All explicitly selected inputs must remain outside generated outputs and saves.
-    disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent)])
+    disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent),('rustfmt archive',rustfmt_archive)])
     if external_bundle is not None and (home == external_bundle or home in external_bundle.parents or external_bundle in home.parents): raise ValueError('Bundle/output overlap')
     directory(home.parent); no_parent_configs(home)
     for path in (horizon, mixins): no_parent_configs(path.parent)
-    for path in ('bin/rustc.exe','bin/cargo.exe','bin/rustdoc.exe','mingw64/bin/gcc.exe',
+    for path in ('bin/rustc.exe','bin/cargo.exe','bin/rustdoc.exe','bin/rustfmt.exe','mingw64/bin/gcc.exe',
                  'mingw64/bin/g++.exe','mingw64/bin/ar.exe','mingw64/bin/ranlib.exe','mingw64/bin/windres.exe'):
         if not (toolchain/path).is_file(): raise ValueError('Missing official launcher toolchain component: '+path+'; prepare it explicitly, no automatic installer is used.')
     if not (resources/'horizon-resources.json').is_file(): raise ValueError('Select explicitly prepared official Horizon 26.3 resources, not a source checkout or saves folder.')
@@ -215,6 +221,9 @@ def execute(args):
     cwd = Path(home.anchor); no_parent_configs(cwd)
     # Reject toolchain links/reparse/special entries BEFORE executing even a version query.
     toolchain_before = tree_digest(toolchain)
+    formatter = guard_format.admit(toolchain, rustfmt_archive)
+    formatter_version = run([toolchain/'bin/rustfmt.exe', '--version'], cwd=cwd, env=env, capture=True)
+    guard_format.validate_version(formatter_version)
     rust = run([toolchain/'bin/rustc.exe', '-vV'], cwd=cwd, env=env, capture=True); validate_rust(rust)
     cargo = run([toolchain/'bin/cargo.exe', '-vV'], cwd=cwd, env=env, capture=True)
     if not cargo.startswith('cargo '+VERSION+' '): raise ValueError('Cargo version differs from selected Rust toolchain')
@@ -248,6 +257,7 @@ def execute(args):
                 'compatibility':sha(read(repo/'compatibility.json')), 'pluto':fingerprint(bundle,pluto),
                 'resources':{'path':str(resources),'files':tree_digest(resources)},
                 'toolchain':{'path':str(toolchain),'files':tree_digest(toolchain),'rust':rust,'cargo':cargo,'gcc':gcc,'gcc_version':gcc_version},
+                'formatter':{**guard_format.admit(toolchain,rustfmt_archive),'version':formatter_version},
                 'target':TARGET,'profile':PROFILE,'default_features':True,'features':feature_contract(horizon),
                 'stage_sha256':sha(read(repo/'tools/stage.py'))}
     initial = snapshot(); key = ready_identity(initial)
@@ -289,6 +299,7 @@ def execute(args):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('horizon','mixins','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--rustfmt-archive',type=Path,required=True,help='existing official Rust 1.99.1 GNU rustfmt tar.gz; verified/read only, never installed automatically')
     p.add_argument('--pluto-bundle',type=Path,help='optional external bundle, accepted only if byte-identical to same-checkout generated Pluto')
     try: execute(p.parse_args())
     except (OSError,ValueError,subprocess.CalledProcessError) as exc:

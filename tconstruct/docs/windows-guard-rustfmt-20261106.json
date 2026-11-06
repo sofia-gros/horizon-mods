@@ -1,0 +1,37 @@
+{
+  "base_commit": "117c36092a3c29142507a14035017d0df73ef6d7",
+  "manifest": {
+    "bytes": 943486,
+    "git_commit_hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+    "http_status": 200,
+    "rustfmt_package_version": "1.10.0",
+    "sha256": "fb152be80975c194aa5fc684b2aec3a6e14e2b855efe2faa4e5f8ae6e590f463",
+    "url": "https://static.rust-lang.org/dist/2026-10-15/channel-rust-1.99.1.toml"
+  },
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "schema": 1,
+  "sidecar": {
+    "bytes": 110,
+    "content": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa  rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz\n",
+    "http_status": 200,
+    "sha256": "3d920a196de168ba139e48d3857c3b37471050ae35cea12f18370140fc1e0f58",
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz.sha256"
+  },
+  "source_sha256": {
+    "pluto-lib/tools/check_damage_equipment_plan.py": "9843dbe27c62bb1e3765f6cc70c2d1079c21cbccb092f8763dc05b32f72129e3",
+    "pluto-lib/tools/check_terrain_cell_plan.py": "b8b551fb45d6a5b118fa6d14c964a7e908c61f64a70749d18457b92ec151df60",
+    "tconstruct/tests/test_windows_guard_rustfmt.py": "da28b8de9ae840318227a797b89791d60013149d02976b2b787ec983a09b00f9",
+    "tconstruct/tools/play-windows.ps1": "f456a1ff45bd770a3d2dbeb4c3b38405e71a01b3a497602a70a09f2b4f6a018b",
+    "tconstruct/tools/play_windows_latest.py": "1f1f830d397a84722ad9873802f8662859bd46217fe008c80bad6dc0dd414af8",
+    "tconstruct/tools/playtest_guard_rustfmt.py": "8f4e563386e876e348d5650bb5d72d7ec25dbdd280bf5e7776160c3fecd74652"
+  },
+  "validation": {
+    "archive_downloaded": false,
+    "existing_latest_pure": 20,
+    "first_inverse_regression_wrong_checker_expected_sha": true,
+    "formatter_executed": false,
+    "native_executed": false,
+    "new_pure": 13,
+    "windows_or_powershell_executed": false
+  }
+}

@@ -5,6 +5,7 @@ param(
     [string]$PlutoBundle,
     [string]$Resources,
     [string]$Toolchain,
+    [string]$RustfmtArchive,
     [string]$PlaytestHome = (Join-Path $env:LOCALAPPDATA 'TConstruct-Horizon-Playtest')
 )
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,17 @@ function Pick-Folder([string]$Title) {
         return $dialog.SelectedPath
     } finally { $dialog.Dispose() }
 }
+function Pick-RustfmtArchive {
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object System.Windows.Forms.OpenFileDialog
+    $dialog.Title = 'Select the existing official Rust 1.99.1 Windows GNU rustfmt tar.gz (no automatic install)'
+    $dialog.Filter = 'Rustfmt archive (*.tar.gz)|*.tar.gz'
+    $dialog.CheckFileExists = $true
+    try {
+        if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required explicit rustfmt archive was not selected.' }
+        return $dialog.FileName
+    } finally { $dialog.Dispose() }
+}
 try {
     if (-not (Get-Command py -ErrorAction SilentlyContinue)) { throw 'Python 3.12 or newer is required. Nothing was installed automatically.' }
     & py -3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'
@@ -27,7 +39,8 @@ try {
     if ($PlutoBundle) { $BundleArguments = @('--pluto-bundle', $PlutoBundle) }
     if (-not $Resources) { $Resources = Pick-Folder 'Select explicitly prepared official Horizon 26.3 resources (not saves)' }
     if (-not $Toolchain) { $Toolchain = Pick-Folder 'Select official launcher Rust 1.99.1 Windows GNU toolchain root containing bin and mingw64' }
-    & py -3 (Join-Path $PSScriptRoot 'play_windows_latest.py') --horizon $HorizonSource --mixins $MixinsSource --resources $Resources --toolchain $Toolchain --home $PlaytestHome @BundleArguments
+    if (-not $RustfmtArchive) { $RustfmtArchive = Pick-RustfmtArchive }
+    & py -3 (Join-Path $PSScriptRoot 'play_windows_latest.py') --horizon $HorizonSource --mixins $MixinsSource --resources $Resources --toolchain $Toolchain --rustfmt-archive $RustfmtArchive --home $PlaytestHome @BundleArguments
     if ($LASTEXITCODE -ne 0) { throw "Latest guarded playtest stopped with exit code $LASTEXITCODE. No fallback build or guard bypass was used." }
 } catch {
     Write-Host ("Could not start latest playtest: " + $_.Exception.Message) -ForegroundColor Red

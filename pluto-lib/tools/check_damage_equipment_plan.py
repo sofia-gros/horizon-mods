@@ -6,6 +6,7 @@ source workspace. This guard is not a replacement for native Cargo checks.
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -60,8 +61,11 @@ def verify_source(plan, workspace, entries):
                 raise ValueError("reviewed damage adapter hunk no longer matches exactly once")
             body = body.replace(change["old"], change["new"])
         expected = meta["header"] + body + meta["footer"]
+        formatter = os.environ.get('PLUTO_GUARD_RUSTFMT', 'rustfmt')
+        if 'PLUTO_GUARD_RUSTFMT' in os.environ and not Path(formatter).is_absolute():
+            raise ValueError('Explicit guard formatter must be an absolute path')
         formatted = subprocess.run(
-            ["rustfmt", "--edition", "2024", "--emit", "stdout"],
+            [formatter, "--edition", "2024", "--emit", "stdout"],
             input=expected, text=True, capture_output=True, check=True,
         ).stdout
         helper = ROOT / "mixins/pluto_native_creative" / meta["helper"]
