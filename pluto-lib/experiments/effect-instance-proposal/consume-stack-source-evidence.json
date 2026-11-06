@@ -1,0 +1,51 @@
+{
+  "status": "UNAPPLIED source-only consumed-stack propagation proposal",
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_guards": {
+    "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c checkout> python -B pluto-lib/experiments/effect-instance-proposal/test_consume_stack_source.py",
+    "count": 8,
+    "passed": 8,
+    "failed": 0,
+    "elapsed_seconds": 0.092,
+    "scope": "Pinned source regeneration, reversible exact edits and phase/caller checks only; no native Rust execution."
+  },
+  "official_source_sha256": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/consume.rs": "6e24f541bc2d6c7a2eccf15d7711950be3eba3ccdfd603dd4e915047306222c6",
+    "crates/horizon-client/src/game/item_use.rs": "9d3de0dc51dd26ad8c035131321dfc880795b1a195a4e880fcb1b1d04adf569e",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "crates/horizon-world/src/consumable.rs": "ba3575cb85866cb940f33a1ac86455d71cf0cc6395b848588a8ee1fe33f5c326",
+    "crates/horizon-world/src/consume_effect.rs": "03f2aac6879ce133347d42f6f6667d62c06d956ff9faac5dc14182a788b6a236"
+  },
+  "artifact_sha256": {
+    "pluto-lib/experiments/effect-instance-proposal/prepare_consume_stack.py": "8678cfcda9d1d00a1ecfdaf8fbcae8f845df6a85564457800d662c565f3b3590",
+    "pluto-lib/experiments/effect-instance-proposal/test_consume_stack_source.py": "9c339be3fc1a21a4d80d9cc337e1c3b2a91867d416bfc99001a3b961c2b8ec01",
+    "pluto-lib/experiments/effect-instance-proposal/UNAPPLIED-consumed-stack-cure-boundary.patch": "7c5b675936cbdd1679a2ca95748b198335d60b26a4cfb2a3b2043f7943e236fd",
+    "pluto-lib/docs/consumed-stack-cure-boundary.md": "eeef7cd694a77149d506014f94b5034a1644c2c3bce3ae5e202c31c7583e8390"
+  },
+  "tconstruct_source": {
+    "repository": "SlimeKnights/TinkersConstruct",
+    "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+    "path": "src/main/java/slimeknights/tconstruct/fluids/block/MobEffectLiquidBlock.java",
+    "git_blob_sha": "a522522ba5da780b421253829a8284dbbe69f7c9",
+    "direct_source_read": true,
+    "sha256": "769c212aaca4b115c738051b25fc5b62d986c39607cd97d0dd7fc0d0bca9cb5c"
+  },
+  "native_patch_applied": false,
+  "rust_compiled": false,
+  "game_executed": false,
+  "cure_policy_enabled": false,
+  "instance_metadata_attached": false,
+  "production_manifest_changed": false,
+  "shared_registry_added": false,
+  "excluded": [
+    "Item-curative filtering and Forge mixed-source merge parity",
+    "Native per-instance copy/hidden/save attachment",
+    "Actor or current-slot permission from supplied stack facts",
+    "Synchronous fluid contact Game/frame continuation",
+    "Local/LAN/client runtime behavior",
+    "Pending separate Game borrow and renderer CI"
+  ]
+}

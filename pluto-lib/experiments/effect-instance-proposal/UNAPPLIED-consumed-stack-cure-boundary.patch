@@ -1,0 +1,50 @@
+--- a/crates/horizon-client/src/game.rs
++++ b/crates/horizon-client/src/game.rs
+@@ -7183,7 +7183,11 @@
+         }
+         self.award_stat("used", &stack.item, 1);
+     }
+-    fn apply_consume_effect(&mut self, effect: &horizon_client::items::ConsumeEffect) {
++    fn apply_consume_effect(
++        &mut self,
++        effect: &horizon_client::items::ConsumeEffect,
++        consumed_stack: &ItemStack,
++    ) {
+         use horizon_client::items::ConsumeEffect;
+         match effect {
+             ConsumeEffect::ApplyEffects {
+@@ -7217,8 +7221,7 @@
+                 }
+             }
+             ConsumeEffect::ClearAllEffects => {
+-                self.potions.effects.clear();
+-                self.apply_effect_status();
++                self.clear_effects_from_consumed_item(consumed_stack);
+             }
+             ConsumeEffect::RemoveEffects(to_remove) => {
+                 for target in to_remove {
+@@ -7241,6 +7244,13 @@
+                 self.native_consume_effect(kind, data);
+             }
+         }
++    }
++    // UNAPPLIED proposal: carry the actual consumed snapshot, but do not
++    // interpret it as current-slot identity or effect-instance cure authority.
++    // No filtering is enabled until the instance/owner contracts are supplied.
++    fn clear_effects_from_consumed_item(&mut self, _consumed_stack: &ItemStack) {
++        self.potions.effects.clear();
++        self.apply_effect_status();
+     }
+     fn consume_held(&mut self) {
+         if self.creative {
+--- a/crates/horizon-client/src/game/consume.rs
++++ b/crates/horizon-client/src/game/consume.rs
+@@ -79,7 +79,7 @@
+             }
+         }
+         for effect in &consumable.effects {
+-            self.apply_consume_effect(effect);
++            self.apply_consume_effect(effect, stack);
+         }
+         let event = if consumable.animation == UseAnimation::Drink {
+             "minecraft:drink"
