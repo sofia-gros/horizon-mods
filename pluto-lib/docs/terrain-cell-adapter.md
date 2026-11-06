@@ -132,3 +132,5 @@ result is claimed by this groundwork. Those are separate consumer/runtime gates.
 ## Later source checkpoint
 
 The render-contract extension is described in `fluid-render-contracts.md`. It adds bounded batch registration and an opaque-UV-envelope guard. The earlier native/CPU proof statements above apply only to their exact recorded revisions, not to this changed runtime. Independent flow-texture/tint material selection remains explicitly unavailable.
+
+The subsequent source-WIP native-material path is documented in `terrain-materials.md`; it adds explicit, prepared secondary material admission without promoting any earlier native/CPU result.

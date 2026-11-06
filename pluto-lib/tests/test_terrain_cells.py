@@ -39,7 +39,7 @@ class TerrainCellChecks(unittest.TestCase):
         self.assertEqual((NATIVE/'terrain-cell-providers.rs').read_text().count('static REGISTRY:'),1)
     def test_host_has_no_raw_vertex_shader_or_per_cell_cache_lookup(self):
         source=(NATIVE/'terrain-cell-host.rs').read_text()
-        self.assertEqual(source.count('with_owners('),1)
+        self.assertEqual(source.count('with_material_owners('),1)
         self.assertNotIn('TerrainVertex::new',source);self.assertNotIn('fluid_face(',source)
         self.assertNotIn('Mutex',source);self.assertNotIn('RwLock',source)
         self.assertIn('String::new()',source);self.assertNotIn('.quad.clone()',source)

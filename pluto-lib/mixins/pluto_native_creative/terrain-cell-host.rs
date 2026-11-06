@@ -47,8 +47,11 @@ pub(super) fn mesh(
     let (assets, render, tables) = (mesher.assets, mesher.render, mesher.tables);
     let mut staged = None;
     let mut invalid = false;
-    let checked =
-        super::pluto_terrain_binding_host::with_owners(assets, render, tables, |status| {
+    let checked = super::pluto_terrain_binding_host::with_material_owners(
+        assets,
+        render,
+        tables,
+        |status, materials| {
             let bindings::Status::Ready(catalog) = status else {
                 return;
             };
@@ -63,9 +66,11 @@ pub(super) fn mesh(
                 scratch,
                 catalog,
                 providers,
+                materials,
                 &mut invalid,
             ));
-        });
+        },
+    );
     match staged {
         Some(mesh) if checked.is_ok() && !invalid => ControlFlow::Break(mesh),
         Some(mesh) => {
@@ -125,6 +130,22 @@ fn selected<'a>(models: &[&'a BakedModel], sprite: u16) -> Option<[Option<&'a Ba
     }
     Some(faces)
 }
+// A material template may change only sprite-derived metadata. All native
+// nontexture attributes remain the selected ordinary model's exact values.
+fn compatible(source: &BakedFace, template: &BakedFace) -> bool {
+    let (a, b) = (&source.quad, &template.quad);
+    a.facing == b.facing
+        && a.cull == b.cull
+        && a.tint_index == b.tint_index
+        && a.shade_direction_override == b.shade_direction_override
+        && a.light_emission == b.light_emission
+        && a.light == b.light
+        && a.color == b.color
+        && a.ambient_occlusion == b.ambient_occlusion
+        && a.render_type == b.render_type
+        && a.shade == b.shade
+        && a.material.force_translucent == b.material.force_translucent
+}
 fn remap(source: &BakedFace, quad: &geometry::Quad) -> BakedFace {
     let q = &source.quad;
     BakedFace {
@@ -170,8 +191,9 @@ fn emit(
     interior_leaf: bool,
     visible: &[bool; 6],
     catalog: &bindings::Catalog,
-    providers: &std::collections::BTreeMap<String, api::Provider>,
+    providers: &std::collections::BTreeMap<String, api::RegisteredProvider>,
     budget: &mut api::Budget,
+    materials: &super::pluto_terrain_binding_host::Materials,
 ) -> Emission {
     let Some(binding) = catalog.by_state.get(&id) else {
         return Emission::Native;
@@ -186,14 +208,38 @@ fn emit(
         return Emission::Native;
     };
     let neighborhood = Neighbors { pad, catalog, pos };
-    let Some(batch) = provider(&api::CellContext {
+    let cell = api::CellContext {
         binding,
         world: [world.x, world.y, world.z],
         neighborhood: &neighborhood,
-    }) else {
-        return Emission::Native;
     };
-    if !api::cell_local(&batch) || !budget.quads(batch.as_slice().len()) {
+    let material = materials.get(&id);
+    let painted = match provider {
+        api::RegisteredProvider::Geometry(provider) => {
+            // A geometry-only consumer must not silently ignore explicit style.
+            if material.is_some() {
+                return Emission::Native;
+            }
+            let Some(batch) = provider(&cell) else {
+                return Emission::Native;
+            };
+            api::PaintedBatch::new(batch, api::MaterialSlot::Primary)
+        }
+        api::RegisteredProvider::Material(provider) => {
+            let Some(material) = material else {
+                return Emission::Native;
+            };
+            let Some(batch) = provider(&api::MaterialContext {
+                cell,
+                appearance: &material.facts,
+            }) else {
+                return Emission::Native;
+            };
+            batch
+        }
+    };
+    let batch = painted.geometry();
+    if !api::cell_local(batch) || !budget.quads(batch.as_slice().len()) {
         return Emission::Invalid;
     }
     // Validate every source face before any vertex emission. A resource pack
@@ -205,27 +251,53 @@ fn emit(
     {
         return Emission::Invalid;
     }
-    // Original baked opacity is only proven over its original UV envelope.
-    // Explicit render types deliberately override sprite alpha; otherwise a
-    // broadened opaque claim falls back before writing any custom vertex.
-    if batch.as_slice().iter().any(|quad| {
+    // Validate every material and its opacity proof before any custom vertex.
+    for (index, quad) in batch.as_slice().iter().enumerate() {
         let source = faces[direction(quad.face) as usize].expect("validated direction");
-        !api::opacity_allows(
-            source.opaque,
-            source.quad.render_type.is_some(),
-            &source.quad.uv,
+        let selected = match painted.slot(index).expect("bounded quad") {
+            api::MaterialSlot::Primary => source,
+            api::MaterialSlot::Secondary => {
+                let Some(material) = material else {
+                    return Emission::Invalid;
+                };
+                let Some(template) = &material.faces[direction(quad.face) as usize] else {
+                    return Emission::Invalid;
+                };
+                if material.ambient_occlusion != models[0].ambient_occlusion
+                    || !compatible(source, template)
+                {
+                    return Emission::Invalid;
+                }
+                template
+            }
+        };
+        if !api::opacity_allows(
+            selected.opaque,
+            selected.quad.render_type.is_some(),
+            &selected.quad.uv,
             &quad.vertices.map(|v| v.uv),
-        )
-    }) {
-        return Emission::Invalid;
+        ) {
+            return Emission::Invalid;
+        }
     }
     let [x, y, z] = pos;
     let connected = &mesher.render.connected;
-    for quad in batch.as_slice() {
-        let owned = remap(
-            faces[direction(quad.face) as usize].expect("validated direction"),
-            quad,
-        );
+    for (index, quad) in batch.as_slice().iter().enumerate() {
+        let source = faces[direction(quad.face) as usize].expect("validated direction");
+        let mut owned = remap(source, quad);
+        if painted.slot(index) == Some(api::MaterialSlot::Secondary) {
+            let template = material.expect("validated material").faces
+                [direction(quad.face) as usize]
+                .as_ref()
+                .expect("validated template");
+            owned.layer = template.layer;
+            owned.opaque = template.opaque;
+            owned.translucent = template.translucent;
+            owned.fusion = template.fusion;
+        }
+        if let Some(material) = material {
+            owned.quad.color = api::tint_color(source.quad.color, material.facts.tint);
+        }
         let face = &owned;
         let before = out.solid.len().saturating_add(out.translucent.len());
         // BEGIN EXACT NATIVE FACE FILTER
@@ -282,7 +354,8 @@ fn original(
     mut out: SectionMesh,
     scratch: &mut MeshScratch,
     bindings: &bindings::Catalog,
-    providers: &std::collections::BTreeMap<String, api::Provider>,
+    providers: &std::collections::BTreeMap<String, api::RegisteredProvider>,
+    materials: &super::pluto_terrain_binding_host::Materials,
     invalid: &mut bool,
 ) -> SectionMesh {
     let mut budget = api::Budget::default();
@@ -426,6 +499,7 @@ fn original(
                     bindings,
                     providers,
                     &mut budget,
+                    materials,
                 ) {
                     Emission::Native => {}
                     Emission::Emitted => continue,
@@ -482,3 +556,68 @@ fn original(
     out
 }
 // END EXACT NATIVE BODY WITH REVIEWED DISPATCH HUNKS
+
+#[cfg(test)]
+mod material_contract_tests {
+    use super::*;
+    fn face() -> BakedFace {
+        BakedFace {
+            quad: ModelQuad {
+                positions: [[0.0; 3]; 4],
+                uv: [[0.0; 2]; 4],
+                facing: ModelDirection::Up,
+                cull: None,
+                material: Material {
+                    sprite: "test:still".into(),
+                    force_translucent: false,
+                },
+                tint_index: -1,
+                shade_direction_override: None,
+                light_emission: 0,
+                light: [0; 2],
+                color: None,
+                ambient_occlusion: None,
+                render_type: None,
+                shade: true,
+            },
+            layer: 1,
+            opaque: true,
+            translucent: false,
+            fusion: None,
+        }
+    }
+    #[test]
+    fn prepared_texture_metadata_can_differ_without_changing_native_attributes() {
+        let source = face();
+        let mut flow = face();
+        flow.layer = 2;
+        flow.opaque = false;
+        flow.translucent = true;
+        flow.fusion = std::num::NonZeroU16::new(1);
+        flow.quad.material.sprite = "test:flow".into();
+        flow.quad.positions = [[1.0; 3]; 4];
+        flow.quad.uv = [[1.0; 2]; 4];
+        assert!(compatible(&source, &flow));
+    }
+    #[test]
+    fn every_nontexture_attribute_mismatch_rejects_the_template() {
+        let source = face();
+        for change in 0..11 {
+            let mut template = face();
+            match change {
+                0 => template.quad.facing = ModelDirection::Down,
+                1 => template.quad.cull = Some(ModelDirection::Up),
+                2 => template.quad.tint_index = 0,
+                3 => template.quad.shade_direction_override = Some(ModelDirection::North),
+                4 => template.quad.light_emission = 1,
+                5 => template.quad.light = [1, 0],
+                6 => template.quad.color = Some(0),
+                7 => template.quad.ambient_occlusion = Some(false),
+                8 => template.quad.render_type = Some(horizon_assets::bake::RenderType::Solid),
+                9 => template.quad.shade = false,
+                _ => template.quad.material.force_translucent = true,
+            }
+            assert!(!compatible(&source, &template), "change {change}");
+        }
+    }
+}

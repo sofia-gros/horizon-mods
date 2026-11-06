@@ -33,6 +33,8 @@ def verify(output):
 
 def prepare(host,output):
     root=Path(__file__).resolve().parents[1];native=root/'mixins/pluto_native_creative'
+    if 'prepare_with_materials' in (native/'terrain-binding-host.rs').read_text():
+        raise ValueError('The legacy modeled renderer shell cannot validate native material templates; use an actual renderer fixture. No output was created.')
     pin=tomllib.loads((native/'horizon-mixin.toml').read_text())['compatibility']['horizon_revision']
     host=host.resolve();output=output.resolve();clean_official(host,pin)
     api=(native/'api').resolve();api_hashes=api_inputs(api)

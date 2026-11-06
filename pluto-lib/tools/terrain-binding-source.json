@@ -35,7 +35,10 @@
     "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
     "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
     "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
-    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb"
+    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+    "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+    "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+    "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
   },
   "modules": [
     {
@@ -44,7 +47,7 @@
       "name": "pluto_terrain_binding_host",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-binding-host.rs",
-      "sha256": "4ba1079209c82bce2387819cedbdcfea60c2e2812b81dac97196e046b182d177"
+      "sha256": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4"
     },
     {
       "module_id": "terrain-bindings",
@@ -52,7 +55,7 @@
       "name": "pluto_terrain_bindings",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-bindings.rs",
-      "sha256": "e063b8f6a9d88fd17ad5d1196e819d9b74aee3b575b72addacead6ce42ab6214"
+      "sha256": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c"
     },
     {
       "module_id": "fluid-render-prepare",
@@ -60,7 +63,7 @@
       "name": "pluto_fluid_render_prepare",
       "fingerprint": "314ce4bc0108b8ac41dc95e98c67a8cb693a985060c1808aa9526274814ebe26",
       "source": "fluid-render-prepare.rs",
-      "sha256": "b5855866778cea9aef58852639e38a8ec50877395655a59cc676392e8a03cb1d"
+      "sha256": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6"
     }
   ],
   "scope": "Exclusive preparation only. No native fluid coercion or chunk-mesher dispatch. Official source hashes pin loader/reload ownership evidence; they are not gameplay proof."

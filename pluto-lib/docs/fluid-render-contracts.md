@@ -1,5 +1,10 @@
 # Fluid render contracts: first migration checkpoint
 
+This records the frozen first cutoff a6e25c8e / 52c551d1. The later, still
+unverified native-material extension is described in `terrain-materials.md`.
+Its explicit model/provider admission supersedes the temporary blanket
+UnsupportedAppearance gate described below; no old proof is promoted.
+
 This is a bounded shared-library source checkpoint on verified ordinary v15
 (local `8715b123`, official Horizon `624c4f62` / Mixins `e8cd0aa3`). It does not
 activate a TConstruct provider or claim a new native/CPU/GPU proof. The published

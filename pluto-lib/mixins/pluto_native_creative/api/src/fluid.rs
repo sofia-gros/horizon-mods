@@ -586,6 +586,45 @@ pub fn content(def: &Definition) -> Result<BTreeMap<String, Value>, String> {
     Ok(out)
 }
 
+/// Optional standalone native material model required by explicit display
+/// facts. The consumer must declare this name at native_standalone_models,
+/// before resource loading; this function does not install a hook or provider.
+pub fn render_material_model(
+    def: &Definition,
+    render: &RenderDefinition,
+) -> Result<Option<String>, String> {
+    def.validate()?;
+    render.validate()?;
+    if render == &RenderDefinition::default_for(def) {
+        return Ok(None);
+    }
+    let (namespace, path) = def.block.split_once(':').expect("validated identifier");
+    Ok(Some(format!(
+        "{namespace}:block/{path}/pluto_flow_material"
+    )))
+}
+/// Keep the ordinary block model/content unchanged and add one explicit,
+/// full-UV native material template when a nondefault style needs it. No
+/// rendering callback, flow policy or orientation is applied by generation.
+pub fn content_with_render(
+    def: &Definition,
+    render: &RenderDefinition,
+) -> Result<BTreeMap<String, Value>, String> {
+    let mut files = content(def)?;
+    let Some(model) = render_material_model(def, render)? else {
+        return Ok(files);
+    };
+    let (namespace, path) = model.split_once(':').expect("validated model identifier");
+    let faces: serde_json::Map<String, Value> = ["down", "up", "north", "south", "west", "east"]
+        .into_iter()
+        .map(|face| (face.into(), json!({"texture":"#fluid","uv":[0,0,16,16]})))
+        .collect();
+    files.insert(format!("assets/{namespace}/models/{path}.json"),json!({
+        "ambientocclusion":false,"textures":{"fluid":render.flowing_texture,"particle":render.flowing_texture},
+        "elements":[{"from":[0,0,0],"to":[16,16,16],"faces":faces}]
+    }));
+    Ok(files)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1015,5 +1054,27 @@ mod render_registration_tests {
         let mut bad = good;
         bad.tint = 0x100_0000;
         assert!(bad.validate().is_err());
+    }
+    #[test]
+    fn render_content_is_additive_and_default_bytes_remain_semantically_exact() {
+        let d = def("content");
+        let default = RenderDefinition::default_for(&d);
+        assert_eq!(content_with_render(&d, &default), content(&d));
+        assert_eq!(render_material_model(&d, &default).unwrap(), None);
+        let custom = style();
+        let generated = content_with_render(&d, &custom).unwrap();
+        let original = content(&d).unwrap();
+        assert_eq!(generated.len(), original.len() + 1);
+        for (path, value) in original {
+            assert_eq!(generated.get(&path), Some(&value));
+        }
+        let model = render_material_model(&d, &custom).unwrap().unwrap();
+        let (namespace, path) = model.split_once(':').unwrap();
+        let extra = &generated[&format!("assets/{namespace}/models/{path}.json")];
+        assert_eq!(extra["textures"]["fluid"], json!(custom.flowing_texture));
+        assert_eq!(extra["elements"][0]["faces"].as_object().unwrap().len(), 6);
+        for face in extra["elements"][0]["faces"].as_object().unwrap().values() {
+            assert_eq!(face["uv"], json!([0, 0, 16, 16]));
+        }
     }
 }

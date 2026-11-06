@@ -1,0 +1,30 @@
+{
+  "status": "source WIP; actual native proof pending",
+  "first_cutoff": "a6e25c8ef6e5862234378c9feb90256234b90827",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "python_source_package_checks": 19,
+  "python_elapsed_seconds": 0.099,
+  "pure_rust_tests_added": 7,
+  "native_type_tests_added": 2,
+  "new_rust_tests_executed": 0,
+  "official_plan_apply_type": "not run",
+  "cpu_differential_timing": "not run",
+  "gpu": "not run",
+  "consumer_activation": false,
+  "source_review": "Independent bounded review found no serious defect in preparation/cache/provider/emit sources; not a native type or loader proof",
+  "native_regeneration": "Reviewed copied body and face filter regenerated exactly against official source; source-only",
+  "legacy_modeled_fixture": "Rejects new material-aware source before output creation; not replaced with modeled catalog",
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "180ba04c5507535441011ea40e255cdd1e8373462056026dd66daf112b12e43a",
+    "pluto-lib/mixins/pluto_native_creative/fluid-render-prepare.rs": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6",
+    "pluto-lib/mixins/pluto_native_creative/terrain-binding-host.rs": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4",
+    "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+    "pluto-lib/tests/test_terrain_cells.py": "9fd9c8a6b480d9e7d621aec4ea80deb80d49cf54986ac7c5ed7f0699a74b4536",
+    "pluto-lib/tools/prepare_terrain_binding_fixture.py": "fd304171af12d88ffd9981bec1d13538148d5ee6a2edfd6a41fed27984de378a",
+    "pluto-lib/tools/terrain-binding-source.json": "63dc9a768b8d369a47e6f18761a1771a1b394db7e1dddb4a42a8024fdc3f6c19",
+    "pluto-lib/tools/terrain-cell-source.json": "0400261e14970fb439f97ab21dedb6d6193c2786ded784a117bea28356042a3b"
+  }
+}

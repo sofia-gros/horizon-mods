@@ -30,6 +30,52 @@ pub struct CellContext<'a> {
 /// capability is provided. Arbitrary callback effects cannot be rolled back.
 pub type Provider = for<'a> fn(&CellContext<'a>) -> Option<Batch>;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MaterialSlot {
+    Primary,
+    Secondary,
+}
+/// Fixed-size geometry plus one prepared-material choice per quad. No raw
+/// sprite, alpha flag, render pass, color or native face can be supplied here.
+pub struct PaintedBatch {
+    geometry: Batch,
+    slots: [MaterialSlot; 12],
+}
+impl PaintedBatch {
+    pub fn new(geometry: Batch, slot: MaterialSlot) -> Self {
+        Self {
+            geometry,
+            slots: [slot; 12],
+        }
+    }
+    pub fn paint_face(
+        &mut self,
+        face: super::pluto_terrain_cell_geometry::Face,
+        slot: MaterialSlot,
+    ) {
+        for (i, q) in self.geometry.as_slice().iter().enumerate() {
+            if q.face == face {
+                self.slots[i] = slot;
+            }
+        }
+    }
+    pub fn geometry(&self) -> &Batch {
+        &self.geometry
+    }
+    pub fn slot(&self, index: usize) -> Option<MaterialSlot> {
+        (index < self.geometry.as_slice().len()).then(|| self.slots[index])
+    }
+}
+pub struct MaterialContext<'a> {
+    pub cell: CellContext<'a>,
+    pub appearance: &'a super::pluto_terrain_bindings::Appearance,
+}
+pub type MaterialProvider = for<'a> fn(&MaterialContext<'a>) -> Option<PaintedBatch>;
+#[derive(Clone, Copy)]
+pub(super) enum RegisteredProvider {
+    Geometry(Provider),
+    Material(MaterialProvider),
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RegisterError {
     InvalidGroup,
     Duplicate,
@@ -39,11 +85,11 @@ pub enum RegisterError {
 }
 struct Pending {
     frozen: bool,
-    providers: BTreeMap<String, Provider>,
+    providers: BTreeMap<String, RegisteredProvider>,
 }
 struct Registry {
     pending: Mutex<Pending>,
-    frozen: OnceLock<Result<BTreeMap<String, Provider>, RegisterError>>,
+    frozen: OnceLock<Result<BTreeMap<String, RegisteredProvider>, RegisterError>>,
 }
 impl Registry {
     const fn new() -> Self {
@@ -59,6 +105,19 @@ impl Registry {
         self.register_all(&[(group, provider)])
     }
     fn register_all(&self, entries: &[(&str, Provider)]) -> Result<(), RegisterError> {
+        if entries.len() > MAX_PROVIDERS {
+            return Err(RegisterError::Limit);
+        }
+        let entries: Vec<_> = entries
+            .iter()
+            .map(|&(g, p)| (g, RegisteredProvider::Geometry(p)))
+            .collect();
+        self.register_entries(&entries)
+    }
+    fn register_entries(
+        &self,
+        entries: &[(&str, RegisteredProvider)],
+    ) -> Result<(), RegisterError> {
         if entries.len() > MAX_PROVIDERS {
             return Err(RegisterError::Limit);
         }
@@ -96,7 +155,7 @@ impl Registry {
         pending.providers.extend(staged);
         Ok(())
     }
-    fn snapshot(&self) -> Option<&BTreeMap<String, Provider>> {
+    fn snapshot(&self) -> Option<&BTreeMap<String, RegisteredProvider>> {
         self.frozen
             .get_or_init(|| {
                 let mut pending = self.pending.lock().map_err(|_| RegisterError::Poisoned)?;
@@ -120,7 +179,19 @@ pub fn register(group: &str, provider: Provider) -> Result<(), RegisterError> {
 pub fn register_all(entries: &[(&str, Provider)]) -> Result<(), RegisterError> {
     REGISTRY.register_all(entries)
 }
-pub(super) fn snapshot() -> Option<&'static BTreeMap<String, Provider>> {
+/// Register material-aware callbacks in the same frozen registry and budget.
+/// Geometry-only and material-aware registrations cannot own the same group.
+pub fn register_materials(entries: &[(&str, MaterialProvider)]) -> Result<(), RegisterError> {
+    if entries.len() > MAX_PROVIDERS {
+        return Err(RegisterError::Limit);
+    }
+    let entries: Vec<_> = entries
+        .iter()
+        .map(|&(g, p)| (g, RegisteredProvider::Material(p)))
+        .collect();
+    REGISTRY.register_entries(&entries)
+}
+pub(super) fn snapshot() -> Option<&'static BTreeMap<String, RegisteredProvider>> {
     REGISTRY.snapshot()
 }
 pub(super) fn cell_local(batch: &Batch) -> bool {
@@ -133,6 +204,14 @@ pub(super) fn cell_local(batch: &Batch) -> bool {
                 .all(|value| value.is_finite() && (0.0..=1.0).contains(&value))
         })
     })
+}
+pub(super) fn tint_color(original: Option<i32>, tint: u32) -> Option<i32> {
+    if tint == 0xFF_FFFF {
+        return original;
+    }
+    let original = original.map(|v| v as u32).unwrap_or(0xFFFF_FFFF);
+    let c = |shift| ((original >> shift) & 255) * ((tint >> shift) & 255) / 255;
+    Some(((original & 0xFF00_0000) | (c(16) << 16) | (c(8) << 8) | c(0)) as i32)
 }
 // Baked opacity proves only the original UV rectangle (in every sprite frame).
 // Reusing it for a larger rectangle would silently skip alpha testing. No
@@ -334,5 +413,85 @@ mod tests {
             assert!(!uv_subset(&source, &[[value, 0.5]; 4]));
             assert!(!uv_subset(&[[value, 0.5]; 4], &source));
         }
+    }
+    fn material_native(_: &MaterialContext<'_>) -> Option<PaintedBatch> {
+        None
+    }
+    #[test]
+    fn geometry_and_material_callbacks_share_capacity_identity_and_freeze() {
+        let r = Registry::new();
+        r.register("same", native).unwrap();
+        assert_eq!(
+            r.register_entries(&[
+                ("new", RegisteredProvider::Material(material_native)),
+                ("same", RegisteredProvider::Material(material_native))
+            ]),
+            Err(RegisterError::Duplicate)
+        );
+        r.register_entries(&[("material", RegisteredProvider::Material(material_native))])
+            .unwrap();
+        let map = r.snapshot().unwrap();
+        assert_eq!(map.len(), 2);
+        assert!(matches!(
+            map.get("same"),
+            Some(RegisteredProvider::Geometry(_))
+        ));
+        assert!(matches!(
+            map.get("material"),
+            Some(RegisteredProvider::Material(_))
+        ));
+        assert_eq!(
+            r.register_entries(&[("late", RegisteredProvider::Material(material_native))]),
+            Err(RegisterError::Frozen)
+        );
+    }
+    #[test]
+    fn tint_keeps_white_identity_and_multiplies_rgb_without_losing_alpha() {
+        assert_eq!(tint_color(None, 0xFF_FFFF), None);
+        assert_eq!(tint_color(Some(0x12804020), 0xFF_FFFF), Some(0x12804020));
+        assert_eq!(tint_color(None, 0x123456), Some(0xFF123456u32 as i32));
+        assert_eq!(tint_color(Some(0x12804020), 0x808080), Some(0x12402010));
+        assert_eq!(tint_color(Some(0x12804020), 0), Some(0x12000000));
+    }
+    #[test]
+    fn painting_preserves_fixed_geometry_and_paired_back_selection() {
+        use super::super::pluto_terrain_cell_geometry::{
+            self as g, Cell, Face, Heights, Surface, TopDiagonal,
+        };
+        let surface = Some(Surface {
+            uv: [[0.0, 0.0]; 4],
+            back: true,
+        });
+        let cell = Cell {
+            origin: [0; 3],
+            heights: Heights {
+                north_west: 0.5,
+                north_east: 0.5,
+                south_west: 0.5,
+                south_east: 0.5,
+            },
+            bottom: 0.0,
+            side_inset: 0.0,
+            top_diagonal: TopDiagonal::NorthWestSouthEast,
+            top: surface,
+            down: None,
+            sides: [surface; 4],
+        };
+        let batch = g::build(&cell).unwrap();
+        let mut painted = PaintedBatch::new(batch.clone(), MaterialSlot::Primary);
+        painted.paint_face(Face::North, MaterialSlot::Secondary);
+        assert_eq!(painted.geometry(), &batch);
+        for (i, q) in batch.as_slice().iter().enumerate() {
+            assert_eq!(
+                painted.slot(i),
+                Some(if q.face == Face::North {
+                    MaterialSlot::Secondary
+                } else {
+                    MaterialSlot::Primary
+                })
+            );
+        }
+        assert_eq!(painted.slot(batch.as_slice().len()), None);
+        assert_eq!(painted.slot(usize::MAX), None);
     }
 }
