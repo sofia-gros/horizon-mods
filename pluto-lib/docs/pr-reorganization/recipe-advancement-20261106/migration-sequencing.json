@@ -1,0 +1,55 @@
+{
+  "kind": "read_only_migration_sequence_review_not_runtime_verification",
+  "java_menu_frozen_source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "java_menu_remote": "7aaf04c6091b74a6d343137a26aa95069c9b7e7a",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "library_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "original_fake_material_head": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+  "original_travelers_head": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+  "findings": [
+    {
+      "id": "recipe_index_publication",
+      "boundary_ids": [
+        "S06",
+        "S07"
+      ],
+      "evidence": "Original refresh changes live recipes before old index replacement. New CAS can reject, so direct substitution does not preserve recipe/index coherence.",
+      "required_work": "Stage the actual affected recipe fields and index before successful publication; define a separate fail-closed path."
+    },
+    {
+      "id": "invalid_snapshot_and_cas_failure",
+      "boundary_ids": [
+        "S07",
+        "S09",
+        "S10"
+      ],
+      "evidence": "Both original refresh functions use generated(...).unwrap_or_default() then remove stale synthetic recipes. Complete-index validation can fail independently.",
+      "required_work": "Do not silently change this to no-op-on-error leaving stale recipes enabled. Consumer failure semantics remain to be decided and proved.",
+      "classification": "prospective_migration_regression_risk_not_observed_gameplay_bug"
+    },
+    {
+      "id": "loaded_tree_transition",
+      "boundary_ids": [
+        "S05",
+        "B02",
+        "B03"
+      ],
+      "evidence": "Old return hook and ready refresh cover different timing. Shared capability returns NotLoaded without consuming prefetch.",
+      "required_work": "Preserve ready-transition application without native AdvState extension or new global cache."
+    },
+    {
+      "id": "actor_and_startup",
+      "boundary_ids": [
+        "S01",
+        "S02",
+        "S03"
+      ],
+      "evidence": "Shared events borrow current actor; component inventory events default off until startup request.",
+      "required_work": "Keep success/guest-scope gates and startup activation before native hash gate."
+    }
+  ],
+  "acceptance_cases_not_run": 8,
+  "runtime_changed": false,
+  "tests_executed": false,
+  "original_prs_reclassified": false
+}
