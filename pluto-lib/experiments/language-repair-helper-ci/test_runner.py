@@ -1,5 +1,5 @@
 """Pure controller regressions; no Git/Cargo/Rust or native execution."""
-import ast,copy,importlib.util,json,os,tempfile,tomllib,unittest
+import ast,contextlib,copy,importlib.util,io,json,os,tempfile,tomllib,unittest
 from pathlib import Path
 from unittest.mock import patch
 HERE=Path(__file__).resolve().parent
@@ -50,7 +50,7 @@ class RunnerTests(unittest.TestCase):
     def test_missing_duplicate_and_wrong_compile_source_reject(self):
         meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta)
         for changed in ['',log+'\n'+log,log.replace('/fixture/fixture.rs','/other.rs'),log.replace(' --test',''),log+'\nRunning `rustc --crate-name horizon_world /x.rs`']:
-            with self.assertRaises(ValueError):m.compilers(changed,meta,Path('/fixture'))
+            with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):m.compilers(changed,meta,Path('/fixture'))
     def test_public_environment_rs_suffix_is_not_a_source(self):
         meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta)
         env="CARGO_PKG_HOMEPAGE=https://serde.rs CARGO_PKG_DESCRIPTION='Words ending .rs' "
@@ -65,11 +65,22 @@ class RunnerTests(unittest.TestCase):
     def test_duplicate_executable_and_bounded_mismatch_witness(self):
         with self.assertRaises(ValueError):m.compiler_arguments('Running `rustc /other/rustc --crate-name serde src/lib.rs`')
         meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta).replace('/fixture/fixture.rs','/'+('x'*1000)+'.rs')
-        import contextlib,io
         output=io.StringIO()
         with contextlib.redirect_stdout(output),self.assertRaises(ValueError):m.compilers(log,meta,Path('/fixture'))
         self.assertLess(len(output.getvalue()),1000);self.assertIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
         self.assertNotIn('CARGO_PKG_HOMEPAGE',output.getvalue())
+    def test_verbose_runner_output_obeys_parent_parser(self):
+        names=unittest.defaultTestLoader.getTestCaseNames(RunnerTests)
+        names.remove('test_verbose_runner_output_obeys_parent_parser')
+        self.assertEqual(len(names),19)
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
+            result=unittest.TextTestRunner(stream=output,verbosity=2).run(
+                unittest.TestSuite(RunnerTests(name) for name in names))
+        self.assertTrue(result.wasSuccessful(),output.getvalue())
+        self.assertEqual(result.testsRun,19)
+        self.assertNotIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
+        m.base.validate_python_checks(output.getvalue(),19)
     def test_exact_complete_fourteen_names(self):
         names=m.config()['tests'];log='\n'.join('test '+n+' ... ok' for n in names)+'\ntest result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;\n'
         self.assertEqual(set(m.base.validate_suite(log,14,names)),set(names))

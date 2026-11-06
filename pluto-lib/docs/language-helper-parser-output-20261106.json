@@ -1,0 +1,45 @@
+{
+  "scope": "Pure Python controller regression only; no Rust, Cargo, metadata, native planner or retry.",
+  "previous_source": "ce281589d60d3c0e6d5d737f672b5c3232dce84a",
+  "before": {
+    "test_count": 19,
+    "suite_exit": 0,
+    "expected_mismatch_diagnostics_leaked": 2,
+    "parent_validator_accepted": false,
+    "error": "Expected exactly 19 unskipped Python checks"
+  },
+  "after": {
+    "test_count": 20,
+    "suite_exit": 0,
+    "expected_mismatch_diagnostics_leaked": 0,
+    "parent_validator_accepted": true,
+    "nested_actual_19_case_verbose_log_accepted": true
+  },
+  "source_sha256": {
+    "pluto-lib/experiments/language-repair-helper-ci/test_runner.py": "57c4138b6c418c2678bfd57cbf45cd8bbce8d6e39e2e5e7e50575d7bc0ab63ab",
+    "pluto-lib/experiments/language-repair-helper-ci/inputs.json": "a5528e7be3769b3e5e85fbd8fd332ff74433efb4ae6d87560dc1b788e785413e",
+    "pluto-lib/experiments/language-repair-helper-ci/README.md": "8a0d74ce613e0f3f29786f7be7f2ee43d1f67a5c8e465c1d59235587b6764438"
+  },
+  "logs": {
+    "parser19-before": {
+      "path": "pluto-lib/docs/language-helper-parser19-before-20261106.log",
+      "bytes": 2950,
+      "sha256": "5a74a773e474305851441a3b964edad680f6418fb533ea112a8bddd5f7452257"
+    },
+    "parser20-after": {
+      "path": "pluto-lib/docs/language-helper-parser20-after-20261106.log",
+      "bytes": 2515,
+      "sha256": "7843c220d722e38289f40529549f53a86e61d622f9a28fdf9272ee3a4320d310"
+    }
+  },
+  "unchanged": [
+    "helper merge.rs",
+    "Rust fixture and 14 test cases",
+    "compiler parser run.py from ce281589",
+    "preparer",
+    "workflow",
+    "official lock policy",
+    "first failure evidence",
+    "trigger branch"
+  ]
+}

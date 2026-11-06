@@ -54,3 +54,15 @@ is relaxed. A failure now emits only bounded crate/path/shape plus argv hash,
 not all environment values. Three new pure regressions cover `.rs` values,
 `RUSTC=/.../rustc`, duplicate executables and bounded mismatch diagnostics.
 Helper, fixture, lock policy, workflow and fourteen Rust tests are unchanged.
+
+## Regression output admission correction
+
+The first parser-only revision had nineteen successful pure tests, but two
+expected negative-case diagnostics leaked into the verbose merged stdout/stderr.
+Replaying that exact output through the inherited `validate_python_checks`
+rejected it, so it was not safe to start another CI attempt. The negative test
+now captures its expected stdout. A twentieth regression runs all nineteen
+other real cases with verbose output and sends that merged stream through the
+actual inherited validator. The full twenty-case external merged output is
+validated separately before freezing. Runtime helper, preparer, workflow,
+compiler-parser behavior and the fourteen Rust tests remain unchanged.

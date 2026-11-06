@@ -7,7 +7,7 @@
     "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
     "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
   },
-  "runner_tests": 19,
+  "runner_tests": 20,
   "tests": [
     "pluto_language_overlay::tests::adds_only_lower_keys_and_keeps_mod_conflicts",
     "pluto_language_overlay::tests::unchanged_key_set_requests_original_higher_bytes",
@@ -43,9 +43,9 @@
     "pluto-lib/experiments/language-overlay-repair/source.py": "012e65e0fe70e2c757663b760d1ef2a9b2118c54b1a16d87b04bda37e24be4c3",
     "pluto-lib/experiments/language-overlay-repair/test_source.py": "6470b733cb3b298656cfd2fbeae7b0e1bd427f6a61495388c2e4b1bed377758b",
     "pluto-lib/experiments/language-pack-chain-latest-ci/run.py": "23d359b2252769936cb1727dfa43a81a07f6d5e4ceae9154f396083c699c3ce4",
-    "pluto-lib/experiments/language-repair-helper-ci/README.md": "6d7c2c4d683d58f1bcce74bd5b1b99b680845af48153440786d845deac44696a",
+    "pluto-lib/experiments/language-repair-helper-ci/README.md": "8a0d74ce613e0f3f29786f7be7f2ee43d1f67a5c8e465c1d59235587b6764438",
     "pluto-lib/experiments/language-repair-helper-ci/prepare.py": "f6905ed25aef9ec13ececd2e05b3e6331f3aa6804726e5382b47f60e4cf70347",
     "pluto-lib/experiments/language-repair-helper-ci/run.py": "ca62fc66f410370db67d65310db2561bd78c198026ec5bcac0cfec3a4de08cfe",
-    "pluto-lib/experiments/language-repair-helper-ci/test_runner.py": "405c802383231d842c2cbd4fa78b5d23c6135a3ca4d1876fa0c52ee5c08ecdda"
+    "pluto-lib/experiments/language-repair-helper-ci/test_runner.py": "57c4138b6c418c2678bfd57cbf45cd8bbce8d6e39e2e5e7e50575d7bc0ab63ab"
   }
 }

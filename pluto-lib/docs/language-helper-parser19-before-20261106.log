@@ -1,0 +1,26 @@
+test_actual_serde_and_fixture_compiler_paths (__main__.RunnerTests.test_actual_serde_and_fixture_compiler_paths) ... ok
+test_compile_precedes_sealed_execution_and_final_reverification (__main__.RunnerTests.test_compile_precedes_sealed_execution_and_final_reverification) ... ok
+test_dedicated_public_push_only (__main__.RunnerTests.test_dedicated_public_push_only) ... ok
+test_duplicate_executable_and_bounded_mismatch_witness (__main__.RunnerTests.test_duplicate_executable_and_bounded_mismatch_witness) ... ok
+test_environment_rustc_path_is_not_executable (__main__.RunnerTests.test_environment_rustc_path_is_not_executable) ... ok
+test_exact_complete_fourteen_names (__main__.RunnerTests.test_exact_complete_fourteen_names) ... ok
+test_exact_current_frozen_inputs (__main__.RunnerTests.test_exact_current_frozen_inputs) ... ok
+test_missing_duplicate_and_wrong_compile_source_reject (__main__.RunnerTests.test_missing_duplicate_and_wrong_compile_source_reject) ... COMPILER_SOURCE_MISMATCH {"crate": "pluto_language_repair_helper_fixture", "expected_source": "/fixture/fixture.rs", "invocation_sha256": "18592a630aeb97e408c639e26d9a8bcceb1069c2c7cd3c5d51d20103d26438bc", "observed_sources": ["/other.rs"], "source_count": 1, "test": true}
+COMPILER_SOURCE_MISMATCH {"crate": "pluto_language_repair_helper_fixture", "expected_source": "/fixture/fixture.rs", "invocation_sha256": "31b543f99cd25ebbace848fca0c7b56ad84b433ff258ae27e153d0facd482d17", "observed_sources": ["/fixture/fixture.rs"], "source_count": 1, "test": false}
+ok
+test_no_apply_plan_or_host_build_in_controller (__main__.RunnerTests.test_no_apply_plan_or_host_build_in_controller) ... ok
+test_no_nested_process_session_escape (__main__.RunnerTests.test_no_nested_process_session_escape) ... ok
+test_official_lock_subset_and_only_fixture_local (__main__.RunnerTests.test_official_lock_subset_and_only_fixture_local) ... ok
+test_preparer_requires_outer_group_for_subprocesses (__main__.RunnerTests.test_preparer_requires_outer_group_for_subprocesses) ... ok
+test_public_environment_rs_suffix_is_not_a_source (__main__.RunnerTests.test_public_environment_rs_suffix_is_not_a_source) ... ok
+test_unknown_or_redirected_local_package_rejects (__main__.RunnerTests.test_unknown_or_redirected_local_package_rejects) ... ok
+test_verified_alone_is_not_final_success (__main__.RunnerTests.test_verified_alone_is_not_final_success) ... ok
+test_wrong_official_url_revision_and_lock_reject (__main__.RunnerTests.test_wrong_official_url_revision_and_lock_reject) ... ok
+test_wrong_registry_and_workspace_rejects (__main__.RunnerTests.test_wrong_registry_and_workspace_rejects) ... ok
+test_wrong_source_file_set_and_tests_reject (__main__.RunnerTests.test_wrong_source_file_set_and_tests_reject) ... ok
+test_wrong_source_or_branch_reject (__main__.RunnerTests.test_wrong_source_or_branch_reject) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.020s
+
+OK
