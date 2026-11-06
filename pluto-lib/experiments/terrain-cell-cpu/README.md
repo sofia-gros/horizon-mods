@@ -2,8 +2,11 @@
 
 **Source prepared only. No native compile, test execution or timing result yet.**
 This test-only overlay is not in ordinary PlutoLib packaging. Production terrain
-adapter bytes remain the immutable `d63a7c8e` cutoff. Full installed apply/type
-validation is coordinated separately.
+adapter bytes remain the immutable `d63a7c8e` cutoff. The ordinary installed
+library passed official plan, all 12 guards, apply and lib/bin type checking in
+`grouped-v14` at published snapshot `43411ddb6e5be857db96740150319a7c2e83eed1`
+(archive `80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`).
+That proof excludes this test-only overlay and does not establish CPU behavior.
 
 The fixture uses real official `Assets::load`, `StateModels::from_facts` baking,
 `Sprites`, `FaceVisibility`, `MeshTables::new`, `Biomes::load`, resident `Chunk`,

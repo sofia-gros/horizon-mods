@@ -109,9 +109,21 @@ new proof; they are not silently accepted. Native code attribution is retained.
   packaged source and identities. Archive SHA-256:
   `058f90042accfb876c1e6941da2e22ad10692b1391ee818e5147c7d9b55b9d6b`.
   Artifacts: `/tmp/pluto-terrain-cell-plan-20261106`.
-- Apply and the native host check are still pending. CPU mesher differential
-  fixtures and GPU display are not yet run. No full prepared official mesh
-  resource root is available; ignored official reuse tests are not evidence.
+- Complete installed ordinary-library validation passed at local `b19b35a1`,
+  published snapshot `43411ddb6e5be857db96740150319a7c2e83eed1`, with these exact
+  `d63a7c8e` terrain module bytes unchanged. Archive SHA-256:
+  `80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`.
+  The official plan (20.9976 s), all 12 mandatory guards, apply (21.3935 s),
+  and native lib/bin check (64 s) passed: 2 crates, 66 modules, 34 injections,
+  3 states. The stage seal covers 5,046 files. The grouped suite passed 210
+  Python checks including 43 fluid API and 122 inventory API tests. Minimum
+  free space was 10,897,825,792 bytes; no disk-guard stop occurred. Artifacts:
+  `upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v14`.
+- The separate real-type CPU overlay is not installed in that proof. Its native
+  compile, differential execution and timings remain pending, as does GPU
+  display. Original synthetic fixture inputs do not establish production-pack
+  behavior. No full prepared official mesh resource root is available; ignored
+  official reuse tests are not evidence.
 
 No content callback, corner-height/flow policy, inverted-volume support, fog,
 fluid current, multiplayer rendering, resource-reload gameplay or performance
