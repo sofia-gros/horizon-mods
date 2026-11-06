@@ -1,0 +1,44 @@
+{
+  "before_commit": "a057c1ec6e1d50dba438d60a1a011adf5b469350",
+  "dependency": {
+    "equals_160_fixture_dependency": true,
+    "path": "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs",
+    "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8"
+  },
+  "files": {
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": {
+      "after_bytes": 4363,
+      "after_sha256": "ad8456578ae983be299ed05a9c5c649b812da88ddacfa53f3d125309bb984290",
+      "before_bytes": 4431,
+      "before_sha256": "de767cc7b079f283ec01cb9ea2bd5c5525dde65465e7b748b65e34ec3d18a4df",
+      "operations": [
+        {
+          "after": "        horizon_client::pluto_nbt_storage::patch_compound(raw, [(\"tank\", Some(tank))])\n",
+          "before": "        let Tag::Compound(mut fields) = raw.clone() else { return None; };\n        fields.insert(\"tank\".into(), tank);\n        Some(Tag::Compound(fields))\n"
+        }
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": {
+      "after_bytes": 107956,
+      "after_sha256": "b87726d2ecfe4dbf12ac6cb1f070bbee02895aa160046701ef5178cb667fda71",
+      "before_bytes": 107944,
+      "before_sha256": "995d5cf4d8c028411426ddfe1d84b8ae1b47385dfe6a2b48feab6f77fc884801",
+      "operations": [
+        {
+          "after": "    let Some(saved) = horizon_client::pluto_nbt_storage::patch_compound(&raw_controller, [(\"tank\", Some(tank))]) else { return false; };\n",
+          "before": "    let horizon_world::nbt::Tag::Compound(mut fields) = raw_controller.clone() else { return false; };\n    fields.insert(\"tank\".into(), tank);\n    let saved = horizon_world::nbt::Tag::Compound(fields);\n"
+        },
+        {
+          "after": "    let horizon_world::nbt::Tag::Compound(_) = raw else { return None; };\n    // Keep tank encoding after the original compound clone, as before.\n    horizon_client::pluto_nbt_storage::patch_compound(raw,\n        std::iter::once_with(|| (\"tank\", Some(state.tank.to_nbt()))))\n",
+          "before": "    let horizon_world::nbt::Tag::Compound(mut fields) = raw.clone() else { return None; };\n    fields.insert(\"tank\".into(), state.tank.to_nbt());\n    Some(horizon_world::nbt::Tag::Compound(fields))\n"
+        }
+      ]
+    }
+  },
+  "historical_official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "historical_proof": "a09e0d48d9ddba4dd872a6837912f3da2783d539",
+  "historical_runtime": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
+  "latest_official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "latest_type_plan_verified": false,
+  "schema": 1
+}

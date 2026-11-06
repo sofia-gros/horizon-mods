@@ -1,0 +1,31 @@
+{
+  "after": {
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": "ad8456578ae983be299ed05a9c5c649b812da88ddacfa53f3d125309bb984290",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": "b87726d2ecfe4dbf12ac6cb1f070bbee02895aa160046701ef5178cb667fda71"
+  },
+  "before": {
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": "de767cc7b079f283ec01cb9ea2bd5c5525dde65465e7b748b65e34ec3d18a4df",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": "995d5cf4d8c028411426ddfe1d84b8ae1b47385dfe6a2b48feab6f77fc884801"
+  },
+  "before_commit": "a057c1ec6e1d50dba438d60a1a011adf5b469350",
+  "checks": [
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs: exact historical postimage",
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs: exact inverse",
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs: rejected drift/repeat",
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs: rejected drift/repeat",
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs: rejected drift/repeat",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs: exact historical postimage",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs: exact inverse",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs: rejected drift/repeat",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs: rejected drift/repeat",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs: rejected drift/repeat",
+    "rejected dependency/file set",
+    "rejected dependency/file set"
+  ],
+  "count": 12,
+  "dependency_sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+  "latest_native_plan_type_verified": false,
+  "selected_full_byte_inverse": true,
+  "status": "source comparison only; no native tests in this intake",
+  "unrelated_path_writes": 0
+}
