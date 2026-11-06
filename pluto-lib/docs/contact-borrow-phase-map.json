@@ -1,0 +1,112 @@
+{
+  "status": "SOURCE_ONLY native borrow-phase inventory; not an implemented continuation",
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_sha256": {
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/motion.rs": "32caf71a62f87dda437f650e271922a9e5add6dec7056a67cf0d82471b56a4ae",
+    "crates/horizon-client/src/block_contact.rs": "359d9c95134d07e86e3ba92bcdc9fc23afbe59799bf5fc5e46c20e43c1c9d143",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game/creatures.rs": "b5a2e3f52ac802182855251d2b67dec975b228550aaaaf3a0582560dee8ba90b",
+    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+    "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2"
+  },
+  "guest_phases": [
+    {
+      "id": "pre_owner",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4577,
+      "last_line": 4620,
+      "exact_lines_sha256": "d5cc132a82682b197fe432e901e870788501b3728f6bc6a048c21a562a033b1e",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4577-L4620"
+    },
+    {
+      "id": "motion_setup",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4620,
+      "last_line": 4673,
+      "exact_lines_sha256": "09262a8771f4c40a99a7b029c40249af7f0f31da8b2e053920678f634aa8c0e8",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4620-L4673"
+    },
+    {
+      "id": "contact_and_environment_tail",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4674,
+      "last_line": 4728,
+      "exact_lines_sha256": "dd630c194e9a18609e57264b6490414fe336e9e86a92dec4b05316d70e8d4c85",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4674-L4728"
+    },
+    {
+      "id": "game_handoff",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4729,
+      "last_line": 4758,
+      "exact_lines_sha256": "342096558939b1de2698be7b7188defa44b7c34efee46722327be902484ec0b9",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4729-L4758"
+    },
+    {
+      "id": "later_motion_reborrow",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4759,
+      "last_line": 4798,
+      "exact_lines_sha256": "43cb2f5439536cf14e2977d5b2867bcd0a1f0adbd8cb03992b0a029259dd0725",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4759-L4798"
+    },
+    {
+      "id": "post_owner_notifications",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "first_line": 4800,
+      "last_line": 4830,
+      "exact_lines_sha256": "daabc4405f86247c274d5207e173d26ede44b63efe33464d0c3f0b3415f5567c",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs#L4800-L4830"
+    }
+  ],
+  "pluto_adapter_sources": [
+    {
+      "path": "pluto-lib/mixins/pluto_native_creative/world-fluid-query.rs",
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "c3cb8749f670fd43095c93329362f9fb198fdb29dfea750f309367a411507e00"
+    },
+    {
+      "path": "pluto-lib/mixins/pluto_native_creative/world-fluid.rs",
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "95cf6ad124917db642c443a2ecb00156f730ca0ebd391f801df91794c16c970d"
+    }
+  ],
+  "source_guards": {
+    "status": "passed",
+    "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c checkout> python -B pluto-lib/experiments/effect-instance-proposal/test_contact_borrow_phases.py",
+    "count": 8,
+    "passed": 8,
+    "failed": 0,
+    "elapsed_seconds": 0.01,
+    "native_execution": false,
+    "first_attempt": {
+      "count": 8,
+      "passed": 7,
+      "failed": 1,
+      "test": "test_earlier_values_cross_existing_reborrow",
+      "cause": "The source test selected same-named effect/shoulder calls in the earlier spectator branch, not the main as_guest owner closure.",
+      "correction": "Limit that test slice to the exact let events = self.as_guest(host, conn, |game| { closure; production and official sources unchanged."
+    }
+  },
+  "native_compile": false,
+  "plan_apply": false,
+  "game_execution": false,
+  "runtime_hook_added": false,
+  "mutable_authority_added": false,
+  "prototype_inputs_changed": false,
+  "limits": [
+    "Existing native Game calls after the motion-owned tail are not immediate Inside effect parity.",
+    "Current player presence does not prove an interrupted frame owns the same body, level or resource context.",
+    "Vanilla ID avoidance of content-effect callbacks is only one branch, not a closed full-plan callback or continuation proof.",
+    "Shared View geometry/height measurements do not grant mutable Game ownership or claim Forge cached-height equivalence.",
+    "No native task or stage copy ran; the separate Game/renderer CI work remains pending."
+  ],
+  "artifact_sha256": {
+    "pluto-lib/docs/contact-borrow-phase-map.md": "c0378efc5ff5c828bae3b6803bc02a9880880ec6ed6f75e625c2d593a484dc02",
+    "pluto-lib/experiments/effect-instance-proposal/test_contact_borrow_phases.py": "f81b1e0ef30dceefa960ecc565868b0234cb5b646fb2a68f6c54ce29930c40c2"
+  }
+}
