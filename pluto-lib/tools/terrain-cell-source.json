@@ -66,7 +66,7 @@
     "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
     "crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
     "crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
-    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+    "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
     "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
     "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
   },
