@@ -1,0 +1,24 @@
+{
+  "source_commit": "232728a84237ce29434302169ba5b0328a8719f7",
+  "files": {
+    "tconstruct/mixins/tconstruct/source-smeltery-tank.rs": {
+      "original_source_sha256": "6f7ad53995f1a5a8f717d8be00d1650ccb673f6ed47c8d25298434d8e9a07d7e",
+      "oracle_path": "tconstruct/tests/rust/tank_compound_smeltery_tank_legacy.rs",
+      "oracle_sha256": "a353ff6d0ec3d6576be5568c817eaa3112d6e5d5ab9c32956414ea6cb816f946",
+      "original_method_sha256": "58679dab575dc1c4b3aab20026a807eb16e3a3eee2c14570f6a9b9e831b6ba44",
+      "adopted_method_sha256": "079ef205a0256d462b06d0dd7acd8ff67312424d2c57d63b4a3ea619dcc2530d"
+    },
+    "tconstruct/mixins/tconstruct/source-casting-tank.rs": {
+      "original_source_sha256": "966c005fb42c3636d98e37bd0130254ee3633c14d9298360d78a2cba2b1a6b63",
+      "oracle_path": "tconstruct/tests/rust/tank_compound_casting_tank_legacy.rs",
+      "oracle_sha256": "28fe305087af260f2b67d8a4ad431d1c111d5ed5faddfb2e014d49e280c6c45b",
+      "original_method_sha256": "042b590bf374b6858a1be8f5974d9c6697be04f8f57f9eae6260ecf29460732b",
+      "adopted_method_sha256": "e1309449895fd54b3e8eeffbe656aa3a20170cc9e7be9817a8f39f2daab4363d"
+    }
+  },
+  "unchanged_dependencies": {
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": "995d5cf4d8c028411426ddfe1d84b8ae1b47385dfe6a2b48feab6f77fc884801",
+    "tconstruct/mixins/tconstruct/source-chute-hopper.rs": "e3e1c842cf0c8242721aa2f8e570a1444d0371e189d240142a6a27bd0dbdb00e",
+    "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8"
+  }
+}

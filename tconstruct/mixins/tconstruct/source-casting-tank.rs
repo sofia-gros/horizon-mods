@@ -68,10 +68,10 @@ impl CastingTank {
             if slots[index] != old { return None; }
             slots[index] = self.slots[index].as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
         }
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        fields.insert("tank".into(), tank); fields.insert("slots".into(), Tag::List(slots));
-        fields.insert("redstone".into(), Tag::Byte(self.redstone as i8));
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [
+            ("tank", Some(tank)), ("slots", Some(Tag::List(slots))),
+            ("redstone", Some(Tag::Byte(self.redstone as i8))),
+        ])
     }
     pub(super) fn to_nbt(&self) -> Tag {
         let slots = self.slots.iter().map(|slot| slot.as_ref().map(item_to_nbt)

@@ -117,7 +117,7 @@ impl SmelteryTank {
         let before = Self::from_nbt(raw)?;
         let canonical = self.to_nbt();
         if Self::from_nbt(&canonical).as_ref() != Some(self) { return None; }
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let Tag::Compound(_) = raw else { return None; };
         for alias in ["Capacity", "Fluids", "Fluid", "Tank", "FluidName", "Amount", "Tag"] {
             if raw.get(alias).is_some() { return None; }
         }
@@ -136,14 +136,14 @@ impl SmelteryTank {
         let mut rows = Vec::with_capacity(self.fluids.len());
         for (index, fluid) in self.fluids.iter().enumerate() {
             if let Some(old) = before.fluids.iter().position(|old| old.id == fluid.id && old.tag == fluid.tag) {
-                let Tag::Compound(mut row) = old_rows[old].clone() else { return None; };
-                row.insert("amount".into(), Tag::Long(i64::from(fluid.amount)));
-                rows.push(Tag::Compound(row));
+                rows.push(horizon_client::pluto_nbt_storage::patch_compound(
+                    &old_rows[old], [("amount", Some(Tag::Long(i64::from(fluid.amount))))])?);
             } else { rows.push(new_normal[index].clone()); }
         }
-        fields.insert("capacity".into(), Tag::Long(i64::from(self.capacity)));
-        fields.insert("fluids".into(), Tag::List(rows));
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [
+            ("capacity", Some(Tag::Long(i64::from(self.capacity)))),
+            ("fluids", Some(Tag::List(rows))),
+        ])
     }
 
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
