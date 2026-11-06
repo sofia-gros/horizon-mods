@@ -1,0 +1,81 @@
+{
+  "status": "source-only; Rust fixture uncompiled and unrun",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_url": "https://github.com/horizon-rust/horizon.git",
+  "package8_result": "5a577f12d583b24a12a13a13e82366b0c08ed4fc",
+  "execution": {
+    "run_now": false,
+    "requires_separate_review_and_ci_grant": true,
+    "dependency_note": "Actual client-lib dependency includes the native host graph; not the small core/mods-only fixture."
+  },
+  "official_inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+    },
+    {
+      "path": "crates/horizon-client-lib/Cargo.toml",
+      "sha256": "e6a27acdaa9f4304a40ff4b0569802c16a6956ab3686bf5d1ae72500686855a4"
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "sha256": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content.rs",
+      "sha256": "8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content_biomes.rs",
+      "sha256": "fb616f86eda457d5582e0e39a3bb8175ae92a914f6a2b8279364e138209ed295"
+    },
+    {
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "sha256": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d"
+    },
+    {
+      "path": "crates/horizon-mods/src/lib.rs",
+      "sha256": "729233bfb444ec833a1eb8bb487856c687aa7c5ed3b8bbe4ed2de71624695840"
+    },
+    {
+      "path": "crates/horizon-mods/src/manifest.rs",
+      "sha256": "b4cf560d11c589ae65f17578867d6f4d97223f8ce4661d5eff433b8296f5930a"
+    },
+    {
+      "path": "crates/horizon-mods/src/content.rs",
+      "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs.rs",
+      "sha256": "c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed"
+    }
+  ],
+  "fixture_inputs": {
+    "fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
+    "Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572"
+  },
+  "expected_test_names": [
+    "tests::mod_replaces_whole_locale_and_never_mutates_base_or_package",
+    "tests::untouched_selected_locale_survives_and_exact_missing_code_uses_output_english",
+    "tests::distinct_namespaces_keep_native_language_order_not_mod_input_order",
+    "tests::overlapping_owned_namespace_rejects_before_owned_output_recreation",
+    "tests::malformed_mod_locale_is_copied_verbatim_and_native_loader_falls_back",
+    "tests::missing_admitted_package_fails_after_owned_output_recreation_without_rollback_claim",
+    "tests::malformed_required_base_table_rejects_before_owned_output_recreation",
+    "tests::rebuilding_only_owned_output_removes_previous_mod_file_and_restores_base"
+  ],
+  "excluded": [
+    "actual selected/server pack merge and filters",
+    "Game admission and mod enablement",
+    "Options language selection and current-language mutation",
+    "live resource reload/cache installation",
+    "rendering or glyph/UI output",
+    "retained Guide/LAN refresh",
+    "runtime merge repair or priority changes",
+    "full playable resource assets and arbitrary output paths"
+  ]
+}

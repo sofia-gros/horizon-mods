@@ -1,0 +1,12 @@
+# Uncompiled template. @OFFICIAL@ must be a sealed approved official checkout.
+[workspace]
+[package]
+name = "pluto-language-overlay-fixture"
+version = "0.0.0"
+edition = "2021"
+[dependencies]
+horizon-client-lib = { path = "@OFFICIAL@/crates/horizon-client-lib", default-features = false }
+horizon-client-core = { path = "@OFFICIAL@/crates/horizon-client-core" }
+horizon-mods = { path = "@OFFICIAL@/crates/horizon-mods", default-features = false }
+[lib]
+path = "fixture.rs"

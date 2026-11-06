@@ -84,3 +84,25 @@ merge the final root or install another CURRENT. No such ordering change is made
 
 The user-facing API can remain a thin `key(...).resolve(...)` over the native
 owner. None of the proposals adds language ownership or changes contact/effects.
+
+## Asset-only native baseline fixture, still unrun
+
+The separate `experiments/language-overlay` source candidate imports actual
+public `horizon_client_lib::mod_content::build`, real Package/Content admission
+and the native PathBuf Language resource view. Eight Rust cases are prepared,
+not compiled or executed. Six source guards passed against exact official 624c.
+The successful Package8 result does not count as overlay execution.
+
+Two native phase constraints are explicit in this candidate. `build` rejects
+overlapping owned namespaces before creating the overlay: Mod-wins means Mod
+versus the prepared lower root, not same-namespace Mod-versus-Mod last-wins.
+`Overlay::new` removes and recreates its output after Plan creation, so a later
+package read error is not an atomic rollback promise. The fixture can exercise
+that behavior only inside its own exclusively-created scratch tree.
+
+Minimal original facts/gameplay/items tables suffice for the asset-only source
+path; they do not represent playable assets or selected/server pack preparation.
+The real client-library dependency makes eventual compilation a separate native
+gate. Options/CURRENT mutation, cache installation, live reload and actual UI
+remain outside this fixture. Guide retains ownership of those caller/lifetime
+questions; no second locale owner or priority repair is introduced here.
