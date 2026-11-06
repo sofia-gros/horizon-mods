@@ -352,3 +352,6 @@ pub mod crafting;
 
 /// Ordered lazy three-valued predicate folds, without schema or leaf policy.
 pub mod predicate_fold;
+
+/// Pure bounded string-list framing for signed menu-data words.
+pub mod menu_words;

@@ -1,0 +1,12 @@
+{
+  "base": "55621fd4efee459f2a49e5724d76bf3c4906c60f",
+  "legacy_sha256": "110857c36442245acf39992e89296eaab4add79b4192161ddea374ac8e6d455d",
+  "official_target": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_protocol_path": "crates/horizon-protocol/src/packets/play.rs",
+  "official_protocol_sha256": "ccd4a9b13296cde9654051979569ca6037a4cf57d02cb22c585f12b3aa7e4a57",
+  "native_activation": false,
+  "unchanged_callers": {
+    "tconstruct/mixins/tconstruct/part-selection-send-data.rs": "e7b27821013cdb8b4f2e79687f7aa495c61133b505551b892664991354c2a9a8",
+    "tconstruct/mixins/tconstruct/part-selection-remote-data.rs": "7261cb0991a812d4c941d2a1b0b8b58ee4152fab7c856951b0b627d623cd0b50"
+  }
+}

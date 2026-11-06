@@ -1,0 +1,12 @@
+{
+  "status": "source_checkpoint_rust_unverified",
+  "base": "55621fd4efee459f2a49e5724d76bf3c4906c60f",
+  "official_source_review_target": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "python_source_guards": {
+    "passed": 6
+  },
+  "rust_fixture": "not_run",
+  "native_package": "not_run",
+  "live_network": "not_run",
+  "receiver_or_actor_state_changed": false
+}

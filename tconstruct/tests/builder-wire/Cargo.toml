@@ -1,0 +1,11 @@
+[package]
+name = "tconstruct-builder-wire-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pluto-inventory-api = { path = "../../../pluto-lib/mixins/pluto_native_creative/inventory-api" }
+
+[lib]
+path = "../rust/source_builder_wire.rs"
