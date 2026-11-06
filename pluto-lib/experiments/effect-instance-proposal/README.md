@@ -102,11 +102,11 @@ It prechecks modified-UTF string lengths to avoid the native disk writer
 replacing an overlong string with empty. See the [minimum contract](../../docs/persistence-contact-minimum.md).
 
 The earlier ten-test result above applies to its exact prior cutoff. The first new
-nineteen-test proposed-source run passed18 tests and failed one fixture
+nineteen-test proposed-source run passed 18 tests and failed one fixture
 expectation about the native writer escaping a real empty-name compound.
 The actual codec correctly rejected that preserved real wrapper. The corrected
 test distinguishes writer escaping from a handcrafted raw wire wrapper. Its
-explicitly queued retry passed all19 selected tests at source
+explicitly queued retry passed all 19 selected tests at source
 `2d7c48031e8a589da0ac5e0021e43841cb0c7241`; source guards pass six checks. Neither result establishes actual native
 save migration or synchronous effect mutation authority.
 
@@ -120,7 +120,7 @@ silent retry was used to hide the result.
 
 Final bounded codec evidence is in [nbt-validation.json](nbt-validation.json).
 The complete unchanged official NBT module compiled with the proposed source;
-its12 native unit tests were intentionally filtered, not counted as executed.
-The19 selected instance/codec tests passed with source hashes reverified and
-minimum free10,897,723,392 bytes, above the continuous floor. Actual Level/save,
+its 12 native unit tests were intentionally filtered, not counted as executed.
+The 19 selected instance/codec tests passed with source hashes reverified and
+minimum free space of 10,897,723,392 bytes, above the continuous floor. Actual Level/save,
 contact, cure and actor-authority gates remain unfinished.

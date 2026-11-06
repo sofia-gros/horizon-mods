@@ -10,7 +10,7 @@
   "live_contact_timing": "No effectful contact adapter implemented or enabled",
   "source_proposal": "../effect-extension-proposal.md",
   "source_inventory": "../effect-extension-inventory.json",
-  "validation": "Read-only official source/catalog audit. No additional plan/apply/build/test is claimed for this proposal.",
+  "validation": "The original extension-point audit was read-only. Subsequent bounded proposed-source results are recorded separately below; none establishes installed native save/contact integration.",
   "publication_destination": "sofia-gros/horizon-mods only; no official-host changes and no independent merge",
   "prototype_status": "Unapplied and unfinished; actual Level/NBT save, contact authority, cure, network and mob integration remain excluded",
   "prototype_validation": {
@@ -21,7 +21,7 @@
     "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
     "scope": "UNAPPLIED proposed EffectInstance excerpt and owned record only; not actual host save/contact/cure integration"
   },
-  "record_codec_status": "Standalone version1 NBT prototype19-test proof passed; still not native Level or old-save migration",
+  "record_codec_status": "Standalone version-1 NBT prototype: 19 selected tests passed; not native Level or old-save migration",
   "record_codec_validation": {
     "source_guards_passed": 6,
     "combined_rust_tests_written": 19,
