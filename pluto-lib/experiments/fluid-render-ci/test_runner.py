@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import re
 import unittest
 from unittest import mock
 from types import SimpleNamespace
@@ -13,6 +14,20 @@ class SourceChecks(unittest.TestCase):
             names=config[field];self.assertEqual(len(names),count);self.assertEqual(len(set(names)),count)
             log='\n'.join('test '+n+' ... ok' for n in names)+f'\ntest result: ok. {count} passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.0s\n'
             m.validate_tests(log,names,0)
+    def test_std_qualified_names_match_exact_source_modules(self):
+        config=m.read_inputs();actual=[]
+        native=m.ROOT/'pluto-lib/mixins/pluto_native_creative'
+        for outer,filename in config['std_modules'].items():
+            source=(native/filename).read_text()
+            # The frozen std files have top-level cfg(test) modules and ordinary
+            # one-level test functions. Fail closed if this source shape changes.
+            for found in re.finditer(r'^mod (\w+) \{\n(.*?)^\}',source,re.M|re.S):
+                for name in re.findall(r'^    #\[test\]\n    fn (\w+)\(',found[2],re.M):
+                    actual.append(outer+'::'+found[1]+'::'+name)
+        self.assertEqual(len(actual),30)
+        self.assertEqual(set(actual),set(config['std_tests']))
+        self.assertIn('pluto_terrain_bindings::revision_view_tests::stale_before_inspection_is_explicitly_unavailable',actual)
+        self.assertIn('pluto_terrain_bindings::appearance_tests::legacy_empty_and_single_appearance_validate',actual)
     def test_missing_skipped_duplicate_or_zero_fails(self):
         names=['example::one','example::two']
         good='test example::one ... ok\ntest example::two ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.1s\n'

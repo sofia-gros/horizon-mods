@@ -1,6 +1,6 @@
 # Frozen fluid display library: bounded native validation
 
-Prepared, not executed. Runtime source is local `510f0fa8` / remote `a432ce45`,
+Validation is in progress. Runtime base is local `510f0fa8` / remote `a432ce45`,
 based on the ordinary v15 library. The packaged runtime archive must be exactly
 `b448763e77488d5f7c119d99d675351a8d3244db1a80b3dfd374fa439f039e81`.
 The first run exposed the production tint closure type error described below. Only that minimal runtime correction is added; no other WIP group is mixed in.
@@ -53,10 +53,13 @@ loader resolution, full-section fallback/cache replay, meshing equivalence,
 CPU performance, upward simulation/contact, live gameplay or GPU display.
 No TConstruct consumer is activated. Those claims need later dedicated evidence.
 
-Source preparation currently has 10 small runner/scope/parser tests passing.
-All native gates in this document are unexecuted until an exact matching run
-reaches its recorded terminal result.
+Source preparation currently has 11 small runner/scope/parser tests passing.
+Completed and unreached native gates are recorded separately below.
 
 ## Preserved initial failure
 
 Run 42172857479 at 1b60c96a passed source 19, then std compilation failed with E0277 (`u32 & i32`) in the tint closure. No Rust tests, API, planner, apply or host type gate ran. Minimum free space was 91,144,896,512 bytes. The retry explicitly types the shift, masks and divisor as u32 without changing channel arithmetic, and updates exact bundle/module/source pins. This is a correction to the a432 base, not reused evidence of a pass.
+
+## Preserved second failure
+
+Run 42173321338 at 60054f8b passed source 19 and compiled/executed all 30 std tests (30 passed, zero failed/ignored). The CI exact-name check then rejected five expected names because they incorrectly used the tests module instead of revision_view_tests/appearance_tests. API, plan, guards, apply, host type and native material gates were not reached. Minimum free space was 91,166,392,320 bytes. The next retry corrects only those qualified names and adds a source-module regression; runtime bytes and archive are unchanged. The failed final gate is not presented as a complete run success.

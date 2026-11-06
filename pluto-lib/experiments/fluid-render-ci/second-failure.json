@@ -1,0 +1,30 @@
+{
+  "run_id": 42173321338,
+  "job_id": 127745960172,
+  "head": "60054f8b403ac41c419088f9f06447274cc4bec1",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42173321338",
+  "status": "failure",
+  "observed_passed": {
+    "source_tests": 19,
+    "actual_std_tests": 30
+  },
+  "std_summary": {
+    "passed": 30,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 0
+  },
+  "failed_gate": "CI exact qualified test-name assertion after std execution",
+  "error": "Five expected binding test paths incorrectly used ::tests instead of revision_view_tests or appearance_tests",
+  "not_reached": [
+    "fluid API21",
+    "official plan",
+    "complete plan12guards",
+    "official apply",
+    "host lib/bin type",
+    "native material2"
+  ],
+  "minimum_free_bytes": 91166392320,
+  "correction": "Fix five expected qualified names only, add exact-source nested-module regression; production archive unchanged"
+}
