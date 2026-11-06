@@ -1,0 +1,59 @@
+{
+  "status": "entry_resolution_passed_authority_contract_unproved",
+  "probe_source_commit": "8c2c5803701a95968e0b999cc0487ffe89e52255",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff",
+  "plan_sha256": "595e416ea640880b578923e65b83aaa36ab940ea26364cb0ae662b630258bb20",
+  "log_sha256": "2951f444c84ed6d7a7d5917a0919d499d9e7b12320c24c661991b273fa783755",
+  "result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 10908336128,
+    "elapsed_seconds": 9.210002981999423
+  },
+  "entries": [
+    {
+      "target": "horizon_client::game::Game<'_>::click_inventory",
+      "kind": "HEAD",
+      "fingerprint": "9d93fb34fc9d57d0c72f1cc6b75f804e3f0e246b3dfe5ddb434ad3493e4029f5",
+      "bindings": []
+    },
+    {
+      "target": "horizon_client::game::machines::crafter::Game<'_>::crafter_dispense",
+      "kind": "HEAD",
+      "fingerprint": "21865074a18f144fee9a1d02e01069073942b82033ce76a1fbe4652eff0e0430",
+      "bindings": []
+    },
+    {
+      "target": "horizon_client_lib::menu::Menu::click",
+      "kind": "HEAD",
+      "fingerprint": "0f93ded556b6ce1dd6b2237f5a76a63893ab6fdc30eb08f6a6547280be67d12c",
+      "bindings": []
+    }
+  ],
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/native_menus.rs": "3d2a23ce172204574fda26eb5ce8e0713a9810a8c72245f77b2115cd63e4c660",
+    "crates/horizon-client/src/game/native_inventories.rs": "27226c1d2eda87df01060d836d477fe9ad0ba65c342bd2082a3234c4d5f00ae0",
+    "crates/horizon-client/src/game/native_server.rs": "4dba5ce5d0229827e0250ec8c9f2e27502a3e1fc89630d63c2d45c4a8e80efb1",
+    "crates/horizon-client/src/game/lan_crafting.rs": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+    "crates/horizon-client/src/menu.rs": "d1c87e41131b3338b13201f362eca52790440a25536a8d8495413d5e15eb4c36",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c"
+  },
+  "mixins_source_sha256": {
+    "crates/horizon-mixins-core/src/plan.rs": "4e81bcaa3bb65dbdd5c88ad87af1471e1d11cadc24bcb32ee62bcff2f09df26f",
+    "crates/horizon-mixins-core/src/scopes.rs": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd",
+    "crates/horizon-mixins-core/src/manifest.rs": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+  },
+  "apply_run": false,
+  "native_compile_run": false,
+  "production_activation": false,
+  "minimum_contract_satisfied": false,
+  "limitations": [
+    "Only no-op noncancellable HEAD target resolution is proved; no arguments, original-operation wrapper, context lifetime, rollback or pair consumption is proved.",
+    "Result-only prepare and post-craft observer hooks do not provide paired consumption authority.",
+    "Custom display menus and inventory transfer/exchange functions do not implement ordinary crafting-grid synthesis.",
+    "Broader cancellable operation wrappers are not universally impossible, but need a separate native transaction implementation and four-family proof."
+  ]
+}

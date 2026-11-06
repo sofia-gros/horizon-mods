@@ -1,0 +1,24 @@
+[mod]
+id = "pluto_products_entry_probe"
+version = "0.0.0"
+
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id = "menu-entry"
+target = "horizon_client_lib::menu::Menu::click"
+kind = "HEAD"
+helper = "probe.rs"
+
+[[injection]]
+id = "local-entry"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "HEAD"
+helper = "probe.rs"
+
+[[injection]]
+id = "crafter-entry"
+target = "horizon_client::game::machines::crafter::Game<'_>::crafter_dispense"
+kind = "HEAD"
+helper = "probe.rs"
