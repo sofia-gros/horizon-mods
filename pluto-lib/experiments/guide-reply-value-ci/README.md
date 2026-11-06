@@ -42,3 +42,8 @@ two imported safety utilities on that remote tree. No run was started. The next
 checkpoint includes those two files unchanged from successful06305; their exact
 Git blobs and SHA256 pins are recorded. Reusing utility source does not reuse its
 old native runtime results as evidence for this41f reply fixture.
+
+The preparer now requires exactly one metadata package for each local name,
+including the API, and rejects a second API entry with a different ID. Its
+twenty-one synthetic checks replace the earlier twenty; the ten Rust cases,
+compiler witnesses, runtime sources and workflow remain unchanged and unrun.

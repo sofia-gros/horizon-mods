@@ -59,6 +59,11 @@ class PrepareTests(unittest.TestCase):
         self.reject(lambda m: m["packages"].append({"id":"unknown", "name":"unknown", "version":"1.0.0", "source":None, "manifest_path":str(self.root / "unknown/Cargo.toml")}))
     def test_reject_registry_substitution(self): self.reject(lambda m: m["packages"][2].update(source="registry+https://example.invalid"))
     def test_reject_duplicate_metadata_id(self): self.reject(lambda m: m["packages"].append(dict(m["packages"][1])))
+    def test_reject_duplicate_api_with_distinct_metadata_id(self):
+        def duplicate(meta):
+            package = dict(meta["packages"][1]); package["id"] = "second-api-identity"
+            meta["packages"].append(package)
+        self.reject(duplicate)
     def test_reject_duplicate_lock_identity(self):
         with (self.out / "Cargo.lock").open("a") as f: f.write('[[package]]\nname="horizon-client-core"\nversion="0.1.0"\n')
         self.reject(lambda m: None)

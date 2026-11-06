@@ -64,8 +64,13 @@ renderer, Game, assets or Mixins are needed for this value differential. Unknown
 local/registry packages, wrong native owner, member/default drift, altered source,
 symlinks, extra files, duplicate identities and stale receipt fields reject.
 
-Twenty synthetic filesystem/metadata admission checks passed. These use tiny
+Twenty-one synthetic filesystem/metadata admission checks passed. These use tiny
 synthetic files only to test the preparer's rejection paths. They do not mean a
 real41f fixture has been prepared, Cargo metadata has run, or any of the21 Rust
 cases has compiled/executed. The original ten differential Rust sources and their
 source extraction are unchanged. Actual execution remains separately gated.
+
+Independent review tightened the single-API evidence boundary: each local
+package name must occur exactly once, even if a duplicate API entry presents a
+different metadata ID with the same name, version and manifest path. The new
+negative case rejects that shape without changing runtime or fixture Rust.

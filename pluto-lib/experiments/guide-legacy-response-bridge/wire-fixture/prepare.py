@@ -135,6 +135,9 @@ def verify(output, metadata):
     require(len(lock) == len(packages) and not lock - allowed - LOCAL and LOCAL <= lock, "lock identity drift")
     require(metadata["version"] == 1, "metadata schema drift")
     local = {PACKAGE: output / "Cargo.toml", "pluto-inventory-api": output / "inventory-api/Cargo.toml"}
+    for name in local:
+        require(sum(p["name"] == name for p in metadata["packages"]) == 1,
+                "missing/duplicate local package: " + name)
     found = set(); ids = []
     for p in metadata["packages"]:
         ids.append(p["id"]); path = Path(p["manifest_path"]).resolve()

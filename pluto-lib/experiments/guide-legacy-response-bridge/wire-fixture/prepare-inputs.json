@@ -46,8 +46,8 @@
   "bridge_source": "709a2b9456cbbed876240fb6de9a93d2f6d6543f",
   "wire_source": "c5b6d462a654246ce9215498a6c31ddc08286bfe",
   "fixture_source_sha256": {
-    "prepare.py": "baa93e1d44aa097e3a1c9a93ce62a01a4ebd44ff4f2725002f1235a39a7699a6",
-    "test_prepare.py": "4e65488c4cf68a946937bc9e7924a092b4975753096083ce0e2bd9255f52edde",
+    "prepare.py": "bc0a77e8c4ea36014547dcf84bad0c5b2a6ce8808bb11a12ce077490edea3fb0",
+    "test_prepare.py": "d8f9f29b7a6a77da63aad2459d1fc64edbda65715cfd3a25fd7e631e12005666",
     "render_wire.py": "077fad84e0261670e70235ce707c4e3b105e7a7b10c3c64d327b623689757b79",
     "regression_tests.rs": "8e268d99320492939bc1b64dc51fa647f4fea4832e19ffef72179b6f4e0ea453",
     "wire-inputs.json": "efee6133ca863599e217bdd9571b27726314f5c92fced8859d7dda125bc7a8ca",

@@ -10,10 +10,10 @@
   "source_sha256": {
     "pluto-lib/experiments/guide-storage-ci/run.py": "2aee646d16d89985a36ac19ceaad3df1b03f75ff1eda2def79e6aa524e2662c0",
     "tconstruct/tests/guide-identity-ci/run.py": "db2d4c0fc8fb50459af61048778299531a78af9ddacbe90eeae8e2e5f2a3e27b",
-    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare.py": "baa93e1d44aa097e3a1c9a93ce62a01a4ebd44ff4f2725002f1235a39a7699a6",
-    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/test_prepare.py": "4e65488c4cf68a946937bc9e7924a092b4975753096083ce0e2bd9255f52edde",
-    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare-inputs.json": "58b1a8dc70a870a0adfaf59884215a30b6f03f4689a29c5d88afb02652ea3583",
-    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/README.md": "903d9884bdfaa0146ec3974d55055ec6cd71ce8efe680f18c485b2549346ae4f",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare.py": "bc0a77e8c4ea36014547dcf84bad0c5b2a6ce8808bb11a12ce077490edea3fb0",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/test_prepare.py": "d8f9f29b7a6a77da63aad2459d1fc64edbda65715cfd3a25fd7e631e12005666",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare-inputs.json": "214666ebb5dd114a2fba83c86ae1ae9a0db7d0a95482482fb1608d028612e438",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/README.md": "60c48889fd7d07d70627cdbb5723805d3abde1c4d59d4610765c0a8f7e9741ff",
     "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/render_wire.py": "077fad84e0261670e70235ce707c4e3b105e7a7b10c3c64d327b623689757b79",
     "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/regression_tests.rs": "8e268d99320492939bc1b64dc51fa647f4fea4832e19ffef72179b6f4e0ea453",
     "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/wire-inputs.json": "efee6133ca863599e217bdd9571b27726314f5c92fced8859d7dda125bc7a8ca",
@@ -21,14 +21,14 @@
     "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/source-extraction.json": "608ffe3f8717d205b8a30d0754d42869d29d268ce177333aaa6e051bd020615f",
     "pluto-lib/experiments/guide-legacy-response-bridge/native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
     "pluto-lib/experiments/guide-legacy-response-bridge/consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
-    "pluto-lib/experiments/guide-reply-value-ci/run.py": "86fc0faa6b5701c46f24b4d2b694c182c3298350b3f878ff128cde445fe1a9ea",
+    "pluto-lib/experiments/guide-reply-value-ci/run.py": "a46ad954f2b354c64b2df1a16fed86eb558eacad667899c79f2d1b05524de085",
     "pluto-lib/experiments/guide-reply-value-ci/test_runner.py": "b5efe77bed209f794ed3dacb418ccdfa18deb01dd68364d517b6f363fe4bcffb",
-    "pluto-lib/experiments/guide-reply-value-ci/README.md": "70db0cebe9a4aa0130c6f0b70a707d2852816b4efc8a65c10de091aaeb9f3320",
+    "pluto-lib/experiments/guide-reply-value-ci/README.md": "2dc89bb4795103d3bc1ef84aced34624b09f3888a27a3681f9881af53e7df980",
     ".github/workflows/guide-reply-value-wip.yml": "fc72f073ae88b60b01f96896364b30ab6fd6ae9093133be62ecd248db3acc647"
   },
   "pure_source_validation": {
     "runner_tests": 24,
-    "preparer_tests": 20,
+    "preparer_tests": 21,
     "extraction_tests": 6,
     "native_executed": false,
     "initial_attempt": "24-test runner suite rejected a documentation phrase split by a newline; its nested suite reported the same assertion. Test-only whitespace normalization fixes that assertion; no runtime or fixture changes."
@@ -41,5 +41,10 @@
       "pluto-lib/experiments/guide-storage-ci/run.py": "a9f02d6729875b15c9a88f04d1790e8ed09c9b3b",
       "tconstruct/tests/guide-identity-ci/run.py": "f13e5a60c8aa49cc897356e6540337d10618cd2e"
     }
+  },
+  "preparer_identity_followup": {
+    "source": "dd01b1443d9b558fef29c6880efaa32ed8861b5f",
+    "change": "Require exactly one metadata entry per local package name; reject duplicate API with a distinct ID. Runtime, Rust fixture and workflow unchanged.",
+    "native_executed": false
   }
 }

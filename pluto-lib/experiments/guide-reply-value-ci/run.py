@@ -19,7 +19,7 @@ UTILITY=['pluto-lib/experiments/guide-storage-ci/run.py','tconstruct/tests/guide
 NATIVE=['horizon-client-core','pluto-inventory-api']
 NAME='pluto-guide-reply-tests'
 RUNNER_TESTS=24
-REQUIRED={'runner','preparer20','source6','toolchain','official','mod_inputs','metadata','compile','inventory21','reply10'}
+REQUIRED={'runner','preparer21','source6','toolchain','official','mod_inputs','metadata','compile','inventory21','reply10'}
 
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,path)
@@ -195,7 +195,7 @@ def execute(report):
     mod_before=None
     host_before=None;fixture_before=None;generated=None;binary=None;compiled=None;metadata=None;g=report['gates']
     try:
-        for gate,path,count in [('runner',HERE/'test_runner.py',RUNNER_TESTS),('preparer20',ROOT/PREP/'test_prepare.py',20)]:
+        for gate,path,count in [('runner',HERE/'test_runner.py',RUNNER_TESTS),('preparer21',ROOT/PREP/'test_prepare.py',21)]:
             python_pass(runner.run(gate,[sys.executable,str(path),'-v']),count);g[gate]={'passed':True,'tests':count}
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal','--no-self-update'],timeout=600)
         g['toolchain']=runner.run('compiler-identity',['rustc','--version','--verbose']).strip()
