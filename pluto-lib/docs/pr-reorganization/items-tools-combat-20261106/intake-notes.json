@@ -1,0 +1,666 @@
+{
+  "kind": "source_intake_contracts_not_runtime_certification",
+  "architecture": {
+    "layers": [
+      "Horizon",
+      "Mixins",
+      "PlutoLib for opting-in mods, otherwise direct Mixins use",
+      "Mixins Mod"
+    ],
+    "tconstruct_uses_plutolib": true,
+    "all_mods_must_use_plutolib": false
+  },
+  "contracts": [
+    {
+      "id": "canonical_data_and_compatibility",
+      "prs": [
+        691,
+        699
+      ],
+      "proposed_primary": "02-items-material-data",
+      "shared": "Generic raw resource/tag traversal and the existing creative registration interface are available.",
+      "retain": "Canonical namespace/removal rules, modifier eligibility and the ownership fix for scute test compatibility remain TConstruct-specific.",
+      "remaining": "Current shared tag traversal does not establish that the complete original modifier change or test harness has been migrated."
+    },
+    {
+      "id": "native_loot_and_equipment_facts",
+      "prs": [
+        676,
+        796,
+        799,
+        802,
+        806,
+        808
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "Equipment snapshots, resource/tag queries and native item representation are reusable read facts.",
+      "retain": "Necrotic Bone rolls, Fortune/Looting levels, crop/gold eligibility and launch-to-death feature policy.",
+      "remaining": "Mutable death-loot context and projectile identity/lifetime are not granted by those read facts. Historical #799/#806 mutable-killer finding is a source finding, not a new compile result."
+    },
+    {
+      "id": "held_tools_ammunition_and_wear",
+      "prs": [
+        559,
+        683,
+        702
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "Existing quantity planners and item snapshots can support explicit operations without owning the Game tail.",
+      "retain": "Momentum, Multishot, Expanded formulas, charge/ammo rules, area eligibility and retained-tool break policy.",
+      "remaining": "Shot entry is not the later wear invocation. Native RNG/hooks/advancement, selected physical hand and actor scope need their own contract; native wear is not equivalent to the custom durability-loss bypass."
+    },
+    {
+      "id": "authoritative_inventory_tick",
+      "prs": [
+        706,
+        715
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "Existing stack-fluid value operations and storage representation helpers are available.",
+      "retain": "Overgrowth/Overburn eligibility, fuel rules and Overslime refill amounts.",
+      "remaining": "Original TAIL declarations are retained historical blockers. Generic quantity helpers do not supply an authoritative tick completion or live actor lifetime."
+    },
+    {
+      "id": "primary_hit_and_projectile_context",
+      "prs": [
+        734,
+        772,
+        777,
+        783,
+        876,
+        877,
+        878,
+        879,
+        880,
+        881,
+        882,
+        883,
+        884,
+        885,
+        886,
+        928,
+        936
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "The v15 foundation supplies generic equipment/read-only damage facts, not a general accepted-hit or projectile-mutation authority.",
+      "retain": "Padded, Insatiable, Spectral, Smite, Antiaquatic, Pierce, Bane, Enderference, Antitoxin, Flamestance, Lacerating, Scorching, Conducting and offhand formulas/selection.",
+      "remaining": "Old attack_mob interior rewrite restrictions and phase/order/accepted-hit state must be resolved per real caller. Exact ChunkMap::clear target intersections require full composition review; matching strings alone neither approve nor prohibit composition."
+    },
+    {
+      "id": "dropped_item_lifecycle",
+      "prs": [
+        817,
+        829,
+        833,
+        837
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "No existing value/transaction helper certifies dropped-item expiry, explosion or lightning lifecycle authority.",
+      "retain": "Worldbound acquisition and protection eligibility, source item metadata and environmental policy.",
+      "remaining": "Historical TAIL blockers and native lifetime/timing need a supported actual owner boundary; do not simply enqueue effects or delete old hooks."
+    },
+    {
+      "id": "held_teleport",
+      "prs": [
+        854,
+        862
+      ],
+      "proposed_primary": "04-tools-combat",
+      "shared": "Read-only current values do not confer a timed-use or authoritative guest teleport capability.",
+      "retain": "Warping acquisition, charge/duration, held-item eligibility and destination selection.",
+      "remaining": "Preserve local/guest call order and actual world/actor owner around teleport. Native clear-hook composition is separate from successful teleport execution."
+    },
+    {
+      "id": "equipment_curative_lifetime",
+      "prs": [
+        825
+      ],
+      "proposed_primary": "05-armor-defense-movement",
+      "shared": "Pure curative policy values and equipment read facts exist. Unapplied instance/NBT/contact proposals are research only.",
+      "retain": "Strong Bones milk Resistance, helmet eligibility and curing policy.",
+      "remaining": "Actual per-instance hidden chain/save and synchronous native actor authority are not implemented by a shared value policy or by unexecuted Game borrow probes."
+    }
+  ],
+  "historical_report_sha256": "608597a5b6f2cdc11b52638423b9ed2db7e73b664a8ed037ae7760dab4e89e4c",
+  "historical_rows": [
+    {
+      "number": 559,
+      "head_sha": "006c5f3dbe362f7b806369a16b76854157e50918",
+      "classification": "unverified",
+      "evidence": [
+        "Published head 006c5f3dbe362f7b806369a16b76854157e50918; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/006c5f3dbe362f7b806369a16b76854157e50918/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Momentum modifies held wear/projectile context and milk handling; source-level review only. No latest official apply/build evidence for this published head."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 676,
+      "head_sha": "e5d476a7012be1dc4a6e8be1560d0c4ade53067b",
+      "classification": "unverified",
+      "evidence": [
+        "Published head e5d476a7012be1dc4a6e8be1560d0c4ade53067b; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/e5d476a7012be1dc4a6e8be1560d0c4ade53067b/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Necrotic Bone uses content_overlay/native pack, loot overlay and drops::roll RETURN hooks. Latest named signatures were inspected, but no complete apply/build proof exists."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 683,
+      "head_sha": "c9e5e7dcc75254e9e7b35b21fea117195f9229ef",
+      "classification": "unverified",
+      "evidence": [
+        "Published head c9e5e7dcc75254e9e7b35b21fea117195f9229ef; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/c9e5e7dcc75254e9e7b35b21fea117195f9229ef/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Multishot adds a cancellable tick_crossbow HEAD and ammunition/recipe behavior. Latest slot/ticks/stack target signature exists; runtime/type compatibility remains unverified."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 691,
+      "head_sha": "93b8c1b117dd1b47af04c9d6f152603adcb2c846",
+      "classification": "unverified",
+      "evidence": [
+        "Published head 93b8c1b117dd1b47af04c9d6f152603adcb2c846; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/93b8c1b117dd1b47af04c9d6f152603adcb2c846/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Canonical modifier-tag identity fix changes shared TConstruct resolution rather than adding a new feature hook. No latest official consumer apply/build proof."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 699,
+      "head_sha": "b7286af505ba4fc69b060018c9e12e640bf37b8e",
+      "classification": "not_in_this_historical_report",
+      "status": "no inherited result inferred"
+    },
+    {
+      "number": 702,
+      "head_sha": "b080075ee0231387198c8bfa6a77dbac3b6f080c",
+      "classification": "unverified",
+      "evidence": [
+        "Published head b080075ee0231387198c8bfa6a77dbac3b6f080c; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/b080075ee0231387198c8bfa6a77dbac3b6f080c/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Expanded acquisition changes Station validation/recipes and bounded mining data. No latest official Station/mining integration proof."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 706,
+      "head_sha": "e2ea4c2f909406a684f4d33e826b9f97225ec7d2",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head e2ea4c2f909406a684f4d33e826b9f97225ec7d2; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/e2ea4c2f909406a684f4d33e826b9f97225ec7d2/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122"
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: source-overgrowth-tick. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 715,
+      "head_sha": "afac9446783e96e81bfb2b30c6d13b8ef017be44",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head afac9446783e96e81bfb2b30c6d13b8ef017be44; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/afac9446783e96e81bfb2b30c6d13b8ef017be44/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122",
+        "Stacked dependency chain includes #706. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: source-overgrowth-tick, source-overburn-tick. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 734,
+      "head_sha": "9b49856f0e4b1b4211817138f8a8024bcd89517d",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 9b49856f0e4b1b4211817138f8a8024bcd89517d; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/9b49856f0e4b1b4211817138f8a8024bcd89517d/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112"
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-padded-extra (WRAP_OPERATION), source-padded-hurt (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 772,
+      "head_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head d46afb66a7d9242509f830e30c175059f5c5481f; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/d46afb66a7d9242509f830e30c175059f5c5481f/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/helpers.rs#L473-L479"
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-insatiable-hurt (WRAP_OPERATION). Official validator rejects such closure contexts.",
+        "Inherited source-insatiable-milk WRAP_OPERATION binds ordinary target parameter stack, rather than an operation input. Official wrapper contract permits only operation inputs."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 777,
+      "head_sha": "43aeaa8fc63c20ada8ae65b092b048e2aa495a5a",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 43aeaa8fc63c20ada8ae65b092b048e2aa495a5a; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/43aeaa8fc63c20ada8ae65b092b048e2aa495a5a/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112"
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-spectral-hurt (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 783,
+      "head_sha": "8408ce91acf3ff96742ba7e2b1453715259a84e2",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 8408ce91acf3ff96742ba7e2b1453715259a84e2; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/8408ce91acf3ff96742ba7e2b1453715259a84e2/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/helpers.rs#L473-L479",
+        "Stacked dependency chain includes #772. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Inherited source-insatiable-milk WRAP_OPERATION binds ordinary target parameter stack, rather than an operation input. Official wrapper contract permits only operation inputs."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 796,
+      "head_sha": "837e1db86a0c565fa77de6e0875c3b6d4181c3b6",
+      "classification": "unverified",
+      "evidence": [
+        "Published head 837e1db86a0c565fa77de6e0875c3b6d4181c3b6; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/837e1db86a0c565fa77de6e0875c3b6d4181c3b6/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Fortune hooks block_loot_at at HEAD. Latest named target and parameters exist; custom loot and complete consumer build remain unverified."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 799,
+      "head_sha": "8761ae80120e1186bd5ef0f23e744667b570c5ae",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 8761ae80120e1186bd5ef0f23e744667b570c5ae; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/8761ae80120e1186bd5ef0f23e744667b570c5ae/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/creatures.rs#L1586-L1594",
+        "Transformer preserves the ordinary binding expression and prepends HEAD without adding parameter mutability: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-transform/src/lib.rs#L280-L295 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-transform/src/lib.rs#L348-L390"
+      ],
+      "blockers": [
+        "looting-death-head binds &mut killer, but latest drop_death_loot declares killer without mut. The generated mutable borrow needs a supported mutable-parameter boundary; this is a static compile blocker, not a compiler run."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 802,
+      "head_sha": "ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c",
+      "classification": "unverified",
+      "evidence": [
+        "Published head ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Worn Fortune extends #796 without a new hook; no latest official equipment/loot integration proof."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 806,
+      "head_sha": "973771fb0e9aeefefd03f674a7d5142931a22d69",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 973771fb0e9aeefefd03f674a7d5142931a22d69; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/973771fb0e9aeefefd03f674a7d5142931a22d69/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/creatures.rs#L1586-L1594",
+        "Stacked dependency chain includes #799. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them.",
+        "Transformer preserves the ordinary binding expression and prepends HEAD without adding parameter mutability: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-transform/src/lib.rs#L280-L295 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-transform/src/lib.rs#L348-L390"
+      ],
+      "blockers": [
+        "looting-death-head binds &mut killer, but latest drop_death_loot declares killer without mut. The generated mutable borrow needs a supported mutable-parameter boundary; this is a static compile blocker, not a compiler run."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 808,
+      "head_sha": "435f48237472a9fd3701aa32687c40504cb22f49",
+      "classification": "unverified",
+      "evidence": [
+        "Published head 435f48237472a9fd3701aa32687c40504cb22f49; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/435f48237472a9fd3701aa32687c40504cb22f49/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Chrysophilite extends #796/#802 and adds a ChunkMap loot snapshot. No latest official complete proof."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 817,
+      "head_sha": "d4212a32085b60df55105b92c7e1958a72c5c98e",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head d4212a32085b60df55105b92c7e1958a72c5c98e; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/d4212a32085b60df55105b92c7e1958a72c5c98e/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122"
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: worldbound-drop-clear, worldbound-drop-expire. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 825,
+      "head_sha": "1edbca758f782716efca33c8dfab56c30d923cd6",
+      "classification": "not_in_this_historical_report",
+      "status": "no inherited result inferred"
+    },
+    {
+      "number": 829,
+      "head_sha": "f3d53f566e2794ded1d52ed6f719d5cc17ae37c6",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head f3d53f566e2794ded1d52ed6f719d5cc17ae37c6; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/f3d53f566e2794ded1d52ed6f719d5cc17ae37c6/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122",
+        "Stacked dependency chain includes #817. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: worldbound-drop-clear, worldbound-drop-expire. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 833,
+      "head_sha": "392cb4f56333e8c8adf6528210460acde5cd15aa",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 392cb4f56333e8c8adf6528210460acde5cd15aa; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/392cb4f56333e8c8adf6528210460acde5cd15aa/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122",
+        "Stacked dependency chain includes #817, #829. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: worldbound-drop-clear, worldbound-drop-expire. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 837,
+      "head_sha": "b1eae06d53d5ad5c6455162be90b30320e0ba69a",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head b1eae06d53d5ad5c6455162be90b30320e0ba69a; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/b1eae06d53d5ad5c6455162be90b30320e0ba69a/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Official Mixins Kind enum has no TAIL: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/manifest.rs#L108-L122",
+        "Stacked dependency chain includes #817, #829, #833. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Published manifest contains unsupported TAIL injection kind: worldbound-drop-clear, worldbound-drop-expire. This fails official manifest parsing; inherited entries are included."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 854,
+      "head_sha": "db2c6ffee4ebcdc872047c7d580901a23578e479",
+      "classification": "unverified",
+      "evidence": [
+        "Published head db2c6ffee4ebcdc872047c7d580901a23578e479; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/db2c6ffee4ebcdc872047c7d580901a23578e479/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Warping acquisition changes the Station path. Published namespace correction is present, but current official integration is unverified."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 862,
+      "head_sha": "42749e5c730bf8d9c1f72c4c303998648f1a3166",
+      "classification": "unverified",
+      "evidence": [
+        "Published head 42749e5c730bf8d9c1f72c4c303998648f1a3166; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/42749e5c730bf8d9c1f72c4c303998648f1a3166/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Held Warping uses native timed-use/release and leave_guest HEAD hooks plus ChunkMap state. Latest relevant signatures were inspected; actual current apply/build and teleport behavior remain unverified."
+      ],
+      "blockers": [],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 876,
+      "head_sha": "805a939317897e1b1826b31e2a041911dcf3478f",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 805a939317897e1b1826b31e2a041911dcf3478f; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/805a939317897e1b1826b31e2a041911dcf3478f/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112"
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-knockback-primary-mob (WRAP_OPERATION), source-knockback-primary-slowdown (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 877,
+      "head_sha": "465bbf2dd7189bdf2849867560a85afe6c12f0a4",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 465bbf2dd7189bdf2849867560a85afe6c12f0a4; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/465bbf2dd7189bdf2849867560a85afe6c12f0a4/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112"
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 878,
+      "head_sha": "2fe4db561239ff44e84cec0e97f87670804dd252",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 2fe4db561239ff44e84cec0e97f87670804dd252; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/2fe4db561239ff44e84cec0e97f87670804dd252/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 879,
+      "head_sha": "6aafda66231d47b69c0d08e411207b87e4e00a71",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 6aafda66231d47b69c0d08e411207b87e4e00a71; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/6aafda66231d47b69c0d08e411207b87e4e00a71/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877, #878, #880. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 880,
+      "head_sha": "c42444b502f9525812ed57c4e44fb86962bfb90d",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head c42444b502f9525812ed57c4e44fb86962bfb90d; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/c42444b502f9525812ed57c4e44fb86962bfb90d/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877, #878. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION), source-bane-primary-hit (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 881,
+      "head_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 8b402ff9a1672df178f99aba8d2bf91aeb8a0552; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/8b402ff9a1672df178f99aba8d2bf91aeb8a0552/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877, #879. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 882,
+      "head_sha": "3b598546deb645c3b24362a54df798a43162e8c4",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 3b598546deb645c3b24362a54df798a43162e8c4; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/3b598546deb645c3b24362a54df798a43162e8c4/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877, #879, #881. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context-start (BEFORE_CALL), source-smite-primary-context-end (AFTER_CALL), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (AFTER_CALL). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 883,
+      "head_sha": "ec144fe9275a4ed9c0baaecc174441665503da74",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head ec144fe9275a4ed9c0baaecc174441665503da74; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/ec144fe9275a4ed9c0baaecc174441665503da74/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #882. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context-start (BEFORE_CALL), source-smite-primary-context-end (AFTER_CALL), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (AFTER_CALL). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 884,
+      "head_sha": "5612cf5d225653ed35d554a0ed55ab1c395fd31a",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 5612cf5d225653ed35d554a0ed55ab1c395fd31a; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/5612cf5d225653ed35d554a0ed55ab1c395fd31a/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #885. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context-start (BEFORE_CALL), source-smite-primary-context-end (AFTER_CALL), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (AFTER_CALL). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 885,
+      "head_sha": "a27f2ec9eef62e06b742f1ac623de12956f0dc6e",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head a27f2ec9eef62e06b742f1ac623de12956f0dc6e; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/a27f2ec9eef62e06b742f1ac623de12956f0dc6e/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #883. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context-start (BEFORE_CALL), source-smite-primary-context-end (AFTER_CALL), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (AFTER_CALL). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 886,
+      "head_sha": "628acf18bec4db904b20d73cd5ef7a91a6542506",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 628acf18bec4db904b20d73cd5ef7a91a6542506; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/628acf18bec4db904b20d73cd5ef7a91a6542506/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #884. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context-start (BEFORE_CALL), source-smite-primary-context-end (AFTER_CALL), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (AFTER_CALL). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 928,
+      "head_sha": "f76a00a97cdecb14975b8bb5707575798db6d994",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head f76a00a97cdecb14975b8bb5707575798db6d994; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/f76a00a97cdecb14975b8bb5707575798db6d994/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #734. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-padded-extra (WRAP_OPERATION), source-padded-hurt (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    },
+    {
+      "number": 936,
+      "head_sha": "4368dd46c346b634c1a33c30d49a2f74bc60b09b",
+      "classification": "needs_fix",
+      "evidence": [
+        "Published head 4368dd46c346b634c1a33c30d49a2f74bc60b09b; immutable manifest: https://github.com/sofia-gros/horizon-mods/blob/4368dd46c346b634c1a33c30d49a2f74bc60b09b/tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "Latest attack_mob closures at game.rs lines 12172 and 12180: https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs#L12171-L12192",
+        "Official whole-body rewrite/closure guard: https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L929-L941 and https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/crates/horizon-mixins-core/src/plan.rs#L1099-L1112",
+        "Stacked dependency chain includes #877, #879, #881. Classification includes demonstrated published inherited blockers, not a claim that this PR delta independently introduced all of them."
+      ],
+      "blockers": [
+        "Whole-body rewriting hooks target attack_mob, whose latest official body contains closures: source-smite-primary-context (WRAP_OPERATION), source-bane-primary-hit (WRAP_OPERATION), source-pierce-before-primary-hit (WRAP_OPERATION). Official validator rejects such closure contexts."
+      ],
+      "status": "historical source audit, not rerun or changed by this inventory"
+    }
+  ],
+  "current_source_anchors": [
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/shared-api-migration-status.md",
+      "sha256": "5bc73ed2fbe7447e6e0832873cc383d806dc846e4b4cc1819015fadf32a1553e"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/equipment-authority-audit-20261105.md",
+      "sha256": "ff9ac7cecfa91082e1559f169ab76d43edf40cd4f3ae42b56124565ff2947b27"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/ranged-wear-phase-audit-20261105.md",
+      "sha256": "4b284f3c09b984ff1e6a280f1ddb5184c0d07cbc4141f0584960aa828086da11"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/native-wear-phase-plan-20261105.md",
+      "sha256": "685524c0429db82e1dc91fd6de631d301c33794eaf33cd2df10385860002191f"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/damage-equipment-context.md",
+      "sha256": "9557733e5b8e22ab56a7cbe2c0c69974ee4327cb12ca72b114b7da2dd5dac210"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/armor-wear-observation.md",
+      "sha256": "750a9352de3918e17b03e39496d63d1f1e2f9314fa6a2d9f3b16dc8f3ae5660d"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/api/src/effects.rs",
+      "sha256": "ff192e31ec531c6f07cd699dbf50a4a599da0a572f95de25340176a999883f9e"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/equipment.rs",
+      "sha256": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb"
+    },
+    {
+      "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/mixins/tconstruct/source-tags.rs",
+      "sha256": "dc1838d8d277e608361b05cec1312d4ee5bf809b4a7cbc3b9fc4f5641b660b42"
+    }
+  ],
+  "unconditional_wrapper_retirements": 0,
+  "priority": [
+    "Keep the existing v15 proof immutable and retain original PR content/head evidence.",
+    "Prepare coherent adoption of already-proved generic mechanics with mod policies retained; new tiny helpers without a concrete need are not progress.",
+    "Prove actual native phase/owner boundaries before activating Game/effect/teleport/loot mutation.",
+    "Revalidate the complete composed consuming bundle and relevant save/LAN/gameplay paths before calling a feature recovered."
+  ],
+  "actions_waiting": "Manual native CI is not currently user-accessible. It remains unrun; no local unsafe RAM-bound workaround is authorized."
+}

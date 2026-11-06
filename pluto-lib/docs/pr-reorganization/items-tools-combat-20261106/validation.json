@@ -1,0 +1,44 @@
+{
+  "kind": "read_only_audit_validation",
+  "reproduction_outputs_byte_identical": true,
+  "selected_prs": 37,
+  "file_records": 346,
+  "peer_checks": [
+    "Storage independently confirmed #676 actual base/14 paths/3 commits",
+    "#683 base is second parent, 10 own paths/3 commits",
+    "#936 6 own vs 29 cumulative paths"
+  ],
+  "no_native_or_pr_actions": true,
+  "files": [
+    {
+      "name": "README.md",
+      "sha256": "84ee300f3414ae3d006aa97d5bd9a96d28c819290f9efcb4bf472af7c578e27e",
+      "bytes": 8986
+    },
+    {
+      "name": "scope.json",
+      "sha256": "d8524d5f95e28d68d42756dfdbf50688e81f109b1789042a19ca0cbf0cf6bb96",
+      "bytes": 811
+    },
+    {
+      "name": "reproduce.py",
+      "sha256": "11e2835dd38294bc81b3932bff1993d9282bd91bf31f4bd9a094f7b62a5e17bd",
+      "bytes": 9602
+    },
+    {
+      "name": "ledger.json",
+      "sha256": "b3ceb51d48606ae2ea30e9acdd0db9515e5cc08da0ee8be857675bc19317f96d",
+      "bytes": 244239
+    },
+    {
+      "name": "file-deltas.json",
+      "sha256": "a35887dd75e261f858969359b82c4a029bca40721671785676ae5db5963a25e6",
+      "bytes": 206798
+    },
+    {
+      "name": "intake-notes.json",
+      "sha256": "b083bb3d87eed75ede15fd0ddd77a728597a82b72609127c474fd8e0e851180e",
+      "bytes": 48467
+    }
+  ]
+}
