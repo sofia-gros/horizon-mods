@@ -1,6 +1,7 @@
 """Boundaries of the explicitly Java-specific, pure recipe-order extraction."""
 import hashlib
 import json
+import re
 from pathlib import Path
 import tomllib
 import unittest
@@ -58,6 +59,13 @@ class JavaHashMapBoundaries(unittest.TestCase):
             self.assertEqual(len(api), 1)
             self.assertNotIn('source', api[0])
             self.assertEqual(api[0]['dependencies'], ['serde_json'])
+
+    def test_compiled_source_paths_resolve_to_real_consumer_and_frozen_oracle(self):
+        source = FIXTURE / 'src/lib.rs'
+        paths = re.findall(r'#\[path = "([^"]+)"\]', source.read_text())
+        actual = {(source.parent / path).resolve() for path in paths}
+        self.assertEqual(actual, {CURRENT, FIXTURE / 'legacy_recipe_order.rs'})
+        self.assertTrue(all(path.is_file() for path in actual))
 
     def test_generic_source_has_no_resource_schema_or_native_hook(self):
         src = ROOT / 'pluto-lib/mixins/pluto_native_creative/inventory-api/src'

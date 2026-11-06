@@ -2,7 +2,7 @@ extern crate self as horizon_client;
 pub use pluto_inventory_api as pluto_inventory;
 
 #[allow(dead_code)]
-#[path = "../../../../../tconstruct/mixins/tconstruct/recipe-order.rs"]
+#[path = "../../../../tconstruct/mixins/tconstruct/recipe-order.rs"]
 mod consumer;
 #[allow(dead_code)]
 #[path = "../legacy_recipe_order.rs"]
