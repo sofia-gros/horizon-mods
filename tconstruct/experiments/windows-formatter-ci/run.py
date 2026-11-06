@@ -16,7 +16,7 @@ probe=load('formatter_probe',HERE/'probe.py')
 # Only the reviewed per-phase elapsed limit differs from the40-second pure suite.
 base.TIMEOUT=120
 BRANCH='checkpoint/windows-formatter-199-ci-20261106'
-REQUIRED={'pure','archive','version','damage','terrain-cell'}
+REQUIRED={'pure','stat-pure','archive','version','damage','terrain-cell'}
 def config():return json.loads((HERE/'inputs.json').read_bytes())
 def verify_sources(c):
     before=base.snapshot(ROOT)
@@ -58,6 +58,8 @@ def execute(receipt):
     try:
         raw=base.phase('pure',[sys.executable,str(HERE/'test_runner.py'),'-v'],work,env,receipt)
         receipt['gates']['pure']=validation.suite(raw,c['test_names'])
+        raw=base.phase('stat-pure',[sys.executable,str(ROOT/'tconstruct/tests/test_windows_stat_compat.py'),'-v'],work,env,receipt)
+        receipt['gates']['stat-pure']=validation.suite(raw,c['stat_test_names'])
         result=phase_json('prepare',[sys.executable,str(HERE/'probe.py'),'prepare',str(work)],work,env,receipt)
         admitted=probe.fmt.admit(work/'formatter',work/'rustfmt.tar.gz')
         if result.get('kind')!='preparation' or result.get('formatter')!=admitted or set(result.get('sources',{}))!=set(probe.source_map()):raise ValueError('Preparation witness differs')

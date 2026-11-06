@@ -68,8 +68,10 @@
     "pluto-lib/mixins/pluto_native_creative/armor-wear-observe-head.rs": "5d91f42548e476c94676aa97ad3c4536be5180c02060134a9471a324f5750705",
     "pluto-lib/mixins/pluto_native_creative/explosion-equipment-head.rs": "b9dc0da7e91a428aab767025c78ccc27f9a312d8ea8eda06491c848a2b25858b",
     "pluto-lib/mixins/pluto_native_creative/ordinary-equipment-head.rs": "0d7f2eda561c918c04ec13c4bbfbbff25ff4b76d8f0aa92822e7723ef301dcee",
-    "tconstruct/tools/playtest_pluto_inputs.py": "2943fe7ed0e9ff625980ea6ce16b3c2c329dbd68dbfc95329c13c399490dc8b2",
-    "tconstruct/tools/playtest_guard_rustfmt.py": "8f4e563386e876e348d5650bb5d72d7ec25dbdd280bf5e7776160c3fecd74652"
+    "tconstruct/tools/playtest_pluto_inputs.py": "a22d769982a958294a825b34358402f0b7d851286a708a5f236735ee073ae823",
+    "tconstruct/tools/playtest_guard_rustfmt.py": "1bb81096f760d6841433bfca5671d557a048efcc545d9b31397053faa21b65bd",
+    "tconstruct/tools/play_windows_latest.py": "36503f7ca6ca20f8113081648ecddf6ee01b67c2bddbb68b046e53592efd8149",
+    "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7"
   },
   "source_sha256": {
     "pluto-lib/tools/check_terrain_cell_plan.py": "b8b551fb45d6a5b118fa6d14c964a7e908c61f64a70749d18457b92ec151df60",
@@ -82,20 +84,41 @@
     "pluto-lib/mixins/pluto_native_creative/armor-wear-observe-head.rs": "5d91f42548e476c94676aa97ad3c4536be5180c02060134a9471a324f5750705",
     "pluto-lib/mixins/pluto_native_creative/explosion-equipment-head.rs": "b9dc0da7e91a428aab767025c78ccc27f9a312d8ea8eda06491c848a2b25858b",
     "pluto-lib/mixins/pluto_native_creative/ordinary-equipment-head.rs": "0d7f2eda561c918c04ec13c4bbfbbff25ff4b76d8f0aa92822e7723ef301dcee",
-    "tconstruct/tools/playtest_pluto_inputs.py": "2943fe7ed0e9ff625980ea6ce16b3c2c329dbd68dbfc95329c13c399490dc8b2",
-    "tconstruct/tools/playtest_guard_rustfmt.py": "8f4e563386e876e348d5650bb5d72d7ec25dbdd280bf5e7776160c3fecd74652",
+    "tconstruct/tools/playtest_pluto_inputs.py": "a22d769982a958294a825b34358402f0b7d851286a708a5f236735ee073ae823",
+    "tconstruct/tools/playtest_guard_rustfmt.py": "1bb81096f760d6841433bfca5671d557a048efcc545d9b31397053faa21b65bd",
     ".github/workflows/windows-formatter-wip.yml": "478cff41aac6c6cd5cea94407af77ae0cc8bb6aca87606a88294e36694ea0093",
     "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
     "tconstruct/experiments/windows-source-ci/run.py": "1d6f6a9b0122033cb7a4dbeeaa1e24cd9ad2385a762eb3c2d75b1ab3083ea3fa",
-    "tconstruct/experiments/windows-formatter-ci/README.md": "e8b52516beb87e122c904c75cfd6df36b40110d00831e63b2ff63b09198c0503",
-    "tconstruct/experiments/windows-formatter-ci/test_runner.py": "486c05f333f92c79f365db945fb65649f40652c53b65c9409e571b17204bc279",
-    "tconstruct/experiments/windows-formatter-ci/run.py": "25bb5d3014fa8a0247df5eec7d7a36cf6458ac43758afebdd963949af9db86d4",
+    "tconstruct/experiments/windows-formatter-ci/README.md": "57a994b49097c27a6a1747da72389872d3779fffbbc09a4d188afdca56c6c9be",
+    "tconstruct/experiments/windows-formatter-ci/test_runner.py": "46b2912a78fe8a67e40638ab1cb1f78da59968ef95ed7a7e93b7f64c0cab135b",
+    "tconstruct/experiments/windows-formatter-ci/run.py": "8ffb0a369a9204d5bee6ed8ea1e636b0ec3ef40b3e8b3d7a00e33d0570aa9121",
     "tconstruct/experiments/windows-formatter-ci/probe.py": "e15d6b817e6e01bb1c295faf109b3096cb9832632e7361cf0286c7575a101527",
-    "tconstruct/experiments/windows-formatter-ci/winjob.py": "75f1dab1c00db8efdb4c672655a141d5572c400f427e2aa571e536484520a2fe"
+    "tconstruct/experiments/windows-formatter-ci/winjob.py": "75f1dab1c00db8efdb4c672655a141d5572c400f427e2aa571e536484520a2fe",
+    "tconstruct/tools/play_windows_latest.py": "36503f7ca6ca20f8113081648ecddf6ee01b67c2bddbb68b046e53592efd8149",
+    "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7",
+    "tconstruct/tests/test_windows_stat_compat.py": "6a778a8b43377da90038c4e6f61bb75ee8087202cfb270d64dd1a7466b2402f7",
+    "tconstruct/experiments/windows-stat-compat/inputs.json": "49e2e8d53426f2328d113f6f090aa1b7229dedd44f018961ef4f52c635b8d9d7",
+    "tconstruct/experiments/windows-stat-compat/README.md": "82378fafc28c040500b7d4c307a7f25ba90633d7c6dcef48e181812b6d581583"
   },
   "pure_evidence": {
     "tests": 20,
     "bytes": 2103,
     "sha256": "a10072c7ca1824be928fc10f8393b2c69ba0ae78b33cf36894e47ca5568a4f46"
-  }
+  },
+  "runtime_stat_delta": "3adea9919061e3546b85a4c6668af8fa1547c3c8",
+  "prior_failure": "571b10f86d99666e6f8b247b951418a4ab166d39",
+  "stat_test_names": [
+    "test_cross_api_keeps_every_other_identity_field",
+    "test_file_type_and_reparse_are_not_normalized",
+    "test_handle_after_execute_bits_change_still_rejects",
+    "test_handle_drift_nlink_and_reparse_still_reject",
+    "test_known_windows_extensions_only_add_filename_execute_bits",
+    "test_path_after_identity_drift_still_rejects",
+    "test_path_final_execute_bits_change_still_rejects",
+    "test_posix_preserves_exact_mode_comparison",
+    "test_regular_real_bounded_read_and_limits",
+    "test_source_changes_are_exactly_reversible",
+    "test_three_read_paths_accept_mode_difference_without_execution",
+    "test_unknown_extension_and_nonexecute_modes_reject"
+  ]
 }

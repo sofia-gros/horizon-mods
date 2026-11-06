@@ -83,6 +83,10 @@ class Tests(unittest.TestCase):
         s=(HERE/'probe.py').read_text(encoding='utf-8')
         self.assertIn("sys.addaudithook(audit)",s);self.assertIn("len(calls)>=COUNTS[kind]",s)
         self.assertIn('guard.verify_source(plan,official,guard.entries())',s);self.assertIn('guard.verify_regeneration(official,guard.metadata())',s)
+        run=(HERE/'run.py').read_text(encoding='utf-8')
+        self.assertLess(run.index("base.phase('stat-pure'"),run.index("phase_json('prepare'"))
+        self.assertIn('stat-pure',r.REQUIRED)
+        self.assertEqual(len(r.config()['stat_test_names']),12)
     def test_runtime_and_guard_sources_remain_pinned(self):
         c=r.config()
         for p,h in c['dependency_sha256'].items():self.assertEqual(r.base.sha((r.ROOT/p).read_bytes()),h,p)

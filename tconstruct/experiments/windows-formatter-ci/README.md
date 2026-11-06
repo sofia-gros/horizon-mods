@@ -1,8 +1,9 @@
 # Windows1.99 formatter: bounded source candidate
 
-Unexecuted source, not a Windows build or a current complete-composition check.
-Runtime dependency cutoff is aebe7a5d5e778efe273ae1afc2236ff8c3046274. The two
-existing guards and all copied helper bodies/metadata are unchanged. The earlier
+Retry source only, not a Windows build or a current complete-composition check.
+Runtime dependency base is aebe7a5d5e778efe273ae1afc2236ff8c3046274, plus the
+three stat-reader changes in 3adea9919061e3546b85a4c6668af8fa1547c3c8. The two
+existing guards and all Rust helper bodies/metadata are unchanged. The earlier
 Linux1.95 guard replay on17f passed damage and both terrain guards; it does not
 prove this Windows1.99 formatter produces the same exact strings.
 
@@ -36,8 +37,11 @@ or system toolchain is used. The four native source files use exact official41f
 URLs/hashes and2MiB each. Unknown source, redirects, archive/member/hash/size drift
 reject. The download worker remains under the same ownJob/timeout/disk monitor.
 
-Actual archive layout, executable loader dependencies and version are currently
-unobserved. If the standalone component needs another DLL/component, this probe
+First run42253259752/controller38e1 passed20pure but rejected the cross-API
+lstat/fstat comparison of rustfmt.exe before any formatter execution. Its false
+result is preserved in571b10f8. The reached code implies archive/layout admission,
+but no completed preparation receipt was emitted. Loader dependencies, version
+and regeneration remain unobserved. If another DLL/component is needed, this probe
 fails at startup and records it; it will not search other Rust installations or
 download extra components. Child PATH is only the fresh formatter/bin, selected
 Python directory and Windows System32. PYTHONUTF8=1/PYTHONIOENCODING=utf-8 are
@@ -50,8 +54,11 @@ No raw Rust source or credential is emitted. No artifact upload/cache is added.
 The native executable's actual hash/version and seven argv records are retained
 only if reached. The original guarded source is never regenerated or overwritten.
 
-Twenty pure/mock regressions passed; their complete merged verbose stream also passed the unchanged strict named validator. They exercise inverse provenance,
+Twenty controller plus twelve stat-model regressions are required separately,
+under the same owned phase, before any preparation download. Both complete merged
+verbose streams passed the unchanged strict named validator. They exercise inverse provenance,
 ctypes layout, three-process capacity, barrier order, assignment refusal, normal
 cleanup, timeout ownJob cleanup, bounds, pins, strict names and admission. They do
 not execute Windows APIs, downloads, formatter or Rust. Independent review and
-explicit serial release are required before a dedicated trigger is created.
+explicit serial release are required before the existing dedicated trigger is
+updated. No automatic retry or resource-limit relaxation is included.
