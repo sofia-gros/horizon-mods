@@ -47,3 +47,14 @@ The new runner additionally seals every source file and symlink target without
 following links, including ignored files, rejects ignored checkout additions,
 and validates constant official URL/revision/lock and production identifiers
 before any fetch. The imported successful runner remains byte-identical.
+# First attempt remains failed
+
+The initial authorized run at `1f7fddcb` reached actual CPU execution. Its false
+receipt, successful prerequisite gates, seals and bounded partial observations
+are retained in `first-attempt.json`. The registered process failed because the
+negative fixture used an ignored native JSON field. The following source-only
+correction uses a supported attribute and verifies the real baked mismatch;
+production archive `cd6de18c` and the exact native baseline remain unchanged.
+No retry is authorized by this documentation: independent review and a new
+serial-slot release are still required before the corrected head is triggered.
+

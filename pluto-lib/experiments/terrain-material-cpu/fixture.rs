@@ -290,6 +290,16 @@ mod tests {
             .unwrap();
         assert!(!selected.is_empty(), "must exercise actual baked geometry");
         assert!(selected.iter().any(|m| !m.faces.is_empty()));
+        if root.ends_with("incompatible") {
+            // Verify the actual loader/baker precondition, not just input JSON.
+            // Cuboid `shade: false` is ignored by the pinned native decoder.
+            assert!(selected.iter().flat_map(|m| &m.faces)
+                .all(|face| face.quad.shade_direction_override.is_none()));
+            let template = render.model_catalog.standalone("pluto_fixture:block/flow").unwrap();
+            assert!(!template.faces.is_empty());
+            assert!(template.faces.iter().all(|face|
+                face.quad.shade_direction_override == Some(ModelDirection::North)));
+        }
         Fixture {
             assets,
             render,
@@ -791,6 +801,9 @@ mod tests {
                 ] {
                     let f = fixture(&root.join(kind), if pack {7} else {0});
                     prepare_material(&f, group, variant, 0xFFFFFF, Bottom, model, stale);
+                    println!("PLUTO_TERRAIN_FALLBACK {}", json!({"kind":kind,
+                        "group":group,"variant":variant,"model":model,"stale":stale,
+                        "smooth":smooth,"pack":pack}));
                     compare(&f, &chunk("single"), smooth, pack, true);
                 }
                 for variant in [5,6] {

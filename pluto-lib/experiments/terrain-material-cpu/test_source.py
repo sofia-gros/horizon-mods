@@ -77,14 +77,21 @@ class Source(unittest.TestCase):
         self.assertEqual(model['textures']['all'],'pluto_fixture:block/flow')
         w,h,data=pixels(r['assets/pluto_fixture/textures/block/flow.png'])
         self.assertEqual((w,h),(16,32));self.assertEqual(set(data[3::4]),{160})
-    def test_opaque_range_and_incompatible_shade(self):
+    def test_opaque_range_and_decoded_incompatible_attribute(self):
         r=P.assets(0,'opaque')
         for name in ('cell','flow'):
             model=json.loads(r[f'assets/pluto_fixture/models/block/{name}.json'])
             self.assertTrue(all(f['uv']==[4,4,12,12] for e in model['elements'] for f in e['faces'].values()))
             self.assertEqual(set(pixels(r[f'assets/pluto_fixture/textures/block/{name}.png'])[2][3::4]),{255})
         r=P.assets(0,'incompatible');flow=json.loads(r['assets/pluto_fixture/models/block/flow.json'])
-        self.assertIs(flow['elements'][0]['shade'],False)
+        self.assertEqual(flow['elements'][0]['shade_direction_override'],'north')
+        self.assertNotIn('shade',flow['elements'][0])
+        cell=json.loads(r['assets/pluto_fixture/models/block/cell.json'])
+        self.assertNotIn('shade_direction_override',cell['elements'][0])
+        fixture=(HERE/'fixture.rs').read_text()
+        self.assertIn('face.quad.shade_direction_override.is_none()',fixture)
+        self.assertIn('face.quad.shade_direction_override == Some(ModelDirection::North)',fixture)
+        self.assertIn('PLUTO_TERRAIN_FALLBACK',fixture)
     def test_fusion_real_full_sheet_contract(self):
         r=P.assets(0,'fusion');flow=json.loads(r['assets/pluto_fixture/models/block/flow.json'])
         self.assertEqual(flow['loader'],'fusion:model');self.assertEqual(flow['type'],'fusion:connecting')

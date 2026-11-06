@@ -27,16 +27,16 @@
     "pluto-lib/experiments/terrain-author-ci/inputs.json": "81c7e7e25cd95f3cdf38dacb137405aef6d68e2ae03f0741a38a9364384d647b",
     "pluto-lib/experiments/terrain-author-ci/run.py": "e1838f8afd3299973d7b93548a3dec75f01e375954cf1aef36d0296e364f9af0",
     "pluto-lib/experiments/terrain-author-ci/test_runner.py": "2ffba0d241b27b584541b308abff5c781ccf61edf7d042dc58ecd1e0bda16efa",
-    "pluto-lib/experiments/terrain-material-cpu-ci/README.md": "bb105c447408c00d5dcadacfc41184f858f8da4e84ac6ba318fafc06ce7803c9",
+    "pluto-lib/experiments/terrain-material-cpu-ci/README.md": "5de846761bb77c566d7f7e4f63e2e1d24274332754102b4679d581bc7422ad23",
     "pluto-lib/experiments/terrain-material-cpu-ci/run.py": "1b1e25a1bedec32188cacf7e0a85343bc673e6b9129ac7c576c7b466d4fd83a9",
     "pluto-lib/experiments/terrain-material-cpu-ci/test_runner.py": "807b2479b295d90d3bb064d3424bbd5d2e89f291722ae2b78047dc44d4b2757d",
-    "pluto-lib/experiments/terrain-material-cpu/README.md": "0beaf834365394b6bde1e17c44c6a1c49319a39cc7c9993c4df2bf54d510a6e6",
+    "pluto-lib/experiments/terrain-material-cpu/README.md": "5e51f99cea760dedb6817995897157fcc5b453f6bd8ced87f909e88b7d2b4a03",
     "pluto-lib/experiments/terrain-material-cpu/check_plan.py": "22ff48bc6ee66799f7d87715771c10acc0bdd7c3e549ed3e1c1acd17d8a4665e",
-    "pluto-lib/experiments/terrain-material-cpu/fixture.rs": "52ce941fe575ed1f0ff11e33b6631890d5dbd456081596851c5886c0ee6447d1",
-    "pluto-lib/experiments/terrain-material-cpu/inputs.json": "36a06bf195d85e46f9295b42046e4dc17a31d7555e3b2c647bdba57ed5b1e57c",
-    "pluto-lib/experiments/terrain-material-cpu/prepare.py": "9ccf4268c610d10610213408041fc68febbf61f4b1d0ffc37ee3c228e8134910",
+    "pluto-lib/experiments/terrain-material-cpu/fixture.rs": "682ac48e12dfd7367fc19a6fca758293df9c7c7f82872b058c8d7654ef04644c",
+    "pluto-lib/experiments/terrain-material-cpu/inputs.json": "812ac9f0c9fc7b166cf9d1cc943a4ae93a1089512ddcee1939dece5c2015a418",
+    "pluto-lib/experiments/terrain-material-cpu/prepare.py": "0454ff69e59c6e5d6e8b93b9f6392b5aa5647d76792f966ee6dbe9fa9f914ffc",
     "pluto-lib/experiments/terrain-material-cpu/source-validation.json": "954c1d4c2e44c56fe6bf3cc4b3c45b1575434bacc384ec83ff378e5bdf39b34a",
-    "pluto-lib/experiments/terrain-material-cpu/test_source.py": "9dd4ada0125ea34fd5b6128a6628018798d44c1a9596b0532eb8f2d9b9dfd482",
+    "pluto-lib/experiments/terrain-material-cpu/test_source.py": "15465c7336ea8ecf8c2e7c0ffe660d52a131cc19930b848c5c18d8df39439355",
     "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "180ba04c5507535441011ea40e255cdd1e8373462056026dd66daf112b12e43a",
     "pluto-lib/mixins/pluto_native_creative/rendering.rs": "66f92506471343fb24e6397e4fa5c8bcc9c43701bf81f9d5f7bd2238ae10410e",
     "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
@@ -46,6 +46,7 @@
     "pluto-lib/tests/fluid-api.Cargo.lock": "a256e8b9e85dcd613f31149f5cd7f120e1666a54f0979bb022823c73cb47ead5",
     "pluto-lib/tests/test_terrain_author_api.py": "60ff5183c3b21386fc6fe5a677423f555ef934a5dad6a26b02402b758748e76a",
     "pluto-lib/tools/package_native.py": "1b7888725401aebfe09185239ce9864e2d11e71b4b84b1ee42031dd7258c3e6e",
-    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10",
+    "pluto-lib/experiments/terrain-material-cpu-ci/first-attempt.json": "ddbc7b61778784568936a6a33e7be07fbce463e94c998e94804f8079a773cfc1"
   }
 }

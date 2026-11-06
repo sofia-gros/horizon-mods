@@ -92,3 +92,26 @@ published at `7d3b6d04`. This follow-up additionally times the secondary-materia
 case after its assertions. Its new template hash is in `inputs.json`; the initial
 preparation receipt is not relabeled as evidence for this changed template. The
 new CI must regenerate and verify the complete overlay at its own exact head.
+# First actual run and corrected negative input
+
+Run [42188158850](https://github.com/sofia-gros/horizon-mods/actions/runs/42188158850)
+at `1f7fddcb` passed official plan, all guards, apply, host lib/bin type checks,
+actual renderer test compilation, the two existing material tests, and the
+no-provider CPU test. The registered CPU test failed, so this is not a complete
+CPU proof. Its final source/generated/binary verification passed.
+
+The failure exposed a bad fixture premise: official `Element::decode` does not
+read an element's `shade` JSON key, and the cuboid baker sets `shade: true`.
+Consequently, the supposedly incompatible secondary model was compatible and
+was correctly emitted instead of falling back. The correction uses the decoded
+`shade_direction_override: "north"` attribute. It adds assertions on the actual
+baked source/template values before the original fallback equality and scratch
+replay checks. No production adapter, native oracle or fallback assertion is
+relaxed. Each negative material case now prints its input facts before execution.
+
+The corrected fixture is **native unrun** until its own reviewed retry. See the
+CI experiment's `first-attempt.json` for the exact false receipt and partial
+timings. The accepted no-provider opt0 median ratio was 0.98866. Registered-mode
+timings printed before failure are partial observations, not accepted mode
+results or optimized performance evidence. GPU and real-game status is unchanged.
+

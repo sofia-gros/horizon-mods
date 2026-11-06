@@ -41,10 +41,11 @@ def assets(version,kind="ordinary"):
         files[f'assets/{ns}/textures/block/{name}.png']=png([66,120,190,160] if name=='cell' else [130,130,130,255],second=[80,130,200,160] if name=='cell' else None)
         if name=='cell':files[f'assets/{ns}/textures/block/{name}.png.mcmeta']=encoded({'animation':{'frametime':2,'frames':[0,1],'interpolate':True}})
     # A distinct baked standalone model is a preparation input, not a texture
-    # substituted into a live mesher. The invalid variant differs in native shade.
+    # substituted into a live mesher. Use a decoded native attribute for the
+    # mismatch: pinned cuboid Element ignores the JSON `shade` field entirely.
     model=json.loads(files['assets/pluto_fixture/models/block/cell.json'])
     model['textures']={'all':'pluto_fixture:block/flow','particle':'pluto_fixture:block/flow'}
-    if kind=='incompatible':model['elements'][0]['shade']=False
+    if kind=='incompatible':model['elements'][0]['shade_direction_override']='north'
     if kind=='opaque':
         for name in ['assets/pluto_fixture/models/block/cell.json']:
             src=json.loads(files[name])

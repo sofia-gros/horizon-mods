@@ -1,0 +1,588 @@
+{
+  "schema": 1,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42188158850",
+  "run_id": 42188158850,
+  "job_id": 127793361072,
+  "head": "1f7fddcb56ec0f834601aa65c571d888f2e18c91",
+  "production_head": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "bundle_sha256": "cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76",
+  "status": "failure",
+  "failure_assertion": "b.sprite_layers.contains(&sprite)",
+  "failure_target": "Registered CPU process, incompatible-material fallback input after six completed fallback replays.",
+  "native_executions": {
+    "material_tests": 2,
+    "no_provider_cpu": 1,
+    "registered_cpu": "failed; no completed material suite or secondary-material timing"
+  },
+  "partial_registered_timings": [
+    {
+      "adapter_ns_per_section": [
+        4843396,
+        4804973,
+        4793605,
+        4802428,
+        4795005,
+        4791855,
+        4799086
+      ],
+      "baseline_ns_per_section": [
+        4768827,
+        4762010,
+        4755775,
+        4770030,
+        4767961,
+        4765145,
+        4772772
+      ],
+      "case": "registered-ordinary",
+      "debug_assertions": true,
+      "iterations_per_sample": 64,
+      "median_ratio": 1.0065279476908473,
+      "profile_label": "test; opt-level=0; debug=0; incremental=0",
+      "samples": 7,
+      "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+      "warmup": 8
+    },
+    {
+      "adapter_ns_per_section": [
+        5004855,
+        5019735,
+        4998927,
+        5014017,
+        4989568,
+        4998929,
+        5005409
+      ],
+      "baseline_ns_per_section": [
+        4833022,
+        4849173,
+        4841668,
+        4825323,
+        4826851,
+        4872879,
+        4864402
+      ],
+      "case": "provider-no-claim",
+      "debug_assertions": true,
+      "iterations_per_sample": 64,
+      "median_ratio": 1.0337047067250378,
+      "profile_label": "test; opt-level=0; debug=0; incremental=0",
+      "samples": 7,
+      "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+      "warmup": 8
+    },
+    {
+      "adapter_ns_per_section": [
+        9160436,
+        9221770,
+        9200800,
+        9178159,
+        9104329,
+        9103312,
+        9104255
+      ],
+      "baseline_ns_per_section": [
+        4840757,
+        4879410,
+        4886565,
+        4845136,
+        4825769,
+        4844167,
+        4850397
+      ],
+      "case": "claimed-mixed",
+      "debug_assertions": true,
+      "iterations_per_sample": 64,
+      "median_ratio": 1.8906457940499504,
+      "profile_label": "test; opt-level=0; debug=0; incremental=0",
+      "samples": 7,
+      "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+      "warmup": 8
+    }
+  ],
+  "partial_timings_warning": "Printed before the registered test failed. Not accepted as a passing registered-mode result or optimized performance proof.",
+  "diagnosis": {
+    "kind": "Fixture input did not create its intended native mismatch.",
+    "evidence": [
+      "Pinned model.rs Element has no shade field and Element::decode ignores shade.",
+      "Pinned bake.rs creates cuboid ModelQuad with shade: true.",
+      "The intended incompatible model therefore retained compatible native attributes and legitimately used the secondary animated layer."
+    ],
+    "planned_correction": "Use the parsed shade_direction_override field and assert actual baked source None versus template North before the unchanged full fallback comparison."
+  },
+  "final_receipt": {
+    "binary_sha256": "ef99692c7a3a8adebd6105839d5d596555d2f3fa9f391d66f05441153d953da9",
+    "cpu": {
+      "no-provider": {
+        "exact_tests": 1,
+        "mode": "no-provider",
+        "replays": [
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          }
+        ],
+        "timings": [
+          {
+            "adapter_ns_per_section": [
+              4720570,
+              4716853,
+              4974106,
+              4735282,
+              4732012,
+              4725205,
+              4721704
+            ],
+            "baseline_ns_per_section": [
+              4783899,
+              4775229,
+              4763153,
+              4779367,
+              4786434,
+              4779869,
+              4779393
+            ],
+            "case": "no-provider",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 0.9886621585628134,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          }
+        ]
+      }
+    },
+    "error": "RuntimeError: cpu-registered exited 101",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "apply": "passed",
+      "complete_plan_guards": "passed",
+      "cpu_no_provider": "passed",
+      "fixture_plan_guard": "passed",
+      "fixture_source12": "passed",
+      "host_lib_bin_type": "passed",
+      "inherited_runner20": "passed",
+      "native_material2": "passed",
+      "official_sources": "passed",
+      "plan": "passed",
+      "prepare": "passed",
+      "production_package": "passed",
+      "renderer_compile": "passed",
+      "runner15": "passed",
+      "source23": "passed"
+    },
+    "generated_seal": "d3a008d5eb311fd4021d8240353aec652e6a24b625fa6fd7f6e6800c17d8211b",
+    "head": "1f7fddcb56ec0f834601aa65c571d888f2e18c91",
+    "minimum_free_bytes": 87942803456,
+    "passed": false,
+    "phases": [
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "runner15",
+        "raw_bytes": 1720,
+        "raw_sha256": "96119bd3cf0ce22c20833e9ab8df8c8acdc78300ac61d36f658f66fe5fec3c89",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "inherited-runner20",
+        "raw_bytes": 2817,
+        "raw_sha256": "6c27d8486bc4503659a95e9908d10046d93f9b1dfca2627fedbc8bc3cf7bb527",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 4.813,
+        "error": null,
+        "name": "apt-update",
+        "raw_bytes": 2177,
+        "raw_sha256": "4f15b00cd6aea63c08e29f592c07bcecce251251a0c5a6202c0a431548b5665c",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 4.011,
+        "error": null,
+        "name": "apt-install",
+        "raw_bytes": 2129,
+        "raw_sha256": "480b2eb7f1bea462d4780debf55a70d3d9eac412778bd5f4847b42231013688f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 8.224,
+        "error": null,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.403,
+        "error": null,
+        "name": "source23",
+        "raw_bytes": 3570,
+        "raw_sha256": "d7cf38fa67ebf3b8b5ce89838f78be17b3d1a34941e8e1429d9e483b1abcc17f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "horizon-init",
+        "raw_bytes": 726,
+        "raw_sha256": "dc09ba4aab81ed267a9fe89989122174f47e3045e11c4c3dfaf0415e2b236313",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 4.611,
+        "error": null,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.603,
+        "error": null,
+        "name": "horizon-checkout",
+        "raw_bytes": 89,
+        "raw_sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 1.606,
+        "error": null,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-init",
+        "raw_bytes": 725,
+        "raw_sha256": "b882fa4059c7ba6244c88e94ab04616dbadcda01be8f4c2d9b3fe47c48c75b28",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.603,
+        "error": null,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "46a3acfd7e87f0064127d1e269a4b136861d8c1b27609da1093b39edb1fedbc7",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-checkout",
+        "raw_bytes": 98,
+        "raw_sha256": "3c31bc675aaba31de4e14000d71e185be8792b43943bc4d4ed9a55ac2df21963",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "fixture-source12",
+        "raw_bytes": 1361,
+        "raw_sha256": "a26a716332eeabb738e41aea980c7d77e1d7894b4abb05a01ae58cc2d5a1e0fd",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 143.975,
+        "error": null,
+        "name": "mixins-build",
+        "raw_bytes": 4245,
+        "raw_sha256": "a25eaf1c43d85ad54d75c0e400b1679ad30c18a555dad81d7b76265dfb8934d9",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "package",
+        "raw_bytes": 109,
+        "raw_sha256": "076a59578a4b1ddd298730ba0df2c30d503d81e89048381593a68023b9d2d018",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "prepare",
+        "raw_bytes": 83,
+        "raw_sha256": "d8163bb13ee1bf9cc2b951372c4f83d2144853b9d345f1f50017966da930622f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 22.467,
+        "error": null,
+        "name": "official-plan",
+        "raw_bytes": 272,
+        "raw_sha256": "5d7c9cff2719d97c98ee8be79a8186623a7580686416a72ed701cdb23cc52f71",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "all12guards",
+        "raw_bytes": 74,
+        "raw_sha256": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "fixture-plan-guard",
+        "raw_bytes": 94,
+        "raw_sha256": "ac2e987057e8ede2e726cb7d1c6a5d9861e126b089d74385b8f7958de7ac932c",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 25.272,
+        "error": null,
+        "name": "official-apply",
+        "raw_bytes": 336,
+        "raw_sha256": "912438403bfb009f3dd8369a22da5ca3155d22f5fdf41efad7afa66354aec345",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 3.812,
+        "error": null,
+        "name": "locked-fetch",
+        "raw_bytes": 15088,
+        "raw_sha256": "edf67c063852a65fdc548df2fa5d8a4f94246819b3dcc480855559354cf6150a",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 195.55,
+        "error": null,
+        "name": "host-type",
+        "raw_bytes": 2555902,
+        "raw_sha256": "6a4c6ec0077b192b6f9a90e6772ffcc92573f2dcf00c669b886879f570eba5b8",
+        "required_compilers": [
+          {
+            "argument_count": 144,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=e4f02c02327e51ed",
+              "extra-filename=-af4e5a6cdc81c6ca",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_render",
+            "full_invocation_sha256": "14c42344526d2ff0c45aab3a2397c0f9962e2e8dd8b8cea1bd1a0cf9caab92f1",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 151,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=eac9c6037b573eda",
+              "extra-filename=-9209fe15e285b473",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_lib",
+            "full_invocation_sha256": "bb6e4a655593dd3920361c29d3c1c78c3ac0644cd43da227beb2e2a83cefcc4c",
+            "source": [
+              "crates/horizon-client-lib/../horizon-client/src/client_lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 47,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=ca235c49d46030ea",
+              "extra-filename=-689ce3f004142645",
+              "strip=debuginfo"
+            ],
+            "crate": "pluto_api",
+            "full_invocation_sha256": "4a4dde91ffd67972774f8f58d0e99bb2dec0d9e582e8b60921678a27464d01c8",
+            "source": [
+              "native-crates/pluto_native_creative/pluto_native_creative-creative-api/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 149,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=2092e535185af033",
+              "extra-filename=-a0a91df4a8d7bef5",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client",
+            "full_invocation_sha256": "865562882197f3d0b2997bdb649c30e43d820267e3441b14e821426b2e806758",
+            "source": [
+              "crates/horizon-client/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 152,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=da7af04e4308f17b",
+              "extra-filename=-1998e8d58938f90e",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client",
+            "full_invocation_sha256": "a0a7fe73d24460ffa157600f599d90fefb4743e6659f216fec47586f07cbee3e",
+            "source": [
+              "crates/horizon-client/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 215.6,
+        "error": null,
+        "name": "renderer-compile",
+        "raw_bytes": 2181580,
+        "raw_sha256": "8ddcbff81ae95e2257c1c3eece1fd4ce9bb38f41de0d1305227283d4c6d18ced",
+        "required_compilers": [
+          {
+            "argument_count": 144,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=c3821cff58fa0a73",
+              "extra-filename=-a7f7f914ba2c3e0f",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_render",
+            "full_invocation_sha256": "64132ac9192eb7ed361598145f765b2488cead6616a026e31d88e0ba2b25620e",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "native-material2",
+        "raw_bytes": 662,
+        "raw_sha256": "c62b1d73ba1042449e87c9386639d5f680fc2ee70e434ad08732b2ffca5f745f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 5.013,
+        "error": null,
+        "name": "cpu-no-provider",
+        "raw_bytes": 1785,
+        "raw_sha256": "79960ebb1d79a222f1e5d1e42762c44fa35217f649a7d698cb6a5b22e7e3c97f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "verify-no-provider",
+        "raw_bytes": 83,
+        "raw_sha256": "d8163bb13ee1bf9cc2b951372c4f83d2144853b9d345f1f50017966da930622f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 17.641,
+        "error": "RuntimeError: cpu-registered exited 101",
+        "name": "cpu-registered",
+        "raw_bytes": 7366,
+        "raw_sha256": "da0a37afa6157f4e45349971b4c1b8ce70f1cda4d8cefeb5a5581e37a5391145",
+        "required_compilers": [],
+        "terminal": "error"
+      }
+    ],
+    "raw_logs": "validated inside runner, not uploaded",
+    "scope": "Actual CPU mesh on original synthetic resources; unoptimized timing only. No GPU, production asset or TConstruct activation proof.",
+    "seals": {
+      "/home/runner/work/_temp/terrain-material-cpu-1f7fddcb56ec0f834601aa65c571d888f2e18c91/horizon": "30dac2d6b12ac8d1975e26d5e71f0003dfdfa7d01d70647aa4b7dfdbd403574d",
+      "/home/runner/work/_temp/terrain-material-cpu-1f7fddcb56ec0f834601aa65c571d888f2e18c91/mixins": "7c4072bdd58ce7477fba8e45fbfc3ae756253807b291632e07539c8e1e93b233",
+      "/home/runner/work/_temp/terrain-material-cpu-1f7fddcb56ec0f834601aa65c571d888f2e18c91/overlay": "c078ead80513604afac69141b653e71e71254f128e8f39229973be2c5fbefde8",
+      "/home/runner/work/_temp/terrain-material-cpu-1f7fddcb56ec0f834601aa65c571d888f2e18c91/stage": "8a959b373828c4dd010c66b6b7f91381ff67beb748ef5f28d5b463692c3246ca"
+    },
+    "verified": true
+  },
+  "evidence_limits": "Compact Actions console and FINAL_RECEIPT recovered by the ordinary job-logs tool. Per-phase raw compiler/test logs were verified in the runner but not uploaded. No GPU, production-resource, live-game, TConstruct activation or complete registered-mode success."
+}
