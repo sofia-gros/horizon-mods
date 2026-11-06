@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "head": "fece0572e74fb73ea114bdf88cadeb54f2c3514d",
+  "run_id": 42210426433,
+  "job_id": 127867421606,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42210426433",
+  "conclusion": "failure",
+  "terminal_utc": "2026-11-06T11:28:21Z",
+  "console": {
+    "utf8_bytes": 20107,
+    "sha256": "0da2d4ab06a306a38217afb6c511dc5ed444a83d5b15a39fbcaa9002f49bed1b",
+    "complete_console_retrieved": true,
+    "raw_phase_files_retrieved": false
+  },
+  "final_receipt": {
+    "build_outputs_seal": null,
+    "error": "ValueError: Wrong inventory summary; ValueError: Missing required gate",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "compile": {
+        "mode": 493,
+        "sha256": "b91ecb95cd406e01d85e72279e10b26832a356258d115fc9d390f12e0a77ad8c",
+        "size": 7005160
+      },
+      "latest_inventory": {
+        "attachment_sites": 26,
+        "book_sites": 79,
+        "full_inventory_verified": true,
+        "known_source_files": 21,
+        "patch_sha256": "e35455951b4bc7e3aa01912f348a4c178523dc128c712ece6c7413a7c2d987d0",
+        "receipt_sha256": "e00de6ae236610b1cde4375dc4556964d676e03a1df4cfa68907e9e52490ff72"
+      },
+      "latest_source": 14,
+      "official_source": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"
+      },
+      "prior_runner": 15,
+      "prototype_identity": {
+        "helper_sha256": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398",
+        "original_fragments_unchanged": true
+      },
+      "runner": 16,
+      "source": {
+        "native_type_executed": false,
+        "ownership_tests": 10,
+        "rust_executed": false,
+        "source_files": 12
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "fece0572e74fb73ea114bdf88cadeb54f2c3514d",
+    "minimum_free_bytes": 91081039872,
+    "mod_source_seal": "71455b6267dcf98b4dd26d004e8afb668942de9073914cbd3e1e622ca4caed3e",
+    "passed": false,
+    "scope": "Latest f4dc target: ten generic owned-storage tests plus excluded official Game/BookScreen lib+bin typing. Not ordinary Pluto composition, permitted Game opening, actual Client/UI, catalog reload or LAN reply execution.",
+    "source_seals": {
+      "/home/runner/work/_temp/guide-latest-owned-opening-fece0572e74fb73ea114bdf88cadeb54f2c3514d/official-git": "7a9e25fbe124ddfa631574c1e694f36755c918151b52111d97912058af757a2c",
+      "/home/runner/work/_temp/guide-latest-owned-opening-fece0572e74fb73ea114bdf88cadeb54f2c3514d/pristine": "a5aa60c573d189d1e9b207247f9aba76516764849a2fec1edc1a85cb6af093a7"
+    },
+    "verified": true
+  },
+  "failed_phase": "inventory parser after successful binary compilation/list invocation",
+  "inventory_evidence": {
+    "bytes": 1589,
+    "sha256": "6c8956115e348eda2885f926e55c035df43121dd67652cd2ee4100f09c6956c0",
+    "exact_reconstruction": "retained_book::ownership_tests::attachment_reset_revokes_owner_without_removing_contents: test\nretained_book::ownership_tests::destructor_panic_after_commit_does_not_restore_old_storage: test\nretained_book::ownership_tests::dropping_prepared_guard_does_not_mutate_storage: test\nretained_book::ownership_tests::exhausted_install_returns_exact_candidate_and_preserves_old_state: test\nretained_book::ownership_tests::identical_owned_reopen_revokes_old_owner: test\nretained_book::ownership_tests::native_close_and_identical_restore_cannot_claim_old_owner: test\nretained_book::ownership_tests::old_value_drops_only_after_committed_state_is_observable: test\nretained_book::ownership_tests::owner_from_other_slot_cannot_use_matching_contents: test\nretained_book::ownership_tests::page_revision_rejects_old_observation_but_preserves_owner: test\nretained_book::ownership_tests::revision_exhaustion_rejects_before_any_change: test\nretained_book::storage_tests::actual_option_shape_remains_available_to_native_readers: test\nretained_book::storage_tests::assignment_destructor_panic_cannot_leave_a_valid_old_stamp: test\nretained_book::storage_tests::borrowed_mutation_advances_revision_without_replacing_opening: test\nretained_book::storage_tests::equal_replacement_and_restoration_never_reuse_opening: test\nretained_book::storage_tests::id_and_revision_exhaustion_do_not_disable_native_content_changes: test\nretained_book::storage_tests::overlay_does_not_mutate_slot_and_attachment_reset_preserves_contents: test\nretained_book::storage_tests::replace_returns_old_contents_without_dropping_them: test\n",
+    "proof": "Expected 17 exact names sorted into terse lines reproduce both the actual log byte count and SHA-256. There was no summary line."
+  },
+  "unrun": [
+    "10 owned-storage tests",
+    "13-file experiment preparation",
+    "metadata comparison",
+    "actual three compiler gate",
+    "UI or LAN"
+  ],
+  "proposed_followup": "Require exact whole terse output rather than a non-terse summary. Separate parser-only cutoff and review; no automatic retry."
+}
