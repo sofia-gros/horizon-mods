@@ -1,0 +1,701 @@
+{
+  "error": null,
+  "fixtures": {
+    "mining36": {
+      "gates": {
+        "mining36_compile": {
+          "binary_sha256": "a951dd61e696afd551ca79e263e9b0c51f5ba9acf756682769305c4668220f67",
+          "compilers": [
+            {
+              "crate": "pluto_latest_mining_differential_tests",
+              "invocation_sha256": "2f4459d27346818861604c9105aba11d1fc16815bd488956d5ed55d64723fe58",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "other_native_compilers": [
+            {
+              "crate": "horizon_core",
+              "invocation_sha256": "a9b76623be37927bea809e7b41b9bbe2852e81b0560205ff7a8676747e8b8e14",
+              "source": [
+                "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-core/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_world",
+              "invocation_sha256": "8215b907671359aaebc1a5ac7cb431e3a2f9c7394ee6271ad28fd26fd07b9229",
+              "source": [
+                "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-world/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_client_core",
+              "invocation_sha256": "92220c5da448e0d1ba53b97e05e79844b00d0430bd3a3f392fce83cc91d81aca",
+              "source": [
+                "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-client-core/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_items",
+              "invocation_sha256": "45904ab5120e95890050f63c6d9e524b3cc1334cc76fb3134bf6b3838e883182",
+              "source": [
+                "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-items/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "pluto_latest_mining_differential_tests",
+              "invocation_sha256": "2f4459d27346818861604c9105aba11d1fc16815bd488956d5ed55d64723fe58",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "passed": true
+        },
+        "mining36_inventory": {
+          "names": [
+            "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+            "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+            "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+            "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+            "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+            "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+            "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+            "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+            "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+            "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+            "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+            "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+            "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+            "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+            "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+            "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+            "tconstruct_source_mining_math::tests::source_effective_wear_and_order",
+            "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+            "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+            "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+            "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+            "regression_tests::airborne_then_armor_follows_flat_bonus",
+            "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+            "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+            "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+            "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+            "regression_tests::official_progress_keeps_harvest_division",
+            "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+            "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+          ],
+          "passed": true,
+          "tests": 36
+        },
+        "mining36_metadata": {
+          "dependencies_sha256": "bfd7275430bf97b7d063b05ca49488219eeee0101b5577dfb69b175cd8c28f11",
+          "lock_sha256": "1bfbd5864401acad4cbce00e23d7f63bba4181f70d3e3284ba43ee2672dbcdb4",
+          "passed": true
+        },
+        "mining36_preparer": {
+          "passed": true,
+          "tests": 20
+        },
+        "mining36_tests": {
+          "filtered": 0,
+          "groups": {
+            "additional12": {
+              "names": [
+                "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+                "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+                "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+                "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+                "regression_tests::airborne_then_armor_follows_flat_bonus",
+                "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+                "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+                "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+                "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+                "regression_tests::official_progress_keeps_harvest_division",
+                "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+                "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+              ],
+              "passed": true,
+              "tests": 12
+            },
+            "existing24": {
+              "names": [
+                "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+                "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+                "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+                "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+                "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+                "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+                "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+                "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+                "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+                "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+                "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+                "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+                "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+                "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+                "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+                "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+                "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+                "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+                "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+                "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+                "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+                "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+                "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+                "tconstruct_source_mining_math::tests::source_effective_wear_and_order"
+              ],
+              "passed": true,
+              "tests": 24
+            }
+          },
+          "ignored": 0,
+          "names": [
+            "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+            "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+            "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+            "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+            "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+            "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+            "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+            "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+            "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+            "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+            "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+            "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+            "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+            "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+            "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+            "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+            "tconstruct_source_mining_math::tests::source_effective_wear_and_order",
+            "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+            "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+            "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+            "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+            "regression_tests::airborne_then_armor_follows_flat_bonus",
+            "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+            "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+            "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+            "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+            "regression_tests::official_progress_keeps_harvest_division",
+            "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+            "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+          ],
+          "passed": true,
+          "tests": 36
+        }
+      },
+      "source_seal_sha256": "5aa8fc20a8fe6928647bd1e8eb54414bf286ecbe00adec8496a6aa459ee7baa8",
+      "tests": 36,
+      "tests_passed": true,
+      "verified": true
+    }
+  },
+  "floor_bytes": 10871635968,
+  "gates": {
+    "mining36_compile": {
+      "binary_sha256": "a951dd61e696afd551ca79e263e9b0c51f5ba9acf756682769305c4668220f67",
+      "compilers": [
+        {
+          "crate": "pluto_latest_mining_differential_tests",
+          "invocation_sha256": "2f4459d27346818861604c9105aba11d1fc16815bd488956d5ed55d64723fe58",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "other_native_compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "a9b76623be37927bea809e7b41b9bbe2852e81b0560205ff7a8676747e8b8e14",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "8215b907671359aaebc1a5ac7cb431e3a2f9c7394ee6271ad28fd26fd07b9229",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "92220c5da448e0d1ba53b97e05e79844b00d0430bd3a3f392fce83cc91d81aca",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "45904ab5120e95890050f63c6d9e524b3cc1334cc76fb3134bf6b3838e883182",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "pluto_latest_mining_differential_tests",
+          "invocation_sha256": "2f4459d27346818861604c9105aba11d1fc16815bd488956d5ed55d64723fe58",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "passed": true
+    },
+    "mining36_inventory": {
+      "names": [
+        "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+        "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+        "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+        "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+        "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+        "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+        "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+        "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+        "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+        "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+        "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+        "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+        "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+        "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+        "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+        "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+        "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+        "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+        "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+        "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+        "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+        "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+        "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+        "tconstruct_source_mining_math::tests::source_effective_wear_and_order",
+        "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+        "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+        "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+        "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+        "regression_tests::airborne_then_armor_follows_flat_bonus",
+        "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+        "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+        "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+        "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+        "regression_tests::official_progress_keeps_harvest_division",
+        "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+        "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+      ],
+      "passed": true,
+      "tests": 36
+    },
+    "mining36_metadata": {
+      "dependencies_sha256": "bfd7275430bf97b7d063b05ca49488219eeee0101b5577dfb69b175cd8c28f11",
+      "lock_sha256": "1bfbd5864401acad4cbce00e23d7f63bba4181f70d3e3284ba43ee2672dbcdb4",
+      "passed": true
+    },
+    "mining36_preparer": {
+      "passed": true,
+      "tests": 20
+    },
+    "mining36_tests": {
+      "filtered": 0,
+      "groups": {
+        "additional12": {
+          "names": [
+            "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+            "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+            "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+            "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+            "regression_tests::airborne_then_armor_follows_flat_bonus",
+            "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+            "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+            "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+            "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+            "regression_tests::official_progress_keeps_harvest_division",
+            "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+            "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+          ],
+          "passed": true,
+          "tests": 12
+        },
+        "existing24": {
+          "names": [
+            "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+            "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+            "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+            "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+            "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+            "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+            "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+            "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+            "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+            "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+            "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+            "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+            "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+            "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+            "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+            "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+            "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+            "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+            "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+            "tconstruct_source_mining_math::tests::source_effective_wear_and_order"
+          ],
+          "passed": true,
+          "tests": 24
+        }
+      },
+      "ignored": 0,
+      "names": [
+        "tconstruct_source_mining_rules::haste_tests::partial_haste_only_applies_on_unbroken_armor",
+        "tconstruct_source_mining_rules::haste_tests::chest_trait_and_partial_upgrade_share_one_multiplier",
+        "tconstruct_source_mining_rules::airborne_tests::maintained_addition_uses_speed_after_airborne_penalty",
+        "tconstruct_source_mining_rules::airborne_tests::only_unbroken_airborne_trait_boosts_airborne_speed",
+        "tconstruct_source_mining_rules::broad_tag_tests::missing_broad_tag_fails_closed",
+        "tconstruct_source_mining_rules::shared_rules_tests::hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage",
+        "tconstruct_source_mining_rules::shared_rules_tests::flat_bonuses_follow_potions_water_air_and_armor_order",
+        "tconstruct_source_mining_rules::shared_rules_tests::source_potions_use_max_haste_and_capped_fatigue_table",
+        "tconstruct_source_mining_rules::shared_rules_tests::flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute",
+        "tconstruct_source_mining_rules::shared_rules_tests::source_bonus_does_not_rewrite_host_base_speed",
+        "tconstruct_source_mining_rules::shared_rules_tests::armor_haste_multiplies_conditional_blasting_after_tool_effects",
+        "tconstruct_source_mining_rules::shared_rules_tests::blasting_requires_effective_unbroken_tool",
+        "tconstruct_source_mining_rules::shared_rules_tests::crumbling_respects_effectiveness_block_and_breakage",
+        "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_tier_precedes_speed_and_no_match_is_distinct",
+        "tconstruct_source_mining_rules::shared_rules_tests::absent_and_invalid_tool_are_not_no_matching_rule",
+        "tconstruct_source_mining_rules::shared_rules_tests::denial_after_an_allow_still_blocks_tconstruct_speed",
+        "tconstruct_source_mining_rules::shared_rules_tests::actual_tool_matching_speed_is_returned",
+        "tconstruct_source_mining_math::tests::hydraulic_uses_source_float_operation_order",
+        "tconstruct_source_mining_math::tests::blasting_uses_resistance_incremental_level_and_order",
+        "tconstruct_source_mining_math::tests::overwield_uses_live_overslime_and_broad_cost",
+        "tconstruct_source_mining_math::tests::crumbling_handles_ineffective_and_required_tool_blocks",
+        "tconstruct_source_mining_math::tests::dwarven_runs_between_maintained_and_percent_traits",
+        "tconstruct_source_mining_math::tests::source_static_operations_and_clamp",
+        "tconstruct_source_mining_math::tests::source_effective_wear_and_order",
+        "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+        "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+        "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+        "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+        "regression_tests::airborne_then_armor_follows_flat_bonus",
+        "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+        "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+        "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+        "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+        "regression_tests::official_progress_keeps_harvest_division",
+        "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+        "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+      ],
+      "passed": true,
+      "tests": 36
+    },
+    "mod_oracle": {
+      "passed": true,
+      "revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "scope": "Frozen source objects only; no checkout/runtime",
+      "url": "https://github.com/sofia-gros/horizon-mods.git"
+    },
+    "official_sources": {
+      "passed": true,
+      "pin": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "url": "https://github.com/horizon-rust/horizon.git"
+      }
+    },
+    "renderer": {
+      "passed": true,
+      "tests": 6
+    },
+    "runner": {
+      "passed": true,
+      "tests": 25
+    },
+    "shared_native_compile": {
+      "compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "a9b76623be37927bea809e7b41b9bbe2852e81b0560205ff7a8676747e8b8e14",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "92220c5da448e0d1ba53b97e05e79844b00d0430bd3a3f392fce83cc91d81aca",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "45904ab5120e95890050f63c6d9e524b3cc1334cc76fb3134bf6b3838e883182",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "8215b907671359aaebc1a5ac7cb431e3a2f9c7394ee6271ad28fd26fd07b9229",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        }
+      ],
+      "owner": "mining36",
+      "passed": true,
+      "scope": "One actual cold native graph plus one complete scalar-policy harness; not Game adapter typing"
+    }
+  },
+  "generated_output_seal_sha256": "6e6afbffa18630356c746aaebcaa5613af77fce4c6afa4e1d72241337719b566",
+  "head": "6dc08fc3946596ac21a228901b74f9e71d27df96",
+  "minimum_free_bytes": 89840652288,
+  "official_seal_sha256": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b",
+  "passed": true,
+  "phases": [
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "runner-checks",
+      "raw_bytes": 3194,
+      "raw_sha256": "4cf339551bd841eb8606d6af0efb0ee9d4b9dc0f80ecc82cd2ba7f5d3daa73e1",
+      "seconds": 0.402
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-preparer-checks",
+      "raw_bytes": 2663,
+      "raw_sha256": "e66919ceb1b899f4478d661104a566fab33be38da32872dc9be0febfeba824db",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "renderer-checks",
+      "raw_bytes": 738,
+      "raw_sha256": "e0b8370727f99db3e998078ccf5025ea38fb0ae9b5d1e5628044d6bde4e262b2",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mod-oracle-init",
+      "raw_bytes": 731,
+      "raw_sha256": "6ac5e9441d21ade4e87d2b13371d16e2e67547c5186812839e515de2947c8f1f",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mod-oracle-origin",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mod-oracle-fetch",
+      "raw_bytes": 124,
+      "raw_sha256": "8b12e295488b644311130f0dff560978c333210bc0215f6ea288efb49f33a449",
+      "seconds": 2.207
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "toolchain",
+      "raw_bytes": 257,
+      "raw_sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+      "seconds": 8.629
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-init",
+      "raw_bytes": 729,
+      "raw_sha256": "ea4d25ff616e2421f2b9bcffce9b705e550e4952faaa22b774ddb438ad736fc2",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-origin",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-fetch",
+      "raw_bytes": 121,
+      "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+      "seconds": 4.415
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-checkout",
+      "raw_bytes": 84,
+      "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+      "seconds": 0.804
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-locked-fetch",
+      "raw_bytes": 16703,
+      "raw_sha256": "aefdeab445ec85e75c098660d13b62f6ff23c1276b429e0d3665fe301ac83b47",
+      "seconds": 5.419
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-prepare",
+      "raw_bytes": 3349,
+      "raw_sha256": "4ffd07a82bbbec71b8aace4f80161dc266896349aa5981bba89e2f451c8c3042",
+      "seconds": 1.606
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-metadata",
+      "raw_bytes": 3348,
+      "raw_sha256": "45fa79ebd6fa28f3553b70e4b06108496b9fb8d7905f0f7545fdcd13b0e01514",
+      "seconds": 2.408
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-verify-before",
+      "raw_bytes": 3348,
+      "raw_sha256": "45fa79ebd6fa28f3553b70e4b06108496b9fb8d7905f0f7545fdcd13b0e01514",
+      "seconds": 0.804
+    },
+    {
+      "compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "a9b76623be37927bea809e7b41b9bbe2852e81b0560205ff7a8676747e8b8e14",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "8215b907671359aaebc1a5ac7cb431e3a2f9c7394ee6271ad28fd26fd07b9229",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "92220c5da448e0d1ba53b97e05e79844b00d0430bd3a3f392fce83cc91d81aca",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "45904ab5120e95890050f63c6d9e524b3cc1334cc76fb3134bf6b3838e883182",
+          "source": [
+            "/home/runner/work/_temp/latest-mining-differential-6dc08fc3946596ac21a228901b74f9e71d27df96/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "pluto_latest_mining_differential_tests",
+          "invocation_sha256": "2f4459d27346818861604c9105aba11d1fc16815bd488956d5ed55d64723fe58",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-compile",
+      "raw_bytes": 232559,
+      "raw_sha256": "9c7529986878b3f647cdb0d9671bdcbc7df32557beb0a24b8d5eaa6cf60d80a5",
+      "seconds": 51.76
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-inventory",
+      "raw_bytes": 3423,
+      "raw_sha256": "e97cba7eccd0125785676379ab6faf2f511a2a41d208e4072aad6986306df4eb",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-tests",
+      "raw_bytes": 3730,
+      "raw_sha256": "5cd5ad297f60b1bc53fff766aa716243b055a9075a60c8f4c712dc3a0e66f19e",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "mining36-verify-after",
+      "raw_bytes": 3348,
+      "raw_sha256": "45fa79ebd6fa28f3553b70e4b06108496b9fb8d7905f0f7545fdcd13b0e01514",
+      "seconds": 0.804
+    }
+  ],
+  "scope": "Main08afa mining rules/math: 24 existing plus 12 scalar differential cases with actual f4dc native dependencies. No Mixins plan/apply, Game adapter typing, full host/guest actor path, permission, Wire identity or production activation.",
+  "source_seal_sha256": "33a5385bb998aa5e38b6224e228c9b266e8c8c68f1ebf220c9420ff552343a56",
+  "verified": true
+}

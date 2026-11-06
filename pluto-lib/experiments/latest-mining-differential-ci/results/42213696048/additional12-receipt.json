@@ -1,0 +1,24 @@
+{
+  "head": "6dc08fc3946596ac21a228901b74f9e71d27df96",
+  "run_id": 42213696048,
+  "job_id": 127878324648,
+  "scope": "Subset of the single unfiltered 36-test native scalar-policy harness; not a second execution",
+  "fixture_binary_sha256": "a951dd61e696afd551ca79e263e9b0c51f5ba9acf756682769305c4668220f67",
+  "verified": true,
+  "names": [
+    "regression_tests::normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+    "regression_tests::native_attribute_does_not_scale_the_source_flat_addition",
+    "regression_tests::source_environment_preserves_fatigue_water_ground_order",
+    "regression_tests::current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+    "regression_tests::airborne_then_armor_follows_flat_bonus",
+    "regression_tests::broken_tool_preserves_incoming_before_independent_armor",
+    "regression_tests::malformed_tool_and_valid_ineffective_tool_remain_distinct",
+    "regression_tests::unavailable_broad_is_not_a_known_empty_tag",
+    "regression_tests::queried_position_changes_dwarven_policy_without_a_mining_cache",
+    "regression_tests::official_progress_keeps_harvest_division",
+    "regression_tests::zero_hardness_nan_is_caller_specific_not_normalized",
+    "regression_tests::official_nonfinite_and_negative_values_are_not_clamped"
+  ],
+  "passed": true,
+  "tests": 12
+}
