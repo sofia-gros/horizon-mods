@@ -2,6 +2,7 @@
 """Ten legacy response value contracts on actual Text; no Game or LAN proof."""
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -149,6 +150,10 @@ def cargo_rows(log,metadata,diagnostic):
             result[key]=value
         return result
     def no_constant(value):raise ValueError('Nonfinite JSON constant')
+    def finite_float(value):
+        number=float(value)
+        if not math.isfinite(number):raise ValueError('Nonfinite JSON number')
+        return number
     rows=[]
     for number,line in enumerate(log.splitlines(),1):
         prefix=re.fullmatch(r'\[([A-Za-z0-9_-]+) ([^\]\s]+)\] (.*)',line)
@@ -160,7 +165,7 @@ def cargo_rows(log,metadata,diagnostic):
             label=key[0]+'@'+key[1]
             diagnostic['build_script_owners'][label]=diagnostic['build_script_owners'].get(label,0)+1
             continue
-        try:row=json.loads(line,object_pairs_hook=unique_object,parse_constant=no_constant)
+        try:row=json.loads(line,object_pairs_hook=unique_object,parse_constant=no_constant,parse_float=finite_float)
         except (ValueError,TypeError):reject(number,line,'Invalid JSON or non-Cargo line')
         if not isinstance(row,dict) or row.get('reason') not in {
                 'compiler-artifact','compiler-message','build-script-executed','build-finished'}:

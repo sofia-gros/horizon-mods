@@ -60,3 +60,8 @@ owner/target/test/fresh/path checks and executable seals remain required. The
 three compiler witnesses are retained before artifact parsing to preserve
 partial evidence. These parser-only changes do not alter any Rust case, native
 source, workspace, lock or 21-name inventory. No follow-up run is started.
+
+Independent review additionally found that Python accepts finite-notation JSON
+exponent overflow such as 1e999 as infinity. The final parser supplies a finite
+parse_float check, with nested positive/negative overflow regressions, in
+addition to rejecting NaN/Infinity constants. No native retry has occurred.

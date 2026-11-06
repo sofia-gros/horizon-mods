@@ -132,7 +132,9 @@ class Checks(unittest.TestCase):
     def test_malformed_duplicate_nonfinite_or_nonobject_json_reject(self):
         for log in ['{broken','[]','null','1','{}','{"reason":"unknown"}',
                     '{"reason":"build-finished","reason":"build-finished"}',
-                    '{"reason":"build-finished","value":NaN}']:
+                    '{"reason":"build-finished","value":NaN}',
+                    '{"reason":"build-finished","nested":{"number":1e999}}',
+                    '{"reason":"build-finished","nested":[-1e999]}']:
             detail={}
             with self.assertRaises(ValueError):m.cargo_rows(log,graph(),detail)
             self.assertEqual(detail['rejected']['line'],1)

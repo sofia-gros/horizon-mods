@@ -21,9 +21,9 @@
     "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/source-extraction.json": "608ffe3f8717d205b8a30d0754d42869d29d268ce177333aaa6e051bd020615f",
     "pluto-lib/experiments/guide-legacy-response-bridge/native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
     "pluto-lib/experiments/guide-legacy-response-bridge/consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
-    "pluto-lib/experiments/guide-reply-value-ci/run.py": "c8b694a6fa42b7b34b5274c0e61ea6d67a4b6f4f2717cd0cc3f55f5366030fc7",
-    "pluto-lib/experiments/guide-reply-value-ci/test_runner.py": "098cca0f7bcf1ea794f9582a377ba8281f8934974234424cac870d00dde75549",
-    "pluto-lib/experiments/guide-reply-value-ci/README.md": "a0bf92429707082432c587efb62880b87160170f9465f6cc7a6a1081365f1517",
+    "pluto-lib/experiments/guide-reply-value-ci/run.py": "7fdf8ae7cfeac8033d54fe3dd02386a18d5b559301367b5fdf53abc8d2f8fc27",
+    "pluto-lib/experiments/guide-reply-value-ci/test_runner.py": "e3772f926c864f0f15022f692810d038c401a2f109ff6614881f5b26dd9aa40b",
+    "pluto-lib/experiments/guide-reply-value-ci/README.md": "5cc43c94db189897fbc6662d99e5781b1a82197c9f283136fe4170a21962f8ac",
     ".github/workflows/guide-reply-value-wip.yml": "fc72f073ae88b60b01f96896364b30ab6fd6ae9093133be62ecd248db3acc647"
   },
   "pure_source_validation": {
@@ -51,6 +51,7 @@
     "failed_head": "5eae8f5427c30f755af398439cacf321086bfdf0",
     "runtime_changed": false,
     "native_retry_executed": false,
-    "change": "Classify exact known custom-build package prefixes; strict JSON and bounded rejection receipt. First failed raw line was not recovered."
+    "change": "Classify exact known custom-build package prefixes; strict JSON and bounded rejection receipt. First failed raw line was not recovered.",
+    "finite_number_review": "Reject nested exponent overflow through finite parse_float; 29 tests remain the same named suite."
   }
 }
