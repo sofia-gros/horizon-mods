@@ -1,0 +1,555 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_sha256": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/agent.rs": "c481b3e230c19e16d78c9c770d5ba5acb4d85fdc38340097db5efbf092a40cbd",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game/control.rs": "c0c3898bff9e23cbb0831d88f5ca2fdc092de3383384e72f596980e0435b4c44",
+    "crates/horizon-client/src/game/debug_keys.rs": "d0a260b7fd3fd5ecf5875267c8c1f974d71000308bc272bf24018a567a925843",
+    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+    "crates/horizon-client/src/game/dispense_fixture.rs": "71d6fe960ab0f860afd5ae752f5516860ccb129e8eff75546c15e049ea9e94a3",
+    "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client/src/game/pad.rs": "86b3e007cf2f46c0a750b513977b580d37c64dce7a05db3644e78ebfa51a7b2d",
+    "crates/horizon-client/src/game/pad_menu.rs": "7cf888cede2a0b1e836cc1c24ca5b4481cf3d9a2800c574bad01879579e65d2a",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/saving.rs": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
+    "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
+    "crates/horizon-client/src/game/dialogs.rs": "a1ad3c70eb512740b731ce7b6dddf61ccba71f6dfdbe2fd1b7bae89830e18347"
+  },
+  "book_field_inventory": [
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "accesses": [
+        {
+          "line": 8295,
+          "text": ") || self.book.is_some()"
+        },
+        {
+          "line": 8302,
+          "text": "self.book.is_some()"
+        },
+        {
+          "line": 8322,
+          "text": "&& self.book.is_none()"
+        },
+        {
+          "line": 9068,
+          "text": "let screen = if self.server_packs.prompt.is_some() || self.book.is_some() {"
+        },
+        {
+          "line": 9141,
+          "text": "if screen == Screen::Playing || self.server_packs.prompt.is_some() || self.book.is_some() {"
+        },
+        {
+          "line": 18414,
+          "text": "WindowEvent::MouseInput { state, button, .. } if self.book.is_some() => {"
+        },
+        {
+          "line": 18640,
+          "text": "WindowEvent::KeyboardInput { event, .. } if self.book.is_some() => {"
+        },
+        {
+          "line": 18893,
+          "text": "&& self.book.is_none()"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/agent.rs",
+      "accesses": [
+        {
+          "line": 391,
+          "text": "if self.screen != Screen::Playing || self.book.is_some() || self.sign_edit.is_some() {"
+        },
+        {
+          "line": 407,
+          "text": "if self.book.is_some() {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "accesses": [
+        {
+          "line": 135,
+          "text": "let Some(BookScreen::View { page, .. }) = self.book.as_mut() else {"
+        },
+        {
+          "line": 154,
+          "text": "self.book.take()"
+        },
+        {
+          "line": 263,
+          "text": "self.book = Some(screen);"
+        },
+        {
+          "line": 271,
+          "text": "self.book,"
+        },
+        {
+          "line": 280,
+          "text": "self.book = None;"
+        },
+        {
+          "line": 289,
+          "text": "}) = self.book.take()"
+        },
+        {
+          "line": 409,
+          "text": "match self.book.as_mut() {"
+        },
+        {
+          "line": 418,
+          "text": "if let Some(BookScreen::Edit { signing, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 423,
+          "text": "let blank = self.book.as_ref().is_some_and("
+        },
+        {
+          "line": 462,
+          "text": "match self.book.as_mut() {"
+        },
+        {
+          "line": 473,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 486,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 496,
+          "text": "let before = match self.book.as_ref() {"
+        },
+        {
+          "line": 504,
+          "text": "let handled = if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 522,
+          "text": "let signing = matches!(self.book, Some(BookScreen::Edit { signing: true, .. }));"
+        },
+        {
+          "line": 526,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 533,
+          "text": "let before = match self.book.as_ref() {"
+        },
+        {
+          "line": 541,
+          "text": "if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 548,
+          "text": "let before = match self.book.as_ref() {"
+        },
+        {
+          "line": 556,
+          "text": "let ran = if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 566,
+          "text": "let next = match self.book.as_ref() {"
+        },
+        {
+          "line": 576,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 592,
+          "text": "let (text, cursor) = match self.book.as_ref() {"
+        },
+        {
+          "line": 609,
+          "text": "if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 617,
+          "text": "let (text, cursor) = match self.book.as_ref() {"
+        },
+        {
+          "line": 629,
+          "text": "if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 704,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 717,
+          "text": "if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 723,
+          "text": "let text = match self.book.as_ref() {"
+        },
+        {
+          "line": 728,
+          "text": "if let Some(BookScreen::Edit { page_edit, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 735,
+          "text": "match self.book.as_mut() {"
+        },
+        {
+          "line": 947,
+          "text": "self.book,"
+        },
+        {
+          "line": 963,
+          "text": "let lectern = match &self.book {"
+        },
+        {
+          "line": 978,
+          "text": "Some(\"sign\") => match self.book.as_mut() {"
+        },
+        {
+          "line": 987,
+          "text": "Some(\"done\") => match self.book.as_mut() {"
+        },
+        {
+          "line": 989,
+          "text": "if let Some(BookScreen::Edit { signing, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 998,
+          "text": "Ok(match &self.book {"
+        },
+        {
+          "line": 1027,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 1039,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 1047,
+          "text": "self.book,"
+        },
+        {
+          "line": 1059,
+          "text": "self.book = None;"
+        },
+        {
+          "line": 1111,
+          "text": "}) = self.book.as_mut()"
+        },
+        {
+          "line": 1141,
+          "text": "match &self.book {"
+        },
+        {
+          "line": 1153,
+          "text": "if let Some(BookScreen::Edit { signing, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 1168,
+          "text": "if let Some(BookScreen::Edit { signing, .. }) = self.book.as_mut() {"
+        },
+        {
+          "line": 1208,
+          "text": "let Some(book) = &self.book else { return };"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/control.rs",
+      "accesses": [
+        {
+          "line": 262,
+          "text": "if self.book.is_some() {"
+        },
+        {
+          "line": 590,
+          "text": "if self.book.is_some() && arg(2)? != \"up\" {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/debug_keys.rs",
+      "accesses": [
+        {
+          "line": 61,
+          "text": "Screen::Playing if self.book.is_none() && self.sign_edit.is_none() => OpenScreen::None,"
+        },
+        {
+          "line": 107,
+          "text": "|| self.book.is_some()"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/ime.rs",
+      "accesses": [
+        {
+          "line": 23,
+          "text": "if self.sign_edit.is_some() || matches!(self.book, Some(BookScreen::Edit { .. })) {"
+        },
+        {
+          "line": 119,
+          "text": "} else if self.book.is_some() {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "accesses": [
+        {
+          "line": 549,
+          "text": "let host_book = self.book.take();"
+        },
+        {
+          "line": 951,
+          "text": "let guest_lectern = match std::mem::replace(&mut self.book, host_book) {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "accesses": [
+        {
+          "line": 1087,
+          "text": "let book = match &self.book {"
+        },
+        {
+          "line": 8869,
+          "text": "&& self.book.is_none()"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_machines.rs",
+      "accesses": [
+        {
+          "line": 163,
+          "text": "let book = self.book.take();"
+        },
+        {
+          "line": 226,
+          "text": "self.book = book;"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/pad.rs",
+      "accesses": [
+        {
+          "line": 541,
+          "text": "if self.book.is_some() {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/pad_menu.rs",
+      "accesses": [
+        {
+          "line": 215,
+          "text": "|| self.book.is_some()"
+        },
+        {
+          "line": 232,
+          "text": ") || self.book.is_some()"
+        },
+        {
+          "line": 275,
+          "text": "if self.title.is_some() || self.sign_edit.is_some() || self.book.is_some() {"
+        },
+        {
+          "line": 1590,
+          "text": "|| matches!(self.book, Some(super::books::BookScreen::Edit { .. }))"
+        },
+        {
+          "line": 1720,
+          "text": "(self.sign_edit.is_some(), self.book.is_some()).hash(&mut hasher);"
+        },
+        {
+          "line": 1909,
+          "text": "|| matches!(self.book, Some(super::books::BookScreen::Edit { .. }))"
+        },
+        {
+          "line": 1974,
+          "text": "} else if self.book.is_some() {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "accesses": [
+        {
+          "line": 4688,
+          "text": "self.book = None;"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote_chat.rs",
+      "accesses": [
+        {
+          "line": 439,
+          "text": "(false, _, Some(Behind::Book(book))) => self.book = Some(*book),"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/ui_control.rs",
+      "accesses": [
+        {
+          "line": 62,
+          "text": "&& self.book.is_none()"
+        }
+      ]
+    }
+  ],
+  "attachment_inventory": [
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "sites": [
+        {
+          "line": 7719,
+          "text": "self.player = Some(player);"
+        },
+        {
+          "line": 12743,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 12958,
+          "text": "if let Some(mut remote) = self.remote.take() {"
+        },
+        {
+          "line": 13008,
+          "text": "self.player = None;"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/dedicated.rs",
+      "sites": [
+        {
+          "line": 1378,
+          "text": "self.player = None;"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/dispense_fixture.rs",
+      "sites": [
+        {
+          "line": 548,
+          "text": "self.player = Some(player);"
+        },
+        {
+          "line": 628,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 664,
+          "text": "self.player = Some(player);"
+        },
+        {
+          "line": 742,
+          "text": "if let Some(p) = self.player.take() {"
+        },
+        {
+          "line": 885,
+          "text": "self.player = Some(PlayerMotion::new("
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "sites": [
+        {
+          "line": 515,
+          "text": "std::mem::swap(&mut self.player, &mut player);"
+        },
+        {
+          "line": 1055,
+          "text": "std::mem::swap(&mut self.player, &mut player);"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_machines.rs",
+      "sites": [
+        {
+          "line": 148,
+          "text": "let player = self.player.replace(body);"
+        },
+        {
+          "line": 215,
+          "text": "self.player = player;"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "sites": [
+        {
+          "line": 994,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 1058,
+          "text": "self.remote = Some(Remote {"
+        },
+        {
+          "line": 1227,
+          "text": "if let Some(mut r) = self.remote.take() {"
+        },
+        {
+          "line": 1263,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 1991,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 2336,
+          "text": "self.player = None;"
+        },
+        {
+          "line": 5865,
+          "text": "self.player = Some(player);"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/saving.rs",
+      "sites": [
+        {
+          "line": 65,
+          "text": "if let Some(mut remote) = self.remote.take() {"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/sculk_fixture.rs",
+      "sites": [
+        {
+          "line": 410,
+          "text": "self.player = Some(player);"
+        }
+      ]
+    }
+  ],
+  "scan_scope": "All .rs files under official horizon-client/src/game plus game.rs; direct self.book accesses and direct player/remote mutations. Not a general Rust alias/dataflow proof.",
+  "excluded_attachment_paths": {
+    "game/dedicated.rs": "Server-only spawn holder teardown; not a window-client capability.",
+    "game/native_machines.rs": "Server fake-player take/restore, not a client attachment. Book storage movement is nevertheless rewritten.",
+    "game/lan_actions.rs": "Guest actor swaps, not window-client attachment. Book storage movement is nevertheless rewritten.",
+    "game/dispense_fixture.rs": "Test fixture; not runtime UI evidence.",
+    "game/sculk_fixture.rs": "Test fixture; not runtime UI evidence."
+  }
+}

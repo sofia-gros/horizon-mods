@@ -69,6 +69,7 @@ class ResponseConstraintTests(unittest.TestCase):
             self.assertNotIn(b"inspect_caller_after_observer", body)
             self.assertNotIn(b"struct RetainedSlot", body)
             self.assertNotIn(b"struct LegacyU64PrefixV1", body)
+            self.assertNotIn(b"struct RetainedBook", body)
 
     def test_retained_model_reuses_actual_correlation_without_installing_hooks(self):
         source = (HERE / "retained_model.rs").read_text()

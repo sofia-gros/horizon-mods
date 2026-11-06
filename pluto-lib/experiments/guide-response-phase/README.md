@@ -58,3 +58,10 @@ legacy LAN path. Source/JSON-shape/package tests now total eight. The model comp
 14 dependency tests were filtered out, not counted. It has no native adapter.
 See [retained-validation.json](retained-validation.json) for source/command/log
 hashes, the disk guard and precise unproven boundaries.
+
+## Unapplied official storage prototype
+
+[native-patch/README.md](native-patch/README.md) expresses the next storage step
+against the actual official Game/BookScreen structure. Its generator emits only
+a MOD-contained patch and checks it in memory; no official source is edited.
+The native owner/reply connection and full host type proof remain absent.
