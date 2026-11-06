@@ -25,6 +25,20 @@ Archive SHA256: `80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a
 Exact artifacts are in `grouped-v14`. Previous cutoffs remain in the JSON and
 version history; this run does not retroactively validate old PR heads.
 
+## Verified stage preservation
+
+After the proof, the generated working stage was removed only after the existing
+full v13 archive plus a 743,068-byte v14 delta were persisted and synchronized,
+then completely restored into a separate temporary filesystem. All 5,046 hashes
+and 5,792 file/directory attribute entries matched. The retained archives and
+restoration manifest are identified in the JSON receipt. Original source, logs,
+unpublished work and dependency caches were not removed.
+
+This recovery-only operation retained at least 10 GiB + 32 MiB free under explicit
+authorization; the usual 10 GiB + 128 MiB native-build guard was not lowered.
+File types, permission modes, uid/gid, exact mtime and extended attributes were
+verified. Access time is excluded; symlinks and hardlinks are not accepted.
+
 ## Supporting evidence
 
 - Terrain: 17 focused standard-library tests, 19 source/package checks and actual

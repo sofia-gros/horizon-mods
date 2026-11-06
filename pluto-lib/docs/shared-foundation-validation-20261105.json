@@ -527,5 +527,41 @@
     "original_history_checkpoint": "00895c5549a31be940781d8d250b96d63534abf4",
     "main_merged": false,
     "full_consumer_blocker": "Existing guide response and turn hooks conflict with required composition guards. Navigation-only repair has separate evidence; dynamic LAN response remains unchanged and unresolved."
+  },
+  "stage_archival": {
+    "status": "completed",
+    "base_sha256": "782aaff29f61cd385fa2c77ff633e9e7d5f69e5431acd9504602f44e18ab60aa",
+    "delta_sha256": "1a7e3c75891b7be0ca1fa96aa3e19b0597208487c9a996b2eda3a06288bdca59",
+    "delta_bytes": 743068,
+    "state_manifest_sha256": "50797be4968cd9cd01207e82f3792a6389ad643cfaa5277f8ffbd3122dbdf2f4",
+    "source_seal_sha256": "feac81ddd13fdccdf91030999129504e6d2b161b9ed0d717d06da9cff1b56b3d",
+    "verified_files": 5046,
+    "verified_attribute_entries": 5792,
+    "verified_directory_entries": 746,
+    "verified_regular_file_entries": 5046,
+    "full_physical_restoration": true,
+    "restored_only_from_base_and_persisted_delta": true,
+    "original_stage_unchanged_before_removal": true,
+    "archives_and_restore_script_fsynced_before_restoration": true,
+    "attribute_scope": [
+      "entry type",
+      "permission mode",
+      "uid",
+      "gid",
+      "exact mtime_ns",
+      "all extended attribute names and byte values"
+    ],
+    "access_time_excluded": true,
+    "symlink_policy": "All source, base/delta archive, and restored entries must be regular files or directories; symlinks are rejected.",
+    "hardlink_policy": "Every source and restored regular file must have st_nlink == 1; archive hardlink entries are rejected.",
+    "minimum_free_bytes": 10786127872,
+    "free_bytes_after": 10919260160,
+    "net_recovered_bytes": 132358144,
+    "recovery_floor_bytes": 10770972672,
+    "usual_native_build_floor_bytes": 10871635968,
+    "base_archive": "grouped-v13-staged.tar.xz",
+    "delta_archive": "grouped-v14-from-v13-delta.tar.gz",
+    "receipt": "grouped-v14-base-delta-recovery.json",
+    "scope": "Generated working stage removed only after durable base/delta preservation and complete independent tmpfs restoration. This archival-only exception did not lower the native build guard."
   }
 }
