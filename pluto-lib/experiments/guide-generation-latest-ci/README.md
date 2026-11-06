@@ -35,3 +35,21 @@ partial receipt with completed gates and rechecks available source/lock/file/
 mode/link/OUT_DIR/binary seals. Raw logs remain ephemeral in the runner; the console
 contains byte/hash receipts and bounded diagnostics, not claimed downloadable raw
 artifacts. No cache/artifact upload or billing/permissions change is requested.
+
+## Compiler-witness parser hardening before the first Font run
+
+A separate helper CI exposed a structural risk in scanning every shell token
+ending in `.rs`: Cargo's public `CARGO_PKG_HOMEPAGE=https://serde.rs` can look
+like a source path. That helper's raw original argv was not recovered, so this
+is not a claim about its exact failure cause or a Font failure. Font has not run.
+This controller now skips only leading shell-style environment assignments,
+requires one actual `rustc` executable token, then checks source/profile arguments
+against metadata. `RUSTC=/path/rustc` is not an executable. Duplicate commands,
+crate-name arguments, extra sources and malformed witnesses remain rejected.
+
+Three new parser regressions and one real verbose-output admission regression
+extend the original sixteen to twenty pure checks. Expected bounded diagnostics
+are captured by negative tests; the actual nested nineteen-case output and the
+outer twenty-case output must pass the unchanged inherited strict validator.
+The preparer, native/consumer tests, production bytes and workflow are unchanged.
+This remains source-only evidence, not native Font or compiler execution.

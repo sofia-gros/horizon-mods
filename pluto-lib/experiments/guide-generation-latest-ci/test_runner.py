@@ -1,5 +1,7 @@
 """Pure parser/source regressions. No Git fetch, metadata, Rust or native job."""
 import copy
+import contextlib
+import io
 import importlib.util
 import json
 import os
@@ -50,7 +52,34 @@ class Checks(unittest.TestCase):
     def test_compile_wrong_paths_profile_missing_duplicate_reject(self):
         meta=graph();log=compiler_log(meta)
         for changed in ['',log+'\n'+log,log.replace('/fixture/lib.rs','/wrong.rs'),log.replace(' --test',''),log.replace('/official/horizon-client-core/lib.rs','/fixture/lib.rs')]:
-            with self.assertRaises(ValueError):m.compilers(changed,meta,Path('/fixture'))
+            with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):m.compilers(changed,meta,Path('/fixture'))
+    def test_environment_rs_suffix_is_not_a_native_source(self):
+        meta=graph();log=compiler_log(meta)
+        changed=log.replace('Running `',"Running `CARGO_PKG_HOMEPAGE=https://serde.rs CARGO_PKG_DESCRIPTION='ends with .rs' ")
+        self.assertEqual(len(m.compilers(changed,meta,Path('/fixture'))),3)
+    def test_rustc_environment_is_not_an_executable(self):
+        meta=graph();log=compiler_log(meta)
+        changed=log.replace('Running `','Running `RUSTC=/toolchain/bin/rustc ')
+        self.assertEqual(len(m.compilers(changed,meta,Path('/fixture'))),3)
+        self.assertIsNone(m.compiler_arguments('Running `RUSTC=/toolchain/bin/rustc /target/build-script`'))
+        with self.assertRaises(ValueError):m.compiler_arguments('Running `RUSTC=/toolchain/bin/rustc /other --crate-name core source.rs`')
+    def test_duplicate_command_and_bounded_diagnostic(self):
+        for line in ['Running `rustc /other/rustc --crate-name core source.rs`',
+                     'Running `rustc --crate-name core --crate-name other source.rs`']:
+            with self.assertRaises(ValueError):m.compilers(line,graph(),Path('/fixture'))
+        log=compiler_log(graph()).replace('/fixture/lib.rs','/'+('x'*1000)+'.rs');output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaises(ValueError):m.compilers(log,graph(),Path('/fixture'))
+        self.assertIn('COMPILER_SOURCE_MISMATCH',output.getvalue());self.assertLess(len(output.getvalue()),1000)
+        self.assertNotIn('CARGO_PKG_HOMEPAGE',output.getvalue())
+    def test_verbose_suite_obeys_inherited_parent_parser(self):
+        names=unittest.defaultTestLoader.getTestCaseNames(Checks)
+        names.remove('test_verbose_suite_obeys_inherited_parent_parser');self.assertEqual(len(names),19)
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
+            result=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite(Checks(n) for n in names))
+        self.assertTrue(result.wasSuccessful(),output.getvalue());self.assertEqual(result.testsRun,19)
+        self.assertNotIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
+        m.old.python_pass(output.getvalue(),19)
     def test_actual_single_test_artifact(self):
         meta=graph();row=artifact_row(meta)
         self.assertEqual(m.artifact(json.dumps(row),meta,Path('/target')),Path('/target/debug/deps/test-binary'))

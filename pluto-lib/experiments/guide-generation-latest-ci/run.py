@@ -17,7 +17,7 @@ PREP='pluto-lib/experiments/guide-generation-latest-fixture'
 UTILITY=['pluto-lib/experiments/guide-storage-ci/run.py','tconstruct/tests/guide-identity-ci/run.py']
 NATIVE=['horizon-client-core','horizon-client-render']
 NAME='pluto-guide-generation-tests'
-RUNNER_TESTS=16
+RUNNER_TESTS=20
 REQUIRED={'runner','preparer15','source6','toolchain','official','metadata','compile','inventory21','generation6'}
 
 def load(name,path):
@@ -58,6 +58,22 @@ def tests(log,names):
     if len(names)!=6 or len(set(names))!=6 or len(rows)!=6 or {n for n,_ in rows}!=set(names) or any(s!='ok' for _,s in rows):raise ValueError('Wrong six passing names')
     if re.findall(r'^test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out;',log,re.M)!=[('6','0','0','0','15')]:raise ValueError('Wrong exact selected result')
 
+def compiler_arguments(line):
+    # Cargo's leading shell-style environment values are not Rust inputs.
+    # In particular CARGO_PKG_HOMEPAGE=https://serde.rs and RUSTC=/x/rustc
+    # must not be confused with a source path or the executable token.
+    tokens=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
+    at=0
+    while at<len(tokens) and re.match(r'^[A-Za-z_][A-Za-z0-9_]*=',tokens[at]):at+=1
+    command=tokens[at:]
+    if not command:return None
+    if Path(command[0]).name!='rustc':
+        if '--crate-name' in command:raise ValueError('Unexpected compiler command')
+        return None
+    if sum(Path(token).name=='rustc' for token in command)!=1:
+        raise ValueError('Ambiguous rustc executable tokens')
+    return command[1:]
+
 def compilers(log,metadata,fixture):
     wanted={}
     for name in NATIVE+[NAME]:
@@ -69,12 +85,17 @@ def compilers(log,metadata,fixture):
     result=[]
     for line in log.splitlines():
         if 'Running `' not in line or 'rustc' not in line:continue
-        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
-        if '--crate-name' not in args:continue
+        args=compiler_arguments(line)
+        if args is None or '--crate-name' not in args:continue
+        if args.count('--crate-name')!=1 or args.index('--crate-name')+1==len(args):raise ValueError('Malformed crate-name argument')
         name=args[args.index('--crate-name')+1]
         if name not in wanted:continue
         paths=[(fixture/a).resolve() for a in args if a.endswith('.rs')]
-        if paths!=[wanted[name]] or ('--test' in args)!=(name==NAME.replace('-','_')):raise ValueError('Wrong cold compiler source/profile')
+        if paths!=[wanted[name]] or ('--test' in args)!=(name==NAME.replace('-','_')):
+            detail={'crate':name,'source_count':len(paths),'sources':[str(p)[:240] for p in paths[:4]],
+                    'expected':str(wanted[name])[:240],'test':'--test' in args,'command_sha256':sha(line.encode())}
+            print('COMPILER_SOURCE_MISMATCH',json.dumps(detail,sort_keys=True),flush=True)
+            raise ValueError('Wrong cold compiler source/profile')
         result.append({'crate':name,'source':str(paths[0]),'test':'--test' in args,'command_sha256':sha(line.encode())})
     if len(result)!=3 or {r['crate'] for r in result}!=set(wanted):raise ValueError('Missing/duplicate cold compiler')
     return result

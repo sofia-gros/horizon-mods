@@ -8,9 +8,9 @@
     "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
   },
   "source_sha256": {
-    "pluto-lib/experiments/guide-generation-latest-ci/run.py": "805c25fb83c3e99a41377936bee6391fe79e20ed084b894c71be8d8a1ccd9f02",
-    "pluto-lib/experiments/guide-generation-latest-ci/test_runner.py": "829156f40f7a4691796945286745717c458299b3d4f4ba16850e17d61f560bb9",
-    "pluto-lib/experiments/guide-generation-latest-ci/README.md": "d36f9fe9837f15c2a90c9d2ca4e5add32719c8a625f655cce7494fd813a88968",
+    "pluto-lib/experiments/guide-generation-latest-ci/run.py": "573636b8b6a7bbc7a71462b5894574a6109865ff420fe0d7a533a1284128ec25",
+    "pluto-lib/experiments/guide-generation-latest-ci/test_runner.py": "4755c744c781bb4a321ce1fc5caf6a68e261218927d819dddc191f8ed1e661b6",
+    "pluto-lib/experiments/guide-generation-latest-ci/README.md": "db4fe3e87cb253e1217071d085e4993fec87427016dcf151ac158f2ebaec2fec",
     ".github/workflows/guide-generation-latest-wip.yml": "54aa55799cbd4c1bc70a80410c59253993eddaaf6e634fd199e667d29c375523",
     "pluto-lib/experiments/guide-generation-latest-fixture/prepare.py": "640c4a86ffeee3365502a5bde7e18973553383143a4c9d10a8cc4e87a6949767",
     "pluto-lib/experiments/guide-generation-latest-fixture/test_prepare.py": "bc4572f263a441a03ef8a6cd928c78853e94d155ed2fb100e7180ee53c46e8b5",
