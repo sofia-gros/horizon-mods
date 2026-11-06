@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "input_integration": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "plan": {
+    "bytes": 6383021,
+    "sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b"
+  },
+  "current_book": {
+    "candidate": "f04f0fc3d140693d2d7b181f9b55f67127a76417",
+    "check": "PASS",
+    "scope": "Unchanged guard.check on the complete actual plan only; no new planner/apply/type/UI execution."
+  },
+  "payload_observer": {
+    "mod_id": "pluto_native_creative",
+    "injection_id": "pluto_native_creative-client-payload-observed",
+    "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+    "kind": "RETURN",
+    "cancellable": false,
+    "file": "crates/horizon-client/src/game/native_hooks.rs",
+    "node": [
+      40,
+      349
+    ],
+    "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
+    "bindings": [
+      {
+        "name": "value",
+        "ty": "()",
+        "value": "$value"
+      },
+      {
+        "name": "game",
+        "ty": "&Game<'_>",
+        "value": "&*self"
+      },
+      {
+        "name": "packet",
+        "ty": "&ClientboundPlayPacket",
+        "value": "packet"
+      }
+    ]
+  },
+  "old_location": {
+    "file": "crates/horizon-client/src/game/native_hooks.rs",
+    "node": [
+      40,
+      339
+    ]
+  },
+  "location_only_next_error": "a caller hook can bypass or reorder the native packet observer",
+  "helper_sha256": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+  "caller_rows": [
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "broad-wire-receive",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": true,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&C",
+          "value": "&packet"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "crafting-station-client-data",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": false,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Clientbound",
+          "value": "&packet"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "haste-wire-receive",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": true,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&C",
+          "value": "&packet"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "materials-book-response",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": true,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&C",
+          "value": "&packet"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "menu-window-state-receive",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": false,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Clientbound",
+          "value": "&packet"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "injection_id": "smeltery-track-menu-state",
+      "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+      "kind": "HEAD",
+      "cancellable": false,
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        44,
+        68
+      ],
+      "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Clientbound",
+          "value": "&packet"
+        }
+      ]
+    }
+  ],
+  "blocking_callers": [
+    "broad-wire-receive",
+    "haste-wire-receive",
+    "materials-book-response"
+  ],
+  "poll_remote_plan_rows": 0,
+  "payload_metadata_written": false,
+  "limit": "Only an in-memory location substitution reached the next rejection. Caller source checks remain unreached. The old and current poll_remote bodies differ and no current fingerprint is supplied by this plan. No guard bypass or removal; Guide bridge alone does not resolve broad/haste cancellation."
+}

@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "integration_metadata": "17f44dc36fc2df28547328aa8554286ae965b208",
+  "plan_integration": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "plan_bytes": 6383021,
+  "actual_complete_plan": true,
+  "advancement": {
+    "check_order": "passed",
+    "verify_source": "passed",
+    "guard_program_sha256": "1221a0b6ad0ca2c3c2bf5f6cd7cf4db0d7d7518f84ddaf00b4534218f29b4b57",
+    "metadata_sha256": "4cccd5f6c346119705ac59178de944f63f9e51f865ea64e333bad447b354760e",
+    "full_guard_functions_passed": true
+  },
+  "damage": {
+    "check_order": "passed",
+    "exact_packaged_helpers": "passed",
+    "helpers": [
+      {
+        "target": "horizon_client::game::creatures::Game<'_>::hurt_player_from",
+        "node": [
+          20,
+          53
+        ],
+        "function_fingerprint": "1d0aa093d60a70b903e4cab049b2d7a8e9fc999083df95ce11d9440f3d2e8214",
+        "helper_sha256": "0d7f2eda561c918c04ec13c4bbfbbff25ff4b76d8f0aa92822e7723ef301dcee"
+      },
+      {
+        "target": "horizon_client::game::explosion::Game<'_>::explosion_hurt_player",
+        "node": [
+          21,
+          3
+        ],
+        "function_fingerprint": "a234771d1f4ae507520ec4269a5b783e586e6cb7454870985b8af999521b9909",
+        "helper_sha256": "b9dc0da7e91a428aab767025c78ccc27f9a312d8ea8eda06491c848a2b25858b"
+      },
+      {
+        "target": "horizon_client::game::Game<'_>::hurt_armor",
+        "node": [
+          421,
+          218
+        ],
+        "function_fingerprint": "6df4d3263e4096356bd40b52d91498f145f740c2a91739b6446dcd9a468fee48",
+        "helper_sha256": "5d91f42548e476c94676aa97ad3c4536be5180c02060134a9471a324f5750705"
+      }
+    ],
+    "rustfmt_regeneration": "not run; requires bounded remote native-tool gate",
+    "full_guard_passed": false
+  },
+  "native_execution": false,
+  "apply": false,
+  "build": false
+}

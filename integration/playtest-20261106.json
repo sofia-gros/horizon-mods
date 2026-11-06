@@ -207,8 +207,14 @@
       "inventory": 21,
       "actual_compilers": 3,
       "all_seals": true,
-      "scope": "Finite actual core Text response values only; not Game/registry/observer/UI/LAN"
-    }
+      "scope": "Finite actual core Text response values only; not Game/registry/observer/UI/LAN",
+      "record": "pluto-lib/experiments/guide-reply-value-ci/result-fe52.json"
+    },
+    "full_plan_function_replay_records": [
+      "pluto-lib/docs/advancement-damage-full-ir-20261106.json",
+      "pluto-lib/docs/terrain-41f-full-ir-20261106.json",
+      "pluto-lib/experiments/current-book-41f/actual-plan-diagnostic.json"
+    ]
   },
   "safety": {
     "main_and_existing_prs_unchanged": true,
@@ -425,6 +431,17 @@
       "independent_review": "Guide immutable12paths and central source/pure/old-base checks",
       "scope": "Two guards change only executable routing. Exact official rustfmt archive/exe admission precedes execution. UTF-8 child-only. No installation/global settings/native content change.",
       "windows_executed": false
+    },
+    {
+      "subject": "Stored crafting facts bounded controller",
+      "paths": 4,
+      "source_checks": 31,
+      "preparer_checks": 21,
+      "candidate_checks": 13,
+      "independent_review": "Guide final actual-rustc/strict Cargo parser review; central31pure replay",
+      "activation": "Excluded source only; no workflow/trigger or ordinary hook/API change",
+      "api153_or_finite16_executed": false,
+      "bootstrap5_executed": false
     }
   ],
   "guide_limits": [
