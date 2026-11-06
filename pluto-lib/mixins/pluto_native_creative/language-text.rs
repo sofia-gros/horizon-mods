@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn reordered_styled_arguments_use_native_text_without_flattening() {
         in_language("en_us", || {
-            let args = [Text::literal("first").with_color(0x123456ff), Text::literal("second").bold()];
+            let args = [Text::literal("first").with_color(0x123456), Text::literal("second").bold()];
             let got = key("gui.example.args").resolve(&args);
             let expected = Text::translate("gui.example.args", &args);
             assert_eq!(got.plain(), "second / first / second");

@@ -138,3 +138,12 @@ internal 8 / Key 6 / item display 8 as separate results, plus the original autho
 example compilation. That fixture is not an installed full client-lib or Game
 build. Manifest placement, complete installed composition, retained Guide/LAN
 pages, actual pack overlays and live UI remain separate validation gates.
+
+### Native RGB test-input correction
+
+The composed Key source includes Guide test-only correction
+`bbb4948b98672ab3cb3a59178eab103b51229902`: the styled argument case uses
+`0x123456`, the native RGB input, instead of `0x123456ff`. Only that test literal
+changes; the production Key/adapter bodies remain unchanged. The source ledger
+pins the corrected helper SHA `1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2`.
+This is pre-execution fixture correction, not a native pass.

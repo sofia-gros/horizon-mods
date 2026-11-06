@@ -25,8 +25,8 @@
     },
     "author": {
       "path": "pluto-lib/mixins/pluto_native_creative/language-text.rs",
-      "sha256": "df29858aca7c400bd2e891978fcebc680a506ab79258eda6ec3c5e2f0e8456f9",
-      "source_commit": "a630d1ab65984aa29c9bdadeeddf320f44d2b9d1"
+      "sha256": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2",
+      "source_commit": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae"
     },
     "example": {
       "path": "pluto-lib/examples/language_text.rs",
@@ -113,5 +113,7 @@
       "prefix": "pluto_language::tests::"
     }
   ],
-  "execution_strategy": "Compile once; execute full unfiltered 22 tests once, require exact names/0 ignored/0 filtered, then partition results into item8/Key6/internal8 receipts."
+  "execution_strategy": "Compile once; execute full unfiltered 22 tests once, require exact names/0 ignored/0 filtered, then partition results into item8/Key6/internal8 receipts.",
+  "composed_source_commit": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+  "rgb_followup": "Guide test-only RGB literal uses 0x123456; actual Key bodies, example and module manifest unchanged. No prior native run."
 }
