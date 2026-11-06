@@ -2,7 +2,6 @@
 from pathlib import Path
 import shutil
 import subprocess
-import tempfile
 import tomllib
 import unittest
 
@@ -10,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GuideKeyboardNavigation(unittest.TestCase):
-    def test_only_book_input_is_intercepted_and_existing_turn_path_is_reused(self):
+    def test_input_uses_guide_policy_without_intercepting_native_turn(self):
         manifest = tomllib.loads((ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text())
         hooks = [hook for hook in manifest['injection'] if hook['id'] == 'materials-book-key']
         self.assertEqual(len(hooks), 1)
@@ -24,16 +23,23 @@ class GuideKeyboardNavigation(unittest.TestCase):
         source = (ROOT / 'mixins/tconstruct/source-materials-book-key.rs').read_text()
         self.assertIn('BookScreen::View { pages, lectern: None, .. }', source)
         self.assertIn('Some("tconstruct:materials-book-root")', source)
-        self.assertIn('game.turn_page(forward)', source)
-        for excluded in ('Escape', 'PageUp', 'PageDown', 'save_book', 'close_book'):
+        self.assertIn('tconstruct_materials_book_navigation::turn(game, forward)', source)
+        self.assertFalse(any(h['target'].endswith("::turn_page") for h in manifest['injection']))
+        for key in ('PageUp', 'PageDown'): self.assertIn(key, source)
+        for excluded in ('Escape', 'save_book', 'close_book', 'game.turn_page('):
             self.assertNotIn(excluded, source)
 
-    @unittest.skipUnless(shutil.which('rustc'), 'rustc unavailable for bounded adapter fixture')
-    def test_production_keyboard_and_turn_adapters(self):
-        with tempfile.TemporaryDirectory(prefix='book-keyboard-') as tmp:
-            binary = Path(tmp) / 'book-keyboard-tests'
-            subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/book_keyboard_navigation.rs'), '-o', str(binary)], check=True)
-            subprocess.run([str(binary)], check=True)
+    @unittest.skipUnless(shutil.which('cargo'), 'cargo unavailable for bounded adapter fixture')
+    def test_production_keyboard_click_and_control_adapters(self):
+        result = subprocess.run([
+            'cargo', 'test', '--locked', '--offline', '--manifest-path',
+            str(ROOT / 'tests/book-wire/Cargo.toml'), '--lib',
+            'book_keyboard_navigation::', '--', '--test-threads=1',
+            '--skip', 'book_keyboard_navigation::tconstruct_materials_book_spread::',
+        ], check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print(result.stdout)
+        self.assertIn('8 passed; 0 failed', result.stdout)
+        self.assertNotIn('ignored,', result.stdout.split('test result:')[0])
 
 
 if __name__ == '__main__':

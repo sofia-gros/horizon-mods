@@ -3475,13 +3475,20 @@ cancellable = true
 helper = "source-materials-book-click.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "size", ty = "[u32; 2]", value = "size" }]
 
+# Spread navigation is consumer policy, not a replacement for native turn_page.
+[[module]]
+id = "materials-book-navigation"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_navigation"
+source = "source-materials-book-navigation.rs"
+
 [[injection]]
-id = "materials-book-turn"
-target = "horizon_client::game::books::Game<'_>::turn_page"
+id = "materials-book-control"
+target = "horizon_client::game::books::Game<'_>::book_control"
 kind = "HEAD"
 cancellable = true
-helper = "source-materials-book-turn.rs"
-bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "forward", ty = "bool", value = "forward" }]
+helper = "source-materials-book-control.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "action", ty = "Option<&str>", value = "action" }]
 
 [[module]]
 id = "materials-book-spread"
