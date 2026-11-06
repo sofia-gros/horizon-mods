@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "status": "excluded witness collection, not a compatibility guard",
-  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
   "historical_bundle_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
   "official_source_sha256": {
@@ -15,7 +15,7 @@
     "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
     "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
     "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
-    "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+    "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
     "crates/horizon-client/src/game/mods.rs": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
     "crates/horizon-client/src/game/packs.rs": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32"
   },

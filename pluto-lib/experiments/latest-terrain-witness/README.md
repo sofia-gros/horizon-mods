@@ -6,7 +6,7 @@ apply a plan, update metadata, change a cache, or execute rendering.
 
 ## Fixed scope
 
-- Horizon `f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd`.
+- Horizon `41f822b659789780f58d32c63ddfb6887ea1b8bf`.
 - Mixins `5a64af938ec86b00d53d16a408aabc0038fb3e57`.
 - Existing common bundle `4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d`
   supplies the unchanged eight Rust payloads. Its old revision compatibility
@@ -60,23 +60,33 @@ observed file changes. No concurrent hostile filesystem/TOCTOU guarantee is
 claimed; execute against controller-sealed quiescent inputs. A budget rejection
 requires explicit investigation, not an automatic retry with a larger limit.
 
-## Current evidence and limitations
+## 41f contract delta and limits
 
-- Twenty pure Python regressions passed using the eight **actual pinned** Rust
-  payloads and explicitly synthetic plan shapes. Tests cover changed observed
-  node/fingerprint values, owner/payload/source drift, aliases, whole-file
-  competitors, missing/duplicate entries, bounds, and symlink/path rejection.
-- A separate read-only check matched all thirteen selected latest official
-  files and eight existing payloads. No latest plan was substituted into tests.
-- The first test invocation exposed an eager temporary-directory default in the
-  test harness. The next exposed a nonregular-input exception/fd lifetime in the
-  reader. Both were corrected before the final twenty-test pass.
-- Latest actual main+common diagnostic `ada5a943` / run `42204940940` ended after
-  575.217 seconds with `E_LOCAL_NOT_FOUND` for `source-host-mining-context` at
-  `Game::tick_mining` (`speed:0`). It did not yield a successful complete plan or
-  reach the twelve guards. Therefore **no latest terrain witness exists yet**.
-- This excluded source has not been installed in a CI runner. Production guards,
-  runtime payloads, the current diagnostic and the CLI remain unchanged.
-- Old CPU success belongs to Horizon `624c` / Mixins `e8`, not this latest cutoff.
-  There is no new Rust/apply, renderer CPU, Game reload, streaming, GPU or
-  performance result from this artifact.
+This cutoff preserves the collector implementation byte-for-byte. Only the
+contract's Horizon revision and `game.rs` source SHA-256 change from the frozen
+f4dc collector `5b87b28d`. The eight payloads, two hooks, six modules, bounds,
+owner/binding checks and observed-only/null-compatibility behavior are unchanged.
+No expected node or fingerprint was filled in, and no production guard changed.
+
+`source-delta-41f.json` records thirteen exact Git-tree blobs: twelve are equal
+to f4dc (including Cargo.lock and all selected renderer files). The complete
+six-hunk official game.rs delta was applied in memory with all old context lines
+checked; the resulting full bytes match the independently read latest Git blob.
+The whole PackResources impl, including assemble, is byte-identical. The entire
+mesher.rs file, including mesh_reusing, is byte-identical. This establishes
+selected source identity, not a successful latest plan or type compatibility.
+
+Twenty-two pure Python regressions use the actual pinned payloads and synthetic
+plan shapes. They include exact reversal of the two contract value changes and
+rejection of the old game.rs hash. No official planner/compiler/rendering runs.
+The controller must pin all five files here, pass an explicit repo-shaped
+`--mod-root`, verify complete source/package provenance, and record whole-plan
+SHA/bytes BEFORE invoking this collector. A collector refusal must remain an
+observation failure with compatibility null; do not skip it or update a guard.
+
+The f4dc full-646 attempt `74fc9a53` / run `42215886835` ended after 580.106 seconds
+with `E_UNSUPPORTED_CONTROL_FLOW` at `tinkers-chest-pick-color` / Game::picked_stack.
+It produced no accepted plan; collection and the twelve old guards were not
+reached. No 41f terrain witness exists at this cutoff. Prior CPU success remains
+624c/e8 evidence only. There is no new Rust/apply, renderer CPU, reload, streaming,
+GPU, playable Windows artifact or performance proof from this source change.

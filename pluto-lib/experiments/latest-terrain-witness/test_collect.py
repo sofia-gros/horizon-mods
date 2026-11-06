@@ -70,6 +70,28 @@ class WitnessTests(unittest.TestCase):
         p['injections'][0]['argument'] = None
         self.assertEqual(self.check(p)['hooks'][0]['site'], {'argument': None})
 
+    def test_41f_contract_is_exact_two_value_change_from_f4dc(self):
+        evidence = C.decode((HERE / 'source-delta-41f.json').read_bytes())
+        self.assertEqual(CONTRACT['horizon'], '41f822b659789780f58d32c63ddfb6887ea1b8bf')
+        self.assertEqual(C.sha((HERE / 'collect.py').read_bytes()), evidence['collector_sha256'])
+        prior = copy.deepcopy(CONTRACT)
+        prior['horizon'] = evidence['old_horizon']
+        path = 'crates/horizon-client/src/game.rs'
+        row = next(r for r in evidence['official_tree_rows'] if r['path'] == path)
+        prior['official_source_sha256'][path] = row['local_f4dc_sha256']
+        self.assertEqual(C.sha((json.dumps(prior, indent=2)+'\n').encode()), evidence['old_contract_sha256'])
+        self.assertEqual(sum(r['same_blob'] for r in evidence['official_tree_rows']), 12)
+        self.assertEqual(len(evidence['official_tree_rows']), 13)
+
+    def test_old_game_hash_is_rejected_without_inventing_identity(self):
+        p = plan()
+        p['inputs']['crates/horizon-client/src/game.rs'] = '5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c'
+        self.rejected(p)
+        for row in CONTRACT['hooks'] + CONTRACT['modules']:
+            self.assertNotIn('node', row)
+            self.assertNotIn('function_fingerprint', row)
+            self.assertNotIn('fingerprint', row)
+
     def test_missing_hook_or_module(self):
         for field in ('injections', 'modules'):
             p = plan(); p[field].pop(); self.rejected(p)
