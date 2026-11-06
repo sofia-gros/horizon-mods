@@ -1,0 +1,21 @@
+{
+  "source": "9da10132a6ced356d8aa83a65f0716cc1843ee3d",
+  "tree": "2fbc8586ea714fa4853bbc3915875a3cf25b45a2",
+  "cargo_exit_code": 0,
+  "strict_success": true,
+  "base_patch_api_copy_seed_unchanged": true,
+  "exact_base_overlay_copy_file_sets": true,
+  "api_files": 31,
+  "base_materialized_files": 193,
+  "patch_source_files": 8,
+  "actual_api_path": "/workspace/scratch/c7b540ff3393/.work/recipe-presentation-proof-20261106/api-unit-fixture/inventory-api",
+  "command": [
+    "cargo",
+    "test",
+    "--lib",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/workspace/scratch/c7b540ff3393/.work/recipe-presentation-proof-20261106/api-unit-fixture/inventory-api/Cargo.toml"
+  ]
+}

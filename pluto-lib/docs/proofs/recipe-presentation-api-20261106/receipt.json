@@ -1,0 +1,57 @@
+{
+  "source": "9da10132a6ced356d8aa83a65f0716cc1843ee3d",
+  "source_tree": "2fbc8586ea714fa4853bbc3915875a3cf25b45a2",
+  "result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 10880692224,
+    "timed_out": false,
+    "elapsed_seconds": 3.606621725994046,
+    "command": [
+      "python",
+      ".work/recipe-presentation-proof-20261106/run_api_unit.py"
+    ],
+    "owned_process_group_absent": true,
+    "error": null
+  },
+  "source_checks": {
+    "source": "9da10132a6ced356d8aa83a65f0716cc1843ee3d",
+    "tree": "2fbc8586ea714fa4853bbc3915875a3cf25b45a2",
+    "cargo_exit_code": 0,
+    "strict_success": true,
+    "base_patch_api_copy_seed_unchanged": true,
+    "exact_base_overlay_copy_file_sets": true,
+    "api_files": 31,
+    "base_materialized_files": 193,
+    "patch_source_files": 8,
+    "actual_api_path": "/workspace/scratch/c7b540ff3393/.work/recipe-presentation-proof-20261106/api-unit-fixture/inventory-api",
+    "command": [
+      "cargo",
+      "test",
+      "--lib",
+      "--locked",
+      "--offline",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/recipe-presentation-proof-20261106/api-unit-fixture/inventory-api/Cargo.toml"
+    ]
+  },
+  "api_test_count": 134,
+  "api_test_compilations": 1,
+  "other_compilations": 0,
+  "runner_self_tests": 8,
+  "native_fixture_tests_executed": 0,
+  "native_plan_apply_host_check": false,
+  "gameplay_or_tconstruct_activation": false,
+  "files_sha256": {
+    "api-plan.json": "8c4615d34b31aa2b8fa0460bf92167f865ad1fcb9f5a64815dda6d5fd12a9cf6",
+    "api-unit-result.json": "478d9babf33678aa94ca8ed680db494046f93f28e0bf62b8eda1f32e48028e63",
+    "api-unit-source-check.json": "fde8a6a3fd22ba1a4c869cf9c5d543c564d440b243fc57bf627ec60efc9e0b3d",
+    "api-unit-result.log": "37d91c3eaa61ba4fbb2ad5ae608d640a82412323d9dfeb853910a5b75a610be0",
+    "rustc-invocations.jsonl": "dec37b41ba4cb99086556137f02a771e7176187e15ab651d061757aeaedc8870",
+    "run_api_unit.py": "4c8eacaa76b58c369226f784e1d610d7715ed2ab069b234ace120a1d76851037",
+    "rustc_budget_wrapper.py": "9dcd4502339bf8f6dce1cbe0318760d9e4d3b8cbbe0bfb3b764b719f634644d9",
+    "guard_api.py": "5bf127c925380f470031322f22cf72e08488c55825938b59fbd05a8cf2da7957",
+    "test_runner_guards.py": "e0008dfab6c3a381f26f8c937098d1dc7058510dbf910647c4f4587903bb60d4"
+  },
+  "scope": "Actual complete API unit tests only; workspace-specific proof scripts are evidence, not installed APIs."
+}

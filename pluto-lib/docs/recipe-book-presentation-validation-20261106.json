@@ -3,7 +3,7 @@
   "base_remote": "287934f03d25841ee7e6cd001316eedfd16efaef",
   "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
-  "status": "source_only_native_and_rust_unverified",
+  "status": "api134_pass_native_unverified",
   "source_files_sha256": {
     "pluto-lib/docs/recipe-book-presentation.md": "f5cdeeb023a9d9cd11b1dfb571b92b8f3e206c36b46f059423765666769a4df8",
     "pluto-lib/tests/test_recipe_book_presentation.py": "e52a5310142a71742fcb31043e57331a184bd501c804f2d200731ecc2f3007be",
@@ -15,7 +15,7 @@
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/presentation.rs": "d5a68d8ba49249ab3889bbe83020ac13fbea6f79d9b9f25a11b58409293d9f8d"
   },
   "source_guards_passed": 5,
-  "pure_tests_prepared_not_run": 9,
+  "pure_tests_prepared_not_run": 0,
   "native_tests_prepared_not_run": 4,
   "source_peer_review": "No serious atomicity or identity defect found; read-only, no type/test execution.",
   "existing_tconstruct_hooks_changed": false,
@@ -31,5 +31,10 @@
     "Recoverable validation failures leave Book unchanged and return proposals.",
     "No panic, OOM, Drop or whole-callback rollback guarantee.",
     "No persistent identity, index ownership, eligibility or output authority."
-  ]
+  ],
+  "tested_source": "9da10132a6ced356d8aa83a65f0716cc1843ee3d",
+  "api_tests_passed": 134,
+  "new_presentation_tests_passed": 9,
+  "proof": "proofs/recipe-presentation-api-20261106/receipt.json",
+  "source_files_sha256_provenance": "Hashes record the original immutable 9da source, not this docs-only proof update."
 }

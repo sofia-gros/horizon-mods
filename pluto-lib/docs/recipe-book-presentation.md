@@ -1,6 +1,6 @@
 # Explicit ingredient presentation staging
 
-Status: source-only candidate. Five Python source-boundary guards pass; they are not Rust behavior evidence. No Rust test, native plan, apply or host type-check has run for this addition. The nine API assertions and four real-native fixture assertions are prepared, not passed. The earlier Java/menu69c6 package proof excludes this module. No TConstruct production hook is changed or removed.
+Status: the exact published source `9da10132a6ced356d8aa83a65f0716cc1843ee3d` passes 134 real inventory API unit tests (the prior 125 plus nine presentation tests). Five Python source-boundary guards also pass. The four real-native fixture assertions are prepared but unexecuted. No native plan, apply or host type-check has run for this addition; the earlier Java/menu69c6 package proof excludes this module. No TConstruct production hook is changed or removed.
 
 ## Concrete caller and boundary
 
@@ -39,3 +39,19 @@ Do not use invalidate_definitions as a generic post-edit step on a live book: it
 Design sources are official Horizon624c4f6265c02296fbe8a80f029dd0d987fb94c0 `recipe_book.rs` (Entry, requirements/grid mapping, Book::ghost), existing Pluto preview/invalidation contracts and the immutable #941 consumer8c56bb52b6b77fae6115e894af9e369a5c3f9e08. The private fork was not accessed.
 
 Prepared tests cover ordered/current positional assertions, duplicates/ranges, clear versus explicit empty, unsupported furnace, resource limits, full-native payload move identity, all-or-nothing validation rejection and preservation of unrelated fields. Native fixture execution requires exact official declarations and the actual horizon-items package, not a semantic ItemStack or Book stub. The exact-fragment/real-package fixture preparer is provided but has not been run. Its execution and the official packaged-module/type gate remain pending. No test claim follows merely from these prepared assertions.
+
+## Focused API proof, 2026-11-06
+
+The complete real API package was copied from the frozen Java/menu source and
+overlaid with only the published presentation export/module. All 31 API files,
+193 base files, eight published source files and the unchanged committed seed
+lock were checked before and after. Exact file sets reject extra configuration,
+symlinks and unexpected directories. The wrapper admitted exactly one API
+`--test` compilation and no dependency or non-test compilation.
+
+The locked/offline run passed 134 tests, with zero failed or ignored, in a
+3.607-second guarded operation. Minimum free space was 10,880,692,224 bytes, above
+the 10 GiB + 128 MiB floor. The dedicated process group was absent afterward.
+[Receipt and exact runner inputs](proofs/recipe-presentation-api-20261106/receipt.json)
+separate this API result from the still-pending native adapter and gameplay
+gates. This proof excludes any later fluent builder or example changes.
