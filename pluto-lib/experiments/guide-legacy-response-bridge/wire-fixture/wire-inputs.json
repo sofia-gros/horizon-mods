@@ -1,0 +1,49 @@
+{
+  "bridge_source": "709a2b9456cbbed876240fb6de9a93d2f6d6543f",
+  "legacy_consumer_source": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+  "planned_official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "source_sha256": {
+    "old_response": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+    "wire": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e",
+    "identity": "041c225e40afdf1fe34e37ead32f89aabd8f56e97c5b62363e26722b5fbc45e8",
+    "bridge": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
+    "consumer": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
+    "tests": "8e268d99320492939bc1b64dc51fa647f4fea4832e19ffef72179b6f4e0ea453"
+  },
+  "expected_tests": {
+    "regression_tests": [
+      "regression_tests::all_six_legacy_titles_refresh_without_new_title_identity",
+      "regression_tests::cover_sentinel_and_current_page_clamp_match_original_assignment",
+      "regression_tests::current_view_values_can_be_supplied_without_an_owned_opening_token",
+      "regression_tests::decoded_span_and_metadata_filtering_remains_the_legacy_policy",
+      "regression_tests::invalid_current_root_or_unknown_title_does_not_borrow_another_book",
+      "regression_tests::invalid_replies_do_not_prevent_later_valid_same_sequence_refresh",
+      "regression_tests::maximum_body_plus_eight_byte_header_is_not_the_observer_ceiling",
+      "regression_tests::subsequent_same_sequence_reply_is_applied_again_not_consumed",
+      "regression_tests::truncated_header_malformed_empty_and_oversize_body_preserve_current",
+      "regression_tests::wrong_sequence_or_other_book_keeps_all_current_values"
+    ],
+    "tconstruct_materials_book_wire::tests": [
+      "tconstruct_materials_book_wire::tests::bounded_material_panel_metadata_survives_guest_transfer",
+      "tconstruct_materials_book_wire::tests::page_and_byte_limits_are_enforced_at_the_boundary",
+      "tconstruct_materials_book_wire::tests::page_links_and_graphics_round_trip_and_other_actions_are_omitted",
+      "tconstruct_materials_book_wire::tests::rejects_oversize_and_unmarked_pages",
+      "tconstruct_materials_book_wire::tests::replies_match_both_open_request_and_book",
+      "tconstruct_materials_book_wire::tests::source_title_style_survives_guest_transfer"
+    ],
+    "tconstruct_materials_book_identity::tests": [
+      "tconstruct_materials_book_identity::tests::item_ids_are_exact_and_not_translated_titles_or_prefixes",
+      "tconstruct_materials_book_identity::tests::near_titles_do_not_normalize_case_space_or_newlines",
+      "tconstruct_materials_book_identity::tests::six_legacy_titles_and_body_suffixes_match_the_old_branches",
+      "tconstruct_materials_book_identity::tests::source_item_root_and_title_pairs_are_unchanged",
+      "tconstruct_materials_book_identity::tests::unknown_and_translated_titles_preserve_the_asymmetric_fallback"
+    ]
+  },
+  "run_new_tests": 10,
+  "existing_tests_compile_and_inventory_only": 11,
+  "native_executed": false,
+  "notes": [
+    "No manifest/lock/dependency preparation or actual native execution yet. Future proof requires exact41f core and actual inventory API source/lock/file-set guards.",
+    "Text component and span comparisons are explicit. Game acquisition, native callbacks, registry, UI and transport are excluded."
+  ]
+}
