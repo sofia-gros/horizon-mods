@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "status": "excluded source-only validation comparison; no installed/runtime change",
+  "historical_runtime": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "production_sources": {
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
+  },
+  "experiment_sources": {
+    "candidate.rs": "9a09445826308e7e58d6016260dbc868223f5f0ed1541ab343e27c3eabb928f0",
+    "fixture.rs": "33aac6722a1df9732aed762beceeb6159d5eeb3839c0cc50fae43adff203698b"
+  },
+  "original_predicate_sha256": "43a8fdd9e3d194a79006c3d3e823f101522421c6fc05433f61ef8de89062244e",
+  "expected_tests": [
+    "fixed_capacity_order_and_paired_back_winding",
+    "diagonal_rotates_position_uv_pairs_only_on_top",
+    "omissions_and_section_boundary_remain_bounded",
+    "invalid_inputs_fail_before_returning_any_batch",
+    "bottom_orientation_is_exact_legacy_output",
+    "top_reflects_positions_uv_pairs_faces_and_back_winding",
+    "top_orientation_keeps_section_origin_and_shared_validation",
+    "every_face_mask_origin_corner_diagonal_and_back",
+    "empty_geometry_is_local_at_every_section_origin",
+    "nonzero_origin_can_be_local_and_top_changes_the_answer",
+    "exact_zero_one_subnormal_and_inset_boundaries",
+    "deterministic_float_bits_and_clone_keep_constructor_invariants",
+    "invalid_values_are_rejected_before_a_batch_exists",
+    "paired_validation_microtiming_is_not_mesher_timing"
+  ],
+  "execution": {
+    "rust": false,
+    "plan": false,
+    "apply": false,
+    "cpu": false,
+    "performance": false,
+    "gpu": false
+  }
+}
