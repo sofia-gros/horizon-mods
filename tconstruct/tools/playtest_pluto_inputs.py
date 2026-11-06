@@ -38,23 +38,51 @@ def signature(info):
     return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns)
 
 
+WINDOWS_STAT = os.name == 'nt'
+
+
+def read_signature(info):
+    # Same-API observations remain exact, including links and Windows attributes.
+    return signature(info) + (info.st_nlink, getattr(info, 'st_file_attributes', 0),
+                              getattr(info, 'st_reparse_tag', 0))
+
+
+def require_opened_file(path, before, opened):
+    """Compare path and handle stats without confusing Windows filename mode bits.
+
+    CPython's Windows path stat adds 0111 for four executable extensions; handle
+    fstat has no filename and does not. No other mode or identity field changes.
+    Same-API comparisons must use read_signature directly, without this adapter.
+    """
+    plain(before); plain(opened)
+    expected = list(read_signature(opened))
+    if (WINDOWS_STAT and stat.S_ISREG(opened.st_mode)
+            and Path(path).suffix.lower() in {'.exe', '.bat', '.cmd', '.com'}):
+        expected[2] |= 0o111
+    actual = read_signature(before)
+    if tuple(expected) != actual:
+        # Numeric fields only; no file contents or paths in the diagnostic.
+        raise ValueError('Input changed before read: path/handle stat '
+                         + repr((actual, tuple(expected))))
+
+
 def file_hash(path, before):
     if before.st_size > MAX_FILE_BYTES:
         raise ValueError('Pluto cache file exceeds size limit')
     total = 0; digest = hashlib.sha256()
     with path.open('rb') as stream:
         opened = os.fstat(stream.fileno()); plain(opened)
-        if signature(opened) != signature(before):
-            raise ValueError('Pluto cache input changed before read')
+        require_opened_file(path, before, opened)
         while block := stream.read(65536):
             total += len(block)
             if total > MAX_FILE_BYTES:
                 raise ValueError('Pluto cache file grew past size limit')
             digest.update(block)
-        if signature(os.fstat(stream.fileno())) != signature(before):
+        after_handle = os.fstat(stream.fileno()); plain(after_handle)
+        if read_signature(after_handle) != read_signature(opened):
             raise ValueError('Pluto cache input changed during read')
     after = path.lstat(); plain(after)
-    if signature(after) != signature(before) or total != before.st_size:
+    if read_signature(after) != read_signature(before) or total != before.st_size:
         raise ValueError('Pluto cache input changed after read')
     return digest.hexdigest(), total
 

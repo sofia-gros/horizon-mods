@@ -17,7 +17,7 @@ import subprocess
 import sys
 import tomllib
 
-from playtest_pluto_inputs import directory, plain, signature, fingerprint
+from playtest_pluto_inputs import directory, plain, signature, fingerprint, read_signature, require_opened_file
 import prepare_playtest_bundles as bundles
 import playtest_guard_rustfmt as guard_format
 
@@ -61,14 +61,15 @@ def file_hash(path, before):
     result = hashlib.sha256(); count = 0
     with path.open('rb') as stream:
         opened = os.fstat(stream.fileno()); plain(opened)
-        if signature(opened) != signature(before): raise ValueError('Input changed before read')
+        require_opened_file(path, before, opened)
         while chunk := stream.read(1024*1024):
             count += len(chunk)
             if count > 2 * 1024**3: raise ValueError('Input file grew past read budget')
             result.update(chunk)
-        if signature(os.fstat(stream.fileno())) != signature(before): raise ValueError('Input changed during read')
+        after_handle = os.fstat(stream.fileno()); plain(after_handle)
+        if read_signature(after_handle) != read_signature(opened): raise ValueError('Input changed during read')
     after = path.lstat(); plain(after)
-    if signature(after) != signature(before) or count != before.st_size: raise ValueError('Input changed after read')
+    if read_signature(after) != read_signature(before) or count != before.st_size: raise ValueError('Input changed after read')
     return result.hexdigest(), count
 
 

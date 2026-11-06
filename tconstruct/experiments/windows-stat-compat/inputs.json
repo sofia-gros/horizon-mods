@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "base": "38e1b11df5191197e3f6129959d8c84fd4b666aa",
+  "files": {
+    "playtest_pluto_inputs.py": {
+      "before_sha256": "2943fe7ed0e9ff625980ea6ce16b3c2c329dbd68dbfc95329c13c399490dc8b2",
+      "after_sha256": "a22d769982a958294a825b34358402f0b7d851286a708a5f236735ee073ae823",
+      "edits": [
+        [
+          "def signature(info):\n    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns)\n\n\ndef file_hash(path, before):\n    if before.st_size > MAX_FILE_BYTES:\n        raise ValueError('Pluto cache file exceeds size limit')\n    total = 0; digest = hashlib.sha256()\n    with path.open('rb') as stream:\n        opened = os.fstat(stream.fileno()); plain(opened)\n        if signature(opened) != signature(before):\n            raise ValueError('Pluto cache input changed before read')\n        while block := stream.read(65536):\n            total += len(block)\n            if total > MAX_FILE_BYTES:\n                raise ValueError('Pluto cache file grew past size limit')\n            digest.update(block)\n        if signature(os.fstat(stream.fileno())) != signature(before):\n            raise ValueError('Pluto cache input changed during read')\n    after = path.lstat(); plain(after)\n    if signature(after) != signature(before) or total != before.st_size:\n        raise ValueError('Pluto cache input changed after read')\n    return digest.hexdigest(), total\n\n\n",
+          "def signature(info):\n    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns)\n\n\nWINDOWS_STAT = os.name == 'nt'\n\n\ndef read_signature(info):\n    # Same-API observations remain exact, including links and Windows attributes.\n    return signature(info) + (info.st_nlink, getattr(info, 'st_file_attributes', 0),\n                              getattr(info, 'st_reparse_tag', 0))\n\n\ndef require_opened_file(path, before, opened):\n    \"\"\"Compare path and handle stats without confusing Windows filename mode bits.\n\n    CPython's Windows path stat adds 0111 for four executable extensions; handle\n    fstat has no filename and does not. No other mode or identity field changes.\n    Same-API comparisons must use read_signature directly, without this adapter.\n    \"\"\"\n    plain(before); plain(opened)\n    expected = list(read_signature(opened))\n    if (WINDOWS_STAT and stat.S_ISREG(opened.st_mode)\n            and Path(path).suffix.lower() in {'.exe', '.bat', '.cmd', '.com'}):\n        expected[2] |= 0o111\n    actual = read_signature(before)\n    if tuple(expected) != actual:\n        # Numeric fields only; no file contents or paths in the diagnostic.\n        raise ValueError('Input changed before read: path/handle stat '\n                         + repr((actual, tuple(expected))))\n\n\ndef file_hash(path, before):\n    if before.st_size > MAX_FILE_BYTES:\n        raise ValueError('Pluto cache file exceeds size limit')\n    total = 0; digest = hashlib.sha256()\n    with path.open('rb') as stream:\n        opened = os.fstat(stream.fileno()); plain(opened)\n        require_opened_file(path, before, opened)\n        while block := stream.read(65536):\n            total += len(block)\n            if total > MAX_FILE_BYTES:\n                raise ValueError('Pluto cache file grew past size limit')\n            digest.update(block)\n        after_handle = os.fstat(stream.fileno()); plain(after_handle)\n        if read_signature(after_handle) != read_signature(opened):\n            raise ValueError('Pluto cache input changed during read')\n    after = path.lstat(); plain(after)\n    if read_signature(after) != read_signature(before) or total != before.st_size:\n        raise ValueError('Pluto cache input changed after read')\n    return digest.hexdigest(), total\n\n\n"
+        ]
+      ]
+    },
+    "playtest_guard_rustfmt.py": {
+      "before_sha256": "8f4e563386e876e348d5650bb5d72d7ec25dbdd280bf5e7776160c3fecd74652",
+      "after_sha256": "1bb81096f760d6841433bfca5671d557a048efcc545d9b31397053faa21b65bd",
+      "edits": [
+        [
+          "from playtest_pluto_inputs import directory, plain, signature\n",
+          "from playtest_pluto_inputs import directory, plain, read_signature, require_opened_file\n"
+        ],
+        [
+          "def bounded_file(path, limit):\n    path = Path(path); directory(path.parent)\n    before = path.lstat(); plain(before)\n    if not path.is_file() or not 0 < before.st_size <= limit:\n        raise ValueError('Formatter input is missing, empty or exceeds its read budget')\n    with path.open('rb') as stream:\n        import os\n        opened = os.fstat(stream.fileno()); plain(opened)\n        if signature(opened) != signature(before): raise ValueError('Formatter input changed before read')\n        raw = stream.read(limit + 1)\n        after = os.fstat(stream.fileno()); plain(after)\n    final = path.lstat(); plain(final)\n    if len(raw) != before.st_size or signature(after) != signature(before) or signature(final) != signature(before):\n        raise ValueError('Formatter input changed during read')\n    return raw\n\n\n",
+          "def bounded_file(path, limit):\n    path = Path(path); directory(path.parent)\n    before = path.lstat(); plain(before)\n    if not path.is_file() or not 0 < before.st_size <= limit:\n        raise ValueError('Formatter input is missing, empty or exceeds its read budget')\n    with path.open('rb') as stream:\n        import os\n        opened = os.fstat(stream.fileno()); plain(opened)\n        require_opened_file(path, before, opened)\n        raw = stream.read(limit + 1)\n        after = os.fstat(stream.fileno()); plain(after)\n    final = path.lstat(); plain(final)\n    if len(raw) != before.st_size or read_signature(after) != read_signature(opened) or read_signature(final) != read_signature(before):\n        raise ValueError('Formatter input changed during read')\n    return raw\n\n\n"
+        ]
+      ]
+    },
+    "play_windows_latest.py": {
+      "before_sha256": "14628c8de8e10a3925db97589be6eceee1eee300682f5dac95ddb6a0b017e861",
+      "after_sha256": "36503f7ca6ca20f8113081648ecddf6ee01b67c2bddbb68b046e53592efd8149",
+      "edits": [
+        [
+          "from playtest_pluto_inputs import directory, plain, signature, fingerprint\n",
+          "from playtest_pluto_inputs import directory, plain, signature, fingerprint, read_signature, require_opened_file\n"
+        ],
+        [
+          "def file_hash(path, before):\n    # Rust's LLVM DLL and prepared resource files can exceed Pluto's 64 MiB limit.\n    if before.st_size > 2 * 1024**3: raise ValueError('Input file exceeds 2 GiB read budget')\n    result = hashlib.sha256(); count = 0\n    with path.open('rb') as stream:\n        opened = os.fstat(stream.fileno()); plain(opened)\n        if signature(opened) != signature(before): raise ValueError('Input changed before read')\n        while chunk := stream.read(1024*1024):\n            count += len(chunk)\n            if count > 2 * 1024**3: raise ValueError('Input file grew past read budget')\n            result.update(chunk)\n        if signature(os.fstat(stream.fileno())) != signature(before): raise ValueError('Input changed during read')\n    after = path.lstat(); plain(after)\n    if signature(after) != signature(before) or count != before.st_size: raise ValueError('Input changed after read')\n    return result.hexdigest(), count\n\n\n",
+          "def file_hash(path, before):\n    # Rust's LLVM DLL and prepared resource files can exceed Pluto's 64 MiB limit.\n    if before.st_size > 2 * 1024**3: raise ValueError('Input file exceeds 2 GiB read budget')\n    result = hashlib.sha256(); count = 0\n    with path.open('rb') as stream:\n        opened = os.fstat(stream.fileno()); plain(opened)\n        require_opened_file(path, before, opened)\n        while chunk := stream.read(1024*1024):\n            count += len(chunk)\n            if count > 2 * 1024**3: raise ValueError('Input file grew past read budget')\n            result.update(chunk)\n        after_handle = os.fstat(stream.fileno()); plain(after_handle)\n        if read_signature(after_handle) != read_signature(opened): raise ValueError('Input changed during read')\n    after = path.lstat(); plain(after)\n    if read_signature(after) != read_signature(before) or count != before.st_size: raise ValueError('Input changed after read')\n    return result.hexdigest(), count\n\n\n"
+        ]
+      ]
+    }
+  },
+  "scope": "Cross-API path/handle mode translation only; exact same-API stat and all other identity fields retained. No formatter/native execution."
+}
