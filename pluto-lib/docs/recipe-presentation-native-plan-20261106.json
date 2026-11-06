@@ -1,0 +1,22 @@
+{
+  "status": "read_only_plan_no_native_execution",
+  "source_commit": "dd491b3a1e6d0431eeac6965c2d18ed9f0a1ea11",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_source_sha256": {
+    "crates/horizon-client/src/recipe_book.rs": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+    "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+    "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4"
+  },
+  "native_adapter_sha256": "c5a04d1cc4fdd6545b765bb44c3c16f0d3dbb07812738bfbbdbfd3a8a1e6afef",
+  "native_fixture_sha256": "d97854592f8023e0fe8bfd16d652a5f96db7e15fde8414e0c231f416f5e16edd",
+  "native_tests_prepared": 4,
+  "native_tests_executed": 0,
+  "metadata_executed": false,
+  "plan_apply_host_check_executed": false,
+  "production_activation": false,
+  "normal_floor_bytes": 10871635968,
+  "launch_headroom_estimate_bytes": 25165824,
+  "estimate_is_measured_upper_bound": false,
+  "blocking_reason": "Known fresh API plus comparable native executable exceed current headroom even before scratch space; no execution grant."
+}
