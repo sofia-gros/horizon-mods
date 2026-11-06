@@ -5,7 +5,7 @@
   "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
   "module_inputs": {
     "pluto-lib/mixins/pluto_native_creative/language.rs": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d",
-    "pluto-lib/mixins/pluto_native_creative/language-text.rs": "df29858aca7c400bd2e891978fcebc680a506ab79258eda6ec3c5e2f0e8456f9"
+    "pluto-lib/mixins/pluto_native_creative/language-text.rs": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2"
   },
   "official_inputs": {
     "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
@@ -40,5 +40,9 @@
     ]
   },
   "expected_core_only_total": 14,
-  "execution_plan": "Native CI should run the single Recipe-owned actual core+items fixture with separate internal8/Key6/item8 gates, not this redundant core-only fixture."
+  "execution_plan": "Native CI should run the single Recipe-owned actual core+items fixture with separate internal8/Key6/item8 gates, not this redundant core-only fixture.",
+  "test_only_correction": {
+    "source_commit": "bbb4948b98672ab3cb3a59178eab103b51229902",
+    "change": "Key styled argument test uses native RGB 0x123456 instead of RGBA-like 0x123456ff; production body unchanged; native tests remain unrun"
+  }
 }
