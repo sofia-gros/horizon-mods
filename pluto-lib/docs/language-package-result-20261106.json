@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "scope": "Actual official Package::write_files -> Package::read -> Content::read/file -> Language::load, through an explicitly test-only ResourceSource view",
+  "tested_commit": "8b17fba9610c3e60a873c822f2fa04f93d5c94e4",
+  "fixture_source": "4d776b907aff5e748c700dafa422d791ecaf99ac",
+  "local_ci_source": "1c8aa9e04e8b259345f6607e1adc6f8992732a14",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "run_id": 42184962517,
+  "job_id": 127783013103,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42184962517",
+  "observed_result_utc": "2026-11-06T08:04:39Z",
+  "attempt": 1,
+  "actual_compiler_invocations": [
+    "horizon_mods",
+    "horizon_client_core",
+    "pluto_language_package_fixture --test"
+  ],
+  "compile_seconds": 43.299,
+  "native": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered_out": 0,
+    "seconds": 0.02,
+    "names": [
+      "tests::admitted_file_loss_is_failure_not_missing_resource_success",
+      "tests::content_admission_rejects_unowned_locale_namespace",
+      "tests::content_admission_requires_registries_even_for_only_language_files",
+      "tests::custom_owned_locale_does_not_prove_native_locale_menu_discovery",
+      "tests::hmod_round_trip_preserves_owned_locale_bytes_and_actual_lookup",
+      "tests::package_content_admission_does_not_validate_language_json_schema",
+      "tests::package_toml_asset_is_not_runtime_language_support",
+      "tests::packaged_missing_exact_locale_uses_english_not_regional_guess"
+    ]
+  },
+  "runner_python": 20,
+  "source_python": 5,
+  "receipt": {
+    "passed": true,
+    "verified": true,
+    "error": null,
+    "floor_bytes": 10871635968,
+    "minimum_free_bytes": 89983307776,
+    "source_seal_sha256": "fd4b2ead8973ca42cd690ebc7b725b18885d01f868d8d8208effc2c4bcdd9dd0",
+    "official_seal_sha256": "e1f94b0f68a4088615408abe8fec63488bbfd1faba041899240a6b99dd4ac385",
+    "fixture_seal_sha256": "ff6c8894a7372bdcdb67def583bc7a9a0e6fee338d3280ce1deed704c6fe24e7",
+    "generated_output_seal_sha256": "2e0cccec72c5324ed5fe44c504d31bc7a7e1592914235ca20fa7f1186fd21bff"
+  },
+  "verification": [
+    "Exact eight source-derived names matched raw successful test lines; one complete suite, no ignored or filtered cases.",
+    "Actual cold rustc command lines for both official crates and the test fixture were present.",
+    "Official seeded lock and actual local manifest paths validated before compilation and again after execution.",
+    "Final complete checkout bytes/file-set/symlink targets, fixture/lock/metadata and generated OUT_DIR hashes matched; no observed recompilation in the execution phase.",
+    "All six published CI files were read back exactly before trigger creation; runtime and frozen fixture bytes unchanged."
+  ],
+  "excluded": [
+    "Game::content_root enablement/dev admission and code registration",
+    "actual resource-pack/content-root overlay and overwrite behavior",
+    "Options locale settings, resource reload/install and live UI/glyph drawing",
+    "retained Guide/LAN translation refresh",
+    "runtime TOML translation loading",
+    "arbitrary production package/asset coverage",
+    "filesystem permission modes and empty-directory identity"
+  ],
+  "failure_history": "No CI retry or Rust correction was needed. Preparation-only Python assertion wording was corrected before the frozen successful CI source."
+}
+
