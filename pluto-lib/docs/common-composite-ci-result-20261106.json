@@ -1,0 +1,617 @@
+{
+  "schema": 1,
+  "status": "passed: exact bounded common-composite contract",
+  "source_head": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "workflow_head": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+  "workflow_tree": "4c9c7302093e0570693b1510c942edefdb1191dd",
+  "run_id": 42189798838,
+  "job_id": 127798725171,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42189798838",
+  "console": {
+    "bytes": 46787,
+    "sha256": "bafa8e5db48c8a99a5b349d59a3c5753798982c977f541f77152abd56c2924e7",
+    "encoding": "gzip+base64 of complete retrieved GitHub console, not raw verbose phase logs",
+    "content": "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"
+  },
+  "named_results": [
+    {
+      "name": "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_render::terrain::tests::facade_types_are_the_implementation_types",
+      "result": "ok"
+    },
+    {
+      "name": "pluto_render::terrain::tests::invalid_registration_retains_existing_validation_without_publishing",
+      "result": "ok"
+    },
+    {
+      "name": "mesher::pluto_terrain_cell_host::material_contract_tests::every_nontexture_attribute_mismatch_rejects_the_template",
+      "result": "ok"
+    },
+    {
+      "name": "mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes",
+      "result": "ok"
+    }
+  ],
+  "receipt": {
+    "error": null,
+    "floor_bytes": 10871635968,
+    "full_checkout_seal_sha256": "8d7f9970492e323994a892188db1196e8ad0bece70788ca2481441f9d6b83447",
+    "gates": {
+      "apply": {
+        "passed": true
+      },
+      "client_lib_compile": {
+        "binary_sha256": "6aa07064da69996121d4d5bc536595ed8c8ac89d4ab6719c6659a1d644aa9469",
+        "passed": true,
+        "source": "crates/horizon-client/src/client_lib.rs"
+      },
+      "complete_plan_guards": {
+        "passed": true,
+        "required_groups": 12
+      },
+      "composition_source4": {
+        "passed": true,
+        "tests": 4
+      },
+      "facade2": {
+        "names": [
+          "pluto_render::terrain::tests::facade_types_are_the_implementation_types",
+          "pluto_render::terrain::tests::invalid_registration_retains_existing_validation_without_publishing"
+        ],
+        "passed": true,
+        "tests": 2
+      },
+      "host_type": {
+        "passed": true,
+        "targets": [
+          "horizon_client_lib",
+          "horizon_client lib",
+          "horizon_client bin"
+        ]
+      },
+      "internal8": {
+        "names": [
+          "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+          "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+          "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+          "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+          "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+          "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+          "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+          "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery"
+        ],
+        "passed": true,
+        "tests": 8
+      },
+      "key6": {
+        "names": [
+          "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+          "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+          "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+          "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+          "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+          "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+        ],
+        "passed": true,
+        "tests": 6
+      },
+      "language_source19": {
+        "passed": true,
+        "tests": 19
+      },
+      "material2": {
+        "names": [
+          "mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes",
+          "mesher::pluto_terrain_cell_host::material_contract_tests::every_nontexture_attribute_mismatch_rejects_the_template"
+        ],
+        "passed": true,
+        "tests": 2
+      },
+      "package": {
+        "counts": {
+          "crate": 2,
+          "injection": 34,
+          "module": 69,
+          "state": 3
+        },
+        "passed": true,
+        "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d"
+      },
+      "plan": {
+        "passed": true,
+        "public_modules": {
+          "pluto_guide_layout": "e64ff9944ca685faaa01dc7d2a4fd04b0513116b1514ba168d56472081b824dc",
+          "pluto_inventory": "f3bc73cf7384aec53df4c834aeb73f583b372917d21e68f6f713fe5f273e5458",
+          "pluto_language": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d",
+          "pluto_language_text": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2",
+          "pluto_presentation": "c5a04d1cc4fdd6545b765bb44c3c16f0d3dbb07812738bfbbdbfd3a8a1e6afef",
+          "pluto_render": "66f92506471343fb24e6397e4fa5c8bcc9c43701bf81f9d5f7bd2238ae10410e"
+        },
+        "sha256": "6c89d96bc70c8c7799b8c7391fadd41b062c54b4733ba054facb55b4a628f31a"
+      },
+      "renderer_compile": {
+        "binary_sha256": "5ddfaeb9fa9b5bd52cac9e78a2498ea150287ef3d06ef771098b1ea27f440b18",
+        "passed": true,
+        "source": "crates/horizon-client-render/src/lib.rs"
+      },
+      "runner": {
+        "passed": true,
+        "tests": 23
+      },
+      "terrain_source23": {
+        "passed": true,
+        "tests": 23
+      },
+      "test_inventory": {
+        "passed": true,
+        "total_tests_by_target": {
+          "client_lib": 1989,
+          "renderer": 1556
+        }
+      }
+    },
+    "generated_output_seal_sha256": "d89f19480da1fd1522a14e41d3dc4dccb65b5d940dc4161d31320b24f4d3ef96",
+    "head": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+    "minimum_free_bytes": 87289589760,
+    "official_checkout_seals": {
+      "/home/runner/work/_temp/common-composite-0468d4b1ad48f2b3e9b674a00a30925e8de37bdf/horizon-git": "a8eeccb44e97655a0e8bdfcf378fedaf4b97d4d5a4bbf9a2050a96fd62139f6e",
+      "/home/runner/work/_temp/common-composite-0468d4b1ad48f2b3e9b674a00a30925e8de37bdf/mixins-git": "174c7135030b7f3d7364678a92275009fa0512ce452c4c9b399f6c40211581de"
+    },
+    "passed": true,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 3142,
+        "raw_sha256": "fd56ffca4a3e14578cd3f56b5ed108f6359ecd39ed53e6fb9f7a1ad01426bf6e",
+        "seconds": 0.602
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "language_source19",
+        "raw_bytes": 2905,
+        "raw_sha256": "6e621a0cac5cb53673cb3dd4c3fde0ee32aba5d44bf9f440e3b28a775ee0e783",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "terrain_source23",
+        "raw_bytes": 3570,
+        "raw_sha256": "5fc35ed5e682a7b65b57f6ad191c24f60a5ab436ddfebf80244a5d3721bb4eb3",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "composition_source4",
+        "raw_bytes": 646,
+        "raw_sha256": "d2941b2b537b977684b0969acb40a7f3bace3d26e9127bb418426a43d88b7ed7",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "apt-update",
+        "raw_bytes": 2177,
+        "raw_sha256": "45a29837447d2e096958ce2c2f6ac9d3e2ca28a581154b4e52c8711074aa9b07",
+        "seconds": 5.613
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "apt-install",
+        "raw_bytes": 2128,
+        "raw_sha256": "3a7139c66efe9745af853416aabd516fbf7455f38296566faf7008bc7ac512d9",
+        "seconds": 4.41
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "seconds": 7.419
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 722,
+        "raw_sha256": "6a77058b9eac10819876038a36da167dbab55098d62f182ed4d3e016cfa0bfae",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+        "seconds": 4.811
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 89,
+        "raw_sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+        "seconds": 0.602
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.203
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 721,
+        "raw_sha256": "b702b0a576108759a3a7d2733791e99e7c5074c5698afcb09eed126798ad077a",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "46a3acfd7e87f0064127d1e269a4b136861d8c1b27609da1093b39edb1fedbc7",
+        "seconds": 0.602
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 98,
+        "raw_sha256": "3c31bc675aaba31de4e14000d71e185be8792b43943bc4d4ed9a55ac2df21963",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "package",
+        "raw_bytes": 103,
+        "raw_sha256": "23addabe1b98f666bc931f57a0f3524643caa8f66f58bf165236e7bafa8152ce",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "unpack",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-build",
+        "raw_bytes": 4233,
+        "raw_sha256": "6d05caae7ae70cd2207d22da888c680b7c43c0e8eced27e3693db57b227522a9",
+        "seconds": 120.477
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "official-plan",
+        "raw_bytes": 268,
+        "raw_sha256": "cbd84e25daf732e0458d88fe3e22cf4177fe130d4036e03841aee8b7ebc564b8",
+        "seconds": 18.447
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "complete-plan-guards",
+        "raw_bytes": 74,
+        "raw_sha256": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "official-apply",
+        "raw_bytes": 332,
+        "raw_sha256": "40aabb60472cebf1cb456c1c3004eea38edce2307fb8440a4b9d52644e218db3",
+        "seconds": 20.646
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "stage-fetch",
+        "raw_bytes": 15088,
+        "raw_sha256": "3b2190837e41f6ee052ee7ad9c90467d1bdb7fa5e81ea1d528a6e385541fea15",
+        "seconds": 3.209
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_client_render",
+            "invocation_sha256": "1c0d8a00bedae78f6badc51d64eac1951361fc82dcbd324a724acd6349716297",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "pluto_inventory_api",
+            "invocation_sha256": "8ac42ad5f1c04e1f44820c5b7d064dd7a36c2e407073426c3d3ea70ba240efa5",
+            "source": [
+              "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client_lib",
+            "invocation_sha256": "752bbe809f4365507c132e10ad3447f28700191d008858b536f64f3908cbdbcf",
+            "source": [
+              "crates/horizon-client-lib/../horizon-client/src/client_lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "pluto_api",
+            "invocation_sha256": "b3f50f0424cdc1ca94091f4a7fd29692aa79049485f0a5acd712549902e43598",
+            "source": [
+              "native-crates/pluto_native_creative/pluto_native_creative-creative-api/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client",
+            "invocation_sha256": "9f19f813e773a32c708f214782b22a9c1089efe7776e9bba9e50f4507fbc1588",
+            "source": [
+              "crates/horizon-client/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client",
+            "invocation_sha256": "809b5167e77ceb386422e94a3cca79cfb6a692f7ffe40468b808abb8da02d0b2",
+            "source": [
+              "crates/horizon-client/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "host-type",
+        "raw_bytes": 2532530,
+        "raw_sha256": "34e8a94fd537e0f11b2472d50fa071bd60e9f6962544854d94fd180d99bce373",
+        "seconds": 166.972
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_client_render",
+            "invocation_sha256": "e74ef8dac2aad2d986b0f4d318e078cc76c91eb8aa20bd7a1c486ef7b1dbc09c",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "pluto_inventory_api",
+            "invocation_sha256": "cf4d927fd8d79df2dc9f17adc78e61c7a50b9c3993fc731920133276651f0181",
+            "source": [
+              "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client_lib",
+            "invocation_sha256": "3ee1df0531137a9978aa409b0dfa8ac7cc2b6d390ccf35a0c4c4ea574f68d241",
+            "source": [
+              "crates/horizon-client-lib/../horizon-client/src/client_lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "client_lib-compile",
+        "raw_bytes": 2406735,
+        "raw_sha256": "702e47b457cc3252d60c7d1a33c69a5ad5196bc14f2be0200490e278883dfa06",
+        "seconds": 232.319
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_client_render",
+            "invocation_sha256": "a47f1422c68ac867fe1ed73b83abe7e6fb4055392a45333aaffee8cf40714792",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "renderer-compile",
+        "raw_bytes": 1629635,
+        "raw_sha256": "d6c8563c7bd09136edec0acdfb2aed8f992fe0481a41d94ebf319c6d2b2c35b8",
+        "seconds": 93.41
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "client_lib-list",
+        "raw_bytes": 147686,
+        "raw_sha256": "c0d5a6a373d28f3fc286ed701f29d6f37b42e5b2d0117e5c49d3cd7eac3fdaaa",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "renderer-list",
+        "raw_bytes": 112326,
+        "raw_sha256": "3925e96bea1a8fbd64b5e7ccc9b1f78ea561d562ebd2e1c02f06b8081209543c",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "key6",
+        "raw_bytes": 722,
+        "raw_sha256": "3421ec6aeb1dff204e1e65cfa69f7e252a0557ec2ec18fea82f4492c19812bf9",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "internal8",
+        "raw_bytes": 837,
+        "raw_sha256": "fac73fcec6b9c0fe8ff20c58e25e94a16561bb9ef4eaa04f9024704ac79d80c2",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "facade2",
+        "raw_bytes": 310,
+        "raw_sha256": "07f30738d91e4e1d4e2bf157911b08327ddb75d186352d9fa4b6be2ea7e0bd6d",
+        "seconds": 0.201
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "material2",
+        "raw_bytes": 385,
+        "raw_sha256": "ebb27ee10b0416da3134ce54eb715c9bb24db6ee35b49b3d86ce01fc4ee86253",
+        "seconds": 0.201
+      }
+    ],
+    "scope": "Single exact common Pluto bundle: plan/12guards/apply, actual host lib+bin typing and installed language14, terrain facade2, renderer material2. No live Game, GUI, GPU, LAN, reload, pack/content overlay, full TConstruct or pure-API suite rerun claim.",
+    "source_seal_sha256": "3e08e5f57f2291252f29e45b27d62e0021c41a955e913c8355a805054496aa46",
+    "stage_seal_sha256": "196430bea7e1d31008285ca9ed4dd64f43ebd459b1fd6165ce1dd6ac2ab1e356",
+    "verified": true
+  },
+  "scope_limits": [
+    "Pure API 147/58 and example execution remain prior exact-source evidence, not rerun here.",
+    "Font12 and native Book4 behavior tests are not run here; their production helpers passed this host type check.",
+    "No live Game, GUI, GPU, LAN, held-screen refresh, pack/content overlay, full TConstruct or item-name TLS candidate included.",
+    "CPU material negative fixture failed separately at its first attempt; the CPU differential/replay contract is not proved by these 18 tests.",
+    "Console includes summaries validated from full raw phase logs. Raw verbose logs were ephemeral and are not included or recoverable from hashes alone.",
+    "Directory presence/kind and regular-file mode are sealed; directory permissions and symlink modes are not."
+  ],
+  "runner_source_sha256": {
+    "run.py": "a9efcb9f10a99c77ac9f36f6967253aa9d085452a6e9087f76edf82f80ea8959",
+    "inputs.json": "e564c7306e228676165aa5cb7454d8f5452d98f4b2bdaebb7513c43e129fc36e",
+    "test_runner.py": "07c705c1069439c3898b60a02216007f1b38f0b661dc7c6e5cd8389b1339c3d5",
+    "README.md": "e59dbf6296334262c4dbea46361ad38d677167ac64a804ebb9fb4b05ab47783d"
+  }
+}
