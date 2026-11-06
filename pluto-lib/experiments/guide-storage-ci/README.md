@@ -1,6 +1,10 @@
 # Isolated official Guide storage typing
 
-Source preparation only. This workflow is not an installed Pluto feature or a
+The first isolated run passed at exact `751999ea`, run
+[42194400025](https://github.com/sofia-gros/horizon-mods/actions/runs/42194400025).
+See the [bounded result](../../docs/guide-storage-type-ci-result-20261106.md) and
+complete compact console/receipt. The source inputs below remain unchanged.
+This workflow is not an installed Pluto feature or a
 translation/LAN repair. It tests one prerequisite: whether the excluded proposed
 `RetainedBook<books::BookScreen>` field and the eleven exact official source changes
 typecheck in the actual Horizon gameplay library and binary.
@@ -11,7 +15,7 @@ No ordinary manifest, runtime adapter, TConstruct handler or package guard chang
 The prototype remains under experiments, outside the package's fixed mixins/API
 roots. The normal official checkout is never patched, and no engine fork is read.
 
-## Intended, separately authorized gates
+## Executed, separately authorized gates
 
 1. Exact public WIP branch, read-only permissions, standard runner, no cache,
    artifact publication, manual input or release. First preserve source on a
@@ -52,7 +56,7 @@ and a compact final receipt. On failure only a bounded diagnostic tail is shown;
 the full raw log is not published. This avoids the previously observed oversized
 Actions log transport failure without pretending that hidden logs were retrieved.
 
-## What a pass would not establish
+## What this pass does not establish
 
 - This is a proposed official host extension, **not a Mixins-only solution**.
 - It does not install the prototype in ordinary Pluto or prove composition with
@@ -65,7 +69,8 @@ Actions log transport failure without pretending that hidden logs were retrieved
   from Pluto's smaller read-only observer cap. Existing LAN behavior is preserved.
 
 The earlier Guide identity 10 tests prove only pure consumer mappings/anchors.
-The bounded language22 run has a complete receipt. Installed language-host CI
-has workflow/job success, but its final oversized raw log was not independently
-recovered; its fourteen test names and final seals must not be inferred from the
-bounded result. See published status closure 07a7168c for that distinction.
+The bounded language22 run has a complete receipt. Original installed language
+host `0fb35fec` has workflow/job success without a recovered final oversized log
+(status closure 07a7168c). The later common bundle `0468d4b1` separately has a
+complete receipt for installed language14 (closure ae8d4f6b). Neither result is a
+retained-screen/language-refresh proof, and the old missing log is not inferred.

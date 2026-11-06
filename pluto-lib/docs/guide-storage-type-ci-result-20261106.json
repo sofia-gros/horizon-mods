@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "status": "passed: isolated official Game storage type experiment",
+  "source_head": "751999eaab8d7cd3e61312c698b134157feb7bfb",
+  "source_local": "460a58d61ff895ea9728e6101c1c2ed8d2ca01aa",
+  "source_tree": "bb449c4d2ed1368454eddeab6e6f8871ad738592",
+  "run_id": 42194400025,
+  "job_id": 127813919427,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42194400025",
+  "receipt": {
+    "build_outputs_seal": "abe315a7580f6a40da5bdef10ab59ada7c6bdb10a9a421c450c54f31fdfc1d8d",
+    "error": null,
+    "floor_bytes": 10871635968,
+    "gates": {
+      "experiment_delta": {
+        "count": 11,
+        "paths": {
+          "crates/horizon-client/src/game.rs": "4ff7798182ec53c08ab4d22929f56cfcd3a336e75ef8403756c2f76b40cb981f",
+          "crates/horizon-client/src/game/books.rs": "9dc7bef003253d0089e16d27821fe1eed437cab4fe34d54ec75bb9d344dd2a2b",
+          "crates/horizon-client/src/game/ime.rs": "79068b892b2e6c62463ad2ea524d7185216d8f2294061d645d841f372423ec18",
+          "crates/horizon-client/src/game/lan_actions.rs": "e4657d11e63588acfe25207326a55dada14921217ae695262db423f44fdf744d",
+          "crates/horizon-client/src/game/native_hooks.rs": "34f19a809276b727f1b8004eeb3227c8ea5e38c69212d57fe7ceb4470483da86",
+          "crates/horizon-client/src/game/native_machines.rs": "40ce1f2db7b276317cdf07f7b5e90907cb77fc7c58716f218129db71be08b8ae",
+          "crates/horizon-client/src/game/pad_menu.rs": "17b53d77e7579877dbcbc3182e1604e676611ac3e8fd67ae25eced43a798548c",
+          "crates/horizon-client/src/game/remote.rs": "0045d28a0cc8dc5e7c9e589a0b8be1796715e28b6f13a1c1d8e0532817413c82",
+          "crates/horizon-client/src/game/remote_chat.rs": "aa31eb37fcf3090c9aa9e7d3b75dc7d741bd84be6a6bffa270a6685d69a1af59",
+          "crates/horizon-client/src/game/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+          "crates/horizon-client/src/game/saving.rs": "22c5f050d531706c1546156a5b14207f106aafd43c1694be41f0c80c37fea7eb"
+        }
+      },
+      "host_type": {
+        "actual_compiler_invocations": [
+          {
+            "command_sha256": "1b8afdcd18c274c593dbccca4c90b62778824fee2023e1464f584535bdc88e8c",
+            "crate": "horizon_client_lib",
+            "source": "client_lib.rs"
+          },
+          {
+            "command_sha256": "ddc4f9079f52e37272fe50f004c9819997dd7a46d53cf1a0b8a3094d0b578af5",
+            "crate": "horizon_client",
+            "source": "src/lib.rs"
+          },
+          {
+            "command_sha256": "ec414ff2bd60e889a43656bfc86e19bb1ee7eb039a096c5a676266029def6856",
+            "crate": "horizon_client",
+            "source": "src/main.rs"
+          }
+        ],
+        "log_sha256": "838eaf65d938666cb99dfd94968de58e92ede5bc8c1b052c1f0caeaeaf90b4b5"
+      },
+      "metadata": {
+        "full_dependencies": true,
+        "normalized_sha256": "bb58b4e38c85fa253d394119db0c6d5a8db10fe598e7b7a2a11557e305b24573"
+      },
+      "official_source": {
+        "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+        "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+      },
+      "prototype_source": 7,
+      "runner": 15
+    },
+    "head": "751999eaab8d7cd3e61312c698b134157feb7bfb",
+    "minimum_free_bytes": 89471102976,
+    "mod_source_seal": "802aed93aee87fec7793f835751dde16d67a59752f3a59998a95a623fae31e9a",
+    "passed": true,
+    "scope": "Pristine official Horizon plus excluded eleven-file storage prototype: actual gameplay lib/bin typecheck only. Not Mixins-only support, installed Pluto/consumer compatibility, owned-open authority, Client/UI/language refresh or LAN execution.",
+    "source_seals": {
+      "/home/runner/work/_temp/guide-storage-751999eaab8d7cd3e61312c698b134157feb7bfb/experiment": "63dfd56c64e080f3bc215bb9e625c434850e2721eb2911349e724633f3a0fd8a",
+      "/home/runner/work/_temp/guide-storage-751999eaab8d7cd3e61312c698b134157feb7bfb/official-git": "4a0ab58e0a4bd8f4d2961db42498a0df701adfd1387220a10687c8fe1a8bac50",
+      "/home/runner/work/_temp/guide-storage-751999eaab8d7cd3e61312c698b134157feb7bfb/pristine": "5f33b19be754000a7e0335c06cb6a28cfbb5ee3e569047cd730c627a9a130df7"
+    },
+    "verified": true
+  },
+  "scope_limits": [
+    "This is pristine official Horizon plus an excluded proposed host source extension, not Mixins-only support.",
+    "Ordinary Pluto/TConstruct packages and production LAN handlers are unchanged; no installed composition is proved.",
+    "No owned-open capability, conditional reply mutation, Client/window, language refresh or LAN execution.",
+    "The complete compact console is preserved below. Verbose raw Cargo output was ephemeral and is not recoverable from hashes alone.",
+    "Source seal includes file bytes/kinds/modes and symlink targets; not directory permissions or Git internal metadata."
+  ],
+  "console": {
+    "encoding": "gzip+base64 of complete retrieved compact GitHub console, not verbose raw phase logs",
+    "bytes": 21401,
+    "sha256": "bc7c02b36450e11448da3b27527d895fc69b3d50bc6fa53855481a157827173b",
+    "content": "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"
+  }
+}
