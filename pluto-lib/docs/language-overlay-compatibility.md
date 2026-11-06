@@ -217,3 +217,31 @@ Exact source for this follow-up is official Horizon
   `c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed`.
 - `crates/horizon-client/src/game/mods.rs:70-179`, SHA-256
   `9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb`.
+
+### Connection shape: no assumed operation wrapper
+
+Official Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`,
+`docs/advanced-injections.md:69-85`, permits method WRAP_OPERATION only for an
+explicitly borrowed target-parameter receiver. The `overlay` at the ordinary
+`build` write site is a local, not such a parameter. That large body also uses
+`?`, which is outside the documented interior-rewrite control-flow contract.
+A source design must not label that site wrapper-ready without actual planning.
+Cancellable HEAD on `Overlay::write` that calls the same method again would
+reenter the hook, not invoke an untouched original continuation; reject that
+shortcut instead of adding a global recursion/ownership side table.
+
+If the baseline supports proceeding, a possible bounded native delta is an
+exact-source guarded exclusive replacement of the small private writer, retaining
+its directory materialization, link-detach, write and error order and changing
+only the prepared bytes for the eligible language domain. The cache stamp also
+needs an explicit compiled policy identity or a separately proved transition.
+Both remain **candidates**, not a committed overwrite manifest or accepted plan.
+An overwrite conflicts with every other hook on the same function under the
+current official rules. Require mechanical inverse/body hashes, exact complete
+installed-plan overlap rejection and actual host type/behavior tests before any
+activation. Do not quietly overwrite the much larger `build` body or reproduce
+admission/namespace/cache ownership in a public translation facade.
+
+The design therefore has three independent gates: baseline behavior, admissible
+native placement and exclusive composition, then deliberate merge/cache semantic
+changes. Passing the eight baseline cases alone satisfies only the first.
