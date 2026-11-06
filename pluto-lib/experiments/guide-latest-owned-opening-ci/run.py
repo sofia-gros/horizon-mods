@@ -20,7 +20,7 @@ LATEST = ROOT/'pluto-lib/experiments/guide-latest-owned-opening'
 PRIOR = ROOT/'pluto-lib/experiments/guide-owned-opening-ci'
 HORIZON = 'f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd'
 LOCK = '0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'
-RUNNER_TESTS = 13
+RUNNER_TESTS = 14
 REQUIRED = {'runner', 'prior_runner', 'source', 'toolchain', 'compile', 'inventory', 'ownership10',
             'official_source', 'latest_inventory', 'prototype_identity', 'latest_source', 'experiment_delta', 'metadata', 'host_type'}
 
@@ -51,8 +51,8 @@ def config():
         raise ValueError('Latest source candidate uses another target')
     result = json.loads((LATEST/'generation.json').read_text())
     expected = {p:result['output_sha256'][p] for p in result['changed_files']}
-    if value['expected_delta'] != expected or len(expected)!=11:
-        raise ValueError('Different latest eleven-file experiment')
+    if value['expected_delta'] != expected or len(expected)!=13:
+        raise ValueError('Different latest thirteen-file experiment')
     if expected[HELPER] != previous['expected_delta'][HELPER] or expected[HELPER] != sha(composed_helper()):
         raise ValueError('Original storage and owned fragments changed')
     for field in ['ownership_names','inventory_names']:
@@ -166,8 +166,8 @@ def execute(report):
         if sha((pristine/'Cargo.lock').read_bytes())!=LOCK:raise ValueError('Official lock drift')
         if 'sofia-gros/horizon' in (pristine/'Cargo.lock').read_text():raise ValueError('Forbidden dependency destination')
         seals[str(pristine)]=seal(pristine);report['gates']['official_source']={'revision':exact,'lock_sha256':LOCK}
-        old.python_pass(runner.run('latest-source',[sys.executable,str(LATEST/'test_source.py'),'-v']),10)
-        report['gates']['latest_source']=10
+        old.python_pass(runner.run('latest-source',[sys.executable,str(LATEST/'test_source.py'),'-v']),14)
+        report['gates']['latest_source']=14
         runner.run('compile-ownership',['rustc','--edition','2021','--test',str(SOURCE/'fixture.rs'),'-C','debuginfo=0','-o',str(binary)],timeout=300)
         compiled=base.binary_seal(binary);report['gates']['compile']=compiled
         inventory(runner.run('inventory',[str(binary),'--list','--format','terse']),value['inventory_names'])
@@ -178,7 +178,7 @@ def execute(report):
         report['gates']['ownership10']={'names':value['ownership_names'],'passed':10,'filtered':7,'log_sha256':sha(tested.encode())}
         runner.run('prepare-experiment',[sys.executable,str(HERE/'run.py'),'--prepare',str(pristine),str(experiment)])
         seals[str(experiment)]=old.verify_delta(pristine,experiment,value['expected_delta'])
-        report['gates']['experiment_delta']={'paths':value['expected_delta'],'count':11,'helper_fragments_unchanged':3}
+        report['gates']['experiment_delta']={'paths':value['expected_delta'],'count':len(value['expected_delta']),'helper_fragments_unchanged':3}
         runner.run('locked-fetch',['cargo','fetch','--locked','--manifest-path',str(pristine/'Cargo.toml')],cwd=pristine,timeout=900)
         arguments=['cargo','metadata','--locked','--offline','--no-default-features','--format-version','1','--manifest-path']
         a=old.metadata(runner.run('pristine-metadata',arguments+[str(pristine/'Cargo.toml')],cwd=pristine,separate_stdout=True),pristine)

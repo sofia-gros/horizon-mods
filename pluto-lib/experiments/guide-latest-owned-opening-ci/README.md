@@ -1,11 +1,11 @@
 # Latest isolated owned-opening CI candidate
 
-This dedicated public push workflow is prepared source only. Its proposed trigger
+This dedicated public push workflow is prepared as a reviewed correction after the first inventory failure. Its trigger
 is `checkpoint/guide-latest-owned-opening-ci-20261106`; creation requires the
 coordinator's serial release after independent review. There is no manual step,
 PR mutation, new permission, paid runner, cache or artifact upload.
 
-The runtime candidate is exact `29f8b52de7a1c90ca1e3979f6fcbd3c1cc124d8b`.
+The runtime candidate is exact `0fa3fd013a8cb7f03c3f3a5d5a6d927ed4e58eb2`.
 Original storage/ownership/view fragments and their seventeen-test inventory
 remain identical to the older candidate. Official Horizon is the new immutable
 `f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd`, with lock SHA-256
@@ -15,22 +15,22 @@ application input. This experiment proposes a native source extension.
 
 ## Gate order
 
-1. Validate exact public push, immutable Mod source and thirteen new runner tests.
+1. Validate exact public push, immutable Mod source and fourteen runner tests.
    Reuse the unchanged fifteen-test storage runner utilities and twelve original
    source pins. Install only the explicit minimal Rust toolchain inside the
    existing continuous filesystem guard.
 2. Fetch the exact official source into an independent temporary checkout.
    **Before Rust compilation or experimental copying**, run the latest source
    generator's complete game-subtree inventory. An extra book/player/connection
-   site stops with exact paths. The provisional nineteen-file receipt cannot
+   site stops with exact paths. The provisional 21-file receipt cannot
    pass this gate. No automatic omission, conversion or retry is allowed.
 3. Record unchanged original helper/owned/view identity, export the pristine
-   latest source, verify its new lock, and run the ten latest source checks.
+   latest source, verify its new lock, and run the fourteen latest source checks.
 4. Compile the unchanged std-only fixture once. Require exactly seventeen listed
    tests, then ten named ownership passes with seven filtered in one process.
    Seal the executable before and after execution. This is generic storage proof,
    not a real screen or packet test.
-5. Rescan the complete exported subtree and apply only the frozen eleven-file
+5. Rescan the complete exported subtree and apply only the frozen thirteen-file
    delta to a separate temporary copy. Check every original path, all delta hashes
    and the unchanged lock. The pristine tree is not mutated.
 6. Seed dependencies using official `cargo fetch --locked`, then obtain separate
@@ -53,3 +53,14 @@ No new Rust, Game typing or CI execution has occurred for this candidate yet.
 Even a future success would not prove ordinary bundle composition, an authorized
 Game opening, real prompt/controller/window behavior, locale reload/redraw or
 safe delayed LAN response application.
+
+## Preserved first failure and separate retry boundary
+
+`result-c5e.json` and `result-c5e.md` retain the first exact run, which stopped
+at the complete-tree inventory before std Rust or type checking. The corrected
+candidate pins both previously missing boat fixtures and three transitions;
+there is no filename exclusion or relaxed full scan. The original 19 sources,
+22 rewrite rules and three helper fragments stay preserved in their immutable
+commits. Current shape is 21 sources, 25 rewrite records and 13 output files.
+A new source cutoff and explicit serial release are required before updating
+the dedicated trigger; no automatic retry or inherited success is claimed.

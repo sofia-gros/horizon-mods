@@ -17,7 +17,7 @@ class Checks(unittest.TestCase):
         self.assertEqual(value['expected_delta'][m.HELPER],old['expected_delta'][m.HELPER])
         self.assertEqual(value['official']['revision'],m.HORIZON)
         self.assertNotEqual(value['official']['revision'],m.old.HORIZON)
-        self.assertEqual(len(value['expected_delta']),11)
+        self.assertEqual(len(value['expected_delta']),13)
 
     def test_composition_retains_whole_base_and_exact_two_fragments(self):
         original=(m.old.PROTOTYPE/'retained_book.rs').read_bytes()
@@ -113,6 +113,17 @@ class Checks(unittest.TestCase):
         self.assertNotIn('old.export(',source)
         self.assertNotIn("origin',old.HORIZON]",source)
         self.assertEqual(m.LOCK,'0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f')
+
+    def test_reviewed_fixture_transitions_are_pinned_without_changing_old_fragments(self):
+        value=m.config();generation=json.loads((m.LATEST/'generation.json').read_text())
+        self.assertIn("'count':len(value['expected_delta'])", (HERE/'run.py').read_text())
+        self.assertEqual(len(generation['source_sha256']),21)
+        self.assertEqual(len(generation['rewrites']),25)
+        self.assertEqual(sum(r.get('kind')=='reviewed-fixture-assignment' for r in generation['rewrites']),3)
+        for name in ['boat_authority_fixture.rs','boat_rider_fixture.rs']:
+            self.assertIn('crates/horizon-client/src/game/'+name,value['expected_delta'])
+        self.assertEqual(value['runtime_source_publication'],'0fa3fd013a8cb7f03c3f3a5d5a6d927ed4e58eb2')
+        self.assertEqual(value['expected_delta'][m.HELPER],m.prior.config()['expected_delta'][m.HELPER])
 
 if __name__=='__main__':unittest.main()
 
