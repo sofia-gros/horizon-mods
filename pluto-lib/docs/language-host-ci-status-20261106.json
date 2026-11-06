@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "head": "0fb35fec3d0ff50f420a06d8ff6a88f1da27ff5f",
+  "tree": "a6b140420dcf3756a3794a03ecce7115398f6c45",
+  "run_id": 42183429218,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42183429218",
+  "job_id": 127778073013,
+  "observed": {
+    "workflow_status": "completed",
+    "workflow_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "started_at": "2026-11-06T07:49:44Z",
+    "completed_at": "2026-11-06T08:01:45Z",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-11-06T07:49:45Z",
+        "completed_at": "2026-11-06T07:49:45Z"
+      },
+      {
+        "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-11-06T07:49:45Z",
+        "completed_at": "2026-11-06T07:49:47Z"
+      },
+      {
+        "name": "Verify installed language modules on the official host",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-11-06T07:49:47Z",
+        "completed_at": "2026-11-06T08:01:42Z"
+      },
+      {
+        "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-11-06T08:01:42Z",
+        "completed_at": "2026-11-06T08:01:42Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-11-06T08:01:42Z",
+        "completed_at": "2026-11-06T08:01:42Z"
+      }
+    ]
+  },
+  "runtime_source": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+    }
+  },
+  "package_sha256": "f35294757323aa2889122d02bf40fa168566880f1dd5a446030307482cc230b7",
+  "manifest_counts": {
+    "crate": 2,
+    "module": 68,
+    "injection": 34,
+    "state": 3
+  },
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/language-text.rs": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2",
+    "pluto-lib/mixins/pluto_native_creative/language.rs": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c7ac856f1f7b74ab07b5568c48d6e219b2df1e8c6baab50c446bfb4f2014cfc0",
+    "pluto-lib/tools/package_native.py": "1b7888725401aebfe09185239ce9864e2d11e71b4b84b1ee42031dd7258c3e6e",
+    "pluto-lib/tools/check_native_plan.py": "001afdd06e25a36815afba090990e8af08e32a5fbdf0def2b203703b4c31712c",
+    "pluto-lib/tests/test_language_source.py": "d5bbc50a9859e615e7ed5fb9f7437647a35cfbd9c94d47704689494c79a7ec30",
+    "pluto-lib/tests/test_language_text_scope.py": "0354674f5e34b4c478e47735476cee8c0eb65ce1b051041e6a2b1c7310087abf",
+    "pluto-lib/tests/test_language_prepare.py": "b04b68fd219aeba8549503f78b38bc3d1e0718e7fe12d9bb85c735343d27a1d1",
+    "pluto-lib/tools/prepare_language_json.py": "aad57587d0f56a2e478c1aacd499712f9821847dec901c13e5f1ff55f0f13619",
+    "pluto-lib/examples/language_text.rs": "268f7e1691e2f1ece6a77ad8cccace84f6ffc91efe0e144c1b4368ded2513025",
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+  },
+  "required_by_successful_runner": {
+    "runner_python": 16,
+    "source_python": 19,
+    "complete_plan_guards": 12,
+    "actual_host_targets": [
+      "horizon_client_lib",
+      "horizon_client lib",
+      "horizon_client bin"
+    ],
+    "installed_test_groups": [
+      {
+        "gate": "key6",
+        "prefix": "pluto_language_text::tests::",
+        "count": 6,
+        "names": [
+          "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+          "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+          "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+          "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+          "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+          "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+        ],
+        "path": "pluto-lib/mixins/pluto_native_creative/language-text.rs"
+      },
+      {
+        "gate": "internal8",
+        "prefix": "pluto_language::tests::",
+        "count": 8,
+        "names": [
+          "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+          "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+          "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+          "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+          "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+          "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+          "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+          "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery"
+        ],
+        "path": "pluto-lib/mixins/pluto_native_creative/language.rs"
+      }
+    ]
+  },
+  "directly_observed_partial_log_terminals": [
+    "TERMINAL runner-checks 0 seconds 0.202",
+    "TERMINAL source-checks 0 seconds 0.202",
+    "TERMINAL apt-update 0 seconds 5.016",
+    "TERMINAL apt-install 0 seconds 4.011",
+    "TERMINAL toolchain 0 seconds 8.223",
+    "TERMINAL horizon-init 0 seconds 0.202",
+    "TERMINAL horizon-origin 0 seconds 0.202",
+    "TERMINAL horizon-fetch 0 seconds 4.412",
+    "TERMINAL horizon-checkout 0 seconds 0.603",
+    "TERMINAL horizon-export 0 seconds 1.605",
+    "TERMINAL mixins-init 0 seconds 0.202",
+    "TERMINAL mixins-origin 0 seconds 0.202",
+    "TERMINAL mixins-fetch 0 seconds 0.402",
+    "TERMINAL mixins-checkout 0 seconds 0.202",
+    "TERMINAL mixins-export 0 seconds 0.202",
+    "TERMINAL package 0 seconds 0.202",
+    "TERMINAL unpack 0 seconds 0.202",
+    "TERMINAL mixins-build 0 seconds 146.187",
+    "TERMINAL official-plan 0 seconds 22.667",
+    "TERMINAL complete-plan-guards 0 seconds 0.202",
+    "TERMINAL official-apply 0 seconds 25.276",
+    "TERMINAL stage-fetch 0 seconds 3.612"
+  ],
+  "final_receipt": null,
+  "final_test_names_and_summaries": null,
+  "minimum_free_bytes": null,
+  "final_source_and_output_seals": null,
+  "evidence_limit": "The job and workflow report success. A live partial decoded log was inspected through stage-fetch/host-type startup. The final decoded job-log request failed with Transport closed; exact final receipt, native test output, final seals and minimum free space have not been independently recovered. Public job/run pages confirm success but do not expose the detailed summary while signed out. Do not invent missing values or conflate enforced test requirements with recovered per-test output.",
+  "not_proved": [
+    "Live Game/GUI drawing",
+    "Language changes while a retained Guide is open",
+    "LAN localization or screen lifetime",
+    "Same-code resource reload",
+    "Full default-component item generation",
+    "Actual Game content-root/resource-pack overlay",
+    "Full TConstruct or all other Mods composition",
+    "Authoring147/terrain-facade combined source cutoff",
+    "Main integration"
+  ]
+}
