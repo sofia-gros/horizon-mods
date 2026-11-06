@@ -17,7 +17,10 @@ impl Text {
     fn chars(&self) -> std::iter::Empty<(char, &Style)> { std::iter::empty() }
 }
 struct Font;
-impl Font { fn split(&self, text: &Text, _: f32) -> Vec<Text> { vec![text.clone()] } }
+impl Font {
+    fn split(&self, text: &Text, _: f32) -> Vec<Text> { vec![text.clone()] }
+    fn advance(&self, _: char, _: &Style) -> f32 { panic!("font hit testing is outside this arrow-control fixture"); }
+}
 struct Atlas { font: Font }
 struct Gui { atlas: Atlas }
 struct HudBatch { width: f32, height: f32 }

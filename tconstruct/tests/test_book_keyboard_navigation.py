@@ -36,8 +36,9 @@ class GuideKeyboardNavigation(unittest.TestCase):
             str(ROOT / 'tests/book-wire/Cargo.toml'), '--lib',
             'book_keyboard_navigation::', '--', '--test-threads=1',
             '--skip', 'book_keyboard_navigation::tconstruct_materials_book_spread::',
-        ], check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print(result.stdout)
+        result.check_returncode()
         self.assertIn('8 passed; 0 failed', result.stdout)
         self.assertNotIn('ignored,', result.stdout.split('test result:')[0])
 
