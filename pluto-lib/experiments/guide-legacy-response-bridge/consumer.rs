@@ -25,7 +25,7 @@ fn update(view: &mut RetainedView<'_>, sequence: u64, payload: Payload<'_>) {
         log::error!("TConstruct: guide reply rejected by retained-view update contract");
     }
 }
-pub(super) fn ensure_registered(game: &mut Game<'_>) -> bool {
+pub(in crate::game) fn ensure_registered(game: &mut Game<'_>) -> bool {
     // No unregister exists: success/conflict/invalid/full/poisoned is stable for
     // this process. No callback or notification runs inside get_or_init.
     match *REGISTERED.get_or_init(|| register(&RESPONSE)) {

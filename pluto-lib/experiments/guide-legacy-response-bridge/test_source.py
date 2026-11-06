@@ -11,7 +11,7 @@ import unittest
 import render
 
 ROOT = Path(os.environ["GUIDE_BRIDGE_INPUTS"])
-MANIFEST = Path(os.environ["GUIDE_BC_MANIFEST"])
+MANIFEST = Path(os.environ["GUIDE_TC_MANIFEST"])
 OFFICIAL = Path(os.environ["GUIDE_BRIDGE_OFFICIAL"])
 META = json.loads((render.HERE / "inputs.json").read_text())
 
@@ -90,6 +90,8 @@ class SourceTests(unittest.TestCase):
         raw = (render.HERE / "consumer.rs").read_text()
         self.assertIn("REGISTERED.get_or_init(|| register(&RESPONSE))", raw)
         self.assertLess(raw.index("FAILURE_REPORTED.swap(true"), raw.index("game.system_message("))
+        self.assertIn("pub(in crate::game) fn ensure_registered", raw)
+        self.assertNotIn("pub(super) fn ensure_registered", raw)
         self.assertEqual(raw.count("game.system_message("), 1)
         self.assertEqual(raw.count("decode_reply("), 1)
         self.assertEqual(raw.count("view.replace_pages("), 1)

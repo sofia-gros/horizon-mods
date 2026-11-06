@@ -16,9 +16,9 @@
     },
     {
       "kind": "common",
-      "ref": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "ref": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
       "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
-      "sha": "60647f8a36d8f781aa7b048040463123cc8ccded"
+      "sha": "8b9d66baab0aaa7407274920cdcf1d386e8a4b74"
     },
     {
       "kind": "common",
@@ -54,7 +54,7 @@
   "input_sha256": {
     "pluto-lib/tools/check_client_payload_plan.py": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
     "pluto-lib/tools/client-payload-source.json": "1b7388674e8787b3e087662f2355c1c1ce859a9fe6b8b1c757ece377d1a0f538",
-    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "b5a97de3e1940038af77903d7bc9c6036309fbca1bed8be9c0e5bd89d6318df4",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "794b994c9699d079b70d827b16b78d36d8ed52b6ccd70e9483458897c4ce20c7",
     "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
     "tconstruct/mixins/tconstruct/source-materials-book.rs": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
     "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
@@ -62,11 +62,10 @@
     "tconstruct/mixins/tconstruct/source-materials-book-wire.rs": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e"
   },
   "bc_intake_commit": "73f9ea2c67a89ab38bace6249e5e1746a19cac98",
-  "bc_merged_manifest_sha256": "9e7a9e283a8596093ec13cfcab99156ef04e818c8ea9a9ccf65dded6f4e77d5d",
   "candidate_sha256": {
     "after-native-packet.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
     "bootstrap.rs": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed",
-    "consumer.rs": "ab2fc0bd977e644c71f98743a2e3d39a94333fcf867e781617b7a062985ccead",
+    "consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
     "native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055"
   },
   "official_source_sha256": {
@@ -77,5 +76,15 @@
   "actual_rust_tests": 6,
   "actual_rust_tests_run": false,
   "activation": false,
-  "limit": "Source-only private compatibility proposal. Ordinary guards remain unchanged; full41f plan/guard/type/transport/UI proof pending."
+  "limit": "Source-only private compatibility proposal. Ordinary guards remain unchanged; full41f plan/guard/type/transport/UI proof pending.",
+  "integration_commit": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+  "integration_manifest_sha256": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
+  "integration_consumer_manifest_git_blob": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+  "module_visibility_evidence": {
+    "repository": "horizon-rust/horizon-mixins",
+    "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "path": "crates/horizon-mixins-core/src/manifest.rs",
+    "git_blob": "c0b5b57c5ae55f151cb8736a664d07a589520cfb",
+    "contract": "ModuleVisibility default is Crate, serialized as pub(crate). Function visibility must separately allow its caller module."
+  }
 }

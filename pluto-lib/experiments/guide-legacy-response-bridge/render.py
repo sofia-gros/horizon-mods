@@ -55,8 +55,8 @@ def inputs(root, manifest):
             raise ValueError(f"input drift: {path}")
         result[path] = raw.decode()
     raw = manifest.read_bytes()
-    if sha(raw) != meta["bc_merged_manifest_sha256"]:
-        raise ValueError("B/C merged manifest drift")
+    if sha(raw) != meta["integration_manifest_sha256"]:
+        raise ValueError("Integration consumer manifest drift")
     result[CONSUMER + "horizon-mixin.toml"] = raw.decode()
     for path, expected in meta["candidate_sha256"].items():
         if sha((HERE / path).read_bytes()) != expected:
@@ -97,10 +97,10 @@ def render(original):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputs", type=Path, required=True)
-    parser.add_argument("--bc-manifest", type=Path, required=True)
+    parser.add_argument("--tc-manifest", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    rendered = render(inputs(args.inputs, args.bc_manifest))
+    rendered = render(inputs(args.inputs, args.tc_manifest))
     args.out.mkdir(exist_ok=False)
     for path, text in rendered.items():
         target = args.out / path

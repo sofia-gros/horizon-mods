@@ -1,19 +1,19 @@
 {
   "excluded": true,
   "outputs": {
-    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "b5e7da6bc6fb64bc2f76b87f4caedb0af5dc92ea9f27e814e96eb4eda9899db4",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040",
     "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
     "pluto-lib/mixins/pluto_native_creative/client-payload-updates.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
-    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "a533f9615a8180913b29ae5bdfb7fda86fa5eec05fa73ed307b55829a58a234f",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "29430f915be9be5cdf69bacdf648d87b701d7d9bc9d19a5678eb07ab59ef27c3",
     "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed",
-    "tconstruct/mixins/tconstruct/source-materials-book-response-update.rs": "ab2fc0bd977e644c71f98743a2e3d39a94333fcf867e781617b7a062985ccead",
+    "tconstruct/mixins/tconstruct/source-materials-book-response-update.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
     "tconstruct/mixins/tconstruct/source-materials-book.rs": "3cec1b81f40c4f657348ad56e8681a1d68d88149400e59a648460caff0f6a36f"
   },
   "python_source_tests": {
     "passed": 10,
     "failed": 0,
     "initial_failure": "A source guard searched comments for the word sequence; corrected only that test to inspect non-comment lines. No implementation change.",
-    "log_sha256": "101757b5bd75187611e7f9b936ec42fa08fdb7dc71b89b72d1a8ffe796a81726"
+    "log_sha256": "d4c052cf044cf5b5c9547784c9b5518f59be73e4a910ae1bc7499e6ca6a60604"
   },
   "actual_rust_tests": {
     "written": 6,
@@ -23,5 +23,7 @@
   "actual_typecheck": false,
   "actual_transport_or_ui": false,
   "ordinary_runtime_changed": false,
-  "independent_review": "pending at source freeze"
+  "independent_review": "Initial33fb limited review found no further registry/order issue. Function visibility gap was subsequently found by author and acknowledged by reviewer; this corrected/rebased cutoff awaits its own review.",
+  "integration_base": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+  "correction": "ensure_registered is pub(in crate::game), permitting sibling remote bootstrap. Old prototype33fb remains source-only."
 }
