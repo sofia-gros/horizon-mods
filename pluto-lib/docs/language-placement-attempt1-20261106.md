@@ -60,3 +60,13 @@ source-derived, not another executed RETURN probe. No wide stamp-body copy,
 caller rewrite, guard relaxation or official edit was substituted. A future
 small caller boundary requires separate source, lifecycle/error-order, cache
 identity and actual-placement evidence before adoption.
+
+## Lossless receipt transcription correction
+
+The earlier `ec7e7717` JSON rounded `/final_receipt/tool_argv/mtime_ns`
+from the raw integer `1793966774363156664` to `1793966774363156700`
+through JavaScript Number. This follow-up reparses the unchanged saved console
+with Python `json.loads` and restores the original integer, without changing it
+to a string. Recursive comparison found this one difference only. The exact
+35,000-byte console and its SHA256 remain unchanged, as do all diagnostic
+conclusions. Future receipt transcription preserves integer values in Python.

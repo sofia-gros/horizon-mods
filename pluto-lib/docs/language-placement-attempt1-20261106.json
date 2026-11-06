@@ -492,7 +492,7 @@
         }
       ],
       "log_present": true,
-      "mtime_ns": 1793966774363156700,
+      "mtime_ns": 1793966774363156664,
       "raw_bytes": 330,
       "raw_sha256": "246f3f3b9dced78443bf3843361c18d3301d142042a668704d3afda8dae80041",
       "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.",
@@ -501,5 +501,12 @@
       "wrapper_installed": true
     }
   },
-  "scope": "Honest completed negative diagnostic, not accepted placement. No actual plan/selected IR emitted; no apply/native type/build/cache/Game/UI proof."
+  "scope": "Honest completed negative diagnostic, not accepted placement. No actual plan/selected IR emitted; no apply/native type/build/cache/Game/UI proof.",
+  "transcription_correction": {
+    "path": "/final_receipt/tool_argv/mtime_ns",
+    "previous": 1793966774363156700,
+    "corrected": 1793966774363156664,
+    "reason": "Previous transcription through JavaScript Number rounded the integer. Reparsed the unchanged raw FINAL_RECEIPT with Python json.loads; integer type preserved.",
+    "previous_published_commit": "ec7e7717f1f31421d6016a3ceee9ac6dd365c669"
+  }
 }
