@@ -13,16 +13,18 @@ This branch combines the current ordinary source work for review and a future pl
 
 - PR #944 foundation, PR #945 navigation, and later common035273 ordinary source, merged by exact Git type/mode/blob records.
 - Guide lazy page text/query, stable BookId and modifier anchors from d9f8. The overlapping files preserve all PR #945 navigation injections, controls and history handling. Eight source checks and complete inverse reconstruction passed. This is not a new native/Font/UI result.
+- Mining context now uses one native BreakSpeed HEAD plus a Pluto borrowed-facts module. Both raw manifests explicitly target 41f; PR #945 policies remain unchanged. Sixteen pure adaptation checks passed; no latest complete native build is claimed.
+- Pluto bundle and guard inputs now participate in the Windows cache key, with rechecks before marking ready or launching. Twelve pure checks passed; the latest Windows launch contract is still pending.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
 
 ## Remaining work
 
-1. Confirm the latest chest-pick owned-value seam and merge mining/chest adapters without undoing PR #945's fluid facts or storage transaction migration.
+1. Resolve chest-pick compatibility. The latest tiny plan rejected the ItemStack LOAD candidate with `E_UNSUPPORTED_LOCAL` because LOAD modifiers require primitive scalars. That unsupported candidate is not enabled; the old RETURN hook still blocks the complete plan.
 2. Complete the Guide LAN, crafting, and cloud ownership-boundary migrations. Source inspection found missing required fields in the existing TConstruct cloud constructors; this has not yet been compiled. Preserve existing behavior or report unresolved differences.
 3. Produce one complete plan for this exact composition; inspect all twelve guards and adapt changed boundaries with evidence. Existing cloud exclusivity conflicts are not solved by hash updates.
 4. Apply and type-check/build the exact guarded source, then validate Windows link/package and only then attempt bounded startup where available.
 
-The old launch/cache path still needs its latest-target update and validation. No launcher-ready executable or branch-specific successful launch command is claimed. Minecraft assets remain the user's locally prepared resources and are not published here.
+The cache input fix is included, but the old launch path still needs its latest-target update and validation. No launcher-ready executable or branch-specific successful launch command is claimed. Minecraft assets remain the user's locally prepared resources and are not published here.
 
 ## Explicitly not enabled
 

@@ -21,6 +21,11 @@ function Checkout-Pinned([string]$Path, [string]$Url, [string]$Revision) {
     $actual = (& git -C $Path rev-parse HEAD 2>$null)
     if ($LASTEXITCODE -ne 0 -or $actual -ne $Revision) { throw "Pinned source checkout is incomplete or differs: $Path. Preserve any edits and fix this checkout before retrying." }
 }
+function Pluto-Input-Digest([string]$Bundle) {
+    $digest = @(& py -3 (Join-Path $Repo 'tools\playtest_pluto_inputs.py') --pluto-bundle $Bundle --pluto-root (Join-Path (Split-Path -Parent $Repo) 'pluto-lib'))
+    if ($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[0-9a-f]{64}$') { throw 'Pluto input fingerprint failed; no cached build was accepted.' }
+    return [string]$digest[0]
+}
 try {
     foreach ($name in @('git', 'cargo', 'py')) {
         if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "$name is missing. Install Git, Python 3.12 and Rust stable MSVC with Visual Studio C++ Build Tools, then try again. Nothing was installed automatically." }
@@ -44,6 +49,9 @@ try {
     $mixinsRevision = $compat.mixins_revision
     if (-not ($mixinsRevision -match '^[0-9a-f]{40}$')) { throw 'compatibility.json does not contain a valid pinned Mixins revision.' }
     Write-Host "Horizon Mixins revision: $mixinsRevision"
+    # Select and fingerprint the actual installed bundle before any cache lookup.
+    $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'
+    $PlutoDigest = Pluto-Input-Digest $PlutoBundle
     # Key the generated build by actual input bytes, so a ZIP download and local
     # modifications work without writing to or resetting the user's checkout.
     $inputs = foreach ($dir in @('mixins', 'content', 'assets', 'tools', 'third_party')) {
@@ -51,7 +59,7 @@ try {
             Where-Object { $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc' }
     }
     $sharedCreative = Join-Path (Split-Path -Parent $Repo) 'pluto-lib\pluto_lib\creative.py'
-    $lines = @($resources, $mixinsRevision, (Get-FileHash -LiteralPath $sharedCreative -Algorithm SHA256).Hash) + @($inputs | Sort-Object FullName | ForEach-Object {
+    $lines = @($resources, $mixinsRevision, $PlutoDigest, (Get-FileHash -LiteralPath $sharedCreative -Algorithm SHA256).Hash) + @($inputs | Sort-Object FullName | ForEach-Object {
         $_.FullName.Substring($Repo.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
     }) + @((Get-FileHash -LiteralPath (Join-Path $Repo 'compatibility.json') -Algorithm SHA256).Hash)
     $hasher = [System.Security.Cryptography.SHA256]::Create()
@@ -74,7 +82,6 @@ try {
         New-Item -ItemType Directory -Force -Path $build | Out-Null
         Push-Location $Repo
         try {
-            $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'
             Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--pluto-bundle', $PlutoBundle, '--output-dir', $build)
             $cargoTarget = Join-Path $HomeDir 'cargo-cache'
             Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
@@ -84,10 +91,12 @@ try {
             Run $game @('--tconstruct-prepare', $overlay, (Join-Path $Repo 'content'), $gameResources)
             Run py @('-3', 'tools/prepare_horizon_source_data.py', $resources, (Join-Path $gameResources 'minecraft-original-pack'))
             Run py @('-3', 'tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
+            if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed during the build; the build was not marked ready.' }
             Set-Content -LiteralPath $ready -Value $head
         } finally { Pop-Location }
     }
     if (-not (Test-Path -LiteralPath $game -PathType Leaf) -or -not (Test-Path -LiteralPath (Join-Path $gameResources 'horizon-resources.json') -PathType Leaf)) { throw 'Cached build is incomplete. It was left untouched.' }
+    if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed before launch; no game was started.' }
     $GameDir = Join-Path $HomeDir 'game'
     New-Item -ItemType Directory -Force -Path $GameDir | Out-Null
     $env:HORIZON_HOME = $GameDir

@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+horizon_revision = "41f822b659789780f58d32c63ddfb6887ea1b8bf"
 
 [[crate]]
 id = "creative-api"
@@ -741,3 +741,10 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_language_text"
 source = "language-text.rs"
 visibility = "pub"
+
+[[module]]
+id = "mining-context-facts"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_mining_context"
+source = "mining-context.rs"
+visibility = "pub(crate)"

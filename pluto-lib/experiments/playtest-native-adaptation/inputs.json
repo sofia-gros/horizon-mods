@@ -1,0 +1,23 @@
+{
+  "published_files": [
+    "adapt.py",
+    "oracles.json",
+    "test_adapt.py",
+    "source-mining-context-native.rs",
+    "mining-context.rs",
+    "README.md",
+    "source-validation.json",
+    "inputs.json"
+  ],
+  "schema": 1,
+  "source_sha256": {
+    "README.md": "013ad46362d83afcd120b5865d1aa547718ece1a2177c5eda3287de8cd9629aa",
+    "adapt.py": "7e291f8307f949987e4359ac6c220ab657168c491ce3d2192e73f89a82dca33f",
+    "mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+    "oracles.json": "a3190cef6cbe2114bf9ce1d1f4dca83c7060a18609148564139afec9395b6b15",
+    "source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+    "source-validation.json": "da460173ec609e03b27eeca3852bf50d6178aa850df6ebc91942a272c821388b",
+    "test_adapt.py": "b224e2133231c65fc25ebead207e34d9986a894df68b9b773da279fdb4c083bc"
+  },
+  "status": "source-only; complete composition unverified; chest RETURN unresolved"
+}

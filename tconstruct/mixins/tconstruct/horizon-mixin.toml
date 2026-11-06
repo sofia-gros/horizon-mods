@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+horizon_revision = "41f822b659789780f58d32c63ddfb6887ea1b8bf"
 
 [[crate]]
 id = "source-config-parser"
@@ -2725,24 +2725,16 @@ name = "tconstruct_source_mining_rules"
 source = "source-mining-rules.rs"
 
 [[injection]]
-id = "source-host-mining-context"
-target = "horizon_client::game::Game<'_>::tick_mining"
-kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "LOAD" }
-require = 2
-ordinal = 1
-helper = "source-mining-context-host.rs"
-bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
-
-[[injection]]
-id = "source-client-mining-context"
-target = "horizon_client::game::hand::Game<'_>::destroy_progress"
-kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "LOAD" }
-require = 2
-ordinal = 1
-helper = "source-mining-context.rs"
-bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+id = "source-native-mining-context"
+target = "horizon_client::game::native_hooks::Game<'_>::native_break_speed"
+kind = "HEAD"
+helper = "source-mining-context-native.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "speed", ty = "&mut f32", value = "&mut *speed" },
+]
 
 [[module]]
 id = "game-source-harvest-tags"

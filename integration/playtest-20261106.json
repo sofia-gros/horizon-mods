@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Guide consumer composition integrated; latest full validation pending",
+  "stage": "Guide and mining source integrated; gameplay build remains blocked",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -20,16 +20,11 @@
     "PR #944 shared-foundation source and TConstruct migrations",
     "PR #945 navigation/control changes, including preserved LAN behavior",
     "Later common035273 ordinary library and consumer source changes",
-    "Guide lazy page text/query plus stable BookId/modifier anchors from d9f8, preserving all PR945 navigation injections and control behavior"
+    "Guide lazy page text/query plus stable BookId/modifier anchors from d9f8, preserving all PR945 navigation injections and control behavior",
+    "Mining context moved from two brittle local-speed hooks to the native BreakSpeed HEAD using a Pluto borrowed-facts module; both raw manifests explicitly target 41f. PR945 policies are retained.",
+    "Windows cache now includes selected Pluto bundle and guard-source inputs, with before-ready and before-launch rechecks; Windows execution is not yet verified."
   ],
   "pending": [
-    {
-      "subject": "Latest mining and chest-pick compatibility",
-      "mining": "b78ee288d7627e1be1c046db73541fab1d40c249",
-      "chest": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
-      "probe": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
-      "reason": "Prior full646 base was main08afa, not this PR945 composition. Preserve new shared/store policies and revalidate exact full payload inverse and latest plan."
-    },
     {
       "subject": "Guide LAN response",
       "reason": "Existing response/observer composition conflict remains. Internal compatibility bridge is in preparation; no feature is silently removed."
@@ -44,7 +39,14 @@
     },
     {
       "subject": "Legacy Windows launch target and cache",
-      "reason": "The legacy launcher is not yet validated on the latest official target. Cache correction and a latest Windows launch contract are in preparation."
+      "reason": "Pluto cache input correction is included. Latest toolchain/target/features, explicit resources and official source admission are still being implemented. Legacy compatibility.json and launch target are not yet validated."
+    },
+    {
+      "subject": "Chest-pick color compatibility",
+      "source": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+      "rejected_probe": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
+      "proof": "2080080cd86f07f06a7d67f5e21a7d5f5cc4c632",
+      "reason": "Latest 41f/5a64 tiny plan rejects non-scalar ItemStack LOAD with E_UNSUPPORTED_LOCAL. The unsupported LOAD is not integrated; the old RETURN hook remains a known complete-plan blocker. Another supported boundary is being investigated."
     }
   ],
   "excluded_activation": [
@@ -70,12 +72,24 @@
       "game_start": "not run",
       "gpu_or_lan": "not verified",
       "guide_source_merge": "8 pure source checks passed; both original whole files reconstruct exactly",
-      "terrain_collector_source": "22 pure checks passed; no complete latest plan collected"
+      "terrain_collector_source": "22 pure checks passed; no complete latest plan collected",
+      "mining_source_adaptation": "16 pure source checks and complete selected-source inverse passed; exact ten input Git blobs checked against integration tree",
+      "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution"
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
       "run": 42222131283,
-      "status": "in progress when this intake was prepared; not evidence for this complete branch"
+      "job": 127906499815,
+      "proof": "2080080cd86f07f06a7d67f5e21a7d5f5cc4c632",
+      "job_diagnostic_collection": "success",
+      "actual_plan": "rejected",
+      "code": "E_UNSUPPORTED_LOCAL",
+      "message": "LOAD modifiers currently require a primitive scalar value type",
+      "plan_accepted": false,
+      "compatibility": null,
+      "native_type_verified": false,
+      "console_sha256": "add0dd6526fea3ae533fbe4c93886945430d6547b1597aaab3f54132a59323ad",
+      "receipt_losslessly_rechecked": true
     }
   },
   "safety": {
@@ -115,6 +129,25 @@
       "source": "cc141a8a157f06cde9ddeb45d3acc80857f8a03f",
       "paths": 2,
       "activation": "documentation only; historical main script defects are not claims about this branch's script"
+    },
+    {
+      "subject": "Mining-only PR945/Guide adaptation",
+      "source": "e7f2ad03f5dc9df19da9b96469924f1abb0a4383",
+      "production_paths": 4,
+      "source_checks": 16,
+      "selected_inverse_verified": true,
+      "original_policy_preserved": true,
+      "package_sealed": false,
+      "plan_verified": false,
+      "native_type_verified": false
+    },
+    {
+      "subject": "Pluto Windows cache inputs",
+      "source": "60e42cfc21f130e79670ffe1c591fc74a1ef23e1",
+      "paths": 5,
+      "source_checks": 12,
+      "script_inverse_verified": true,
+      "windows_executed": false
     }
   ],
   "guide_limits": [

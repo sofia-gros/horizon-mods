@@ -1,0 +1,94 @@
+{
+  "status": "16 pure tests pass; no native/plan/type execution",
+  "tests": 16,
+  "variants": [
+    {
+      "added": [
+        "pluto-lib/mixins/pluto_native_creative/mining-context.rs",
+        "tconstruct/mixins/tconstruct/source-mining-context-native.rs"
+      ],
+      "after": {
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "794b994c9699d079b70d827b16b78d36d8ed52b6ccd70e9483458897c4ce20c7",
+        "pluto-lib/mixins/pluto_native_creative/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml": "7452520bcbe6d7495220c81b5f649d4a74edbb19c27dacfe91eb11b1737bdac0",
+        "tconstruct/mixins/tconstruct/source-chest-pick.rs": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+        "tconstruct/mixins/tconstruct/source-melter-store.rs": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+        "tconstruct/mixins/tconstruct/source-mining-context-host.rs": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+        "tconstruct/mixins/tconstruct/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+        "tconstruct/mixins/tconstruct/source-mining-context-shared.rs": "17e393b799fda4fe4468b0918ad0393a56b848c17927a3ba6e93c97a8c4b014f",
+        "tconstruct/mixins/tconstruct/source-mining-context.rs": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+        "tconstruct/mixins/tconstruct/source-mining-math.rs": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+        "tconstruct/mixins/tconstruct/source-mining-return.rs": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+        "tconstruct/mixins/tconstruct/source-mining-rules.rs": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6"
+      },
+      "before": {
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "b5a97de3e1940038af77903d7bc9c6036309fbca1bed8be9c0e5bd89d6318df4",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2",
+        "tconstruct/mixins/tconstruct/source-chest-pick.rs": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+        "tconstruct/mixins/tconstruct/source-melter-store.rs": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+        "tconstruct/mixins/tconstruct/source-mining-context-host.rs": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+        "tconstruct/mixins/tconstruct/source-mining-context-shared.rs": "17e393b799fda4fe4468b0918ad0393a56b848c17927a3ba6e93c97a8c4b014f",
+        "tconstruct/mixins/tconstruct/source-mining-context.rs": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+        "tconstruct/mixins/tconstruct/source-mining-math.rs": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+        "tconstruct/mixins/tconstruct/source-mining-return.rs": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+        "tconstruct/mixins/tconstruct/source-mining-rules.rs": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6"
+      },
+      "changed": [
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml"
+      ],
+      "compatibility": null,
+      "input_kind": "PR945/e128 selected sources",
+      "native_type_verified": false,
+      "package_sealed": false,
+      "plan_verified": false,
+      "repository_sealed": false,
+      "schema": 1,
+      "selected_inverse_verified": true
+    },
+    {
+      "added": [
+        "pluto-lib/mixins/pluto_native_creative/mining-context.rs",
+        "tconstruct/mixins/tconstruct/source-mining-context-native.rs"
+      ],
+      "after": {
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "794b994c9699d079b70d827b16b78d36d8ed52b6ccd70e9483458897c4ce20c7",
+        "pluto-lib/mixins/pluto_native_creative/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
+        "tconstruct/mixins/tconstruct/source-chest-pick.rs": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+        "tconstruct/mixins/tconstruct/source-melter-store.rs": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+        "tconstruct/mixins/tconstruct/source-mining-context-host.rs": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+        "tconstruct/mixins/tconstruct/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+        "tconstruct/mixins/tconstruct/source-mining-context-shared.rs": "17e393b799fda4fe4468b0918ad0393a56b848c17927a3ba6e93c97a8c4b014f",
+        "tconstruct/mixins/tconstruct/source-mining-context.rs": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+        "tconstruct/mixins/tconstruct/source-mining-math.rs": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+        "tconstruct/mixins/tconstruct/source-mining-return.rs": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+        "tconstruct/mixins/tconstruct/source-mining-rules.rs": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6"
+      },
+      "before": {
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "b5a97de3e1940038af77903d7bc9c6036309fbca1bed8be9c0e5bd89d6318df4",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml": "9e7a9e283a8596093ec13cfcab99156ef04e818c8ea9a9ccf65dded6f4e77d5d",
+        "tconstruct/mixins/tconstruct/source-chest-pick.rs": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+        "tconstruct/mixins/tconstruct/source-melter-store.rs": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+        "tconstruct/mixins/tconstruct/source-mining-context-host.rs": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+        "tconstruct/mixins/tconstruct/source-mining-context-shared.rs": "17e393b799fda4fe4468b0918ad0393a56b848c17927a3ba6e93c97a8c4b014f",
+        "tconstruct/mixins/tconstruct/source-mining-context.rs": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+        "tconstruct/mixins/tconstruct/source-mining-math.rs": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+        "tconstruct/mixins/tconstruct/source-mining-return.rs": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+        "tconstruct/mixins/tconstruct/source-mining-rules.rs": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6"
+      },
+      "changed": [
+        "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml"
+      ],
+      "compatibility": null,
+      "input_kind": "PR945 plus Guide B/C postimage",
+      "native_type_verified": false,
+      "package_sealed": false,
+      "plan_verified": false,
+      "repository_sealed": false,
+      "schema": 1,
+      "selected_inverse_verified": true
+    }
+  ]
+}
