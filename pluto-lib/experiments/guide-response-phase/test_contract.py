@@ -67,6 +67,20 @@ class ResponseConstraintTests(unittest.TestCase):
         for body in files.values():
             self.assertNotIn(b"inspect_post_observer", body)
             self.assertNotIn(b"inspect_caller_after_observer", body)
+            self.assertNotIn(b"struct RetainedSlot", body)
+            self.assertNotIn(b"struct LegacyU64PrefixV1", body)
+
+    def test_retained_model_reuses_actual_correlation_without_installing_hooks(self):
+        source = (HERE / "retained_model.rs").read_text()
+        for path in ["inventory-api/src/client_payload.rs", "inventory-api/src/guide/requests.rs"]:
+            self.assertIn(path, source)
+        self.assertIn("use requests::{RequestId, RequestTracker};", source)
+        self.assertIn("self.tracker.consume(", source)
+        self.assertIn("client_payload::MAX_BYTES.checked_add(HEADER)", source)
+        production = source.split("#[cfg(test)]")[0]
+        self.assertNotIn("fn register(", production)
+        self.assertNotIn("game.", production)
+        self.assertNotIn(".send(", production)
 
     def test_installed_observer_stays_read_only_and_exclusive(self):
         meta = json.loads((PLUTO / "tools/client-payload-source.json").read_text())

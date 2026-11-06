@@ -48,3 +48,11 @@ Seven source/metadata, in-memory package-exclusion and JSON-shape regressions
 pass with `PYTHONDONTWRITEBYTECODE=1 python3 test_contract.py`. The size models
 do not execute native Text or the Rust legacy codec. No package/stage is written
 by these tests.
+
+## Retained-presentation reference model
+
+The next excluded [host/API boundary](retained-boundary.md) and
+`retained_model.rs` distinguish retained ownership from input eligibility. They
+reuse the actual shared RequestTracker without changing its public API or the
+legacy LAN path. Source/JSON-shape/package tests now total eight. The model is
+not yet compiled/executed at this source checkpoint. It has no native adapter.

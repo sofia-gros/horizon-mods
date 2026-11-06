@@ -1,0 +1,94 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "scope": "Source-only retained-book boundary audit; proposed extension is not in the official host. No official source was modified.",
+  "sources": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game/dialogs.rs": "a1ad3c70eb512740b731ce7b6dddf61ccba71f6dfdbe2fd1b7bae89830e18347",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1"
+  },
+  "paths": [
+    {
+      "file": "game.rs",
+      "at": "book field:2676; constructor:19482",
+      "native": "Option<BookScreen> starts None; normal Game destruction drops it.",
+      "required": "Attach an unforgeable-in-safe-API owner handle to a checked attachment/opening identity. Counter exhaustion must not block ordinary UI."
+    },
+    {
+      "file": "game/books.rs",
+      "at": "open_book:262-267",
+      "native": "Unconditional Some(screen) replacement, even for equal contents.",
+      "required": "Fresh opening generation; no content equality shortcut."
+    },
+    {
+      "file": "game/books.rs",
+      "at": "close_book:269-282; save_book:285-291; book_follow_link:149-164",
+      "native": "Clear or take; save takes before checking Edit; RunCommand moves the view behind a prompt.",
+      "required": "Revoke the old opening at removal. A later restoration must not revive its lease."
+    },
+    {
+      "file": "game/remote_chat.rs",
+      "at": "answer_command_prompt:421-439",
+      "native": "Cancel directly restores Some(*book), bypassing open_book.",
+      "required": "Restoration is a new opening, not old-token resurrection."
+    },
+    {
+      "file": "game/dialogs.rs",
+      "at": "open_dialog:174-229; clear_dialog:233-237",
+      "native": "Dialog state changes without removing the book.",
+      "required": "Retained identity survives; input eligibility remains separate."
+    },
+    {
+      "file": "game/remote.rs",
+      "at": "ContainerClose:4680-4698",
+      "native": "When a dialog was open, clears book directly. Plain non-lectern books are not unconditionally cleared.",
+      "required": "Revoke only actual slot removal; do not treat every overlay as removal."
+    },
+    {
+      "file": "game/books.rs",
+      "at": "book_follow_link:133-146; turn_page:735; remote_lectern_book:1022; remote_lectern_page:1034; remote_lectern_closed:1045-1062",
+      "native": "In-place page/content mutation; lectern close has another direct clear.",
+      "required": "Revision changes on mutations. This reply service excludes Edit and lectern, without altering their native behavior."
+    },
+    {
+      "file": "game/remote.rs",
+      "at": "join_server:897; leave_server:1192; enter_remote_dimension:2210-2340; Login:3223; Respawn:3260",
+      "native": "Connection and player changes can retain the same level key, ChunkMap and native level epoch.",
+      "required": "Attachment generation changes independently of level identity, before a retained reply can commit."
+    },
+    {
+      "file": "game/lan_actions.rs",
+      "at": "guest use:549 and 951",
+      "native": "Takes host book and later replaces/restores it around guest work.",
+      "required": "No window-client capability in guest execution. Avoid treating guest book facts as the window owner."
+    },
+    {
+      "file": "game/native_machines.rs",
+      "at": "fake-player use:163 and 226",
+      "native": "Takes/restores book around server fake-player work.",
+      "required": "Exclude server/fake-player contexts; no native UI proof inferred from these fixtures."
+    },
+    {
+      "file": "game/native_hooks.rs",
+      "at": "native_client_packet:6989; remote.rs handle_packet:3179",
+      "native": "Original observation precedes official packet match.",
+      "required": "Single Pluto-owned RETURN, snapshot registration then observers then scoped effect, with after-callback/commit revalidation."
+    }
+  ],
+  "limitations": [
+    "The path inventory is source evidence, not execution of each lifecycle path.",
+    "No real Client/window assets or lifecycle fixture were introduced.",
+    "No official fork/host repository writes or reads of the prohibited user fork."
+  ],
+  "reused_api_sources": {
+    "inventory-api/src/client_payload.rs": "bb21ff3ba1dcc2db508d43c1d4ace10359e823d3399e3132de6fe9f1316d7af2",
+    "inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf"
+  },
+  "model_sha256": "2fc866b94a6908d300ecf024be26e73d32c178d8fab7bb97b25ff8e7bcecac5e",
+  "model_status": "Exact 6c0b6bbb compiled and 10 inert-value tests passed. Follow-up adds destructor failure and consumes an explicit owned-open handle; 12-test execution is pending."
+}
