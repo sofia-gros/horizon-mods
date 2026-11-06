@@ -124,3 +124,15 @@ its 12 native unit tests were intentionally filtered, not counted as executed.
 The 19 selected instance/codec tests passed with source hashes reverified and
 minimum free space of 10,897,723,392 bytes, above the continuous floor. Actual Level/save,
 contact, cure and actor-authority gates remain unfinished.
+
+## Legacy save inspection follow-up (unapplied)
+
+`legacy_view.rs` and `prepare_legacy.py` establish a smaller prerequisite than a
+save migration: the original parsed Tag remains borrowed while its exact native
+five-field interpretation is observed. Unsupported/omitted data remains visible;
+there is no conversion commit, persistent key, writer or actor permission.
+The fixture imports complete official NBT/number helpers and an exact extracted
+`Level::read_player` expression, rather than reconstructing native types.
+Seven Rust tests are prepared but not yet executed. Eight Python source guards
+pass. See [the local/LAN and contact design](../../docs/legacy-save-contact-migration.md)
+for the source-pinned owner/snapshot/continuation gates that remain unfinished.

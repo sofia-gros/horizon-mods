@@ -33,5 +33,12 @@
     "combined_rust_tests_passed": 19,
     "native_nbt_tests_filtered_not_run": 12,
     "initial_failed_attempt": "../../experiments/effect-instance-proposal/nbt-validation-attempt1.json"
+  },
+  "legacy_inspection": {
+    "status": "Unapplied borrowed inspection only, not a legacy save migration or synchronous actor authority",
+    "rust_tests_prepared": 7,
+    "rust_tests_executed": false,
+    "python_source_guards_passed": 8,
+    "design": "../legacy-save-contact-migration.md"
   }
 }
