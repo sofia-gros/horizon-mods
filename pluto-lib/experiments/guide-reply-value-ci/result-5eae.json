@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "head": "5eae8f5427c30f755af398439cacf321086bfdf0",
+  "run": 42239364026,
+  "job": 127965267342,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42239364026",
+  "status": "failure",
+  "terminal_utc": "2026-11-06T15:03:53Z",
+  "job_log": {
+    "bytes": 46313,
+    "sha256": "27647ec55fe928414b9241b70cc2dbf19b306e3cc1b6a96704972d8c52f675a2",
+    "local_only": true
+  },
+  "final_receipt": {
+    "error": "JSONDecodeError: Expecting value: line 1 column 2 (char 1); ValueError: Missing required gates",
+    "fixture_seal_sha256": "edd3de664b6e91b5622ee205c921a39dcc45b0bd70bf69a0a4444bf7c5b8948b",
+    "gates": {
+      "metadata": {
+        "lock_sha256": "e4da882d7c5754dd7196f9e02d3f5dd2c7547be948981974dce8bae2583285d5",
+        "packages": 39,
+        "sha256": "6f800b6b8afbaf371674245de52fca96942075012b6fee6233d801fb1eb73073"
+      },
+      "mod_inputs": {
+        "api_files": 33,
+        "commit": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+        "legacy_files": 3
+      },
+      "official": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+        "selected_files": 4
+      },
+      "preparer21": {
+        "passed": true,
+        "tests": 21
+      },
+      "runner": {
+        "passed": true,
+        "tests": 24
+      },
+      "source6": {
+        "passed": true,
+        "tests": 6
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "5eae8f5427c30f755af398439cacf321086bfdf0",
+    "minimum_free_bytes": 89840492544,
+    "mod_inputs_seal_sha256": "c066b329f2ba9ec020ad536e7f1beb1b3bf10ddea57e6830d0ff5fb4eb54f77d",
+    "official_seal_sha256": "d683b44fe2b8d827acfb0b501e249f9b712043f4d8bb9e272a77cc4205d8cf6a",
+    "output_seal_sha256": null,
+    "passed": false,
+    "scope": "Ten legacy/proposed reply value cases using actual 41f core Text and the actual API Payload. Eleven old wire/identity tests are compiled/inventoried only. No Game acquisition, registry, observer, UI/lifetime, transport or installed package proof.",
+    "source_seal_sha256": "654bba4396557518f6f596607b748350c804ea9107b21c5320271321c6a6fd9b",
+    "verified": true
+  },
+  "observed_phases": {
+    "fixture-metadata": {
+      "stdout": {
+        "sha256": "6f800b6b8afbaf371674245de52fca96942075012b6fee6233d801fb1eb73073",
+        "bytes": 174836
+      },
+      "stderr": {
+        "sha256": "6d436536f5a8173de2f90f7486d27127068697093d7aa8459f879de638fe9a1e",
+        "bytes": 1088
+      },
+      "exit_code": 0
+    },
+    "locked-metadata": {
+      "stdout": {
+        "sha256": "6f800b6b8afbaf371674245de52fca96942075012b6fee6233d801fb1eb73073",
+        "bytes": 174836
+      },
+      "stderr": {
+        "sha256": "34386e6f2e85163f8854fda9e41fdb82450d965cd754427b48eaa64e23391646",
+        "bytes": 877
+      },
+      "exit_code": 0
+    },
+    "native-compile": {
+      "stdout": {
+        "sha256": "26b74e7e15422fd33dcbf192a8ee623a46516416cdb71913802197565267aa01",
+        "bytes": 265948
+      },
+      "stderr": {
+        "sha256": "443c7e3dc5c388b0548677274802d5144e4ac739c59cdb77c4b542465c5e034b",
+        "bytes": 133108
+      },
+      "exit_code": 0
+    }
+  },
+  "unreached": [
+    "sealed executable admission",
+    "21-name inventory",
+    "10 reply tests",
+    "OUT_DIR/binary final seals",
+    "installed host/Game/LAN"
+  ],
+  "limit": "Cargo no-run exit 0 is not a successful test result. The three-compiler parser precedes artifact parsing, but its returned witnesses were not published; no independently retained witness claim. Full build stdout/stderr remained runner-local; the exact bad stdout line is not known."
+}
