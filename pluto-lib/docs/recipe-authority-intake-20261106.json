@@ -49,5 +49,46 @@
     "Old hooks unchanged. Initial pin incompatibility remains separate from authority conflicts.",
     "Overslime component preservation and paired automatic crafting remain unproved by deny-only APIs.",
     "Do not import accumulated branch trees or weaken exclusive guards to make coexistence pass."
-  ]
+  ],
+  "matching_facts_audit": {
+    "status": "source_only_no_provider_or_manifest_change",
+    "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "common_readback": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+    "local_api_source": "8715b1232c0fca133fe012f35830e2108e653d59",
+    "source_identity": "Common remote crafting-match.rs and component-view.rs read back byte-identical to local source. Other API declarations below were inspected at the named local source, not assumed from a newer branch.",
+    "shared_sha256": {
+      "crafting-match.rs": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1",
+      "component-view.rs": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297",
+      "inventory-api/src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+      "inventory-api/src/recipe_book/placement.rs": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "inventory-api/src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e"
+    },
+    "native_sha256": {
+      "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+      "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4"
+    },
+    "available_facts": [
+      "Form::Shaped width/height and Ingredient::accepted_ids retain the crafting-station subtraction signature. InputFacts.cells retain actual stack IDs, slot order and holes; flattening occupied cells reproduces native Input::stacks, without filtering count-zero present cells.",
+      "For the relevant fixed templates, Template::create clones item/count/damage/extra. Request.result is its captured semantic view, not an output replacement. Missing template item becomes minecraft:air natively and cannot match these named results.",
+      "Without root or nested retained Wire, encoded minecraft:custom_data keeps its native Tag variant and contents. StackData::other selects the first matching entry; components_tag uses first-entry or_insert for this unmodeled key. canonical_other_component only specializes map_decorations, so it does not normalize custom_data.",
+      "ComponentValue preserves typed values and UTF-16 units. The old RequiredMaterial/Material equality explicitly uses JavaString::to_string_lossy; consumer migration must use the equivalent String::from_utf16_lossy rather than the public strict ComponentText::to_string helper.",
+      "A missing tank lookup is different from a present empty/zero-amount Compound, Int(0), String, List or End. Old survival policy refuses every present value, not merely a positive amount. Malformed parent custom_data is different from a malformed present tank: the former makes native Tag::get return None and therefore passes the old empty-tank predicate."
+    ],
+    "blocking_gap": {
+      "boundary": "ItemFacts::capture -> ItemSnapshot.components",
+      "condition": "contains_retained_wire(stack) recursively checks the root and nested stacks; any retained wire makes the entire components view unavailable.",
+      "old_behavior": "Both old policies read StackData::other(minecraft:custom_data) directly even when unrelated retained wire exists; anvil also reads this field on its created result.",
+      "consequence": "Current public facts cannot distinguish absent from present tank/material data in that condition. Treating unavailable as absent can admit an old denial; blanket refusal can reject an old pass. Neither is proven equivalent.",
+      "minimum_needed": "A synchronous read of the same native stack's explicitly stored preserved component by caller-supplied key, retaining absent versus present and exact Tag kind/UTF-16. This is a semantic read of StackData::other, not the complete effective prototype, retained-wire decoding, save identity or mutation authority. Keep it distinct from existing components availability; do not silently weaken that field's contract.",
+      "ownership": "Any host access/conversion belongs to Pluto's internal adapter. TConstruct keeps keys, RequiredMaterial comparison, fake-block count and tank eligibility. No additional owner, registry, global state or result/commit authority is required by this proposal."
+    },
+    "required_differential_cases": [
+      "Exact crafting-station width/height/ingredient signature versus nearby shapes and input IDs, including holes and a present count-zero stack.",
+      "Anvil result missing/wrong-type RequiredMaterial; 2/3/4 fake blocks; matching/mismatching/missing/wrong-type Material; invalid UTF-16 strings with the same lossy rendering.",
+      "Gauge custom_data absent/noncompound/compound-without-tank versus tank empty compound, amount zero, positive amount, End, scalar and list.",
+      "Repeat representative pass/deny inputs with usable or stale root Wire and Wire only in a nested stack; result-template Wire with RequiredMaterial still present.",
+      "Direct old policy result versus any proposed shared-provider policy, retaining the existing no-provider native continuation and target exclusivity guard."
+    ],
+    "verification": "Read-only source comparison only. No Rust/model execution, provider implementation, plan, coexistence or gameplay proof."
+  }
 }
