@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "Read-only native opening-tail contract; no adapter, test execution, ordinary manifest or LAN change",
+  "official_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "latest_candidate": "29f8b52de7a1c90ca1e3979f6fcbd3c1cc124d8b",
+  "latest_ci_candidate": "c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a",
+  "official_regions": [
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "whole_sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+      "git_blob_sha1": "24b38c17cb10b0f93a58365ca6fb9944e8c8c41e",
+      "region_start": "    fn open_book(",
+      "region_end_exclusive": "    pub(super) fn close_book(",
+      "region_sha256": "bf7a16f0222599c8774557d75307ede1814f90f1a9aa1f2ce08145af66b85ff1",
+      "start_line": 262,
+      "end_line": 267
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "whole_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "git_blob_sha1": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "region_start": "    fn capture(&mut self, capture: bool)",
+      "region_end_exclusive": "    /// A Linux window manager",
+      "region_sha256": "14f38232a5b4531e1223af27864f45d56c391baf75db64d9e2963c20cb68fbd9",
+      "start_line": 8489,
+      "end_line": 8615
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "whole_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "git_blob_sha1": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "region_start": "    pub(super) fn reset_inventory_clicks(",
+      "region_end_exclusive": "    pub(super) fn close_container(",
+      "region_sha256": "ff131b4ffca1aa4741113d6db1392243a0100c43c5b05cde7ec8ddbaee07830c",
+      "start_line": 9839,
+      "end_line": 9843
+    },
+    {
+      "path": "crates/horizon-client/src/game/hand.rs",
+      "whole_sha256": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f",
+      "git_blob_sha1": "d9c071860d1f49b19c08ddad18058e98ba6393a9",
+      "region_start": "    pub(super) fn stop_mining(",
+      "region_end_exclusive": "    /// `LivingEntity.swing`",
+      "region_sha256": "5692cba1e9864127a5bfc960e6831751ada24288887e6543dc82a8f0a4126a87",
+      "start_line": 170,
+      "end_line": 186
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "whole_sha256": "443901d338aaf2ec69e5968b8276c8751a50616303a7c72a55951e6464cde5c5",
+      "git_blob_sha1": "9b8b274fad4e5d00972e3ad52f3e0ecf857b7fcd",
+      "region_start": "    pub(super) fn request_remote_mining_stop(",
+      "region_end_exclusive": "    fn remote_handle_input(",
+      "region_sha256": "5270ad357616e02390d2bdf91d587671e31833bbe1bf269a8ccdc0d3f2036ae1",
+      "start_line": 8975,
+      "end_line": 8980
+    }
+  ],
+  "consumer": {
+    "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+    "local_source_commit": "4113248bf3d3e529185ea919f4c268c5d9ad4af5",
+    "sha256": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+    "function": "open",
+    "claim": "existing source order only; not a current consumer integration proof"
+  },
+  "prototype_files_unchanged": true,
+  "ordinary_manifest_changed": false,
+  "lan_changed": false,
+  "live_client_executed": false,
+  "full_transitive_tail_or_foreign_hook_audit": false
+}
