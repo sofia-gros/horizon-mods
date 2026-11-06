@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-11-06",
+  "reviewed_head": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "reviewed_tree": "d3584646a664157a5513a82b18ed20e29ac5708f",
+  "base": "f438f340cda4c16f7d374fbb61ed5c528cecec59",
+  "result": "No blocking source-composition issue found. Combined native validation remains pending.",
+  "scope": "Independent read-only source, identity, ownership, package and public-storage compatibility review. No Cargo/native/plan/apply executed.",
+  "checks": {
+    "local_files_matching_remote_git_blobs": 340,
+    "remote_tree_truncated": false,
+    "complete_api_file_sets": {
+      "inventory": 33,
+      "public": 11,
+      "byte_identical_to_base": true
+    },
+    "layer_sources": {
+      "terrain": {
+        "commit": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+        "files": 7,
+        "exact": true
+      },
+      "language": {
+        "commit": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+        "files": 3,
+        "exact": true
+      },
+      "guide_font": {
+        "commit": "c9bc56eeea60a6caf88de0b8b1055cc33a8155e0",
+        "files": 1,
+        "exact": true
+      }
+    },
+    "original_composition": {
+      "baseline": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "crate_records_and_order_unchanged": 2,
+      "state_records_and_order_unchanged": 3,
+      "injection_records_and_order_unchanged": 34,
+      "module_sequence_exact_after_removing_three_additions": true,
+      "new_modules": [
+        "recipe-book-presentation",
+        "language",
+        "language-text"
+      ],
+      "duplicate_module_file_name_owners": 0,
+      "duplicate_section_ids": 0
+    },
+    "source_python_checks": {
+      "tests": 4,
+      "failed": 0,
+      "bytecode_disabled": true
+    },
+    "package": {
+      "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+      "bytes": 270125,
+      "members": 147,
+      "duplicate_members": 0,
+      "all_payloads_match_actual_packager_inputs": true,
+      "existing_independent_archive_byte_equal": true,
+      "contains_tconstruct": false
+    },
+    "storage": {
+      "native_helpers_unchanged": [
+        "stack-storage.rs",
+        "stack-cells.rs",
+        "stack-snapshot.rs",
+        "nbt-storage.rs"
+      ],
+      "public_entry": "Same-crate pub use of existing plan_between, plan_move, MoveError, MovePlan, StackSnapshot and storage::stage_updates; old paths retained.",
+      "authority": "Detached proposals only; caller-owned schema, admission, limits, merge identity, live commit, persistence and notification phases are not expanded."
+    }
+  },
+  "pending": [
+    "New complete official plan, all guards, apply and host lib/bin typing.",
+    "Installed native test groups for the combined cutoff, including recipe presentation host-type compatibility.",
+    "No claim for Game authority, full TConstruct runtime, outer160 within this package, live UI/LAN/GPU or resource-overlay correction."
+  ],
+  "review_actions": {
+    "production_changes": false,
+    "pr_state_changes": false,
+    "native_build": false,
+    "cache_cleanup": false,
+    "discarded_fork_access": false
+  },
+  "local_free_bytes_observed": 10877431808
+}
