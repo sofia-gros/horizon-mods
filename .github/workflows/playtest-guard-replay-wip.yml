@@ -1,0 +1,36 @@
+name: WIP fixed playtest guard replay
+on:
+  push:
+    branches:
+      - checkpoint/tinkers-playtest-guard-replay-ci-20261106
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: playtest-guard-replay-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  replay:
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/tinkers-playtest-guard-replay-ci-20261106' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Check fixed inputs and resource admission
+        run: python3 pluto-lib/experiments/playtest-guard-replay-ci/run.py --preflight
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: '13513252348'
+          run-id: 42236543685
+          repository: sofia-gros/horizon-mods
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/guard-plan-input
+      - name: Revalidate the fixed complete plan and all12 guards
+        run: python3 pluto-lib/experiments/playtest-guard-replay-ci/run.py
