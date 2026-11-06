@@ -1,0 +1,87 @@
+{
+  "status": "Proposed isolated CI typecheck handoff only; not authorized or executed by this artifact.",
+  "purpose": "Test the actual Game field-type change and BookScreen production callers before considering a retained-book response adapter.",
+  "experiment_source": "c7a89ec5fc2e294dd4625f2aff0b8a2e13306b50",
+  "experiment_publication": "b434e9a4c11f355875ed0f3df38a2474d2f20478",
+  "experiment_path": "pluto-lib/experiments/guide-response-phase/native-patch/",
+  "official_repository": "https://github.com/horizon-rust/horizon.git",
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "inputs_sha256": {
+    "pluto-lib/experiments/guide-response-phase/native-patch/generate.py": "971d2e32683e0ad5016e3c8d7fac9a7ff97fb68862715a580aa14695f7c42f97",
+    "pluto-lib/experiments/guide-response-phase/native-patch/official-sources.json": "d4910639819e3d016aae8bc344e76c4bf1fdfea7e87a943f85102fdf9e834d39",
+    "pluto-lib/experiments/guide-response-phase/native-patch/generation.json": "389a2050b280673643abd9f13d980a1536cf82953ab2e8e8af44c43f02fa262a",
+    "pluto-lib/experiments/guide-response-phase/native-patch/prototype.patch": "fe77790980cf115f674ec593ea4efce9f9a8c11bcbcefd3f21af0781f0be0628",
+    "pluto-lib/experiments/guide-response-phase/native-patch/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+    "pluto-lib/experiments/guide-response-phase/native-patch/HORIZON-LICENSE.txt": "b4b374ae9d0f2d8f7be35c6783e41327431da3b5662605da9ba31493630621df"
+  },
+  "changed_paths": [
+    "crates/horizon-client/src/game.rs",
+    "crates/horizon-client/src/game/books.rs",
+    "crates/horizon-client/src/game/ime.rs",
+    "crates/horizon-client/src/game/lan_actions.rs",
+    "crates/horizon-client/src/game/native_hooks.rs",
+    "crates/horizon-client/src/game/native_machines.rs",
+    "crates/horizon-client/src/game/pad_menu.rs",
+    "crates/horizon-client/src/game/remote.rs",
+    "crates/horizon-client/src/game/remote_chat.rs",
+    "crates/horizon-client/src/game/saving.rs",
+    "crates/horizon-client/src/game/retained_book.rs"
+  ],
+  "expected_changed_path_count": 11,
+  "expected_output_sha256": {
+    "crates/horizon-client/src/game.rs": "4ff7798182ec53c08ab4d22929f56cfcd3a336e75ef8403756c2f76b40cb981f",
+    "crates/horizon-client/src/game/books.rs": "9dc7bef003253d0089e16d27821fe1eed437cab4fe34d54ec75bb9d344dd2a2b",
+    "crates/horizon-client/src/game/ime.rs": "79068b892b2e6c62463ad2ea524d7185216d8f2294061d645d841f372423ec18",
+    "crates/horizon-client/src/game/lan_actions.rs": "e4657d11e63588acfe25207326a55dada14921217ae695262db423f44fdf744d",
+    "crates/horizon-client/src/game/native_hooks.rs": "34f19a809276b727f1b8004eeb3227c8ea5e38c69212d57fe7ceb4470483da86",
+    "crates/horizon-client/src/game/native_machines.rs": "40ce1f2db7b276317cdf07f7b5e90907cb77fc7c58716f218129db71be08b8ae",
+    "crates/horizon-client/src/game/pad_menu.rs": "17b53d77e7579877dbcbc3182e1604e676611ac3e8fd67ae25eced43a798548c",
+    "crates/horizon-client/src/game/remote.rs": "0045d28a0cc8dc5e7c9e589a0b8be1796715e28b6f13a1c1d8e0532817413c82",
+    "crates/horizon-client/src/game/remote_chat.rs": "aa31eb37fcf3090c9aa9e7d3b75dc7d741bd84be6a6bffa270a6685d69a1af59",
+    "crates/horizon-client/src/game/saving.rs": "22c5f050d531706c1546156a5b14207f106aafd43c1694be41f0c80c37fea7eb",
+    "crates/horizon-client/src/game/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971"
+  },
+  "source_observations": [
+    "The pinned horizon-client package has real src/lib.rs exposing pub mod game and a named horizon-client binary at src/main.rs.",
+    "No-default-features removes default audio/controller features; it does not remove the real Game module.",
+    "Direct non-self .book matches inspected in pristine game sources belonged to recipe UI, lectern entities, station animation or sound IDs; no additional Game receiver alias was identified. This spelling audit is not alias analysis.",
+    "The existing prototype verifies 19 exact source files and direct-field/attachment inventories; its helper tests alone do not typecheck Game.",
+    "The prototype changes storage/access and transition instrumentation only. It adds no owned-open acquisition, response callback, transport or TConstruct policy."
+  ],
+  "required_stages": [
+    "Use a dedicated public WIP push workflow only after separate scope approval; contents-read, standard runner, no secrets, cache, artifacts, PR changes or release.",
+    "Use the reviewed continuous filesystem guard from the existing CI work, including setup reserve and bounded process-group teardown. Do not start alongside another approved serial native gate.",
+    "Fetch the exact official commit and locked dependencies. Preserve this pristine source as immutable and seal its complete file set, bytes and symlink targets.",
+    "Verify all experiment input hashes and regenerate the stored patch/receipt read-only against pristine source. Refuse any source/inventory/count drift.",
+    "Create only a fresh isolated temporary experiment copy. Apply only the reviewed patch. Compare every baseline/post-copy path; exactly the ten existing source files plus new retained_book.rs may differ. Cargo manifests and Cargo.lock must be byte-identical.",
+    "Run full locked/offline metadata. Require local packages/target sources to resolve within this experiment, and preserve exact dependency/features/lock evidence; do not assume v15 cache or dependency identity.",
+    "Run the actual horizon-client lib and named bin typecheck. Require real compiler invocations for src/lib.rs and src/main.rs; a mock/extracted enum/helper compile is insufficient.",
+    "After terminal, recheck complete pristine, experiment, lock and generated-input seals. Keep exact failure diagnostics if typing fails; do not silently change the prototype or use an empty successful filter.",
+    "Record this as pristine-plus-experimental-storage typing, separate from ordinary Pluto package validation and the v15-composed prototype."
+  ],
+  "proposed_commands": [
+    "cargo fetch --locked --manifest-path PRISTINE/Cargo.toml",
+    "python3 generate.py --official PRISTINE",
+    "cargo metadata --locked --offline --manifest-path EXPERIMENT/Cargo.toml --format-version 1",
+    "cargo check --locked --offline --manifest-path EXPERIMENT/Cargo.toml -p horizon-client --lib --bin horizon-client --no-default-features -vv"
+  ],
+  "environment": {
+    "RUSTUP_TOOLCHAIN": "1.95.0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "floor_bytes": 10871635968,
+    "setup_reserve_bytes": 2147483648,
+    "CARGO_TARGET_DIR": "Fresh runner-owned path outside both source trees"
+  },
+  "not_proved_by_success": [
+    "Mixins-only implementation: this is an explicit proposed host extension, not a native package patch.",
+    "Ordinary Pluto/TConstruct package composition or compatibility with arbitrary third-party field access.",
+    "Owned retained-screen acquisition, authority, callback revalidation or conditional remote update.",
+    "Actual Client/window lifetime, overlays, identical reopening, actor reset, disposal/restoration or LAN delivery.",
+    "Legacy 262152-byte envelope compatibility and consumer-specific body/Text fidelity."
+  ],
+  "preservation": "No existing LAN handler, ordinary package guard, production API or official repository is modified by preparing this handoff. Any experiment apply is temporary CI-only; no runtime activation follows automatically.",
+  "publication_input_check": "All six listed experiment files were read from exact public b434e9a4 and compared byte-for-byte with local c7a89ec5 on 2026-11-06; all match. Whole repository trees differ and are not claimed equivalent."
+}
