@@ -1,0 +1,90 @@
+{
+  "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "remote_runtime": "7aaf04c6091b74a6d343137a26aa95069c9b7e7a",
+  "result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 10885468160,
+    "timed_out": false,
+    "elapsed_seconds": 0.6011928189982427,
+    "command": [
+      "python",
+      ".work/java-menu-foundation-proof-20261106/run_consumer.py",
+      "menu"
+    ]
+  },
+  "source_seal": {
+    "family": "menu",
+    "source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+    "cargo_exit_code": 0,
+    "strict_success": true,
+    "source_api_seed_seals_unchanged": true,
+    "real_manifest_path": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/tconstruct/tests/builder-wire/Cargo.toml",
+    "real_api_path": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api",
+    "command": [
+      "cargo",
+      "test",
+      "--lib",
+      "--locked",
+      "--offline",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/tconstruct/tests/builder-wire/Cargo.toml"
+    ]
+  },
+  "actual_rustc_invocations": [
+    {
+      "compiler": "/workspace/scratch/c7b540ff3393/.devtools/rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "args": [
+        "--crate-name",
+        "tconstruct_builder_wire_tests",
+        "--edition=2021",
+        "../rust/source_builder_wire.rs",
+        "--error-format=json",
+        "--json=diagnostic-rendered-ansi,artifacts,future-incompat",
+        "--emit=dep-info,link",
+        "-C",
+        "embed-bitcode=no",
+        "--test",
+        "--check-cfg",
+        "cfg(docsrs,test)",
+        "--check-cfg",
+        "cfg(feature, values())",
+        "-C",
+        "metadata=a590f6542fbce0bb",
+        "-C",
+        "extra-filename=-60344e2d53527a86",
+        "--out-dir",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "-C",
+        "strip=debuginfo",
+        "-L",
+        "dependency=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps",
+        "--extern",
+        "pluto_inventory_api=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/libpluto_inventory_api-1bb2b278d4d89e5f.rlib"
+      ],
+      "cwd": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/tconstruct/tests/builder-wire",
+      "manifest": "/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/tconstruct/tests/builder-wire",
+      "decision": "consumer_test_compilation"
+    }
+  ],
+  "proof_file_sha256": {
+    "menu-result.json": "a86c3c7e6f14fa9eb1d617398cd1aeed6044c8482af10019d6a47f5ef01c8c1c",
+    "menu-source-check.json": "d8511dd4866741bcb6025fa995a4bb0a8aa145f116f6864d371447971358a02e",
+    "menu-rustc-invocations.jsonl": "fdb62df3db5580485648c3ec61b4eb21fc11f7c40a5dc5717ab3271fba0da2ca",
+    "menu-result.log": "ddfdc6040031c649d3adef56359ee1e0593cdf8cb483be3ba6388823e4485100"
+  },
+  "tests": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0
+  },
+  "harnesses": {
+    "runner": "f3abe422b734e521bdc6437052f492d09dee264df5b6aa378c582ef582c70eeb",
+    "wrapper": "cd1e0a6d762959ca2ce1ff1474c7641f0a6d303ec2f9ac186f8db80f220866d4",
+    "guard": "0e3278948079b9ac4821cf361a1ffa53c50a460c8eac3dde48755101b8a0a871"
+  },
+  "limitations": [
+    "No combined official native host gate",
+    "No gameplay, LAN or production consumer migration proof"
+  ]
+}

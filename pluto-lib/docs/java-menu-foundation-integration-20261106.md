@@ -46,3 +46,12 @@ The locked/offline, jobs=1, debug=0, incremental=0 run finished in 3.40 seconds.
 On the same frozen combined source69c6, the real Java compatibility consumer and its frozen legacy oracle passed all **8 tests, 0 failed, 0 ignored**. The existing 1,311 differential cases retain ID-policy, UTF-16, spread, linked collision and resize coverage; TreeBin remains explicitly unsupported. This is comparison with the frozen Rust oracle, not a new JVM run.
 
 The bounded run observed exactly one API library compilation and one Java test-harness compilation, with no other compilation. It finished in 2.60 seconds; minimum free space was 10,886,770,688 bytes. The 193-source/API/lock seal remained unchanged and no compiler process remained. [Java receipt](proofs/java-menu-api-20261106/java-receipt.json) and [log](proofs/java-menu-api-20261106/java-result.log) preserve this separate terminal result. Menu consumer and the full official native gate remain pending.
+
+
+### Menu consumer differential gate and grouped result
+
+The same frozen69c6 source also passed **11 menu consumer tests, 0 failed, 0 ignored**, including the real thin wrapper, its frozen legacy codec, 390 encoding comparisons and 7,600 malformed-frame comparisons. Exactly one menu test-harness compilation occurred; the actual API library from the immediately preceding Java stage was reused, with no other compilation. This was observed by the wrapper, not assumed from dependency metadata.
+
+The separate locked/offline run finished in0.60 seconds. Minimum free space was10,885,468,160 bytes, with no guard stop or timeout. The193-source/API/lock seal remained unchanged and no compiler process remained. [Menu receipt](proofs/java-menu-api-20261106/menu-receipt.json) and [log](proofs/java-menu-api-20261106/menu-result.log) retain the exact result.
+
+The grouped focused result is **125 API +8 Java +11 menu =144 Rust tests passed**, plus the earlier24 Python source/package checks and deterministic archive identity. These are different scopes and remain individually recorded. **The complete official native plan/apply/type gate is still pending for this combined tree.** No live JVM, game, LAN, automatic-crafting connection, material-display injection or old-PR change is claimed.
