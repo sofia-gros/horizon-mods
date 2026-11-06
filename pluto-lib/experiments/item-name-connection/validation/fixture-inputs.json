@@ -1,0 +1,68 @@
+{
+  "status": "prepared_not_run",
+  "runtime_commit": "0f528de0332afc5d86910dd07b08dcebe98a04dd",
+  "expected_tests": 32,
+  "result_groups": [
+    {
+      "name": "native_codec",
+      "source": "codec_tests.rs",
+      "prefix": "codec_tests::",
+      "tests": [
+        "codec_tests::receive_removal_precedes_native_wire_baseline",
+        "codec_tests::canonical_root_removal_wins_without_mutating_input",
+        "codec_tests::no_marker_matches_unchanged_native_send",
+        "codec_tests::no_removal_matches_unchanged_native_receive",
+        "codec_tests::charged_children_use_actual_native_template_codec",
+        "codec_tests::bundle_children_use_actual_native_template_codec",
+        "codec_tests::container_children_preserve_native_raw_container_encoding",
+        "codec_tests::mixed_nested_entries_run_each_native_body_once_in_order",
+        "codec_tests::unrelated_custom_data_and_source_patch_are_not_mutated",
+        "codec_tests::usable_raw_patch_and_count_only_echo_keep_original_wire",
+        "codec_tests::editing_native_baseline_selects_a_distinct_canonical_proposal",
+        "codec_tests::callback_panic_does_not_poison_later_native_conversion",
+        "codec_tests::nested_callback_panic_unwinds_all_entry_scopes",
+        "codec_tests::parallel_native_conversions_keep_entry_state_thread_local",
+        "codec_tests::none_retains_native_no_callback_behavior",
+        "codec_tests::duplicate_and_contradictory_removals_have_one_canonical_name_removal",
+        "codec_tests::explicit_custom_name_remains_independent_from_removed_item_name",
+        "codec_tests::ordinary_slot_codec_also_carries_explicit_removal"
+      ]
+    },
+    {
+      "name": "entry_models",
+      "source": "../candidate/entry-gate.rs",
+      "prefix": "guest::pluto_name_entry_gate::tests::",
+      "tests": [
+        "guest::pluto_name_entry_gate::tests::unarmed_entry_has_no_bypass",
+        "guest::pluto_name_entry_gate::tests::immediate_entry_consumes_once_before_body_callbacks",
+        "guest::pluto_name_entry_gate::tests::nested_entries_are_independent_after_parent_consumption",
+        "guest::pluto_name_entry_gate::tests::duplicate_arm_never_invokes_second_callback",
+        "guest::pluto_name_entry_gate::tests::return_without_entry_clears_pending_state",
+        "guest::pluto_name_entry_gate::tests::panic_before_consumption_clears_pending_state",
+        "guest::pluto_name_entry_gate::tests::nested_panic_after_consumption_clears_both_scopes",
+        "guest::pluto_name_entry_gate::tests::concurrent_threads_do_not_share_or_leave_pending_state"
+      ]
+    },
+    {
+      "name": "owned_tag",
+      "source": "../candidate/name-removal.rs",
+      "prefix": "pluto_name_removal::tests::",
+      "tests": [
+        "pluto_name_removal::tests::no_removal_preserves_none_and_owned_values",
+        "pluto_name_removal::tests::removal_without_added_components_becomes_explicit",
+        "pluto_name_removal::tests::removal_preserves_unrelated_raw_tags_and_invalid_utf16_keys",
+        "pluto_name_removal::tests::explicit_removal_wins_and_repeated_removals_are_idempotent",
+        "pluto_name_removal::tests::unrelated_removal_does_not_materialize_name_state",
+        "pluto_name_removal::tests::unexpected_noncompound_is_preserved_not_guessed"
+      ]
+    }
+  ],
+  "source_sha256": {
+    "check_plan.py": "04060fa1776a7b09941c4c952e715cc72fe9ba8a145ad3bf9edeaded7cd42952",
+    "inputs.json": "54d3aa3d03469ade09afc3e455961424f4a48eaaaec7362443a54c311d6a9c83",
+    "test_plan.py": "0183b3a800621c1052189bc7ca77716e654284a6d021bc562baaa0e1465f7662",
+    "prepare_fixture.py": "98a464ace9d510f9398945c3b241567db33685080ef6952f9517b57007d25c16",
+    "codec_tests.rs": "987cf59a489471565fceaacd162ada5ff607530643739d8bce0fcb4a346ad7b1",
+    "test_prepare.py": "67b58f697b23adfb4378fe7d9eef51fbef63cec86a15fa979ef9e4cb06e6f3d3"
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "status": "source_preparation_only_no_candidate_plan_or_rust",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "runtime_source_commit": "0f528de0332afc5d86910dd07b08dcebe98a04dd",
+  "native_sha256": {
+    "crates/horizon-client/src/lan/guest.rs": "f9ea0bec8ac9e0fa87fff0917bf7725db68deba789f3def5d5235bd576eefd34",
+    "crates/horizon-client/src/item_sync.rs": "abfed8999de083b4dcc06935c468679f24903c31243c02056135de92375af912",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+    "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "crates/horizon-protocol/src/item.rs": "01a9be205a065a0db7335e65cd6ba08e0951b21899a5401a096818c46cf88ad0",
+    "crates/horizon-client-render/src/block_entity_render.rs": "6f66332a4615c04452c576a593082f7624a55897578f4d73d5c04fc522dbb418"
+  },
+  "candidate_sha256": {
+    "entry-gate.rs": "73fcb2fc11b19d0ae6fcfc451c401485d22ac08a53845cf46ed589f14cb0cf26",
+    "horizon-mixin.toml": "35f81e3b8576c40d8296f85b6a772f30dc9b40e851d0462693f586e0147004a1",
+    "name-removal.rs": "8d7db15c670a52bba0be89710cd9800e5db3451f64331ef5eae147b15d96fa80",
+    "receive.rs": "c804971285ef2ca3e9adadbc2c85a0f33dbfef578e951dcc183ef9d3aaab61c2",
+    "send.rs": "72e4d068a22f98b8df84c52f750937ef2d9a820fdad74693c272f3f9c7d1442d"
+  },
+  "injections": [
+    {
+      "expected": {
+        "mod_id": "pluto_item_name_removal_candidate",
+        "mod_version": "0.1.0",
+        "injection_id": "top-level-component-result",
+        "priority": 0,
+        "target": "horizon_client_lib::item_sync::from_network",
+        "file": "crates/horizon-client/src/item_sync.rs",
+        "node": [
+          6
+        ],
+        "function_fingerprint": "45734cf2949ca44358cf6a028c2560fe8619822099c6529e6ab65ee69059fd33",
+        "kind": "MODIFY_EXPRESSION_VALUE",
+        "cancellable": false,
+        "argument": null,
+        "constant_site": null,
+        "contract": {
+          "output": "Option < Tag >",
+          "value": "Option < Tag >",
+          "operation": null
+        },
+        "call_site": null,
+        "site_fingerprint": "df3ec5f3f3250792dbcaff0ab4884a24cc9fc52a2562d769c6112eb191e9916a",
+        "selector": "components_tag(s, builtin, synced)",
+        "ordinal": 0,
+        "require": 1,
+        "bindings": [
+          {
+            "name": "value",
+            "ty": "Option<Tag>",
+            "value": "$value"
+          },
+          {
+            "name": "stack",
+            "ty": "&Stack",
+            "value": "s"
+          }
+        ],
+        "expression_site": 13
+      },
+      "helper": "receive.rs"
+    },
+    {
+      "expected": {
+        "mod_id": "pluto_item_name_removal_candidate",
+        "mod_version": "0.1.0",
+        "injection_id": "nested-template-component-result",
+        "priority": 0,
+        "target": "horizon_client_lib::item_sync::template_tag",
+        "file": "crates/horizon-client/src/item_sync.rs",
+        "node": [
+          13
+        ],
+        "function_fingerprint": "6852e1fa531cf248aca2ed86a4fd798239f4e00ed0680ed2f1afd176d8b066ba",
+        "kind": "MODIFY_EXPRESSION_VALUE",
+        "cancellable": false,
+        "argument": null,
+        "constant_site": null,
+        "contract": {
+          "output": "Option < Tag >",
+          "value": "Option < Tag >",
+          "operation": null
+        },
+        "call_site": null,
+        "site_fingerprint": "61d2e5768fb0db0396de6769a09a162aa06269e03f5550030f25439f3f4d61aa",
+        "selector": "components_tag(t, builtin, synced)",
+        "ordinal": 0,
+        "require": 1,
+        "bindings": [
+          {
+            "name": "value",
+            "ty": "Option<Tag>",
+            "value": "$value"
+          },
+          {
+            "name": "stack",
+            "ty": "&Stack",
+            "value": "t"
+          }
+        ],
+        "expression_site": 3
+      },
+      "helper": "receive.rs"
+    },
+    {
+      "expected": {
+        "mod_id": "pluto_item_name_removal_candidate",
+        "mod_version": "0.1.0",
+        "injection_id": "recursive-network-entry",
+        "priority": 0,
+        "target": "horizon_client_lib::lan::guest::network_stack",
+        "file": "crates/horizon-client/src/lan/guest.rs",
+        "node": [
+          19
+        ],
+        "function_fingerprint": "647463c3760283da417aec8f1b4fa765f38726b6bc9e4db42a1b020ce6e5898e",
+        "kind": "HEAD",
+        "cancellable": true,
+        "argument": null,
+        "constant_site": null,
+        "contract": {
+          "output": ":: core :: ops :: ControlFlow < Option < Stack > >",
+          "value": null,
+          "operation": null
+        },
+        "call_site": null,
+        "site_fingerprint": null,
+        "selector": null,
+        "ordinal": null,
+        "require": null,
+        "bindings": [
+          {
+            "name": "item_id",
+            "ty": "&dyn Fn(&str) -> i32",
+            "value": "item_id"
+          },
+          {
+            "name": "synced_id",
+            "ty": "&dyn Fn(&str, &str) -> Option<i32>",
+            "value": "synced_id"
+          },
+          {
+            "name": "stack",
+            "ty": "&Option<ItemStack>",
+            "value": "s"
+          }
+        ]
+      },
+      "helper": "send.rs"
+    }
+  ],
+  "modules": [
+    {
+      "module_id": "name-removal",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_name_removal",
+      "helper": "name-removal.rs"
+    },
+    {
+      "module_id": "name-entry-gate",
+      "file": "crates/horizon-client/src/lan/guest.rs",
+      "name": "pluto_name_entry_gate",
+      "helper": "entry-gate.rs"
+    }
+  ]
+}
