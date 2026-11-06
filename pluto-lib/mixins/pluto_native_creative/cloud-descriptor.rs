@@ -49,7 +49,9 @@ pub struct Descriptor {
     pub radius_per_tick: f32,
     pub radius_on_use: f32,
     pub timing: Timing,
-    /// Unmixed RGB, without an alpha byte.
+    /// Explicit RGB input to validate(), without an alpha byte. The consuming
+    /// Validated::with_native_effect_color operation instead stores the exact
+    /// native color-mix u32 result, including its native overflow behavior.
     pub color_rgb: u32,
     pub label: Label,
     pub attribution: Attribution,
@@ -94,12 +96,39 @@ pub struct Validated {
 impl Validated {
     pub fn descriptor(&self) -> &Descriptor { &self.descriptor }
     pub fn effects(&self) -> &[ResolvedEffect] { &self.effects }
+
+    /// Opt into the native mix of the validated visible effects, in caller
+    /// order. This accepts no raw color value and grants no actor authority.
+    /// Native u32 arithmetic (including its profile-dependent overflow behavior)
+    /// is preserved; the resulting bits need not satisfy the separate explicit
+    /// RGB-input restriction. Compute this before native construction/ID work.
+    pub fn with_native_effect_color(mut self) -> Self {
+        self.descriptor.color_rgb = pluto_potions::effects_color(self.effects.iter()
+            .filter(|effect| effect.visible).map(|effect| (effect.raw_id, effect.amplifier)));
+        self
+    }
 }
 
 /// Resolve catalog identities and reject unsupported/nonfinite values before any
 /// native object construction. No world read/write, entity ID, default owner,
 /// application, filtering, sorting, scaling or color averaging is performed.
 pub fn validate(descriptor: Descriptor) -> Result<Validated, Error> {
+    validate_with_effect_budget(descriptor, MAX_EFFECTS)
+}
+
+/// The same validation with an explicit finite effect-count budget. The default
+/// entry keeps its 256 limit. This does not authorize a cloud or allocate IDs.
+/// A caller preserving an already admitted owned sequence may supply its exact
+/// length; it remains responsible for that input's admission and memory cost.
+/// Budgets impossible for either owned vector layout reject before validation.
+/// No sorting, duplicate collapse, filtering or partial validation is performed.
+pub fn validate_with_effect_budget(descriptor: Descriptor, effect_budget: usize)
+    -> Result<Validated, Error> {
+    for element_bytes in [std::mem::size_of::<Effect>(), std::mem::size_of::<ResolvedEffect>()] {
+        if effect_budget.checked_mul(element_bytes).is_none_or(|bytes| bytes > isize::MAX as usize) {
+            return Err(Error::EffectBudget);
+        }
+    }
     if descriptor.position.iter().any(|n| !n.is_finite()
         || *n < f64::from(i32::MIN) || *n >= f64::from(i32::MAX) + 1.0) {
         return Err(Error::InvalidPosition);
@@ -119,7 +148,7 @@ pub fn validate(descriptor: Descriptor) -> Result<Validated, Error> {
     if label.len() > MAX_LABEL_BYTES || matches!(&descriptor.label, Label::Translation(key) if key.is_empty()) {
         return Err(Error::InvalidLabel);
     }
-    if descriptor.effects.is_empty() || descriptor.effects.len() > MAX_EFFECTS {
+    if descriptor.effects.is_empty() || descriptor.effects.len() > effect_budget {
         return Err(Error::EffectBudget);
     }
     let mut effects = Vec::with_capacity(descriptor.effects.len());

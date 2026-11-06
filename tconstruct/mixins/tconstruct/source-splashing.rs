@@ -444,9 +444,19 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     } else { None };
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
+    // This branch is the existing held-item action, not a generic cloud source.
+    // Both guest and local/fake are supported. An unproved initial context
+    // rejects the complete cloud action before cooldown, placement or charge.
+    let cloud_frame = if is_cloud {
+        match super::tconstruct_source_fluid_cloud::capture(game) {
+            Ok(frame) => Some(frame),
+            Err(error) => return Some(Err(format!("TConstruct cloud action unsupported: {error:?}").into())),
+        }
+    } else { None };
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let result = (|| -> horizon_client::Result<bool> {
         let mut successes = 0usize;
+        let mut published_cloud = false;
         let mut remaining = fluid.clone();
         let mut last_updated = None;
         let mut failure = None;
@@ -525,8 +535,12 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     if cloud_used > 0 && game.world.loaded(target[0], target[2]) && game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable {
                         let hit = hit_point.unwrap();
                         let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
-                        super::potions::tconstruct_source_fluid_cloud::spawn(game, at, scaled_cloud.clone());
-                        cloud_spawned = true;
+                        if let Some(frame) = cloud_frame.as_ref() {
+                            super::tconstruct_source_fluid_cloud::spawn(game, frame, at, scaled_cloud.clone())
+                                .map_err(|error| format!("TConstruct cloud publication failed: {error:?}"))?;
+                            cloud_spawned = true;
+                            published_cloud = true;
+                        }
                     }
                     // FluidEffects uses the maximum successful effect amount.
                     if mixed_glow && place_used > 0 && game.may_build() {
@@ -589,6 +603,16 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     failure = Some(error);
                     break;
                 }
+            }
+        }
+        if published_cloud {
+            let Some(frame) = cloud_frame.as_ref() else {
+                return Err("TConstruct cloud published without action frame; item commit withheld".into());
+            };
+            super::tconstruct_source_fluid_cloud::require_current(game, frame)
+                .map_err(|error| format!("TConstruct cloud already published; changed actor prevents item commit: {error:?}"))?;
+            if !game.held().is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)) {
+                return Err("TConstruct cloud already published; changed held item prevents item commit".into());
             }
         }
         if successes > 0 && !game.creative {

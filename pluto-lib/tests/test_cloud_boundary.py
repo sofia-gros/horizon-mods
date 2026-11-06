@@ -1,6 +1,8 @@
 """Cloud construction stays explicit, staged and consumer-independent."""
 from pathlib import Path
 import importlib.util
+import hashlib
+import json
 import tomllib
 import unittest
 
@@ -32,7 +34,7 @@ class CloudBoundary(unittest.TestCase):
         self.assertIn('native: Breath,', source)
         self.assertNotIn('pub native:', source)
 
-    def test_exact_module_placement_has_no_consumer_activation(self):
+    def test_exact_module_placement_has_only_reviewed_consumer(self):
         manifest = tomllib.loads((NATIVE / 'horizon-mixin.toml').read_text())
         modules = {m['id']: m for m in manifest['module']}
         self.assertEqual(modules['cloud-descriptor'], {'id':'cloud-descriptor',
@@ -41,8 +43,16 @@ class CloudBoundary(unittest.TestCase):
         self.assertEqual(modules['cloud-factory'], {'id':'cloud-factory',
             'file':'crates/horizon-client/src/game/potions.rs', 'name':'pluto_cloud_factory',
             'source':'cloud-factory.rs'})
-        for path in (ROOT / 'tconstruct/mixins/tconstruct').glob('*.rs'):
-            self.assertNotIn('pluto_cloud', path.read_text(), path.name)
+        contract = json.loads((ROOT / 'pluto-lib/tests/cloud-native-item-adoption.json').read_text())
+        consumer_root = ROOT / 'tconstruct/mixins/tconstruct'
+        consumers = {path.name for path in consumer_root.glob('*.rs') if 'pluto_cloud' in path.read_text()}
+        self.assertEqual(consumers, {'source-fluid-cloud.rs'})
+        for relative, hashes in contract['payloads'].items():
+            self.assertEqual(hashlib.sha256((ROOT / relative).read_bytes()).hexdigest(), hashes['after_sha256'], relative)
+        consumer_manifest = tomllib.loads((consumer_root / 'horizon-mixin.toml').read_text())
+        cloud = [m for m in consumer_manifest['module'] if m['id'] == 'source-fluid-cloud']
+        self.assertEqual(cloud, [{'id':'source-fluid-cloud', 'file':'crates/horizon-client/src/game.rs',
+            'name':'tconstruct_source_fluid_cloud', 'source':'source-fluid-cloud.rs', 'visibility':'pub'}])
         self.assertFalse(any('cloud' in hook['id'] for hook in manifest.get('injection', [])))
 
     def test_fixture_identity_is_specific_not_an_open_package_exception(self):

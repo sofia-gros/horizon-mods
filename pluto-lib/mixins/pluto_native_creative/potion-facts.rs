@@ -52,3 +52,9 @@ pub fn has_custom_namespace(id: &str) -> bool {
     potions::is_mod_effect(id)
 }
 
+/// Native amplifier-weighted color in the given order, with native duplicate,
+/// unknown-ID and arithmetic behavior. This is not effect admission: callers
+/// validate their input and choose whether that native policy is appropriate.
+pub fn effects_color<'a>(effects: impl Iterator<Item = (&'a str, i32)>) -> u32 {
+    potions::effects_color(effects)
+}

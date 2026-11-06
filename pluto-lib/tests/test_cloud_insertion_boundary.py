@@ -7,10 +7,11 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 NATIVE = ROOT / 'pluto-lib/mixins/pluto_native_creative'
+CONTRACT = json.loads((ROOT / 'pluto-lib/tests/cloud-native-item-adoption.json').read_text())
 
 
 class CloudInsertionBoundary(unittest.TestCase):
-    def test_module_placement_has_no_activation_hook_or_consumer(self):
+    def test_module_placement_has_no_new_hook_and_exact_consumer(self):
         manifest = tomllib.loads((NATIVE / 'horizon-mixin.toml').read_text())
         modules = {m['id']: m for m in manifest['module']}
         for identity, file, name in [
@@ -21,8 +22,15 @@ class CloudInsertionBoundary(unittest.TestCase):
                 'file': 'crates/horizon-client/src/' + file, 'name': name, 'source': identity + '.rs'})
         self.assertFalse(any('cloud' in h['id'] or 'lifecycle-readiness' in h['id']
                              for h in manifest.get('injection', [])))
-        for path in (ROOT / 'tconstruct/mixins/tconstruct').glob('*.rs'):
-            self.assertNotIn('pluto_cloud_insertion', path.read_text(), path.name)
+        consumers = {p.name for p in (ROOT / 'tconstruct/mixins/tconstruct').glob('*.rs')
+                     if 'pluto_cloud_insertion' in p.read_text()}
+        self.assertEqual(consumers, {'source-fluid-cloud.rs'})
+        # The sole new consumer reaches the private Game module, never the old
+        # potions-child literal or a second allocation/owner implementation.
+        consumer = (ROOT / 'tconstruct/mixins/tconstruct/source-fluid-cloud.rs').read_text()
+        self.assertIn('pluto_cloud_insertion::insert_native_item_frame(game, frame, request)', consumer)
+        for forbidden in ('PotionCloud {', 'Breath {', 'take_entity_id(', 'breath_clouds.push(', 'EntityRef::new', 'Attribution::Unowned'):
+            self.assertNotIn(forbidden, consumer)
 
     def test_real_lifecycle_owner_is_observed_without_parallel_state(self):
         source = (NATIVE / 'lifecycle-readiness.rs').read_text().split('#[cfg(test)]')[0]
@@ -54,10 +62,14 @@ class CloudInsertionBoundary(unittest.TestCase):
                           'with_level(', 'potion_owner(', 'pluto_equipment', 'unsafe '):
             self.assertNotIn(forbidden, source)
 
-    def test_fallible_work_precedes_native_id_and_push(self):
+    def test_fallible_work_precedes_both_identical_native_publication_tails(self):
         source = (NATIVE / 'cloud-insertion.rs').read_text().split('#[cfg(test)]')[0]
-        body = source.split('pub(in crate::game) fn insert', 1)[1]
-        ordered = ['require_entity_successor(game.next_entity)?',
+        anchor = '    let [x, _, z] = request.descriptor().position.map(|n| n.floor() as i32);'
+        tails = [anchor + part.split('\n}', 1)[0] for part in source.split(anchor)[1:]]
+        self.assertEqual(len(tails), 2)
+        self.assertEqual(tails[0], tails[1])
+        body = tails[0]
+        ordered = ['game.world.loaded(x, z)', 'require_entity_successor(game.next_entity)?',
             'pluto_cloud_factory::construct(request).into_native()',
             'game.breath_clouds.try_reserve(1).map_err(|_| Error::Capacity)?',
             'let id = game.take_entity_id();', 'native.id = id;',
@@ -67,9 +79,51 @@ class CloudInsertionBoundary(unittest.TestCase):
         after = body.split('let id = game.take_entity_id();', 1)[1]
         self.assertNotIn('?', after)
         self.assertNotIn('Err(', after)
-        self.assertEqual(source.count('take_entity_id();'), 1)
+        # The full inverse below fixes both allocation occurrences; a count
+        # increase alone is not an admission for another publication path.
+        new = CONTRACT['shared']['added_frame_block']
+        before = new.split(anchor, 1)[0]
+        self.assertIn('require_native_item_frame(game, frame)?;', before)
+        self.assertIn('require_attribution(frame.attribution(), request.descriptor().attribution)?;', before)
         self.assertIn('last.checked_add(1)', source)
         self.assertIn('i32::try_from(next).is_ok()', source)
+
+    def test_original_lookup_insert_and_manifest_reverse_exactly(self):
+        source = (NATIVE / 'cloud-insertion.rs').read_text()
+        spec = CONTRACT['shared']
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), spec['after_sha256'])
+        for key in ('added_frame_block', 'added_error', 'added_tests'):
+            self.assertEqual(source.count(spec[key]), 1)
+            source = source.replace(spec[key], '')
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), spec['before_sha256'])
+        source = (ROOT / 'tconstruct/mixins/tconstruct/horizon-mixin.toml').read_text()
+        spec = CONTRACT['manifest']
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), spec['after_sha256'])
+        self.assertEqual(source.count(spec['new']), 1)
+        self.assertEqual(hashlib.sha256(source.replace(spec['new'], spec['old']).encode()).hexdigest(), spec['before_sha256'])
+
+    def test_budget_color_and_consumer_deltas_reverse_exactly(self):
+        for filename, spec in [('cloud-descriptor.rs', CONTRACT['descriptor']),
+                               ('potion-facts.rs', CONTRACT['color'])]:
+            value = (NATIVE / filename).read_text()
+            self.assertEqual(hashlib.sha256(value.encode()).hexdigest(), spec['after_sha256'])
+            if 'edits' in spec:
+                for old, new in reversed(spec['edits']):
+                    self.assertEqual(value.count(new), 1)
+                    value = value.replace(new, old)
+            else:
+                self.assertEqual(value.count(spec['addition']), 1)
+                value = value.replace(spec['addition'], '')
+            self.assertEqual(hashlib.sha256(value.encode()).hexdigest(), spec['before_sha256'])
+        source = (ROOT / 'tconstruct/mixins/tconstruct/source-splashing.rs').read_text()
+        spec = CONTRACT['caller']
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), spec['after_sha256'])
+        prefix, body = source.split(spec['scope'], 1)
+        body = spec['scope'] + body
+        for old, new in reversed(spec['edits']):
+            self.assertEqual(body.count(new), 1)
+            body = body.replace(new, old)
+        self.assertEqual(hashlib.sha256((prefix + body).encode()).hexdigest(), spec['before_sha256'])
 
     def test_constructor_body_unchanged_and_accessor_only_consumes(self):
         source = (NATIVE / 'cloud-factory.rs').read_text()
