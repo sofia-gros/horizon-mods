@@ -1,0 +1,528 @@
+{
+  "schema": 1,
+  "status": "passed within std-only scope",
+  "proof_head": "43e72e9e5a4d64c775fe172d4c0e678e6de74e63",
+  "proof_tree": "a767b8c5be7e146c7f4e30a81c239331950cddd0",
+  "source_parent": "e6d82461c1035a05d557700704bf212c97f531a2",
+  "run": {
+    "id": 42218495299,
+    "job_id": 127894381802,
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42218495299",
+    "event": "push",
+    "branch": "checkpoint/plutolib-terrain-bounds-ci-20261106",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-11-06T12:32:51Z",
+    "updated_at": "2026-11-06T12:33:14Z"
+  },
+  "retrieved_console": {
+    "bytes": 32445,
+    "sha256": "31a72c7740fd0aba72ff1eb7bbf3aca961e0c7faadb51dedf7a3d48189a129cd",
+    "encoding": "UTF-8; exact fetched decoded job log including its initial BOM; retained locally, not added to repository",
+    "raw_phase_logs": "Ephemeral runner only; phase SHA/bytes retained in final_receipt"
+  },
+  "validation": {
+    "runner_python": 20,
+    "bounds_source_python": 11,
+    "host_composer_python": 8,
+    "rust_profiles": {
+      "0": {
+        "passed": 14,
+        "ignored": 0,
+        "filtered": 0
+      },
+      "3": {
+        "passed": 14,
+        "ignored": 0,
+        "filtered": 0
+      }
+    },
+    "inconclusive_micro_cases": 6,
+    "total_micro_cases": 8,
+    "required_gate_count": 11
+  },
+  "excluded": {
+    "actual_host_typing": true,
+    "native_mesher_execution": true,
+    "latest_horizon_compatibility": true,
+    "whole_mesh_profile": true,
+    "production_optimization": true,
+    "gpu_display": true,
+    "tconstruct_activation": true
+  },
+  "final_receipt": {
+    "error": null,
+    "gates": {
+      "bounds_source11": {
+        "passed": true,
+        "tests": 11
+      },
+      "compile0": {
+        "argv": [
+          "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "--test",
+          "--crate-name",
+          "pluto_terrain_local_bounds",
+          "-C",
+          "opt-level=0",
+          "-C",
+          "debug-assertions=on",
+          "-C",
+          "overflow-checks=on",
+          "-C",
+          "debuginfo=0",
+          "-C",
+          "codegen-units=16",
+          "-C",
+          "lto=off",
+          "/home/runner/work/_temp/terrain-bounds-43e72e9e5a4d64c775fe172d4c0e678e6de74e63/fixture.rs",
+          "-o",
+          "/home/runner/work/_temp/terrain-bounds-43e72e9e5a4d64c775fe172d4c0e678e6de74e63/bounds-opt0"
+        ],
+        "binary": {
+          "bytes": 7100368,
+          "mode": 493,
+          "sha256": "cac1b8e152c1ab6aa1dbee79aea667deffcbd724cc4f6b58b5deb0662b703a4c"
+        },
+        "per_process_address_limit": 1073741824
+      },
+      "compile3": {
+        "argv": [
+          "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "--test",
+          "--crate-name",
+          "pluto_terrain_local_bounds",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "debug-assertions=on",
+          "-C",
+          "overflow-checks=on",
+          "-C",
+          "debuginfo=0",
+          "-C",
+          "codegen-units=16",
+          "-C",
+          "lto=off",
+          "/home/runner/work/_temp/terrain-bounds-43e72e9e5a4d64c775fe172d4c0e678e6de74e63/fixture.rs",
+          "-o",
+          "/home/runner/work/_temp/terrain-bounds-43e72e9e5a4d64c775fe172d4c0e678e6de74e63/bounds-opt3"
+        ],
+        "binary": {
+          "bytes": 6975792,
+          "mode": 493,
+          "sha256": "8c118056b6ffc10bc8f6a037ddc4b14a3e579c1c707e9b6754d11c91fc5b5a3a"
+        },
+        "per_process_address_limit": 1073741824
+      },
+      "compose": {
+        "host_source_only": {
+          "candidate_sha256": "9a09445826308e7e58d6016260dbc868223f5f0ed1541ab343e27c3eabb928f0",
+          "changed_call_sites": 1,
+          "execution": {
+            "apply": false,
+            "cpu": false,
+            "gpu": false,
+            "performance": false,
+            "plan": false,
+            "rust": false
+          },
+          "generated_bytes": 25005,
+          "generated_sha256": "64d9a66d18165ad2afd9c2a6e2cb654e852fe5674bc511b15a9b90250a8a843b",
+          "manifest_created": false,
+          "module_name": "pluto_terrain_cell_host_bounds_probe",
+          "original_host_fully_reconstructed": true,
+          "original_host_sha256": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+          "performance_result": null,
+          "status": "excluded_source_only"
+        },
+        "std": {
+          "execution": {
+            "apply": false,
+            "cpu": false,
+            "gpu": false,
+            "performance": false,
+            "plan": false,
+            "rust": false
+          },
+          "generated_bytes": 24080,
+          "generated_sha256": "c8efa6a8fc8b3293174ed7f33fd4ff8da38ae74405dec11475e8a10e2a9bd44b",
+          "original_predicate_sha256": "43a8fdd9e3d194a79006c3d3e823f101522421c6fc05433f61ef8de89062244e",
+          "performance_result": null,
+          "prepared_tests": 14,
+          "production_module_preserved": true,
+          "status": "source_composed_only"
+        }
+      },
+      "host_composer8": {
+        "passed": true,
+        "tests": 8
+      },
+      "inventory0": {
+        "names": [
+          "bounds_tests::deterministic_float_bits_and_clone_keep_constructor_invariants",
+          "bounds_tests::empty_geometry_is_local_at_every_section_origin",
+          "bounds_tests::every_face_mask_origin_corner_diagonal_and_back",
+          "bounds_tests::exact_zero_one_subnormal_and_inset_boundaries",
+          "bounds_tests::invalid_values_are_rejected_before_a_batch_exists",
+          "bounds_tests::nonzero_origin_can_be_local_and_top_changes_the_answer",
+          "bounds_tests::paired_validation_microtiming_is_not_mesher_timing",
+          "geometry::tests::bottom_orientation_is_exact_legacy_output",
+          "geometry::tests::diagonal_rotates_position_uv_pairs_only_on_top",
+          "geometry::tests::fixed_capacity_order_and_paired_back_winding",
+          "geometry::tests::invalid_inputs_fail_before_returning_any_batch",
+          "geometry::tests::omissions_and_section_boundary_remain_bounded",
+          "geometry::tests::top_orientation_keeps_section_origin_and_shared_validation",
+          "geometry::tests::top_reflects_positions_uv_pairs_faces_and_back_winding"
+        ],
+        "tests": 14
+      },
+      "inventory3": {
+        "names": [
+          "bounds_tests::deterministic_float_bits_and_clone_keep_constructor_invariants",
+          "bounds_tests::empty_geometry_is_local_at_every_section_origin",
+          "bounds_tests::every_face_mask_origin_corner_diagonal_and_back",
+          "bounds_tests::exact_zero_one_subnormal_and_inset_boundaries",
+          "bounds_tests::invalid_values_are_rejected_before_a_batch_exists",
+          "bounds_tests::nonzero_origin_can_be_local_and_top_changes_the_answer",
+          "bounds_tests::paired_validation_microtiming_is_not_mesher_timing",
+          "geometry::tests::bottom_orientation_is_exact_legacy_output",
+          "geometry::tests::diagonal_rotates_position_uv_pairs_only_on_top",
+          "geometry::tests::fixed_capacity_order_and_paired_back_winding",
+          "geometry::tests::invalid_inputs_fail_before_returning_any_batch",
+          "geometry::tests::omissions_and_section_boundary_remain_bounded",
+          "geometry::tests::top_orientation_keeps_section_origin_and_shared_validation",
+          "geometry::tests::top_reflects_positions_uv_pairs_faces_and_back_winding"
+        ],
+        "tests": 14
+      },
+      "runner": {
+        "passed": true,
+        "tests": 20
+      },
+      "tests0": {
+        "filtered": 0,
+        "ignored": 0,
+        "micro": [
+          {
+            "candidate_total_ns": [
+              1763765,
+              1763214,
+              1784910,
+              1843222,
+              1772313,
+              1781964,
+              1858875
+            ],
+            "case": "front6",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              16016816,
+              16411083,
+              16075684,
+              16515135,
+              16481409,
+              16819498,
+              16256889
+            ],
+            "timing_inconclusive": false
+          },
+          {
+            "candidate_total_ns": [
+              3458452,
+              3430716,
+              3430926,
+              3459068,
+              3504652,
+              3492034,
+              3575890
+            ],
+            "case": "paired12",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              33167025,
+              33389386,
+              31918357,
+              33295312,
+              32861181,
+              32637184,
+              33114161
+            ],
+            "timing_inconclusive": false
+          },
+          {
+            "candidate_total_ns": [
+              213080,
+              213055,
+              243472,
+              231275,
+              243467,
+              242142,
+              217974
+            ],
+            "case": "nonlocal",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              1145416,
+              1211204,
+              1180292,
+              1185056,
+              1138808,
+              1151391,
+              1122863
+            ],
+            "timing_inconclusive": true
+          },
+          {
+            "candidate_total_ns": [
+              52995,
+              50342,
+              50316,
+              49009,
+              50328,
+              50311,
+              48995
+            ],
+            "case": "empty",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              59616,
+              50381,
+              50320,
+              50311,
+              50329,
+              51653,
+              50327
+            ],
+            "timing_inconclusive": true
+          }
+        ],
+        "tests": 14
+      },
+      "tests3": {
+        "filtered": 0,
+        "ignored": 0,
+        "micro": [
+          {
+            "candidate_total_ns": [
+              117769,
+              105530,
+              105477,
+              105504,
+              117748,
+              105486,
+              105515
+            ],
+            "case": "front6",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              1091045,
+              1106120,
+              1104840,
+              1104585,
+              1101340,
+              1112085,
+              1117302
+            ],
+            "timing_inconclusive": true
+          },
+          {
+            "candidate_total_ns": [
+              207590,
+              207602,
+              228867,
+              207553,
+              207451,
+              207535,
+              234297
+            ],
+            "case": "paired12",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              2136863,
+              2129702,
+              2114940,
+              2116209,
+              2105308,
+              2104317,
+              2108070
+            ],
+            "timing_inconclusive": true
+          },
+          {
+            "candidate_total_ns": [
+              12136,
+              12648,
+              12200,
+              12175,
+              12157,
+              12212,
+              12135
+            ],
+            "case": "nonlocal",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              83711,
+              83717,
+              83684,
+              83753,
+              83653,
+              83724,
+              83672
+            ],
+            "timing_inconclusive": true
+          },
+          {
+            "candidate_total_ns": [
+              10654,
+              9299,
+              10627,
+              9308,
+              10609,
+              14437,
+              10634
+            ],
+            "case": "empty",
+            "observed_clock_ns": 21,
+            "original_total_ns": [
+              10604,
+              10605,
+              11981,
+              10634,
+              11947,
+              10614,
+              11974
+            ],
+            "timing_inconclusive": true
+          }
+        ],
+        "tests": 14
+      },
+      "toolchain": {
+        "binary": {
+          "bytes": 644784,
+          "mode": 493,
+          "sha256": "bff349e72704ff70bc08a234a3847338e797065bbedde5e556808bc87b7bf7c6"
+        },
+        "identity": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2\n"
+      }
+    },
+    "minimum_free_bytes": 91305795584,
+    "passed": true,
+    "phases": [
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "runner",
+        "raw_bytes": 2305,
+        "raw_sha256": "6cc9680eb413413c732c0b091fb353e8ac77b61528a9917513f7a532f3c006c2",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "bounds_source11",
+        "raw_bytes": 1542,
+        "raw_sha256": "77618e210a463b2b653252e409e58ce74c40880d1ebce1638824f4c8ccd57d33",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "host_composer8",
+        "raw_bytes": 1142,
+        "raw_sha256": "15a6ab2538c5183773ef359ed21e5f065652e7f524447f38db31614be86a50da",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 9.226,
+        "error": null,
+        "name": "toolchain-install",
+        "raw_bytes": 257,
+        "raw_sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "compiler-path",
+        "raw_bytes": 74,
+        "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "compiler-version",
+        "raw_bytes": 196,
+        "raw_sha256": "4fdff2578428e9c5c08ddd7a0d3079c1a106b1cdaa46e73e46f7cd32b0fb9cad",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.403,
+        "error": null,
+        "name": "compile0",
+        "raw_bytes": 502,
+        "raw_sha256": "f4e5ec4e87d124ed6282a8e86db4ead66ab62e2f2f553d8ef4d7115941c6e9a0",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "inventory0",
+        "raw_bytes": 1003,
+        "raw_sha256": "b5c87b954b1f9613475928b5fe502b72066fee962dfa29bbb380271dceddb213",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.603,
+        "error": null,
+        "name": "tests0",
+        "raw_bytes": 3289,
+        "raw_sha256": "9e4eb5e6e973724f153c038f1ca4f804cc401f6adf58a37937e64c743b9c931a",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.603,
+        "error": null,
+        "name": "compile3",
+        "raw_bytes": 502,
+        "raw_sha256": "7cbeeb9367506cfc99dbdb488cd5170ff414409125036d8816a883f8d076f948",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "inventory3",
+        "raw_bytes": 1003,
+        "raw_sha256": "b5c87b954b1f9613475928b5fe502b72066fee962dfa29bbb380271dceddb213",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "tests3",
+        "raw_bytes": 3236,
+        "raw_sha256": "72d64d4df1302cbd24f304c3d74b0693403a779cb27de79218ba55a55e212167",
+        "required_compilers": [],
+        "terminal": "success"
+      }
+    ],
+    "scope": "std private Batch predicates at opt0/3 only; no actual host type, native Mesher, latest compatibility, GPU or shipping performance proof",
+    "source_seal_sha256": "10f332274954b505929ae5b53219b072bc8437af642b8df51502e008850e4dda",
+    "verified": true
+  }
+}
