@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "scope": "Read-only exact PR945 adaptation audit, not an integration, compile or plan result. No branch/main/PR changed.",
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "pr945_head": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+  "pr945_base_reported": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+  "common_archive_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "rows": [
+    {
+      "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+      "main_sha256": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+      "pr945_sha256": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2",
+      "identical": false,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-chest-pick.rs",
+      "main_sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+      "pr945_sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+      "identical": true,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-melter-store.rs",
+      "main_sha256": "9d0bcb9cb0f43f144fe2e24a6d9e564566cdc57665dc8e847a37c956b502a421",
+      "pr945_sha256": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+      "identical": false,
+      "diff": "--- 08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-melter-store.rs\n\n+++ d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad/tconstruct/mixins/tconstruct/source-melter-store.rs\n\n@@ -190,16 +190,13 @@\n\n /// Stage every metadata edit before touching any chunk, so a transfer cannot\n /// drain the source when a destination chunk or entity cannot be updated.\n pub(super) fn write_many(world: &mut World, changes: &[(Pos, &str, Tag)]) -> bool {\n-    let mut staged = std::collections::BTreeMap::new();\n-    for (pos, key, value) in changes {\n-        let chunk_pos = (pos.0 >> 4, pos.2 >> 4);\n-        if !staged.contains_key(&chunk_pos) {\n-            let Some(chunk) = world.chunks.get(&chunk_pos) else { return false; };\n-            let sources = chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default();\n-            staged.insert(chunk_pos, sources);\n-        }\n-        if !set_metadata(staged.get_mut(&chunk_pos).unwrap(), *pos, key, value.clone()) { return false; }\n-    }\n+    let Some(staged) = horizon_client::pluto_inventory::storage::stage_updates(\n+        changes.iter(),\n+        |(pos, _, _)| (pos.0 >> 4, pos.2 >> 4),\n+        |chunk_pos| world.chunks.get(chunk_pos).map(|chunk|\n+            chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default()),\n+        |sources, (pos, key, value)| set_metadata(sources, *pos, key, value.clone()),\n+    ) else { return false; };\n     for (chunk_pos, sources) in staged {\n         let Some(chunk) = world.chunks.get_mut(&chunk_pos) else { return false; };\n         let chunk = std::sync::Arc::make_mut(chunk);"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-context-host.rs",
+      "main_sha256": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+      "pr945_sha256": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+      "identical": true,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-context-shared.rs",
+      "main_sha256": "22a8cf9b0e2671be1ee3f4bae292d43cd3f4f59bf8be2d174c3a755c1bf70193",
+      "pr945_sha256": "17e393b799fda4fe4468b0918ad0393a56b848c17927a3ba6e93c97a8c4b014f",
+      "identical": false,
+      "diff": "--- 08afa992d5091e03360f3473ea93fd17aa793987/tconstruct/mixins/tconstruct/source-mining-context-shared.rs\n\n+++ d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad/tconstruct/mixins/tconstruct/source-mining-context-shared.rs\n\n@@ -39,8 +39,8 @@\n\n     let broad = crate::game::tconstruct_source_mining_rules::broad_or_unknown(broad_tag, &stack.item);\n     // Source BreakSpeedContext supplies potion and environmental factors to\n     // flat bonuses. Host base speed may use different fatigue/water rules.\n-    let in_water = game.player.as_ref().is_some_and(|player|\n-        player.is_eye_in_fluid(horizon_client::motion::WATER));\n+    let water = game.player.as_ref().map(horizon_client::pluto_fluid_facts::player);\n+    let in_water = water.is_some_and(|facts| facts.eye_in_water);\n     let aqua_affinity = game.armor[0].as_ref().is_some_and(|stack| stack.enchantment_level(\"minecraft:aqua_affinity\") > 0);\n     let on_ground = game.player.as_ref().map_or(true, |player| player.ground.on_ground);\n     let effects = &game.potions.effects;\n@@ -49,8 +49,8 @@\n\n         effects.amplifier(\"mining_fatigue\"), in_water, aqua_affinity, on_ground);\n     // Mantle's eyes_in_water predicate uses the actor's last eye-water sample,\n     // which can differ from its current eye-in-fluid state.\n-    let hydraulic_water = game.player.as_ref().and_then(|player|\n-        player.fluids.was_eye_in_water.then_some(aqua_affinity));\n+    let hydraulic_water = water.and_then(|facts|\n+        facts.previous_eye_in_water.then_some(aqua_affinity));\n     let speed = crate::game::tconstruct_source_mining_rules::conditional_with_water(custom, stack.damage, speed, multiplier, position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance), hydraulic_water).unwrap_or(speed);\n     crate::game::tconstruct_source_mining_rules::finish_mining_speed(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground), armor_multiplier)\n }"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-context.rs",
+      "main_sha256": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+      "pr945_sha256": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+      "identical": true,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-math.rs",
+      "main_sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+      "pr945_sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+      "identical": true,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-return.rs",
+      "main_sha256": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+      "pr945_sha256": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+      "identical": true,
+      "diff": null
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-mining-rules.rs",
+      "main_sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+      "pr945_sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+      "identical": true,
+      "diff": null
+    }
+  ],
+  "old_mining_blocks_exact_occurrences": 1,
+  "old_chest_block_exact_occurrences": 1,
+  "required_common_modules": [
+    {
+      "id": "pluto_native_creative-inventory-export",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_inventory",
+      "source": "pluto_native_creative/inventory-export.rs",
+      "visibility": "pub"
+    },
+    {
+      "id": "pluto_native_creative-fluid-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_fluid_facts",
+      "source": "pluto_native_creative/fluid-facts.rs",
+      "visibility": "pub"
+    }
+  ],
+  "recipe_finite_policy_proof": "278fe1643461e1dd84ddecd01079278547ab09ef",
+  "production_candidates": {
+    "mining": "b78ee288d7627e1be1c046db73541fab1d40c249",
+    "chest": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+    "small_chest_probe_41f_source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072"
+  },
+  "requirements": [
+    "Do not use old full646 transform on PR945; it intentionally rejects a different base.",
+    "Preserve PR945 shared apply fluid-facts delegation and store write_many delegation.",
+    "Replace the exact old two-mining raw block and chest raw block once; record complete raw inverse to the new fixed PR945/common base.",
+    "Reproduce official packager accessor/id transformation without touching source main or PR.",
+    "Preserve all unrelated hooks/modules/states/crates, including PR944/945 navigation changes.",
+    "Require new full plan, guards and actual apply/type/build; old finite policy and formal probes are not complete latest proof."
+  ],
+  "native_executed": false,
+  "compatibility_verified": false
+}
