@@ -36,7 +36,7 @@ MAX_TOTAL = 64 * 1024**3
 SCRUB = {'RUSTUP_TOOLCHAIN', 'RUSTC_WRAPPER', 'RUSTC_WORKSPACE_WRAPPER',
          'RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTDOCFLAGS',
          'CARGO_ENCODED_RUSTDOCFLAGS', 'CARGO_INCREMENTAL',
-         'PLUTO_GUARD_RUSTFMT', 'CARGO', 'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
+         'PYTHONUTF8', 'PYTHONIOENCODING', 'PLUTO_GUARD_RUSTFMT', 'CARGO', 'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
          'CFLAGS', 'CXXFLAGS', 'LDFLAGS', 'HORIZON_MOD_INJECTIONS'}
 
 
@@ -143,6 +143,7 @@ def build_environment(original, toolchain, home):
                CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
                TMP=str(home/'tmp-latest-gnu'), TEMP=str(home/'tmp-latest-gnu'),
                TMPDIR=str(home/'tmp-latest-gnu'), PYTHONDONTWRITEBYTECODE='1',
+               PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
                CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=str(toolchain/'mingw64/bin/gcc.exe'),
                CC=str(toolchain/'mingw64/bin/gcc.exe'), CXX=str(toolchain/'mingw64/bin/g++.exe'),
                AR=str(toolchain/'mingw64/bin/ar.exe'), RANLIB=str(toolchain/'mingw64/bin/ranlib.exe'),
