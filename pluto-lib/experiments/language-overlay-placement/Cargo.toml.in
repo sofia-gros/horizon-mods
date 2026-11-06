@@ -1,0 +1,13 @@
+[package]
+name = "pluto-language-repair-helper-fixture"
+version = "0.0.0"
+edition = "2024"
+
+[workspace]
+
+[lib]
+path = "fixture.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["raw_value"] }

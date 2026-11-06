@@ -1,0 +1,35 @@
+{
+  "status": "source only; no native plan, compile, apply or tests",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "merge_owner": "9756ce2a2ab28b7819f44bd8fe2c02531c435d6e",
+  "merge_sha256": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+  "native_write_sha256": "dae22817315d4eb44be81ae1e828bcec7fb8898b0cb74e43241223dce11c9437",
+  "native_write_bytes": 369,
+  "payload_sha256": {
+    "horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693",
+    "write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4",
+    "stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e"
+  },
+  "fixture_sha256": {
+    "Cargo.toml.in": "69e9c0377d69070646e096513189691e6efe69644ab69656d5dbd33c562d9ec9",
+    "fixture.rs": "38b493e51d5a49741608a3c8ff8fbc695366a9ef66b57febe405bb07086652d0"
+  },
+  "expected_tests": [
+    "pluto_language_overlay::tests::adds_only_lower_keys_and_keeps_mod_conflicts",
+    "pluto_language_overlay::tests::unchanged_key_set_requests_original_higher_bytes",
+    "pluto_language_overlay::tests::empty_higher_retains_lower_keys_by_explicit_policy",
+    "pluto_language_overlay::tests::duplicates_in_either_layer_are_not_eligible",
+    "pluto_language_overlay::tests::unsupported_and_partial_documents_remain_ineligible",
+    "pluto_language_overlay::tests::unicode_and_placeholders_are_values_not_format_programs",
+    "pluto_language_overlay::tests::exact_input_byte_limit_is_enforced",
+    "pluto_language_overlay::tests::parser_and_union_entry_limits_are_enforced",
+    "pluto_language_overlay::tests::encoded_writer_never_grows_past_limit",
+    "pluto_language_overlay::tests::path_scope_rejects_other_resources_and_traversal",
+    "pluto_language_overlay::tests::missing_lower_and_ineligible_higher_keep_exact_borrow",
+    "pluto_language_overlay::tests::native_prepared_lower_is_read_only_and_mod_wins",
+    "pluto_language_overlay::tests::invalid_or_large_lower_preserves_original_higher",
+    "pluto_language_overlay::tests::lower_directory_is_not_opened_as_a_file"
+  ],
+  "policy_id": "plutolib language lower-only strict strings 1"
+}
