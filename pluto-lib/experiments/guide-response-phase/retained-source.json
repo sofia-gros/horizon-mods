@@ -90,5 +90,5 @@
     "inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf"
   },
   "model_sha256": "2fc866b94a6908d300ecf024be26e73d32c178d8fab7bb97b25ff8e7bcecac5e",
-  "model_status": "Exact 6c0b6bbb compiled and 10 inert-value tests passed. Follow-up adds destructor failure and consumes an explicit owned-open handle; 12-test execution is pending."
+  "model_status": "Exact 31ba6150 compiled; all 12 focused retained model tests passed. Actual RequestTracker/payload source reused; no native UI or transport proof. See retained-validation.json."
 }

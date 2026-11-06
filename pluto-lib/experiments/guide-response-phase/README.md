@@ -54,5 +54,7 @@ by these tests.
 The next excluded [host/API boundary](retained-boundary.md) and
 `retained_model.rs` distinguish retained ownership from input eligibility. They
 reuse the actual shared RequestTracker without changing its public API or the
-legacy LAN path. Source/JSON-shape/package tests now total eight. The model is
-not yet compiled/executed at this source checkpoint. It has no native adapter.
+legacy LAN path. Source/JSON-shape/package tests now total eight. The model compiled and all 12 focused tests passed at exact `31ba6150`;
+14 dependency tests were filtered out, not counted. It has no native adapter.
+See [retained-validation.json](retained-validation.json) for source/command/log
+hashes, the disk guard and precise unproven boundaries.

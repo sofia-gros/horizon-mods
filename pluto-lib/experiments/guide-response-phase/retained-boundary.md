@@ -138,3 +138,13 @@ No approved complete Client/renderer resource tree has been established. The
 old LAN path remains unchanged, including its known lifetime limitations and
 its remaining observer-guard collision. PR #945's navigation overlay apply/type
 check is separately queued; neither this model nor its tests complete that gate.
+
+## Executed model result
+
+Exact `31ba6150` compiled in 0.405 seconds; all 12 retained tests passed,
+including destructor failure and explicit owned-open handle checks. Fourteen
+compiled dependency tests were filtered out and are not added to that count.
+Eight source/package/JSON-shape tests also pass. Before/after official-source,
+reused-API and model hashes match; minimum free disk was 10,899,214,336 bytes,
+above the unchanged 10 GiB +128 MiB guard. See `retained-validation.json`.
+This closes only the excluded model proof, not the missing native/UI connection.

@@ -1,0 +1,73 @@
+{
+  "source": "31ba6150eb1ded107461e14ca123ca2e28143cb1",
+  "scope": "Excluded std-only proposed retained-slot protocol model; actual shared RequestTracker/payload source reused. No native Game/UI/codec/network execution.",
+  "floor_bytes": 10871635968,
+  "minimum_free_bytes": 10899214336,
+  "source_hashes_verified_before": true,
+  "source_hashes_verified_after": true,
+  "disk_stopped": false,
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "model_sha256": "2fc866b94a6908d300ecf024be26e73d32c178d8fab7bb97b25ff8e7bcecac5e",
+  "reused_api_sources": {
+    "inventory-api/src/client_payload.rs": "bb21ff3ba1dcc2db508d43c1d4ace10359e823d3399e3132de6fe9f1316d7af2",
+    "inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf"
+  },
+  "phases": [
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "seconds": 0.405,
+      "timeout": false,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "retained-tests",
+      "exit_code": 0,
+      "seconds": 0.101,
+      "timeout": false,
+      "log_sha256": "160018ffcc515388f65f8345f0be398a2cb1a278a2f60da91e476b5a3bcd576b"
+    }
+  ],
+  "tests": {
+    "passed": 12,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out_dependency_tests": 14,
+    "source_contract_tests_passed": 8
+  },
+  "commands": [
+    "rustc --edition 2024 --test -C debuginfo=0 pluto-lib/experiments/guide-response-phase/retained_model.rs -o /tmp/pluto-retained-guide-model-31ba6150",
+    "/tmp/pluto-retained-guide-model-31ba6150 retained_tests:: --test-threads=1"
+  ],
+  "artifacts": {
+    "result.json": {
+      "bytes": 3388,
+      "sha256": "fac614c100027e023f5a84a06df54b9d5df6c9738fca9dfbe9957263437b965b"
+    },
+    "compile.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "retained-tests.log": {
+      "bytes": 1261,
+      "sha256": "160018ffcc515388f65f8345f0be398a2cb1a278a2f60da91e476b5a3bcd576b"
+    }
+  },
+  "executable": {
+    "bytes": 7229960,
+    "sha256": "5c590e4a463868af2584c7f2b7251f581affb08c7ffcd9a747147a16b89e0b0c"
+  },
+  "earlier_proof": {
+    "source": "6c0b6bbb5ea404a271f825ee8b9718cb379ac0f0",
+    "passed": 10,
+    "limit": "Earlier inert-value model; superseded by explicit owned-open and destructor handling qualifications in the twelve-test proof."
+  },
+  "not_proven": [
+    "Official BookScreen/attachment-generation API or native adapter",
+    "Actual native observer/registration ordering",
+    "Live Client/window, overlay/input/audio or packet delivery",
+    "Native Text/legacy JSON conversion equivalence",
+    "Installed library or full TConstruct consumer recovery"
+  ]
+}
