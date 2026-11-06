@@ -129,3 +129,91 @@ No new locale setter, independent generation counter, event or retained Guide
 refresh is added here. A later UI proof must enter the actual appropriate caller
 and preserve its load/install/refresh order, including the stale-reload selection
 case. Neither Package8 nor this unrun overlay baseline is that proof.
+
+## Bounded repair candidate after the baseline gate
+
+Source-only design follow-up; neither an implemented merger nor an approved
+activation. The reviewed baseline CI remains frozen at `14902fcc`; this section
+is not an input or a result of those eight Rust cases.
+
+A potentially smaller compatibility domain is **two strict JSON objects whose
+values are all strings**. The native `read_lang_file` fast path already accepts
+that domain into `HashMap<String, String>`. For a same-path, eligible locale:
+
+- Read only the surviving prepared base path, never raw packs or a pre-filter
+  source. Keep current admitted Mod-over-prepared-base conflict precedence.
+- If both layers are accepted by the exact native fast-path domain, merge lower
+  then higher and serialize an object of strings. Duplicate keys must resolve as
+  that native deserializer does, not a new duplicate rejection rule. Values,
+  UTF-8 strings and placeholders are unchanged; key order/formatting bytes need
+  not be preserved in the new output.
+- If either layer is absent, unreadable, non-object, lenient-only, nonstring,
+  over a declared preparation budget, or otherwise unsupported, retain the
+  existing higher-file bytes and the native writer behavior. This conservative
+  fallback **does not repair missing lower keys for every historical file**.
+  Failure to read an admitted Mod package must still fail in its current phase;
+  do not turn that error into an absent language file.
+- Match only the intended single-locale leaf under `assets/<ns>/lang/`; explicitly
+  exclude `deprecated.json`, metadata and other assets. No new namespace clash
+  policy, broad file interception or content admission authority is implied.
+
+This changes the intentional behavior of `{}` from removing a lower catalog to
+retaining it, and preserves lower-only keys that previously vanished. It must be
+named and reviewed as a compatibility change even within its bounded domain.
+It cannot be described as resource packs overriding Mod defaults. A candidate
+that promises that different ordering still needs the earlier pipeline design.
+
+Do not implement this candidate by serializing `Language::load(...).map()`.
+That map includes bundled strings, English fallback, all namespaces and the
+post-load deprecated-key transformation; it is not the raw one-file layer.
+Do not run a new parser in the public Key/Text facade. A future adapter remains
+inside Pluto's pinned native compatibility layer and should reuse the existing
+native parse/merge ownership where possible. The private renderer merge helper
+and private client overlay still require actual placement/borrow/composition
+proof. No new helper, callback, global setting or dictionary is added here.
+
+### Cache hits are a separate required boundary
+
+At `mod_content.rs:2711-2788`, `resource_root` returns the existing output when
+its stamp matches, without calling `build` or `Overlay::write`. The stamp includes
+the executable's metadata, prepared `horizon-resources.json`, rewritten table
+metadata and Mod source metadata/declarations. It is **not** an explicit identity
+for a newly proposed runtime merge policy. A write-only hook cannot prove a
+previously cached root was rebuilt. The private `game/mods.rs:70-179` owner also
+keeps admission and fallback to the original root; the merge must not bypass it.
+
+Before activation, demonstrate a policy/version transition cannot silently reuse
+the old whole-file output; same-policy reuse still behaves as native; and a
+failed rebuild keeps the existing owner error/fallback contract. Do not delete
+user caches to make a test pass. The baseline8 calls public `build` directly, so
+it does not supply this resource_root/cache evidence. Dynamic toggles would need
+an explicit policy identity in the actual owner path; no toggle is proposed now.
+
+### Exact comparison matrix for a later prototype
+
+1. Flat lower/higher conflicts, escaped/Unicode strings, placeholders, duplicate
+   keys and empty objects: higher values are identical to native baseline;
+   surviving lower-only keys are the explicitly intended difference.
+2. Lenient syntax, BOM, numbers/booleans, null/array/object entries before and
+   after valid keys, malformed bytes and size-limit edges: exact higher bytes
+   stay native, including native partial-file/abort behavior. No silent strict
+   conversion and no success-by-skip.
+3. A filtered lower path stays absent; selected/server order remains the native
+   renderer's order. These need the real pack overlay before Mod overlay, not
+   the current baseline's fabricated lower root.
+4. Namespace conflicts and admitted-file I/O failures retain their existing
+   before/after output recreation phases; only fixture-owned output may change.
+5. Cache hit/miss and policy transition, then startup and staged reload under a
+   changed or unchanged locale code, use their actual owners. Retained UI and
+   remote refresh still require the independent Game/UI proof.
+
+Exact source for this follow-up is official Horizon
+`624c4f6265c02296fbe8a80f029dd0d987fb94c0`:
+- `crates/horizon-client-core/src/lang.rs:397-475`, SHA-256
+  `7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d`.
+- `crates/horizon-client/src/mod_content.rs:2113-2173,2445-2496,2711-2788`, SHA-256
+  `8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93`.
+- `crates/horizon-client-render/src/packs.rs:620-724,880-918`, SHA-256
+  `c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed`.
+- `crates/horizon-client/src/game/mods.rs:70-179`, SHA-256
+  `9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb`.
