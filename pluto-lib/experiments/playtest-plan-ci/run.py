@@ -21,7 +21,7 @@ OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
 BRANCH='checkpoint/tinkers-playtest-next-plan-ci-20261106'
-RUNNER_TESTS=72
+RUNNER_TESTS=81
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
 OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py','index_probe.py','test_index_probe.py','packet_index.rs','INDEX_PROBE.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
@@ -54,7 +54,7 @@ def event_allowed(env,event):
     return (env.get('GITHUB_ACTIONS')=='true' and env.get('GITHUB_REPOSITORY')==REPOSITORY and env.get('GITHUB_EVENT_NAME')=='push' and env.get('GITHUB_REF')=='refs/heads/'+BRANCH and event.get('repository',{}).get('private') is False)
 
 def required_gates(report):
-    return REQUIRED | ({'full_plan_contract','terrain_witness','complete_guards'} if report.get('plan_accepted') else set())
+    return REQUIRED | ({'full_plan_contract','terrain_witness','crafting_package','complete_guards'} if report.get('plan_accepted') else set())
 
 def attempt_terrain(runner,plan,official,integration):
     args=[sys.executable,str(ROOT/COLLECTOR_PATH/'collect.py'),'--plan',str(plan),'--official-root',str(official),'--mod-root',str(integration)]
@@ -71,14 +71,39 @@ def attempt_terrain(runner,plan,official,integration):
     elif value.get('status')!='observed_only' or value.get('compatibility') is not None or value.get('native_executed') is not False or value.get('plan',{}).get('sha256')!=digest or value.get('contract_sha256')!=sha((ROOT/COLLECTOR_PATH/'contract.json').read_bytes()):raise ValueError('Wrong selected terrain witness')
     return {'passed':code==0,'exit_code':code,'result':value,'scope':'Observation only. Normal refusal retained before all12 independent guards.'}
 
-def attempt_guards(runner,plan,official,integration):
+def write_package_contract(integration, archives, expected, output):
+    # Use the reviewed guard's one schema writer; never infer a standalone mode.
+    owners={'pluto_native_creative','tconstruct_native'}
+    if set(archives)!=owners or set(expected)!=owners:raise ValueError('Incomplete explicit crafting package set')
+    for owner,path in archives.items():
+        if not path.is_absolute() or sha(package.regular(path,package.MAX_ARCHIVE))!=expected[owner]:
+            raise ValueError('Admitted crafting archive changed')
+    helper=load('integration_crafting_package_writer',integration/'pluto-lib/tools/check_recipe_placement_plan.py')
+    value=helper.make_package_contract('full-tconstruct',archives)
+    if value.get('mode')!='full-tconstruct' or len(value.get('packages',[]))!=2:raise ValueError('Crafting writer changed explicit mode')
+    observed={row['mod_id']:(row['archive'],row['archive_sha256']) for row in value['packages']}
+    if observed!={owner:(str(path),expected[owner]) for owner,path in archives.items()}:raise ValueError('Crafting writer changed admitted archives')
+    for owner,path in archives.items():
+        if sha(package.regular(path,package.MAX_ARCHIVE))!=expected[owner]:raise ValueError('Crafting archive changed during contract generation')
+    raw=(json.dumps(value,sort_keys=True)+'\n').encode()
+    if not 0<len(raw)<=guard_once.MAX_CONTRACT:raise ValueError('Crafting contract exceeds bound')
+    guard_once.plain(output.parent,True)
+    if output.exists() or output.is_symlink():raise ValueError('Crafting contract output already exists')
+    with output.open('xb') as stream:stream.write(raw);stream.flush();os.fsync(stream.fileno())
+    if package.regular(output,guard_once.MAX_CONTRACT)!=raw:raise ValueError('Crafting contract readback differs')
+    return {'passed':True,'path':str(output),'sha256':sha(raw),'bytes':len(raw),'contract':value}
+
+
+def attempt_guards(runner,plan,official,integration,package_contract):
     result={'passed':False,'completed':False,'groups_configured':12,'apply_allowed':False,
         'records':[{'script':script,'reached':False,'passed':False,'exit_code':None} for script in guard_once.GUARDS]}
     runner.report['gates']['complete_guards']=result
     for i,script in enumerate(guard_once.GUARDS):
         row=result['records'][i];row.update(attempted=True,reached=None)
         try:
-            out=runner.run('guard-'+str(i+1),[sys.executable,str(HERE/'guard_once.py'),str(integration),str(plan),str(official),script,str(runner.work/('guard-streams-'+str(i+1)))],timeout=180)
+            argv=[sys.executable,str(HERE/'guard_once.py'),str(integration),str(plan),str(official),script,str(runner.work/('guard-streams-'+str(i+1)))]
+            if script in guard_once.CRAFTING_GUARDS:argv.append(str(package_contract))
+            out=runner.run('guard-'+str(i+1),argv,timeout=180)
             if len(out.encode())>96*1024:raise ValueError('Oversized guard envelope')
             record=guard_once.validate_record(json.loads(out),script)
             row.update(record);row['reached']=True;row['passed']=record['exit_code']==0
@@ -275,7 +300,13 @@ def execute(report):
             report['gates']['full_plan_contract']=package.verify_plan(plan,mods,config['required_plan_inputs'])
             terrain=attempt_terrain(runner,plan,official,integration)
             report['gates']['terrain_witness']=terrain
-            guards=attempt_guards(runner,plan,official,integration)
+            contract_path=work/'crafting-package-contract.json'
+            runner.guard(reserve=guard_once.MAX_CONTRACT)
+            contract=write_package_contract(integration,{'pluto_native_creative':common_bundle,'tconstruct_native':main_bundle},
+                {'pluto_native_creative':report['gates']['pluto_bundle']['archive_sha256'],'tconstruct_native':report['gates']['tconstruct_bundle']['archive_sha256']},contract_path)
+            artifact_seals[str(contract_path)]=contract['sha256']
+            report['gates']['crafting_package']=contract
+            guards=attempt_guards(runner,plan,official,integration,contract_path)
             report['gates']['complete_guards']=guards
             if not guards['passed']:report['compatibility']=False
         report['diagnostic_complete']=True
@@ -374,7 +405,7 @@ def index_main():
         if sha(json.dumps(original,sort_keys=True).encode())!=primary['source_seal_sha256'] or sha(json.dumps(original_git,sort_keys=True).encode())!=primary['controller_git_state_sha256']:raise ValueError('Primary controller changed before Index')
         snapshots[str(saved)]=common.checkout_seal(saved)
         artifacts=dict(primary['artifact_seals'])
-        if set(artifacts)!={str(p) for p in [work/'tconstruct.hnmod',work/'plutolib.hnmod',*([work/'plan.json'] if primary['plan_accepted'] else [])]}:raise ValueError('Unexpected primary artifact paths')
+        if set(artifacts)!={str(p) for p in [work/'tconstruct.hnmod',work/'plutolib.hnmod',*([work/'plan.json',work/'crafting-package-contract.json'] if primary['plan_accepted'] else [])]}:raise ValueError('Unexpected primary artifact paths')
         cli=work/'cli-target/release/horizon-mixins';artifacts[str(cli)]=primary['gates']['cli_compile']['binary_sha256']
         for path,digest in artifacts.items():
             if sha(package.regular(Path(path),128*1024**2))!=digest:raise ValueError('Primary artifact changed before Index')

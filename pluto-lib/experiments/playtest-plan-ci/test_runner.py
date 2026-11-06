@@ -2,6 +2,7 @@
 import ast,contextlib,copy,hashlib,importlib.util,io,json,os,stat,tempfile,unittest,warnings,zipfile
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 HERE=Path(__file__).resolve().parent
 s=importlib.util.spec_from_file_location('runner',HERE/'run.py');r=importlib.util.module_from_spec(s);s.loader.exec_module(r)
 p=r.package;g=r.guard_once
@@ -28,17 +29,17 @@ class Tests(unittest.TestCase):
   src=(HERE/'run.py').read_text();self.assertNotIn('prepare.revise(',src);self.assertNotIn('write_candidate(',src)
  def test_shared_guard_unmodified_reference(self):self.assertIs(r.Runner,r.baseline.Runner)
  def test_all12_after_first_refusal(self):
-  fake=Fake({0:1,7:1});out=r.attempt_guards(fake,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  fake=Fake({0:1,7:1});out=r.attempt_guards(fake,Path('/plan'),Path('/official'),Path('/fixed-integration'),Path('/synthetic/package-contract.json'))
   self.assertEqual(len(fake.calls),12);self.assertTrue(out['completed']);self.assertFalse(out['passed']);self.assertFalse(out['apply_allowed']);self.assertFalse(fake.report['compatibility'])
  def test_all12_success_never_compatibility_true(self):
-  f=Fake();out=r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'));self.assertTrue(out['passed']);self.assertIsNone(f.report['compatibility'])
+  f=Fake();out=r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'),Path('/synthetic/package-contract.json'));self.assertTrue(out['passed']);self.assertIsNone(f.report['compatibility'])
  def test_guard_timeout_retains_partial(self):
   f=Fake(fail=2)
-  with self.assertRaises(TimeoutError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  with self.assertRaises(TimeoutError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'),Path('/synthetic/package-contract.json'))
   rows=f.report['gates']['complete_guards']['records'];self.assertEqual(len(f.calls),3);self.assertIsNone(rows[2]['reached']);self.assertTrue(rows[2]['attempted']);self.assertFalse(rows[3]['reached']);self.assertIn('reason',rows[3]);self.assertFalse(f.report['gates']['complete_guards']['completed'])
  def test_guard_exit98_not_refusal(self):
   f=Fake({0:98})
-  with self.assertRaises(ValueError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  with self.assertRaises(ValueError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'),Path('/synthetic/package-contract.json'))
   self.assertEqual(len(f.calls),1)
  def test_guard_bool_not_exit(self):
   v=record(g.GUARDS[0]);v['exit_code']=False
@@ -112,7 +113,7 @@ class Tests(unittest.TestCase):
  def test_required_gates_distinguish_refusal(self):
   self.assertNotIn('complete_guards',r.required_gates({'plan_accepted':False}));self.assertIn('complete_guards',r.required_gates({'plan_accepted':True}))
  def test_guard_integration_root_not_controller(self):
-  f=Fake();r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  f=Fake();r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'),Path('/synthetic/package-contract.json'))
   for _,argv,_ in f.calls:self.assertEqual(argv[2],'/fixed-integration');self.assertNotEqual(argv[2],str(r.ROOT))
  def test_unknown_exit1_is_transport_failure(self):
   v=record(g.GUARDS[0],1);v['stderr']=stream('Traceback (most recent call last):\n')
@@ -125,6 +126,65 @@ class Tests(unittest.TestCase):
   with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
    outcome=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite([Tests('test_archive_duplicate_rejected')]))
   self.assertTrue(outcome.wasSuccessful());r.common.validate_python_checks(output.getvalue(),1)
+class CraftingContractRoutingTests(unittest.TestCase):
+ def test_same_contract_only_to_two_crafting_guards(self):
+  f=Fake();r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/integration'),Path('/contract.json'))
+  for (_,argv,_),script in zip(f.calls,g.GUARDS,strict=True):
+   self.assertEqual(len(argv),8 if script in g.CRAFTING_GUARDS else 7)
+   if script in g.CRAFTING_GUARDS:self.assertEqual(argv[-1],'/contract.json')
+ def test_missing_contract_not_inferred(self):
+  for script in g.CRAFTING_GUARDS:
+   with self.assertRaisesRegex(ValueError,'requires explicit'):g.guard_arguments(Path('/root'),Path('/plan'),Path('/official'),script)
+ def test_noncrafting_rejects_contract(self):
+  for script in set(g.GUARDS)-g.CRAFTING_GUARDS:
+   with self.assertRaisesRegex(ValueError,'Unexpected package contract'):g.guard_arguments(Path('/root'),Path('/plan'),Path('/official'),script,Path('/contract'))
+ def test_contract_regular_bounded_and_third_guard_argument(self):
+  with tempfile.TemporaryDirectory() as d:
+   p=Path(d)/'contract';p.write_bytes(b'{}');link=Path(d)/'link';link.symlink_to(p)
+   for script in g.CRAFTING_GUARDS:
+    self.assertEqual(g.guard_arguments(Path('/root'),Path('/plan'),Path('/official'),script,p)[-3:],[str(Path('/plan')),str(Path('/official')),str(p)])
+    with self.assertRaises(ValueError):g.guard_arguments(Path('/root'),Path('/plan'),Path('/official'),script,link)
+   for raw in (b'',b'x'*(g.MAX_CONTRACT+1)):
+    p.write_bytes(raw)
+    with self.assertRaises(ValueError):g.guard_arguments(Path('/root'),Path('/plan'),Path('/official'),next(iter(g.CRAFTING_GUARDS)),p)
+
+class CraftingContractGenerationTests(unittest.TestCase):
+ def setup_archives(self,root):
+  archives={'pluto_native_creative':root/'pluto.hnmod','tconstruct_native':root/'tc.hnmod'}
+  for owner,path in archives.items():path.write_bytes(owner.encode())
+  expected={owner:p.sha(path.read_bytes()) for owner,path in archives.items()}
+  value={'schema':1,'mode':'full-tconstruct','horizon':p.HORIZON,'mixins':p.MIXINS,'packages':[{'mod_id':owner,'archive':str(path),'archive_sha256':expected[owner],'manifest':'mixins/'+owner+'/horizon-mixin.toml','manifest_sha256':'f'*64,'version':'synthetic'} for owner,path in archives.items()]}
+  return archives,expected,value
+ def test_actual_archives_and_one_explicit_mode(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);archives,expected,value=self.setup_archives(root);calls=[]
+   def make(mode,paths):calls.append((mode,paths));return value
+   with patch.object(r,'load',return_value=SimpleNamespace(make_package_contract=make)) as loader:
+    out=r.write_package_contract(Path('/integration'),archives,expected,root/'contract.json')
+   self.assertEqual(calls,[('full-tconstruct',archives)]);self.assertEqual(loader.call_args.args[1],Path('/integration/pluto-lib/tools/check_recipe_placement_plan.py'))
+   self.assertEqual(json.loads((root/'contract.json').read_bytes()),value);self.assertEqual(out['sha256'],p.sha((root/'contract.json').read_bytes()))
+ def test_changed_archive_refuses_before_helper(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);archives,expected,value=self.setup_archives(root);archives['tconstruct_native'].write_bytes(b'drift')
+   with patch.object(r,'load',side_effect=AssertionError('helper reached')):
+    with self.assertRaisesRegex(ValueError,'archive changed'):r.write_package_contract(Path('/integration'),archives,expected,root/'contract.json')
+   self.assertFalse((root/'contract.json').exists())
+ def test_changed_mode_or_mapping_refuses(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);archives,expected,value=self.setup_archives(root)
+   for bad in (dict(value,mode='standalone-pluto'),dict(value,packages=[dict(value['packages'][0],archive='/other'),value['packages'][1]])):
+    with patch.object(r,'load',return_value=SimpleNamespace(make_package_contract=lambda *_:bad)):
+     with self.assertRaises(ValueError):r.write_package_contract(Path('/integration'),archives,expected,root/'contract.json')
+   self.assertFalse((root/'contract.json').exists())
+ def test_contract_does_not_replace_existing_output(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);archives,expected,value=self.setup_archives(root);out=root/'contract.json';out.write_bytes(b'original')
+   with patch.object(r,'load',return_value=SimpleNamespace(make_package_contract=lambda *_:value)):
+    with self.assertRaisesRegex(ValueError,'already exists'):r.write_package_contract(Path('/integration'),archives,expected,out)
+   self.assertEqual(out.read_bytes(),b'original')
+ def test_contract_after_actual_plan_and_index_sealed(self):
+  src=(HERE/'run.py').read_text();self.assertLess(src.index('result=attempt_plan('),src.index('contract=write_package_contract('));self.assertLess(src.index('contract=write_package_contract('),src.index('guards=attempt_guards('));self.assertIn("artifact_seals[str(contract_path)]=contract['sha256']",src);self.assertIn("work/'plan.json',work/'crafting-package-contract.json'",src)
+
 class IndexControllerTests(unittest.TestCase):
  def core_line(self,path='crates/horizon-mixins-core/src/lib.rs'):
   return 'Running `rustc --crate-name horizon_mixins_core '+path+'`'

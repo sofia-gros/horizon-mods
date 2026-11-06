@@ -19,7 +19,9 @@ REJECTION_PREFIX = dict(zip(GUARDS, (
     'Terrain binding preparation rejected: ', 'Cloud insertion composition rejected: ',
     'Station-ingredient composition rejected: ', 'Terrain cell adapter rejected: ',
 ), strict=True))
+CRAFTING_GUARDS = frozenset(('check_recipe_placement_plan.py', 'check_crafting_match_plan.py'))
 MAX_STREAM = 16 * 1024
+MAX_CONTRACT = 64 * 1024
 
 def plain(path, directory=False):
     path = Path(path)
@@ -54,16 +56,28 @@ def validate_record(value, script):
         raise ValueError('Guard exit1 is not a recognized refusal')
     return value
 
-def execute(root, plan, official, script, output):
+def guard_arguments(root, plan, official, script, package_contract=None):
+    if script not in GUARDS: raise ValueError('Unlisted guard')
+    argv=[sys.executable,str(root/'pluto-lib/tools'/script),str(plan)]
+    if script != 'check_protection_plan.py': argv.append(str(official))
+    if script in CRAFTING_GUARDS:
+        if package_contract is None: raise ValueError('Crafting guard requires explicit package contract')
+        contract=plain(package_contract)
+        if not 0 < contract.stat().st_size <= MAX_CONTRACT: raise ValueError('Package contract exceeds evidence budget')
+        argv.append(str(contract))
+    elif package_contract is not None:
+        raise ValueError('Unexpected package contract for non-crafting guard')
+    return argv
+
+def execute(root, plan, official, script, output, package_contract=None):
     if os.environ.get('GITHUB_ACTIONS') != 'true': raise ValueError('CI only')
     if script not in GUARDS: raise ValueError('Unlisted guard')
     root=plain(root,True); plan=plain(plan); official=plain(official,True)
     target=plain(root/'pluto-lib/tools'/script)
+    argv=guard_arguments(root,plan,official,script,package_contract)
     output=Path(output)
     if output.exists() or output.is_symlink(): raise ValueError('Guard output already exists')
     plain(output.parent,True); output.mkdir()
-    argv=[sys.executable,str(target),str(plan)]
-    if script != 'check_protection_plan.py': argv.append(str(official))
     child=None
     try:
         with (output/'stdout').open('xb') as stdout, (output/'stderr').open('xb') as stderr:
@@ -83,7 +97,7 @@ def execute(root, plan, official, script, output):
             except subprocess.TimeoutExpired:child.kill();child.wait(timeout=2)
 
 def main():
-    if len(sys.argv)!=6:raise SystemExit('Expected root plan official guard output')
+    if len(sys.argv) not in (6,7):raise SystemExit('Expected root plan official guard output [package-contract]')
     try:value=execute(*sys.argv[1:])
     except BaseException as exc:
         print(type(exc).__name__+': '+str(exc),file=sys.stderr)
