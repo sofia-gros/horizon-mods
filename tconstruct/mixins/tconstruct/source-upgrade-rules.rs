@@ -36,7 +36,10 @@ const BONUS_SLOTS: [(&str, i32, i32); 8] = [
     ("tconstruct:gilded", 2, 0),
 ];
 
-fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
+/// The same bounded bonus registry used by Station transactions and slot totals.
+pub(super) fn bonus_guide_registry() -> &'static [(&'static str, i32, i32)] { &BONUS_SLOTS }
+
+pub(super) fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
     if let Some(entries) = value.as_array() { return entries.iter().any(|v| ingredient_matches(v, item, tags)); }
     match value.get("type").and_then(Value::as_str) {
         Some("forge:difference") => return value.get("base").is_some_and(|v| ingredient_matches(v, item, tags)) && !value.get("subtracted").is_some_and(|v| ingredient_matches(v, item, tags)),
