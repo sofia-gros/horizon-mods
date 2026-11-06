@@ -1,0 +1,40 @@
+{
+  "base": "24b8ff1671db1ed2fb3c0d0a9c0c952f6f0211fc",
+  "stored_candidate_prefix": "pluto-lib/experiments/crafting-stored-facts",
+  "stored_candidate_sha256": {
+    "README.md": "8bca26be35a7b4e394c894b7b6e5c8caa07fb344acb7a8b804322d839fff1546",
+    "consumer.rs": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+    "differential_tests.rs": "1441aa1b685239ca15c1bafb081419ca6ef5ccc094fdc2cd9d6dba8b3bafcc85",
+    "inputs.json": "dd660ba4ec3f8daaf50fd1adc29be04dedbd6a556fcf27996f0151d05757cbca",
+    "matching.rs": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f",
+    "native-adapter.rs": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83",
+    "oracles.json": "0eabe494cfb8b93c1c448dc16378af41df9c4c29cdd75575a44611e9b08daa06",
+    "render.py": "d26ddd0b07a8e9878cec53fa67b0ff8b3ca618b8b4f8c28b11fa68ecd3a1e673",
+    "source-delta.json": "ecfd9cc3392fd22635578b54c69de678d4c02bc5d9b3dd1d7ee1db464d170b32",
+    "source-verification.json": "9a8d8b369ba1be4202dd59c6c9dd8390a673196b09ab3a2e87b4b728c6e7a10f",
+    "test_source.py": "65e175374a1366c1a1847691a57c08756b9ddc6b1f45b0b5669d91ad69824237"
+  },
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "ordinary_manifest_changed": false,
+  "old_hooks_removed": false,
+  "rust_executed": false,
+  "native_plan_executed": false,
+  "new_runtime_paths": {
+    "bootstrap.rs": "tconstruct/mixins/tconstruct/source-crafting-deny-bootstrap.rs",
+    "empty-head.rs": "tconstruct/mixins/tconstruct/source-crafting-deny-empty.rs",
+    "from-sources-head.rs": "tconstruct/mixins/tconstruct/source-crafting-deny-from-sources.rs"
+  },
+  "existing_excluded_consumer": "pluto-lib/experiments/crafting-stored-facts/consumer.rs",
+  "bootstrap_test_names": [
+    "successful_initializer_is_shared_across_repeated_entries",
+    "cached_conflict_panics_before_each_modeled_constructor_body",
+    "parallel_entries_wait_for_one_completed_registration",
+    "parallel_conflict_is_sticky_and_never_returns_success",
+    "unexpected_initializer_panic_is_not_misreported_as_cached_success"
+  ],
+  "api_new_tests": 6,
+  "differential_full_tests": 16,
+  "bootstrap_helper_tests": 5,
+  "bootstrap_tests_scope": "Actual private OnceLock helper, simulated registration closures/body counters. Not installed constructor/native registry startup proof."
+}

@@ -19,9 +19,13 @@ This branch combines the current ordinary source work for review and a future pl
 - Pluto's package header and all six ordinary components now declare the same 41f target, with the header fixed to Mixins5a64. Eight declaration/inverse checks passed. This removes a packaging-input mismatch, not the remaining plan/guard/type failures.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
 
+## Approved temporary limitation
+
+Pick-block does not perform TConstruct's extra stored-color inheritance in this playtest branch. Existing stored chest colors are not erased. This is the only approved temporary feature omission; it is not a full compatibility or gameplay claim.
+
 ## Remaining work
 
-1. Resolve chest-pick compatibility. The latest tiny plan rejected the ItemStack LOAD candidate with `E_UNSUPPORTED_LOCAL` because LOAD modifiers require primitive scalars. That unsupported candidate is not enabled; the old RETURN hook still blocks the complete plan.
+1. The user approved temporarily deferring **only pick-block color inheritance**. Its one RETURN injection is now removed, leaving stored chest color, save/schema, the helper and every other hook untouched. The rejected ItemStack LOAD candidate is not enabled. Color inheritance remains a restoration task after a supported boundary is proved.
 2. Complete the Guide LAN, crafting, and cloud ownership-boundary migrations. Source inspection found missing required fields in the existing TConstruct cloud constructors; this has not yet been compiled. Preserve existing behavior or report unresolved differences.
 3. Produce one complete plan for this exact composition; inspect all twelve guards and adapt changed boundaries with evidence. Existing cloud exclusivity conflicts are not solved by hash updates.
 4. Apply and type-check/build the exact guarded source, then validate Windows link/package and only then attempt bounded startup where available.

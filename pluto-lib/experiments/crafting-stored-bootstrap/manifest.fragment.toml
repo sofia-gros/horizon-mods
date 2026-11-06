@@ -1,0 +1,31 @@
+# Excluded proposal, not a standalone bundle or installed ordinary manifest.
+# Append only to TConstruct after exact plan/type/composition/startup approval.
+[[module]]
+id = "crafting-stored-deny-policies"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_crafting_deny_policies"
+source = "source-crafting-deny-policies.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "crafting-stored-deny-bootstrap"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_crafting_deny_bootstrap"
+source = "source-crafting-deny-bootstrap.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "crafting-stored-deny-empty-startup"
+target = "horizon_client::crafting::Recipes::empty"
+kind = "HEAD"
+cancellable = false
+helper = "source-crafting-deny-empty.rs"
+bindings = []
+
+[[injection]]
+id = "crafting-stored-deny-sources-startup"
+target = "horizon_client::crafting::Recipes::from_sources"
+kind = "HEAD"
+cancellable = false
+helper = "source-crafting-deny-from-sources.rs"
+bindings = []

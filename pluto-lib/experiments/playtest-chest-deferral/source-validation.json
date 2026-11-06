@@ -1,0 +1,18 @@
+{
+  "source_only": true,
+  "exact_before_and_after_hashes_verified": true,
+  "full_byte_inverse": true,
+  "parsed_manifest_diff": "Exactly one injection removed; all other sections and injection entries equal",
+  "ordinary_helper_unchanged": {
+    "path": "tconstruct/mixins/tconstruct/source-chest-pick.rs",
+    "sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+    "git_blob": "24384d4a0f5599ce5501a32685b37bc7176ea2d1",
+    "bytes": 521
+  },
+  "production_changed_paths": [
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml"
+  ],
+  "plan_executed": false,
+  "native_executed": false,
+  "user_scope": "Explicit approval to disable only pick-block color inheritance temporarily, preserve stored chest color, and retain restoration as follow-up."
+}

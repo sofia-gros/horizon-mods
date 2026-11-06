@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "base": "24b8ff1671db1ed2fb3c0d0a9c0c952f6f0211fc",
+  "target": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+  "hook": "tinkers-chest-pick-color",
+  "before": {
+    "sha256": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
+    "git_blob": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+    "bytes": 189095
+  },
+  "after": {
+    "sha256": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+    "git_blob": "084fc3031940bfabfae05cad27f9e1751be3c53d",
+    "bytes": 188729
+  },
+  "removed_block": "[[injection]]\nid = \"tinkers-chest-pick-color\"\ntarget = \"horizon_client::game::block_items::Game<'_>::picked_stack\"\nkind = \"RETURN\"\nhelper = \"source-chest-pick.rs\"\nbindings = [\n  { name = \"value\", ty = \"Option<ItemStack>\", value = \"$value\" },\n  { name = \"game\", ty = \"&crate::game::Game<'_>\", value = \"&*self\" },\n  { name = \"pos\", ty = \"[i32;3]\", value = \"pos\" },\n]\n\n",
+  "block_offset": 138593,
+  "removed_bytes": 366,
+  "before_injections": 289,
+  "after_injections": 288,
+  "unchanged_counts": {
+    "module": 251,
+    "state": 108,
+    "crate": 1
+  },
+  "preserved_helper": {
+    "path": "tconstruct/mixins/tconstruct/source-chest-pick.rs",
+    "sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+    "git_blob": "24384d4a0f5599ce5501a32685b37bc7176ea2d1",
+    "bytes": 521
+  },
+  "scope": "Temporarily defer only the TConstruct stored-color override on picked stacks. No save/schema/metadata/helper modification. Restore after a supported seam and evidence. This does not validate gameplay or the complete plan."
+}

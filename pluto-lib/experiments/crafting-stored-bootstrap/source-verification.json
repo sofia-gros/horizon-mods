@@ -1,0 +1,22 @@
+{
+  "status": "source_prepared_only",
+  "source_sha256": {
+    "README.md": "315f5be0cf77cafaaad4459febbbe9bc3d65365ce04f865a359914c466061002",
+    "audit.json": "4c3619a77fa37113694c334254069fd17e13c6c41cfb75a82c19e9268fceec82",
+    "bootstrap.rs": "9df7d35775f5bab0a32974820b421e6c66e4bfe8e1ae461ee6b69430b920388a",
+    "empty-head.rs": "d559e7fc123d01a9c7a729762e22d3544ace3c823c3bd7f60fa9eea3e0a6509e",
+    "from-sources-head.rs": "d49f73b2826c57679fd926b0dc15a5c58aa05f7a96eb2c86f2da34553aed0356",
+    "inputs.json": "28540f4c024aa9ce2775a23b3998a279163eabab1bfa938278ad036c33ee3ed0",
+    "manifest.fragment.toml": "5fd4c790f8a2dc91c4805566bb1dbb822aaf6938040e75bb401364f6e20452a7",
+    "test_source.py": "52a6a9822e477c0e241c61deac479a2af1c9277ae7c2383aae0c90bbd4387405"
+  },
+  "python_source_checks": {
+    "expected": 10,
+    "executed": true,
+    "passed": 10,
+    "failed": 0
+  },
+  "rust_tests_executed": false,
+  "ordinary_manifest_changed": false,
+  "preparation_note": "Initial source assertion matched catch_unwind in a comment, corrected to call syntax; bootstrap/runtime bytes unchanged. No Rust or plan run."
+}

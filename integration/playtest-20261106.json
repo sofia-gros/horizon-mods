@@ -43,11 +43,11 @@
       "reason": "Pluto cache input correction is included. Latest toolchain/target/features, explicit resources and official source admission are still being implemented. Legacy compatibility.json and launch target are not yet validated."
     },
     {
-      "subject": "Chest-pick color compatibility",
+      "subject": "Restore temporarily deferred pick-block color inheritance",
       "source": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
       "rejected_probe": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
       "proof": "2080080cd86f07f06a7d67f5e21a7d5f5cc4c632",
-      "reason": "Latest 41f/5a64 tiny plan rejects non-scalar ItemStack LOAD with E_UNSUPPORTED_LOCAL. The unsupported LOAD is not integrated; the old RETURN hook remains a known complete-plan blocker. Another supported boundary is being investigated."
+      "reason": "User explicitly approved temporarily deferring only this override. The one RETURN injection is removed; stored chest color, helper, save/schema and other hooks remain byte-identical. Restore after a supported seam, plan/type and finite-policy evidence. No other feature omission is authorized."
     }
   ],
   "excluded_activation": [
@@ -186,6 +186,43 @@
       "real_package_generated": false,
       "plan_accepted": null,
       "type_checked": false
+    },
+    {
+      "subject": "User-approved temporary pick-block color deferral",
+      "source": "81c4388648b619d8a27b2172ed2f0e25cc351a27",
+      "scope": "One 366-byte tinkers-chest-pick-color RETURN manifest block only",
+      "before": {
+        "sha256": "4e922f041737379d7895fb0de391f1bb50a837abd3d20cb6b78396805a8feb8f",
+        "git_blob": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+        "bytes": 189095
+      },
+      "after": {
+        "sha256": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+        "git_blob": "084fc3031940bfabfae05cad27f9e1751be3c53d",
+        "bytes": 188729
+      },
+      "helper_preserved": {
+        "path": "tconstruct/mixins/tconstruct/source-chest-pick.rs",
+        "sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+        "git_blob": "24384d4a0f5599ce5501a32685b37bc7176ea2d1",
+        "bytes": 521
+      },
+      "pure_checks": 12,
+      "full_inverse": true,
+      "ordinary_injections_before": 289,
+      "ordinary_injections_after": 288,
+      "stored_color_erased": false,
+      "other_features_removed": false,
+      "native_executed": false
+    },
+    {
+      "subject": "Crafting constructor bootstrap proposal",
+      "source_paths": 9,
+      "source_checks": 10,
+      "independent_review": "Guide read-only: no concrete blocker",
+      "activation": "Excluded only, no constructor injection or registration installed",
+      "rust_tests_unrun": 5,
+      "limits": "Cached registration failure panics before Recipes constructor body; prior remote incoming take is not rolled back. Actual constructor/whole composition unverified."
     }
   ],
   "guide_limits": [

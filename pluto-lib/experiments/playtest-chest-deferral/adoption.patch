@@ -1,0 +1,20 @@
+--- a/tconstruct/mixins/tconstruct/horizon-mixin.toml
++++ b/tconstruct/mixins/tconstruct/horizon-mixin.toml
+@@ -4137,17 +4137,6 @@
+ ]
+ 
+ [[injection]]
+-id = "tinkers-chest-pick-color"
+-target = "horizon_client::game::block_items::Game<'_>::picked_stack"
+-kind = "RETURN"
+-helper = "source-chest-pick.rs"
+-bindings = [
+-  { name = "value", ty = "Option<ItemStack>", value = "$value" },
+-  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+-  { name = "pos", ty = "[i32;3]", value = "pos" },
+-]
+-
+-[[injection]]
+ id = "source-chest-drag-view"
+ target = "horizon_client::game::Game<'_>::drag_view"
+ kind = "HEAD"
