@@ -101,11 +101,18 @@ namespaces and bytes, not unknown schema fields or arbitrary raw NBT encoding.
 It prechecks modified-UTF string lengths to avoid the native disk writer
 replacing an overlong string with empty. See the [minimum contract](../../docs/persistence-contact-minimum.md).
 
-The earlier ten-test result above applies to its exact prior cutoff. The new
-nineteen-test proposed-source fixture is prepared but not yet executed; source
-guards currently pass six checks. Neither result establishes actual native
+The earlier ten-test result above applies to its exact prior cutoff. The first new
+nineteen-test proposed-source run passed18 tests and failed one fixture
+expectation about the native writer escaping a real empty-name compound.
+The actual codec correctly rejected that preserved real wrapper. The corrected
+test distinguishes writer escaping from a handcrafted raw wire wrapper; its
+rerun is pending. Source guards currently pass six checks. Neither result establishes actual native
 save migration or synchronous effect mutation authority.
 
 The crafted duplicate-key and empty-name-list-wrapper cases explicitly test
 normalization by the actual native NBT parser. Strict schema validation applies
 to its resulting Tag, not to raw duplicate-free/canonical byte encoding.
+
+The initial codec attempt and exact failure are retained in
+[nbt-validation-attempt1.json](nbt-validation-attempt1.json); no codec change or
+silent retry was used to hide the result.

@@ -124,6 +124,31 @@ fn native_duplicate_keys_and_list_wrappers_are_semantic_not_raw_wire_validation(
     }
     assert_eq!(codec::from_tag(&wrapped, limits()), Err(Error::Schema));
     let encoded = nbt::write_named(&NamedTag { name: JavaString::default(), tag: wrapped }, wire()).unwrap();
-    // Native list decoding unwraps a singleton empty-name compound first.
-    assert_eq!(codec::decode(&encoded, limits(), wire()).unwrap(), original);
+    // The native writer escapes a REAL empty-name compound with a second
+    // wrapper. Its roundtrip preserves that real compound, hence Schema here.
+    assert_eq!(codec::decode(&encoded, limits(), wire()), Err(Error::Schema));
+
+    // Separately craft one raw wire wrapper around each actual native-encoded
+    // layer payload. No alternate NBT parser/writer or modeled Tag is used.
+    let tag = codec::to_tag(&original, limits()).unwrap();
+    let Some(Tag::List(layers)) = tag.get("layers") else { panic!() };
+    let mut raw = codec::encode(&original, limits(), wire()).unwrap();
+    let mut ranges = Vec::new();
+    for value in layers {
+        let named = nbt::write_named(&NamedTag { name: JavaString::default(), tag: value.clone() }, wire()).unwrap();
+        assert_eq!(&named[..3], &[10, 0, 0]);
+        let payload = &named[3..];
+        let positions: Vec<_> = raw.windows(payload.len()).enumerate()
+            .filter_map(|(at, window)| (window == payload).then_some(at)).collect();
+        assert_eq!(positions.len(), 1);
+        ranges.push((positions[0], positions[0] + payload.len()));
+    }
+    ranges.sort_unstable();
+    assert!(ranges.windows(2).all(|pair| pair[0].1 <= pair[1].0));
+    for (start, end) in ranges.into_iter().rev() {
+        raw.splice(end..end, [0]); // Outer compound's End.
+        raw.splice(start..start, [10, 0, 0]); // Compound at the empty name.
+    }
+    // The actual native list reader removes the synthetic raw wrapper.
+    assert_eq!(codec::decode(&raw, limits(), wire()).unwrap(), original);
 }

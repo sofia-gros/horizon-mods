@@ -25,6 +25,11 @@
   "record_codec_validation": {
     "source_guards_passed": 6,
     "combined_rust_tests_written": 19,
-    "combined_rust_tests_executed": false
+    "combined_rust_tests_executed": false,
+    "last_attempt_source_commit": "4cece6ae8314ec58c2266491bff15b260d9edfbc",
+    "last_attempt_passed": 18,
+    "last_attempt_failed": 1,
+    "last_attempt_failure": "Test fixture expected native writer to omit its protective wrapper",
+    "corrected_tests_executed": false
   }
 }
