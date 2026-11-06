@@ -1,0 +1,256 @@
+{
+  "schema": 1,
+  "status": "PASS: latest official owned Pack-to-Mod baseline only",
+  "date": "2026-11-06",
+  "run": {
+    "id": 42206862972,
+    "head_sha": "dfd09ee78c98ce6603571c749a4b070f631d7068",
+    "head_branch": "checkpoint/plutolib-language-pack-chain-latest-ci-20261106",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42206862972",
+    "created_at": "2026-11-06T10:59:52Z",
+    "updated_at": "2026-11-06T11:03:41Z",
+    "run_started_at": "2026-11-06T10:59:52Z",
+    "attempt": 1
+  },
+  "job_id": 127855618585,
+  "official": {
+    "repository": "horizon-rust/horizon",
+    "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+    "mixins_used": false
+  },
+  "reviewed_ci_head": "dfd09ee78c98ce6603571c749a4b070f631d7068",
+  "fixture_source_head": "15397f42c77de41516187a46fc5367e01a59d352",
+  "compiler_witnesses": [
+    {
+      "crate": "horizon_client_core",
+      "test": false,
+      "line_sha256": "5b13e1dfa97a10dbf38934465cad302b7b67f138d085c1a137c7cb501a6f34f5"
+    },
+    {
+      "crate": "horizon_mods",
+      "test": false,
+      "line_sha256": "89a541dcdb1409474601604291cb4d79405aa9ea90137ed8784276d5f3ed9704"
+    },
+    {
+      "crate": "horizon_client_lib",
+      "test": false,
+      "line_sha256": "e4e6025e881d1bf7f1c9aa4d1d3cf2bd2dccd9277659fd99f56be26fe7cbc1f5"
+    },
+    {
+      "crate": "horizon_client_render",
+      "test": false,
+      "line_sha256": "0745151b05d0b4088248102008eaa176d20e64b6afbaf94440769a56d6a4857b"
+    },
+    {
+      "crate": "pluto_language_pack_chain_latest_fixture",
+      "test": true,
+      "line_sha256": "2a117133b1d2fea189c8a7a2f6d48f91531996da9424f05498bc982d844f1c15"
+    }
+  ],
+  "phase_log_digests": [
+    {
+      "phase": "runner-checks",
+      "bytes": 3879,
+      "sha256": "b87f1ca5d35c64496cc60ccbc922e19872e164e367f65e1d4fa0b523ac092f4f",
+      "exit": 0
+    },
+    {
+      "phase": "toolchain",
+      "bytes": 257,
+      "sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+      "exit": 0
+    },
+    {
+      "phase": "official-init",
+      "bytes": 735,
+      "sha256": "1aa577ec6ef5fa76422cfba104fd422bdb63069abc856327f91109163df7247a",
+      "exit": 0
+    },
+    {
+      "phase": "official-origin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "official-fetch",
+      "bytes": 121,
+      "sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+      "exit": 0
+    },
+    {
+      "phase": "official-checkout",
+      "bytes": 84,
+      "sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+      "exit": 0
+    },
+    {
+      "phase": "source-checks",
+      "bytes": 1515,
+      "sha256": "54ba91db726542816e5c644512c0d7d144492d2d2681d7738f3a716f37e5a09c",
+      "exit": 0
+    },
+    {
+      "phase": "official-locked-fetch",
+      "bytes": 16703,
+      "sha256": "a5c92fcb09cfeb6715b875fd79b9bc74bd291e9b160c408d352513fee8ba3a36",
+      "exit": 0
+    },
+    {
+      "phase": "prepare",
+      "bytes": 68,
+      "sha256": "d8d176f5717e74f670cc2cd3592e74096182131fc2d37c20b5e6ab9d81db7102",
+      "exit": 0
+    },
+    {
+      "phase": "metadata-resolve",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "verify-before",
+      "bytes": 71,
+      "sha256": "036aed7a6a50d72f529ffa80a0d8b85465ef95110436e57612d04c10f5ff51f6",
+      "exit": 0
+    },
+    {
+      "phase": "actual-native-compile",
+      "bytes": 2493594,
+      "sha256": "be301a88fca20fcf6651bc9bb88394b729368d82cf131ce8a1ee545c6b8770e5",
+      "exit": 0
+    },
+    {
+      "phase": "native8",
+      "bytes": 1250096,
+      "sha256": "8b3276cfbb5211553da00e16b38ebb3ce61e908ee92548dc5fc7945d5653f8e3",
+      "exit": 0
+    },
+    {
+      "phase": "verify-after",
+      "bytes": 71,
+      "sha256": "036aed7a6a50d72f529ffa80a0d8b85465ef95110436e57612d04c10f5ff51f6",
+      "exit": 0
+    }
+  ],
+  "retrieved_console": {
+    "sha256": "ffb5e24e98673e3c5e0f3e86b0bd0498ad920f639a96a865d20d4dbacf7841f9",
+    "bytes": 25145
+  },
+  "console_note": "This is the bounded GitHub job console. Complete ephemeral per-phase Cargo/test logs were checked inside the runner before summarization; their hashes do not make those raw files retrievable.",
+  "receipt": {
+    "cutoffs": {
+      "fixture": "15397f42c77de41516187a46fc5367e01a59d352",
+      "prepared_old_pack6": "55e4d1d0ef3b4021472223a9e196260d771a5327",
+      "prior_result_closure": "4102a43c3e448374bb2c874cccf440cc2fc2cf6a",
+      "successful_overlay_runner": "ce495a88afe32b6322703ad778263a90b2bb98a9"
+    },
+    "error": null,
+    "fixture_seal_sha256": "6cc09c74c1934ed44e68cb96cc7a678c5aada0c4bba041635da47b3a4774bfac",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "actual_compile": {
+        "fixture": "actual public packs and mod_content::build with PathBuf ResourceSource; owned minimal fixture roots; no Game authority, priority repair or live UI",
+        "native_crates": [
+          "horizon_client_core",
+          "horizon_mods",
+          "horizon_client_lib",
+          "horizon_client_render"
+        ],
+        "passed": true
+      },
+      "metadata": {
+        "lock_sha256": "5091f1c7ef160bae957f4e643b0cb62cc424e387a4689c1e605846b940d2c3db",
+        "metadata_sha256": "4596925f4c44f940123ce41baea490e03cd77a24bd9f114bd676e005bd21d4ea",
+        "package_count": 439,
+        "packages_sha256": "494a0ac946dbb89b2fba89cc2446711add0bf56140669f5c4210439b97fa03e6",
+        "passed": true,
+        "required_local_owners": [
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-pack-chain-latest-dfd09ee78c98ce6603571c749a4b070f631d7068/official/crates/horizon-client-core/Cargo.toml",
+            "name": "horizon-client-core",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-pack-chain-latest-dfd09ee78c98ce6603571c749a4b070f631d7068/official/crates/horizon-client-lib/Cargo.toml",
+            "name": "horizon-client-lib",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-pack-chain-latest-dfd09ee78c98ce6603571c749a4b070f631d7068/official/crates/horizon-client-render/Cargo.toml",
+            "name": "horizon-client-render",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-pack-chain-latest-dfd09ee78c98ce6603571c749a4b070f631d7068/official/crates/horizon-mods/Cargo.toml",
+            "name": "horizon-mods",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-pack-chain-latest-dfd09ee78c98ce6603571c749a4b070f631d7068/fixture/Cargo.toml",
+            "name": "pluto-language-pack-chain-latest-fixture",
+            "source": null
+          }
+        ]
+      },
+      "runner": {
+        "passed": true,
+        "tests": 30
+      },
+      "source": {
+        "passed": true,
+        "tests": 10
+      },
+      "tests::": {
+        "names": [
+          "tests::filter_removes_lower_layers_but_allows_its_own_file_then_mod",
+          "tests::filter_without_replacement_stays_absent_until_explicit_mod_file",
+          "tests::invalid_pack_layer_is_skipped_but_invalid_mod_file_replaces",
+          "tests::lenient_comment_layer_merges_before_mod_whole_file_replacement",
+          "tests::public_reader_scalar_conversion_is_not_strict_pack_value_rewriting",
+          "tests::selected_order_merges_keys_before_mod_whole_file_replacement",
+          "tests::supplied_server_pack_is_above_selected_packs_but_below_mod_file",
+          "tests::unchanged_pack_cache_and_selected_locale_survive_mod_english_overlay"
+        ],
+        "passed": true,
+        "tests": 8
+      }
+    },
+    "generated_output_seal_sha256": "f4bebe435efa9065c75e6f427fa4188e5620545e4b74d158470b4c20b091f179",
+    "head": "dfd09ee78c98ce6603571c749a4b070f631d7068",
+    "minimum_free_bytes": 88549400576,
+    "official_seal_sha256": "ee372649f3f989ddcf0a7321e9d3c311fb049cbae9ae845e56dca69c52cc654e",
+    "passed": true,
+    "scope": "Actual official packs::folder/enabled/server_pack/build_overlay to mod_content::build and Language on eight owned latest baseline cases including public read_lang_file and lenient pack fallback. Existing selected/server order, filters and whole-file Mod overlay. No installed Game admission, Game pack selection authority, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+    "source_seal_sha256": "5f203df0977115663906bf261282981f41dec3985e0ac8a7059960d0d2c03d53",
+    "verified": true
+  },
+  "validation": [
+    "Single first run at exact reviewed trigger head; later design docs excluded.",
+    "14 phase exits are zero; all five mandatory receipt gates passed.",
+    "Five actual cold rustc command witnesses include real client-core/mods/client-lib/renderer plus the actual fixture --test.",
+    "Eight exact tests ran once with zero ignored/measured/filtered, including original six plus latest lenient-comment and scalar-type cases.",
+    "Official seeded lock, exact three native local patches, 439-package identities and every resolved local manifest owner checked before actual compilation.",
+    "Original and official source/ignored-file/link-target inventories, fixture bytes/lock/metadata/file-set, and generated OUT_DIR seals remained equal before/after."
+  ],
+  "scope": [
+    "Owned actual public selected/server pack order, filter behavior and baseline Mod whole-file overwrite.",
+    "Public native read_lang_file and latest pack lenient fallback; strict JSON scalar type retention versus lenient strings.",
+    "Native language English/exact-locale fallback in the prepared fixture roots."
+  ],
+  "not_proved": [
+    "Translation priority repair or lower-only key retention after Mod overwrite.",
+    "Game admission/pack selection authority, Options installation, live UI, retained Guide/LAN refresh.",
+    "mod_content resource_root stamp-directory aging/pruning, policy transition or cache hit.",
+    "Production assets, GPU/gameplay/world fluid activation or synchronous contact-effect authority.",
+    "Full latest Pluto/TConstruct Mixins composition, host bin or installed package compatibility.",
+    "Permission mode/empty directory identity; arbitrary language byte preservation."
+  ],
+  "historical_results_preserved": {
+    "old_pack6": "55e4d1d0 prepared/reviewed but unexecuted, not retroactively marked successful",
+    "old_overlay8": "ce495a88 old624c success and its prior failure remain separate"
+  }
+}
