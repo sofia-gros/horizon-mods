@@ -1,0 +1,635 @@
+{
+  "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "final_receipt": {
+    "artifact_seals": {
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/plan.json": "9ed4a7e02734c454de2fba986d5ec2d0bbf5706fa0bd66011f3cb970d5dbd980"
+    },
+    "compatibility": null,
+    "complete_guards": "not run: reduced probe is not a complete candidate",
+    "diagnostic_complete": true,
+    "error": null,
+    "formal_binding": {
+      "full_composition_tested": false,
+      "input_count": 5208,
+      "inputs_sha256": "26de6f15e67aaa90e794186781fed85a5c0a9b1a16031d0414e3d97787f26e02",
+      "native_type_verified": false,
+      "passed": true,
+      "plan_bytes": 635339,
+      "plan_sha256": "9ed4a7e02734c454de2fba986d5ec2d0bbf5706fa0bd66011f3cb970d5dbd980",
+      "required_inputs": {
+        "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+        "crates/horizon-client/src/game/hand.rs": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f",
+        "crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+        "crates/horizon-client/src/game/native_hooks.rs": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190"
+      },
+      "retained_scope": "Exact selected injection/module IR is retained; the four required official source inputs and Cargo.lock are retained exactly; remaining plan inputs are represented only by count/hash.",
+      "selected_plan": {
+        "injections": [
+          {
+            "argument": null,
+            "bindings": [
+              {
+                "name": "game",
+                "ty": "&crate::game::Game<'_>",
+                "value": "self"
+              },
+              {
+                "name": "pos",
+                "ty": "[i32; 3]",
+                "value": "pos"
+              },
+              {
+                "name": "state",
+                "ty": "horizon_world::registry::BlockStateId",
+                "value": "state"
+              },
+              {
+                "name": "speed",
+                "ty": "&mut f32",
+                "value": "&mut *speed"
+              }
+            ],
+            "call_site": null,
+            "cancellable": false,
+            "constant_site": null,
+            "contract": {
+              "operation": null,
+              "output": "()",
+              "value": null
+            },
+            "file": "crates/horizon-client/src/game/native_hooks.rs",
+            "function_fingerprint": "10fb05d607f0b81488d61663830c2b8fdf5dff9ed7c14643cbe0865fec423311",
+            "helper_source": "// Candidate only: one compute-only consumer at the official BreakSpeed HEAD.\n// The Pluto private adapter borrows native facts; TConstruct retains all policy.\n// Keep original untouched and let the official mod dispatch run afterward.\nfn tconstruct_material_mining_context_native(\n    game: &crate::game::Game<'_>,\n    pos: [i32; 3],\n    state: horizon_world::registry::BlockStateId,\n    speed: &mut f32,\n) {\n    let context = crate::game::pluto_mining_context::read(game, pos, state);\n    *speed = crate::game::tconstruct_source_mining_context::apply(\n        *speed,\n        game,\n        &context.facts,\n        &context.held,\n        Some((context.pos[1], context.max_y)),\n    );\n}\n",
+            "injection_id": "source-native-mining-context",
+            "kind": "HEAD",
+            "mod_id": "tconstruct_native",
+            "mod_version": "0.5.0",
+            "node": [
+              40,
+              41
+            ],
+            "ordinal": null,
+            "priority": 100,
+            "require": null,
+            "selector": null,
+            "site_fingerprint": null,
+            "target": "horizon_client::game::native_hooks::Game<'_>::native_break_speed"
+          }
+        ],
+        "modules": [
+          {
+            "file": "crates/horizon-client/src/game.rs",
+            "fingerprint": "f60453a771d597afdb5b8313ee9f74a19044d3c3e9dabdf5284aa48bf515d8ee",
+            "mod_id": "pluto_native_creative",
+            "mod_version": "0.1.0",
+            "module_id": "mining-context-facts",
+            "name": "pluto_mining_context",
+            "source": "// Private native borrow adapter, not a snapshot, registry, or mutation authority.\n// The caller supplies the position and state from the current native operation.\n// We do not re-read the block, validate ownership, project components, or clone Wire.\npub(super) struct BorrowedFacts<'a> {\n    pub(super) facts: &'a horizon_items::blocks::StateFacts,\n    pub(super) held: Option<&'a horizon_client::items::ItemStack>,\n    pub(super) pos: [i32; 3],\n    pub(super) max_y: i32,\n}\n\npub(super) fn read<'a>(\n    game: &'a crate::game::Game<'_>,\n    pos: [i32; 3],\n    state: horizon_world::registry::BlockStateId,\n) -> BorrowedFacts<'a> {\n    BorrowedFacts {\n        facts: game.res.facts().get(state),\n        held: game.held(),\n        pos,\n        max_y: game.world.shape.max_y(),\n    }\n}\n"
+          }
+        ],
+        "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+        "schema": 6,
+        "transformer": "0.6.0"
+      }
+    },
+    "full_composition_tested": false,
+    "gates": {
+      "candidate_sources": {
+        "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+        "passed": true,
+        "tests": 16
+      },
+      "cli_compile": {
+        "binary_sha256": "fe09b59688427147d37eb037fba8ab144bcfb35040c7e7574e493ecbabb9e5e8",
+        "passed": true,
+        "scope": "official tool only; no Game or consumer build",
+        "witness": {
+          "crate": "horizon_mixins",
+          "invocation_sha256": "325b45fbc957cfdb0cef52e37d852ed2d445d2733a6323d676d8bc69a9135ec7",
+          "source": [
+            "crates/horizon-mixins-cli/src/main.rs"
+          ]
+        }
+      },
+      "fixed_checkouts": {
+        "candidate_official_sources": [
+          "crates/horizon-client/src/game.rs",
+          "crates/horizon-client/src/game/hand.rs",
+          "crates/horizon-client/src/game/native_hooks.rs",
+          "crates/horizon-client/src/game/lan_actions.rs"
+        ],
+        "contract_sources": [
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon",
+            "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon",
+            "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"
+          },
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon-mixins",
+            "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/src/main.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/index.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/manifest.rs",
+            "repo": "horizon-mixins",
+            "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/plan.rs",
+            "repo": "horizon-mixins",
+            "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/native.rs",
+            "repo": "horizon-mixins",
+            "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85"
+          }
+        ],
+        "ir_contract_sources": {
+          "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+          "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"
+        },
+        "official": {
+          "horizon": {
+            "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+            "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        },
+        "passed": true
+      },
+      "memory_admission": {
+        "admission_available_minimum": 2147483648,
+        "available_bytes": 15770075136,
+        "capacity_minimum": 6442450944,
+        "passed": true
+      },
+      "plan_diagnostic": {
+        "accepted": true,
+        "passed": true,
+        "plan_sha256": "9ed4a7e02734c454de2fba986d5ec2d0bbf5706fa0bd66011f3cb970d5dbd980",
+        "summary": {
+          "bridges": 0,
+          "crates": 0,
+          "data": 0,
+          "injections": 1,
+          "modules": 1,
+          "plan": "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/plan.json",
+          "post_build": 0,
+          "seconds": 7.129649633,
+          "states": 0,
+          "status": "ok"
+        },
+        "tool_calls": [
+          {
+            "allowed": true,
+            "argv": [
+              "metadata",
+              "--format-version",
+              "1",
+              "--no-deps",
+              "--manifest-path",
+              "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/horizon/Cargo.toml",
+              "--offline",
+              "--locked"
+            ],
+            "kind": "cargo",
+            "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+          },
+          {
+            "allowed": true,
+            "argv": [
+              "--version"
+            ],
+            "kind": "rustc",
+            "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc"
+          }
+        ]
+      },
+      "runner": {
+        "passed": true,
+        "tests": 27
+      },
+      "small_probe": {
+        "crates": 0,
+        "injections": 1,
+        "member_sha256": {
+          "pluto_native_creative/horizon-mixin.toml": "c749b00570360b3722006234e6043779366cc2b34baf166c3046c6864380d2c4",
+          "pluto_native_creative/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+          "tconstruct_native/horizon-mixin.toml": "d5806334e74ab089c1075c97b50430deee96cc4ad6dbb408449a6e53c9a46b98",
+          "tconstruct_native/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e"
+        },
+        "members": 4,
+        "modules": 1,
+        "passed": true,
+        "scope": "Reduced formal-entry probe only; unchanged shared policy is referenced but deliberately not supplied/stubbed or type checked.",
+        "states": 0
+      }
+    },
+    "head": "3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69",
+    "input_seals": {
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/horizon": "333ac5fce63c1028a1db26f9968e6e4eeced64ca89557a0d6fa65827948d46ed",
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/horizon-git": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b",
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/metadata-only": "1c61c179548ddacbecd0a9dc285b87665ce003148358df162bceb9b5c76e83d3",
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/mining-probe": "604817a484ffffbdf0c8ac8e53c10848bd4de60535f5a4db099a6defdf3ccc8d",
+      "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/mixins-git": "69dcea38dfa0e9e77ac0228d9ee5727a95fdaa7b1c175624263549bcb25d368e"
+    },
+    "memory_observation": {
+      "admission": "not determined by this observation; guard remains independent",
+      "cgroup2_mounts": [
+        {
+          "filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot",
+          "mount_point": "/sys/fs/cgroup",
+          "options": "rw,nosuid,nodev,noexec,relatime",
+          "root": "/"
+        }
+      ],
+      "host_memory": {
+        "MemAvailable": "15400464 kB",
+        "MemTotal": "16367524 kB"
+      },
+      "self_cgroup": {
+        "text": "0::/system.slice/hosted-compute-agent.service\n"
+      },
+      "visible_ancestors": [
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "504258560\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "1324048384\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"
+            },
+            "cgroup.events": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"
+            },
+            "cgroup.type": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"
+            },
+            "memory.current": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"
+            },
+            "memory.max": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"
+            }
+          },
+          "path": "/sys/fs/cgroup"
+        }
+      ]
+    },
+    "minimum_free_bytes": 90683600896,
+    "minimum_memory_bytes": 13536657408,
+    "native_type_verified": false,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 3087,
+        "raw_sha256": "a7b67ae11d129ca5dc08cee49de1ce3571050f16882a265896f46a578ab404b9",
+        "seconds": 5.854
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "candidate-source-checks",
+        "raw_bytes": 1853,
+        "raw_sha256": "626af6cc1b0a4d4577673377cfe8bc0b933fd216fa67921109e4986b1ccb5bde",
+        "seconds": 0.608
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "seconds": 8.275
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 725,
+        "raw_sha256": "71d3b1ec67475601b2426d1877a5f823e4a96257e8a9574130ff8ab254a4cfb3",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+        "seconds": 4.443
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 84,
+        "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+        "seconds": 0.607
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 724,
+        "raw_sha256": "ca8f86de391095963a706c3fc892b42d67383fc507d5fee3f14348f034be16db",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541",
+        "seconds": 0.406
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 103,
+        "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.621
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-locked-fetch",
+        "raw_bytes": 2175,
+        "raw_sha256": "d2f6a8a5ebc17a945fce59ca39d6f8d8626948200de3f6c3ff9e8cf1d9365dd1",
+        "seconds": 1.212
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-cold-build",
+        "raw_bytes": 292477,
+        "raw_sha256": "17b14b024230183e481ca731b545cde4b4c9f34950f1403ac7cc4c1a40f3931b",
+        "seconds": 147.907
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cargo-path",
+        "raw_bytes": 74,
+        "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "rustc-path",
+        "raw_bytes": 74,
+        "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc",
+        "seconds": 0.205
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "official-plan",
+        "raw_bytes": 268,
+        "raw_sha256": "65ccb22855626536dd47a96a93cf13536af2018fbd7970bd838a254a419caf4e",
+        "seconds": 7.484
+      }
+    ],
+    "plan_accepted": true,
+    "plan_cpu_observation": {
+      "cli_exit_code": 0,
+      "complete": true,
+      "observer_exit_code": 0,
+      "present": true,
+      "raw_bytes": 365,
+      "raw_sha256": "353ed259c4dc374b6f388e8a38b814ea3c0d8b803c5dea0c6103b687b5c61905",
+      "records": [
+        {
+          "kind": "start",
+          "owner_pid": 3894,
+          "pgid": 3894,
+          "pid": 3895,
+          "session": 3894,
+          "start_ticks": 25896,
+          "ticks_per_second": 100
+        },
+        {
+          "elapsed_seconds": 0.001,
+          "kind": "sample",
+          "system_ticks": 0,
+          "user_ticks": 0
+        },
+        {
+          "elapsed_seconds": 5.004,
+          "kind": "sample",
+          "system_ticks": 90,
+          "user_ticks": 405
+        },
+        {
+          "elapsed_seconds": 7.406,
+          "exit_code": 0,
+          "kind": "end",
+          "samples": 2
+        }
+      ],
+      "scope": "Samples of the direct owned CLI PID only; no child aggregation, CPU percentage, completion or planner target inference."
+    },
+    "probe_completed": true,
+    "scope": "Exact candidate native sources, one internal module and one HEAD only. Formal target/owner/binding probe, not full646 compatibility or type proof. CLI cold-build only; no apply/Game/consumer build; one600-second plan.",
+    "source_seal_sha256": "9d0d6c562621296e33f0603ac64226c6aaa28b1aeefcea55ad7c6c67768b62c1",
+    "source_verified": true,
+    "tool_argv": {
+      "calls": [
+        {
+          "allowed": true,
+          "argv": [
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+            "/home/runner/work/_temp/latest-mining-probe-3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69/horizon/Cargo.toml",
+            "--offline",
+            "--locked"
+          ],
+          "kind": "cargo",
+          "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+        },
+        {
+          "allowed": true,
+          "argv": [
+            "--version"
+          ],
+          "kind": "rustc",
+          "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc"
+        }
+      ],
+      "log_present": true,
+      "mtime_ns": 1793965659482974929,
+      "raw_bytes": 474,
+      "raw_sha256": "df38f4e7d865404c84753df8aaeef3e75c0b6f4458ab3f18b3e6c9c766bdca8d",
+      "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.",
+      "validated": true,
+      "validation_error": null,
+      "wrapper_installed": true
+    }
+  },
+  "full_console": {
+    "bytes": 37319,
+    "encoding": "gzip+base64",
+    "gzip_bytes": 10027,
+    "payload": "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",
+    "sha256": "30d8f875e73815303403598c4285166567a2d31f04f4760ec202b996a4085100"
+  },
+  "observation_limits": [
+    "This reduced four-file probe tests one formal HEAD and one internal module, not the complete 646-member candidate.",
+    "The unchanged TConstruct shared policy is referenced but not supplied or stubbed in this plan-only probe. No Game/native type check or apply occurred.",
+    "Selected injection/module IR and the five required official input hashes are preserved verbatim as values. The full 635339-byte plan and remaining input map were ephemeral and are not reconstructable from their hashes.",
+    "Priority 100 is inherited from the unchanged main mod header, not an assumed default for HEAD. The accepted non-cancellable contract returns unit.",
+    "Both tool records are pre-exec starts. Actual plan exit0 is separate evidence; the tool JSONL alone is not a completion marker.",
+    "The two CPU samples concern only the known direct CLI PID, not descendants, final total CPU or an internal planner phase.",
+    "Raw verbose phase files were not downloaded. Complete fetched job console and FINAL_RECEIPT are preserved and hash-verified.",
+    "Old main/PR, original 8178/4f13 archives, old cutoffs and current triggers were not changed by this docs-only closure."
+  ],
+  "prior_complete_diagnostic_proof": "fb96cb825a5cb54b42a5914923e823ee09289890",
+  "reconstructed_exact_records": {
+    "plan-cpu-reconstructed.jsonl": {
+      "bytes": 365,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 187,
+      "payload": "H4sIAAAAAAACA42QywqDMBBF936FZC0ytkmr/ZkgOpTgI8FJaYv4750EtZR20VW4J8yZm8yiM2MrLqkgX09eZKmw9xEn7Uygx7KSjNz1I21BcSAkMnZ830aP9qbpiOFBldWJaczasZiwsXFjAbAks8C+doTtysMM5AAFz+zN6sH1GKrRkzwOuxwY3YidO/gtVCyU/wirL6ME9dt5ziWEh+HDeN3YFtc+2w7kI9tWxZ9YkhcWQbFAbQEAAA==",
+      "sha256": "353ed259c4dc374b6f388e8a38b814ea3c0d8b803c5dea0c6103b687b5c61905"
+    },
+    "tool-argv-reconstructed.jsonl": {
+      "bytes": 474,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 271,
+      "payload": "H4sIAAAAAAACA7WQS26DMBCG9zlF5HWNgbQEuu0xqioa8AAW9gwydoga5e7FQoqUA3RlzTfW/I+7mAxp8XkUHfiBxdtRbO91A9/CYQANARKUsmfvIMgr+sUwJVbsC2KpcV72wQGZHpcgZwhjQmpkh8pHIvRqZT+pS0A3KwshfXOGDA1y9tyiPLVFeT5DDmWVa+jbGpq8LEHnqAus9aloSt10VbPd9OaXSX0lz1lgZ3d17ntrCPfBcjehFj8pkrW8YooZfMQNeASbQr+4y3xcQpxVYLbdCIYWVWTNR5bLW11dqncZaSJeSW4a8SYHiqo1pPbiHof7s8p0p3upUj57+3c7u/jj8Afqt0A82gEAAA==",
+      "sha256": "df38f4e7d865404c84753df8aaeef3e75c0b6f4458ab3f18b3e6c9c766bdca8d"
+    }
+  },
+  "run": {
+    "conclusion": "success",
+    "created_at": "2026-11-06T11:44:32Z",
+    "head": "3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69",
+    "id": 42212479103,
+    "job_id": 127874249392,
+    "updated_at": "2026-11-06T11:47:46Z",
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42212479103"
+  },
+  "schema": 1,
+  "status": "limited formal-entry probe accepted; no apply, native type or full composition proof"
+}
