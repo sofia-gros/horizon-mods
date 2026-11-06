@@ -1,0 +1,24 @@
+{
+  "status": "source_preparation_only",
+  "native_or_metadata_executed": false,
+  "remote_workflow_published_or_started": false,
+  "frozen_source": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
+  "checks": {
+    "pure_python_regressions": 17,
+    "frozen_input_hash_and_length_checks": 55,
+    "actual_preparation_generated_files": 3,
+    "independent_preparation_runs": 2,
+    "generated_sources_identical_after_output_path_relocation": true,
+    "two_prefix_edits_inverse_reconstruct_exact_original": true,
+    "all_55_sources_unchanged_after_preparation": true
+  },
+  "source_materialization_note": "Remote commit object 794a is not materialized in the local MOD Git object database; the first read-only git-show smoke test stopped before preparation. The successful source-only smoke test used each original local commit listed in the retained 55-file plan, requiring the same exact SHA256 and byte length already bound to remote794a. Dedicated CI will fetch and verify that actual remote commit/tree itself. No remote identity was inferred from local branch ancestry.",
+  "runner_sha256": "562f48de08ce3db9190074242c195e86815d38dc1a25aa3f1695b384a77b5e1d",
+  "compiler_gate_sha256": "418fbc8255d948140ccc187c2f292938d4174a12d928d6bfb0dc398f914677c1",
+  "inputs_sha256": "8c1642c248c4c058cfc723764d1f37fdecff6d99215ad170b880c53522463815",
+  "test_runner_sha256": "23bc9d36cc873816996b56ed44efbf99dd6271954ed03f32dd0296d967bd9803",
+  "scope": "Only Python control/source guards and actual frozen fixture preparation, no native typing or test result. Expected full160 remains unrun.",
+  "memory_preflight": "Read-only bounded observations added; missing or unobservable hierarchy is not treated as unlimited. Existing independent guard still stops before native work. Actual GitHub cgroup facts are unknown until a separately approved run.",
+  "execution_mode": "memory-diagnostic-only",
+  "guard_review": "A readable delegated visible root can still hide stricter ancestor limits. The first CI entry point unconditionally terminates after read-only observations. No setup/native path is called. The retained native driver is unexecuted source for a later independently reviewed cutoff, not an enabled mode."
+}

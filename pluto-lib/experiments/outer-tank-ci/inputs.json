@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "status": "source preparation only; CI unrun",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-outer-tank-ci-20261106",
+  "source_revision": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
+  "source_tree": "0e80347d4573f47984753cd02f78514a5352243f",
+  "source_url": "https://github.com/sofia-gros/horizon-mods.git",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+  },
+  "files": {
+    "pluto-lib/docs/outer-tank-patch-adoption-20261106.md": {
+      "sha256": "729d4ff07e587e2a676bf6f8107cc8f9945dbb5f5589f5cfdd03ac26405ad93f",
+      "bytes": 4016
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/Cargo.toml": {
+      "sha256": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "bytes": 123
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs": {
+      "sha256": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "bytes": 8232
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs": {
+      "sha256": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "bytes": 2938
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs": {
+      "sha256": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "bytes": 11676
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs": {
+      "sha256": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "bytes": 6783
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs": {
+      "sha256": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "bytes": 6447
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/armor_wear.rs": {
+      "sha256": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "bytes": 8189
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/blocking.rs": {
+      "sha256": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "bytes": 9508
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/client_payload.rs": {
+      "sha256": "bb21ff3ba1dcc2db508d43c1d4ace10359e823d3399e3132de6fe9f1316d7af2",
+      "bytes": 10357
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting.rs": {
+      "sha256": "54719eccbe76e40be9b7386ab9973f9756dba7096acf6362f8b380698e1fe05f",
+      "bytes": 121
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs": {
+      "sha256": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "bytes": 11746
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": {
+      "sha256": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+      "bytes": 10131
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs": {
+      "sha256": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+      "bytes": 13362
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/equipment.rs": {
+      "sha256": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "bytes": 2475
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/current_book.rs": {
+      "sha256": "0725b9ab38bbf431033139e8d47a72f276abd0a39c812a0ad492296f242ef760",
+      "bytes": 4987
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs": {
+      "sha256": "5540cffa93542600cdad7f0800c29a93045a0aeaf1dcf185b18b026333f3fd12",
+      "bytes": 13498
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/mod.rs": {
+      "sha256": "549832c342d3f4e3db6bbdc058c71936381f5dd626b174543094729b2fe72e5c",
+      "bytes": 371
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs": {
+      "sha256": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+      "bytes": 10726
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs": {
+      "sha256": "35fc03c3fcca9d266614b41e8aab34dbb0f3294100882e70fee835e4b4c383ff",
+      "bytes": 13303
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs": {
+      "sha256": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+      "bytes": 1900
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs": {
+      "sha256": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "bytes": 2441
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/protection.rs": {
+      "sha256": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "bytes": 11218
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book.rs": {
+      "sha256": "f9bb1c09b86dd57dc4e39de32cb3bcc99a6842f003159acbd30178916179d8e1",
+      "bytes": 937
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs": {
+      "sha256": "0bb631eb80bd5a2a2f22979668eb6dd6f8695653d1d06b81ffd6f5c08f45e65d",
+      "bytes": 10619
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs": {
+      "sha256": "b38293600d3650f2da9102e0932006c517b90ae980675f8f36b3846f581d6fbd",
+      "bytes": 16246
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs": {
+      "sha256": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "bytes": 9388
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs": {
+      "sha256": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "bytes": 3337
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs": {
+      "sha256": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "bytes": 4401
+    },
+    "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs": {
+      "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+      "bytes": 5014
+    },
+    "pluto-lib/mixins/pluto_native_creative/potion-facts.rs": {
+      "sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f",
+      "bytes": 2314
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-cells.rs": {
+      "sha256": "47015d67867a5ef2e90bc9481cfbdd36ebc1d8b8540d446b2a87044cd573d1d6",
+      "bytes": 8452
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs": {
+      "sha256": "892b6b2d6cf9b56b1c795bf19cbbdcd8a2a3ce4a6fd14ecd4cb1b587e9219d2d",
+      "bytes": 5606
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-storage.rs": {
+      "sha256": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76",
+      "bytes": 5591
+    },
+    "tconstruct/compatibility.json": {
+      "sha256": "bd06550790e9c44b474b54d22fdf1f175a439790e3d4c3eae348e5d00504d560",
+      "bytes": 434
+    },
+    "tconstruct/mixins/tconstruct/source-chute-hopper.rs": {
+      "sha256": "e3e1c842cf0c8242721aa2f8e570a1444d0371e189d240142a6a27bd0dbdb00e",
+      "bytes": 29234
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": {
+      "sha256": "ad8456578ae983be299ed05a9c5c649b812da88ddacfa53f3d125309bb984290",
+      "bytes": 4363
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-container.rs": {
+      "sha256": "3c28f5386fbdd2a7b7f024addfbfb3eb80248b704840e989f36ef7f5fee1c4f5",
+      "bytes": 159140
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-display.rs": {
+      "sha256": "fce8229c4ecb5cc67886197603079da0af5c20455ca69371df4e02d9c9c1b8dd",
+      "bytes": 7547
+    },
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": {
+      "sha256": "b87726d2ecfe4dbf12ac6cb1f070bbee02895aa160046701ef5178cb667fda71",
+      "bytes": 107956
+    },
+    "tconstruct/mixins/tconstruct/source-melter-state.rs": {
+      "sha256": "7ce5e95f52dd514dc0fa88d9622736e05338d5cc98db7bc611683ae9f25f4f57",
+      "bytes": 64843
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-fuel.rs": {
+      "sha256": "bb7922dc006fae5ac203b302c4f9b7693fb35c4225f0b0f9630a5468cbec5df3",
+      "bytes": 15995
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-state.rs": {
+      "sha256": "0de9770b2eaab4e2d91a968b84d9d64fa88c21a8a0245a4b2f72e6b8140a32a4",
+      "bytes": 23111
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-tank.rs": {
+      "sha256": "edd3b613b63a60f5992012e37623b1208d9287ba73d34556b4b8e1a5ed27cffb",
+      "bytes": 15850
+    },
+    "tconstruct/tests/fixture_pluto_dependency.py": {
+      "sha256": "89fc688e7c272e524286477a5c360d7ade827141b7af318127e1c85de4f585e0",
+      "bytes": 3192
+    },
+    "tconstruct/tests/run_outer_tank_patch.py": {
+      "sha256": "426ec9f2d6c8cd2ddf4491b6adc14a4580e7b423a35355c7a21afaa791e01b24",
+      "bytes": 6350
+    },
+    "tconstruct/tests/rust/drain_container_fixture.rs": {
+      "sha256": "312df0ac01e8d2f1c65479b9bf95dc949bb6932a85aed5cad38a7e7d396cc04b",
+      "bytes": 41240
+    },
+    "tconstruct/tests/rust/outer_tank_cannon_legacy.rs": {
+      "sha256": "537c481600b4e8fec10029b1e9ed4ea3af98a2aad652c97a3a4d5fd92f20b601",
+      "bytes": 1164
+    },
+    "tconstruct/tests/rust/outer_tank_controller_legacy.rs": {
+      "sha256": "99adebe8c26150d0ec5b4e62d82b88a6bfbe1a6a6d0a2c5d2fd668576e44dffe",
+      "bytes": 320
+    },
+    "tconstruct/tests/rust/outer_tank_drain_legacy.rs": {
+      "sha256": "04eaf14b57cc6178a851e640360d3e2cf79bf32b629667bb4024c56bb95937ca",
+      "bytes": 3991
+    },
+    "tconstruct/tests/rust/outer_tank_legacy.json": {
+      "sha256": "982b1e94fd62caf6872236da80b4d5dd97c859b7d9fd798dcfaf5b03c635d11e",
+      "bytes": 2380
+    },
+    "tconstruct/tests/rust/outer_tank_patch.rs": {
+      "sha256": "e728f9218279fd51d71d9f138a5ae7339699abc92a690c815389d0895cacb763",
+      "bytes": 7254
+    },
+    "tconstruct/tests/rust/pluto_potion_fixture.rs": {
+      "sha256": "735273735a94c497ed4aa542fc79ae03ede29cd1419b322a11e82c1a6cfce4c4",
+      "bytes": 262
+    },
+    "tconstruct/tests/rust/pluto_storage_fixture.rs": {
+      "sha256": "8a06fd165c62ed55aea5838492ae75f1e6c9c9a8a1118f624c2302377dc8d695",
+      "bytes": 548
+    },
+    "tconstruct/tests/test_outer_tank_patch.py": {
+      "sha256": "2c4582d49ac2649bd132ad309d6d7d1d2e5bb43ab21567900ffb64de2bbff613",
+      "bytes": 4363
+    }
+  },
+  "api_path": "pluto-lib/mixins/pluto_native_creative/inventory-api",
+  "api_files": [
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/Cargo.toml",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/armor_wear.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/blocking.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/client_payload.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/equipment.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/current_book.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/mod.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/protection.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs"
+  ],
+  "fixture_runner": "tconstruct/tests/run_outer_tank_patch.py",
+  "tests": 160,
+  "new_tests": 4,
+  "inherited_tests": 156,
+  "required_tests": [
+    "runtime::outer_tank_tests::cannon_complete_old_method_matches_raw_and_state_matrix",
+    "runtime::outer_tank_tests::cannon_retained_wire_and_opaque_item_contracts_match",
+    "runtime::outer_tank_tests::controller_patch_matches_unknown_and_malformed_values",
+    "runtime::outer_tank_tests::drain_complete_route_matches_saved_and_published_results"
+  ],
+  "scope": "Actual pinned items/core/world and frozen complete methods. Drain uses the existing mock Game/world. No live authority, durability, installed Mod or full original PR claim.",
+  "execution_mode": "memory-diagnostic-only"
+}
