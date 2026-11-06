@@ -1,6 +1,12 @@
 name: Mixins validation
 on:
   workflow_dispatch:
+    inputs:
+      terrain_cpu:
+        description: 'Run only the WIP real-native terrain CPU fixture (no GPU)'
+        type: boolean
+        required: false
+        default: false
   workflow_call:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -11,6 +17,7 @@ permissions:
   pull-requests: read
 jobs:
   test:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.terrain_cpu != true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -179,3 +186,27 @@ jobs:
             dist/tconstruct.hnmod
             dist/tconstruct.hmod
           if-no-files-found: error
+
+  terrain-cpu:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.terrain_cpu == true && github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_PROFILE_TEST_OPT_LEVEL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Run pinned official CPU fixture with continuous disk guard
+        run: python3 pluto-lib/experiments/terrain-cell-cpu/ci.py
+      # Intentionally no cache action, artifact upload, release, write token,
+      # custom image, larger runner, secret or automatic trigger in this mode.
