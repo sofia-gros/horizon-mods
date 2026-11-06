@@ -13,6 +13,8 @@ REVISION = '624c4f6265c02296fbe8a80f029dd0d987fb94c0'
 SOURCE = 'crates/horizon-client-render/src/effects.rs'
 SUPPORT = 'crates/horizon-client-render/src/effects/extension.rs'
 SHA = '5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd'
+NBT_SOURCE = 'crates/horizon-world/src/nbt.rs'
+NBT_SHA = '6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c'
 STOP = '/// What an effect tick asks the game to do to the player.'
 IMPORT = '''#[path = "effects/extension.rs"]
 mod extension;
@@ -64,19 +66,38 @@ def patch(original, changed):
         fromfile='a/' + SOURCE, tofile='b/' + SOURCE)) + ''.join(difflib.unified_diff(
         [], support.splitlines(True), fromfile='/dev/null', tofile='b/' + SUPPORT))
 
-def fixture(changed):
+def codec_patch(changed):
+    imported = replace_once(changed, 'mod extension;\n', 'mod extension;\n#[path = "effects/record_nbt.rs"]\npub mod record_nbt;\n')
+    codec = (HERE / 'record_nbt.rs').read_text()
+    return ''.join(difflib.unified_diff(changed.splitlines(True), imported.splitlines(True),
+        fromfile='a/' + SOURCE, tofile='b/' + SOURCE)) + ''.join(difflib.unified_diff(
+        [], codec.splitlines(True), fromfile='/dev/null', tofile='b/crates/horizon-client-render/src/effects/record_nbt.rs'))
+
+def fixture(changed, with_nbt=False):
     excerpt = changed[:changed.index(STOP)]
     # The selected native instance implementation does not use the potion catalog.
     # Remove only that unused import, not any native function or native type.
     excerpt = replace_once(excerpt, 'use horizon_client_core::potions;\n', '')
     excerpt = replace_once(excerpt, '#[path = "effects/extension.rs"]', '#[path = "extension.rs"]')
-    return excerpt + '\n#[cfg(test)]\n#[path = "tests.rs"]\nmod proposal_tests;\n'
+    result = excerpt + '\n#[cfg(test)]\n#[path = "tests.rs"]\nmod proposal_tests;\n'
+    if with_nbt:
+        result += '''\nextern crate self as horizon_world;
+#[path = "official-nbt.rs"]
+pub mod nbt;
+#[path = "record_nbt.rs"]
+mod record_nbt;
+#[cfg(test)]
+#[path = "codec_tests.rs"]
+mod proposal_codec_tests;
+'''
+    return result
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--official', type=Path, required=True)
     parser.add_argument('--write-patch', action='store_true')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--with-nbt', action='store_true')
     args = parser.parse_args()
     original = source(args.official)
     changed = proposed(original)
@@ -86,16 +107,29 @@ def main():
         target.write_text(delta)
     elif target.read_text() != delta:
         raise ValueError('prototype patch does not exactly match its pinned inputs')
+    codec_delta = codec_patch(changed)
+    codec_target = HERE / 'UNAPPLIED-player-record-nbt.patch'
+    if args.write_patch:
+        codec_target.write_text(codec_delta)
+    elif codec_target.read_text() != codec_delta:
+        raise ValueError('codec add-on patch differs')
+    native_nbt = (args.official.resolve() / NBT_SOURCE).read_bytes()
+    if digest(native_nbt) != NBT_SHA:
+        raise ValueError('official NBT source differs')
     if args.output:
         output = args.output.resolve()
         if not output.is_relative_to((REPO / '.work').resolve()):
             raise ValueError('generated excerpt must stay in this MOD worktree .work directory')
         if output.exists(): raise ValueError('output must not exist')
         output.mkdir(parents=True)
-        generated = fixture(changed).encode()
+        generated = fixture(changed, args.with_nbt).encode()
         (output / 'fixture.rs').write_bytes(generated)
         for name in ('extension.rs', 'tests.rs'):
             (output / name).write_bytes((HERE / name).read_bytes())
+        if args.with_nbt:
+            (output / 'official-nbt.rs').write_bytes(native_nbt)
+            for name in ('record_nbt.rs', 'codec_tests.rs'):
+                (output / name).write_bytes((HERE / name).read_bytes())
         evidence = {
             'status': 'UNAPPLIED/UNFINISHED prototype fixture, not native gameplay',
             'official_revision': REVISION, 'official_source': SOURCE,
@@ -103,6 +137,9 @@ def main():
             'original_instance_excerpt_sha256': digest(original[:original.index(STOP)].encode()),
             'proposed_full_file_sha256': digest(changed.encode()),
             'patch_sha256': digest(delta.encode()),
+            'codec_patch_sha256': digest(codec_delta.encode()),
+            'official_nbt_sha256': digest(native_nbt) if args.with_nbt else None,
+            'with_nbt': args.with_nbt,
             'prepared_files': {p.name: digest(p.read_bytes()) for p in sorted(output.iterdir())},
             'scope': 'Exact pinned native EffectInstance excerpt plus proposed changes and real std types. No substituted native type. Unused potion import removed; no potion resolver mock.',
             'excluded': ['Full native crate type checking', 'PlayerEffects/Level/NBT save migration', 'Native contact or cure activation', 'LAN/remote protocol authority', 'Mob representation migration'],
@@ -110,6 +147,8 @@ def main():
         (output / 'evidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
     # Read-only source identity check again after all MOD-local writes.
     if source(args.official) != original: raise ValueError('official input changed during preparation')
+    if (args.official.resolve() / NBT_SOURCE).read_bytes() != native_nbt:
+        raise ValueError('official NBT changed during preparation')
     print('Unapplied patch and selected native excerpt verified; no official writes or compilation.')
 
 if __name__ == '__main__':

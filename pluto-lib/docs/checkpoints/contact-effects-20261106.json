@@ -20,5 +20,11 @@
     "rust_tests_passed": 10,
     "source_commit": "257377be7d2f1798763623b5d578783be6f98ef6",
     "scope": "UNAPPLIED proposed EffectInstance excerpt and owned record only; not actual host save/contact/cure integration"
+  },
+  "record_codec_status": "Standalone version1 NBT prototype prepared; not native Level or old-save migration",
+  "record_codec_validation": {
+    "source_guards_passed": 6,
+    "combined_rust_tests_written": 18,
+    "combined_rust_tests_executed": false
   }
 }

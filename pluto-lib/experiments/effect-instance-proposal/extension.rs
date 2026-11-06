@@ -122,6 +122,16 @@ fn validate_layer(
 }
 
 impl Record {
+    /// Validate an owned record without resolving IDs or creating native effects.
+    pub fn validate(&self, limits: Limits) -> Result<(), Error> {
+        if self.layers.is_empty() { return Err(Error::EmptyRecord); }
+        if self.layers.len() > limits.max_layers { return Err(Error::TooManyLayers); }
+        let mut total = 0;
+        for layer in &self.layers {
+            validate_layer(&layer.id, layer.amplifier, &layer.extensions, &mut total, limits)?;
+        }
+        Ok(())
+    }
     /// Validate the whole chain before cloning any extension payload.
     pub fn capture(instance: &EffectInstance, limits: Limits) -> Result<Self, Error> {
         let mut next = Some(instance);
@@ -151,12 +161,7 @@ impl Record {
     pub fn restore(
         &self, limits: Limits, resolve: impl Fn(&str) -> Option<&'static str>,
     ) -> Result<EffectInstance, Error> {
-        if self.layers.is_empty() { return Err(Error::EmptyRecord); }
-        if self.layers.len() > limits.max_layers { return Err(Error::TooManyLayers); }
-        let mut total = 0;
-        for layer in &self.layers {
-            validate_layer(&layer.id, layer.amplifier, &layer.extensions, &mut total, limits)?;
-        }
+        self.validate(limits)?;
         let ids: Vec<_> = self.layers.iter().enumerate().map(|(layer, value)|
             resolve(&value.id).ok_or(Error::UnresolvedId { layer })
         ).collect::<Result<_, _>>()?;

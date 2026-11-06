@@ -1,0 +1,128 @@
+//! UNAPPLIED standalone record codec; not Level.active_effects or a save hook.
+//! Provisional version-1 envelope. Uses the actual official NBT implementation.
+use horizon_world::nbt::{self, Compound, JavaString, NamedTag, Tag};
+use super::extension::{Error as RecordError, Extensions, Layer, Limits, Record};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Error {
+    Nbt(nbt::Error),
+    Record(RecordError),
+    TrailingBytes,
+    RootName,
+    Schema,
+    Version,
+    InvalidUtf16,
+    UnencodableString,
+}
+impl From<RecordError> for Error {
+    fn from(value: RecordError) -> Self { Self::Record(value) }
+}
+
+fn object<'a>(tag: &'a Tag, fields: &[&str]) -> Result<&'a Compound, Error> {
+    let Tag::Compound(map) = tag else { return Err(Error::Schema); };
+    if map.len() != fields.len() || fields.iter().any(|name| tag.get(name).is_none()) {
+        return Err(Error::Schema);
+    }
+    Ok(map)
+}
+fn integer(tag: Option<&Tag>) -> Result<i32, Error> {
+    match tag { Some(Tag::Int(value)) => Ok(*value), _ => Err(Error::Schema) }
+}
+fn boolean(tag: Option<&Tag>) -> Result<bool, Error> {
+    match tag { Some(Tag::Byte(0)) => Ok(false), Some(Tag::Byte(1)) => Ok(true), _ => Err(Error::Schema) }
+}
+fn text(value: &JavaString, max: usize) -> Result<String, Error> {
+    // UTF-8 length is never smaller than the UTF-16 unit count. Bound the
+    // conversion first, then reject invalid UTF-16 rather than replacing it.
+    if value.0.len() > max { return Err(RecordError::TotalTooLarge.into()); }
+    let text = value.to_string().map_err(|_| Error::InvalidUtf16)?;
+    if text.len() > max { return Err(RecordError::TotalTooLarge.into()); }
+    Ok(text)
+}
+fn count(total: &mut usize, amount: usize, limits: Limits) -> Result<(), Error> {
+    *total = total.checked_add(amount).ok_or(RecordError::TotalTooLarge)?;
+    if *total > limits.max_total_bytes { return Err(RecordError::TotalTooLarge.into()); }
+    Ok(())
+}
+fn disk_string(value: &str) -> Result<(), Error> {
+    let mut bytes = 0usize;
+    for unit in value.encode_utf16() {
+        let width = match unit { 1..=0x7f => 1, 0..=0x7ff => 2, _ => 3 };
+        bytes = bytes.checked_add(width).ok_or(Error::UnencodableString)?;
+        if bytes > u16::MAX as usize { return Err(Error::UnencodableString); }
+    }
+    Ok(())
+}
+
+/// A standalone envelope, intentionally not the native active_effects list.
+/// Unknown extension namespaces/bytes are retained; unknown schema fields fail.
+pub fn to_tag(record: &Record, limits: Limits) -> Result<Tag, Error> {
+    record.validate(limits)?;
+    // Native write_named intentionally empties strings exceeding modified-UTF
+    // u16 length. Reject before calling it, even if logical limits are larger.
+    for layer in &record.layers {
+        disk_string(&layer.id)?;
+        for (key, _) in layer.extensions.entries() { disk_string(key)?; }
+    }
+    let layers = record.layers.iter().map(|layer| Tag::compound([
+        ("id", Tag::String(layer.id.as_str().into())),
+        ("duration", Tag::Int(layer.duration)),
+        ("amplifier", Tag::Int(layer.amplifier)),
+        ("ambient", Tag::Byte(i8::from(layer.ambient))),
+        ("visible", Tag::Byte(i8::from(layer.visible))),
+        ("extensions", Tag::Compound(layer.extensions.entries().map(|(key, value)|
+            (key.into(), Tag::ByteArray(value.to_vec()))
+        ).collect())),
+    ])).collect();
+    Ok(Tag::compound([("version", Tag::Int(1)), ("layers", Tag::List(layers))]))
+}
+
+/// Decode into a fresh owned record; never mutates or publishes an actor.
+/// Caller retains the original tag/bytes on failure. No lossy legacy fallback.
+pub fn from_tag(tag: &Tag, limits: Limits) -> Result<Record, Error> {
+    object(tag, &["version", "layers"])?;
+    if integer(tag.get("version"))? != 1 { return Err(Error::Version); }
+    let Some(Tag::List(layers)) = tag.get("layers") else { return Err(Error::Schema); };
+    if layers.is_empty() { return Err(RecordError::EmptyRecord.into()); }
+    if layers.len() > limits.max_layers { return Err(RecordError::TooManyLayers.into()); }
+    let mut total = 0;
+    let mut result = Vec::with_capacity(layers.len());
+    for layer in layers {
+        object(layer, &["id", "duration", "amplifier", "ambient", "visible", "extensions"])?;
+        let Some(Tag::String(id)) = layer.get("id") else { return Err(Error::Schema); };
+        let id = text(id, limits.max_id_bytes)?;
+        count(&mut total, id.len(), limits)?;
+        let Some(Tag::Compound(values)) = layer.get("extensions") else { return Err(Error::Schema); };
+        if values.len() > limits.max_entries_per_layer { return Err(RecordError::TooManyEntries.into()); }
+        let mut entries = Vec::with_capacity(values.len());
+        for (key, value) in values {
+            let key = text(key, limits.max_key_bytes)?;
+            let Tag::ByteArray(value) = value else { return Err(Error::Schema); };
+            if value.len() > limits.max_value_bytes { return Err(RecordError::ValueTooLong.into()); }
+            count(&mut total, key.len(), limits)?;
+            count(&mut total, value.len(), limits)?;
+            entries.push((key, value.clone()));
+        }
+        result.push(Layer {
+            id, duration: integer(layer.get("duration"))?, amplifier: integer(layer.get("amplifier"))?,
+            ambient: boolean(layer.get("ambient"))?, visible: boolean(layer.get("visible"))?,
+            extensions: Extensions::from_entries(entries, limits)?,
+        });
+    }
+    let record = Record { layers: result };
+    record.validate(limits)?;
+    Ok(record)
+}
+
+/// NBT encoded-byte/node/depth limits and logical record limits are independent.
+/// No compression, filesystem save, native Level update or registry lookup.
+pub fn encode(record: &Record, limits: Limits, wire: nbt::Limits) -> Result<Vec<u8>, Error> {
+    nbt::write_named(&NamedTag { name: JavaString::default(), tag: to_tag(record, limits)? }, wire)
+        .map_err(Error::Nbt)
+}
+pub fn decode(bytes: &[u8], limits: Limits, wire: nbt::Limits) -> Result<Record, Error> {
+    let (root, used) = nbt::read_named(bytes, wire).map_err(Error::Nbt)?;
+    if used != bytes.len() { return Err(Error::TrailingBytes); }
+    if !root.name.0.is_empty() { return Err(Error::RootName); }
+    from_tag(&root.tag, limits)
+}

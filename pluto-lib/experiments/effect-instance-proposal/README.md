@@ -83,3 +83,25 @@ minimum was 10,885,697,536 bytes. Official inputs and all prepared file hashes
 were reverified before and after. See [validation.json](validation.json) for
 commands, exact hashes and test names. This result does not close any of the
 excluded native integration gates above.
+
+## Standalone NBT record follow-up (unapplied)
+
+`record_nbt.rs` and `UNAPPLIED-player-record-nbt.patch` propose a separate
+version-1 record envelope. The add-on patch is based on the first unapplied
+patch and still does not wire Level, local/LAN saves or contact/cure operations.
+`prepare.py --with-nbt` copies the complete hash-pinned official `nbt.rs`
+unchanged into the MOD-local fixture, using its actual Tag and codec. No Cargo
+dependency or substitute NBT type is needed. Run only the `proposal_` tests to
+select the ten instance tests plus eight codec tests; native NBT tests compile
+but are not included in that selected execution count.
+
+The codec is strict about its own schema and rejects native legacy player tags
+as a different format, not as invalid old saves. It preserves unknown extension
+namespaces and bytes, not unknown schema fields or arbitrary raw NBT encoding.
+It prechecks modified-UTF string lengths to avoid the native disk writer
+replacing an overlong string with empty. See the [minimum contract](../../docs/persistence-contact-minimum.md).
+
+The earlier ten-test result above applies to its exact prior cutoff. The new
+eighteen-test proposed-source fixture is prepared but not yet executed; source
+guards currently pass six checks. Neither result establishes actual native
+save migration or synchronous effect mutation authority.

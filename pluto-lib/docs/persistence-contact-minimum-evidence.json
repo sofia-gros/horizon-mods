@@ -1,0 +1,19 @@
+{
+  "status": "Source-only minimum-contract evidence, not a live owner/save proof",
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "source_sha256": {
+    "crates/horizon-world/src/nbt.rs": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c",
+    "crates/horizon-client-core/src/nbt_value.rs": "c289ce9eba52dea6d0f2682b2620a4d955b2a75dde08f8e34437c7e81dacce82",
+    "crates/horizon-world/src/datafix/fixes_a.rs": "95fce5222d62c43020217928b406d11be0d874307e28d395b52001b8e50368f7",
+    "crates/horizon-client/src/save.rs": "5d4cda583f246f987494f90490b10b39fb0641ce9377ae607d6cd75353bf559b",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/prediction.rs": "bb58dc9294cd549a0a2e3fc9e7de7e5dd733d7333e052594dc90c080e834a717",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57"
+  },
+  "existing_save_schema": "five-field tuples; does not retain hidden records or extension payload",
+  "proposed_codec_schema": "standalone version1 active-first layers; no native save placement selected",
+  "contact_blocker": "complete add operation invokes status/absorption updates and mutable Game callbacks, unavailable in current MotionWorld borrow",
+  "native_changes": false
+}

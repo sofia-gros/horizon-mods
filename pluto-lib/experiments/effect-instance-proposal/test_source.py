@@ -52,6 +52,22 @@ class SourceGuards(unittest.TestCase):
         self.assertNotIn('mod potions', generated)
         self.assertNotIn('PlayerEffects {', generated)
 
+    def test_codec_is_a_separate_exact_unapplied_add_on(self):
+        self.assertEqual((HERE / 'UNAPPLIED-player-record-nbt.patch').read_text(),
+                         prepare.codec_patch(self.changed))
+        self.assertNotIn('pub mod record_nbt;', self.changed)
+        self.assertIn('pub mod nbt;', prepare.fixture(self.changed, True))
+        self.assertIn('official-nbt.rs', prepare.fixture(self.changed, True))
+
+    def test_codec_does_not_install_a_save_hook_or_lossy_legacy_fallback(self):
+        codec = (HERE / 'record_nbt.rs').read_text()
+        self.assertNotIn('fn save_player', codec)
+        self.assertNotIn('to_string_lossy', codec)
+        self.assertNotIn('Box::leak', codec)
+        self.assertIn('if used != bytes.len()', codec)
+        self.assertIn('disk_string(&layer.id)?', codec)
+        self.assertIn('integer(tag.get("version"))? != 1', codec)
+
 
 if __name__ == '__main__':
     unittest.main()
