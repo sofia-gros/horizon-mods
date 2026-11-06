@@ -10,7 +10,7 @@ NATIVE = ROOT / 'pluto-lib/mixins/pluto_native_creative'
 
 
 class CloudInsertionBoundary(unittest.TestCase):
-    def test_module_placement_has_no_activation_hook_or_consumer(self):
+    def test_module_placement_has_no_new_hook_and_only_reviewed_consumer(self):
         manifest = tomllib.loads((NATIVE / 'horizon-mixin.toml').read_text())
         modules = {m['id']: m for m in manifest['module']}
         for identity, file, name in [
@@ -22,7 +22,12 @@ class CloudInsertionBoundary(unittest.TestCase):
         self.assertFalse(any('cloud' in h['id'] or 'lifecycle-readiness' in h['id']
                              for h in manifest.get('injection', [])))
         for path in (ROOT / 'tconstruct/mixins/tconstruct').glob('*.rs'):
-            self.assertNotIn('pluto_cloud_insertion', path.read_text(), path.name)
+            if path.name != 'source-fluid-cloud.rs':
+                self.assertNotIn('pluto_cloud_insertion', path.read_text(), path.name)
+        consumer = (ROOT / 'tconstruct/mixins/tconstruct/source-fluid-cloud.rs').read_text()
+        self.assertIn('pluto_cloud_insertion::insert_attached_player_frame', consumer)
+        for forbidden in ('take_entity_id(', 'breath_clouds.push(', 'PotionCloud {', 'Breath {'):
+            self.assertNotIn(forbidden, consumer)
 
     def test_real_lifecycle_owner_is_observed_without_parallel_state(self):
         source = (NATIVE / 'lifecycle-readiness.rs').read_text().split('#[cfg(test)]')[0]
@@ -56,7 +61,7 @@ class CloudInsertionBoundary(unittest.TestCase):
 
     def test_fallible_work_precedes_native_id_and_push(self):
         source = (NATIVE / 'cloud-insertion.rs').read_text().split('#[cfg(test)]')[0]
-        body = source.split('pub(in crate::game) fn insert', 1)[1]
+        body = source.split('pub(in crate::game) fn insert(game:', 1)[1]
         ordered = ['require_entity_successor(game.next_entity)?',
             'pluto_cloud_factory::construct(request).into_native()',
             'game.breath_clouds.try_reserve(1).map_err(|_| Error::Capacity)?',

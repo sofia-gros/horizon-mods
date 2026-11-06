@@ -4622,7 +4622,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[module]]
 id = "source-fluid-cloud"
-file = "crates/horizon-client/src/game/potions.rs"
+file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_fluid_cloud"
 source = "source-fluid-cloud.rs"
 visibility = "pub"

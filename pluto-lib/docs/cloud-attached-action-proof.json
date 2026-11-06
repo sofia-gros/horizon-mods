@@ -1,0 +1,625 @@
+{
+  "status": "NOT ADOPTED: ordinary packet action is detached and unsupported; preserved source candidate only",
+  "base_commit": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "actual_plan": null,
+  "host_type_check": null,
+  "native_tests_executed": false,
+  "actual_game_action_executed": false,
+  "new_rust_tests_prepared": {
+    "shared_frame_values": 2,
+    "consumer_descriptor_policy": 3
+  },
+  "additional_native_inputs": {
+    "crates/horizon-client/src/lan/guest.rs": {
+      "sha256": "86330345c2093a1c0cf9a0c8778e3c05de0c174ca24c7e1224e9b55b38c575c9",
+      "git_blob": "6f0d3da4e6a6c30819e6dbb601cd6d12e7851970",
+      "bytes": 73510
+    },
+    "crates/horizon-client/src/motion.rs": {
+      "sha256": "6ea817ac82fd44134241df0c2ca5d4daf1bb3f58e336ff68af2fca0d9009abca",
+      "git_blob": "64a7f0a7695a1fc68fe423988592b51395ef666c",
+      "bytes": 250436
+    }
+  },
+  "unchanged_guard_algorithm_sha256": "47b7f1577470c00d1335133933a191046c9cc2a32c710cbb0748e64191853746",
+  "unchanged_guard_policy": {
+    "exclusive_files": [
+      "crates/horizon-client/src/game/native_lifecycle.rs",
+      "crates/horizon-client/src/game/native_entity_refs.rs",
+      "crates/horizon-client/src/game/native_level_refs.rs",
+      "crates/horizon-client/src/game/mod_api_host.rs",
+      "crates/horizon-client/src/game/commands/players.rs",
+      "crates/horizon-client/src/game/lan_actions.rs",
+      "crates/horizon-client/src/game/lan_entities.rs",
+      "crates/horizon-client/src/mod_api.rs",
+      "crates/horizon-client/src/game/commands.rs",
+      "crates/horizon-client/src/game/integrated.rs",
+      "crates/horizon-client/src/game/dedicated.rs",
+      "crates/horizon-client/src/game/dragon.rs",
+      "crates/horizon-client/src/game/potions.rs",
+      "crates/horizon-client-render/src/world.rs",
+      "crates/horizon-client-core/src/potions.rs"
+    ],
+    "protected_target_prefixes": [
+      "horizon_client::game::native_lifecycle::",
+      "horizon_client::game::native_entity_refs::",
+      "horizon_client::game::native_level_refs::",
+      "horizon_client::game::mod_api_host::",
+      "horizon_client::game::commands::",
+      "horizon_client::game::lan_actions::",
+      "horizon_client::game::lan_entities::",
+      "horizon_client::game::integrated::",
+      "horizon_client::game::dedicated::",
+      "horizon_client::game::dragon::",
+      "horizon_client::game::potions::",
+      "horizon_client_lib::mod_api::",
+      "horizon_client_render::world::",
+      "horizon_client_core::potions::"
+    ],
+    "protected_state_files": [
+      "crates/horizon-client/src/game.rs",
+      "crates/horizon-client/src/client_lib.rs"
+    ]
+  },
+  "remaining_original_guard_conflicts": [
+    {
+      "kind": "module",
+      "id": "source-workstation-tabs-lan",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_workstation_tabs_lan",
+      "source": "source-workstation-tabs-lan.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-workstation-tabs-lan.rs",
+      "payload_sha256": "2abd453fcd90d8997525b2b85c59bda080df0d7028cd57d31eaa9fe01f88ad66",
+      "payload_git_blob": "065634c4a32fa6d9ded193e12c9c25283c2dd6ee",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "module",
+      "id": "source-area-protection",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_area_protection",
+      "source": "source-area-protection.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-protection.rs",
+      "payload_sha256": "abe353e52947e87df5a0ee036f7f33c2e47792851cfbcad11a7ebea826d58114",
+      "payload_git_blob": "4649c0873a74660f2bff9e1d23a7310a6cb58602",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "module",
+      "id": "source-bottle-fill",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "tconstruct_source_bottle_fill",
+      "source": "source-bottle-fill.rs",
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-bottle-fill.rs",
+      "payload_sha256": "e3cc43c30309c5d02b1cdf923e63714afd989216ad49246c8fd651b9ca4adc5d",
+      "payload_git_blob": "aa24e817994c1cd93424613abcf82b8c9c9dca37",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "command",
+      "target": "horizon_client::game::commands::Game<'_>::run_command",
+      "cancellable": true,
+      "helper": "command.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "command",
+          "ty": "&str",
+          "value": "command"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/command.rs",
+      "payload_sha256": "e1984d42c532a0a3f6da600b3e9fb274869b784d3e221a29d57a76b68667a905",
+      "payload_git_blob": "62fbb0e88c484c0ed6b638116784f415e74a50ad",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "fluid-guest-close",
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_container_closed",
+      "helper": "source-fluid-guest-close.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-fluid-guest-close.rs",
+      "payload_sha256": "18c91ef33f01fd66d3dc0dcdde691d1e65805433c4f3ac8b318fd9dcea00b83f",
+      "payload_git_blob": "3b3621b73d71a15ef34461c22ed2631c25d1f5ee",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "fluid-guest-tick",
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "helper": "source-fluid-guest-tick.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-fluid-guest-tick.rs",
+      "payload_sha256": "60ba223b5d30f348411360cb527a4f6bd24c26c2d1ee813f468dd9367007d3e8",
+      "payload_git_blob": "255520570733634e15270ed94342225b4fdeeb9f",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "guest-station-open",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_open_container",
+      "cancellable": true,
+      "helper": "guest-open.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "(i32, i32, i32)",
+          "value": "pos"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/guest-open.rs",
+      "payload_sha256": "fa684e7c084fb8e3f2cfe2577a2d0cabb26beb4cbbf858ed1c692f3e1891e1d5",
+      "payload_git_blob": "59c09b754d63d8a7bccbc11117c98d622cf48331",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "part-selection-block-change",
+      "target": "horizon_client_render::world::World::set",
+      "helper": "part-selection-block-change.rs",
+      "bindings": [
+        {
+          "name": "world",
+          "ty": "&mut crate::world::World",
+          "value": "&mut *self"
+        },
+        {
+          "name": "x",
+          "ty": "i32",
+          "value": "x"
+        },
+        {
+          "name": "y",
+          "ty": "i32",
+          "value": "y"
+        },
+        {
+          "name": "z",
+          "ty": "i32",
+          "value": "z"
+        },
+        {
+          "name": "state",
+          "ty": "horizon_world::registry::BlockStateId",
+          "value": "state"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/part-selection-block-change.rs",
+      "payload_sha256": "dde4d05436d6f0ee5c2fb60408be2f04401a06764985ac9a4025ca434d581ba5",
+      "payload_git_blob": "9bf5f775844e733d82535b7588eadfb9d8172c48",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-area-guest-hit",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-area-guest-hit.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-guest-hit.rs",
+      "payload_sha256": "6feb049447f6e6c944f101fbdc0a413ea4cedd5f7ed2f218b0c48d2741edd149",
+      "payload_git_blob": "9efec83913cdf97849f17668b211fe1d7b524c1b",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-area-guest-destroy",
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_destroy",
+      "helper": "source-area-guest-destroy.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-area-guest-destroy.rs",
+      "payload_sha256": "20f21f55364b5d32e0e2d21e28ac248b2782ab8c8751fd80eed5f790d3ed3241",
+      "payload_git_blob": "5931a61b1239bce5b07d803c5da4074b78df37cc",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-transform-guest-hit",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-transform-guest-hit.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-transform-guest-hit.rs",
+      "payload_sha256": "f78cf51599612f1b01982fe2a99c0bae05dd0e8991859d07ef496e6d42598816",
+      "payload_git_blob": "f681f385483c14828e6118cb1038a8571456f635",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "glow-left-guest",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "cancellable": true,
+      "helper": "source-glowing-left-guest.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-glowing-left-guest.rs",
+      "payload_sha256": "d2d201817599c85bd247fd263c9b8017447853f2228960c6277a273b8833a3ec",
+      "payload_git_blob": "5bcf655f13b468dd75c306059e3a9b77a81aff6b",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "glow-resolve-guest-protection",
+      "target": "horizon_client::game::lan_actions::Game<'_>::enter_guest",
+      "helper": "source-glowing-guest-policy.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-glowing-guest-policy.rs",
+      "payload_sha256": "1d5f73288379209f027b1e0bd6399a9526238fc3bf2bacf160b91daac01c0ae1",
+      "payload_git_blob": "9c5a2b503102dfb24aaf7d8e750dffcbd91dae7c",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "materials-book-request",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "cancellable": true,
+      "helper": "source-materials-book-request.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&S",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "payload_sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+      "payload_git_blob": "13f06d5c1f90f74b6d88855772f005cbff6c74f2",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "crafting-station-lan-update",
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "helper": "source-crafting-lan-update.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-crafting-lan-update.rs",
+      "payload_sha256": "9304d3c33e5ffc22b778a1bf028f689eb7565fd4739ec0ba6e1bce02f8af4ffe",
+      "payload_git_blob": "3ae5d49052cbec27ad776ae21a8d66c246386a5a",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-empty-bottle-use",
+      "target": "horizon_client::game::potions::Game<'_>::use_potion_item",
+      "cancellable": true,
+      "helper": "source-empty-bottle-use.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_items::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-empty-bottle-use.rs",
+      "payload_sha256": "f4597e95a005cba55a64ea8b439a91706f4c20163d23b6f17a8371577a4429d3",
+      "payload_git_blob": "a5e9ae7c745ebaa27980faa5d78a5d116433221f",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-head",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "helper": "source-splashing-guest-head.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-head.rs",
+      "payload_sha256": "0fa5c60a5495d485fdfe225d5a83dde857b9bebf87bc355ab92322699386df1a",
+      "payload_git_blob": "2400e1591ee9fdc69ac5e245997d58803a8b428d",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-return",
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_swing_back",
+      "helper": "source-splashing-guest-return.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "swung",
+          "ty": "Option<bool>",
+          "value": "swung"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-return.rs",
+      "payload_sha256": "fc8e706c911b8413b9293b884e9d0e5d561e3ceeb72d2e8b68948e506a937e86",
+      "payload_git_blob": "3a2964d12d090fa9de96bfeedffb0312604a856e",
+      "payload_same_as_main08afa": true
+    },
+    {
+      "kind": "HEAD",
+      "id": "source-splashing-guest-aim",
+      "target": "horizon_client::game::lan_actions::Game<'_>::look_at_entity",
+      "cancellable": true,
+      "helper": "source-splashing-guest-aim.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "gi",
+          "ty": "usize",
+          "value": "gi"
+        },
+        {
+          "name": "id",
+          "ty": "i32",
+          "value": "id"
+        },
+        {
+          "name": "location",
+          "ty": "Option<[f64; 3]>",
+          "value": "location"
+        }
+      ],
+      "manifest_same_as_main08afa": true,
+      "payload_path": "tconstruct/mixins/tconstruct/source-splashing-guest-aim.rs",
+      "payload_sha256": "37956ed81ffef59db816b260fd1bb0c9ec43e4eddcfdb289f0b2b66b1f2c62e5",
+      "payload_git_blob": "42745746c8f2568ae26b4aa7d91499968a002749",
+      "payload_same_as_main08afa": true
+    }
+  ],
+  "source_checks": {
+    "new": 12,
+    "existing_updated": 6,
+    "passed": 18,
+    "kind": "Python source and exact inverse checks only"
+  },
+  "known_reachability_blocker": {
+    "packet_path": "lan_actions::UseItemOn -> as_guest(host, conn) -> use_item -> use_tool -> use_block_transformer",
+    "missing_capability": "actual attached self.lan roster during ordinary action",
+    "consequence": "ordinary cloud action support is not demonstrated; detached action is explicitly unsupported"
+  },
+  "original_tconstruct_source": {
+    "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+    "cloud_git_blob": "127ed60f25858e2daa474e18fdd327df1eb7e71f",
+    "context_git_blob": "a95b56fe5f0929d490e1af8411e809d063d31418",
+    "scope": "explicit context entity attribution, radius/wait/shrink content policy; not new vanilla-default execution evidence"
+  },
+  "scope_exclusions": [
+    "ordinary right-click support",
+    "detached guest support",
+    "complete installed composition",
+    "actual Game cloud or packet execution",
+    "general callback/held-item continuation",
+    "rollback after publication",
+    "production asset/playability parity"
+  ],
+  "integration_adoption": false
+}

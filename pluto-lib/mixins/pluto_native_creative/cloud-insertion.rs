@@ -25,6 +25,71 @@ pub(in crate::game) enum Error {
     CenterNotLoaded,
     EntityIdExhausted,
     Capacity,
+    ActionContextChanged,
+}
+
+/// An observed attached server-player frame, not a grant to cause an action.
+/// The caller must be handling that player's action in this invocation. This
+/// value cannot be constructed from numeric IDs by a consumer. A later use is
+/// revalidated; it neither parks a Game borrow nor keeps a roster alive.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::game) struct AttachedPlayerFrame {
+    level: LevelRef,
+    entity: EntityRef,
+    connection: u32,
+    uuid: u128,
+}
+impl AttachedPlayerFrame {
+    pub(in crate::game) fn attribution(&self) -> Attribution {
+        Attribution::Player { guest_connection: Some(self.connection) }
+    }
+}
+
+/// Observe only a Ready, attached, placed acting-player roster/motion pair.
+/// A detached `as_guest` frame is intentionally unavailable. No current-player
+/// fallback, owner=None, synthetic handle, guest swap or world change is used.
+pub(in crate::game) fn attached_player_frame(game: &Game<'_>) -> Result<AttachedPlayerFrame, Error> {
+    if game.remote.is_some() || !game.native_authoritative() { return Err(Error::NotAuthoritative); }
+    let epoch = pluto_lifecycle_readiness::ready_server_epoch(&game.native_lifecycle)
+        .ok_or(Error::NotReady)?;
+    let level = game.native_level(game.dim.id()).ok_or(Error::StaleOrForeignLevel)?;
+    if level.epoch() != epoch || game.native_level_height(level).is_none() {
+        return Err(Error::StaleOrForeignLevel);
+    }
+    let connection = game.lan_acting.ok_or(Error::ActorUnavailable)?;
+    let guest = game.command_guest(connection).ok_or(Error::ActorUnavailable)?;
+    let motion = game.player.as_ref().ok_or(Error::ActorUnavailable)?;
+    let id = u32::try_from(motion.entity_id).map_err(|_| Error::ActorUnavailable)?;
+    if !guest.placed || !guest.loaded || guest.dead || guest.dimension != game.dim.id()
+        || guest.entity_id != motion.entity_id
+        || game.lan_acting_entity != Some(id) || game.lan_acting_uuid != Some(guest.uuid) {
+        return Err(Error::ActorUnavailable);
+    }
+    let entity = game.native_entity(id).ok_or(Error::ActorUnavailable)?;
+    if !matches!(game.native_entity_target(entity), Some(Target::Player))
+        || game.native_entity_level(entity) != Some(level) {
+        return Err(Error::ActorOutsideLevel);
+    }
+    let frame = AttachedPlayerFrame { level, entity, connection, uuid: guest.uuid };
+    require_attribution(resolve_owner(game, level, Owner::Entity(entity))?, frame.attribution())?;
+    Ok(frame)
+}
+
+/// Recheck the same current frame after any caller-controlled work. Failure
+/// does not roll back earlier caller/world effects and must not charge another
+/// actor. Matching this observation does not prove held-item or action identity.
+pub(in crate::game) fn require_attached_player_frame(game: &Game<'_>, expected: &AttachedPlayerFrame)
+    -> Result<(), Error> {
+    if attached_player_frame(game)? == *expected { Ok(()) }
+    else { Err(Error::ActionContextChanged) }
+}
+
+/// Narrow convenience over the existing explicit insertion transaction. It
+/// adds a same-frame check; it does not relax any original insertion rejection.
+pub(in crate::game) fn insert_attached_player_frame(game: &mut Game<'_>, frame: &AttachedPlayerFrame,
+    request: Validated) -> Result<EntityRef, Error> {
+    require_attached_player_frame(game, frame)?;
+    insert(game, frame.level, Owner::Entity(frame.entity), request)
 }
 
 /// Resolve only through official current-world/roster lookups. In particular,
@@ -102,6 +167,34 @@ pub(in crate::game) fn insert(game: &mut Game<'_>, level: LevelRef, owner: Owner
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn attached_frame_identity_includes_epoch_level_entity_connection_and_uuid() {
+        use horizon_client::mod_api::NativeWorldEpoch;
+        let epoch = NativeWorldEpoch::new(7);
+        let frame = AttachedPlayerFrame { level: LevelRef::new(epoch, "minecraft:overworld"),
+            entity: EntityRef::new(epoch, 23), connection: 4, uuid: 100 };
+        assert_eq!(frame, frame);
+        for changed in [
+            AttachedPlayerFrame { level: LevelRef::new(NativeWorldEpoch::new(8), "minecraft:overworld"), ..frame },
+            AttachedPlayerFrame { level: LevelRef::new(epoch, "minecraft:the_nether"), ..frame },
+            AttachedPlayerFrame { entity: EntityRef::new(epoch, 24), ..frame },
+            AttachedPlayerFrame { entity: EntityRef::new(NativeWorldEpoch::new(8), 23), ..frame },
+            AttachedPlayerFrame { connection: 5, ..frame },
+            AttachedPlayerFrame { uuid: 101, ..frame },
+        ] { assert_ne!(frame, changed); }
+    }
+
+    #[test]
+    fn attached_frame_requests_only_its_explicit_player_connection() {
+        use horizon_client::mod_api::NativeWorldEpoch;
+        let epoch=NativeWorldEpoch::new(1);
+        let frame=AttachedPlayerFrame { level: LevelRef::new(epoch,"minecraft:overworld"),
+            entity: EntityRef::new(epoch,5),connection:9,uuid:22 };
+        assert_eq!(frame.attribution(),Attribution::Player { guest_connection:Some(9) });
+        assert_ne!(frame.attribution(),Attribution::Unowned);
+        assert_ne!(frame.attribution(),Attribution::Player { guest_connection:None });
+    }
 
     #[test]
     fn requested_owner_must_match_including_guest_and_mob_identity() {

@@ -1,24 +1,26 @@
 {
   "schema": 6,
-  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "official_source_sha256": {
     "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
     "crates/horizon-client/src/game/native_entity_refs.rs": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
     "crates/horizon-client/src/game/native_level_refs.rs": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
     "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
     "crates/horizon-client/src/game/commands/players.rs": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
-    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
-    "crates/horizon-client/src/game/lan_entities.rs": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
-    "crates/horizon-client/src/mod_api.rs": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
-    "crates/horizon-client/src/game/commands.rs": "415bda393e631faa8e125bd115b63ad911467efce723bae5e76b71b4461902bd",
-    "crates/horizon-client/src/game/integrated.rs": "c185c500e00a28bd3ab33af90df04ad1c1b2ff964c481de49b2e91bf99624a36",
-    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
-    "crates/horizon-client/src/game/dragon.rs": "1543d9cb792a7d2227c3b54f1767bf657fb438723b3871df632b4021ab293a3b",
-    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
-    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
-    "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+    "crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+    "crates/horizon-client/src/game/lan_entities.rs": "d0186d3b27e24ffff154d5f072368cc392ffdbdd1e8b6fe29f29e616c1568222",
+    "crates/horizon-client/src/mod_api.rs": "2e98e4ed3b0f289fc6f042fd8ad29fa3b3b96486e6599b719f55e2be6c602230",
+    "crates/horizon-client/src/game/commands.rs": "9015feebb6bb93fec6c26812d433d5a6e93b5d435f82917fd0034cc208f4a28f",
+    "crates/horizon-client/src/game/integrated.rs": "652f308b15c2c32ac0d4354a568869d629d67e03329c6238586f3ac398a40197",
+    "crates/horizon-client/src/game/dedicated.rs": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+    "crates/horizon-client/src/game/dragon.rs": "fe106da1a95376f4ef262978d91f74a3a6f41f1829bcbe16dfd9b6e3b41959d1",
+    "crates/horizon-client/src/game/potions.rs": "635fda59a1ba10db646caf82669362678e12b4c5a16159067c404cd1c11795d7",
+    "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+    "crates/horizon-client/src/client_lib.rs": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
     "crates/horizon-client-render/src/world.rs": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
-    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772"
+    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+    "crates/horizon-client/src/lan/guest.rs": "86330345c2093a1c0cf9a0c8778e3c05de0c174ca24c7e1224e9b55b38c575c9",
+    "crates/horizon-client/src/motion.rs": "6ea817ac82fd44134241df0c2ca5d4daf1bb3f58e336ff68af2fca0d9009abca"
   },
   "modules": [
     {
@@ -59,7 +61,7 @@
       "name": "pluto_cloud_insertion",
       "visibility": "pub(crate)",
       "source_file": "cloud-insertion.rs",
-      "source_sha256": "374dd81a2483345319a029657b46adf8501c4de0036830b15f76708077a27033"
+      "source_sha256": "490f5503209a5e0e2ea84afd363b4453795f00e5120ffabca63afb1a6a13e699"
     }
   ],
   "exclusive_files": [
