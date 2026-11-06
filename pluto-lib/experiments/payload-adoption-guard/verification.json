@@ -1,0 +1,26 @@
+{
+  "runtime_candidate": "59c23ce300e40eb6a477bb55f33552fddbc04599",
+  "source_sha256": {
+    "tools/check_client_payload_plan.py": "9f02c5f4c3d068a110b1fc9afbab312d3de43e05d1438907f593c5910e9887c9",
+    "tools/client-payload-source.json": "e5c5f7bcc953865a89d105f5f5b14aa82dfc16f534cc7debb3903258bbce31de",
+    "tests/test_client_payload_plan.py": "68ad69eae7f249f1cef3db4c44a63743ce5358d106b6600ba68214bb954ded0c"
+  },
+  "context_sha256": {
+    "client-payload.rs": "e5d7d3a48b098a2f70610accffd1be2bbecd59d153b7d6ca7109c4904ed28a9e",
+    "horizon-mixin.toml": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040",
+    "client-payload-observed.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
+    "client-payload-updates.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055"
+  },
+  "original_guard_inverse_sha256": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
+  "synthetic_pure_pass": 11,
+  "packaging_test_unrun": "test_packaged_module_and_return_only_no_state",
+  "log": {
+    "sha256": "10a4dcff2e4805f4c66860b5d19f0cd026907de6919ff9b1e12b9501ca465fe4",
+    "bytes": 1834
+  },
+  "candidate_observation": null,
+  "poll_remote_fingerprint": null,
+  "actual_plan": false,
+  "actual_game_type": false,
+  "actual_lan": false
+}
