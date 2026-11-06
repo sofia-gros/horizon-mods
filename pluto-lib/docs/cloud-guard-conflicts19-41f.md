@@ -1,4 +1,49 @@
-# Remaining 19 cloud guard conflicts: source triage
+# Remaining 19 cloud guard conflicts: observed IR and source contracts
+
+## Actual-plan follow-up (old runtime9cc1, before candidate c977)
+
+The complete plan from run42236543685 was recovered and verified against its
+manifest: 6,383,021 bytes, SHA256
+`7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b`.
+Its four reserved-file modules and sixteen hooks reproduce the original twenty
+conflicts, with no protected-state conflicts. The JSON now records all actual
+19 identities, full bindings and packaged payload hashes separately from raw
+repository source. Eleven helper differences are exactly the packager's
+`__horizon_mixins_tconstruct_` to `__horizon_mixins_tconstruct_native_` literal
+namespace substitution. No other payload difference was accepted.
+
+This closes the missing-IR evidence gap only. All `admissible_now` values remain
+false until the separate exact guard patch is reviewed and the new candidate
+complete plan passes. Ordinary cloud candidate c977 changes source and module
+placement and has no observed plan/type result yet. Its nine actual-Game tests
+are prepared but unexecuted. The historical initial audit below is retained as
+context, not the current availability of actual IR.
+
+### Narrowed interpretation of side effects
+
+Earlier native item/menu allocation is not itself a cloud atomicity violation.
+The reviewed candidate reserves no ID across such callbacks: it rechecks the
+current frame and current successor, constructs without Game callbacks, reserves
+capacity, then calls native take-ID/assign/push. The actual old plan has no hook
+on take_entity_id, as_guest, leave_guest, with_player_actor or native_use_as_player.
+Exact native inputs and that absence must remain guard conditions. This is not
+a claim that every callback is side-effect-free or arbitrary future mods are safe.
+
+The native guest packet branches are distinct: glow-left acts only on
+PlayerAction; book requests only on its CustomPayload; UseItemOn enters neither.
+Splashing HEAD clears pending before every packet. Only the two exact
+interact/interact_entity queue modules write pending in the actual plan, so the
+lan_swing_back hook has no pending target-swap work from this block-cloud action.
+The exact writer/caller/source/state contracts, not the ID alone, must be pinned.
+
+Current-frame equality does not encode an ABA history. That limitation is not
+by itself evidence of a reachable wrong-owner charge in this fixed composition.
+Source review of each known branch/continuation remains separate from actual
+Game publication and gameplay tests. No guard algorithm or runtime changed in
+this follow-up.
+
+## Historical initial source audit
+
 
 Exact ordinary base: `e128d61478971e247b1e3e2e09516cf99652f9fc` (tree `4bb4984ab0225731697d8d70c312cdaa2f247b4f`). Official target: Horizon `41f822b659789780f58d32c63ddfb6887ea1b8bf`, Mixins `5a64af938ec86b00d53d16a408aabc0038fb3e57`. All 19 manifest entries and payloads are unchanged from main08afa. This report excludes the separately blocked `source-fluid-cloud`; attached-only candidate70a589 is not adopted. Later Guide/integration changes must be compared anew.
 
