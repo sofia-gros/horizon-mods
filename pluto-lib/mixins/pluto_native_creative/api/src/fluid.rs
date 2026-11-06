@@ -3,6 +3,8 @@
 //! This first vertical slice supports finite downward flow into air, source
 //! pickup and ordinary block-state persistence. It is not a Forge FluidType API.
 pub mod contact;
+mod declaration;
+pub use declaration::{register_declarations, Declaration};
 
 use serde_json::{Value, json};
 use std::{
