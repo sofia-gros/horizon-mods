@@ -1,0 +1,4421 @@
+{
+  "schema": "guide-own-inherited-intake-v1",
+  "date_utc": "2026-11-06",
+  "kind": "read_only_git_object_classification_not_integration",
+  "cutoffs": {
+    "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+    "central_local": "8715b1232c0fca133fe012f35830e2108e653d59",
+    "central_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+    "central_tree": "267be30ceab0c59e8763a1e2de4db0f4fff83cf5",
+    "dependency_snapshot_sha256": "326066269ca9c55183e3e6f53546b290db7331f05dc0bf467cf5becdab9a4651",
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "counts": {
+    "pr_rows": 25,
+    "content_chain_prs": 23,
+    "foundation_dependency_prs": 1,
+    "navigation_repair_prs": 1,
+    "new_native_jobs": 0,
+    "new_tests": 0,
+    "pr_state_changes": 0
+  },
+  "content_chain_order": [
+    693,
+    698,
+    707,
+    708,
+    709,
+    711,
+    712,
+    718,
+    725,
+    732,
+    737,
+    746,
+    753,
+    758,
+    767,
+    774,
+    776,
+    782,
+    787,
+    797,
+    800,
+    803,
+    805
+  ],
+  "content_chain_root_merge_base": "442946c52b4a6e80ce0754295b1db3a61fa13372",
+  "content_chain_tip": "0e334211ddcbeda22430063af4c185a32cd7803b",
+  "content_chain_cumulative_delta": {
+    "changed_entries": 63,
+    "status_counts": {
+      "A": 43,
+      "M": 20
+    },
+    "patch_sha256": "4d1ef88ef4df4db2806cf95c08dfc1ece02ae6f9c83f76c7166e8f584e9a9554",
+    "patch_bytes": 374315,
+    "shortstat": "63 files changed, 5118 insertions(+), 87 deletions(-)"
+  },
+  "content_chain_incremental_touch_count": 191,
+  "content_chain_unique_touched_paths": 63,
+  "rows": [
+    {
+      "number": 693,
+      "title": "Show supported bonus modifier recipes in Puny Smelting",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/693",
+      "head_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "reported_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "base_ref": "main",
+      "effective_own_delta_base_sha": "442946c52b4a6e80ce0754295b1db3a61fa13372",
+      "head_tree": "00b2a50458cfc033ee9006c5be10c7abde40e1fc",
+      "effective_base_tree": "fa2fe8eaed198ba20de8074b6292c8236ad2ef1e",
+      "parent_pr": null,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 6
+        },
+        "patch_sha256": "eb6039baa201da4b45064e9205cafc87d12789d0f4f0888b0359dbad660e2eb6",
+        "patch_bytes": 24177,
+        "shortstat": "6 files changed, 209 insertions(+), 4 deletions(-)"
+      },
+      "inherited_prs": [],
+      "inherited_delta": null,
+      "own_paths_also_changed_by_inherited_delta": [],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 3,
+        "guide-consumer": 1,
+        "authored-tests": 1
+      },
+      "central_relation_counts": {
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "reported_base_is_ancestor": false,
+      "endpoint_delta_NOT_FOR_INTAKE": {
+        "changed_entries": 46,
+        "status_counts": {
+          "D": 31,
+          "M": 15
+        },
+        "patch_sha256": "812d2dc2906019842a853d6baaf073281f2c08e3967eac804edc7c6ba441bc24",
+        "patch_bytes": 91521,
+        "shortstat": "46 files changed, 245 insertions(+), 621 deletions(-)"
+      },
+      "base_side_changes_excluded_from_own": {
+        "changed_entries": 40,
+        "status_counts": {
+          "A": 31,
+          "M": 9
+        },
+        "patch_sha256": "50a782013c8e5363299479d2cbd88016f73977ef211b41659560a9207bcef4f9",
+        "patch_bytes": 67228,
+        "shortstat": "40 files changed, 617 insertions(+), 36 deletions(-)"
+      },
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "new_blob": "0a71662ee901c317c87ed456d30f9d83fd8f83b7",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "28f07fef92470a68f355385e2c95693587c13fba",
+          "new_blob": "7fe486ece0c180c266ed2b5fce4c787bd5fe0bde",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "new_blob": "b3bacb5cee3c13c14ae4a6010eb6bccb5b351e5e",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-tags.rs",
+          "path": "tconstruct/mixins/tconstruct/source-tags.rs",
+          "old_blob": "31dd7df18a57c84a083dc1ef234b0cfbeb8074f7",
+          "new_blob": "e48ee7af232c92ff735e2697fd2068f60954bc61",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "94480cf119305de75981aabbdfae7d29020ff58e",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "new_blob": "7dc8fdf369ce9b02f5fac3c721eba713920ae27f",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "new_blob": "89635746fdc76598e041bfeb790bd5ee0b9c2174",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 698,
+      "title": "Show ordinary modifier recipes in Puny and Mighty guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/698",
+      "head_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "reported_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "base_ref": "feat/supported-bonus-guide-379",
+      "effective_own_delta_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "head_tree": "768ed9f3c436438e141305d2f3e40cc554a82555",
+      "effective_base_tree": "00b2a50458cfc033ee9006c5be10c7abde40e1fc",
+      "parent_pr": 693,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 12,
+        "status_counts": {
+          "M": 10,
+          "A": 2
+        },
+        "patch_sha256": "730005378de16876a153422f2214efcd082f20f0b2ece35867913a214fe66240",
+        "patch_bytes": 51241,
+        "shortstat": "12 files changed, 617 insertions(+), 12 deletions(-)"
+      },
+      "inherited_prs": [
+        693
+      ],
+      "inherited_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 6
+        },
+        "patch_sha256": "eb6039baa201da4b45064e9205cafc87d12789d0f4f0888b0359dbad660e2eb6",
+        "patch_bytes": 24177,
+        "shortstat": "6 files changed, 209 insertions(+), 4 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+        "tconstruct/tests/test_book_showcase_tags.py"
+      ],
+      "own_class_counts": {
+        "guide-content": 2,
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 2,
+        "guide-consumer": 1,
+        "authored-tests": 5,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 10,
+        "absent": 2
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "new_blob": "50d2b7b76bb3e1094860b83af04581da175fa7f6",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/abilities.json",
+          "old_blob": null,
+          "new_blob": "6f5917447b6ee337b722bb47b1d46026d7d81578",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "0a71662ee901c317c87ed456d30f9d83fd8f83b7",
+          "new_blob": "2e97df12e014ec9454f0da65d86944598d44026e",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "7fe486ece0c180c266ed2b5fce4c787bd5fe0bde",
+          "new_blob": "fef1e67e3d61805bb70015d3f175ca75418a430e",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "b3bacb5cee3c13c14ae4a6010eb6bccb5b351e5e",
+          "new_blob": "6fe677f593c5096c9d4ecc74d8e87c68a7a5059a",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "7dc8fdf369ce9b02f5fac3c721eba713920ae27f",
+          "new_blob": "9ae4a1300be339b4f1e6b2e071f167a1ef5eeaf8",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "old_blob": "70d76771cbd02e085c882613c0f3b17fa508440c",
+          "new_blob": "4e2fb108525715e210083f85363c766c0db67d6d",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "9500c77c46c8b4e9f288ba61de0b257c8f490fd3",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": null,
+          "new_blob": "acd569aafeea1c46aeb0ec9182326878c0e19fa5",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "f8eb731e48f3a981a329ef9e7d93848de6cc1f96",
+          "new_blob": "ebca616d5d1afad235c7a2ba607a12e349f0e81e",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "89635746fdc76598e041bfeb790bd5ee0b9c2174",
+          "new_blob": "dfc182b91eac2f2af2ce67ab6e18e45509fb7a3e",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_materials_book_source.py",
+          "path": "tconstruct/tests/test_materials_book_source.py",
+          "old_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+          "new_blob": "ad0fa3b5dde45822695e5682cd0d33a6bfa88f80",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "d79fb6011bd9582a052bce06e1bd59ba65749256",
+          "new_blob": "2a65dec13128495f688b513e7edb261c8a4149cc",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 707,
+      "title": "Show supported incremental modifier recipe guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/707",
+      "head_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "reported_base_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "base_ref": "feat/ordinary-modifier-guide-379",
+      "effective_own_delta_base_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "head_tree": "47c58946d124d44a4adc7b97b553dedd60c10c20",
+      "effective_base_tree": "768ed9f3c436438e141305d2f3e40cc554a82555",
+      "parent_pr": 698,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 8
+        },
+        "patch_sha256": "01f757ff534e196f1a94c8ba60625ec94c778cd08283c548eaccac583401d5a9",
+        "patch_bytes": 31426,
+        "shortstat": "8 files changed, 325 insertions(+), 10 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "2bad1907a2ded249ac4024bca83692c8d5be6675a2dcd143b628d15b6c969db6",
+        "patch_bytes": 66650,
+        "shortstat": "13 files changed, 824 insertions(+), 14 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 2,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 7,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "2e97df12e014ec9454f0da65d86944598d44026e",
+          "new_blob": "de828eccfa818d023d5c265f7d59d5c88bcc9f50",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "fef1e67e3d61805bb70015d3f175ca75418a430e",
+          "new_blob": "6a0e1d7413e1af465f6462d619ea292d0246a3ac",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "6fe677f593c5096c9d4ecc74d8e87c68a7a5059a",
+          "new_blob": "f1243441b417848344009a99055db90a3bcf142a",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "9ae4a1300be339b4f1e6b2e071f167a1ef5eeaf8",
+          "new_blob": "5b179c02274b265b3f63e3e5b1dbd7f3731164e9",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "acd569aafeea1c46aeb0ec9182326878c0e19fa5",
+          "new_blob": "bd7e31a03356ce9b631d45f3015ce150353f9918",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "ebca616d5d1afad235c7a2ba607a12e349f0e81e",
+          "new_blob": "a5aa173608cd366e67b65976be6a51c9897ee988",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "dfc182b91eac2f2af2ce67ab6e18e45509fb7a3e",
+          "new_blob": "1a9ad4982d8339d060bfcf73cd854fd08cdcd7d9",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "2a65dec13128495f688b513e7edb261c8a4149cc",
+          "new_blob": "c763a2c4ae81761b32db72f9f2c2207a6042ef7c",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 708,
+      "title": "Show bulk modifier inputs and leftover outputs in guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/708",
+      "head_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "reported_base_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "base_ref": "feat/incremental-modifier-guide-379",
+      "effective_own_delta_base_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "head_tree": "9546f763992a916dd92a32214cabf2fa6583d96e",
+      "effective_base_tree": "47c58946d124d44a4adc7b97b553dedd60c10c20",
+      "parent_pr": 707,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 7,
+        "status_counts": {
+          "M": 7
+        },
+        "patch_sha256": "35657c187355836ca5bc86b37389c124be1c5745d23c1b4e25236cda4379f231",
+        "patch_bytes": 22794,
+        "shortstat": "7 files changed, 175 insertions(+), 15 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "65b78e13a5d8d8b7a0cc4ad23c1da5d7724f20d0f185501110f617c38f38ba4d",
+        "patch_bytes": 87765,
+        "shortstat": "13 files changed, 1143 insertions(+), 18 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 1,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 6,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "de828eccfa818d023d5c265f7d59d5c88bcc9f50",
+          "new_blob": "29c6cd91fdca9b5fdc29fcc6e423bf1f8d79101a",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "6a0e1d7413e1af465f6462d619ea292d0246a3ac",
+          "new_blob": "348675a46476234d5edb781e10376c16c3128b6e",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "f1243441b417848344009a99055db90a3bcf142a",
+          "new_blob": "95c57e868680b6c5f355257a608deadb48672e01",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "bd7e31a03356ce9b631d45f3015ce150353f9918",
+          "new_blob": "89036968609a51906798986c15a9d631ce3714d7",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "a5aa173608cd366e67b65976be6a51c9897ee988",
+          "new_blob": "807438e0cebff1a34d3a147802cb31eead94923a",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "1a9ad4982d8339d060bfcf73cd854fd08cdcd7d9",
+          "new_blob": "8d78bea747e745337d7d06d27b53b7d39ed4dac0",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "c763a2c4ae81761b32db72f9f2c2207a6042ef7c",
+          "new_blob": "536eeee3480613f32a438b7e80cbb86180c8fd27",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 709,
+      "title": "Show repeatable fluid modifier recipes and empty containers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/709",
+      "head_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "reported_base_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "base_ref": "feat/bulk-modifier-guide-379",
+      "effective_own_delta_base_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "head_tree": "b03db769de7cf010cf1bca4cd30306720d1688b8",
+      "effective_base_tree": "9546f763992a916dd92a32214cabf2fa6583d96e",
+      "parent_pr": 708,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 8
+        },
+        "patch_sha256": "57f78ded1e06633fb1a33ca29440a4fd61afdfad060b68a1df24a1a2913dd3f0",
+        "patch_bytes": 31089,
+        "shortstat": "8 files changed, 329 insertions(+), 14 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "78c8f71e05f804e790126666adedff04ee426d9eab99d1dc42ac69bb38dcc364",
+        "patch_bytes": 96594,
+        "shortstat": "13 files changed, 1303 insertions(+), 18 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 2,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 7,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "29c6cd91fdca9b5fdc29fcc6e423bf1f8d79101a",
+          "new_blob": "f57d9415d95d58b5691d4bac11691a96e2979c24",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "348675a46476234d5edb781e10376c16c3128b6e",
+          "new_blob": "abc51baa37c8fecd39743710362ca2bf93aaaf61",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "95c57e868680b6c5f355257a608deadb48672e01",
+          "new_blob": "27fea5972678467a8c6320b5404e19206ae5a0f0",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "5b179c02274b265b3f63e3e5b1dbd7f3731164e9",
+          "new_blob": "f8503ca7505ba276ff4ecf93a6a426be7f3c2a51",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "89036968609a51906798986c15a9d631ce3714d7",
+          "new_blob": "c4833e594bbbf3f1df50e29be39b0914b57510bc",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "807438e0cebff1a34d3a147802cb31eead94923a",
+          "new_blob": "f150367e423e8bb55573e2011c451f177fe9e611",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "8d78bea747e745337d7d06d27b53b7d39ed4dac0",
+          "new_blob": "f51e7be45700aa07adf1ed4d0ba6a4a0bb900719",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "536eeee3480613f32a438b7e80cbb86180c8fd27",
+          "new_blob": "9b2db2edb770d0d811e329f2cd7b7c886939b932",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 711,
+      "title": "Show multi-input bonus recipes and bottle returns in Puny",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/711",
+      "head_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "reported_base_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "base_ref": "feat/fluid-modifier-guide-379",
+      "effective_own_delta_base_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "head_tree": "2927103d2b71d2640e59db10dc8b9f6444ee0d9f",
+      "effective_base_tree": "b03db769de7cf010cf1bca4cd30306720d1688b8",
+      "parent_pr": 709,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 7,
+        "status_counts": {
+          "M": 7
+        },
+        "patch_sha256": "014d4b9175a5626f16e9813cca967ffba2765586724d19d2d7062b5e15323ec3",
+        "patch_bytes": 22888,
+        "shortstat": "7 files changed, 225 insertions(+), 18 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "7ccd1da33d25fb9bd82557e4704614e6806fdadd2845882c9355bf3ab6e96ec8",
+        "patch_bytes": 114005,
+        "shortstat": "13 files changed, 1621 insertions(+), 21 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 1,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 6,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "f57d9415d95d58b5691d4bac11691a96e2979c24",
+          "new_blob": "e029862df7cd4997645c2d80ec4a92f5bac40f04",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "abc51baa37c8fecd39743710362ca2bf93aaaf61",
+          "new_blob": "8bfa87a9c44fd322c2cb296b182b9b3e6b499e23",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "27fea5972678467a8c6320b5404e19206ae5a0f0",
+          "new_blob": "337406153d92d1e6619941123beeecc26be42688",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "c4833e594bbbf3f1df50e29be39b0914b57510bc",
+          "new_blob": "9c8e0dac652d432a0d5effdb5f7f21dc6795565f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "f150367e423e8bb55573e2011c451f177fe9e611",
+          "new_blob": "310c39fcb646344e08951fbc21e3df1edf5f705f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "f51e7be45700aa07adf1ed4d0ba6a4a0bb900719",
+          "new_blob": "e7707e75e7405536c64eb715ea1f17ca3ba2265a",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "9b2db2edb770d0d811e329f2cd7b7c886939b932",
+          "new_blob": "cfb0d7acd6467400c20858accb9d4e21303386c8",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 712,
+      "title": "Show Step Up, Necrotic and Gilded level-range guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/712",
+      "head_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "reported_base_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "base_ref": "feat/multi-input-bonus-guide-379",
+      "effective_own_delta_base_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "head_tree": "42d80f8bf03028b0b8bd9519659429fa78f39c73",
+      "effective_base_tree": "2927103d2b71d2640e59db10dc8b9f6444ee0d9f",
+      "parent_pr": 711,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 8
+        },
+        "patch_sha256": "f34458ef80ed1e05a2f7b1090e0d91317a19e3fcf90f417037ff6b9072ea687b",
+        "patch_bytes": 27208,
+        "shortstat": "8 files changed, 232 insertions(+), 17 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "560c65fa33a9896a2f4ef22f5bd90d85bd55b6fafdde32877c9c24c923cfb137",
+        "patch_bytes": 124024,
+        "shortstat": "13 files changed, 1828 insertions(+), 21 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 2,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 7,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "e029862df7cd4997645c2d80ec4a92f5bac40f04",
+          "new_blob": "70118e5cf218625537159e39b55bd6b5cce065b4",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "8bfa87a9c44fd322c2cb296b182b9b3e6b499e23",
+          "new_blob": "b2d266e2838a375e669806d79b52c5ecb11f3587",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "337406153d92d1e6619941123beeecc26be42688",
+          "new_blob": "8d321ad47e8ee29262a3c70e3bd665d98a87e111",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "f8503ca7505ba276ff4ecf93a6a426be7f3c2a51",
+          "new_blob": "bc66dba2e078e6bdf7422782bda8ba44ed8822b4",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "9c8e0dac652d432a0d5effdb5f7f21dc6795565f",
+          "new_blob": "1d148341385474d4d471f8e5ed91095d567edf67",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "310c39fcb646344e08951fbc21e3df1edf5f705f",
+          "new_blob": "c8d66090ae876a2270479042ac3c6120fe061d10",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "e7707e75e7405536c64eb715ea1f17ca3ba2265a",
+          "new_blob": "61df26ce2c1d239654438617ebcd02ed6623d5da",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "cfb0d7acd6467400c20858accb9d4e21303386c8",
+          "new_blob": "4124fa9a80607ae2a9df7e84884dfb75e5e3817f",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 718,
+      "title": "Show modifier-crystal alternatives in Puny and Mighty guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/718",
+      "head_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "reported_base_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "base_ref": "feat/level-range-guide-379",
+      "effective_own_delta_base_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "head_tree": "9783793559691433986f30e09d6e2ee046d5b673",
+      "effective_base_tree": "42d80f8bf03028b0b8bd9519659429fa78f39c73",
+      "parent_pr": 712,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 6
+        },
+        "patch_sha256": "421142301297ab600d016fa39050b4b0b2f17e5575bbd423b8952f8cfcf92bed",
+        "patch_bytes": 22967,
+        "shortstat": "6 files changed, 165 insertions(+), 7 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "4964d7e3584c503fab397dbdd8d522d53564511dcb5b1377cda70197bb76d7ee",
+        "patch_bytes": 136706,
+        "shortstat": "13 files changed, 2046 insertions(+), 24 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/condition-snapshot/src/lib.rs",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 1,
+        "guide-consumer": 1,
+        "authored-tests": 3
+      },
+      "central_relation_counts": {
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "70118e5cf218625537159e39b55bd6b5cce065b4",
+          "new_blob": "aa2393935addbc6cf9985e8e4619774c37ce16c8",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "b2d266e2838a375e669806d79b52c5ecb11f3587",
+          "new_blob": "aeaee71e746f21918cf0f8a760119438e251201e",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "8d321ad47e8ee29262a3c70e3bd665d98a87e111",
+          "new_blob": "cb429d93908edb8ef8e5f735e840b8ca1e41a795",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "old_blob": "4e2fb108525715e210083f85363c766c0db67d6d",
+          "new_blob": "e4b89fbca73db8a1a13cf012cc1e318fac2e5d30",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "9500c77c46c8b4e9f288ba61de0b257c8f490fd3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "c8d66090ae876a2270479042ac3c6120fe061d10",
+          "new_blob": "e76dd7fde47db7e01356b09fe1f8dcf4e06c7105",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "61df26ce2c1d239654438617ebcd02ed6623d5da",
+          "new_blob": "f82e4156e5c108675f2d1f8cf308bc524a77bdce",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 725,
+      "title": "Show slotless Blindshot recipe in Puny Smelting",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/725",
+      "head_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "reported_base_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "base_ref": "feat/crystal-modifier-guide-379",
+      "effective_own_delta_base_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "head_tree": "43b30177e61eb96a28fdafe2147f2e36c1edbb24",
+      "effective_base_tree": "9783793559691433986f30e09d6e2ee046d5b673",
+      "parent_pr": 718,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 8
+        },
+        "patch_sha256": "45cd422f5cf4404019ef5cc209ef3fa2bb3dce2aee36517c8f131321500e35c6",
+        "patch_bytes": 25809,
+        "shortstat": "8 files changed, 175 insertions(+), 15 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "e621b4d6683a4c340a31a39a0c4da6c938255edbdcc2a09467342d54981d1b6e",
+        "patch_bytes": 147840,
+        "shortstat": "13 files changed, 2204 insertions(+), 24 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+        "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+        "tconstruct/tests/rust/ranged_upgrades.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "cross-feature-eligibility": 2,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 7,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "aa2393935addbc6cf9985e8e4619774c37ce16c8",
+          "new_blob": "a581e36940d605f8e7f076bb2c2b787e0f54c3e9",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "path": "tconstruct/mixins/tconstruct/modifier-snapshot.rs",
+          "old_blob": "aeaee71e746f21918cf0f8a760119438e251201e",
+          "new_blob": "3b12840fb8e6efb4be4b83e62acc21d24ea54072",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "0b5a41af18ec7113b9b09274c173b1daf46d7e15",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "cb429d93908edb8ef8e5f735e840b8ca1e41a795",
+          "new_blob": "5b1422069321b47921acad755762d4fb8c41a58b",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "path": "tconstruct/mixins/tconstruct/source-upgrade-rules.rs",
+          "old_blob": "bc66dba2e078e6bdf7422782bda8ba44ed8822b4",
+          "new_blob": "a9042a65eaaeda8e6cd1342388ac255a59580532",
+          "classification": "cross-feature-eligibility",
+          "intake_route": "coordinate-modifier-recipe-policy-owner",
+          "central_blob": "2a544a48a89c2caa1e858b4e362bda25d6190af5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "path": "tconstruct/tests/fixtures/ordinary-modifier-guides.json",
+          "old_blob": "1d148341385474d4d471f8e5ed91095d567edf67",
+          "new_blob": "2186ee3f3889e624501d2492953ded1f9171b0ed",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "path": "tconstruct/tests/rust/ranged_upgrades.rs",
+          "old_blob": "e76dd7fde47db7e01356b09fe1f8dcf4e06c7105",
+          "new_blob": "4e49c94b49f9581fe24a3b5586db1ce51005b7b3",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "d002aea57b973d06acc478daee3cca52486fc671",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "f82e4156e5c108675f2d1f8cf308bc524a77bdce",
+          "new_blob": "cea13fd550a4f7b0a005497b5e45fcba96e1c20b",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "4124fa9a80607ae2a9df7e84884dfb75e5e3817f",
+          "new_blob": "efb735778c25e633948af8f9f5535f02e04b2493",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 732,
+      "title": "Show seven broad-tool pages in Mighty Smelting",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/732",
+      "head_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "reported_base_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "base_ref": "feat/blindshot-modifier-guide-379",
+      "effective_own_delta_base_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "head_tree": "b2946ee8219be74d400d79096164098352f596ab",
+      "effective_base_tree": "43b30177e61eb96a28fdafe2147f2e36c1edbb24",
+      "parent_pr": 725,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 14,
+        "status_counts": {
+          "M": 6,
+          "A": 8
+        },
+        "patch_sha256": "dc5a62795d4a9181f5ed4f511bd6a01ac7a57628106358d2b01052a1b2e14f87",
+        "patch_bytes": 23110,
+        "shortstat": "14 files changed, 278 insertions(+), 11 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725
+      ],
+      "inherited_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "M": 11,
+          "A": 2
+        },
+        "patch_sha256": "01b6fb10bf7cb8acbc7b1bc7fa30e8049596e1ca4b1ecee49636126e2b270f8d",
+        "patch_bytes": 159007,
+        "shortstat": "13 files changed, 2366 insertions(+), 26 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_materials_book_source.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "guide-content": 8,
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 2,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 6,
+        "absent": 8
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "50d2b7b76bb3e1094860b83af04581da175fa7f6",
+          "new_blob": "6e86105694597b021d040426b7ae734cd6133aa8",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_broad_axe.json",
+          "old_blob": null,
+          "new_blob": "47d81ecf2e5b4bfcb53e100168e415f1658cd293",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_cleaver.json",
+          "old_blob": null,
+          "new_blob": "c9d570a6bece5beace402ef55614bfa0667e20f8",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_excavator.json",
+          "old_blob": null,
+          "new_blob": "f39eb438c139f24f67cd99cc4363e468de68bc68",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_longbow.json",
+          "old_blob": null,
+          "new_blob": "83052ac97a7c8e55d6b68ccbb5bbc8b6ce85526b",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_scythe.json",
+          "old_blob": null,
+          "new_blob": "8ce80d74bd5d6a29f4bb7854f2b9a9e5424994b2",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_sledge_hammer.json",
+          "old_blob": null,
+          "new_blob": "7a8f2912ea51693bc5ebf1466b7812f4f65b4772",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_vein_hammer.json",
+          "old_blob": null,
+          "new_blob": "d1d8810ccd6fb45f7cf2474867de02ff57e63422",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "a581e36940d605f8e7f076bb2c2b787e0f54c3e9",
+          "new_blob": "9c125b6472181bc02fd46a811cdb2a8f23ed131c",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "new_blob": "29bf04f7fe97c1a9c878fa1e958d428c4e818f22",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "5b1422069321b47921acad755762d4fb8c41a58b",
+          "new_blob": "5ef43d8de6ed07c7d1e094bc337576bb73c85e8b",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_materials_book_source.py",
+          "path": "tconstruct/tests/test_materials_book_source.py",
+          "old_blob": "ad0fa3b5dde45822695e5682cd0d33a6bfa88f80",
+          "new_blob": "0a896f914d7dc2f8788253aeacf02c3c45541fa3",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_broad_tools.py",
+          "old_blob": null,
+          "new_blob": "56f9f0894b1986e4e4ee0a03668611f29843a377",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "efb735778c25e633948af8f9f5535f02e04b2493",
+          "new_blob": "4d1937deccdb6c53b7148163c0b6ec23fcd14d43",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 737,
+      "title": "Explain supported tool tanks and capacity loss in Mighty",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/737",
+      "head_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "reported_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "base_ref": "feat/mighty-broad-tool-guide-379",
+      "effective_own_delta_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "head_tree": "3a730b75190a849d2cb91c34eba8ec218b4a12f1",
+      "effective_base_tree": "b2946ee8219be74d400d79096164098352f596ab",
+      "parent_pr": 732,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 5,
+          "A": 3
+        },
+        "patch_sha256": "a67333f6d52e9d51c393d225b4000b752e742de107628fe8263c4a6e261d0865",
+        "patch_bytes": 15621,
+        "shortstat": "8 files changed, 128 insertions(+), 9 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732
+      ],
+      "inherited_delta": {
+        "changed_entries": 22,
+        "status_counts": {
+          "M": 12,
+          "A": 10
+        },
+        "patch_sha256": "8e3653510469746cd2c389f933500de24fd9f03e884e3eb171a677ae1b5305fb",
+        "patch_bytes": 179125,
+        "shortstat": "22 files changed, 2644 insertions(+), 37 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/tests/test_mighty_broad_tools.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "guide-content": 2,
+        "consumer-docs": 1,
+        "guide-consumer": 1,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 4,
+        "absent": 4
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "6e86105694597b021d040426b7ae734cd6133aa8",
+          "new_blob": "375798132c49fbdb90fce2fece04d655c4335816",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json",
+          "old_blob": null,
+          "new_blob": "eeb5a090855bc231cc07b8fa3495d3b4553a181e",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "9c125b6472181bc02fd46a811cdb2a8f23ed131c",
+          "new_blob": "6cfebe2a5695af4cb60b5ad2d13b29511d856409",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "29bf04f7fe97c1a9c878fa1e958d428c4e818f22",
+          "new_blob": "a45ac8037cd0bb8433eab9601159c2ecdb7711fd",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/fixtures/mighty_tool_tanks_source.json",
+          "old_blob": null,
+          "new_blob": "7655880dc9720898dd4f0e2c35c84ec0a2ed81f6",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_mighty_broad_tools.py",
+          "path": "tconstruct/tests/test_mighty_broad_tools.py",
+          "old_blob": "56f9f0894b1986e4e4ee0a03668611f29843a377",
+          "new_blob": "4d3e61b9ad011b07e0eb9819ba003fb498742d08",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_tool_tanks.py",
+          "old_blob": null,
+          "new_blob": "eab2a4e5a3e3b0d846a2da229613a9fd671af0cb",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "4d1937deccdb6c53b7148163c0b6ec23fcd14d43",
+          "new_blob": "58a21a9e6ac51f9c3e462412c36aaebc1050d0f4",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 746,
+      "title": "Restore Mighty ability overviews and source recipe groups",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/746",
+      "head_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "reported_base_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "base_ref": "feat/mighty-tool-tank-guide-379",
+      "effective_own_delta_base_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "head_tree": "1e796b4db29680236b6c829d8998b5f7dba71c23",
+      "effective_base_tree": "3a730b75190a849d2cb91c34eba8ec218b4a12f1",
+      "parent_pr": 737,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "A": 7,
+          "M": 6
+        },
+        "patch_sha256": "f5ef4e33ff09b549df781d3b0291e0a0f76f2f21541da66a618d4211325758d3",
+        "patch_bytes": 27022,
+        "shortstat": "13 files changed, 269 insertions(+), 7 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737
+      ],
+      "inherited_delta": {
+        "changed_entries": 25,
+        "status_counts": {
+          "M": 12,
+          "A": 13
+        },
+        "patch_sha256": "29317e24452b1d41f708b68d5a7e23c40650655913a706f025576207a2d21636",
+        "patch_bytes": 188124,
+        "shortstat": "25 files changed, 2763 insertions(+), 37 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "guide-content": 7,
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 2,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "absent": 7,
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/armor.json",
+          "old_blob": null,
+          "new_blob": "dbe55413ced821f035f35edd699ad5ab4c9068ef",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/general.json",
+          "old_blob": null,
+          "new_blob": "4fc7043b9012508f314837fffd1cdb78002b2fb9",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/harvest.json",
+          "old_blob": null,
+          "new_blob": "0b3e7581936a7c4eabba19ffda789d48b751c147",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/interact.json",
+          "old_blob": null,
+          "new_blob": "af2d31a8b4496b1cc04c978be62245589db5753b",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/melee.json",
+          "old_blob": null,
+          "new_blob": "49a5181cd152cdc1ab960568e3eaee8d3d6d20df",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/abilities/ranged.json",
+          "old_blob": null,
+          "new_blob": "b6bfce0cc979392905f06445aad4195fa848b6a9",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "375798132c49fbdb90fce2fece04d655c4335816",
+          "new_blob": "1f8d5985a2192f071dfdab262c9f71505f0a484f",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "6cfebe2a5695af4cb60b5ad2d13b29511d856409",
+          "new_blob": "110fa456533b85231ac35e6a90f9ff39600a741c",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "a45ac8037cd0bb8433eab9601159c2ecdb7711fd",
+          "new_blob": "4034fb5b9ccdb941426c8f7b1f6e23d39a046e7b",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "5ef43d8de6ed07c7d1e094bc337576bb73c85e8b",
+          "new_blob": "3b3111d773c6e0becb83e2f5fd0e03fc52b02c80",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "cea13fd550a4f7b0a005497b5e45fcba96e1c20b",
+          "new_blob": "a5178638fd09b0d26cda6fe3c534e9beece5df38",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_ability_groups.py",
+          "old_blob": null,
+          "new_blob": "2ba19d7237d335a4a0249203a8cd57be4611f039",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "58a21a9e6ac51f9c3e462412c36aaebc1050d0f4",
+          "new_blob": "6dae7bdc1d8cda39775ba4f3f75972c6bb2fb913",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 753,
+      "title": "Display five separate modifier recipe inputs in guides",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/753",
+      "head_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "reported_base_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "base_ref": "feat/mighty-ability-groups-guide-379",
+      "effective_own_delta_base_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "head_tree": "aea7fc2b932f2bf8abec2df5dd41c93eea184a39",
+      "effective_base_tree": "1e796b4db29680236b6c829d8998b5f7dba71c23",
+      "parent_pr": 746,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 5,
+          "A": 1
+        },
+        "patch_sha256": "5d6a54267603a68cd4ce04e81cc2dca77806b2e82ca2d9b350c10ab2a75f2c05",
+        "patch_bytes": 19524,
+        "shortstat": "6 files changed, 216 insertions(+)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746
+      ],
+      "inherited_delta": {
+        "changed_entries": 32,
+        "status_counts": {
+          "A": 20,
+          "M": 12
+        },
+        "patch_sha256": "dd4d773c9edfebf8f91742c825f1cd9350115ef8f8a2b724795d861001f6671e",
+        "patch_bytes": 207297,
+        "shortstat": "32 files changed, 3025 insertions(+), 37 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "guide-consumer": 4,
+        "authored-tests": 1
+      },
+      "central_relation_counts": {
+        "different": 5,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "110fa456533b85231ac35e6a90f9ff39600a741c",
+          "new_blob": "90968aeafcaf5b8e08d8f8ef2b6f91d70ea0f4d1",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "old_blob": "55887f3ea9e77b1b208ab66cd84f73ceb7bb2ba3",
+          "new_blob": "cdbdae4214f9aacc4439017016bbf7f26765da59",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "55887f3ea9e77b1b208ab66cd84f73ceb7bb2ba3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "new_blob": "bafe0392e5b92dcf3431b3bf7f9ed1ee8e7d7544",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+          "old_blob": "6c1808f0524d9ea9943e65afd5a173de600e6dde",
+          "new_blob": "c832d04b9f06e040332c48f4af566cb68bd97c20",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c1808f0524d9ea9943e65afd5a173de600e6dde",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "3b3111d773c6e0becb83e2f5fd0e03fc52b02c80",
+          "new_blob": "09e225d08a0610a1c14e8f6f2e9f7a1375390931",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_modifier_input_display.py",
+          "old_blob": null,
+          "new_blob": "8420eea8f2b0c172c38a7679efd39d4cc17440c4",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 758,
+      "title": "Show incremental modifier progress and conditional returns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/758",
+      "head_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "reported_base_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "base_ref": "feat/modifier-input-display-379",
+      "effective_own_delta_base_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "head_tree": "bf060df9cab887751434051072bd211551b4179a",
+      "effective_base_tree": "aea7fc2b932f2bf8abec2df5dd41c93eea184a39",
+      "parent_pr": 753,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 5,
+          "A": 1
+        },
+        "patch_sha256": "4a463152ee6c6907ea66e4d8f43a8b9662cb77d8d6f4ef9fc1a00981e2496e38",
+        "patch_bytes": 20335,
+        "shortstat": "6 files changed, 223 insertions(+), 10 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753
+      ],
+      "inherited_delta": {
+        "changed_entries": 36,
+        "status_counts": {
+          "A": 21,
+          "M": 15
+        },
+        "patch_sha256": "cb627dc0435cb3f187b895fc9168471d0e1e5a87c99799ef44917681089c1d2b",
+        "patch_bytes": 224305,
+        "shortstat": "36 files changed, 3241 insertions(+), 37 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "guide-consumer": 3,
+        "authored-tests": 2
+      },
+      "central_relation_counts": {
+        "different": 5,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "90968aeafcaf5b8e08d8f8ef2b6f91d70ea0f4d1",
+          "new_blob": "576e96fbe4783b3298355c13f2933e4c2886849c",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "old_blob": "cdbdae4214f9aacc4439017016bbf7f26765da59",
+          "new_blob": "ea1dd0983a7474a0110268e4b760d1d27a52414c",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "55887f3ea9e77b1b208ab66cd84f73ceb7bb2ba3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "bafe0392e5b92dcf3431b3bf7f9ed1ee8e7d7544",
+          "new_blob": "30455fa63d9452d2ac52f81e20112403bb35ca45",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "09e225d08a0610a1c14e8f6f2e9f7a1375390931",
+          "new_blob": "feb65a18ecf15e3d9bbb8f9e93dd5fdc2e57693f",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "6c15489b00416832d42b985e0e86243bde4fcd9d",
+          "new_blob": "c2c7429d0907deb84c3788a0eabfe70c55511425",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_modifier_progress_display.py",
+          "old_blob": null,
+          "new_blob": "bf8f48c7dcaaf1e6d7af0dc943613801788d78ea",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 767,
+      "title": "Show a bounded two-layer Smeltery construction plan",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/767",
+      "head_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "reported_base_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "base_ref": "feat/modifier-progress-display-379",
+      "effective_own_delta_base_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "head_tree": "0c3813dba3d67d708a1d0995a2853beedd3ae223",
+      "effective_base_tree": "bf060df9cab887751434051072bd211551b4179a",
+      "parent_pr": 758,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 12,
+        "status_counts": {
+          "M": 9,
+          "A": 3
+        },
+        "patch_sha256": "f88ea78afccde0a94defbc9fec3f358a87b7e4d74ab0548d94f1c8b8a79a33c6",
+        "patch_bytes": 28498,
+        "shortstat": "12 files changed, 251 insertions(+), 9 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758
+      ],
+      "inherited_delta": {
+        "changed_entries": 38,
+        "status_counts": {
+          "A": 22,
+          "M": 16
+        },
+        "patch_sha256": "4e539fa07f9e09e378ae9a2ba8159c6ffb84e1f31417bcec5049fa7d1a1b8d44",
+        "patch_bytes": 238966,
+        "shortstat": "38 files changed, 3454 insertions(+), 37 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/book-wire/src/lib.rs",
+        "tconstruct/third_party/NOTICE.md"
+      ],
+      "own_class_counts": {
+        "guide-content": 3,
+        "consumer-docs": 1,
+        "guide-consumer": 4,
+        "authored-tests": 3,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "different": 9,
+        "absent": 3
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "1f8d5985a2192f071dfdab262c9f71505f0a484f",
+          "new_blob": "0ec08a382a02b85c3cbf242175115a78e1355a7d",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/multiblock.json",
+          "old_blob": null,
+          "new_blob": "61fba858b2661c07c09f955d63257434e4c02d88",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/structurerequirements.json",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/smeltery/structurerequirements.json",
+          "old_blob": "9636eeea50598fbf9eb2302736b4c09d21da7f3b",
+          "new_blob": "98722479f082663db0f0b52fa68759e683ec64b7",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "9636eeea50598fbf9eb2302736b4c09d21da7f3b",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "576e96fbe4783b3298355c13f2933e4c2886849c",
+          "new_blob": "2e4fcbdd8642545fb72f050f5cdbb19e59f1e2e3",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "old_blob": "ea1dd0983a7474a0110268e4b760d1d27a52414c",
+          "new_blob": "bd5589d00b16261b78ca7c8bee01607bb713292f",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "55887f3ea9e77b1b208ab66cd84f73ceb7bb2ba3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "4034fb5b9ccdb941426c8f7b1f6e23d39a046e7b",
+          "new_blob": "e6bd106ebb5329cd0f0ac5ce8a468fbb5732ad10",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "30455fa63d9452d2ac52f81e20112403bb35ca45",
+          "new_blob": "574efd8082f021254f012636054d08e15e06e101",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "feb65a18ecf15e3d9bbb8f9e93dd5fdc2e57693f",
+          "new_blob": "04b94e54f9e5966c0f6cbbaa630a4d95eb15987b",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "c2c7429d0907deb84c3788a0eabfe70c55511425",
+          "new_blob": "4bc12e9d4bd326c87a2f3d9eb06eafbb287a05df",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/fixtures/mighty_structure_source.json",
+          "old_blob": null,
+          "new_blob": "e854189e31eb5eed0d529ea5d61224304aa5a122",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_structure_diagram.py",
+          "old_blob": null,
+          "new_blob": "3a6216f161120a5f88a4a39c24178740b7c210cb",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/third_party/NOTICE.md",
+          "path": "tconstruct/third_party/NOTICE.md",
+          "old_blob": "6dae7bdc1d8cda39775ba4f3f75972c6bb2fb913",
+          "new_blob": "a602952c080e270cca1992b33b90535346f55a34",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 774,
+      "title": "Keep material casting buckets paired with fluid tooltips",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/774",
+      "head_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "reported_base_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "base_ref": "feat/mighty-structure-diagram-379",
+      "effective_own_delta_base_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "head_tree": "b8ec36e1bd450838c4844801e77d43660bc6485c",
+      "effective_base_tree": "0c3813dba3d67d708a1d0995a2853beedd3ae223",
+      "parent_pr": 767,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "M": 5,
+          "A": 1
+        },
+        "patch_sha256": "45b72d0a85da2e66bdbb5298ed85933951a27d41bab71bfd322c88e58f1d523a",
+        "patch_bytes": 17035,
+        "shortstat": "6 files changed, 168 insertions(+), 9 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767
+      ],
+      "inherited_delta": {
+        "changed_entries": 42,
+        "status_counts": {
+          "A": 25,
+          "M": 17
+        },
+        "patch_sha256": "c66194580f0be23c29ba5a84b4ba6858d36f7e1780b079f997c399a569b43b54",
+        "patch_bytes": 262180,
+        "shortstat": "42 files changed, 3705 insertions(+), 46 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/book-wire/src/lib.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "guide-consumer": 3,
+        "authored-tests": 2
+      },
+      "central_relation_counts": {
+        "different": 5,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "2e4fcbdd8642545fb72f050f5cdbb19e59f1e2e3",
+          "new_blob": "6bf43e3f37480d92cc48a37bc580eea3149e422b",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+          "old_blob": "bd5589d00b16261b78ca7c8bee01607bb713292f",
+          "new_blob": "b4e96c1325bca3b9a18398d261e32de4f5727852",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "55887f3ea9e77b1b208ab66cd84f73ceb7bb2ba3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "574efd8082f021254f012636054d08e15e06e101",
+          "new_blob": "bb2f42aae017ba9c122a4aed74e1876f0f207d11",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "04b94e54f9e5966c0f6cbbaa630a4d95eb15987b",
+          "new_blob": "b5e5d35e96087f35fb9b3d086fe84012c9f2cfff",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "4bc12e9d4bd326c87a2f3d9eb06eafbb287a05df",
+          "new_blob": "4b446b19d767532759529d942f5bdeb67a1ad3c2",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_material_fluid_tooltips.py",
+          "old_blob": null,
+          "new_blob": "9753eab631012cdd0c12ad5d568e9f1f543ca577",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 776,
+      "title": "Show all bounded composite material fluid alternatives",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/776",
+      "head_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "reported_base_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "base_ref": "fix/material-fluid-tooltip-379",
+      "effective_own_delta_base_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "head_tree": "82508092e3f49bd18032255a15ca25917762b472",
+      "effective_base_tree": "b8ec36e1bd450838c4844801e77d43660bc6485c",
+      "parent_pr": 774,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 5,
+        "status_counts": {
+          "M": 4,
+          "A": 1
+        },
+        "patch_sha256": "af5ac37802e2f9886640af4801a721197d84ea15f6ffeda67b8d1d754530e517",
+        "patch_bytes": 16558,
+        "shortstat": "5 files changed, 168 insertions(+), 4 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774
+      ],
+      "inherited_delta": {
+        "changed_entries": 43,
+        "status_counts": {
+          "A": 26,
+          "M": 17
+        },
+        "patch_sha256": "f0d2dec1958be5e455606904984a5a85c018890abcf26e46fd12a159b7b9422b",
+        "patch_bytes": 276265,
+        "shortstat": "43 files changed, 3873 insertions(+), 55 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/book-wire/src/lib.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 2
+      },
+      "central_relation_counts": {
+        "different": 4,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "6bf43e3f37480d92cc48a37bc580eea3149e422b",
+          "new_blob": "02b6bfb6605559b54cfd7131727fcf60ebb69af2",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "bb2f42aae017ba9c122a4aed74e1876f0f207d11",
+          "new_blob": "5f944d63d7c8a79c5165a72ca90d5df4ca7c0255",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "b5e5d35e96087f35fb9b3d086fe84012c9f2cfff",
+          "new_blob": "e60a3b864e4840cb04e6b0bee6d7b9fc6361cf64",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "4b446b19d767532759529d942f5bdeb67a1ad3c2",
+          "new_blob": "cfd355a4ea9df50ece114363922d3b8b8e0160fa",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_material_composite_options.py",
+          "old_blob": null,
+          "new_blob": "b9e130d73fd1e6be648de07919d42bbfb1dd88d8",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 782,
+      "title": "Group Puny upgrade recipes under source categories",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/782",
+      "head_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "reported_base_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "base_ref": "feat/material-composite-alternatives-379",
+      "effective_own_delta_base_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "head_tree": "83bb24bb7c80199f843b74a5c2d0b7c2bd567fb3",
+      "effective_base_tree": "82508092e3f49bd18032255a15ca25917762b472",
+      "parent_pr": 776,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 8,
+        "status_counts": {
+          "M": 7,
+          "A": 1
+        },
+        "patch_sha256": "ffff7f486d62681263a80ec87550c8b779d076de5f7696775b5e13f0a78463a3",
+        "patch_bytes": 27296,
+        "shortstat": "8 files changed, 162 insertions(+), 32 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776
+      ],
+      "inherited_delta": {
+        "changed_entries": 44,
+        "status_counts": {
+          "A": 27,
+          "M": 17
+        },
+        "patch_sha256": "fe5f84ee5312bacea5fed06edb06736ddec8e3b37391ac419ac4c88b6f62a82c",
+        "patch_bytes": 289445,
+        "shortstat": "44 files changed, 4041 insertions(+), 59 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/tests/test_mighty_ability_groups.py",
+        "tconstruct/tests/test_modifier_input_display.py"
+      ],
+      "own_class_counts": {
+        "guide-content": 1,
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 4
+      },
+      "central_relation_counts": {
+        "different": 5,
+        "absent": 3
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "old_blob": "3853450e4c9667a2a68c258ec32402aaf7282106",
+          "new_blob": "eecf5dcece58d7f61776ecb2541c8b65c979e98e",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "3853450e4c9667a2a68c258ec32402aaf7282106",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "02b6bfb6605559b54cfd7131727fcf60ebb69af2",
+          "new_blob": "d2c48b1cbf6d4bbf984b4cf4043b3bd5634fbcca",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "e6bd106ebb5329cd0f0ac5ce8a468fbb5732ad10",
+          "new_blob": "4bd9ce3ca1c53c8f31e82ea7f78d5c9c41950189",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "e60a3b864e4840cb04e6b0bee6d7b9fc6361cf64",
+          "new_blob": "d26aebd94a8243edeb13cb32af77ca8ee70d8092",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "a5178638fd09b0d26cda6fe3c534e9beece5df38",
+          "new_blob": "0b72bc6c26a7a23498b27f177a4264ca15568f18",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_mighty_ability_groups.py",
+          "path": "tconstruct/tests/test_mighty_ability_groups.py",
+          "old_blob": "2ba19d7237d335a4a0249203a8cd57be4611f039",
+          "new_blob": "852e2d90327efedf7f7c49fa4c95b43d78e23268",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_modifier_input_display.py",
+          "path": "tconstruct/tests/test_modifier_input_display.py",
+          "old_blob": "8420eea8f2b0c172c38a7679efd39d4cc17440c4",
+          "new_blob": "668819f1cffdff6227372e251e2dc720faf1f117",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_puny_upgrade_groups.py",
+          "old_blob": null,
+          "new_blob": "47d395b9d15d8db80db8e90decf90dc069cc94db",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 787,
+      "title": "Keep Puny slotless recipes with their source categories",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/787",
+      "head_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "reported_base_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "base_ref": "feat/puny-upgrade-groups-379",
+      "effective_own_delta_base_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "head_tree": "ba19ffd92ba79c70f1e79b879f5866c1900741fa",
+      "effective_base_tree": "83bb24bb7c80199f843b74a5c2d0b7c2bd567fb3",
+      "parent_pr": 782,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 7,
+        "status_counts": {
+          "M": 6,
+          "A": 1
+        },
+        "patch_sha256": "2ef2ca91f06df1903d48cf21ed98b66b3538a75275d8e1ca4652f7bb32a376c0",
+        "patch_bytes": 22049,
+        "shortstat": "7 files changed, 143 insertions(+), 20 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776,
+        782
+      ],
+      "inherited_delta": {
+        "changed_entries": 46,
+        "status_counts": {
+          "A": 28,
+          "M": 18
+        },
+        "patch_sha256": "10415a9fc406f3fb8bf618b5d5cecc4b4e995ad2d25cc1c1a5988d922121a7ca",
+        "patch_bytes": 299872,
+        "shortstat": "46 files changed, 4171 insertions(+), 59 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/tests/test_puny_upgrade_groups.py"
+      ],
+      "own_class_counts": {
+        "guide-content": 1,
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 3
+      },
+      "central_relation_counts": {
+        "different": 5,
+        "absent": 2
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/puny_smelting/en_us/language.lang",
+          "old_blob": "eecf5dcece58d7f61776ecb2541c8b65c979e98e",
+          "new_blob": "ba47fb528aea5b4c606f05ab8114b8ffe5538906",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "3853450e4c9667a2a68c258ec32402aaf7282106",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "d2c48b1cbf6d4bbf984b4cf4043b3bd5634fbcca",
+          "new_blob": "631d048ff9f230f3b6de906ab2deac88103e89a6",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "4bd9ce3ca1c53c8f31e82ea7f78d5c9c41950189",
+          "new_blob": "8d6bd05ae81f3b0b002f7011c6be77280fda91b8",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "d26aebd94a8243edeb13cb32af77ca8ee70d8092",
+          "new_blob": "c4d1e2e9aaf43b6a4e421676eb9830d1269d1a20",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "0b72bc6c26a7a23498b27f177a4264ca15568f18",
+          "new_blob": "019f09242e5780dbee4f602167edcba917a2dbbe",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_puny_slotless_groups.py",
+          "old_blob": null,
+          "new_blob": "5cd47a25319232a994245e8a28b0111672180604",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_puny_upgrade_groups.py",
+          "path": "tconstruct/tests/test_puny_upgrade_groups.py",
+          "old_blob": "47d395b9d15d8db80db8e90decf90dc069cc94db",
+          "new_blob": "84c68af2976f580b45443435e002e0937096c72d",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 797,
+      "title": "Gate static book crafting previews on live recipe support",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/797",
+      "head_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "reported_base_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "base_ref": "feat/puny-slotless-groups-379",
+      "effective_own_delta_base_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "head_tree": "f7a62b53177ae3c562dbfde3d603d7efbd4807a2",
+      "effective_base_tree": "ba19ffd92ba79c70f1e79b879f5866c1900741fa",
+      "parent_pr": 787,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 5,
+        "status_counts": {
+          "M": 4,
+          "A": 1
+        },
+        "patch_sha256": "0aacb6c4b4517e3016a8eb52bfe6e0eb3c34fd5b2ed16086331606fd92418a59",
+        "patch_bytes": 25200,
+        "shortstat": "5 files changed, 287 insertions(+), 26 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776,
+        782,
+        787
+      ],
+      "inherited_delta": {
+        "changed_entries": 47,
+        "status_counts": {
+          "A": 29,
+          "M": 18
+        },
+        "patch_sha256": "d22ef3fd17a7a88c322b73e2e2be71abc76e70af71ce49ecdd88748bf30bf4d5",
+        "patch_bytes": 310733,
+        "shortstat": "47 files changed, 4296 insertions(+), 61 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/book-wire/src/lib.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 2
+      },
+      "central_relation_counts": {
+        "different": 4,
+        "absent": 1
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "631d048ff9f230f3b6de906ab2deac88103e89a6",
+          "new_blob": "e66f601c3b4c13645625c8de8da4d157505f6778",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "5f944d63d7c8a79c5165a72ca90d5df4ca7c0255",
+          "new_blob": "a45ddc076f77dd8944bf3c304e89bc8f7b8a0818",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "c4d1e2e9aaf43b6a4e421676eb9830d1269d1a20",
+          "new_blob": "a99de082944a4d5c2b707cb524db6b30968982e3",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "cfd355a4ea9df50ece114363922d3b8b8e0160fa",
+          "new_blob": "ec75ca2ac3c3b29a3c7f9db431457d7b3049cbc4",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_book_crafting_preview_gates.py",
+          "old_blob": null,
+          "new_blob": "31afaf16c4f8b08962657663071e75a7844ca40f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 800,
+      "title": "Explain Crafting Station recipes with bounded difference inputs",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/800",
+      "head_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "reported_base_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "base_ref": "fix/book-crafting-preview-gates-379",
+      "effective_own_delta_base_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "head_tree": "63dcf2d08a08334b3fb7090ff9e149c915c7246c",
+      "effective_base_tree": "f7a62b53177ae3c562dbfde3d603d7efbd4807a2",
+      "parent_pr": 797,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 6,
+        "status_counts": {
+          "A": 2,
+          "M": 4
+        },
+        "patch_sha256": "5baae717c657c8fe3b07d9f81a88724954f2a7d19c40436f9326171044988560",
+        "patch_bytes": 15510,
+        "shortstat": "6 files changed, 162 insertions(+), 3 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776,
+        782,
+        787,
+        797
+      ],
+      "inherited_delta": {
+        "changed_entries": 48,
+        "status_counts": {
+          "A": 30,
+          "M": 18
+        },
+        "patch_sha256": "727d3ccdd5c927e08f71a70ccca1a9e9ba9998fff06286c8d6baf24dacaa71e7",
+        "patch_bytes": 333283,
+        "shortstat": "48 files changed, 4583 insertions(+), 87 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+        "tconstruct/tests/book-wire/src/lib.rs"
+      ],
+      "own_class_counts": {
+        "guide-content": 2,
+        "consumer-docs": 1,
+        "guide-consumer": 1,
+        "authored-tests": 2
+      },
+      "central_relation_counts": {
+        "absent": 2,
+        "different": 4
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/intro/craftingstation_port.json",
+          "old_blob": null,
+          "new_blob": "4a329cdebb5598256d5408db8decd2292e9c7259",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/materials_and_you/sections/introduction.json",
+          "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/sections/introduction.json",
+          "old_blob": "6ad7886af1afa7cf37b0c873649f1afc62623e01",
+          "new_blob": "073ed58ecbff759950ce1f0ce8cbb7ea87e5b2cf",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "6ad7886af1afa7cf37b0c873649f1afc62623e01",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "e66f601c3b4c13645625c8de8da4d157505f6778",
+          "new_blob": "f57e8bf4893fdae3ad0956857599adb31dff7381",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-recipe.rs",
+          "old_blob": "a45ddc076f77dd8944bf3c304e89bc8f7b8a0818",
+          "new_blob": "835d2b2001492171dd7e74da2a9420a9e9b26d63",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "6c9a71cdb8c604d4818e40102f513032a112d148",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "ec75ca2ac3c3b29a3c7f9db431457d7b3049cbc4",
+          "new_blob": "9314400827d1cfbcb8e1c950cb66896f58f250bb",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_book_difference_ingredients.py",
+          "old_blob": null,
+          "new_blob": "e3a6d04eaa0924c319641d96e36e241e3210cc13",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 803,
+      "title": "Show Mighty defense overviews with bounded recipe guidance",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/803",
+      "head_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "reported_base_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "base_ref": "feat/book-difference-ingredients-379",
+      "effective_own_delta_base_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "head_tree": "6927c7e795bf0061050828994b8da0bece5ffee9",
+      "effective_base_tree": "63dcf2d08a08334b3fb7090ff9e149c915c7246c",
+      "parent_pr": 800,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 13,
+        "status_counts": {
+          "A": 5,
+          "M": 8
+        },
+        "patch_sha256": "81fe7ccdf7f78a1a88ceb2c94ecd0560e6707438f2a38577f3d283d110a2f56e",
+        "patch_bytes": 27615,
+        "shortstat": "13 files changed, 179 insertions(+), 13 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776,
+        782,
+        787,
+        797,
+        800
+      ],
+      "inherited_delta": {
+        "changed_entries": 51,
+        "status_counts": {
+          "A": 32,
+          "M": 19
+        },
+        "patch_sha256": "4bb009608f69ab7bf27bd60281daf9cfbef2f5e772fd27196b1d6ef304c0859c",
+        "patch_bytes": 345106,
+        "shortstat": "51 files changed, 4742 insertions(+), 87 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_book_showcase_tags.py",
+        "tconstruct/tests/test_materials_book_source.py",
+        "tconstruct/tests/test_mighty_ability_groups.py",
+        "tconstruct/tests/test_puny_upgrade_groups.py"
+      ],
+      "own_class_counts": {
+        "guide-content": 4,
+        "consumer-docs": 1,
+        "guide-consumer": 2,
+        "authored-tests": 5,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "absent": 7,
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/protection.json",
+          "old_blob": null,
+          "new_blob": "1373383dfaef7a049b14ee5743f857e486c6ef16",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/defense/special.json",
+          "old_blob": null,
+          "new_blob": "571f8965b0dedd082e542facd6ade834a240063f",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "0ec08a382a02b85c3cbf242175115a78e1355a7d",
+          "new_blob": "7d98296293ef1a0ff5f37d29b604de7dfa2677dd",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/defense.json",
+          "old_blob": null,
+          "new_blob": "cc5474c5be2b48e04a2ea1df5f7b07e245b34482",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "f57e8bf4893fdae3ad0956857599adb31dff7381",
+          "new_blob": "64d8789ee952f67350feb3dc8c3c810ce5b5788b",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "8d6bd05ae81f3b0b002f7011c6be77280fda91b8",
+          "new_blob": "3e48ec7b0d09a0a4abfb64ebb8728321d7d1366a",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "a99de082944a4d5c2b707cb524db6b30968982e3",
+          "new_blob": "335d7b55129ecc61b5142738e905400ebff8dd47",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_showcase_tags.py",
+          "path": "tconstruct/tests/test_book_showcase_tags.py",
+          "old_blob": "019f09242e5780dbee4f602167edcba917a2dbbe",
+          "new_blob": "774174158bdb3ac39cd1ab63fe5f8be20485a089",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1e724ad39b418871b145762c21117abd37155432",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_materials_book_source.py",
+          "path": "tconstruct/tests/test_materials_book_source.py",
+          "old_blob": "0a896f914d7dc2f8788253aeacf02c3c45541fa3",
+          "new_blob": "0559ba5560dcffd479babdb14e55360ff08192c3",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_mighty_ability_groups.py",
+          "path": "tconstruct/tests/test_mighty_ability_groups.py",
+          "old_blob": "852e2d90327efedf7f7c49fa4c95b43d78e23268",
+          "new_blob": "a480634f7aa64615ff5ca428e40038f155cfd13d",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_defense_guide.py",
+          "old_blob": null,
+          "new_blob": "28dbcbc9287decc817e4b9384bd73f98a76e52fd",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_puny_upgrade_groups.py",
+          "path": "tconstruct/tests/test_puny_upgrade_groups.py",
+          "old_blob": "84c68af2976f580b45443435e002e0937096c72d",
+          "new_blob": "ac42b132b322542777443f42b6c37bf297c67343",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/third_party/mighty-defense-guide-NOTICE.md",
+          "old_blob": null,
+          "new_blob": "44988d4e7468c4b97b7fbfd61a14610a72e67e47",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 805,
+      "title": "Show qualified Mighty entity-melting reference chapter",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/805",
+      "head_sha": "0e334211ddcbeda22430063af4c185a32cd7803b",
+      "reported_base_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "base_ref": "feat/mighty-defense-guide-379",
+      "effective_own_delta_base_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "head_tree": "b1dac9f233eb7aa8cf2f4659733ecd54f357cf84",
+      "effective_base_tree": "6927c7e795bf0061050828994b8da0bece5ffee9",
+      "parent_pr": 803,
+      "ancestry_evidence": "local immutable commit DAG",
+      "own_delta": {
+        "changed_entries": 12,
+        "status_counts": {
+          "A": 6,
+          "M": 6
+        },
+        "patch_sha256": "2cf1520b1db8d28a027ae64bfd79480131f58a6f04bcdde4ebe1538f1b899078",
+        "patch_bytes": 28671,
+        "shortstat": "12 files changed, 215 insertions(+), 5 deletions(-)"
+      },
+      "inherited_prs": [
+        693,
+        698,
+        707,
+        708,
+        709,
+        711,
+        712,
+        718,
+        725,
+        732,
+        737,
+        746,
+        753,
+        758,
+        767,
+        774,
+        776,
+        782,
+        787,
+        797,
+        800,
+        803
+      ],
+      "inherited_delta": {
+        "changed_entries": 56,
+        "status_counts": {
+          "A": 37,
+          "M": 19
+        },
+        "patch_sha256": "91b54e4c087f6596fe7411b79039bd20aecf057313def9932ccb79eccee43898",
+        "patch_bytes": 357777,
+        "shortstat": "56 files changed, 4908 insertions(+), 87 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+        "tconstruct/docs/materials-and-you.md",
+        "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "tconstruct/tests/test_materials_book_source.py"
+      ],
+      "own_class_counts": {
+        "guide-content": 5,
+        "consumer-docs": 1,
+        "guide-consumer": 3,
+        "authored-tests": 2,
+        "attribution": 1
+      },
+      "central_relation_counts": {
+        "absent": 6,
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "original exact-head combined latest-official integration unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/entitymelting.json",
+          "old_blob": null,
+          "new_blob": "3a69f5013f6493968197c9eb8d6629f647ee5345",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/intro.json",
+          "old_blob": null,
+          "new_blob": "aed919d71be515687bf92b81648ab1704284b561",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/entitymelting/notable.json",
+          "old_blob": null,
+          "new_blob": "62ea8b886b1b520f2365da57f248e98ed7c17de4",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+          "old_blob": "7d98296293ef1a0ff5f37d29b604de7dfa2677dd",
+          "new_blob": "41490741d6ad1ee0c5500f333a81729eee47bc66",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/entitymelting.json",
+          "old_blob": null,
+          "new_blob": "6ddf1f3696357036954164f7cb05f62d425ec470",
+          "classification": "guide-content",
+          "intake_route": "keep-tconstruct-chapters",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/docs/materials-and-you.md",
+          "path": "tconstruct/docs/materials-and-you.md",
+          "old_blob": "64d8789ee952f67350feb3dc8c3c810ce5b5788b",
+          "new_blob": "9394339a6837fe0e47022e053556a9cb6ea9ee01",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+          "old_blob": "3e48ec7b0d09a0a4abfb64ebb8728321d7d1366a",
+          "new_blob": "4147d80cc517c54ecd39ad8413ceea32c8f0649e",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "8ef585737bf9b3dec3f5e07ae3267145df33b542",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-layout.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-layout.rs",
+          "old_blob": "a91f258a40cfeeb51bf2f44f2475fb396916d085",
+          "new_blob": "4de61dbd284f44d93b8ddb9e22b4a29d9853e54a",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "a91f258a40cfeeb51bf2f44f2475fb396916d085",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+          "old_blob": "335d7b55129ecc61b5142738e905400ebff8dd47",
+          "new_blob": "b9cd817b7c8debafc56928ff4f206dee1665c2e6",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "fa558e45679acdd90a829aeec5866fb0e9785dca",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_materials_book_source.py",
+          "path": "tconstruct/tests/test_materials_book_source.py",
+          "old_blob": "0559ba5560dcffd479babdb14e55360ff08192c3",
+          "new_blob": "d1798c48b9bc81083627a4f5102ad7253b28e36f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_mighty_entity_melting_guide.py",
+          "old_blob": null,
+          "new_blob": "957df45db1d5302003a80a42789a1344e6212dc7",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/third_party/mighty-entity-melting-NOTICE.md",
+          "old_blob": null,
+          "new_blob": "af18be265952959c51a209864ac2f1d918a31735",
+          "classification": "attribution",
+          "intake_route": "retain-source-notice",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "integration_note": "Preserve this incremental delta once, not a full stacked snapshot. Final cumulative guide tip may subsume earlier file edits; retain a per-PR trace and validate source policy."
+    },
+    {
+      "number": 944,
+      "title": "Preserve verified PlutoLib shared foundation (official v13)",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/944",
+      "head_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "reported_base_sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "base_ref": "main",
+      "effective_own_delta_base_sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "head_tree": "9a97a8870625af2c16a53400b1643a29a090a6f3",
+      "effective_base_tree": "0c766bc524fc42580c5c7cd04ab71374a4eaf481",
+      "parent_pr": null,
+      "ancestry_evidence": "remote commit parent is exact main; local tree equality verified",
+      "own_delta": {
+        "changed_entries": 476,
+        "status_counts": {
+          "M": 118,
+          "A": 358
+        },
+        "patch_sha256": "13a63a555cf52ca4def56145fa4fe8261ff0591db6540e575701252470da8e6a",
+        "patch_bytes": 2246389,
+        "shortstat": "476 files changed, 39740 insertions(+), 705 deletions(-)"
+      },
+      "inherited_prs": [],
+      "inherited_delta": null,
+      "own_paths_also_changed_by_inherited_delta": [],
+      "own_class_counts": {
+        "other-shared-integration": 36,
+        "shared-docs": 104,
+        "shared-foundation": 167,
+        "shared-tests": 77,
+        "host-wiring": 1,
+        "cross-feature-eligibility": 2,
+        "authored-tests": 89
+      },
+      "central_relation_counts": {
+        "same": 444,
+        "different": 32
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "v13 ordinary-library plan/guards/apply/type proof exists; full consumer/game/LAN proof absent",
+      "required_destination": "category01 foundation dependency, not a second guide implementation",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries_detail_scope": "476 entries summarized; unchanged 444 are not duplicated here. All 32 evolved entries listed for preservation review; immutable before/after tree and patch hash reproduce the complete set.",
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/immersion-curatives-proof.json",
+          "old_blob": null,
+          "new_blob": "4a397fef7394cc6bbb70fc956e9a20ae5d169d21",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "02b719ca60a2fb3ec8cbb87b946c6522078d155c",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/immersion-curatives.md",
+          "old_blob": null,
+          "new_blob": "6df595c553b09babb388d31385617d945df39b2f",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "55921345f4d3e774e1bc273cb5da0660d365e7f4",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "pluto-lib/docs/inventory.md",
+          "path": "pluto-lib/docs/inventory.md",
+          "old_blob": "c1b13291e8c3ade74c6efe3380ed19b5bb479619",
+          "new_blob": "bc3f4df7faa30f1940e814a25500d3de2c29be49",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "8eaa7a83e1a57b325942fffa34de6a1a1d0342ce",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "pluto-lib/docs/native-installation.md",
+          "path": "pluto-lib/docs/native-installation.md",
+          "old_blob": "b1f824dd2e8192c0dd26b5930a40b97e4f7dc6db",
+          "new_blob": "93d43bfe6fcf1e93c8bda480a33eb8d17d38e944",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "75a163ed4f8557a17e8edeea96d7281bd0741424",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/plain-stack-cells.md",
+          "old_blob": null,
+          "new_blob": "10c8677527b45b211b37fdfb927eb3510e03fe29",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "06e2d133aeb1262ab23c7e80017849d647cf95aa",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/shared-api-boundary.md",
+          "old_blob": null,
+          "new_blob": "850e7916aab6bf45bbf896df423bddcb71a7f5e0",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "0cccba33c00b9b6cf2ca7a7855587e77d03bedc4",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/shared-api-migration-status.md",
+          "old_blob": null,
+          "new_blob": "73ba3cbb8ff278bbfb364d6289195a07728d6ac0",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "1965b0988f072bd53fd313da8430860c9af74b71",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/shared-foundation-validation-20261105.json",
+          "old_blob": null,
+          "new_blob": "07784658d9f39717275d47915e6fa5ce14edb34d",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "60637f6aaa35fe47bd5f5b6e82effc667282fdda",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/docs/shared-foundation-validation-20261105.md",
+          "old_blob": null,
+          "new_blob": "ea70b6dd1fe0b41c4470f69dd18559e00deae29e",
+          "classification": "shared-docs",
+          "intake_route": "category01-preserve-newer-proof-docs",
+          "central_blob": "102486f466b57c7e2ae95a20a2af96ad4ab7fdda",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/mixins/pluto_native_creative/component-view.rs",
+          "old_blob": null,
+          "new_blob": "db74babead39bf616814fa9eff1c8ae106b1efb8",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "3aff0f26a20f5f7a8e69a22653806ee6e7e4f52b",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/mixins/pluto_native_creative/guide-text.rs",
+          "old_blob": null,
+          "new_blob": "bf172e74c2923279768b42b0d6d570f1bd39420e",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "a84ea5e09bef465195ca53413119ecc1646414db",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+          "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+          "old_blob": "1cc60e928fcaecfb8c93aacb1266381a92a9d3b4",
+          "new_blob": "81a818f308ebc9ecbd53513044e46dd21a1be1e8",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "8a8f332ba708f6a568daac734c768d7763108d6f",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting.rs",
+          "old_blob": null,
+          "new_blob": "ce66b6897ae83682c2a9fb5b511ae4e71b75c637",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "36129df0ff9483a228648692b8f20f6509276e3e",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+          "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+          "old_blob": "a310d631c060ef1870cee72794bf985dd4c2fa39",
+          "new_blob": "a9152eadd8eabe5b1c890bbf68666c4aec300096",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "87f6e81a22d8f286e5ddf5432e473fb2b94cb3c1",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/mixins/pluto_native_creative/stack-cells.rs",
+          "old_blob": null,
+          "new_blob": "6f06492c4cbed84f645ba069cda908b496fac7cc",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "11721d860a850c697fa19ac2a1dc95df46c24e89",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/mixins/pluto_native_creative/terrain-binding-host.rs",
+          "old_blob": null,
+          "new_blob": "16a7e40cc02b3dbc10342b6f6fdd348b5d469c10",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "c5613ac8fcdc2a413f6c73d8e9df94d046bb7c7e",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/tests/test_guide_document_boundary.py",
+          "old_blob": null,
+          "new_blob": "809d1bace29ba413392038647245ada81610b621",
+          "classification": "shared-tests",
+          "intake_route": "category01-preserve-newer-tests",
+          "central_blob": "7b959b7964ecf09927df1c8b843c4bf8894e6620",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/tests/test_native_preflight.py",
+          "old_blob": null,
+          "new_blob": "954ab7fc763b23cc022fc745d16e54df948b326b",
+          "classification": "shared-tests",
+          "intake_route": "category01-preserve-newer-tests",
+          "central_blob": "83722e81d5315197302da703a10997098fde1f3a",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/tools/check_native_plan.py",
+          "old_blob": null,
+          "new_blob": "d819d9402a55e1cb23d5d104c6a1967f26e289bc",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "26a9c75a5afcb5027db2377c14c3d40e9f0ccb6a",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/tools/prepare_guide_text_fixture.py",
+          "old_blob": null,
+          "new_blob": "50a50db024dcc0d3ea7691a2e35804caa5aaafc6",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "77e5156b68bd6e39c54a9c282ee801dee5eac4d7",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "pluto-lib/tools/terrain-binding-source.json",
+          "old_blob": null,
+          "new_blob": "40f266d7bf551695487155aad0943081ebfedaf6",
+          "classification": "shared-foundation",
+          "intake_route": "category01-preserve-newer-central",
+          "central_blob": "b1e5b6b529303843d74e9df097d88b33653d6c49",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+          "path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+          "old_blob": "e17b9ff5e50bb21259bf7710d4434abafa624de3",
+          "new_blob": "5bda119092af01c7db43c7eb6fabbb881e486745",
+          "classification": "other-shared-integration",
+          "intake_route": "category01-owner-review",
+          "central_blob": "4cdd664c91a384db1f7c0ba130359d7763747a8d",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "path": "tconstruct/tests/condition-snapshot/src/lib.rs",
+          "old_blob": "70d76771cbd02e085c882613c0f3b17fa508440c",
+          "new_blob": "2a17db44b4ebf5bfdc82d35166a3f6b28a237240",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "9500c77c46c8b4e9f288ba61de0b257c8f490fd3",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/run_plain_stack_cells.py",
+          "old_blob": null,
+          "new_blob": "15e28c17ed8f3a5ed8bf5fe267cb0626b2ce0baa",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "f8257360931f34a6f96ad1f7e5a7081f043ba038",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/material_casting.rs",
+          "path": "tconstruct/tests/rust/material_casting.rs",
+          "old_blob": "67f146f3e5e51a6cfe0c64472f996b42b7506ad8",
+          "new_blob": "f148072e85d58b250ac5ba8349654c0fa6d16430",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "0f2e880dbd51cdbd80fb7351a6d8bd00c86f5372",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/rust/plain_stack_cells.rs",
+          "old_blob": null,
+          "new_blob": "ae5daf6b2e0dc12f97bf40fe1b635fe390b53d3f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "02b60334b4f0f9a577829f29c8cbf5d1373ad3ec",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/rust/plain_stack_cells_legacy.json",
+          "old_blob": null,
+          "new_blob": "13205351737e103011373067486d5fa518be97b3",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "44ff8d98879c6f2eb4770bf299d83aa54add40b9",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/rust/plain_stack_cells_legacy.rs",
+          "old_blob": null,
+          "new_blob": "5e44a9c4589322cf117485d166da098b7f8d29fd",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "1dcaa266b9654a39ce892024873f392976d91631",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/reinforced_casting.rs",
+          "path": "tconstruct/tests/rust/reinforced_casting.rs",
+          "old_blob": "b8cafaf9dc29fbf640514fb88643f859cc8dcf8f",
+          "new_blob": "2603ed7e310cfe957e82b8b4257cb0b922d1e3a6",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "24c2101d278012ae14a217b10dd58687e79077f5",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/soul_glass_acquisition.rs",
+          "path": "tconstruct/tests/rust/soul_glass_acquisition.rs",
+          "old_blob": "bc7ad2007a3344f8d1dc563551a83dfe627a0e37",
+          "new_blob": "5fd236ccdd830e74def3869b1d5eb2a7d66862e5",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "0ca01f4b358668e5f07893b044c291ce8f2fc3bb",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/survival_controller_casting.rs",
+          "path": "tconstruct/tests/rust/survival_controller_casting.rs",
+          "old_blob": "027c10e6bf115d5eda9bfbee8eb4a7444459c6d6",
+          "new_blob": "827e8a897798e95dbd4e978b7a282c0481f4cd89",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "4adf4c24b27325a3378c52c380d51f4ef6152da5",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_plain_stack_cells.py",
+          "old_blob": null,
+          "new_blob": "5f91094e448a95fce827106247ad80fa0a559807",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "40d1f3221c35f887c5a81a40b44696d58f133d0f",
+          "central_relation": "different"
+        }
+      ],
+      "integration_note": "Do not replay v13 snapshot over newer central; its runtime31cf7667 is an ancestor of central, and 444 own path blobs already match while 32 evolved."
+    },
+    {
+      "number": 945,
+      "title": "Isolate guide navigation from Pluto native page turns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/945",
+      "head_sha": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+      "reported_base_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "base_ref": "recovery/plutolib-verified-v13-20261106",
+      "effective_own_delta_base_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "head_tree": "70ecd0de6435a3d7657c4fb1cfc4921304248185",
+      "effective_base_tree": "9a97a8870625af2c16a53400b1643a29a090a6f3",
+      "parent_pr": 944,
+      "ancestry_evidence": "remote single-parent chain reaches exact #944 head in three commits",
+      "own_delta": {
+        "changed_entries": 11,
+        "status_counts": {
+          "A": 4,
+          "M": 6,
+          "R": 1
+        },
+        "patch_sha256": "d73153dae2417619b865b85a2462207627bb416e6fde2108328f293e9c3ce884",
+        "patch_bytes": 34950,
+        "shortstat": "11 files changed, 420 insertions(+), 35 deletions(-)"
+      },
+      "inherited_prs": [
+        944
+      ],
+      "inherited_delta": {
+        "changed_entries": 476,
+        "status_counts": {
+          "M": 118,
+          "A": 358
+        },
+        "patch_sha256": "13a63a555cf52ca4def56145fa4fe8261ff0591db6540e575701252470da8e6a",
+        "patch_bytes": 2246389,
+        "shortstat": "476 files changed, 39740 insertions(+), 705 deletions(-)"
+      },
+      "own_paths_also_changed_by_inherited_delta": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/tests/book-wire/src/lib.rs"
+      ],
+      "own_class_counts": {
+        "consumer-docs": 2,
+        "host-wiring": 1,
+        "guide-consumer": 4,
+        "authored-tests": 4
+      },
+      "central_relation_counts": {
+        "absent": 5,
+        "different": 6
+      },
+      "recorded_change_state": "source authored and published; this audit performs no intake",
+      "verification_state": "source/guard 27, modeled helper 8, actual isolated plan + 11 guards passed; apply/type/liveUI/LAN unverified",
+      "required_destination": "category08 grouped guide consumer; category01 shared services are dependencies",
+      "new_tests_run": 0,
+      "pr_state_changes": 0,
+      "own_entries": [
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/docs/guide-pluto-navigation-recovery.md",
+          "old_blob": null,
+          "new_blob": "ce6eea67c09c8cf84bc83edaf76a5a1a2cf5cc11",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/docs/guide-pluto-navigation-validation.json",
+          "old_blob": null,
+          "new_blob": "17beded4e82b5dc6a9182febe2972a98ab40a551",
+          "classification": "consumer-docs",
+          "intake_route": "update-scope-without-overclaim",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+          "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+          "old_blob": "838ded51433486267c1400d5513364f61d93a3e4",
+          "new_blob": "18fb0e8d6c67efd30858634113e93a19c886c87a",
+          "classification": "host-wiring",
+          "intake_route": "replace-only-reviewed-conflicting-hooks",
+          "central_blob": "838ded51433486267c1400d5513364f61d93a3e4",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+          "old_blob": "17d24c3bb6f8d8b8768163225c7a13245b15fc4a",
+          "new_blob": "9aa39dc706c5412e1483ae827f74d2b616ed2d8a",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "17d24c3bb6f8d8b8768163225c7a13245b15fc4a",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-control.rs",
+          "old_blob": null,
+          "new_blob": "bd7bf84c897aa9b22b6693ded5a2ec68e303ec08",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-key.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-key.rs",
+          "old_blob": "e56408f29fac44282679d3248f677dbd76dfcb1c",
+          "new_blob": "0d2c1333ae3c6f7fa6e39960b99a7a11485d33e9",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": "e56408f29fac44282679d3248f677dbd76dfcb1c",
+          "central_relation": "different"
+        },
+        {
+          "status": "R052",
+          "old_path": "tconstruct/mixins/tconstruct/source-materials-book-turn.rs",
+          "path": "tconstruct/mixins/tconstruct/source-materials-book-navigation.rs",
+          "old_blob": "172a43f44d888e23ba88878b69f6608463411a5c",
+          "new_blob": "15b9b0aa3de05e2feb544c79aad1bbf205855c58",
+          "classification": "guide-consumer",
+          "intake_route": "port-guide-consumer-mechanics-with-policy",
+          "central_blob": null,
+          "central_relation": "absent"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/book-wire/src/lib.rs",
+          "path": "tconstruct/tests/book-wire/src/lib.rs",
+          "old_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "new_blob": "965874d90b548491c05417ad33e45c0555fa5320",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "a1e91aff924238f894f3cdf30cc53b6843dd5553",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/rust/book_keyboard_navigation.rs",
+          "path": "tconstruct/tests/rust/book_keyboard_navigation.rs",
+          "old_blob": "fbfe189e99c5340cf565b76aa8e8b6c728e7c123",
+          "new_blob": "0c7c16f7c5969ceef37b2dbb3122f6cb20de1be8",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "fbfe189e99c5340cf565b76aa8e8b6c728e7c123",
+          "central_relation": "different"
+        },
+        {
+          "status": "M",
+          "old_path": "tconstruct/tests/test_book_keyboard_navigation.py",
+          "path": "tconstruct/tests/test_book_keyboard_navigation.py",
+          "old_blob": "9ef526a91325f2e8452b919300d058687c12f52b",
+          "new_blob": "b621a140febb4c957e75a609a71b3589454f2e7f",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": "9ef526a91325f2e8452b919300d058687c12f52b",
+          "central_relation": "different"
+        },
+        {
+          "status": "A",
+          "old_path": null,
+          "path": "tconstruct/tests/test_guide_pluto_composition.py",
+          "old_blob": null,
+          "new_blob": "8b10cf1d0f3152ab31fbd944dac39a465b230b1b",
+          "classification": "authored-tests",
+          "intake_route": "carry-and-rerun-on-combined-target",
+          "central_blob": null,
+          "central_relation": "absent"
+        }
+      ],
+      "remote_parent_chain": [
+        "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+        "a538d047894eec8f56c3b2e8724b19970198d4ab",
+        "9cf25e3ed1817611af263947dddabdded1dc4687",
+        "bcec17b5394aba2a58f20e9f77222424f9b2ad6f"
+      ],
+      "integration_note": "Take only 11 rename-aware own entries; do not replace newer central with inherited 476-file v13 tree. This PR does not inherit the 23 content PR chain."
+    }
+  ],
+  "intake_rules": [
+    "Use actual merge-base for own changes, not stored REST base endpoints when divergent.",
+    "One layered content chain: do not apply every full head tree or double-count inherited deltas.",
+    "Keep TConstruct chapter/layout/metadata/recipe/modifier policy; move generic mechanics only through reviewed Pluto contracts.",
+    "Foundation#944 is a dependency already evolved centrally, not guide content equivalence. Preserve the 32 newer central paths.",
+    "Apply #945 own navigation delta only; its inherited v13 snapshot must not downgrade central.",
+    "The23 content heads have no established exact-head combined target proof. Source classification is not application, successful merge, or behavioral equivalence.",
+    "No PR may be closed, retargeted, marked ready, approved or merged by this mapping."
+  ],
+  "contract_ledger_reference": "https://github.com/sofia-gros/horizon-mods/blob/42e9cbb3c044fe2f4bc0c324620dc0c58f2321a2/pluto-lib/docs/migration-inventory/guide-ui-lan-20261106.json",
+  "classification_limits": [
+    "File roles are intake triage, not per-hunk behavior proof; a production Rust file may contain test-only additions, for example #753 wire tests.",
+    "Blob identity proves exact file bytes only; differing bytes do not prove feature absence, and matching bytes do not prove integrated runtime behavior.",
+    "Patch SHA is the observed Git serialized diff; immutable trees and before/after blobs define source identity.",
+    "Original PR source content and inherited source are present in Git objects, not automatically integrated or verified on current main."
+  ]
+}
