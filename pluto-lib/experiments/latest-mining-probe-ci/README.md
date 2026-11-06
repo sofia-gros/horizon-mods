@@ -24,7 +24,7 @@ All checkout files, regular-file modes, symlink identity and directory presence/
 
 Run the 27 pure runner regressions and the 16 candidate source guards locally with `PYTHONDONTWRITEBYTECODE=1`. They exercise bytes/maps, negative gates, synthetic plan validation, observer inverse and stop semantics, not the official CLI or native compiler. No local Cargo/metadata/planner is authorized. Only after independent review and a separate serial release may the exact source head be put on the dedicated public trigger branch once. Native type/visibility and actual actor/world behavior remain separate gates.
 
-Source validation before publication: 20/27 pure runner regressions and 16/16 frozen candidate guards passed. No CLI, Cargo metadata, actual planner, apply or Rust proof ran locally.
+Source validation before publication: 27/27 pure runner regressions and 16/16 frozen candidate guards passed. No CLI, Cargo metadata, actual planner, apply or Rust proof ran locally.
 
 ## Exact IR hardening after independent source review
 

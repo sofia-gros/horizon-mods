@@ -28,7 +28,7 @@
     "pluto-lib/experiments/latest-mining-context/review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
     "pluto-lib/experiments/latest-mining-context/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
     "pluto-lib/experiments/latest-mining-context/test_candidate.py": "0f62c08206ab4b0a1bc957154b07f78f531b44aae162b12cae9e8d2b28e6a829",
-    "pluto-lib/experiments/latest-mining-probe-ci/README.md": "cd637aa266e1a1df1ebe7e2780d9ce8e4085491ec6f5da504bf0afb0b51698e3",
+    "pluto-lib/experiments/latest-mining-probe-ci/README.md": "34cfb7835423cef73652d11dcde06bd06dca2537612861733be0345d0fb2d6aa",
     "pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py": "a95d3974653887d66c5302b9499006c45aee0ae9f3ef54ba6305888e0bf8c7cd",
     "pluto-lib/experiments/latest-mining-probe-ci/prepare.py": "e84a19150858a2c900f8b60a01470fbba64dc412e5c32c2edc7240055639b738",
     "pluto-lib/experiments/latest-mining-probe-ci/run.py": "2fe98334a3ac55d83979809a2e3d49b0b0d283316d33d117fbfb90fd77d0f71c",
