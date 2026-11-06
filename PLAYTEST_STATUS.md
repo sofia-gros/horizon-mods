@@ -1,6 +1,6 @@
 # Tinkers latest playtest integration
 
-This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Do not merge it to main or treat the old launch script as a verified latest-official launch path.
+This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
 ## Fixed target
 
@@ -39,3 +39,7 @@ Retained/owned Guide native-storage experiments; item-name/default ownership wor
 Guide custom drawing still uses its own background fill, bypassing the latest native transparent-background hook. The legacy LAN response conflict is still open. Historical oracle scripts retain their original pins rather than claiming success on this branch.
 
 See [the machine-readable intake and verification record](integration/playtest-20261106.json) for exact sources, passed checks and never-run stages. Further reviewed changes and evidence will be appended to this same branch.
+
+## Existing PR coverage
+
+[The fixed 265-PR intake tracker](integration/pr-intake-tracker/README.md) separates individually confirmed source intakes from unresolved comparisons and actual execution evidence. Old PRs remain open until reviewed.

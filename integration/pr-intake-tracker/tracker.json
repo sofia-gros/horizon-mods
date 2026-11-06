@@ -1,0 +1,2680 @@
+{
+  "schema": "playtest_pr_intake_tracker_v1",
+  "repository": "sofia-gros/horizon-mods",
+  "coverage_commit": "d01ffa1931c49e30d6ee7ac8238cc4fbb671c441",
+  "coverage_path": "pluto-lib/docs/pr-reorganization/full-coverage-20261106/coverage.json",
+  "coverage_sha256": "dc7af8884dd2c7a3e21c9ca268f2876a15dbf4028441e2f9094c89e7d40e949a",
+  "integration_branch": "integration/tinkers-latest-playtest-20261106",
+  "evaluated_runtime_head": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "semantics": "An un-reconciled PR is not a claim that its feature is absent. Existing foundation/main/common code may contain related behavior. A source intake is not migrated-feature completion or runtime proof.",
+  "counts": {
+    "fixed_snapshot": 265,
+    "explicit_pr_source_intakes": 2,
+    "not_individually_reconciled": 263,
+    "latest_complete_plan_passed": 0,
+    "latest_game_build_passed": 0,
+    "gameplay_verified": 0
+  },
+  "pr_state_changes": false,
+  "latest_validation": {
+    "complete_plan": "not_run_on_this_integration",
+    "all12_guards": "not_run_on_this_integration",
+    "game_build": "not_run",
+    "windows_link": "not_run",
+    "game_startup": "not_run"
+  },
+  "included_sources_record": "integration/playtest-20261106.json",
+  "prs": [
+    {
+      "number": 559,
+      "head_sha": "006c5f3dbe362f7b806369a16b76854157e50918",
+      "reported_base_sha": "2f02239508d909c1f4f289e6bb9fc62f0880e6eb",
+      "own_delta_base_sha": "2f02239508d909c1f4f289e6bb9fc62f0880e6eb",
+      "own_diff_sha256": "070293737c3cc9d31e4f35f88df9850d233d259926ceedb9b8839b45492f868b",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 631,
+      "head_sha": "75531f4bd2f45d4a569ef923a61ca13631d5d95d",
+      "reported_base_sha": "8cf729ff4d7b4d18f43e224e4addbdabcac72b5a",
+      "own_delta_base_sha": "8cf729ff4d7b4d18f43e224e4addbdabcac72b5a",
+      "own_diff_sha256": "b0fdc3c07f1f26bfde30a9f87c67c0387c3dcb9941edd639c0b44fa897651c88",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 665,
+      "head_sha": "476a05fb033afe480af31b6d32c7a4c46f1061c4",
+      "reported_base_sha": "3dc3d78584d57da09c4e64760a12b4c7369ea015",
+      "own_delta_base_sha": "3dc3d78584d57da09c4e64760a12b4c7369ea015",
+      "own_diff_sha256": "d0263e4664f7bd2fc03895c3c2333cee4267ba4265752a0c440615ebf124378f",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 675,
+      "head_sha": "c4c250f3554abdcf0aeb0de1ef20fb7ee7999e48",
+      "reported_base_sha": "af47e66842ebd09c45860ed56fdaf6d3deb75055",
+      "own_delta_base_sha": "af47e66842ebd09c45860ed56fdaf6d3deb75055",
+      "own_diff_sha256": "8074596951ff56ecc1f3a6bc383574d19b051e91d0e95a61272518cef17fa476",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 676,
+      "head_sha": "e5d476a7012be1dc4a6e8be1560d0c4ade53067b",
+      "reported_base_sha": "3dc3d78584d57da09c4e64760a12b4c7369ea015",
+      "own_delta_base_sha": "c4ab6c6dea5781646eb70a5bcf28f49c84778210",
+      "own_diff_sha256": "42a2bd1441470dabf46954ff3b9d5c127c2787d4e69931523db49015f0cdcadd",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 678,
+      "head_sha": "a7f2e207c2da18d494437ae84aabf6f405d6f836",
+      "reported_base_sha": "ddc324307deb5606cb07eb326c37bb359f64f9f9",
+      "own_delta_base_sha": "40633d44e5f1e073d69202e9fb68e051f00e0be1",
+      "own_diff_sha256": "998fd9a43b451c4310c04fad28145b8e0b8e84e5ae7ad0b137f0ee3467b07f95",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 679,
+      "head_sha": "da95d7a9224bf1b7b3f58c0f5ee312af3536bede",
+      "reported_base_sha": "ddc324307deb5606cb07eb326c37bb359f64f9f9",
+      "own_delta_base_sha": "40633d44e5f1e073d69202e9fb68e051f00e0be1",
+      "own_diff_sha256": "cf484d08a446ff68a2500cc7772ff60ee5fc38dc50c587bc5bf023050fd75d6e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 680,
+      "head_sha": "df0856097f0687543b4d6a3b9ddba18e872df1e8",
+      "reported_base_sha": "ddc324307deb5606cb07eb326c37bb359f64f9f9",
+      "own_delta_base_sha": "ddc324307deb5606cb07eb326c37bb359f64f9f9",
+      "own_diff_sha256": "04a32c53fa567a8e83e47e987d4289c02c92eb405d7b71d9a0b208610f59076d",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 682,
+      "head_sha": "a6ac9c17916f80ecef291ef063bf26a9fbacabb5",
+      "reported_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "own_delta_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "own_diff_sha256": "718989ea1ecf55c3b94063e960e99f5b092cc2a697d8447dc70cf5b423c7b146",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 683,
+      "head_sha": "c9e5e7dcc75254e9e7b35b21fea117195f9229ef",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_diff_sha256": "71d14106941d6fcdfa1ae44ff8d124658273e4a652b7a22d7e33702ef177135a",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 685,
+      "head_sha": "6ce1fcc25233446066ff7ae599affe11004c83d8",
+      "reported_base_sha": "af47e66842ebd09c45860ed56fdaf6d3deb75055",
+      "own_delta_base_sha": "af47e66842ebd09c45860ed56fdaf6d3deb75055",
+      "own_diff_sha256": "d9f58f41ba3517a93418b8b802189df19c31434de4ac509bb726f850ecd899ad",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 688,
+      "head_sha": "f213eb1b7b031c71af3a73464a5a56fb63af669f",
+      "reported_base_sha": "da95d7a9224bf1b7b3f58c0f5ee312af3536bede",
+      "own_delta_base_sha": "da95d7a9224bf1b7b3f58c0f5ee312af3536bede",
+      "own_diff_sha256": "51cdd2e205557c0d808baa7526322ad4168319c200c56560fb491c3acc463d4e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 689,
+      "head_sha": "7529a45967ef7f3552adf77cbe236a294f1d2cad",
+      "reported_base_sha": "f213eb1b7b031c71af3a73464a5a56fb63af669f",
+      "own_delta_base_sha": "f213eb1b7b031c71af3a73464a5a56fb63af669f",
+      "own_diff_sha256": "f0d328e1f642e5c194299768c3bbd253c23c2aea9444292fbd96dd0c5505945a",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 691,
+      "head_sha": "93b8c1b117dd1b47af04c9d6f152603adcb2c846",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_diff_sha256": "c15162f3e9eb7c83d01cde5985818faafda48030bbe3dd620bf6f1a509b51cac",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 693,
+      "head_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "reported_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "own_delta_base_sha": "442946c52b4a6e80ce0754295b1db3a61fa13372",
+      "own_diff_sha256": "eb6039baa201da4b45064e9205cafc87d12789d0f4f0888b0359dbad660e2eb6",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 694,
+      "head_sha": "037c0b48f90f992051e56f038c3b642da60e97e5",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "5ac73ffeef51e25ea868801f9c211810249ff2b5",
+      "own_diff_sha256": "c1f7384c9f7463171eb6a601131e93d921eab98d9f1c90fd75018f8d66445f5a",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 695,
+      "head_sha": "56df22558d80a9aeaafe171ecae04d39d3048db6",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "c709bf33b5c2254d5d7776c8916a1ed4a8e3997e",
+      "own_diff_sha256": "92345911b89a8488090b5698bda955ee00316d3637ea906280946025fe77b43e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 696,
+      "head_sha": "3796b0dde80da99747205bdd1e66f19889e723fc",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "10ad8a4fc7323768fe9347515eab49f36c340766",
+      "own_diff_sha256": "85713265561734e78df0a541cad0dafadf10b43d23350186b94966f9508443c7",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 697,
+      "head_sha": "787911c89a828e17a1726e77c9144248ea5bf6a3",
+      "reported_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_diff_sha256": "816d64ad210e211ac22e8eb08ebf220f2408f8cb10118f56a54d2cb62b1bfd8c",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 698,
+      "head_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "reported_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "own_delta_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
+      "own_diff_sha256": "730005378de16876a153422f2214efcd082f20f0b2ece35867913a214fe66240",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 699,
+      "head_sha": "b7286af505ba4fc69b060018c9e12e640bf37b8e",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "d80bb44c884b5e36abdb4b25bf82ce2433facad1a618d10cd99e3f7f48cd0cfb",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 700,
+      "head_sha": "bf0333ea11188a4009a2ed5cf25965fdcb88c575",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "9f52d6c14f5381bce75fa9eb0f68283a6171b0bbe1dca2aaa46306b5101f0f37",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 701,
+      "head_sha": "2670648eb20697983e9d7b8d9f0c19d6d22d7c01",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_diff_sha256": "4ec35f6f456b415ded4307d90b85940b208b5a41c5ff603ade18ee1f9b669945",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 702,
+      "head_sha": "b080075ee0231387198c8bfa6a77dbac3b6f080c",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+      "own_diff_sha256": "1a78dacedc6d2734b210e766c7b5878141a9332548c89901d988c5abecafec97",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 703,
+      "head_sha": "e1c56d06fe1a77c444545165a67bad9bcce4fccd",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "172d027ee79b9cdc93beca0bee4eb4663abdd63d192732aba68e98170f43de43",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 704,
+      "head_sha": "6ea90e36641cf36c56ac61b196e2bb9a956daec3",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "bdd4ffe6287f84c80b699e0ef3a143f7f2b161e3",
+      "own_diff_sha256": "d53d2df9ddfa95af0021690511223d91c93727d3ab581559dc8eea42f99ffb8c",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 705,
+      "head_sha": "d6ad95b0e58e4267cb186318d7f2bc0bb3514148",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "eb0373f8dab855ef6ddf2c70f1c0e5f0df58e138c6b2c6277f0854564d08947b",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 706,
+      "head_sha": "e2ea4c2f909406a684f4d33e826b9f97225ec7d2",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "52e9620b5c4739fb1ab00f4b30ab8e784420081fbdf1acf6a40caa7d404e4574",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 707,
+      "head_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "reported_base_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "own_delta_base_sha": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+      "own_diff_sha256": "01f757ff534e196f1a94c8ba60625ec94c778cd08283c548eaccac583401d5a9",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 708,
+      "head_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "reported_base_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "own_delta_base_sha": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+      "own_diff_sha256": "35657c187355836ca5bc86b37389c124be1c5745d23c1b4e25236cda4379f231",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 709,
+      "head_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "reported_base_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "own_delta_base_sha": "d5a5eeaaec74c1d91f16d2656d3732dcdd48e6a4",
+      "own_diff_sha256": "57f78ded1e06633fb1a33ca29440a4fd61afdfad060b68a1df24a1a2913dd3f0",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 710,
+      "head_sha": "e237df3ebf2820fb042bf7ff25ed666e554f0d63",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "7075b9b182ae76f4064bfedc6c5793625c0091d7e0ce7efce49a0db94f5b68ae",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 711,
+      "head_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "reported_base_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "own_delta_base_sha": "416850d40eb3aa46d12c2a2d4145ed9360fcc266",
+      "own_diff_sha256": "014d4b9175a5626f16e9813cca967ffba2765586724d19d2d7062b5e15323ec3",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 712,
+      "head_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "reported_base_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "own_delta_base_sha": "22f34b2b749038aacb616df7a985057c96b1c07a",
+      "own_diff_sha256": "f34458ef80ed1e05a2f7b1090e0d91317a19e3fcf90f417037ff6b9072ea687b",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 713,
+      "head_sha": "bbfeb25e6560639385e3da04544770c70b211f60",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "c188cd3eddf2e75c03af5cd912e202e1b47770f0fae094ccb397a0a9ddcd4f2c",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 714,
+      "head_sha": "dbfd2c632c33a971241f66c516658a88e97e17d4",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "b96e7e8e5ab14571cad532cbff5a7ac05f8235cf29e79524c43262d6ffd1aa77",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 715,
+      "head_sha": "afac9446783e96e81bfb2b30c6d13b8ef017be44",
+      "reported_base_sha": "e2ea4c2f909406a684f4d33e826b9f97225ec7d2",
+      "own_delta_base_sha": "e2ea4c2f909406a684f4d33e826b9f97225ec7d2",
+      "own_diff_sha256": "01fb9307594bfa5167bd930f6f18f6022368147c5abe6619f56fd9be1eaf73a5",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 716,
+      "head_sha": "889fb19ff610984b5a69029ea978892ac090d7fd",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "be173e23d137a0532ad0f89e98c984a26dde6246f4264f355c69baf2b7e0638e",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 717,
+      "head_sha": "632463ead172d120f9bc9abbf17efffd6beee460",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "c407753c0b5f8ea5fe9b0f3d3db1eb052c8750723f7d4c52d07f984c86376aa3",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 718,
+      "head_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "reported_base_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "own_delta_base_sha": "33e2f40b167ff8fcf0ae71de4c8f84300076d167",
+      "own_diff_sha256": "421142301297ab600d016fa39050b4b0b2f17e5575bbd423b8952f8cfcf92bed",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 719,
+      "head_sha": "44b9f8a8c0b46b2c6b1cbdbf3278ae37ce213d77",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "96906d5e162f63ab8c0d33db5904480f197a1a4d8e85f3adfac58b31742ccd41",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 720,
+      "head_sha": "43adf1443ee126ba6f4e5096a09f49d1c374b974",
+      "reported_base_sha": "889fb19ff610984b5a69029ea978892ac090d7fd",
+      "own_delta_base_sha": "889fb19ff610984b5a69029ea978892ac090d7fd",
+      "own_diff_sha256": "b913ce693fb14407a21694ad39eeb06b99c891814ad6a87674bb8860a526c794",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 721,
+      "head_sha": "730ffff9ced8bcb744652f7dfc54e29af28f7e4b",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "4d1af7eac002cef6647ae94c9e6ff23b5e5d957c2f72f622a3eb776107a6112d",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 722,
+      "head_sha": "80217bc300fa20a6e517b6dea174eb1dab734e33",
+      "reported_base_sha": "43adf1443ee126ba6f4e5096a09f49d1c374b974",
+      "own_delta_base_sha": "43adf1443ee126ba6f4e5096a09f49d1c374b974",
+      "own_diff_sha256": "c773c8858b87603f22029cd1c0fb09a9a41ab6892db38086ae330f606e92bbe6",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 723,
+      "head_sha": "4abf10da08db97c614b562316c7933717e2b89c1",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "c95325360177e4e01370ca80241f6c70b4255db88fbf9f3ec8347634a4a1912c",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 724,
+      "head_sha": "3acf5f05df2f660cd2092ed123f303b5ea0482d6",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "468b4bdc71a26678f016855e51bd92219be6f9209381925ba6145fc6e93eb97e",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 725,
+      "head_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "reported_base_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "own_delta_base_sha": "5e9d740e7e229e2107e5da3d2106ecc229c14310",
+      "own_diff_sha256": "45cd422f5cf4404019ef5cc209ef3fa2bb3dce2aee36517c8f131321500e35c6",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 726,
+      "head_sha": "7f5c97b1e2dd50ba7ca234560f58367f456c429a",
+      "reported_base_sha": "80217bc300fa20a6e517b6dea174eb1dab734e33",
+      "own_delta_base_sha": "80217bc300fa20a6e517b6dea174eb1dab734e33",
+      "own_diff_sha256": "8edc51ad1098a8346144df26f961f11f85ea02731ba4b56b0a8a1e081a01dc3e",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 727,
+      "head_sha": "a9ab15054a7880ab87b75d077da9e236c60a62f9",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "3db500f3c3d0fb9b4adc823e2ae96459d5cf8fd910b2d9ea8a9da688d8f1c582",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 728,
+      "head_sha": "87f6cccf85d959b4074b7b3926aeaeaecbe6cd1b",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "572c5110b2478d733787769934681f027fec20a607f904cdc08f8a785769374d",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 729,
+      "head_sha": "d3c0b0ada822d0f019f5ee173be4cb948215f5e6",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "85e567fe1f3ebc7edff681a1ece2f5934ad4ca6519fc7695a0e243fb7880ff12",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 730,
+      "head_sha": "91828e36ddda97e0efac951d4191729bb8c84514",
+      "reported_base_sha": "4abf10da08db97c614b562316c7933717e2b89c1",
+      "own_delta_base_sha": "4abf10da08db97c614b562316c7933717e2b89c1",
+      "own_diff_sha256": "482869999b4fa4e4771e077e37c4b613e215f5dfe2ea55e353f7682b6810ec37",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 731,
+      "head_sha": "a13797f0882034248ac60f8542cf278391796f95",
+      "reported_base_sha": "7f5c97b1e2dd50ba7ca234560f58367f456c429a",
+      "own_delta_base_sha": "7f5c97b1e2dd50ba7ca234560f58367f456c429a",
+      "own_diff_sha256": "de7321092ee379ade34ca41c9f10c48538eff08f36972ae7b4d7f6ec2b0a2d56",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 732,
+      "head_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "reported_base_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "own_delta_base_sha": "ff81d20ac675992f4217a316e9e29d2192729f3b",
+      "own_diff_sha256": "dc5a62795d4a9181f5ed4f511bd6a01ac7a57628106358d2b01052a1b2e14f87",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 733,
+      "head_sha": "e07225fbf72fd012b4454b4ef6b711f3ee1ea268",
+      "reported_base_sha": "a13797f0882034248ac60f8542cf278391796f95",
+      "own_delta_base_sha": "a13797f0882034248ac60f8542cf278391796f95",
+      "own_diff_sha256": "a707679442cd70a5ab6ef93c03930518126107f754a2ff3330aa1f6df80bac27",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 734,
+      "head_sha": "9b49856f0e4b1b4211817138f8a8024bcd89517d",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "db67d40e362604caf2518ce5b7aa25a94d3e82f404354b261ba0a1213bc54b2c",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 735,
+      "head_sha": "b3d99db71003966ca83b1c9cee910571667836ef",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "678f226db128d68f4cc49c1014dfc5ec0f685f456cb3813b5a6a392815397293",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 736,
+      "head_sha": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "1c0068a73746cac7438ca4e313072512d04382cdb6bf4d408a20d5adb562b7eb",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 737,
+      "head_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "reported_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "own_delta_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
+      "own_diff_sha256": "a67333f6d52e9d51c393d225b4000b752e742de107628fe8263c4a6e261d0865",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 738,
+      "head_sha": "3acf4fc1fd1b146ab96246d7ebf92034f33d0fba",
+      "reported_base_sha": "e07225fbf72fd012b4454b4ef6b711f3ee1ea268",
+      "own_delta_base_sha": "e07225fbf72fd012b4454b4ef6b711f3ee1ea268",
+      "own_diff_sha256": "659cdb51bf7a340e674484c75b8d67299236c5f9746a498ef240e90855102b60",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 739,
+      "head_sha": "baf015dba36700d546e7461c5f9a9f2184a71593",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "d1380e925b8af3eb02a28e0d2f32972d0b8b1239b35b579c8a4711b3f969671c",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 740,
+      "head_sha": "be29e8ed903c0f2a372918c0b58437503220d59e",
+      "reported_base_sha": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "own_delta_base_sha": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "own_diff_sha256": "904a34f20c4cf5b6f08f4d953fb780f1b898bd9359ecd54ba211394b747d0ff7",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 741,
+      "head_sha": "11fbe94695308b44a03fe77906520ceccd8dcf04",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "1c949db185aa979a2427ba4f0201eb6d94a7d598f068b962ef0552bee0981190",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 742,
+      "head_sha": "a0a53cee91965adf5dfce2f84c7d002553c3b5b5",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "0ad9cb24f4c28e35b193798ee3cbe094ab54a4be8b5575ee83f8889109ccd3d3",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 743,
+      "head_sha": "15aa913b3e6e7da964f2ca73104de8f5005c6dec",
+      "reported_base_sha": "3acf4fc1fd1b146ab96246d7ebf92034f33d0fba",
+      "own_delta_base_sha": "3acf4fc1fd1b146ab96246d7ebf92034f33d0fba",
+      "own_diff_sha256": "1c6ef69c9e1b8439da951e45d71f0cdac36ac1dfd6f2f41cd7d17a99354873c6",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 744,
+      "head_sha": "0a9ee50fb2abe5a095cdd770e7f0cda331d1dffd",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "c1286068f03385cee7d4093e6cd2e75e8b2e39312d833e20207785957ebc5d8c",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 745,
+      "head_sha": "70a4a279e0e808cc133939505976210c58cad800",
+      "reported_base_sha": "a0a53cee91965adf5dfce2f84c7d002553c3b5b5",
+      "own_delta_base_sha": "a0a53cee91965adf5dfce2f84c7d002553c3b5b5",
+      "own_diff_sha256": "2abd8eeb6152becbe0df3bb3dd51a45124092434ee25aa8f36b4908fa7899f9c",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 746,
+      "head_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "reported_base_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "own_delta_base_sha": "486995af9353a56598bf6217b9a381b3db3d321d",
+      "own_diff_sha256": "f5ef4e33ff09b549df781d3b0291e0a0f76f2f21541da66a618d4211325758d3",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 747,
+      "head_sha": "2a9b7157e9c1ac98534a537267bab9478b5cdb12",
+      "reported_base_sha": "be29e8ed903c0f2a372918c0b58437503220d59e",
+      "own_delta_base_sha": "be29e8ed903c0f2a372918c0b58437503220d59e",
+      "own_diff_sha256": "c1291cfb78bad59238e972358977ba46f6963d9a43b5f9c69298981056ed0335",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 748,
+      "head_sha": "73fa7400de1df88407a35c79dba67afa1f00b224",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "086dfc118f0d4816997c03457f05bdba75bf563e3eefb9adac241b1c997b601e",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 749,
+      "head_sha": "81b1c25e71774716eb5530c6f178040e7904c88e",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "fad555bdeee08e4db9befa9427afa2d667ee8fbc7941bc2b29b054a49ea1f3c9",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 750,
+      "head_sha": "6e46fd8c3dcdb9ae94221bde2576808f358e7d5a",
+      "reported_base_sha": "15aa913b3e6e7da964f2ca73104de8f5005c6dec",
+      "own_delta_base_sha": "15aa913b3e6e7da964f2ca73104de8f5005c6dec",
+      "own_diff_sha256": "15a776171ed3fa8cfd2e6b1db431be41302ef157b13f77345e54ea49e200bb05",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 751,
+      "head_sha": "f39c02aed87fa19216b986976c5be6acb3c597d7",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "2d4c953de3f85a03dff7e8cbc938b3389b7896e3c0bb089308972eee9e95b76f",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 752,
+      "head_sha": "03d0fbd374b54849cc0044d1c9ffa9de7d807daf",
+      "reported_base_sha": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "own_delta_base_sha": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "own_diff_sha256": "e9cc8d2cf614a0a4604b4b974782de83dc6be2592f93bfca53ce8a381c07672e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 753,
+      "head_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "reported_base_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "own_delta_base_sha": "132521b8a144e3dbf16972b001fb69b44efa9cf3",
+      "own_diff_sha256": "5d6a54267603a68cd4ce04e81cc2dca77806b2e82ca2d9b350c10ab2a75f2c05",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 754,
+      "head_sha": "2a536a9254cc50586d7464cc8200d757aed2f768",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "e63501ae091c0599d45d1aecfd38d73e44436915e93c960d1b2456ca103ca3af",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 755,
+      "head_sha": "42d95e5c26e715e16b5f7953aafebbdf4dd6e4e0",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "3b187a2fb9b64e26fc276a8b989df50888187852ef6dbe1afd4a77cc34e18ff2",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 756,
+      "head_sha": "c42c247a76dd282a8bff838d83579aa5604d7725",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "ffe45e9b0f5e06f68bc47e0bd6670492db30320cc5d00a9b6b3cf3721492eea5",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 757,
+      "head_sha": "d0227d252ee10d35b25b4f27e62d82bd5a105aa8",
+      "reported_base_sha": "6e46fd8c3dcdb9ae94221bde2576808f358e7d5a",
+      "own_delta_base_sha": "6e46fd8c3dcdb9ae94221bde2576808f358e7d5a",
+      "own_diff_sha256": "d06b9e070a147e230e02dd22e336a2868210aefd112c709e93b6a4547cdd2568",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 758,
+      "head_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "reported_base_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "own_delta_base_sha": "74e4ced389cec03cd17fb9d2954ab989571fcbb3",
+      "own_diff_sha256": "4a463152ee6c6907ea66e4d8f43a8b9662cb77d8d6f4ef9fc1a00981e2496e38",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 759,
+      "head_sha": "79ac860df014f503ca9a600249189d6504d25ad8",
+      "reported_base_sha": "c42c247a76dd282a8bff838d83579aa5604d7725",
+      "own_delta_base_sha": "c42c247a76dd282a8bff838d83579aa5604d7725",
+      "own_diff_sha256": "71b950e6938af96b1a151a462ab4ce2f1a4670baaedb5a05c24cb16ddf5c7bf2",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 760,
+      "head_sha": "c592bc1073f6083af61d419967f2234bd5146064",
+      "reported_base_sha": "c4c250f3554abdcf0aeb0de1ef20fb7ee7999e48",
+      "own_delta_base_sha": "c4c250f3554abdcf0aeb0de1ef20fb7ee7999e48",
+      "own_diff_sha256": "efd255ba1fa64618e0cf76b16f3a6a504b18cc83fc512f7f48075033d0f570e8",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 761,
+      "head_sha": "06ed3264b37feecf647fb593b418da445e4fe0d1",
+      "reported_base_sha": "3acf5f05df2f660cd2092ed123f303b5ea0482d6",
+      "own_delta_base_sha": "3acf5f05df2f660cd2092ed123f303b5ea0482d6",
+      "own_diff_sha256": "5656aed1ac7b611c5a1533a39fda2e92d3c4689c66e9a6cd5b715b93f69d1d4c",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 762,
+      "head_sha": "83147ab209e19d42790d902cc336f6fe545aa0ea",
+      "reported_base_sha": "91828e36ddda97e0efac951d4191729bb8c84514",
+      "own_delta_base_sha": "91828e36ddda97e0efac951d4191729bb8c84514",
+      "own_diff_sha256": "34be4e57205ffa0a99a0d938c83dd6637ea6d91b3647518e48c384159196a199",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 763,
+      "head_sha": "e3503a898c98075b2192725e5176582c49c16100",
+      "reported_base_sha": "c592bc1073f6083af61d419967f2234bd5146064",
+      "own_delta_base_sha": "c592bc1073f6083af61d419967f2234bd5146064",
+      "own_diff_sha256": "132b81533b79df4a15583ad840d057fc71ebdd93e4b2f9f8c0f9bf756dc1ab89",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 764,
+      "head_sha": "6553230778d7e6f9aba497bcdecc78e5a66bc55f",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "a0ed94ef9f02d56e8749f078869cd6f2a174100a792794b5533e5b9bece274e9",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 765,
+      "head_sha": "4798a0cb184adaf85a943b27681d54f7e824f260",
+      "reported_base_sha": "d0227d252ee10d35b25b4f27e62d82bd5a105aa8",
+      "own_delta_base_sha": "d0227d252ee10d35b25b4f27e62d82bd5a105aa8",
+      "own_diff_sha256": "178037e47aa7253b6f5476a347ee56b312d6621b5b66ed034e71107e809b3036",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 766,
+      "head_sha": "30ff170b90b79d151e0b767b775fa5e73dd13ef2",
+      "reported_base_sha": "87f6cccf85d959b4074b7b3926aeaeaecbe6cd1b",
+      "own_delta_base_sha": "87f6cccf85d959b4074b7b3926aeaeaecbe6cd1b",
+      "own_diff_sha256": "22ccf04125cb4d5164572da645d848425d4d18cceb4f717448ceab902f9ceb66",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 767,
+      "head_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "reported_base_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "own_delta_base_sha": "647173b15a93dcb44fd85306abcc22c6ecefa4e9",
+      "own_diff_sha256": "f88ea78afccde0a94defbc9fec3f358a87b7e4d74ab0548d94f1c8b8a79a33c6",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 768,
+      "head_sha": "e5bbbbb1b9a89d1ad1dcc27514fc405daacb468a",
+      "reported_base_sha": "4798a0cb184adaf85a943b27681d54f7e824f260",
+      "own_delta_base_sha": "4798a0cb184adaf85a943b27681d54f7e824f260",
+      "own_diff_sha256": "b24f811f020c7229a8b85dd23da0dbf3648dcc367b1568119233bb2ad5ef1736",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 769,
+      "head_sha": "a1c977c2d52ce85290f3327e1d6d1d243743a251",
+      "reported_base_sha": "e3503a898c98075b2192725e5176582c49c16100",
+      "own_delta_base_sha": "e3503a898c98075b2192725e5176582c49c16100",
+      "own_diff_sha256": "5d843aca8fb883e101339c5d60bed0db17e6205985ef06939993664da1434a61",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 770,
+      "head_sha": "ebc41e57f8e864cabe330adb9d644b56f3851f8e",
+      "reported_base_sha": "ace3fb1bdc3f3d1276695957092855f82b3b475e",
+      "own_delta_base_sha": "ace3fb1bdc3f3d1276695957092855f82b3b475e",
+      "own_diff_sha256": "450dce3528bdb9251fe063fed77dc3cdbb366ab0b590d84c12de1f30ac8eaa2e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 771,
+      "head_sha": "5e1b6a65ad86ef717e398445110b80588f80772b",
+      "reported_base_sha": "632463ead172d120f9bc9abbf17efffd6beee460",
+      "own_delta_base_sha": "632463ead172d120f9bc9abbf17efffd6beee460",
+      "own_diff_sha256": "53bdc1addee11f46c65d648d2fa5c37fe7ba0d3e84773019942f4a4d3a0d5500",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 772,
+      "head_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "339ddf59aaec5b9a17b663dfbfe808d2b84832eeb35d392f20142d14f7d79533",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 773,
+      "head_sha": "4948cc842b1873e63de3f5e871c4011ba675abc0",
+      "reported_base_sha": "ebc41e57f8e864cabe330adb9d644b56f3851f8e",
+      "own_delta_base_sha": "ebc41e57f8e864cabe330adb9d644b56f3851f8e",
+      "own_diff_sha256": "a1b7106128fa04118c6d09e147bd2e030d0e826c2db19da6261eaed297602ea1",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 774,
+      "head_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "reported_base_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "own_delta_base_sha": "1b60557838c4724dd4dba6964566f8870d0ff8cb",
+      "own_diff_sha256": "45b72d0a85da2e66bdbb5298ed85933951a27d41bab71bfd322c88e58f1d523a",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 775,
+      "head_sha": "6ca0bfb7f7da4a8fe6b5602e955d60bf4dd4a78b",
+      "reported_base_sha": "a1c977c2d52ce85290f3327e1d6d1d243743a251",
+      "own_delta_base_sha": "a1c977c2d52ce85290f3327e1d6d1d243743a251",
+      "own_diff_sha256": "7ccde75bfd84ceb8b7ecc1e760e463bd5aad4dc9d360ea5d6ac96bb2b920d1d8",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 776,
+      "head_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "reported_base_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "own_delta_base_sha": "134a84f61ac500cd758f9e0d668202157dcab6e9",
+      "own_diff_sha256": "af5ac37802e2f9886640af4801a721197d84ea15f6ffeda67b8d1d754530e517",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 777,
+      "head_sha": "43aeaa8fc63c20ada8ae65b092b048e2aa495a5a",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "a708f35b1b57a47d0589625011d764f5423ca5a42687c44c84d6c723c791ea4f",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 778,
+      "head_sha": "c7522dec5d3168702fad5ec4142e7338f1e76e06",
+      "reported_base_sha": "6ca0bfb7f7da4a8fe6b5602e955d60bf4dd4a78b",
+      "own_delta_base_sha": "6ca0bfb7f7da4a8fe6b5602e955d60bf4dd4a78b",
+      "own_diff_sha256": "1ac713e55de6ef3111a7af84b18f53494a5ddece2205f0dcfbb57d3986780b7c",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 779,
+      "head_sha": "7c5054d9f028c5144908dbd9f4e269a475b7def7",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "f86f1d442ae40db09072a7128e6f41ae607fd2758e4eddf2a1226d704d6c9626",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 780,
+      "head_sha": "7caaa895d4cea52015048405cf53ed0c5e8ad4f7",
+      "reported_base_sha": "7c5054d9f028c5144908dbd9f4e269a475b7def7",
+      "own_delta_base_sha": "7c5054d9f028c5144908dbd9f4e269a475b7def7",
+      "own_diff_sha256": "7d4daa758d8339769a8bab392f1037beec1cd8b3a9885b7708d7c4a033864ba5",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 781,
+      "head_sha": "284a3a27d3383d71c1f30aa2ff30597a6620a968",
+      "reported_base_sha": "c7522dec5d3168702fad5ec4142e7338f1e76e06",
+      "own_delta_base_sha": "c7522dec5d3168702fad5ec4142e7338f1e76e06",
+      "own_diff_sha256": "d0c205277a50be529eba30ce9739a8a02515efa02546e0b4b2bd5774eea40eaa",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 782,
+      "head_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "reported_base_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "own_delta_base_sha": "1031e51e4bcb58d73f076848d4a05405c227a3d5",
+      "own_diff_sha256": "ffff7f486d62681263a80ec87550c8b779d076de5f7696775b5e13f0a78463a3",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 783,
+      "head_sha": "8408ce91acf3ff96742ba7e2b1453715259a84e2",
+      "reported_base_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "own_delta_base_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "own_diff_sha256": "3bc0afc033441be47c32dd9bbddf5f0b4642f062f87ec42c23428768c74a909c",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 784,
+      "head_sha": "9da6c61c74940eeb3b2430c17696f0acc54d63b3",
+      "reported_base_sha": "e5bbbbb1b9a89d1ad1dcc27514fc405daacb468a",
+      "own_delta_base_sha": "e5bbbbb1b9a89d1ad1dcc27514fc405daacb468a",
+      "own_diff_sha256": "6e6ceb80f41e5b54ca67216ad5b9fbe3c1c01d1022f2d593b2795ce447a3756b",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 785,
+      "head_sha": "83ffb8e70f93f27a61e9b21418fba90c3338575e",
+      "reported_base_sha": "7caaa895d4cea52015048405cf53ed0c5e8ad4f7",
+      "own_delta_base_sha": "7caaa895d4cea52015048405cf53ed0c5e8ad4f7",
+      "own_diff_sha256": "a62d1addee3ef91feaafcf3bdcb09f0914780f515b63c81b36abf5246e85177e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 786,
+      "head_sha": "01442ca38696654312eb345aaaf7771b4910df94",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "062fa64d757cf1e6bc684696b84188fcadac67a74aad783e5162b4286b27ec25",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 787,
+      "head_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "reported_base_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "own_delta_base_sha": "22abb2f0cc2219d7334257215bdb74d262c0f254",
+      "own_diff_sha256": "2ef2ca91f06df1903d48cf21ed98b66b3538a75275d8e1ca4652f7bb32a376c0",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 788,
+      "head_sha": "a6d8eb53f9a76421e2ce01aa93ef095d1e48a964",
+      "reported_base_sha": "06ed3264b37feecf647fb593b418da445e4fe0d1",
+      "own_delta_base_sha": "06ed3264b37feecf647fb593b418da445e4fe0d1",
+      "own_diff_sha256": "d699f2d37d188611096e87e9a70078cfda3c22bf29a3b8d504fb76931b596556",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 789,
+      "head_sha": "46769bd9065e599ceb32432ced10c5f3515a3aa9",
+      "reported_base_sha": "83ffb8e70f93f27a61e9b21418fba90c3338575e",
+      "own_delta_base_sha": "83ffb8e70f93f27a61e9b21418fba90c3338575e",
+      "own_diff_sha256": "d680a539ea9f4fcfebdb98a118a5850310f39a22ae7a088110134b61389b7697",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 790,
+      "head_sha": "2d812b4c207d67870d1490d10978b26a2f840827",
+      "reported_base_sha": "284a3a27d3383d71c1f30aa2ff30597a6620a968",
+      "own_delta_base_sha": "284a3a27d3383d71c1f30aa2ff30597a6620a968",
+      "own_diff_sha256": "afa973457aef922494418fd1c25c20453cdf0c1f539429d304dcc0d006168de9",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 791,
+      "head_sha": "b1bec77708152d0fb49cbcbf239a890332426b1c",
+      "reported_base_sha": "9da6c61c74940eeb3b2430c17696f0acc54d63b3",
+      "own_delta_base_sha": "9da6c61c74940eeb3b2430c17696f0acc54d63b3",
+      "own_diff_sha256": "73f19b31ee53c17b48bb47b83ee547044aac02f6efda9a1c13dce6a6e87e3218",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 792,
+      "head_sha": "f69c0c1fb1834e89b9d9b12b4bdddb4192d24fe9",
+      "reported_base_sha": "46769bd9065e599ceb32432ced10c5f3515a3aa9",
+      "own_delta_base_sha": "46769bd9065e599ceb32432ced10c5f3515a3aa9",
+      "own_diff_sha256": "4a92e05a0d583b760d833f7438891be60a2ba03783fbb48faecc465cc2b3183e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 793,
+      "head_sha": "672bc05cfc9463e19bd99ef99ececdb042898f05",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "c3bf7b555ee3923f4d43cec829d5d2193be64f42bdcf78856568439db2292b78",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 794,
+      "head_sha": "f1d894d9a77dfc3a6a6c01bd346d73be5fa6e855",
+      "reported_base_sha": "f69c0c1fb1834e89b9d9b12b4bdddb4192d24fe9",
+      "own_delta_base_sha": "f69c0c1fb1834e89b9d9b12b4bdddb4192d24fe9",
+      "own_diff_sha256": "67185fde204867cb365df13eba61eea73355a627158739ce4db18cfea7ad80b0",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 795,
+      "head_sha": "97cd9252931feb8c0d1001c9b0dea8f578ee11b0",
+      "reported_base_sha": "f1d894d9a77dfc3a6a6c01bd346d73be5fa6e855",
+      "own_delta_base_sha": "f1d894d9a77dfc3a6a6c01bd346d73be5fa6e855",
+      "own_diff_sha256": "da63f0dace68a15d9ddcfd5c7752b0b8c0e5a2a3ba457a8d03b004c550686fb5",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 796,
+      "head_sha": "837e1db86a0c565fa77de6e0875c3b6d4181c3b6",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "64b3218cf23252437543efb35ba9b243b61297d2a16644006a89376141c7e2a4",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 797,
+      "head_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "reported_base_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "own_delta_base_sha": "d213d18065ed3cc85688cf32b0a323be238d6c7d",
+      "own_diff_sha256": "0aacb6c4b4517e3016a8eb52bfe6e0eb3c34fd5b2ed16086331606fd92418a59",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 798,
+      "head_sha": "0ab9bfd347fac67524dcd6f1e7a034692d015e66",
+      "reported_base_sha": "b1bec77708152d0fb49cbcbf239a890332426b1c",
+      "own_delta_base_sha": "b1bec77708152d0fb49cbcbf239a890332426b1c",
+      "own_diff_sha256": "381a954d56d7659c9c03f79858796f169d284e6ed54be5ddbc1b758d60e98a29",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 799,
+      "head_sha": "8761ae80120e1186bd5ef0f23e744667b570c5ae",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "e27d9eb6cdf97d14099d1298a8caf6bd58f7ee48b9e29e4e4228bf2798320e66",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 800,
+      "head_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "reported_base_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "own_delta_base_sha": "1103b360ba7fe0534e18aa90a7b8dc8185f35342",
+      "own_diff_sha256": "5baae717c657c8fe3b07d9f81a88724954f2a7d19c40436f9326171044988560",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 801,
+      "head_sha": "7c6e4626a9995b86180cfd92eca20a8eb5ddab8a",
+      "reported_base_sha": "0ab9bfd347fac67524dcd6f1e7a034692d015e66",
+      "own_delta_base_sha": "0ab9bfd347fac67524dcd6f1e7a034692d015e66",
+      "own_diff_sha256": "da2a1bcab3ce553f8c56f8f11e3cf83a85f976d71a78d4348bcb09adab4be784",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 802,
+      "head_sha": "ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c",
+      "reported_base_sha": "837e1db86a0c565fa77de6e0875c3b6d4181c3b6",
+      "own_delta_base_sha": "837e1db86a0c565fa77de6e0875c3b6d4181c3b6",
+      "own_diff_sha256": "11d73d4d1f9b4cb25e045b04f9735d529b0039a9702d43aa04b4ebbf395d4fea",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 803,
+      "head_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "reported_base_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "own_delta_base_sha": "75bcec5209af49452f44bf802e5d2c1e2d52c4c7",
+      "own_diff_sha256": "81fe7ccdf7f78a1a88ceb2c94ecd0560e6707438f2a38577f3d283d110a2f56e",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 804,
+      "head_sha": "74b523d4b30bc2cd031e9d40998abb7a85217736",
+      "reported_base_sha": "7c6e4626a9995b86180cfd92eca20a8eb5ddab8a",
+      "own_delta_base_sha": "7c6e4626a9995b86180cfd92eca20a8eb5ddab8a",
+      "own_diff_sha256": "7904458775382a4bd388057c2fb4339287e14279c2b4a5839ca5dd28f2ee6c82",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 805,
+      "head_sha": "0e334211ddcbeda22430063af4c185a32cd7803b",
+      "reported_base_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "own_delta_base_sha": "cdf63c12fda8dd0b4e374bd234f8b99191cfe3f3",
+      "own_diff_sha256": "2cf1520b1db8d28a027ae64bfd79480131f58a6f04bcdde4ebe1538f1b899078",
+      "research_partition": "guide",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 806,
+      "head_sha": "973771fb0e9aeefefd03f674a7d5142931a22d69",
+      "reported_base_sha": "8761ae80120e1186bd5ef0f23e744667b570c5ae",
+      "own_delta_base_sha": "8761ae80120e1186bd5ef0f23e744667b570c5ae",
+      "own_diff_sha256": "ed4f7fae80a3e32332f6362d4e6c0405bcf36b0012ad6531ad0f7aba93025a19",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 807,
+      "head_sha": "38d5ef5aae36aac113d6b8d8b9f35689a1b05cf5",
+      "reported_base_sha": "30ff170b90b79d151e0b767b775fa5e73dd13ef2",
+      "own_delta_base_sha": "30ff170b90b79d151e0b767b775fa5e73dd13ef2",
+      "own_diff_sha256": "86516e61a824e65d031ac29d43e947ebc35f1b66f02db3f07197b4de4c8271d0",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 808,
+      "head_sha": "435f48237472a9fd3701aa32687c40504cb22f49",
+      "reported_base_sha": "ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c",
+      "own_delta_base_sha": "ed44e7adddcd48ee2c8db8b02aef4f0a6c71d94c",
+      "own_diff_sha256": "7c228e7d364d3ba30a72cdac09818231bbf666c5a1bc3a6b8e321440b238b6b0",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 809,
+      "head_sha": "ce6160210ddbc8cfd9a662da9be5e265efe61d9e",
+      "reported_base_sha": "5e1b6a65ad86ef717e398445110b80588f80772b",
+      "own_delta_base_sha": "5e1b6a65ad86ef717e398445110b80588f80772b",
+      "own_diff_sha256": "1307889a2071061fc7fd79f17dc04b1fcef217a67c918d45de80134f2b309d68",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 810,
+      "head_sha": "1bdd4fbb7f7fd63307d4e328bee41ca159e5f87b",
+      "reported_base_sha": "83147ab209e19d42790d902cc336f6fe545aa0ea",
+      "own_delta_base_sha": "83147ab209e19d42790d902cc336f6fe545aa0ea",
+      "own_diff_sha256": "bbd19b5a3ae9008b676f970c92e4c80248b06e407ad96ade1358dbf0a65f0187",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 811,
+      "head_sha": "bfb7efc9e379e2e0e3f16ed6da8462c8887480d1",
+      "reported_base_sha": "74b523d4b30bc2cd031e9d40998abb7a85217736",
+      "own_delta_base_sha": "74b523d4b30bc2cd031e9d40998abb7a85217736",
+      "own_diff_sha256": "edbdc4b3797f2cd47164229a95ba69a7ddc0939df5e61ea5dae14d42b09660cf",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 812,
+      "head_sha": "24f6b3beb44985456417ee081c788c0d1f6e4ff8",
+      "reported_base_sha": "42d95e5c26e715e16b5f7953aafebbdf4dd6e4e0",
+      "own_delta_base_sha": "42d95e5c26e715e16b5f7953aafebbdf4dd6e4e0",
+      "own_diff_sha256": "ffa184c5e9eba9bef8a937ad787be2f18c4b9b25b9948e48c5f8f3cf607a82f7",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 813,
+      "head_sha": "b5546433c60934a589cba13263742013f186a8c5",
+      "reported_base_sha": "4948cc842b1873e63de3f5e871c4011ba675abc0",
+      "own_delta_base_sha": "4948cc842b1873e63de3f5e871c4011ba675abc0",
+      "own_diff_sha256": "0197882e100d53af0a162384945ebb1d581c548e7f6f46474f2040512ea0403d",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 814,
+      "head_sha": "044cd37c9603b42351b96dce70549bf70670f613",
+      "reported_base_sha": "2d812b4c207d67870d1490d10978b26a2f840827",
+      "own_delta_base_sha": "2d812b4c207d67870d1490d10978b26a2f840827",
+      "own_diff_sha256": "9f93f50e558a560d1673abe0382857eb251a1a553948348c32bb99a80351e613",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 815,
+      "head_sha": "01f917a014e763b37acaff40372a23f9049a020c",
+      "reported_base_sha": "476a05fb033afe480af31b6d32c7a4c46f1061c4",
+      "own_delta_base_sha": "476a05fb033afe480af31b6d32c7a4c46f1061c4",
+      "own_diff_sha256": "608bd29e78ff27e2fa38629543186f77c9044f70ee58b97824a2e9c771b262a8",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 816,
+      "head_sha": "dbf82153c1b90807dc78715fc994a9e13a88474a",
+      "reported_base_sha": "2a9b7157e9c1ac98534a537267bab9478b5cdb12",
+      "own_delta_base_sha": "2a9b7157e9c1ac98534a537267bab9478b5cdb12",
+      "own_diff_sha256": "b71c895218ff678eecb4f8206a26b8e058965bbf72ab6132be9f87919fe13b57",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 817,
+      "head_sha": "d4212a32085b60df55105b92c7e1958a72c5c98e",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "5b578b2c7812564d2191708e2732578483a9164e7b2a2b72968079b127dc55a6",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 818,
+      "head_sha": "64ea6719f32ecf817ec6e734c237c0e986c6b851",
+      "reported_base_sha": "044cd37c9603b42351b96dce70549bf70670f613",
+      "own_delta_base_sha": "044cd37c9603b42351b96dce70549bf70670f613",
+      "own_diff_sha256": "0a3b1069d2259f815c5eeb7cbece44218545f3074e707e614da6fdd58fd95906",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 819,
+      "head_sha": "ba875f8401c18b089222f4aa9fc72a226c310a73",
+      "reported_base_sha": "dbf82153c1b90807dc78715fc994a9e13a88474a",
+      "own_delta_base_sha": "dbf82153c1b90807dc78715fc994a9e13a88474a",
+      "own_diff_sha256": "3a0f8463cb171298b2c7627b10ec3a0367ae848303bd556b2efdcd3424e671c8",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 820,
+      "head_sha": "4fa6c2501d911265f5a454c84c68088f57c76eb3",
+      "reported_base_sha": "97cd9252931feb8c0d1001c9b0dea8f578ee11b0",
+      "own_delta_base_sha": "97cd9252931feb8c0d1001c9b0dea8f578ee11b0",
+      "own_diff_sha256": "a7a1582a705e8a814cb73eda639a6aa113d2f6d1c0cc4aff0a24d1c93eeae20e",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 821,
+      "head_sha": "bcc3da97253bed7d44e74efe2ab844f20ce4ab45",
+      "reported_base_sha": "64ea6719f32ecf817ec6e734c237c0e986c6b851",
+      "own_delta_base_sha": "64ea6719f32ecf817ec6e734c237c0e986c6b851",
+      "own_diff_sha256": "21e7e221b7d5e0cf01a81ce4f06354744749c88a707dd598321747aaa8591daf",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 822,
+      "head_sha": "4457b401d5ede6824cfdf3f294585d76c16d38f6",
+      "reported_base_sha": "b5546433c60934a589cba13263742013f186a8c5",
+      "own_delta_base_sha": "b5546433c60934a589cba13263742013f186a8c5",
+      "own_diff_sha256": "97ed837989207014af3b97478ac6756c992aee24842bbaee121b44c2ca998af8",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 823,
+      "head_sha": "0de88796921766978f25a3cdfe71dd9606b69462",
+      "reported_base_sha": "bcc3da97253bed7d44e74efe2ab844f20ce4ab45",
+      "own_delta_base_sha": "bcc3da97253bed7d44e74efe2ab844f20ce4ab45",
+      "own_diff_sha256": "0a163b4f88b4a7ec67a52d4cb9ec3349bb55e251cc8c2ea430895d833b978a83",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 824,
+      "head_sha": "986f682af56ef71cd3c88f6c289cb865abd6bf19",
+      "reported_base_sha": "bfb7efc9e379e2e0e3f16ed6da8462c8887480d1",
+      "own_delta_base_sha": "bfb7efc9e379e2e0e3f16ed6da8462c8887480d1",
+      "own_diff_sha256": "9c0f22027d9878f66bcbf9787a05e19f11a5fd655fd11e66e2fa250812641150",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 825,
+      "head_sha": "1edbca758f782716efca33c8dfab56c30d923cd6",
+      "reported_base_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "own_delta_base_sha": "d46afb66a7d9242509f830e30c175059f5c5481f",
+      "own_diff_sha256": "c85a7cd4ffa8c73eb9aa0820aeb32a2ff28b673191efd72722b51ee392775c58",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 826,
+      "head_sha": "85e4545a6a6ea584e27417f15d2db3d6af98ce10",
+      "reported_base_sha": "38d5ef5aae36aac113d6b8d8b9f35689a1b05cf5",
+      "own_delta_base_sha": "38d5ef5aae36aac113d6b8d8b9f35689a1b05cf5",
+      "own_diff_sha256": "7b8284e8b4e12a7f225809cea2ab2fcb708f934467fc504cd5f38802e28045d0",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 827,
+      "head_sha": "89fe96d38b146448b94a7a4ab026eff0c703d4e6",
+      "reported_base_sha": "85e4545a6a6ea584e27417f15d2db3d6af98ce10",
+      "own_delta_base_sha": "85e4545a6a6ea584e27417f15d2db3d6af98ce10",
+      "own_diff_sha256": "f14eb76c6e6615dff982da0ca5e07d0dce658206fb0b2af4274572534d34ac34",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 828,
+      "head_sha": "9ea252b195f6a208a62d86fa84a1589bfb4856be",
+      "reported_base_sha": "0de88796921766978f25a3cdfe71dd9606b69462",
+      "own_delta_base_sha": "0de88796921766978f25a3cdfe71dd9606b69462",
+      "own_diff_sha256": "59bbd34777ac9a113e4350c714966d4d28d7cae12319a1ca7d10a2accd99bc2d",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 829,
+      "head_sha": "f3d53f566e2794ded1d52ed6f719d5cc17ae37c6",
+      "reported_base_sha": "d4212a32085b60df55105b92c7e1958a72c5c98e",
+      "own_delta_base_sha": "d4212a32085b60df55105b92c7e1958a72c5c98e",
+      "own_diff_sha256": "53c3fdfe9bdd36fdfb63151b25f49ce3fba2372b3f9bf07e78d815d5207c5637",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 830,
+      "head_sha": "37247d5737ace65b89bf4bb27c510e67a13b2777",
+      "reported_base_sha": "986f682af56ef71cd3c88f6c289cb865abd6bf19",
+      "own_delta_base_sha": "986f682af56ef71cd3c88f6c289cb865abd6bf19",
+      "own_diff_sha256": "73f155be3a8619b13b2b4af0a108282dd38833f33d77d2f9ee3cbe6bcc9d6eb2",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 831,
+      "head_sha": "cd9b36bb4b50f6015430f14b5deee67f4aa4031d",
+      "reported_base_sha": "9ea252b195f6a208a62d86fa84a1589bfb4856be",
+      "own_delta_base_sha": "9ea252b195f6a208a62d86fa84a1589bfb4856be",
+      "own_diff_sha256": "798dcf03462aa0f9c8c62a1a9905da3c89f7beac0316194459d6f9519ca70d39",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 832,
+      "head_sha": "a5f9e6c1313e6b2f2604f03d73c520227a0879dd",
+      "reported_base_sha": "ace3fb1bdc3f3d1276695957092855f82b3b475e",
+      "own_delta_base_sha": "ace3fb1bdc3f3d1276695957092855f82b3b475e",
+      "own_diff_sha256": "570b1b722d2e4aaef87f321865cd20973470cfd5ee1b00b6683226378d135e68",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 833,
+      "head_sha": "392cb4f56333e8c8adf6528210460acde5cd15aa",
+      "reported_base_sha": "f3d53f566e2794ded1d52ed6f719d5cc17ae37c6",
+      "own_delta_base_sha": "f3d53f566e2794ded1d52ed6f719d5cc17ae37c6",
+      "own_diff_sha256": "1880a3ef7de2541b307b316dfdc19df0f53c50d7d1e1a2ac9e37683604ff60ea",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 834,
+      "head_sha": "d6b710fdd9b2376628a79081d582c6829dc501c2",
+      "reported_base_sha": "a5f9e6c1313e6b2f2604f03d73c520227a0879dd",
+      "own_delta_base_sha": "a5f9e6c1313e6b2f2604f03d73c520227a0879dd",
+      "own_diff_sha256": "afbd3716cfd49cd82af752421ae9cb83d00b51d196f09b9405f6e8072e97caa9",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 835,
+      "head_sha": "c9238186fbc3c869c38b5ec08e36cbd9509a9984",
+      "reported_base_sha": "37247d5737ace65b89bf4bb27c510e67a13b2777",
+      "own_delta_base_sha": "37247d5737ace65b89bf4bb27c510e67a13b2777",
+      "own_diff_sha256": "7fb3519c6e653f75054a8977193fdef779c61ecce4bd7f42fd0095848acb2904",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 837,
+      "head_sha": "b1eae06d53d5ad5c6455162be90b30320e0ba69a",
+      "reported_base_sha": "392cb4f56333e8c8adf6528210460acde5cd15aa",
+      "own_delta_base_sha": "392cb4f56333e8c8adf6528210460acde5cd15aa",
+      "own_diff_sha256": "d579bff4094e8ee301e580771b186846f132b8106e14a3df63befbc4d1b9204f",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 838,
+      "head_sha": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "reported_base_sha": "d6b710fdd9b2376628a79081d582c6829dc501c2",
+      "own_delta_base_sha": "d6b710fdd9b2376628a79081d582c6829dc501c2",
+      "own_diff_sha256": "b029c5f1b0ef644de9b4e2753208d0977ef61b1f157f6bdae0fa892add076d6c",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 839,
+      "head_sha": "36406a320b04ee7e8dad2251c847c937747c348e",
+      "reported_base_sha": "cd9b36bb4b50f6015430f14b5deee67f4aa4031d",
+      "own_delta_base_sha": "cd9b36bb4b50f6015430f14b5deee67f4aa4031d",
+      "own_diff_sha256": "7f99f299f25f0dcd6a15573577349dc71154e045df75d0512390aac6c11d4780",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 840,
+      "head_sha": "51a07aebb604414f8781b8ec8fb9f610f7d8f7c4",
+      "reported_base_sha": "ee7c0bf297fd020d6e1abc6514411fd7b96bff78",
+      "own_delta_base_sha": "ee7c0bf297fd020d6e1abc6514411fd7b96bff78",
+      "own_diff_sha256": "e79ee98f933ae811f792a9f22446c14effef210c9881594ec552169c0b70569f",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 841,
+      "head_sha": "7b55f4882ff03eea54b87530a2c255eaf02c77f4",
+      "reported_base_sha": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "own_delta_base_sha": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "own_diff_sha256": "d63e82753b1313dd730c4ada7d006838df5b1218ba4739ffa02e2bed40abcc16",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 842,
+      "head_sha": "652f02fdc32b445eae02b35a7fd2fc1d49e479fb",
+      "reported_base_sha": "6553230778d7e6f9aba497bcdecc78e5a66bc55f",
+      "own_delta_base_sha": "6553230778d7e6f9aba497bcdecc78e5a66bc55f",
+      "own_diff_sha256": "53e9c4a6670691950b046fb75d9d62cefba26df588a153423aa60c55d7f080b5",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 843,
+      "head_sha": "32b2c9092c9368cfc9d7309134585e808789e422",
+      "reported_base_sha": "36406a320b04ee7e8dad2251c847c937747c348e",
+      "own_delta_base_sha": "36406a320b04ee7e8dad2251c847c937747c348e",
+      "own_diff_sha256": "a5269d0a8bdd46de8966c85c2f4a513aff0b128054a26c1ad72aa057a34f9ccb",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 844,
+      "head_sha": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "reported_base_sha": "7b55f4882ff03eea54b87530a2c255eaf02c77f4",
+      "own_delta_base_sha": "7b55f4882ff03eea54b87530a2c255eaf02c77f4",
+      "own_diff_sha256": "bbea02b4dab1b7a456a8bdd503ee516c4b4de5290f0480734dba07d084cb4780",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 845,
+      "head_sha": "9c1265cf333ad1f4f637563d4fda672770c9a89a",
+      "reported_base_sha": "32b2c9092c9368cfc9d7309134585e808789e422",
+      "own_delta_base_sha": "32b2c9092c9368cfc9d7309134585e808789e422",
+      "own_diff_sha256": "6e19fcc6a0f7b349ecaddb2785c89c83da03e00700d37cb87d3b1a377728e647",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 846,
+      "head_sha": "8647bc5d2a6a92d9d7e08068cfa37c6ceed15852",
+      "reported_base_sha": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "own_delta_base_sha": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "own_diff_sha256": "dc0f96be9619aa9177525a115370d1f68486885b1a4504cd08a57c7f5dd9be01",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 847,
+      "head_sha": "491b986a3594c7a22b883b06892dd112db165cf6",
+      "reported_base_sha": "9c1265cf333ad1f4f637563d4fda672770c9a89a",
+      "own_delta_base_sha": "9c1265cf333ad1f4f637563d4fda672770c9a89a",
+      "own_diff_sha256": "0e555f2bc9ed2e171675b3d5492f5d8e3c016430baacc1138758489420425792",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 848,
+      "head_sha": "50c0136a8a66dda5861bc93e5f30bac0f3743d20",
+      "reported_base_sha": "8647bc5d2a6a92d9d7e08068cfa37c6ceed15852",
+      "own_delta_base_sha": "8647bc5d2a6a92d9d7e08068cfa37c6ceed15852",
+      "own_diff_sha256": "273f04588e52cfb53869e49c655bbf910c49b08cb0a6236cb19074a000a79be3",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 849,
+      "head_sha": "e678dc43200eb5c3c3d155caf88e0d0293d40dbc",
+      "reported_base_sha": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "own_delta_base_sha": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "own_diff_sha256": "0f048a7422447b987f6f1ae7a5e55c8948859417b5d2cc915c2e94fc06b8bd34",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 850,
+      "head_sha": "7840b3cfa4fa75e475bccd038ca4f1172d4e420c",
+      "reported_base_sha": "491b986a3594c7a22b883b06892dd112db165cf6",
+      "own_delta_base_sha": "491b986a3594c7a22b883b06892dd112db165cf6",
+      "own_diff_sha256": "52990412737f915f4b434c1a434e73cb3adcfbf117e3c77cd5d1709ad8c84398",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 851,
+      "head_sha": "dc3f7e5ae8a2ab6916d1cdcb2295bb5757232460",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "1efe41f48a5b230d1699c9f04b8d456b18a20a1bc128b3e23c54836e58503ee7",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 852,
+      "head_sha": "698089600d55afd0352f0da72b619fb7c1c01deb",
+      "reported_base_sha": "51a07aebb604414f8781b8ec8fb9f610f7d8f7c4",
+      "own_delta_base_sha": "51a07aebb604414f8781b8ec8fb9f610f7d8f7c4",
+      "own_diff_sha256": "2f9600305a19b10bb39101b3e36ba6ad3be034173f9dad36ea794d79a6ab8f1f",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 853,
+      "head_sha": "839137ac92f7b603fbd57831afb7b23fefa03d10",
+      "reported_base_sha": "698089600d55afd0352f0da72b619fb7c1c01deb",
+      "own_delta_base_sha": "698089600d55afd0352f0da72b619fb7c1c01deb",
+      "own_diff_sha256": "b78bb09ffefb01ef9c1052e54d20a68611be6b652563c7523f6c4affa9a1f6ba",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 854,
+      "head_sha": "db2c6ffee4ebcdc872047c7d580901a23578e479",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "b5c4731ab3b7d40f6cedca4dad18d1889723744929fd6dd03d784611c36b91a3",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 855,
+      "head_sha": "7954d2350cf098864b6519ce5c2c820f7f2c7a84",
+      "reported_base_sha": "7840b3cfa4fa75e475bccd038ca4f1172d4e420c",
+      "own_delta_base_sha": "7840b3cfa4fa75e475bccd038ca4f1172d4e420c",
+      "own_diff_sha256": "01cb80ef1d552fceda7a9d77744fcc18d8095318fbf0e2ac9612cbf6c08c32d3",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 856,
+      "head_sha": "3cb745b58cfc012853c5164b57068b5bd50b1216",
+      "reported_base_sha": "839137ac92f7b603fbd57831afb7b23fefa03d10",
+      "own_delta_base_sha": "839137ac92f7b603fbd57831afb7b23fefa03d10",
+      "own_diff_sha256": "fa655dc06c4eb27909ceae89881cc68dfc51ea77e5be63bc09e987ae27709eec",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 857,
+      "head_sha": "6cff411a8b6b4d33e481558c6906cbaa514d0341",
+      "reported_base_sha": "3cb745b58cfc012853c5164b57068b5bd50b1216",
+      "own_delta_base_sha": "3cb745b58cfc012853c5164b57068b5bd50b1216",
+      "own_diff_sha256": "56bf5dd270bab6070cf2e50af3112e92c1eb31cce70758b9beafe96115614182",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 858,
+      "head_sha": "38a171942c1bff9fcf11356220055a45d00e0002",
+      "reported_base_sha": "7954d2350cf098864b6519ce5c2c820f7f2c7a84",
+      "own_delta_base_sha": "7954d2350cf098864b6519ce5c2c820f7f2c7a84",
+      "own_diff_sha256": "7a302e6b502effa3e650d0b917e0b051b90354907cf57d4025d1f134c844af3a",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 859,
+      "head_sha": "126af15fe2de50303827dd43e1fe3c857561b636",
+      "reported_base_sha": "6cff411a8b6b4d33e481558c6906cbaa514d0341",
+      "own_delta_base_sha": "6cff411a8b6b4d33e481558c6906cbaa514d0341",
+      "own_diff_sha256": "514cf933132647bfe2bba939622311fe9eaed21fd74ef9ab6cded9db19d2c453",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 860,
+      "head_sha": "298856c3e313b08599d0cf7af5b653d699a9b12d",
+      "reported_base_sha": "126af15fe2de50303827dd43e1fe3c857561b636",
+      "own_delta_base_sha": "126af15fe2de50303827dd43e1fe3c857561b636",
+      "own_diff_sha256": "d7a6bc3efb810a42c5f88f13a5929120d6c2dc4282b4050ab5ef1dacff26c762",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 861,
+      "head_sha": "155ebdb8cf7ce2ebef467054280a56cf937a8132",
+      "reported_base_sha": "38a171942c1bff9fcf11356220055a45d00e0002",
+      "own_delta_base_sha": "38a171942c1bff9fcf11356220055a45d00e0002",
+      "own_diff_sha256": "0ff7756fa97b53bf2bb4e48e635c11098e7bcb7bfb98afd69d4f9038319827d9",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 862,
+      "head_sha": "42749e5c730bf8d9c1f72c4c303998648f1a3166",
+      "reported_base_sha": "31336f4da0f7ee372a9a865ee9e04c77e24aa707",
+      "own_delta_base_sha": "31336f4da0f7ee372a9a865ee9e04c77e24aa707",
+      "own_diff_sha256": "fa105621e9cbc93d7f68a5f18cc18e6a77fc67a4fc807185b39eb60e0f93fd31",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 863,
+      "head_sha": "b68616ab77ad9f05a8f354aa940ece64c5ed09f6",
+      "reported_base_sha": "e678dc43200eb5c3c3d155caf88e0d0293d40dbc",
+      "own_delta_base_sha": "e678dc43200eb5c3c3d155caf88e0d0293d40dbc",
+      "own_diff_sha256": "952711bfd57542c7846d2cc1f4583fa09d6780dea170bd3f0ebe76ff9b890760",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 864,
+      "head_sha": "72e04e6bda53f70a207c2aa0984ab68d80d77a05",
+      "reported_base_sha": "155ebdb8cf7ce2ebef467054280a56cf937a8132",
+      "own_delta_base_sha": "155ebdb8cf7ce2ebef467054280a56cf937a8132",
+      "own_diff_sha256": "1f1f538b5765e22fabcde485adbbf8171b0291c33f13f1342fec99f8dd71009e",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 865,
+      "head_sha": "b5302420a922313b1a70a811c585c855e80a2006",
+      "reported_base_sha": "dc3f7e5ae8a2ab6916d1cdcb2295bb5757232460",
+      "own_delta_base_sha": "dc3f7e5ae8a2ab6916d1cdcb2295bb5757232460",
+      "own_diff_sha256": "e4c1b4e8e023fb27973a560756fc8e9715089ffbe9feac41662e55c9496ed396",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 866,
+      "head_sha": "9a4faf43b900d12de5e7f0af39d3a27d55ad940c",
+      "reported_base_sha": "c9238186fbc3c869c38b5ec08e36cbd9509a9984",
+      "own_delta_base_sha": "c9238186fbc3c869c38b5ec08e36cbd9509a9984",
+      "own_diff_sha256": "eac273f187b3778b7167fb95dd1c69223376c6772c49f5128b338ef32b6fc25b",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 867,
+      "head_sha": "9d2ba7fc0d2757a8899497a45c8a02edfa0a0e8b",
+      "reported_base_sha": "298856c3e313b08599d0cf7af5b653d699a9b12d",
+      "own_delta_base_sha": "298856c3e313b08599d0cf7af5b653d699a9b12d",
+      "own_diff_sha256": "b91ab119f01ef540a4fca779645826a7ef2fdf4130f7efbfba6dde831f8568c5",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 868,
+      "head_sha": "a5e19bac1d17f98a327d79cf752b8d9abbb95844",
+      "reported_base_sha": "72e04e6bda53f70a207c2aa0984ab68d80d77a05",
+      "own_delta_base_sha": "72e04e6bda53f70a207c2aa0984ab68d80d77a05",
+      "own_diff_sha256": "07d7f881807cbc8a401276019cb91778e564e1a232bcbf876ed636b733d59f75",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 869,
+      "head_sha": "f3498ffb4e0d4327bf31e1e17fee5ecee3266f2b",
+      "reported_base_sha": "9d2ba7fc0d2757a8899497a45c8a02edfa0a0e8b",
+      "own_delta_base_sha": "9d2ba7fc0d2757a8899497a45c8a02edfa0a0e8b",
+      "own_diff_sha256": "03fcf57da251054b69e3aa81342ce2142f28645047eb74474b5ba463b3ca2ea1",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 870,
+      "head_sha": "df7efd895da89e0a2dfeb32873b97eeb55397b10",
+      "reported_base_sha": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "own_delta_base_sha": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "own_diff_sha256": "c2dc34de521a3e7918175e1d2196763bfee8e975b72eb402cc20c3fe492c57df",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 871,
+      "head_sha": "07d3e66e4d9ea837f5ebf58384521732b103b6e8",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "d3913ede2e3ef229d523373ea0324f8f3c168d0df98a2a12d71a8dff47359db7",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 872,
+      "head_sha": "6d8e058038f4b753eac3c991257a8d8d264ea3c2",
+      "reported_base_sha": "f3498ffb4e0d4327bf31e1e17fee5ecee3266f2b",
+      "own_delta_base_sha": "f3498ffb4e0d4327bf31e1e17fee5ecee3266f2b",
+      "own_diff_sha256": "3c3538a48014ac595a93bee0162cb78990c0fa00e7243f61127f8c3bd55b936f",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 873,
+      "head_sha": "4539e503683e0d011e6b58d23aaa9c449043918d",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "069fe7758e8590d850087d937c12d0480b7ca8a6ca0f702cd35c1be22377cf41",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 874,
+      "head_sha": "338124697ccbbccb1d8b709faed28ed03cd0e4e4",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "99e3094b88b408179b72cea2a7a72a1f24257ac07d64c7cf13d36f4606b57896",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 875,
+      "head_sha": "14244b52399bdc5dd26948544a64893449c0a1a8",
+      "reported_base_sha": "4539e503683e0d011e6b58d23aaa9c449043918d",
+      "own_delta_base_sha": "4539e503683e0d011e6b58d23aaa9c449043918d",
+      "own_diff_sha256": "04d16fad72e8d834a6102bd1a586ff2f804e2ec2b7933171c67ab437b46752d6",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 876,
+      "head_sha": "805a939317897e1b1826b31e2a041911dcf3478f",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "00b1a28200adde53512e1794786ced8d5c513c877958cf47f7822fcc2a403f5a",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 877,
+      "head_sha": "465bbf2dd7189bdf2849867560a85afe6c12f0a4",
+      "reported_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "0aaebef468652814e413e29fa137fa1dd680921129473d0e88ed18f0e78e2d67",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 878,
+      "head_sha": "2fe4db561239ff44e84cec0e97f87670804dd252",
+      "reported_base_sha": "465bbf2dd7189bdf2849867560a85afe6c12f0a4",
+      "own_delta_base_sha": "465bbf2dd7189bdf2849867560a85afe6c12f0a4",
+      "own_diff_sha256": "8b6526797688b11b7fad83d07a2227ce3950c9d47a4f2232707f8f21a5606964",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 879,
+      "head_sha": "6aafda66231d47b69c0d08e411207b87e4e00a71",
+      "reported_base_sha": "c42444b502f9525812ed57c4e44fb86962bfb90d",
+      "own_delta_base_sha": "c42444b502f9525812ed57c4e44fb86962bfb90d",
+      "own_diff_sha256": "b1f043699045a8cf9aadac70548144cd09579b1fe6db4a306459ff69aa0fb1ef",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 880,
+      "head_sha": "c42444b502f9525812ed57c4e44fb86962bfb90d",
+      "reported_base_sha": "2fe4db561239ff44e84cec0e97f87670804dd252",
+      "own_delta_base_sha": "2fe4db561239ff44e84cec0e97f87670804dd252",
+      "own_diff_sha256": "c4be45eabc3f76438ea37ff6ca8d84b9312a07a13fb25cda19475a6aee0d4b4c",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 881,
+      "head_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "reported_base_sha": "6aafda66231d47b69c0d08e411207b87e4e00a71",
+      "own_delta_base_sha": "6aafda66231d47b69c0d08e411207b87e4e00a71",
+      "own_diff_sha256": "cdbbcdf8e7b3f3c4887900a2cba16de0a1d833a278d957ed15eecc039951f32d",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 882,
+      "head_sha": "3b598546deb645c3b24362a54df798a43162e8c4",
+      "reported_base_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "own_delta_base_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "own_diff_sha256": "aa4689f1507f29d3490fe50c8151be803f8af339e0ff58f4beb4a239eb69c817",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 883,
+      "head_sha": "ec144fe9275a4ed9c0baaecc174441665503da74",
+      "reported_base_sha": "3b598546deb645c3b24362a54df798a43162e8c4",
+      "own_delta_base_sha": "3b598546deb645c3b24362a54df798a43162e8c4",
+      "own_diff_sha256": "3340338e7bd30bf0df737967566eda82b0c998e3609867297798ad4f2f13fbdd",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 884,
+      "head_sha": "5612cf5d225653ed35d554a0ed55ab1c395fd31a",
+      "reported_base_sha": "a27f2ec9eef62e06b742f1ac623de12956f0dc6e",
+      "own_delta_base_sha": "a27f2ec9eef62e06b742f1ac623de12956f0dc6e",
+      "own_diff_sha256": "32182bbbf9cda6daf3caba7dd3ace55c1517090be83e135103cfd4982ab30891",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 885,
+      "head_sha": "a27f2ec9eef62e06b742f1ac623de12956f0dc6e",
+      "reported_base_sha": "ec144fe9275a4ed9c0baaecc174441665503da74",
+      "own_delta_base_sha": "ec144fe9275a4ed9c0baaecc174441665503da74",
+      "own_diff_sha256": "ca54f6e4619b209045efd5b8627e60fd27af1ae40388da45dd8af5f35dc38274",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 886,
+      "head_sha": "628acf18bec4db904b20d73cd5ef7a91a6542506",
+      "reported_base_sha": "5612cf5d225653ed35d554a0ed55ab1c395fd31a",
+      "own_delta_base_sha": "5612cf5d225653ed35d554a0ed55ab1c395fd31a",
+      "own_diff_sha256": "b36f59737b73e2a10912dfead70a24b9302f4518b0ce7740b57013788bf01866",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 887,
+      "head_sha": "5ebb007566a0297a0b387015b8c1145895821717",
+      "reported_base_sha": "338124697ccbbccb1d8b709faed28ed03cd0e4e4",
+      "own_delta_base_sha": "338124697ccbbccb1d8b709faed28ed03cd0e4e4",
+      "own_diff_sha256": "9e62bee9fdeed7cea9b2b285e4845f0ae32cdc16457ecab1df4ddea28512b9c2",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 888,
+      "head_sha": "c87c90b79c3435fe04d1befc7ebc3ef6d7d790df",
+      "reported_base_sha": "5ebb007566a0297a0b387015b8c1145895821717",
+      "own_delta_base_sha": "5ebb007566a0297a0b387015b8c1145895821717",
+      "own_diff_sha256": "b72b118df4b64d76c2200b5c93b6d22d4eb2c1285976eb4cb1d0b425ef29d9c4",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 889,
+      "head_sha": "4849df7de5f73fa75df813649ef35da127a71ed8",
+      "reported_base_sha": "cf8a2249d4ff17bb6c8c4e6cc42b317545ddb9a6",
+      "own_delta_base_sha": "cf8a2249d4ff17bb6c8c4e6cc42b317545ddb9a6",
+      "own_diff_sha256": "6ce806546492da4f8b3404e68d06ddded2e113dc84cd777fa10a4b4df1437565",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 890,
+      "head_sha": "bcc431506fd3e7b5d503876074f35d8a24cd92ff",
+      "reported_base_sha": "4849df7de5f73fa75df813649ef35da127a71ed8",
+      "own_delta_base_sha": "4849df7de5f73fa75df813649ef35da127a71ed8",
+      "own_diff_sha256": "b405f4e35cdbda9078a029ce8a7aafbe219fc341ea6719d1a4fc2dd244909546",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 891,
+      "head_sha": "cf8a2249d4ff17bb6c8c4e6cc42b317545ddb9a6",
+      "reported_base_sha": "14244b52399bdc5dd26948544a64893449c0a1a8",
+      "own_delta_base_sha": "14244b52399bdc5dd26948544a64893449c0a1a8",
+      "own_diff_sha256": "d8a412722870807b73af0e2fc752ee32afb651f9f5a0539a60abede35e2c8a85",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 892,
+      "head_sha": "469014ae90ef46e33fe7fa8ae9fa3c8a6934ed76",
+      "reported_base_sha": "037c0b48f90f992051e56f038c3b642da60e97e5",
+      "own_delta_base_sha": "037c0b48f90f992051e56f038c3b642da60e97e5",
+      "own_diff_sha256": "527af019dcf356760a6f3ebb190e72594383dd4bd6a9eee72816fb95a497553d",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 893,
+      "head_sha": "89da5b453c2b966096167ec20948ae844171dc50",
+      "reported_base_sha": "bcc431506fd3e7b5d503876074f35d8a24cd92ff",
+      "own_delta_base_sha": "bcc431506fd3e7b5d503876074f35d8a24cd92ff",
+      "own_diff_sha256": "ef686778f55a065cf607d0b2020b5eda6f506bc0469674835dd1b75a324742d9",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 894,
+      "head_sha": "b267dcd101034da0174c24fc549e4189c7b076ac",
+      "reported_base_sha": "a6d8eb53f9a76421e2ce01aa93ef095d1e48a964",
+      "own_delta_base_sha": "a6d8eb53f9a76421e2ce01aa93ef095d1e48a964",
+      "own_diff_sha256": "504d7bfab4fd8b7e25abe786e9099a26e88cd8db87e168bc52143a7c61f6a3f5",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 895,
+      "head_sha": "64e5c4c6fe1e100e57b47cdff9df8572cd4b2634",
+      "reported_base_sha": "89da5b453c2b966096167ec20948ae844171dc50",
+      "own_delta_base_sha": "89da5b453c2b966096167ec20948ae844171dc50",
+      "own_diff_sha256": "649ea2a86155d2a8d1bddeeba6542f55995357d7cc6c853af2e20fc9f401789e",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 896,
+      "head_sha": "068efde25c4f214f69ac5e8a027348bc19a89e58",
+      "reported_base_sha": "64e5c4c6fe1e100e57b47cdff9df8572cd4b2634",
+      "own_delta_base_sha": "64e5c4c6fe1e100e57b47cdff9df8572cd4b2634",
+      "own_diff_sha256": "10fb90277d62164b25583e1a87949362b588c038613f8f0eaf66c3ffc5abd239",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 897,
+      "head_sha": "400d647dd7e7a0fdeb146aa9c2c484cfa839bc8f",
+      "reported_base_sha": "068efde25c4f214f69ac5e8a027348bc19a89e58",
+      "own_delta_base_sha": "068efde25c4f214f69ac5e8a027348bc19a89e58",
+      "own_diff_sha256": "9ada448a3a883d4b48d9eca99f852aed679bffb239c9f112ad9f3281426eec26",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 898,
+      "head_sha": "b3fb9279a6d7d5fc67c1921dcc2c7decf1f56b03",
+      "reported_base_sha": "400d647dd7e7a0fdeb146aa9c2c484cfa839bc8f",
+      "own_delta_base_sha": "400d647dd7e7a0fdeb146aa9c2c484cfa839bc8f",
+      "own_diff_sha256": "d56ab40d5c90e99b66034060160a2511ee5df379ccd3ec55b576b32058cd2a9f",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 899,
+      "head_sha": "1da00a1768905a401388cd8f216f8a28862632a3",
+      "reported_base_sha": "385dff4bc167da777d7dda01f805d0d802fe5bfe",
+      "own_delta_base_sha": "385dff4bc167da777d7dda01f805d0d802fe5bfe",
+      "own_diff_sha256": "cb41a794c68db864dce0204dc803942f5a827d807650e4a0db2a365905f39757",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 900,
+      "head_sha": "0f3aed6da7c1131774d7b3ffa0026b579b6dae49",
+      "reported_base_sha": "6d8e058038f4b753eac3c991257a8d8d264ea3c2",
+      "own_delta_base_sha": "6d8e058038f4b753eac3c991257a8d8d264ea3c2",
+      "own_diff_sha256": "5f50f6ee36031abc90ef6a51cbb087fc1eb5eedc03cac3621f574bf8e26dd9aa",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 901,
+      "head_sha": "385dff4bc167da777d7dda01f805d0d802fe5bfe",
+      "reported_base_sha": "b3fb9279a6d7d5fc67c1921dcc2c7decf1f56b03",
+      "own_delta_base_sha": "b3fb9279a6d7d5fc67c1921dcc2c7decf1f56b03",
+      "own_diff_sha256": "a7e1f69b7828753ade2463ac0e199e526dde6a8015ce31597515716d6e826eed",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 902,
+      "head_sha": "be5200a4b0a179c55f983cb73f980d39f645d2b2",
+      "reported_base_sha": "1da00a1768905a401388cd8f216f8a28862632a3",
+      "own_delta_base_sha": "1da00a1768905a401388cd8f216f8a28862632a3",
+      "own_diff_sha256": "59ad794108b9a8577de66d95c2d70f4d956575f1f6e77b14d0baf667ac4858a1",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 903,
+      "head_sha": "efa31e6f9b04a6c8caecd7c09373f01c33e2b1a9",
+      "reported_base_sha": "4587e061b2fba57388aa582a7a2a529ea27f8ed0",
+      "own_delta_base_sha": "4587e061b2fba57388aa582a7a2a529ea27f8ed0",
+      "own_diff_sha256": "105948db58eae18ceb94b54dfb73ffb12a0e46d976768a96e82e94579441eb81",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 904,
+      "head_sha": "4587e061b2fba57388aa582a7a2a529ea27f8ed0",
+      "reported_base_sha": "be5200a4b0a179c55f983cb73f980d39f645d2b2",
+      "own_delta_base_sha": "be5200a4b0a179c55f983cb73f980d39f645d2b2",
+      "own_diff_sha256": "c3b6a0cc5b2c88e3895dfdda78e9fb7e2131dc4f60f0e9d22e167995a50b64e1",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 905,
+      "head_sha": "52f21dd80b2fe485d396b6cedaa15cd52db167e5",
+      "reported_base_sha": "efa31e6f9b04a6c8caecd7c09373f01c33e2b1a9",
+      "own_delta_base_sha": "efa31e6f9b04a6c8caecd7c09373f01c33e2b1a9",
+      "own_diff_sha256": "b832c26f5d5d70747b57d25242f9b3e5502a1a301742ba1cc494cef1bc9b4d26",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 906,
+      "head_sha": "0e5018655d174c1cdb6d85063d6b8b5615c44a1d",
+      "reported_base_sha": "52f21dd80b2fe485d396b6cedaa15cd52db167e5",
+      "own_delta_base_sha": "52f21dd80b2fe485d396b6cedaa15cd52db167e5",
+      "own_diff_sha256": "4176be939043df5be23cbf99685d2a669b4a20b1f9f175bd935f2ec1f8d6cf2c",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 907,
+      "head_sha": "5592f15f69ea9840073d79952a91531242f163fd",
+      "reported_base_sha": "0e5018655d174c1cdb6d85063d6b8b5615c44a1d",
+      "own_delta_base_sha": "0e5018655d174c1cdb6d85063d6b8b5615c44a1d",
+      "own_diff_sha256": "4ffa9f077be5921e5e6b82e572d66285cd7b381712902fd5784cf47e85fee53a",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 908,
+      "head_sha": "b4e288a79777cc4bf999584c464490c5d6b889af",
+      "reported_base_sha": "b5302420a922313b1a70a811c585c855e80a2006",
+      "own_delta_base_sha": "b5302420a922313b1a70a811c585c855e80a2006",
+      "own_diff_sha256": "7ce063f0231d19d66d6911dacaa2f70bcfdac8a6cd3477fe1c4e1481727e7f2e",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 909,
+      "head_sha": "12a53a00c2284d18fae9a32d27840fe4bfb7533a",
+      "reported_base_sha": "5592f15f69ea9840073d79952a91531242f163fd",
+      "own_delta_base_sha": "5592f15f69ea9840073d79952a91531242f163fd",
+      "own_diff_sha256": "e2d888b27ec349dbc8823e334b866cc729248f3874518b4a618b470292c1debc",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 910,
+      "head_sha": "f031f6e38d6610e2cbbb1c787994030cb9367285",
+      "reported_base_sha": "07d3e66e4d9ea837f5ebf58384521732b103b6e8",
+      "own_delta_base_sha": "07d3e66e4d9ea837f5ebf58384521732b103b6e8",
+      "own_diff_sha256": "8a2a9ba38ee3e14d83b9d870720c5c27d5f1a4eff8026ed4b9f56cda3a9f3c4f",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 911,
+      "head_sha": "f2382cef6fde31d7b8c3523b0f1e714034c5e62d",
+      "reported_base_sha": "12a53a00c2284d18fae9a32d27840fe4bfb7533a",
+      "own_delta_base_sha": "12a53a00c2284d18fae9a32d27840fe4bfb7533a",
+      "own_diff_sha256": "d44ed31041e9fa9cf39aa97d533e4fd7d7cd351b8b93be1e4140a6cfbaa16406",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 912,
+      "head_sha": "041a1145372640e73d6588af4383c65609308937",
+      "reported_base_sha": "942c9acdeaa26d5104fbd167c7e548aa387d9c36",
+      "own_delta_base_sha": "942c9acdeaa26d5104fbd167c7e548aa387d9c36",
+      "own_diff_sha256": "b743c39c648db6eaf647a117d5ab5764d2c3d4752638d5930f0ca790da95769f",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 913,
+      "head_sha": "afc0f85bb3a815cdb876d24d2e6e0751d466baf0",
+      "reported_base_sha": "f2382cef6fde31d7b8c3523b0f1e714034c5e62d",
+      "own_delta_base_sha": "f2382cef6fde31d7b8c3523b0f1e714034c5e62d",
+      "own_diff_sha256": "1287efc52ebfc0732c90cec3f407df427e7b838ed8ed6832a88e56a7e94472ea",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 914,
+      "head_sha": "548a004f15fed9e6bca7245470197841441302ca",
+      "reported_base_sha": "a5e19bac1d17f98a327d79cf752b8d9abbb95844",
+      "own_delta_base_sha": "a5e19bac1d17f98a327d79cf752b8d9abbb95844",
+      "own_diff_sha256": "cb165c180a9ad482bdb27a173550e4d28bcf8deb0dae9017bf85619a9c637019",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 915,
+      "head_sha": "942c9acdeaa26d5104fbd167c7e548aa387d9c36",
+      "reported_base_sha": "afc0f85bb3a815cdb876d24d2e6e0751d466baf0",
+      "own_delta_base_sha": "afc0f85bb3a815cdb876d24d2e6e0751d466baf0",
+      "own_diff_sha256": "480c5baedc5c2a38da63b8e8e7860d76577521b5118239e327fd394de2cd159b",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 916,
+      "head_sha": "4cb3d4e5ef2ad16b3890394143006bc1358d46db",
+      "reported_base_sha": "041a1145372640e73d6588af4383c65609308937",
+      "own_delta_base_sha": "041a1145372640e73d6588af4383c65609308937",
+      "own_diff_sha256": "58b6d8881dbeb0caaee1fd455b3386d2455cfb97f7710adcd1e01cf0f968da7e",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 917,
+      "head_sha": "a14d1289a8877709bf4b8d30087ecabbaa63afcb",
+      "reported_base_sha": "4cb3d4e5ef2ad16b3890394143006bc1358d46db",
+      "own_delta_base_sha": "4cb3d4e5ef2ad16b3890394143006bc1358d46db",
+      "own_diff_sha256": "07ce6b994c5ad7a9c48b40e73d0f223b13cc0389ac04e9af57500389b5d7d781",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 918,
+      "head_sha": "1636a304a15725cbbe8139fdbcb727ef530a27aa",
+      "reported_base_sha": "0f3aed6da7c1131774d7b3ffa0026b579b6dae49",
+      "own_delta_base_sha": "0f3aed6da7c1131774d7b3ffa0026b579b6dae49",
+      "own_diff_sha256": "fb1a738d4f2eb8dedf4486c176aa13a1579942333eb1ee19e5f41d4db3dc7498",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 919,
+      "head_sha": "4f45b085710c84dad0b8a31ada5e7ce25fd54de7",
+      "reported_base_sha": "548a004f15fed9e6bca7245470197841441302ca",
+      "own_delta_base_sha": "548a004f15fed9e6bca7245470197841441302ca",
+      "own_diff_sha256": "c070ad8b61f53817b017071176768259d6b7e641e2d8ac8b353b016fa71986e1",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 920,
+      "head_sha": "5bba29b55b579f45252525eb0fd4e79c45d20dfc",
+      "reported_base_sha": "652f02fdc32b445eae02b35a7fd2fc1d49e479fb",
+      "own_delta_base_sha": "652f02fdc32b445eae02b35a7fd2fc1d49e479fb",
+      "own_diff_sha256": "5c66b4270e8955f34bd32a978167e532fec9d84da146e64a9998dbdec4c47c9b",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 921,
+      "head_sha": "42582c9d80a1b11487163c8771051d69f32fad49",
+      "reported_base_sha": "4f45b085710c84dad0b8a31ada5e7ce25fd54de7",
+      "own_delta_base_sha": "4f45b085710c84dad0b8a31ada5e7ce25fd54de7",
+      "own_diff_sha256": "ca4b1205998a8fed8a56b71813fe7a15938ef0764dc6f66bdcf21a164323e66a",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 922,
+      "head_sha": "1ba0c453ebf89eb0e696f09e5d5ff5d760bb8813",
+      "reported_base_sha": "1636a304a15725cbbe8139fdbcb727ef530a27aa",
+      "own_delta_base_sha": "1636a304a15725cbbe8139fdbcb727ef530a27aa",
+      "own_diff_sha256": "de8ab941d7a7712589cac05869d81ff09431ac2ddd100aa0619572298acdd0c0",
+      "research_partition": "storage_machines",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 923,
+      "head_sha": "1087425047f60b7e39394d3b0f7306cc41260e6b",
+      "reported_base_sha": "a14d1289a8877709bf4b8d30087ecabbaa63afcb",
+      "own_delta_base_sha": "a14d1289a8877709bf4b8d30087ecabbaa63afcb",
+      "own_diff_sha256": "ab726280b20b80405a268ec9daa850a137957937e34513e2f1ee43a0b0979c98",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 924,
+      "head_sha": "42738ececa7d52d77976bde399b45352e99efdf2",
+      "reported_base_sha": "42582c9d80a1b11487163c8771051d69f32fad49",
+      "own_delta_base_sha": "42582c9d80a1b11487163c8771051d69f32fad49",
+      "own_diff_sha256": "b1da1d5b8d4726e374069d46f7c8ea454664c39deacc9b4e7bb5aa556b20530f",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 925,
+      "head_sha": "fde0e587d1064516ca1b563284b30d1c38c69337",
+      "reported_base_sha": "1087425047f60b7e39394d3b0f7306cc41260e6b",
+      "own_delta_base_sha": "1087425047f60b7e39394d3b0f7306cc41260e6b",
+      "own_diff_sha256": "8753ae3339f0bf32d03825e633321bd8ef98ce0cc617a6f8850eb33ba28aa261",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 926,
+      "head_sha": "788b318cab1858106b4d396d3d68218422535b2c",
+      "reported_base_sha": "42738ececa7d52d77976bde399b45352e99efdf2",
+      "own_delta_base_sha": "42738ececa7d52d77976bde399b45352e99efdf2",
+      "own_diff_sha256": "acd840dc1fc216467af47ab6b09bfb1abc8a6698f184002f0a1c5724fd590764",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 928,
+      "head_sha": "f76a00a97cdecb14975b8bb5707575798db6d994",
+      "reported_base_sha": "9b49856f0e4b1b4211817138f8a8024bcd89517d",
+      "own_delta_base_sha": "9b49856f0e4b1b4211817138f8a8024bcd89517d",
+      "own_diff_sha256": "c4a521dc493dfd3d5b85e68418d0c0481ef3508ae4008faa4fc446a3e052e0e8",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 929,
+      "head_sha": "1a6ca384dda7f65405aad12ae2267a38f74e7694",
+      "reported_base_sha": "fde0e587d1064516ca1b563284b30d1c38c69337",
+      "own_delta_base_sha": "fde0e587d1064516ca1b563284b30d1c38c69337",
+      "own_diff_sha256": "865455e1a0faac367c29ace4f5fdfe942fe6b9ad2de39a37c1720df35b241206",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 930,
+      "head_sha": "56c75bee5329a7cf525161690bd4d53c0aec9560",
+      "reported_base_sha": "788b318cab1858106b4d396d3d68218422535b2c",
+      "own_delta_base_sha": "788b318cab1858106b4d396d3d68218422535b2c",
+      "own_diff_sha256": "c5042e58730ebba9496c6a317c541bdb374649d5955bc28c1d25f473e77e9cc8",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 931,
+      "head_sha": "21b945dfbe8848caf10a7fefc25859d55daa305a",
+      "reported_base_sha": "1a6ca384dda7f65405aad12ae2267a38f74e7694",
+      "own_delta_base_sha": "1a6ca384dda7f65405aad12ae2267a38f74e7694",
+      "own_diff_sha256": "f8afbdfd6ab9b04478ee8f77effdb5ac31553767884762b72b7b4bca53831be0",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 932,
+      "head_sha": "d82b7664cfda55a8a8e850e97808c77dcdbcb732",
+      "reported_base_sha": "9a4faf43b900d12de5e7f0af39d3a27d55ad940c",
+      "own_delta_base_sha": "9a4faf43b900d12de5e7f0af39d3a27d55ad940c",
+      "own_diff_sha256": "ef1267e0177e007016334027f7bef8bf43cffe86f98ac519e6dbb886bae2342c",
+      "research_partition": "world_fluids",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 933,
+      "head_sha": "e188a6058f5e50c5d246a10a9ecc4be2f8680aae",
+      "reported_base_sha": "21b945dfbe8848caf10a7fefc25859d55daa305a",
+      "own_delta_base_sha": "21b945dfbe8848caf10a7fefc25859d55daa305a",
+      "own_diff_sha256": "fd85f3c73e3717d337b30b6fd7978d675b5c161449f78b20225b31d5aa809041",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 934,
+      "head_sha": "3a32d936eff227c881d1ef327bbc5ba7c8468478",
+      "reported_base_sha": "e188a6058f5e50c5d246a10a9ecc4be2f8680aae",
+      "own_delta_base_sha": "e188a6058f5e50c5d246a10a9ecc4be2f8680aae",
+      "own_diff_sha256": "5cab40642a458bc78118a5b3d8bb7f8ec30fde52786877bd1cf009c12781265c",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 935,
+      "head_sha": "f7cd7c23b6b6eef383da10c3881e90cdac7e2c5d",
+      "reported_base_sha": "56c75bee5329a7cf525161690bd4d53c0aec9560",
+      "own_delta_base_sha": "56c75bee5329a7cf525161690bd4d53c0aec9560",
+      "own_diff_sha256": "32ec0ded15e0592db7976cca3c546402e91e305e5c7959b51f2c1955c26d0f96",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 936,
+      "head_sha": "4368dd46c346b634c1a33c30d49a2f74bc60b09b",
+      "reported_base_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "own_delta_base_sha": "8b402ff9a1672df178f99aba8d2bf91aeb8a0552",
+      "own_diff_sha256": "e1c2cf85e7cc2daea73b1c1661825ad95853f78356ccb325f68d4b3c68cb4a4d",
+      "research_partition": "items_tools_combat",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 937,
+      "head_sha": "1c8f382783e9f3624246247748b36ff39b367855",
+      "reported_base_sha": "3a32d936eff227c881d1ef327bbc5ba7c8468478",
+      "own_delta_base_sha": "3a32d936eff227c881d1ef327bbc5ba7c8468478",
+      "own_diff_sha256": "fb63c28091febc5dda2619fb3729cb67817719cfe027d6f04c64600119cdd214",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 938,
+      "head_sha": "1a5f91b23d0fd10bc159b2e5304057a09c3d839d",
+      "reported_base_sha": "f7cd7c23b6b6eef383da10c3881e90cdac7e2c5d",
+      "own_delta_base_sha": "f7cd7c23b6b6eef383da10c3881e90cdac7e2c5d",
+      "own_diff_sha256": "0dfd7388e6bb7f535ed58eb29daa4af4db3348c6ac277e8f27ddc7cfa49f62de",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 939,
+      "head_sha": "95de8dbf79b6ee986d3379f7a8bd51f48a13e2c6",
+      "reported_base_sha": "1c8f382783e9f3624246247748b36ff39b367855",
+      "own_delta_base_sha": "1c8f382783e9f3624246247748b36ff39b367855",
+      "own_diff_sha256": "ca951fa964796cff000cc3c7a0f5bd5d404f065f5cffa97b9c115d4388cd438e",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 940,
+      "head_sha": "9c412ab7801f3bcab83c86a3c6231a10b28a5f1a",
+      "reported_base_sha": "b5302420a922313b1a70a811c585c855e80a2006",
+      "own_delta_base_sha": "b5302420a922313b1a70a811c585c855e80a2006",
+      "own_diff_sha256": "35c3afef55084e9e5e9234b9376fe3135120174182563d9a593ca7271b977885",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 941,
+      "head_sha": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "reported_base_sha": "1a5f91b23d0fd10bc159b2e5304057a09c3d839d",
+      "own_delta_base_sha": "1a5f91b23d0fd10bc159b2e5304057a09c3d839d",
+      "own_diff_sha256": "04b6ec68a33b6a910aeea6da2e06417b225ab596e6745be6e302cae62d48db0e",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 942,
+      "head_sha": "3a7988373b092e48a738125c51308c3ae3f61b70",
+      "reported_base_sha": "9c412ab7801f3bcab83c86a3c6231a10b28a5f1a",
+      "own_delta_base_sha": "9c412ab7801f3bcab83c86a3c6231a10b28a5f1a",
+      "own_diff_sha256": "ac751af021d0065c85cc4b3a155b54cabc936742669e81164946c1e1e40484c3",
+      "research_partition": "armor_defense",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 943,
+      "head_sha": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "reported_base_sha": "bbfeb25e6560639385e3da04544770c70b211f60",
+      "own_delta_base_sha": "bbfeb25e6560639385e3da04544770c70b211f60",
+      "own_diff_sha256": "7b41e044c9d2074693d2e68a2a20291ff6a4cfe9edd29d2391d5b87bcdc473cc",
+      "research_partition": "recipe_advancement",
+      "intake_status": "not_individually_reconciled",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 944,
+      "head_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "reported_base_sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "own_delta_base_sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+      "own_diff_sha256": "13a63a555cf52ca4def56145fa4fe8261ff0591db6540e575701252470da8e6a",
+      "research_partition": "foundation",
+      "intake_status": "foundation_source_intaken_with_later_changes",
+      "feature_completion_verified": false
+    },
+    {
+      "number": 945,
+      "head_sha": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+      "reported_base_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "own_delta_base_sha": "bcec17b5394aba2a58f20e9f77222424f9b2ad6f",
+      "own_diff_sha256": "d73153dae2417619b865b85a2462207627bb416e6fde2108328f293e9c3ce884",
+      "research_partition": "guide",
+      "intake_status": "own_navigation_delta_intaken_with_later_changes",
+      "feature_completion_verified": false
+    }
+  ],
+  "merge_destination": "main after verified complete plan, guards, apply/build and available startup error checks"
+}
