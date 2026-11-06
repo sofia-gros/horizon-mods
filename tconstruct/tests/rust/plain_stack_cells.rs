@@ -316,7 +316,7 @@ fn ordered_insertion_preserves_receiving_identity_under_supplied_opaque_policy()
     assert_eq!(state(&cells_native[0]), state(&Some(expected))); assert!(incoming.is_none());
     let mut cells_strict = vec![Some(receiving)]; let mut incoming = Some(offered);
     let before = state(&(&cells_strict, &incoming));
-    assert_eq!(cells::insert_ordered(&mut cells_strict, &mut incoming, &[0], &[], 64, |a, b| same(a, b) && a.data.wire.patch() == b.data.wire.patch()), Ok(false));
+    assert_eq!(cells::insert_ordered(&mut cells_strict, &mut incoming, &[0], &[], 64, |a, b| same(a, b) && a.data().and_then(|data| data.wire.patch()) == b.data().and_then(|data| data.wire.patch())), Ok(false));
     assert_eq!(state(&(&cells_strict, &incoming)), before);
 }
 

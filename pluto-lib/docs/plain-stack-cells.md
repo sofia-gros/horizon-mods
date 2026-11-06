@@ -155,7 +155,7 @@ The focused 31-test consumer proof and this full library composition proof remai
 separate. Neither proves the complete TConstruct package, live gameplay, saved
 world reload, LAN synchronization, or the later pickup_slot source delta.
 
-## Additive ordered insertion (validation pending)
+## Additive ordered insertion (focused validation)
 
 The subsequent source-only `insert_ordered` addition visits caller-specified
 occupied cells first, then caller-specified empty cells. Its merge and empty
@@ -172,9 +172,32 @@ not a change to existing consumers: `source_give_inventory` and
 `source_quick_move_player` remain byte-for-byte unchanged. In particular, the
 former's legacy zero-count behavior differs and must not be called parity.
 
-The prepared native fixture freezes both old helpers unchanged and adds 1,920
+The native fixture freezes both old helpers unchanged and adds 1,920
 positive give cases and 1,280 positive quick-move cases, plus distinct orders,
 duplicates, missing indexes, disabled merges, retained-wire policy, overflow
-limits and separately named malformed-input cases. These new tests have **not
-yet executed**. Earlier fixture/package receipts do not cover this addition.
+limits and separately named malformed-input cases. At exact source `831b92ff`, all 39 tests passed, including the 3,200 new
+positive comparisons and four new boundary tests. The production adapter is
+byte-identical to `4e2e3f96`; only test accessors and failure documentation changed
+between those cutoffs. Earlier fixture/package receipts do not cover this addition.
 No consumer migration, native dispatch, save/sync authority or registry is added.
+
+The first ordered-insertion attempt at `4e2e3f96` stopped during test
+compilation: the new opaque-policy regression used `data` instead of the
+actual native `data()` accessor. No Rust tests executed. The correction changes
+only that test accessor; the production adapter and consumers are unchanged.
+See the [failed-attempt receipt](ordered-insertion-first-attempt-20261106.json).
+This failed cutoff is not relabelled by the later successful rerun.
+
+The second attempt at `e006dced` also stopped before tests: `data()` returns
+`Option<&StackData>`. Native source inspection confirmed both optional return
+types; the next test-only correction uses the existing adapter pattern
+`data().and_then(|data| data.wire.patch())`. Its
+[separate failure receipt](ordered-insertion-second-attempt-20261106.json)
+retains that outcome. Production code remains unchanged.
+
+The final [ordered-insertion receipt](ordered-insertion-validation-20261106.json)
+records all 39 passing tests, 12,772 total comparisons including repeated prior
+coverage, four source guards, strict official dependency identity and all 6,597
+unchanged tracked source files. Minimum disk space was 10,898,489,344 bytes;
+the usual guard did not stop. The updated complete native package and consumer
+adoption still need their own gates. No live-menu, save or LAN proof is claimed.

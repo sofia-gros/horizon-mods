@@ -1,0 +1,18 @@
+{
+  "source_cutoff": "e006dced2b3d005c05d12f05c6f292375a44cf23",
+  "status": "failed_before_test_execution",
+  "error": "Test-only E0609: native ItemStack::data() returns Option<&StackData>, not &StackData.",
+  "executed_rust_tests": 0,
+  "intended_rust_tests": 39,
+  "source_files_reverified_after_failure": 6596,
+  "source_seal_sha256": "536f69ad056ded73e292e6fcedcf56dee27cf2aa6494a7d07aa6811c19bc5202",
+  "log_sha256": "278f5ab3e2b7943f786c5ca30582914200972d7de9b31a7f853f728e99e05dc0",
+  "log_path": "/tmp/pluto-ordered-insertion-corrected-20261106.log",
+  "disk_guard_stopped": false,
+  "minimum_free_bytes": 10909261824,
+  "inspected_native_signatures": [
+    "official624c item_data.rs:267 ItemStack::data -> Option<&StackData>",
+    "official624c item_data.rs:82 Wire::patch -> Option<&[u8]>"
+  ],
+  "correction": "Use data().and_then(|data| data.wire.patch()), the same existing borrowed pattern as the actual Pluto snapshot adapter. No production change."
+}
