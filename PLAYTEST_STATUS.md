@@ -103,3 +103,10 @@ The Wire guard metadata now names the exact official 41f source. Only the revisi
 The fixed 17f guard replay reached all 12 guards and passed seven, including actual Linux 1.95 formatter regeneration for damage and terrain cells. Its five refusals remain recorded. Separately, exact source 86617 passed all 153 API and 16 finite native crafting tests with zero skipped or filtered cases. Constructor registration, Overslime derivation, station transactions and full Game typing are still separate requirements.
 
 The repository stores small public summaries of these results. Full raw logs and input maps are not included in this update. Main is unchanged. The current cloud and payload runtime requires a fresh complete plan before apply or build.
+
+
+## Cloud guard integration, observation still required
+
+The reviewed cloud composition guard now checks exact hook, module and state contracts, payload bytes and per-node execution order. All 37 pure checker tests pass. This is not a blanket allowance for the old conflicts.
+
+The new cloud module fingerprint and candidate-plan observation deliberately remain null. The production guard must reject until a fresh complete plan provides the actual identities and they are reviewed. No runtime Rust or manifest is changed by this guard update, and no apply, Game test or build success is implied.

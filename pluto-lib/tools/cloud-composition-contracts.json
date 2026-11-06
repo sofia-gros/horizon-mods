@@ -1,0 +1,3053 @@
+{
+  "schema": 1,
+  "observed_plan": {
+    "run": 42236543685,
+    "artifact_head": "cea160c079c8a3f008939fad5986046372d6f69f",
+    "integration_runtime": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+    "plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+    "plan_bytes": 6383021,
+    "artifact_manifest_sha256": "409e3776699222a676167c5d62454f05402356f6a516edf080c9fd8dded25be3",
+    "native_type_verified": false,
+    "candidate_c977_plan_observed": false
+  },
+  "candidate": "c97771ccb2af0a5fa9e0bf5129ce1f9c065e0a60",
+  "candidate_runtime_commit": "6ec43252746dfe905a40b6c9f8cb857d087affb8",
+  "candidate_observation": null,
+  "notes": "Source-reviewed candidate with one unobserved placement. Null is a mandatory rejection, not a wildcard. No actual Game/type/gameplay claim.",
+  "modules": [
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "game-glowing-placement",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_glowing_placement",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "651f8d31fc4e36ad65213da94a8120ddf8808cbdc3439bd7fcbb8c8162cef293",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "game-glowing-world",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_glowing_world",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "34d598a174fa545361b1e28f8310bc9283ab517dc8becc806a5428aa24a69cc7",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-cloud-descriptor",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_cloud",
+      "visibility": "pub",
+      "fingerprint": "4c6611823779c6350e31d85862d58b4355b1ed1c85fa97edf841d77515d2afd6",
+      "source_sha256": "7fc3a21853418403549d7c0267710d4f237a59aea870ff2ad5018de5405b9b64"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-cloud-factory",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "pluto_cloud_factory",
+      "fingerprint": "c773533d5337bb98b0b37e7ca02e81069caf0842374565d47a8c99a035c459f1",
+      "source_sha256": "5e9e0a365a8595e69b92bd1315552f044d59fe7962e509594a478f4f7694f45d",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-cloud-insertion",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_cloud_insertion",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "d666334cf1bd11cc09723026069e91e2c35830fef050a5327b9ba352d2b38e4c",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-lifecycle-readiness",
+      "file": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "name": "pluto_lifecycle_readiness",
+      "fingerprint": "d7cc5743100eb187ccf91e90d67a6dca5d67167f5d690ed5f632f2114da89d48",
+      "source_sha256": "d55de930fa4c9e9dd9eb293e5b919b2d8f57f76d879a57130bc0473dd59d5819",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-potion-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_potions",
+      "visibility": "pub",
+      "fingerprint": "4c6611823779c6350e31d85862d58b4355b1ed1c85fa97edf841d77515d2afd6",
+      "source_sha256": "556109f53c45803dfaf69c27312e37d89d3637200821ab23bd1325e3e60d8f14"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-area-protection",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_area_protection",
+      "fingerprint": "6a68f9ea705bb4a38e18d6fa6c17b99b1d218b3b40f0396a881b518466b13d31",
+      "source_sha256": "abe353e52947e87df5a0ee036f7f33c2e47792851cfbcad11a7ebea826d58114",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-area-shape",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_area_shape",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "694fd7c3f40a4613023d4ad459ecb85b52df4cc8334dd438e97db69a969e7ec6",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-bottle-fill",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "tconstruct_source_bottle_fill",
+      "fingerprint": "c773533d5337bb98b0b37e7ca02e81069caf0842374565d47a8c99a035c459f1",
+      "source_sha256": "e3cc43c30309c5d02b1cdf923e63714afd989216ad49246c8fd651b9ca4adc5d",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-crafting-lan",
+      "file": "crates/horizon-client/src/game/lan_crafting.rs",
+      "name": "tconstruct_crafting_lan",
+      "fingerprint": "fe3024dfb3b0bb53cdee128220e1d016e750dbb329cc95c6163d86dc41f1f43b",
+      "source_sha256": "4566ece19df3d2256a2df283ffffc11667ab7ea8b8cd7ec3c15908b152409f7b",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-crop-harvest",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_crop_harvest",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "ed0ccb1b7644b73e6329dd14532fdbe1a95fc0c70eafae712c9427528a239b87",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-fluid-cloud",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_fluid_cloud",
+      "visibility": "pub",
+      "fingerprint": null,
+      "source_sha256": "45d5f330a0e54422ce0beb60a9c4fd8f893fbc5cf96ffa9ea51de005d361f212"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-fluid-return",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_fluid_return",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "fa236624881bfd0d9fd90f1325e3d1b0af6ddc12ecbe671fa92dadf69a0cf147",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-machine-runtime",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_machine_runtime",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "e43ca287fc9686c4b1594d6c75b21fa633bacd1e88ec812716b0b7c602dca394",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-smeltery-world",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_smeltery_world",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "485867862dd8ce2de59e7e0824f18282de17b60053b5aba5f43b2387857c3c57",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-splashing",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_splashing",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "f7e1c9c22be367509168d3a09461111f2f4cbe0e25d025ee26e9723570ebdd14",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-splashing-player",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "tconstruct_source_splashing_player",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+      "source_sha256": "688723605819546cd3db5c3edfb42fd42444d921262c655b48d86c7f9d36b73c",
+      "visibility": "pub(crate)"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "source-workstation-tabs-lan",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "name": "tconstruct_source_workstation_tabs_lan",
+      "fingerprint": "6a68f9ea705bb4a38e18d6fa6c17b99b1d218b3b40f0396a881b518466b13d31",
+      "source_sha256": "2abd453fcd90d8997525b2b85c59bda080df0d7028cd57d31eaa9fe01f88ad66",
+      "visibility": "pub(crate)"
+    }
+  ],
+  "injections": [
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "command",
+      "priority": 100,
+      "target": "horizon_client::game::commands::Game<'_>::run_command",
+      "file": "crates/horizon-client/src/game/commands.rs",
+      "node": [
+        38,
+        2
+      ],
+      "function_fingerprint": "511b0abd8d7849e1762788c5abeca910aaab437abd888aa7448cbcb43e9719c7",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < bool >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "command",
+          "ty": "&str",
+          "value": "command"
+        }
+      ],
+      "helper_source_sha256": "e1984d42c532a0a3f6da600b3e9fb274869b784d3e221a29d57a76b68667a905"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "crafting-station-lan-update",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        55
+      ],
+      "function_fingerprint": "3abc301417a2b702f1724ae4bacc2a1cc7d9fccc1699d4e3eeb9564960aee416",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "helper_source_sha256": "9304d3c33e5ffc22b778a1bf028f689eb7565fd4739ec0ba6e1bce02f8af4ffe"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "fluid-guest-close",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_container_closed",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        14
+      ],
+      "function_fingerprint": "b023b69eba6f985e12cb145dcdf52ac67f9f83a4b667a097f76ed1b4135e7d54",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "helper_source_sha256": "18c91ef33f01fd66d3dc0dcdde691d1e65805433c4f3ac8b318fd9dcea00b83f"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "fluid-guest-tick",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        55
+      ],
+      "function_fingerprint": "3abc301417a2b702f1724ae4bacc2a1cc7d9fccc1699d4e3eeb9564960aee416",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        }
+      ],
+      "helper_source_sha256": "3044563184f4c29e030bac3d48b54ac1067a6b2fbf76b620667d008118946d3d"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "glow-left-guest",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "function_fingerprint": "8b984e8a733e4002980ae53e4b9243039e3125d64a6e5f5782752e1c884a27bc",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < () >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "helper_source_sha256": "d2d201817599c85bd247fd263c9b8017447853f2228960c6277a273b8833a3ec"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "glow-resolve-guest-protection",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::enter_guest",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        3
+      ],
+      "function_fingerprint": "7d0b4a9b39228fde0d6bcbcff35297fc58cd09baf25d6506cbece6fc1512e760",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        }
+      ],
+      "helper_source_sha256": "591246b2bb097264d898a52bf7025bb7cafbb46f8e81eff30209236de5f0093b"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "guest-station-open",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_open_container",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        10
+      ],
+      "function_fingerprint": "8f6b4ac45142396c93a55a120098a345174d88576016eaa8bc7fce7cbed723e5",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < bool >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "(i32, i32, i32)",
+          "value": "pos"
+        }
+      ],
+      "helper_source_sha256": "ffe5521f09e8dff346b8b86679a376bee2543d5655cd0784721d924a8694487f"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "material-bow-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_tool",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "function_fingerprint": "f9e32f070ad4b03f35ae562080c8123046ad4c5b316d440ac8462c5881d311ec",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < horizon_client :: first_person :: UseResult > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_client::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "helper_source_sha256": "41583fe9e0b8f40d56af75602d30429088570650043f8fdcafc4c573fecf8dad"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "materials-book-request",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "function_fingerprint": "8b984e8a733e4002980ae53e4b9243039e3125d64a6e5f5782752e1c884a27bc",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < () >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&S",
+          "value": "&packet"
+        }
+      ],
+      "helper_source_sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "part-selection-block-change",
+      "priority": 100,
+      "target": "horizon_client_render::world::World::set",
+      "file": "crates/horizon-client-render/src/world.rs",
+      "node": [
+        9,
+        5
+      ],
+      "function_fingerprint": "74b8aaa07c94c874c3ee136bc5920bd9aeaeb036ccd2532d340241d387281394",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "world",
+          "ty": "&mut crate::world::World",
+          "value": "&mut *self"
+        },
+        {
+          "name": "x",
+          "ty": "i32",
+          "value": "x"
+        },
+        {
+          "name": "y",
+          "ty": "i32",
+          "value": "y"
+        },
+        {
+          "name": "z",
+          "ty": "i32",
+          "value": "z"
+        },
+        {
+          "name": "state",
+          "ty": "horizon_world::registry::BlockStateId",
+          "value": "state"
+        }
+      ],
+      "helper_source_sha256": "d0a6d4d57ac667e47234bf8a9a6d47cfd74fa0f14b1278d6de4a9d61eabdf1d0"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "injection_id": "pluto_items_b2-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_tool",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "function_fingerprint": "f9e32f070ad4b03f35ae562080c8123046ad4c5b316d440ac8462c5881d311ec",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < horizon_client :: first_person :: UseResult > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_client::items::ItemStack",
+          "value": "stack"
+        },
+        {
+          "name": "allow_block_actions",
+          "ty": "bool",
+          "value": "allow_block_actions"
+        }
+      ],
+      "helper_source_sha256": "8082ee7a04a9bb83214dfe3fe4b63e765a3e7195963d4d37f08fb6c2a43b3459"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "injection_id": "pluto_native_creative-world-fluid-use",
+      "priority": 90,
+      "target": "horizon_client::game::Game<'_>::use_tool",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "function_fingerprint": "f9e32f070ad4b03f35ae562080c8123046ad4c5b316d440ac8462c5881d311ec",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < horizon_client :: first_person :: UseResult > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_client::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "helper_source_sha256": "6af485a10c184464fa1cbc07b99684ed97292b61df1ce8e047cac21e3d0445ab"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-area-guest-destroy",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::guest_destroy",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        81
+      ],
+      "function_fingerprint": "225ab932bec0b75d33fe89227bc98119a345d55e32579d27f8ed8344776797b1",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        }
+      ],
+      "helper_source_sha256": "f4e2f278dc1aab89d721bd4d68fbe6b4f9fa9fe8942ab9a8c98c9720b462785d"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-area-guest-hit",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "function_fingerprint": "8b984e8a733e4002980ae53e4b9243039e3125d64a6e5f5782752e1c884a27bc",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "helper_source_sha256": "c2dab75ca4ba24066d7c5ff58d295aee24b9722218d6ea946388a030549531a6"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-crop-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_hand",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        77
+      ],
+      "function_fingerprint": "0a929096da6b41fc2ebc2f099bee0faf26a05e52579eba8941fc3e8b3837d0b8",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "hit",
+          "ty": "Option<&crate::game::Hit>",
+          "value": "block_hit"
+        }
+      ],
+      "helper_source_sha256": "a94b45be8aa8a25b786835f6763d1d48342de8e6530eb8a36d3f6ad354fe731d"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-empty-bottle-use",
+      "priority": 100,
+      "target": "horizon_client::game::potions::Game<'_>::use_potion_item",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "node": [
+        28,
+        0
+      ],
+      "function_fingerprint": "12d8fb47af15a435859151aa3d83593e583338af61cfa9c2d41464e3e261753c",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < horizon_client :: Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_items::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "helper_source_sha256": "63acd0a8b51ca581773f2f734caea84232b39f3e020e83cb616df31206d4408d"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-machine-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_hand",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        77
+      ],
+      "function_fingerprint": "0a929096da6b41fc2ebc2f099bee0faf26a05e52579eba8941fc3e8b3837d0b8",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "hit",
+          "ty": "Option<&Hit>",
+          "value": "block_hit"
+        }
+      ],
+      "helper_source_sha256": "a881807df55584bec81914d0cfc78fcfbaf36feffdaa943468449e3e80b45b5a"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-slurping-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_tool",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "function_fingerprint": "f9e32f070ad4b03f35ae562080c8123046ad4c5b316d440ac8462c5881d311ec",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < horizon_client :: first_person :: UseResult > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_client::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "helper_source_sha256": "767168258ada1de4f983e86b442ead4a839027d226e1c70fca7b88e8c9c3291f"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-block",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_block_transformer",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        227
+      ],
+      "function_fingerprint": "e745cd0ed8f13b2649dd0b5429288186a3505396d8f8c25b799f731c7719b6eb",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_items::items::ItemStack",
+          "value": "stack"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        },
+        {
+          "name": "face",
+          "ty": "[i32;3]",
+          "value": "face"
+        }
+      ],
+      "helper_source_sha256": "865f3508b0e9072d16ff1dbe7fd63146dac083c5b5e096050520411e04bc78ac"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-guest-aim",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::look_at_entity",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        42
+      ],
+      "function_fingerprint": "9c09a165d1b389286ca9b18c72edcff7d983727543a4f02cbeda28b59d56572a",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Option < ([f64 ; 3] , [f64 ; 3]) > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "gi",
+          "ty": "usize",
+          "value": "gi"
+        },
+        {
+          "name": "id",
+          "ty": "i32",
+          "value": "id"
+        },
+        {
+          "name": "location",
+          "ty": "Option<[f64; 3]>",
+          "value": "location"
+        }
+      ],
+      "helper_source_sha256": "9a947b890388095368709cc4b07d510306a3082a61fa958136067481993aaafb"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-guest-head",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "function_fingerprint": "8b984e8a733e4002980ae53e4b9243039e3125d64a6e5f5782752e1c884a27bc",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "helper_source_sha256": "b9a607b26e3729481d70452cbe2446e853f3663e15dab4713905881ee391ca9c"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-guest-return",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_swing_back",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        94
+      ],
+      "function_fingerprint": "68f74833629042c6f80c3bce42132bd83d57a53d136026de95bbf6ad7208be75",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&mut crate::game::lan::LanHost",
+          "value": "&mut *host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "swung",
+          "ty": "Option<bool>",
+          "value": "swung"
+        }
+      ],
+      "helper_source_sha256": "73d9876c05c75ec1a066162428323f90a7d562efba08481f9871cf088af14ac5"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-interact",
+      "priority": 100,
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_interact_entity",
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "node": [
+        40,
+        40
+      ],
+      "function_fingerprint": "482b9207e0841f90714adbbad303678d334b33c6e5cac3119bae3663a7b28d65",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "entity",
+          "ty": "i32",
+          "value": "entity"
+        },
+        {
+          "name": "stack",
+          "ty": "Option<&horizon_client::items::ItemStack>",
+          "value": "stack"
+        },
+        {
+          "name": "claimed",
+          "ty": "&mut bool",
+          "value": "&mut *claimed"
+        }
+      ],
+      "helper_source_sha256": "94a75afa5e4c4fcbb45c5490ac3caf0a002e02d3aaa2026a81cb08fe5808db24"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-splashing-player-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::interact_entity",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        74
+      ],
+      "function_fingerprint": "168ef7dd6f691d45f36532c6026c147086745616fc3e54bd85681b51d55a04c9",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "target",
+          "ty": "Option<crate::game::InteractTarget>",
+          "value": "target"
+        }
+      ],
+      "helper_source_sha256": "c58d3bf5726e9bb04c4fa66b7f454e25191d2ea64255440a6e16095c338a463e"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-tasty-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_tool",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "function_fingerprint": "f9e32f070ad4b03f35ae562080c8123046ad4c5b316d440ac8462c5881d311ec",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < horizon_client :: first_person :: UseResult > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_client::items::ItemStack",
+          "value": "stack"
+        }
+      ],
+      "helper_source_sha256": "9910139616fdb96ce48a5e7caef3ded3951a32681ad49bc47ea3ed7808caf992"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-transform-guest-hit",
+      "priority": 100,
+      "target": "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "function_fingerprint": "8b984e8a733e4002980ae53e4b9243039e3125d64a6e5f5782752e1c884a27bc",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "host",
+          "ty": "&crate::game::lan::LanHost",
+          "value": "&*host"
+        },
+        {
+          "name": "conn",
+          "ty": "u32",
+          "value": "conn"
+        },
+        {
+          "name": "packet",
+          "ty": "&horizon_protocol::packets::play::Serverbound",
+          "value": "&packet"
+        }
+      ],
+      "helper_source_sha256": "7519c7c1f5749dec669a6201293b0344d05b3043c18cf4a6afa027e2f863c03d"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "source-transform-use",
+      "priority": 100,
+      "target": "horizon_client::game::Game<'_>::use_block_transformer",
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        227
+      ],
+      "function_fingerprint": "e745cd0ed8f13b2649dd0b5429288186a3505396d8f8c25b799f731c7719b6eb",
+      "kind": "HEAD",
+      "cancellable": true,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Result < bool > >",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "&mut *self"
+        },
+        {
+          "name": "stack",
+          "ty": "&horizon_items::items::ItemStack",
+          "value": "stack"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        },
+        {
+          "name": "face",
+          "ty": "[i32;3]",
+          "value": "face"
+        }
+      ],
+      "helper_source_sha256": "8c8fa43d56f883d016cde23ceb681af80f147349e48a5105e5207c9e91d27f81"
+    }
+  ],
+  "states": [
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "area-guest-hits",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_area_guest_hits",
+      "ty": "std :: collections :: HashMap < u32 , ([i32 ; 3] , [i32 ; 3] , std :: collections :: HashSet < (i32 , i32) >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-cast-costs",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_cast_costs",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , Vec < i32 > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-cast-wire-recv",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_cast_wire_recv",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , Vec < i16 > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-cast-wire-sent",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_cast_wire_sent",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , Vec < i16 > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-choices",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_choices",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (Option < horizon_items :: items :: ItemStack > , Option < horizon_items :: items :: ItemStack > , Option < Vec < String > >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-double-partner",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_double_partner",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (i32 , i32 , i32) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-info",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_info",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , Vec < String > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-info-recv",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_info_recv",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , Vec < i16 > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-info-scroll",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_info_scroll",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , usize >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-material-cache",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_material_cache",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (horizon_items :: items :: ItemStack , Vec < u8 >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-preview",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_preview",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (Option < horizon_items :: items :: ItemStack > , Option < horizon_items :: items :: ItemStack > , Option < String > , Option < horizon_items :: items :: ItemStack >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-preview-sent",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_preview_sent",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (i32 , Option < horizon_items :: items :: ItemStack >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-recipe-context",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_recipe_context",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (u64 , std :: sync :: Arc < std :: collections :: BTreeMap < String , Vec < u8 > > > , Vec < (String , String) >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-scroll",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_scroll",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (f32 , usize , bool , Vec < String >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-side-scroll",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_side_scroll",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (usize , bool) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-side-title",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_side_title",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , i16 >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "builder-wire-recv",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_builder_wire_recv",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , Vec < i16 > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "chest-guest-drag",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_chest_guest_drag",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (u8 , Vec < (bool , usize) >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "chest-guest-last-move",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_chest_guest_last_move",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (u8 , horizon_items :: items :: ItemStack) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "chest-guest-pages",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_chest_guest_pages",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (usize , usize) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "chest-ui-pages",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_chest_ui_pages",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (usize , usize) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "crafting-guest-drag",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_crafting_guest_drag",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32) , (u8 , Vec < (bool , usize) >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "crafting-guest-last-move",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_crafting_guest_last_move",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32) , (u8 , horizon_items :: items :: ItemStack) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "crafting-guest-sessions",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_crafting_guest_sessions",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32) , (i32 , i32 , i32) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "crafting-guest-side",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_crafting_guest_side",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32) , ((i32 , i32 , i32) , usize) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "crafting-guest-views",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_crafting_guest_views",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32) , (Vec < Option < horizon_items :: items :: ItemStack > > , Vec < Option < horizon_items :: items :: ItemStack > >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "glow-guest-protection",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_glow_guest_protection",
+      "ty": "std :: collections :: HashMap < u32 , Option < ([i32 ; 3] , u32) > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "material-snapshot",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_material_snapshot",
+      "ty": "Option < std :: collections :: BTreeMap < String , Vec < Vec < u8 > > > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "material-wire-client",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_material_wire_client",
+      "ty": "bool",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "menu-wire-sent",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_menu_wire_sent",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (i16 , Vec < i16 >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "part-selections",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_part_selections",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , String >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "resolved-item-tags",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_resolved_item_tags",
+      "ty": "Option < Result < std :: collections :: HashMap < String , std :: collections :: HashSet < String > > , String > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "smeltery-guest-containers",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_smeltery_guest_containers",
+      "ty": "std :: collections :: HashMap < u32 , ((i32 , i32 , i32) , [Option < horizon_items :: items :: ItemStack > ; 2] , u8) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "smeltery-guest-pages",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_smeltery_guest_pages",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , (i32 , i32 , i32)) , (usize , usize) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "source-selection-origin",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_source_selection_origin",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (String , String , u64) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "splashing-guest-packet",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_splashing_guest_packet",
+      "ty": "std :: collections :: HashMap < u32 , (i32 , bool) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "splashing-guest-pending",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_splashing_guest_pending",
+      "ty": "std :: collections :: HashMap < u32 , (horizon_items :: items :: ItemStack , usize , Vec < u32 > , Vec < u32 > , bool , i32 , bool) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "splashing-guest-scope",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_splashing_guest_scope",
+      "ty": "std :: collections :: HashMap < u32 , Vec < (Option < u32 > , i32 , [f64 ; 3] , [f64 ; 3] , [f64 ; 3] , bool) > >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-armor-preview",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_armor_preview",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (f32 , Option < f32 >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-guest-layout-count",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_guest_layout_count",
+      "ty": "std :: collections :: HashMap < (u32 , i32 , (i32 , i32 , i32)) , usize >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-guest-names",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_guest_names",
+      "ty": "std :: collections :: HashMap < (u32 , i32 , (i32 , i32 , i32)) , String >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-info-scroll",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_info_scroll",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , (usize , usize) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-name-edit",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_name_edit",
+      "ty": "std :: collections :: HashMap < (i32 , i32 , i32) , crate :: ui :: EditBox >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "station-preview-sent",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_station_preview_sent",
+      "ty": "std :: collections :: HashMap < (u32 , u64 , i32 , (i32 , i32 , i32)) , (i32 , Option < horizon_items :: items :: ItemStack > , Option < horizon_items :: items :: ItemStack > , Option < String > , Option < String >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "state_id": "transform-guest-hits",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        8
+      ],
+      "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+      "name": "__horizon_mixins_tconstruct_native_transform_guest_hits",
+      "ty": "std :: collections :: HashMap < u32 , ([i32 ; 3] , std :: collections :: HashSet < (i32 , i32) >) >",
+      "initial": ":: core :: default :: Default :: default ()",
+      "deserialize": false,
+      "constructors": [
+        {
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            9,
+            0
+          ],
+          "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+          "expression": 2,
+          "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+        }
+      ]
+    }
+  ],
+  "source_contracts": [
+    {
+      "id": "source-workstation-tabs-lan",
+      "reason": "An inert private module delegates to native lan_open_container. It neither creates an invocation nor changes actor/Ready/epoch itself; preserve exact caller and guest-station-open contract. Native menu/item side effects are not a no-op claim."
+    },
+    {
+      "id": "source-area-protection",
+      "reason": "Immutable Game/LanHost reads plus fresh HashSet, pure area plane and native under_spawn_protection. Retain exact source/namespace/read dependencies; no native identity, Ready, epoch, ID or cloud mutation."
+    },
+    {
+      "id": "source-bottle-fill",
+      "reason": "Native fill_held delegates consumption/inventory/possible overflow spawn. Earlier native ID consumption is permitted: cloud has no reserved ID yet and checks the current successor immediately before its pure factory/reserve/take-ID/push tail. Do not claim no allocator activity."
+    },
+    {
+      "id": "command",
+      "reason": "Only the two exact TConstruct command strings mutate inventory and Break; all other strings Continue. No native actor/Ready/epoch/next-ID/cloud assignments. A changed held item before cloud charging is a separate consumer check, not a permission proof for commands."
+    },
+    {
+      "id": "fluid-guest-close",
+      "reason": "Runs exact source-fluid-return live before native close. Guest menu/item returns and any native drop allocation occur before a later cloud commit, not between the cloud successor/reserve/ID/push operations. Preserve gi/conn selection and native guest_menu_op/as_guest restoration."
+    },
+    {
+      "id": "fluid-guest-tick",
+      "reason": "Runs exact live returns for obsolete menus before native ticking. It must retain the existing collected indices and menu predicate; no fake actor attribution is inferred. Prior IDs may advance without violating the cloud current-successor check."
+    },
+    {
+      "id": "guest-station-open",
+      "reason": "Handles exact named machine/chest/menu domains and otherwise Continues to native open. Menu closure/opening and packet effects are retained, not suppressed. Preserve native owner setup/restore and fixed TConstruct delegates; this hook is not inside the cloud atomic publication tail."
+    },
+    {
+      "id": "part-selection-block-change",
+      "reason": "Retain the remote-material-wire flag gate and native coordinate range before saved-NBT removal, plus exact cache removals. World storage mutation is real, but this body does not change native actor/lifecycle/epoch/next-ID/cloud fields and does not run within the cloud publication tail."
+    },
+    {
+      "id": "source-area-guest-hit",
+      "reason": "Noncancelling packet HEAD writes only area_guest_hits for PlayerAction START/STOP. Native actual guest admission/body/acting tuple setup remains after this hook."
+    },
+    {
+      "id": "source-area-guest-destroy",
+      "reason": "Noncancelling destroy HEAD rechecks exact read-only native protection and updates only area_guest_hits. No owner swap or cancellation is introduced."
+    },
+    {
+      "id": "source-transform-guest-hit",
+      "reason": "UseItemOn noncancelling HEAD captures read-only protection into transform_guest_hits before native as_guest. No attribution is taken from this mod map."
+    },
+    {
+      "id": "glow-left-guest",
+      "reason": "Only PlayerAction START enters the glowing/as_guest branch. UseItemOn immediately Continues without that action. Keep native as_guest setup/restore and exact Break/Continue behavior; do not call it globally side-effect-free."
+    },
+    {
+      "id": "glow-resolve-guest-protection",
+      "reason": "enter_guest noncancelling HEAD updates only glow_guest_protection using the actual borrowed host. Preserve native body/tuple setup order and exact map type; its numeric map entry is not cloud authority."
+    },
+    {
+      "id": "materials-book-request",
+      "reason": "Only the exact materials_book CustomPayload channel enters the page/packet branch. UseItemOn immediately Continues. Retain mutable page resolver behavior and its own Guide contract; no claim about book authority follows from cloud review."
+    },
+    {
+      "id": "crafting-station-lan-update",
+      "reason": "Before guest ticks, delegates to exact update_viewers/menu operations. Retain native owner restoration and inventory/drop effects; they are separate operations before a later cloud ID allocation, not re-entry into its tail."
+    },
+    {
+      "id": "source-empty-bottle-use",
+      "reason": "Only splash/lingering bottle items enter this branch; native use_potion_item handling is separate from the TConstruct block cloud entry. Preserve ray/protection/actor/filled-item/native event behavior and possible earlier allocation."
+    },
+    {
+      "id": "source-splashing-guest-head",
+      "reason": "At every packet entry removes prior pending work before branch snapshots. For UseItemOn no Interact packet/scope is inserted. Fix all three state types and exact ordering; this observation does not grant the later target-swap authority."
+    },
+    {
+      "id": "source-splashing-guest-return",
+      "reason": "lan_swing_back HEAD removes pending and returns immediately if absent. In the fixed composition only interact/interact_entity queue writers insert pending; UseItemOn HEAD clears it before block cloud use. Keep target swaps and native restore for Interact as separate behavior."
+    },
+    {
+      "id": "source-splashing-guest-aim",
+      "reason": "Only an exact matching Interact packet-id/held splashing item and eligible target can adjust real guest yaw/pitch. The native look_at_entity result is not a cloud owner capability; retain bounds and Break contract."
+    },
+    {
+      "id": "source-fluid-return",
+      "reason": "close/tick delegates to native menu return before later cloud commit"
+    },
+    {
+      "id": "source-crafting-lan",
+      "reason": "menu update_viewers delegates through native guest_menu_op, outside cloud commit"
+    },
+    {
+      "id": "source-area-shape",
+      "reason": "read-only protection plane used by the exact area-protection module"
+    },
+    {
+      "id": "source-splashing-player",
+      "reason": "the other pending interaction writer; never synthesizes a block-cloud owner"
+    },
+    {
+      "id": "source-splashing",
+      "reason": "sole block-cloud caller, explicit frame/held check and partial accounting"
+    },
+    {
+      "id": "game-glowing-placement",
+      "reason": "protection predicate used by the exact empty-bottle hook"
+    },
+    {
+      "id": "game-glowing-world",
+      "reason": "mixed glow continuation after cloud publication; frame/held checked before charge"
+    },
+    {
+      "id": "source-machine-runtime",
+      "reason": "named machine open/use delegate; no interposition in cloud publication tail"
+    },
+    {
+      "id": "source-smeltery-world",
+      "reason": "named menu validation delegate"
+    },
+    {
+      "id": "source-crop-harvest",
+      "reason": "native item entry predecessor; handled crop path cancels before cloud entry"
+    }
+  ],
+  "protected_targets": [
+    "horizon_client::game::Game<'_>::interact_entity",
+    "horizon_client::game::Game<'_>::use_block_transformer",
+    "horizon_client::game::Game<'_>::use_hand",
+    "horizon_client::game::Game<'_>::use_item",
+    "horizon_client::game::Game<'_>::use_tool",
+    "horizon_client::game::Game<'_>::with_hand",
+    "horizon_client::game::commands::Game<'_>::run_command",
+    "horizon_client::game::lan_actions::Game<'_>::drop_guest_items",
+    "horizon_client::game::lan_actions::Game<'_>::enter_guest",
+    "horizon_client::game::lan_actions::Game<'_>::guest_container_closed",
+    "horizon_client::game::lan_actions::Game<'_>::guest_destroy",
+    "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet",
+    "horizon_client::game::lan_actions::Game<'_>::lan_open_container",
+    "horizon_client::game::lan_actions::Game<'_>::lan_swing_back",
+    "horizon_client::game::lan_actions::Game<'_>::look_at_entity",
+    "horizon_client::game::lan_actions::Game<'_>::tick_guests",
+    "horizon_client::game::lan_crafting::Game<'_>::guest_menu_op",
+    "horizon_client::game::lan_crafting::Game<'_>::lan_place_back",
+    "horizon_client::game::lan_entities::Game<'_>::take_entity_id",
+    "horizon_client::game::native_hooks::Game<'_>::native_interact_entity",
+    "horizon_client::game::native_machines::Game<'_>::native_use_as_player",
+    "horizon_client::game::potions::Game<'_>::use_potion_item",
+    "horizon_client::game::sculk::Game<'_>::sculk_actor",
+    "horizon_client::game::sculk::Game<'_>::with_player_actor",
+    "horizon_client_render::world::World::set"
+  ],
+  "protected_module_prefixes": [
+    "horizon_client::game::lan_actions::tconstruct_source_area_protection::",
+    "horizon_client::game::lan_actions::tconstruct_source_workstation_tabs_lan::",
+    "horizon_client::game::lan_crafting::tconstruct_crafting_lan::",
+    "horizon_client::game::native_lifecycle::pluto_lifecycle_readiness::",
+    "horizon_client::game::pluto_cloud_insertion::",
+    "horizon_client::game::potions::pluto_cloud_factory::",
+    "horizon_client::game::potions::tconstruct_source_bottle_fill::",
+    "horizon_client::game::tconstruct_glowing_placement::",
+    "horizon_client::game::tconstruct_glowing_world::",
+    "horizon_client::game::tconstruct_source_area_shape::",
+    "horizon_client::game::tconstruct_source_crop_harvest::",
+    "horizon_client::game::tconstruct_source_fluid_cloud::",
+    "horizon_client::game::tconstruct_source_fluid_return::",
+    "horizon_client::game::tconstruct_source_machine_runtime::",
+    "horizon_client::game::tconstruct_source_smeltery_world::",
+    "horizon_client::game::tconstruct_source_splashing::",
+    "horizon_client::game::tconstruct_source_splashing_player::",
+    "horizon_client_lib::pluto_cloud::",
+    "horizon_client_lib::pluto_potions::"
+  ],
+  "hook_order": [
+    {
+      "file": "crates/horizon-client-render/src/world.rs",
+      "node": [
+        9,
+        5
+      ],
+      "injection_ids": [
+        "part-selection-block-change"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        74
+      ],
+      "injection_ids": [
+        "source-splashing-player-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        77
+      ],
+      "injection_ids": [
+        "source-crop-use",
+        "source-machine-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        227
+      ],
+      "injection_ids": [
+        "source-splashing-block",
+        "source-transform-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "node": [
+        421,
+        232
+      ],
+      "injection_ids": [
+        "pluto_items_b2-use",
+        "material-bow-use",
+        "source-slurping-use",
+        "source-tasty-use",
+        "pluto_native_creative-world-fluid-use"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/commands.rs",
+      "node": [
+        38,
+        2
+      ],
+      "injection_ids": [
+        "command"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        3
+      ],
+      "injection_ids": [
+        "glow-resolve-guest-protection"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        10
+      ],
+      "injection_ids": [
+        "guest-station-open"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        14
+      ],
+      "injection_ids": [
+        "fluid-guest-close"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        30
+      ],
+      "injection_ids": [
+        "glow-left-guest",
+        "materials-book-request",
+        "source-area-guest-hit",
+        "source-splashing-guest-head",
+        "source-transform-guest-hit"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        42
+      ],
+      "injection_ids": [
+        "source-splashing-guest-aim"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        55
+      ],
+      "injection_ids": [
+        "crafting-station-lan-update",
+        "fluid-guest-tick"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        81
+      ],
+      "injection_ids": [
+        "source-area-guest-destroy"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "node": [
+        15,
+        94
+      ],
+      "injection_ids": [
+        "source-splashing-guest-return"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "node": [
+        40,
+        40
+      ],
+      "injection_ids": [
+        "source-splashing-interact"
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "node": [
+        28,
+        0
+      ],
+      "injection_ids": [
+        "source-empty-bottle-use"
+      ]
+    }
+  ],
+  "order_evidence": {
+    "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "planner_blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+    "transform_blob": "f4edd3dbe1278be696d56405b4cf7d47e7b105bb",
+    "meaning": "Planner sorts by file/node/sites, descending priority, owner and injection ID; transform preserves per-node plan order. Contract uses actual observed groups, not recomputed guessed order."
+  }
+}

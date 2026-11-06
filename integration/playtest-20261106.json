@@ -51,7 +51,7 @@
     },
     {
       "subject": "Validate integrated native item-cloud repair",
-      "reason": "Reviewed source is now in development paths, not a verified working feature. Strict fixed-caller/state/IR guard adaptation, fresh full plan, actual horizon-client6+3 tests, host typing and game publication checks remain. The old9cc1 plan cannot prove this delta."
+      "reason": "Strict source-reviewed composition guard is integrated. Its candidate observation and moved-module fingerprint remain null and reject every unobserved composition. Fresh full plan, reviewed actual identities, all guards, actual Game 6+3 tests, types and publication checks remain."
     }
   ],
   "excluded_activation": [
@@ -288,6 +288,16 @@
       "native_type_verified": false,
       "record": "pluto-lib/experiments/wire-read-41f-intake/receipt.json",
       "independent_review": "Rendering verified the two-field inverse, exact old/new official source and full reference plan modules; no concrete blocker."
+    },
+    "cloud_composition_guard": {
+      "source": "0412bd0f4fb11770e2b563aaf9f27e29093f963d",
+      "source_checks": 37,
+      "independent_review": "Guide source review; central full pure suite and all eight immutable file hashes.",
+      "scope": "Exact reviewed entry, payload, state and per-node order contracts; unknown protected changes reject.",
+      "candidate_observation": null,
+      "new_module_fingerprint": null,
+      "admission": "Mandatory rejection until the new complete plan is observed and reviewed.",
+      "actual_full_guard_passed": false
     }
   },
   "safety": {
@@ -546,10 +556,11 @@
       "pure_checks": 12,
       "independent_review": "Guide10immutableblobs/inverse; central12source checks and exact current-base comparison",
       "scope": "Native guest Player/connection and local/fake Player/no-connection retained; existing explicit-owner insert/resolver unchanged. Explicit effect budget and consuming native-color operation preserve legacy count/order/color policy.",
-      "guard_update_applied": false,
+      "guard_update_applied": true,
       "actual_complete_plan": false,
       "actual_game_tests_unrun": 9,
-      "type_or_build": false
+      "type_or_build": false,
+      "guard_admission_verified": false
     },
     {
       "subject": "Local station transaction delegation proposal",
@@ -594,6 +605,16 @@
       "scope": "Only official revision and whole-file hash change. Existing private Wire declaration, reader, three modules and checker are unchanged.",
       "reference_full_guard_function": "passed by Storage and central replay",
       "current_complete_plan_or_type": false
+    },
+    {
+      "subject": "Strict native item-cloud composition contract",
+      "source": "0412bd0f4fb11770e2b563aaf9f27e29093f963d",
+      "paths": 8,
+      "pure_checks": 37,
+      "scope": "Exact reviewed IR, bodies, direct states and hook order. Existing protected boundaries and unknown-change rejection remain.",
+      "pending_observation_rejects": true,
+      "rust_or_manifest_changed": false,
+      "actual_plan_or_type_verified": false
     }
   ],
   "guide_limits": [
