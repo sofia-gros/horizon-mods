@@ -48,6 +48,15 @@ def disk_guard(paths):
         if shutil.disk_usage(path).free<FLOOR:raise RuntimeError('Disk floor reached')
 
 
+def read_log(path):
+    size=path.stat().st_size
+    if size>LOG_LIMIT:raise RuntimeError('Phase log limit')
+    with path.open('rb') as stream:raw=stream.read(LOG_LIMIT+1)
+    if len(raw)>LOG_LIMIT:raise RuntimeError('Phase log limit')
+    if len(raw)!=size or path.stat().st_size!=size:raise RuntimeError('Phase log changed during read')
+    return raw
+
+
 def phase(name,argv,work,env,receipt):
     from winjob import Job
     log=work/(name+'.log');paths=[ROOT,work,Path(ROOT.anchor),Path(sys.executable).parent]
@@ -84,9 +93,8 @@ def phase(name,argv,work,env,receipt):
         item['seconds']=time.monotonic()-start
         if log.exists():
             size=log.stat().st_size;item['log_bytes']=size
-            if size<=LOG_LIMIT:item['log_sha256']=sha(log.read_bytes())
-    raw=log.read_bytes()
-    if len(raw)>LOG_LIMIT:raise RuntimeError('Phase log limit')
+            if size<=LOG_LIMIT:item['log_sha256']=sha(read_log(log))
+    raw=read_log(log)
     if item['exit']!=0:
         print(raw[-8192:].decode('utf-8',errors='replace'),flush=True)
         raise RuntimeError(name+' failed')

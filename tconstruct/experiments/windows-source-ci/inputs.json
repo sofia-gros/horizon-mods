@@ -2,14 +2,14 @@
   "schema": 1,
   "branch": "checkpoint/windows-latest-source-ci-20261106",
   "base": "59f3fa23cc5b95fbc8e7bcb42d24e2d5d9771bc9",
-  "status": "test-only UTF-8 correction prepared; initial c936 Windows partial failure retained; retry unrun",
+  "status": "test UTF-8 correction and bounded final log read prepared; initial c936 Windows partial failure retained; retry unrun",
   "source_sha256": {
     ".github/workflows/windows-source-wip.yml": "3f864264df1e8afcbc91031d315260ac2d568bc7a89a367d8d464b2e6a6ad031",
     "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
     "tconstruct/docs/windows-latest-launch.md": "8d75566bf812d4a047215b1d0a60360146772f701aba81c18b52d56a39d0d840",
-    "tconstruct/experiments/windows-source-ci/README.md": "c4eca052eb645ef7dc38c737916326dcaeb049c8391775e8420be356a1182dce",
-    "tconstruct/experiments/windows-source-ci/run.py": "5d71cbece603d76113b9ac4e9acf9f3fd618e284880ebf18d6bf6f27a46d3a8e",
-    "tconstruct/experiments/windows-source-ci/test_runner.py": "ce539d623e5ee98cdab44d05e182cc09e328e728d2e0081efc3652d099426e48",
+    "tconstruct/experiments/windows-source-ci/README.md": "a49d8d43f8eb7054032854e1e4cf83333abc434055e34503607d9f795f397751",
+    "tconstruct/experiments/windows-source-ci/run.py": "1d6f6a9b0122033cb7a4dbeeaa1e24cd9ad2385a762eb3c2d75b1ab3083ea3fa",
+    "tconstruct/experiments/windows-source-ci/test_runner.py": "c19ce5d859c0ab930b94bd6c818c3459df5ea0e2236f72da2837e5d327f7158a",
     "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
     "tconstruct/experiments/windows-source-ci/winjob.py": "2c3ff616596dde7caae785d12acacc12fdd0d3096538b1b51877066147cd738d",
     "tconstruct/tests/test_windows_latest_launch.py": "b646666f465980ee8bc7131c9006c2fa88bc7e8ce4b5ae7a1435f3be6b3cc0b0",
@@ -89,6 +89,6 @@
       ]
     }
   ],
-  "preparation_tests": 11,
+  "preparation_tests": 12,
   "retry_of": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55"
 }

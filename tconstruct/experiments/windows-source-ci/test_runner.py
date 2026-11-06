@@ -7,7 +7,7 @@ import subprocess
 import sys
 import unittest
 import tempfile
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
@@ -72,6 +72,17 @@ class Tests(unittest.TestCase):
         duplicate=copy.deepcopy(groups);duplicate[0]['names'][0]=duplicate[0]['names'][1]
         for value in (groups[::-1],groups[:-1],bad,wrong,duplicate):
             with self.assertRaises(ValueError):controller.check_suites(value)
+    def test_final_log_limit_precedes_bounded_read(self):
+        path=MagicMock();path.stat.return_value.st_size=controller.LOG_LIMIT+1
+        with self.assertRaisesRegex(RuntimeError,'log limit'):controller.read_log(path)
+        path.open.assert_not_called()
+        path=MagicMock();path.stat.return_value.st_size=1
+        stream=path.open.return_value.__enter__.return_value;stream.read.return_value=b'x'*(controller.LOG_LIMIT+1)
+        with self.assertRaisesRegex(RuntimeError,'log limit'):controller.read_log(path)
+        stream.read.assert_called_once_with(controller.LOG_LIMIT+1)
+        with tempfile.TemporaryDirectory() as temp:
+            good=Path(temp)/'phase.log';good.write_bytes(b'bounded')
+            self.assertEqual(controller.read_log(good),b'bounded')
     def test_native_and_installer_absent(self):
         s=(HERE/'run.py').read_text();tree=ast.parse(s)
         literals=[n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str)]
