@@ -1,5 +1,7 @@
 # Plan a move between slots
 
+Start with [Choosing a storage operation](storage-usage.md) for the existing API boundaries and a typed proposal-only example.
+
 Use `horizon_client::pluto_inventory` when a container needs to decide how many items can move between two logical slots. It does not own an inventory or depend on a screen. Your mod chooses the number and order of slots, what each slot accepts, and how many items a stack may hold.
 
 ```rust
