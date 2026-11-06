@@ -669,7 +669,13 @@ mod tests {
                 Err(cells::RegisterError::Frozen)
             );
         }
-        if mode == "registered" { material_cases(&root); }
+        if mode == "registered" {
+            material_cases(&root);
+            let f = fixture(&ordinary, 0);
+            prepare_material(&f, MATERIAL_GROUP, 2, 0xFFFFFF,
+                geometry::VerticalAnchor::Bottom, Some("pluto_fixture:block/flow"), false);
+            timing(&f, &chunk("mixed"), "secondary-material", iterations, &profile);
+        }
         println!(
             "PLUTO_TERRAIN_MODE {mode} complete; actual native CPU mesh, original synthetic resources only"
         );

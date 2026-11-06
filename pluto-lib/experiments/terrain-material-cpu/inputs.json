@@ -6,10 +6,10 @@
   "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
   "experiment_sha256": {
-    "fixture.rs": "bd8f39d6d88742e19a4c33afb76a70ef28369978736ebf930e3a1daa12ef2e61",
+    "fixture.rs": "52ce941fe575ed1f0ff11e33b6631890d5dbd456081596851c5886c0ee6447d1",
     "prepare.py": "9ccf4268c610d10610213408041fc68febbf61f4b1d0ffc37ee3c228e8134910",
     "check_plan.py": "22ff48bc6ee66799f7d87715771c10acc0bdd7c3e549ed3e1c1acd17d8a4665e",
-    "README.md": "29d7ee6e0be5863eb10fdfd5c8d504eba3e2f77b1973829704cd62d73a772077",
+    "README.md": "0beaf834365394b6bde1e17c44c6a1c49319a39cc7c9993c4df2bf54d510a6e6",
     "test_source.py": "9dd4ada0125ea34fd5b6128a6628018798d44c1a9596b0532eb8f2d9b9dfd482"
   },
   "production_sha256": {
@@ -20,5 +20,6 @@
     "mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
     "mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
     "mixins/pluto_native_creative/rendering.rs": "66f92506471343fb24e6397e4fa5c8bcc9c43701bf81f9d5f7bd2238ae10410e"
-  }
+  },
+  "previous_source_checkpoint": "7d3b6d043ad737bd2c639ec610a7325254d49372"
 }

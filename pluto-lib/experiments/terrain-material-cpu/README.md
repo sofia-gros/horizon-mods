@@ -84,3 +84,11 @@ needs startup content plus standalone-model registration before resource assembl
 one material provider before the first mesh, and the current registry-bound
 preparation adapter. Those missing integration steps are not supplied by a test
 module or a successful library type check.
+
+## Follow-up timing cutoff
+
+The initial `source-validation.json` describes the exact source hashes tested and
+published at `7d3b6d04`. This follow-up additionally times the secondary-material
+case after its assertions. Its new template hash is in `inputs.json`; the initial
+preparation receipt is not relabeled as evidence for this changed template. The
+new CI must regenerate and verify the complete overlay at its own exact head.
