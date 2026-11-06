@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Guide and mining source integrated; gameplay build remains blocked",
+  "stage": "reviewable source integration; latest complete plan and build not run",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -173,6 +173,19 @@
       "activation": "Excluded source only; no runtime file, registration, manifest or old hook changes",
       "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
       "remaining": "Independent source/API review, actual native/API tests, complete constructor bootstrap and separate Overslime/placement authorities"
+    },
+    {
+      "name": "Pluto package target declarations",
+      "source_base": "24b8ff1671db1ed2fb3c0d0a9c0c952f6f0211fc",
+      "scope": "horizon-native.json Horizon/Mixins plus five remaining component Horizon revisions only",
+      "target": "41f822b659789780f58d32c63ddfb6887ea1b8bf / 5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "pure_checks": 8,
+      "full_inverse": true,
+      "independent_review": "Storage read-only: no concrete blocker",
+      "receipt": "integration/packaging-41f/receipt.json",
+      "real_package_generated": false,
+      "plan_accepted": null,
+      "type_checked": false
     }
   ],
   "guide_limits": [

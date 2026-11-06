@@ -3,7 +3,7 @@ id = "pluto_tool_rules"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+horizon_revision = "41f822b659789780f58d32c63ddfb6887ea1b8bf"
 [[module]]
 id = "api"
 file = "crates/horizon-items/src/items.rs"

@@ -1,0 +1,86 @@
+{
+  "base": "24b8ff1671db1ed2fb3c0d0a9c0c952f6f0211fc",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "previous_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "previous_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "meaning": "Requested target declarations only. No plan, guard, apply, type, package or gameplay success is implied.",
+  "inputs": {
+    "pluto-lib/horizon-native.json": {
+      "git_blob": "513363acef612983cb080ee0b6b0fb9ccee7de09",
+      "sha256": "2dfbfafdb380d02b4102c24a7dc9bb98262e03f5dab01b16150b5f8b118ee7e1"
+    },
+    "pluto-lib/mixins/pluto_component_bar/horizon-mixin.toml": {
+      "git_blob": "e89c249829ed6436d8e686329e402b2e24803d1c",
+      "sha256": "5d60b066a563182faeced9d8c713bcee40e60fcc2fa0387bfb39e84c12e9aa67"
+    },
+    "pluto-lib/mixins/pluto_component_display_3a/horizon-mixin.toml": {
+      "git_blob": "bef09cca1ba1d927145028325235e0fcbdd1facc",
+      "sha256": "894e324d2110b543dcb88c4a9835fee34b4ea454fe8c136ce7f2d71aeb896c96"
+    },
+    "pluto-lib/mixins/pluto_items_b2/horizon-mixin.toml": {
+      "git_blob": "98eb70ed781c72fe2f95d77cdb9fc7469b7192be",
+      "sha256": "00ef532af8b52796a2db23e2cf90e8526b4a89fbc0546a92aa13ef9f09816a22"
+    },
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": {
+      "git_blob": "8b9d66baab0aaa7407274920cdcf1d386e8a4b74",
+      "sha256": "794b994c9699d079b70d827b16b78d36d8ed52b6ccd70e9483458897c4ce20c7"
+    },
+    "pluto-lib/mixins/pluto_tool_rules/horizon-mixin.toml": {
+      "git_blob": "58b1f3f3f7f777e78cc542175fc75101c04c97c3",
+      "sha256": "f96fe307e97791eb6a6ef97f9fdfb06885c61ca0aa7a484a9c690c84b60e7c89"
+    },
+    "pluto-lib/mixins/pluto_transport_3a/horizon-mixin.toml": {
+      "git_blob": "f48861f270c2990beaff4503a514794cb281e489",
+      "sha256": "31bb38dd3573706750011bc68d0d564651e84c1eb4a8c87175a9c2d66deda581"
+    },
+    "pluto-lib/tools/package_native.py": {
+      "git_blob": "e4a86801aad459fcb478cce3bd6e4bb2830f20e1",
+      "sha256": "1b7888725401aebfe09185239ce9864e2d11e71b4b84b1ee42031dd7258c3e6e"
+    }
+  },
+  "changed": {
+    "pluto-lib/horizon-native.json": {
+      "before_git_blob": "513363acef612983cb080ee0b6b0fb9ccee7de09",
+      "after_git_blob": "6b20d7b340624c39361738bd9dbecc804df33fcd",
+      "before_sha256": "2dfbfafdb380d02b4102c24a7dc9bb98262e03f5dab01b16150b5f8b118ee7e1",
+      "after_sha256": "586336288dc9167d36be1b92e80ad9bdcc4060b8ebc55c5c6314a55112d70bb4",
+      "replacements": 2
+    },
+    "pluto-lib/mixins/pluto_component_bar/horizon-mixin.toml": {
+      "before_git_blob": "e89c249829ed6436d8e686329e402b2e24803d1c",
+      "after_git_blob": "ba00b343291df6bf18cd5f8c55285173d4892d67",
+      "before_sha256": "5d60b066a563182faeced9d8c713bcee40e60fcc2fa0387bfb39e84c12e9aa67",
+      "after_sha256": "23509d5abe6c2001764d4ef61dcc203b3efd89ba664e30b37b28bdf8422ba071",
+      "replacements": 1
+    },
+    "pluto-lib/mixins/pluto_component_display_3a/horizon-mixin.toml": {
+      "before_git_blob": "bef09cca1ba1d927145028325235e0fcbdd1facc",
+      "after_git_blob": "93cd046be1adecf4d536e73c104611d728f92965",
+      "before_sha256": "894e324d2110b543dcb88c4a9835fee34b4ea454fe8c136ce7f2d71aeb896c96",
+      "after_sha256": "90f59d32e61e0fc4203bb343f28d1d12017868c713675a7b33942da927c27ffc",
+      "replacements": 1
+    },
+    "pluto-lib/mixins/pluto_items_b2/horizon-mixin.toml": {
+      "before_git_blob": "98eb70ed781c72fe2f95d77cdb9fc7469b7192be",
+      "after_git_blob": "40e73f91e5d0c8ae49361f3d1dcd3c9ec326e312",
+      "before_sha256": "00ef532af8b52796a2db23e2cf90e8526b4a89fbc0546a92aa13ef9f09816a22",
+      "after_sha256": "27a56e1c039ee9d63b3767cae3b76ed291a4a8fcf0503225a4cdfe1884d880e5",
+      "replacements": 1
+    },
+    "pluto-lib/mixins/pluto_tool_rules/horizon-mixin.toml": {
+      "before_git_blob": "58b1f3f3f7f777e78cc542175fc75101c04c97c3",
+      "after_git_blob": "680e3593295e7a8d9bcf253395628c0bb45ebab1",
+      "before_sha256": "f96fe307e97791eb6a6ef97f9fdfb06885c61ca0aa7a484a9c690c84b60e7c89",
+      "after_sha256": "db059882c99b105866681462bc5b07a7ba8919f204d183c709f800f4917c051c",
+      "replacements": 1
+    },
+    "pluto-lib/mixins/pluto_transport_3a/horizon-mixin.toml": {
+      "before_git_blob": "f48861f270c2990beaff4503a514794cb281e489",
+      "after_git_blob": "15d26bbc8aade9ba23e53cad764f03df3553ac2b",
+      "before_sha256": "31bb38dd3573706750011bc68d0d564651e84c1eb4a8c87175a9c2d66deda581",
+      "after_sha256": "a6d7d7750ae52a799b746d7c6f9b711f405fd82fbad9f3fe0fae438ac35a5361",
+      "replacements": 1
+    }
+  }
+}

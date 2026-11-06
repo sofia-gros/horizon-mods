@@ -16,6 +16,7 @@ This branch combines the current ordinary source work for review and a future pl
 - Mining context now uses one native BreakSpeed HEAD plus a Pluto borrowed-facts module. Both raw manifests explicitly target 41f; PR #945 policies remain unchanged. Sixteen pure adaptation checks passed; no latest complete native build is claimed.
 - Pluto bundle and guard inputs now participate in the Windows cache key, with rechecks before marking ready or launching. Twelve pure checks passed; the latest Windows launch contract is still pending.
 - Three existing outer-tank NBT delegation changes are included without reverting PR #945 storage migrations. Twelve source/inverse checks passed. The earlier 160-case proof used official624c and is not a latest Game/build result.
+- Pluto's package header and all six ordinary components now declare the same 41f target, with the header fixed to Mixins5a64. Eight declaration/inverse checks passed. This removes a packaging-input mismatch, not the remaining plan/guard/type failures.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
 
 ## Remaining work
