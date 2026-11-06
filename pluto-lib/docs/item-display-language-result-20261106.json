@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "status": "passed_bounded_native_fixture",
+  "evidence": {
+    "workflow_head": "0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5",
+    "run_id": 42181415662,
+    "job_id": 127771667512,
+    "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662",
+    "job_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662/job/127771667512",
+    "source": "FINAL_RECEIPT and individual test/result/verify-after lines independently read from the job log",
+    "cutoffs": {
+      "composed_language": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+      "fixture": "df0645ec2bdd1063364eb82d85c45ef45d61c876"
+    }
+  },
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "item_display": {
+    "names": [
+      "item_display_tests::construction_does_not_fabricate_an_item_name_patch",
+      "item_display_tests::custom_name_wins_and_preserves_explicit_italic",
+      "item_display_tests::item_name_is_resolved_again_without_mutating_the_component",
+      "item_display_tests::missing_key_and_explicit_fallback_are_native",
+      "item_display_tests::native_codec_keeps_translate_arguments_and_style",
+      "item_display_tests::standard_keys_use_current_then_english_fallback",
+      "item_display_tests::standard_paths_preserve_slashes_and_implicit_namespace",
+      "item_display_tests::styled_name_defers_unadorned_stack_to_current_default"
+    ],
+    "passed": true,
+    "tests": 8
+  },
+  "full_unfiltered_suite": {
+    "passed": 22,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 0,
+    "result_groups": {
+      "item": 8,
+      "author_key": 6,
+      "language": 8
+    }
+  },
+  "actual_compile": {
+    "example": "original author example included and type-checked in bounded fixture with explicit horizon_client alias, not installed client library",
+    "native_crates": [
+      "horizon_client_core",
+      "horizon_items",
+      "horizon_world"
+    ],
+    "passed": true
+  },
+  "source_guards": {
+    "passed": true,
+    "tests": 25
+  },
+  "runner_guards": {
+    "passed": true,
+    "tests": 15
+  },
+  "metadata_and_seals": {
+    "metadata_passed": true,
+    "source_sha256": "b6dfaa9dbc7faf2dc6e90797b6c143590ed306b9ba413ba5ce0590c65f0b741d",
+    "official_sha256": "3fd9eb59fd89d315f9db87792b584e7f727b9565b000b5814c8b289da83310a1",
+    "fixture_sha256": "428b475b4a6fe4ee783e117190a223d639e8d5e30488dffab9c2eee8d028c793",
+    "generated_output_sha256": "2e0cccec72c5324ed5fe44c504d31bc7a7e1592914235ca20fa7f1186fd21bff",
+    "verify_after_exit_code": 0,
+    "verified": true
+  },
+  "minimum_free_bytes": 90025824256,
+  "floor_bytes": 10871635968,
+  "not_proved": [
+    "Installed full horizon-client module composition or Mixins plan/apply",
+    "Actual Game display, GUI rendering, retained-page or recipe-cache refresh",
+    "Every content default component materialized into every ItemStack construction path",
+    "General raw NBT, unknown component or retained-Wire losslessness",
+    "LAN delivery, packet/pack overlay behavior, automatic translation of title-based routing"
+  ],
+  "frozen_preparation_record": "item-display-language-inputs-20261106.json remains unchanged and records its pre-execution status; this separate result records the later CI execution."
+}
