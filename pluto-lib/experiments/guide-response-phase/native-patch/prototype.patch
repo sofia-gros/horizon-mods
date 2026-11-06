@@ -1,0 +1,472 @@
+--- a/crates/horizon-client/src/game.rs
++++ b/crates/horizon-client/src/game.rs
+@@ -73,6 +73,7 @@
+ mod boat_passengers;
+ mod boats;
+ mod books;
++mod retained_book;
+ mod bossbars;
+ mod breezes;
+ mod brush;
+@@ -2673,7 +2674,7 @@
+     /// Sign text being edited (`SignEditScreen`).
+     sign_edit: Option<sign_edit::SignEditor>,
+     /// An open book, book and quill or lectern screen.
+-    book: Option<books::BookScreen>,
++    book: retained_book::RetainedBook<books::BookScreen>,
+     /// The last click on the book screen, for double clicks.
+     book_last_click: Option<std::time::Instant>,
+     /// Lecterns whose page-turn pulse is running (ticks left).
+@@ -7716,6 +7717,7 @@
+             // level (Minecraft.setLevel), which stops every sound.
+             self.stop_sounds_for_new_level();
+         }
++        self.book.invalidate_attachment();
+         self.player = Some(player);
+         self.pad.player_replaced();
+         self.sway = Default::default();
+@@ -12740,6 +12742,7 @@
+         self.block_ticks = Ticks::new(self.level.seed as i32);
+         self.tick_chunks.clear();
+         self.clear_entities();
++        self.book.invalidate_attachment();
+         self.player = None;
+         self.sleeping = None;
+         self.sleep_timer = 0;
+@@ -12956,6 +12959,7 @@
+             return Ok(());
+         }
+         if let Some(mut remote) = self.remote.take() {
++            self.book.invalidate_attachment();
+             // Minecraft.disconnect closes the connection, so the host sees a clean leave.
+             remote.session.disconnect();
+             self.saved_for_exit = true;
+@@ -13005,6 +13009,7 @@
+         self.bosses = Default::default();
+         self.streaming.paused = true;
+         self.world = World::new(self.res.facts().air, 0);
++        self.book.invalidate_attachment();
+         self.player = None;
+         // `LocalPlayer`'s constructor: `KeyMapping.resetToggleKeys`, so a sneak or sprint toggled
+         // in this world is not still on in the next one.
+@@ -19479,7 +19484,7 @@
+             particles,
+             pickups: Default::default(),
+             sign_edit: None,
+-            book: None,
++            book: retained_book::RetainedBook::default(),
+             book_last_click: None,
+             lectern_pulses: Vec::new(),
+             loading_progress: 0.0,
+--- a/crates/horizon-client/src/game/books.rs
++++ b/crates/horizon-client/src/game/books.rs
+@@ -260,7 +260,7 @@
+         }
+     }
+     fn open_book(&mut self, screen: BookScreen) {
+-        self.book = Some(screen);
++        self.book.set(Some(screen));
+         self.keys.clear();
+         self.right = false;
+         self.capture(false);
+@@ -268,7 +268,7 @@
+     pub(super) fn close_book(&mut self) {
+         // A server's lectern: LecternScreen's menu closes (closeContainer).
+         if matches!(
+-            self.book,
++            self.book.as_ref(),
+             Some(BookScreen::View {
+                 lectern: Some(_),
+                 ..
+@@ -277,7 +277,7 @@
+         {
+             self.remote_close_container();
+         }
+-        self.book = None;
++        self.book.set(None);
+         self.capture(self.screen == super::Screen::Playing && !self.screen_over_playing());
+     }
+     /// `BookEditScreen.saveChanges` and `BookSignScreen`'s Sign and Close:
+@@ -519,7 +519,7 @@
+     }
+     /// Ctrl+A/C/V/X: the title box while signing, else the page.
+     pub(super) fn book_shortcut(&mut self, shortcut: horizon_client::clipboard::EditShortcut) {
+-        let signing = matches!(self.book, Some(BookScreen::Edit { signing: true, .. }));
++        let signing = matches!(self.book.as_ref(), Some(BookScreen::Edit { signing: true, .. }));
+         if signing {
+             if let Some(BookScreen::Edit {
+                 title, title_edit, ..
+@@ -944,7 +944,7 @@
+         }
+         if self.may_build()
+             && matches!(
+-                self.book,
++                self.book.as_ref(),
+                 Some(BookScreen::View {
+                     lectern: Some(_),
+                     ..
+@@ -960,7 +960,7 @@
+         &mut self,
+         action: Option<&str>,
+     ) -> horizon_client::Result<serde_json::Value> {
+-        let lectern = match &self.book {
++        let lectern = match self.book.as_ref() {
+             Some(BookScreen::View { lectern, .. }) => *lectern,
+             Some(BookScreen::Edit { .. }) => None,
+             None => return Err("no book is open".into()),
+@@ -995,7 +995,7 @@
+             },
+             Some(other) => return Err(format!("unknown book button {other}").into()),
+         }
+-        Ok(match &self.book {
++        Ok(match self.book.as_ref() {
+             Some(BookScreen::View {
+                 pages,
+                 page,
+@@ -1044,7 +1044,7 @@
+     /// The server closed its lectern menu; false when none is open.
+     pub(super) fn remote_lectern_closed(&mut self) -> bool {
+         if !matches!(
+-            self.book,
++            self.book.as_ref(),
+             Some(BookScreen::View {
+                 lectern: Some(_),
+                 ..
+@@ -1056,7 +1056,7 @@
+             r.menu = None;
+             r.menu_title = None;
+         }
+-        self.book = None;
++        self.book.set(None);
+         self.capture(true);
+         true
+     }
+@@ -1138,7 +1138,7 @@
+             game.audio
+                 .play("minecraft:ui.button.click", None, 0.25, 1.0)
+         };
+-        match &self.book {
++        match self.book.as_ref() {
+             Some(BookScreen::Edit {
+                 signing: true,
+                 title,
+@@ -1205,7 +1205,7 @@
+         }
+     }
+     pub(super) fn draw_book(&self, batch: &mut HudBatch) {
+-        let Some(book) = &self.book else { return };
++        let Some(book) = self.book.as_ref() else { return };
+         let atlas = &self.gui.atlas;
+         let (w, h) = (batch.width, batch.height);
+         let (mx, my) = self.cursor;
+--- a/crates/horizon-client/src/game/ime.rs
++++ b/crates/horizon-client/src/game/ime.rs
+@@ -20,7 +20,7 @@
+             // `title_edit` types into it).
+             return title.has_caret_field() || title.focused_field().is_some();
+         }
+-        if self.sign_edit.is_some() || matches!(self.book, Some(BookScreen::Edit { .. })) {
++        if self.sign_edit.is_some() || matches!(self.book.as_ref(), Some(BookScreen::Edit { .. })) {
+             return true;
+         }
+         match self.screen {
+--- a/crates/horizon-client/src/game/lan_actions.rs
++++ b/crates/horizon-client/src/game/lan_actions.rs
+@@ -948,7 +948,7 @@
+         // A sign the guest's placement opened (SignBlock.openTextEdit).
+         let guest_sign = std::mem::replace(&mut self.sign_edit, host_sign);
+         // A lectern the guest's use opened (LecternBlock.openScreen).
+-        let guest_lectern = match std::mem::replace(&mut self.book, host_book) {
++        let guest_lectern = match self.book.replace(host_book) {
+             Some(super::books::BookScreen::View {
+                 lectern: Some(key), ..
+             }) => Some(key),
+--- a/crates/horizon-client/src/game/native_hooks.rs
++++ b/crates/horizon-client/src/game/native_hooks.rs
+@@ -1084,7 +1084,7 @@
+ 
+ impl Game<'_> {
+     fn observed_screen_view(&self) -> Option<NativeScreenView<'_>> {
+-        let book = match &self.book {
++        let book = match self.book.as_ref() {
+             Some(super::books::BookScreen::Edit { signing: true, .. }) => Some("book_sign"),
+             Some(super::books::BookScreen::Edit { .. }) => Some("book_edit"),
+             Some(super::books::BookScreen::View {
+--- a/crates/horizon-client/src/game/native_machines.rs
++++ b/crates/horizon-client/src/game/native_machines.rs
+@@ -223,7 +223,7 @@
+         self.screen = screen;
+         self.container = container;
+         self.sign_edit = sign_edit;
+-        self.book = book;
++        self.book.set(book);
+         self.command_block_screen = command_block;
+         self.mount_menu = mount_menu;
+         self.craft_size = craft_size;
+--- a/crates/horizon-client/src/game/pad_menu.rs
++++ b/crates/horizon-client/src/game/pad_menu.rs
+@@ -1587,7 +1587,7 @@
+         self.pad.menu.osk.is_some()
+             || playing_screen(Screen::Chat)
+             || self.sign_edit.is_some()
+-            || matches!(self.book, Some(super::books::BookScreen::Edit { .. }))
++            || matches!(self.book.as_ref(), Some(super::books::BookScreen::Edit { .. }))
+             || (playing_screen(Screen::Creative) && self.creative_screen.tab().search)
+             || self.recipe_search_focused()
+             || self.mod_browser_typing()
+@@ -1906,7 +1906,7 @@
+     fn pad_typing(&self) -> bool {
+         (self.screen == Screen::Chat && self.title.is_none())
+             || self.sign_edit.is_some()
+-            || matches!(self.book, Some(super::books::BookScreen::Edit { .. }))
++            || matches!(self.book.as_ref(), Some(super::books::BookScreen::Edit { .. }))
+             || (self.screen == Screen::Creative && self.creative_screen.tab().search)
+             || self.recipe_search_focused()
+             || self.station_typing()
+--- a/crates/horizon-client/src/game/remote.rs
++++ b/crates/horizon-client/src/game/remote.rs
+@@ -991,6 +991,7 @@
+         self.armor = [None, None, None, None];
+         self.craft_grid = vec![None; 9];
+         self.craft_size = 2;
++        self.book.invalidate_attachment();
+         self.player = None;
+         self.spawn = None;
+         self.mobs.clear();
+@@ -1055,6 +1056,7 @@
+                     }
+                 };
+             });
++        self.book.invalidate_attachment();
+         self.remote = Some(Remote {
+             session,
+             brand: "unknown".into(),
+@@ -1225,6 +1227,7 @@
+             self.native_client_disconnecting();
+         }
+         if let Some(mut r) = self.remote.take() {
++            self.book.invalidate_attachment();
+             r.session.disconnect();
+         }
+         super::lan::forget_sync_data();
+@@ -1260,6 +1263,7 @@
+         self.streaming = Streaming::new(Arc::new(NoTerrain), self.worker_context(), 1);
+         self.streaming.paused = true;
+         self.world = World::new(self.res.facts().air, 0);
++        self.book.invalidate_attachment();
+         self.player = None;
+         // The vehicle went with the level: an id kept here would seat the
+         // next login on an entity that is not there.
+@@ -1988,6 +1992,7 @@
+                     if let Some(remote) = &self.remote {
+                         remote.session.reset_far_terrain();
+                     }
++                    self.book.invalidate_attachment();
+                     self.player = None;
+                     self.screen = Screen::Playing;
+                     self.capture(false);
+@@ -2333,6 +2338,7 @@
+         self.streaming.nether_shading = self.dim == Dim::Nether;
+         // The seed in SpawnInfo is already the hashed one the client's BiomeManager holds.
+         self.streaming.biome_zoom = horizon_core::biome::BiomeZoom::new(spawn.seed);
++        self.book.invalidate_attachment();
+         self.player = None;
+         // handleLogin / handleRespawn: LocalPlayer.setPortalCooldown, so a
+         // player who arrives standing in a portal gets no overlay from it.
+@@ -4685,7 +4691,7 @@
+                 if dialog {
+                     self.close_dialogs();
+                     self.ui.chat_screen = None;
+-                    self.book = None;
++                    self.book.set(None);
+                     self.sign_edit = None;
+                 }
+                 if !self.remote_lectern_closed() && (self.screen == Screen::Inventory || dialog) {
+@@ -5862,6 +5868,7 @@
+                 // Player.tick derives noPhysics from the current game mode.
+                 player.spectator = self.spectator();
+                 player.velocity = delta;
++                self.book.invalidate_attachment();
+                 self.player = Some(player);
+                 self.pad.player_replaced();
+                 self.sway = Default::default();
+--- a/crates/horizon-client/src/game/remote_chat.rs
++++ b/crates/horizon-client/src/game/remote_chat.rs
+@@ -436,7 +436,7 @@
+                 use horizon_client::clipboard::Clipboard;
+                 self.clipboard.set(&format!("/{}", prompt.command));
+             }
+-            (false, _, Some(Behind::Book(book))) => self.book = Some(*book),
++            (false, _, Some(Behind::Book(book))) => self.book.set(Some(*book)),
+             (false, _, Some(Behind::Dialog(dialog))) => self.reopen_dialog(dialog),
+             (false, _, None) => {}
+         }
+--- /dev/null
++++ b/crates/horizon-client/src/game/retained_book.rs
+@@ -0,0 +1,156 @@
++// Unapplied official-host storage prototype authored in horizon-mods.
++// Observed identities are NOT owner handles or permission to apply a reply.
++// No sender, packet callback, registry, presentation policy or UI action here.
++use std::sync::atomic::{AtomicU64, Ordering};
++
++static NEXT: AtomicU64 = AtomicU64::new(1);
++
++fn fresh(counter: &AtomicU64) -> Option<u64> {
++    counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1)).ok()
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) struct Stamp {
++    attachment: u64,
++    opening: u64,
++    revision: u64,
++}
++
++/// Private host storage, parameterized here so its mechanics can be tested
++/// without constructing an actual Client/renderer. The proposed Game field
++/// instantiates this with the real books::BookScreen, not a replacement enum.
++pub(super) struct RetainedBook<T> {
++    value: Option<T>,
++    attachment: Option<u64>,
++    opening: Option<u64>,
++    revision: u64,
++}
++
++impl<T> Default for RetainedBook<T> {
++    fn default() -> Self {
++        Self { value: None, attachment: fresh(&NEXT), opening: None, revision: 0 }
++    }
++}
++
++impl<T> RetainedBook<T> {
++    pub(super) fn is_some(&self) -> bool { self.value.is_some() }
++    pub(super) fn is_none(&self) -> bool { self.value.is_none() }
++    pub(super) fn as_ref(&self) -> Option<&T> { self.value.as_ref() }
++
++    /// Compatibility borrow for the pinned native field-mutation call sites.
++    /// A borrow advances revision even if that caller ultimately does no write.
++    /// It does NOT establish exact mutation events or prevent arbitrary trusted
++    /// native code replacing T through this reference. Such a new call site
++    /// needs review; this prototype is not a public untrusted mutation API.
++    pub(super) fn as_mut(&mut self) -> Option<&mut T> {
++        if self.value.is_some() {
++            match self.revision.checked_add(1) {
++                Some(revision) => self.revision = revision,
++                None => self.opening = None,
++            }
++        }
++        self.value.as_mut()
++    }
++
++    pub(super) fn observed_stamp(&self) -> Option<Stamp> {
++        self.value.as_ref()?;
++        Some(Stamp { attachment: self.attachment?, opening: self.opening?, revision: self.revision })
++    }
++
++    /// Keep ordinary assignment's destructor ordering. Revocation happens
++    /// before dropping the old T; if Drop panics, identity remains unavailable.
++    /// Identity exhaustion never prevents native local contents being installed.
++    pub(super) fn set(&mut self, value: Option<T>) {
++        self.set_using(value, &NEXT);
++    }
++    fn set_using(&mut self, value: Option<T>, counter: &AtomicU64) {
++        self.opening = None;
++        self.revision = 0;
++        self.value = value;
++        self.opening = self.value.as_ref().and_then(|_| fresh(counter));
++    }
++
++    /// Keep mem::replace's ownership/drop behavior for guest save/restore.
++    pub(super) fn replace(&mut self, value: Option<T>) -> Option<T> {
++        self.opening = None;
++        self.revision = 0;
++        let old = std::mem::replace(&mut self.value, value);
++        self.opening = self.value.as_ref().and_then(|_| fresh(&NEXT));
++        old
++    }
++    pub(super) fn take(&mut self) -> Option<T> { self.replace(None) }
++
++    /// Called at a real player/connection transition in the proposed patch,
++    /// not on generic overlay appearance or a polling screen-name comparison.
++    pub(super) fn invalidate_attachment(&mut self) {
++        self.attachment = fresh(&NEXT);
++    }
++}
++
++#[cfg(test)]
++mod storage_tests {
++    use super::*;
++    #[test]
++    fn actual_option_shape_remains_available_to_native_readers() {
++        enum View { Edit, Read { page: usize } }
++        let mut slot = RetainedBook::default();
++        assert!(slot.is_none()); assert!(slot.as_ref().is_none());
++        slot.set(Some(View::Read { page: usize::MAX }));
++        assert!(matches!(slot.as_ref(), Some(View::Read { .. })));
++        let Some(View::Read { page }) = slot.as_mut() else { panic!() };
++        assert_eq!(*page, usize::MAX); *page = 2;
++        assert!(matches!(slot.as_ref(), Some(View::Read { page: 2 })));
++        slot.set(Some(View::Edit)); assert!(slot.is_some());
++    }
++    #[test]
++    fn equal_replacement_and_restoration_never_reuse_opening() {
++        let mut slot = RetainedBook::default(); slot.set(Some("same"));
++        let first = slot.observed_stamp().unwrap(); slot.set(Some("same"));
++        assert_ne!(slot.observed_stamp().unwrap().opening, first.opening);
++        let saved = slot.take(); assert!(slot.observed_stamp().is_none());
++        slot.set(saved); assert_ne!(slot.observed_stamp().unwrap().opening, first.opening);
++    }
++    #[test]
++    fn borrowed_mutation_advances_revision_without_replacing_opening() {
++        let mut slot = RetainedBook::default(); slot.set(Some(1)); let before = slot.observed_stamp().unwrap();
++        *slot.as_mut().unwrap() = 2; let after = slot.observed_stamp().unwrap();
++        assert_eq!(before.opening, after.opening); assert_eq!(after.revision, before.revision + 1);
++        let _ = slot.as_mut(); assert_eq!(slot.observed_stamp().unwrap().revision, after.revision + 1);
++    }
++    #[test]
++    fn overlay_does_not_mutate_slot_and_attachment_reset_preserves_contents() {
++        let mut slot = RetainedBook::default(); slot.set(Some("retained")); let before = slot.observed_stamp();
++        let mut unrelated_dialog = Some("overlay"); assert_eq!(slot.observed_stamp(), before);
++        unrelated_dialog.take(); assert_eq!(slot.observed_stamp(), before);
++        slot.invalidate_attachment(); assert_ne!(slot.observed_stamp(), before);
++        assert_eq!(slot.as_ref(), Some(&"retained"));
++    }
++    #[test]
++    fn replace_returns_old_contents_without_dropping_them() {
++        use std::sync::{Arc, atomic::AtomicUsize};
++        struct Value(Arc<AtomicUsize>);
++        impl Drop for Value { fn drop(&mut self) { self.0.fetch_add(1, Ordering::SeqCst); } }
++        let count = Arc::new(AtomicUsize::new(0)); let mut slot = RetainedBook::default();
++        slot.set(Some(Value(count.clone()))); let old = slot.replace(Some(Value(count.clone())));
++        assert_eq!(count.load(Ordering::SeqCst), 0); drop(old);
++        assert_eq!(count.load(Ordering::SeqCst), 1); drop(slot);
++        assert_eq!(count.load(Ordering::SeqCst), 2);
++    }
++    #[test]
++    fn id_and_revision_exhaustion_do_not_disable_native_content_changes() {
++        let mut slot = RetainedBook::default(); let exhausted = AtomicU64::new(u64::MAX);
++        slot.set_using(Some(4), &exhausted); assert_eq!(slot.as_ref(), Some(&4)); assert!(slot.observed_stamp().is_none());
++        slot.set(Some(5)); slot.revision = u64::MAX; *slot.as_mut().unwrap() = 6;
++        assert_eq!(slot.as_ref(), Some(&6)); assert!(slot.observed_stamp().is_none());
++        assert_eq!(fresh(&exhausted), None); assert_eq!(exhausted.load(Ordering::Relaxed), u64::MAX);
++    }
++    #[test]
++    fn assignment_destructor_panic_cannot_leave_a_valid_old_stamp() {
++        use std::sync::{Arc, atomic::AtomicBool};
++        struct Value(Arc<AtomicBool>);
++        impl Drop for Value { fn drop(&mut self) { if self.0.swap(false, Ordering::SeqCst) { panic!("old value drop") } } }
++        let mut slot = RetainedBook::default(); slot.set(Some(Value(Arc::new(AtomicBool::new(true)))));
++        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| slot.set(None)));
++        assert!(outcome.is_err()); assert!(slot.observed_stamp().is_none());
++    }
++}
+--- a/crates/horizon-client/src/game/saving.rs
++++ b/crates/horizon-client/src/game/saving.rs
+@@ -63,6 +63,7 @@
+                 return self.leave_server(None);
+             }
+             if let Some(mut remote) = self.remote.take() {
++                self.book.invalidate_attachment();
+                 remote.session.disconnect();
+             }
+             self.saved_for_exit = true;

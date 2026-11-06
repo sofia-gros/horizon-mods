@@ -1,0 +1,25 @@
+name: WIP isolated Guide storage typing
+on:
+  push:
+    branches:
+      - checkpoint/guide-storage-type-ci-20261106
+permissions:
+  contents: read
+concurrency:
+  group: guide-storage-type-wip-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  guide-storage-type:
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/guide-storage-type-ci-20261106' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Typecheck the isolated official storage proposal
+        run: python3 pluto-lib/experiments/guide-storage-ci/run.py
