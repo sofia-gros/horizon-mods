@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "official_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "base_runtime": "29f8b52de7a1c90ca1e3979f6fcbd3c1cc124d8b",
+  "base_ci": "c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a",
+  "native_evidence": "pluto-lib/docs/guide-owned-open-tail-boundary.json",
+  "files": {
+    "test_source.py": "c5fdd3508aea736820eaa7f70fc4435b91643b0956411f7c0a1391b586a7fb86",
+    "README.md": "365a4114f8f002ebf387ee92a5e1dc9a0676e505423caa245cca8bb1e5cf8932",
+    "fixture.rs": "0060de580a5988568df8ca815ec901a7e728371935558dd1d83f72ae44fbc334",
+    "native-open-game.rs": "7cf91dbeb29c7ecf806e7fe1d57a4d17da3c63a8fe6f51d90da673abbf566634",
+    "native-open-storage.rs": "d72913db920e610755de6f97e73fd09b464f470b6c1b7d7e7605f87ea062ceee"
+  },
+  "unchanged_fragments": {
+    "pluto-lib/experiments/guide-response-phase/native-patch/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+    "pluto-lib/experiments/guide-owned-opening/owned.rs": "81b6f4db5309f5cfe63d78e53ef268b928da41967d1034eba58ee8a3c29f3eb7",
+    "pluto-lib/experiments/guide-owned-opening/book-view.rs": "578a90247018edcef1578cd5481df6c5eaa8894ae8f1f0b153ad9120ac70f978"
+  },
+  "test_names": [
+    "identity_failure_returns_candidate_without_drop_or_slot_change",
+    "concrete_assignment_drop_precedes_the_modeled_native_tail",
+    "old_destructor_panic_never_leaves_an_observable_opening",
+    "page_revision_is_not_opening_replacement_but_reset_is",
+    "identical_reopen_or_close_in_a_modeled_tail_revokes_owner",
+    "owner_cannot_cross_slots_or_survive_revision_exhaustion"
+  ],
+  "original_included_test_count": 7,
+  "new_expected_count": 6,
+  "total_expected_inventory": 13,
+  "rust_executed": false,
+  "game_type_executed": false,
+  "ordinary_activation": false,
+  "lan_changed": false,
+  "inspected_declaration_files": [
+    {
+      "path": "crates/horizon-client-core/src/text.rs",
+      "sha256": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67",
+      "git_blob_sha1": "094f7b2e5e151e1d52aebdfb32a69b44d738628a"
+    },
+    {
+      "path": "crates/horizon-client-render/src/ui.rs",
+      "sha256": "caf8d7a86e105310dfe5cb9c705c6a29e2dc878dbfce0c4db072d19d5ee5bd74",
+      "git_blob_sha1": "2c0818bf082a6f5cbfa851dc365c10bac069bc3c"
+    }
+  ]
+}
