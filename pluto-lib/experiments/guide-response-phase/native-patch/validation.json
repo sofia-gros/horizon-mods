@@ -1,0 +1,74 @@
+{
+  "source": "43178aefdf9d35c46d1264ebb1f3c679285e08d1",
+  "scope": "Actual proposed generic helper bytes from unapplied patch; std-only storage tests, not real Game/BookScreen typing or native UI.",
+  "floor_bytes": 10871635968,
+  "minimum_free_bytes": 10891452416,
+  "source_hashes_verified_before": true,
+  "source_hashes_verified_after": true,
+  "disk_stopped": false,
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_files": {
+    "retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+    "prototype.patch": "fe77790980cf115f674ec593ea4efce9f9a8c11bcbcefd3f21af0781f0be0628",
+    "storage_fixture.rs": "0be4f50da67750ebfbe4c7c46ae80ceaaa2e4aed5fd59600e2ac1885b4653e31",
+    "generate.py": "971d2e32683e0ad5016e3c8d7fac9a7ff97fb68862715a580aa14695f7c42f97",
+    "official-sources.json": "d4910639819e3d016aae8bc344e76c4bf1fdfea7e87a943f85102fdf9e834d39",
+    "generation.json": "389a2050b280673643abd9f13d980a1536cf82953ab2e8e8af44c43f02fa262a"
+  },
+  "official_source_hashes": "official-sources.json (19 exact files verified before and after)",
+  "phases": [
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "seconds": 0.301,
+      "timeout": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "storage-tests",
+      "exit_code": 0,
+      "seconds": 0.101,
+      "timeout": false,
+      "sha256": "5f5fcf5d5c3bac25eb014afea56a6e6c157043cc6ed0fff5eff17f7a473f9fc0"
+    }
+  ],
+  "tests": {
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 0,
+    "source_hunk_tests_passed": 7,
+    "package_exclusion_contract_tests_passed": 8
+  },
+  "commands": [
+    "rustc --edition 2024 --test -C debuginfo=0 pluto-lib/experiments/guide-response-phase/native-patch/storage_fixture.rs -o /tmp/pluto-native-book-storage-43178aef",
+    "/tmp/pluto-native-book-storage-43178aef storage_tests:: --test-threads=1"
+  ],
+  "artifacts": {
+    "result.json": {
+      "bytes": 5686,
+      "sha256": "63900160a9338b0e39ebfe246c370877449f3903d89c0cc1311b8ff19a67ed77"
+    },
+    "compile.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "storage-tests.log": {
+      "bytes": 823,
+      "sha256": "5f5fcf5d5c3bac25eb014afea56a6e6c157043cc6ed0fff5eff17f7a473f9fc0"
+    }
+  },
+  "executable": {
+    "bytes": 6937232,
+    "sha256": "125a39f365665632af6eabef8b8f8fe293728819d36512a548338ffb5af27287"
+  },
+  "not_proven": [
+    "Official Game/BookScreen compile, borrow/type validation or real patch application",
+    "Full package/Mixins composition after the proposed field-type change",
+    "Native owner acquisition or conditional retained-view update authority",
+    "Real Client/window lifecycle, overlays, resets, disposal/restoration or packet delivery",
+    "Legacy codec/native Text equivalence and whole-envelope observer admission",
+    "Installed PlutoLib or TConstruct consumer recovery"
+  ]
+}

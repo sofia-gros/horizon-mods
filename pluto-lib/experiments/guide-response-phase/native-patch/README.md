@@ -90,8 +90,14 @@ That was a test-fixture correction, not a successful native apply or a host fix.
 The separate `storage_fixture.rs` includes the **same proposed helper bytes**
 as a module. Its seven tests exercise storage mechanics with inert enum/primitive
 values and explicit destructor cases, not the real BookScreen or a real Client.
-Compilation/execution is pending at this source checkpoint. A later test result
-must not be represented as full host typing or actual screen lifecycle execution.
+At exact source `43178aefdf9d35c46d1264ebb1f3c679285e08d1`, standalone
+compilation and all seven focused tests passed (zero filtered). The actual helper,
+fixture, generator, patch and 19 official source pins were unchanged before and
+after; minimum workspace free space was 10,891,452,416 bytes, above the
+10 GiB + 128 MiB floor. `validation.json` records commands and artifact hashes.
+This proves only the proposed generic storage mechanics. No actual Game or
+BookScreen was compiled, no native patch was applied, and no screen lifecycle,
+renderer or LAN behavior was executed. The patch remains excluded and unapplied.
 
 ## Still required before any activation
 
