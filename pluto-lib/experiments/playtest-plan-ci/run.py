@@ -21,7 +21,7 @@ OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
 BRANCH='checkpoint/tinkers-playtest-next-plan-ci-20261106'
-RUNNER_TESTS=68
+RUNNER_TESTS=72
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
 OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py','index_probe.py','test_index_probe.py','packet_index.rs','INDEX_PROBE.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
@@ -133,12 +133,30 @@ def capture_index_metadata(cargo,fixture,mode):
             try:proc.wait(timeout=2)
             except subprocess.TimeoutExpired:proc.kill();proc.wait(timeout=2)
 
+def compiler_arguments(line):
+    # Cargo's leading shell-style environment values are not Rust inputs.
+    # In particular CARGO_PKG_HOMEPAGE=https://serde.rs and RUSTC=/x/rustc
+    # must not be confused with a source path or the executable token.
+    tokens=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
+    at=0
+    while at<len(tokens) and re.match(r'^[A-Za-z_][A-Za-z0-9_]*=',tokens[at]):at+=1
+    command=tokens[at:]
+    if not command:return None
+    if Path(command[0]).name!='rustc':
+        if '--crate-name' in command:raise ValueError('Unexpected compiler command')
+        return None
+    if sum(Path(token).name=='rustc' for token in command)!=1:
+        raise ValueError('Ambiguous rustc executable tokens')
+    return command[1:]
+
 def core_compile_witness(log,mixins):
     found=[]
     for line in log.splitlines():
         if 'Running `' not in line or 'rustc' not in line:continue
-        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
-        if '--crate-name' not in args or args[args.index('--crate-name')+1]!='horizon_mixins_core':continue
+        args=compiler_arguments(line)
+        if args is None or '--crate-name' not in args:continue
+        if args.count('--crate-name')!=1 or args.index('--crate-name')+1>=len(args):raise ValueError('Ambiguous crate identity')
+        if args[args.index('--crate-name')+1]!='horizon_mixins_core':continue
         paths=[Path(a) for a in args if a.endswith('.rs')]
         resolved=[p if p.is_absolute() else Path(mixins)/p for p in paths]
         if resolved!=[Path(mixins)/'crates/horizon-mixins-core/src/lib.rs'] or '--test' in args:raise ValueError('Wrong actual official Index core source')
@@ -150,8 +168,9 @@ def index_compile_witness(log,fixture,mixins):
     found=[]
     for line in log.splitlines():
         if 'Running `' not in line or 'rustc' not in line:continue
-        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
-        if '--crate-name' not in args:continue
+        args=compiler_arguments(line)
+        if args is None or '--crate-name' not in args:continue
+        if args.count('--crate-name')!=1 or args.index('--crate-name')+1>=len(args):raise ValueError('Ambiguous crate identity')
         crate=args[args.index('--crate-name')+1]
         if crate.startswith(('horizon_client','horizon_items','horizon_world','pluto_')) and crate!='pluto_packet_index_observer':raise ValueError('Unexpected consumer compilation in Index build')
         if crate=='pluto_packet_index_observer':

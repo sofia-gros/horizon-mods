@@ -145,20 +145,20 @@
   "source_sha256": {
     ".github/workflows/playtest-complete-plan-wip.yml": "df0984000cf28e1c2d70337d1a1891829918999e85f0933edf87c37015728135",
     "pluto-lib/experiments/playtest-plan-ci/INDEX_PROBE.md": "350fb6c6acc1a868c3bedb15395e8832c16f88e44836711822ed1ed3f8dbcc6d",
-    "pluto-lib/experiments/playtest-plan-ci/README.md": "0f32a6952e494b8645d14b8504ea354c183847c16ed9a8e83e5d69045deb6ccf",
+    "pluto-lib/experiments/playtest-plan-ci/README.md": "1d8ef46fa2eda27d0bcd7fe5a52867338b2d1c249170d0934089e372d60a2a3b",
     "pluto-lib/experiments/playtest-plan-ci/evidence.py": "d6af370322224088aa1bdac15e4718bf52fed6958e59fb7d5c29f42b223d3b44",
     "pluto-lib/experiments/playtest-plan-ci/guard_once.py": "203925039073846fe6fddfab1ff8e785db93e36303bc2c261aa5828a7f6dd694",
     "pluto-lib/experiments/playtest-plan-ci/index_probe.py": "57210aa3b0834aa4106e3abef60f02bfd4b84c616355f3a5cf0a10ad3397699f",
     "pluto-lib/experiments/playtest-plan-ci/observe_plan.py": "9192cf15f1e017714af4d640d5db800891c76d3ae75095f20ddecca134f53c8f",
     "pluto-lib/experiments/playtest-plan-ci/packet_index.rs": "b5d7710643e336eca922fb4dcfb70fec83eaf501cb3c5dc31f8948937e4b375d",
     "pluto-lib/experiments/playtest-plan-ci/prepare.py": "d1c1ab035401a9124674a5b6df8f1f4801ed269fa7488e4518308da4546fb6b6",
-    "pluto-lib/experiments/playtest-plan-ci/run.py": "e65eaf2e674e04c91ae0e4de980f30cc3eece04c4b1f0adb8bc4830de7d8b3d4",
+    "pluto-lib/experiments/playtest-plan-ci/run.py": "e01d5417df76ffc1a89ab3716937596f245ef2befd44a03040f3a4fb21842333",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/README.md": "2361e0021c3334eb46b415ac6e3890016f6f349c647d1e39cfc4eafd7fee4512",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/contract.json": "218d465acd047afa80461f455ee59b83914db5a92c2ef030dcc9f31df1000e12",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/source-delta-41f.json": "3594faf44960ebe1eb0e23153366ee10d0cf7e918e5ff86d9032b3231c3918fd",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/test_collect.py": "7f828eee7ee09c8059b20c9eb24be8b83a350f18742b48e4d3ad7dd375a6dc90",
     "pluto-lib/experiments/playtest-plan-ci/test_index_probe.py": "34dfcff3c10fbafa2a8512f75b833a6bf307f00558620d12e280bf00afd13f08",
-    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "b4759673fdfae60b075448d27ea5174d6b56038959c5eef494902246aad5f88a"
+    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "9ebec750e2fc8b84082e06cf8b6c184dd95016842b9d4bed49687d5abd7208c7"
   }
 }

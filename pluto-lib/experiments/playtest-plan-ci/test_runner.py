@@ -175,6 +175,24 @@ class PrimaryPersistenceTests(unittest.TestCase):
  def test_primary_persists_git_seals(self):
   tree=ast.parse((HERE/'run.py').read_text());node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='execute');src=ast.unparse(node);self.assertIn('git_state_seals=',src);self.assertIn('controller_git_state_sha256=',src)
 
+class IndexParserRegressionTests(unittest.TestCase):
+ def test_environment_rs_not_source(self):
+  line="Running `CARGO_PKG_HOMEPAGE=https://serde.rs CARGO_PKG_DESCRIPTION='ends with .rs' rustc --crate-name horizon_mixins_core crates/horizon-mixins-core/src/lib.rs`"
+  self.assertEqual(r.core_compile_witness(line,Path('/mixins'))['crate'],'horizon_mixins_core')
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);(root/'src').mkdir();(root/'src/main.rs').write_text('fn main(){}')
+   log="Running `CARGO_PKG_HOMEPAGE=https://serde.rs rustc --crate-name pluto_packet_index_observer src/main.rs`"
+   self.assertEqual(r.index_compile_witness(log,root,Path('/mixins'))['crate'],'pluto_packet_index_observer')
+ def test_rustc_environment_not_executable(self):
+  line='Running `RUSTC=/toolchain/bin/rustc /toolchain/bin/rustc --crate-name horizon_mixins_core crates/horizon-mixins-core/src/lib.rs`'
+  self.assertEqual(r.core_compile_witness(line,Path('/mixins'))['crate'],'horizon_mixins_core');self.assertIsNone(r.compiler_arguments('Running `RUSTC=/toolchain/bin/rustc /target/build-script`'))
+ def test_fake_or_duplicate_rustc(self):
+  for line in ['Running `RUSTC=/toolchain/bin/rustc /other --crate-name core source.rs`','Running `rustc /other/rustc --crate-name core source.rs`']:
+   with self.assertRaises(ValueError):r.compiler_arguments(line)
+ def test_duplicate_crate_identity(self):
+  for fn in [lambda:r.core_compile_witness('Running `rustc --crate-name horizon_mixins_core --crate-name other crates/horizon-mixins-core/src/lib.rs`',Path('/mixins')),lambda:r.index_compile_witness('Running `rustc --crate-name pluto_packet_index_observer --crate-name other src/main.rs`',Path('/fixture'),Path('/mixins'))]:
+   with self.assertRaises(ValueError):fn()
+
 class EvidenceTests(unittest.TestCase):
  def report(self):return {'head':'a'*40,'gates':{},'error':'synthetic failure','probe_completed':False,'source_verified':False,'plan_accepted':None}
  def setup_plan(self,base,body=b'{"synthetic":true}'):
