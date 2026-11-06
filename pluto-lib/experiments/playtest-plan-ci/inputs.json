@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "status": "SOURCE PREPARATION ONLY; final integration cutoff/review missing",
+  "ready_for_reviewed_execution": false,
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/tinkers-playtest-complete-plan-ci-20261106",
+  "collector_source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "integration": {
+    "head": null,
+    "tree": null,
+    "source_sha256": {}
+  },
+  "official_contract": {
+    "sources": [
+      {
+        "repo": "horizon",
+        "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+        "path": "Cargo.lock",
+        "blob": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+        "size": 135677,
+        "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "same_as_prior_bytes": false
+      },
+      {
+        "repo": "horizon",
+        "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+        "path": "Cargo.toml",
+        "blob": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+        "size": 3546,
+        "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640",
+        "same_as_prior_bytes": false
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "Cargo.lock",
+        "blob": "87fe6ccf1cb8741f120d2b59cb975c3a2f18b166",
+        "size": 16158,
+        "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "Cargo.toml",
+        "blob": "3754849ef70b7f8212f53d0c6dd6d155fd225878",
+        "size": 983,
+        "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-cli/Cargo.toml",
+        "blob": "c03dbe9a1e06601feb3359885aeac60dad4d7968",
+        "size": 466,
+        "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-cli/src/main.rs",
+        "blob": "ac813ca8f1d00284e2da7c5ecde921bb8324d17b",
+        "size": 6582,
+        "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-core/src/index.rs",
+        "blob": "3b59c63651a39226e31e851f376a4bb7e12087b9",
+        "size": 30231,
+        "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711",
+        "same_as_prior_bytes": false
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-core/src/manifest.rs",
+        "blob": "c0b5b57c5ae55f151cb8736a664d07a589520cfb",
+        "size": 19011,
+        "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+        "blob": "3c16a71cd6084d3d70ea158a9a91be5b563cf7b2",
+        "size": 1896,
+        "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068",
+        "same_as_prior_bytes": true
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-core/src/plan.rs",
+        "blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+        "size": 60607,
+        "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+        "same_as_prior_bytes": false
+      },
+      {
+        "repo": "horizon-mixins",
+        "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "path": "crates/horizon-mixins-core/src/native.rs",
+        "blob": "c81b6c90a894b4f81ae7708e31e7bf2dfa3ea629",
+        "size": 32971,
+        "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85",
+        "same_as_prior_bytes": true
+      }
+    ],
+    "scope": "Selected CLI/metadata contracts and Horizon root lock/manifest. 41f root two blobs independently unchanged from f4dc; no old runtime proof transferred."
+  },
+  "required_plan_inputs": {
+    "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+    "crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+    "crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+    "crates/horizon-client-render/src/assets.rs": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+    "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+    "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+    "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+    "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+    "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+    "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
+    "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+    "crates/horizon-client/src/game/mods.rs": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+    "crates/horizon-client/src/game/packs.rs": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
+    "crates/horizon-client/src/game/native_hooks.rs": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833"
+  },
+  "source_sha256": {
+    ".github/workflows/playtest-complete-plan-wip.yml": "86314a92bc013b8620b6170f455b0265164a5e206784d058009a94699d955abb",
+    "pluto-lib/experiments/playtest-plan-ci/README.md": "e4d2f970484885e78071c9d1c30c9586c98a534875b60be98b8cf7d02b389635",
+    "pluto-lib/experiments/playtest-plan-ci/guard_once.py": "3999e15d6578c80180e69d6f6ad1a5b46a1d161d29eee13c968d0c72c8e0f528",
+    "pluto-lib/experiments/playtest-plan-ci/observe_plan.py": "0cd2019dd5a4623d6f88df4b80aa9d991d4399688848bb601c0008237c2cbe1d",
+    "pluto-lib/experiments/playtest-plan-ci/prepare.py": "d1c1ab035401a9124674a5b6df8f1f4801ed269fa7488e4518308da4546fb6b6",
+    "pluto-lib/experiments/playtest-plan-ci/run.py": "23ceff21b7a46d54bc409344420d0c0f4384a0fb42ace15b8e20a0414cf2164c",
+    "pluto-lib/experiments/playtest-plan-ci/terrain-witness/README.md": "2361e0021c3334eb46b415ac6e3890016f6f349c647d1e39cfc4eafd7fee4512",
+    "pluto-lib/experiments/playtest-plan-ci/terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
+    "pluto-lib/experiments/playtest-plan-ci/terrain-witness/contract.json": "218d465acd047afa80461f455ee59b83914db5a92c2ef030dcc9f31df1000e12",
+    "pluto-lib/experiments/playtest-plan-ci/terrain-witness/source-delta-41f.json": "3594faf44960ebe1eb0e23153366ee10d0cf7e918e5ff86d9032b3231c3918fd",
+    "pluto-lib/experiments/playtest-plan-ci/terrain-witness/test_collect.py": "7f828eee7ee09c8059b20c9eb24be8b83a350f18742b48e4d3ad7dd375a6dc90",
+    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "d0dc3c5a9845b5bf512eb21ab61c9cb1f5ec0574b97f729cff3715aa16c42678"
+  }
+}
