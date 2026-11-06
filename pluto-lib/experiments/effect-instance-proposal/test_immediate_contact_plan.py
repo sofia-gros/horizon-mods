@@ -24,6 +24,16 @@ class ImmediateContactPlan(unittest.TestCase):
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError('official source drift: ' + path)
             cls.sources[path] = raw.decode()
+        for path, expected in cls.plan['g4_followup']['official_source_sha256'].items():
+            raw = (cls.official / path).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != expected:
+                raise ValueError('G4 official source drift: ' + path)
+            cls.sources[path] = raw.decode()
+        raw = Path(os.environ['PLUTO_ORDINARY_PLAN']).read_bytes()
+        expected = cls.plan['g4_followup']['ordinary_plan']
+        if len(raw) != expected['bytes'] or hashlib.sha256(raw).hexdigest() != expected['sha256']:
+            raise ValueError('wrong frozen ordinary PlutoLib plan')
+        cls.ordinary = json.loads(raw)
 
     def src(self, suffix):
         return self.sources['crates/horizon-client/src/' + suffix]
@@ -117,9 +127,68 @@ class ImmediateContactPlan(unittest.TestCase):
         self.assertEqual(self.plan['result_protocol']['disk_floor_bytes'], 10 * 1024**3 + 128 * 1024**2)
         self.assertTrue(self.plan['result_protocol']['no_implicit_launch'])
 
+    def test_g4_complete_list_and_ignored_error_order(self):
+        status = self.src('game/potions.rs').split('pub(super) fn apply_effect_status(', 1)[1].split('    fn thrown_player_targets(', 1)[0]
+        self.order(status, 'self.potions.effects.modifiers()', 'modifiers != self.potions.applied',
+                   'let _ = p.set_modifier_unclamped(attr, id, 0.0, op, false)',
+                   'let _ = p.set_modifier_unclamped(attr, id, *amount, op, true)',
+                   'let _ = p.clamp_health_to_max()', 'self.potions.applied = modifiers',
+                   'let armor: Vec<Option<ItemStack>> = self.armor.to_vec()',
+                   'self.potions.protection_for = Some', 'p.status = status')
+        effects = self.sources['crates/horizon-client-render/src/effects.rs']
+        modifiers = effects.split('    pub fn modifiers(', 1)[1].split('    pub fn mining_speed_factor(', 1)[0]
+        self.assertIn('for e in &self.list', modifiers)
+        self.assertFalse(self.plan['g4_followup']['full_installed_closure_verified'])
+
+    def test_g4_concrete_allocator_is_not_every_trait_implementation(self):
+        live = self.sources['crates/horizon-world/src/attributes/live.rs']
+        self.assertIn('pub trait Identities: FnMut() -> i32', live)
+        self.assertIn('hash: (self.next_identity)()', live)
+        self.order(self.src('motion.rs'), 'pub fn new(resources: &MotionResources, position: Vec3)',
+                   'let mut identity = 0i32', 'identity = identity.wrapping_add(1)',
+                   'Self::with_attribute_identities(resources, position, &hashes, next)',
+                   'pub fn with_attribute_identities(', 'next: Box<dyn horizon_world::attributes::live::Identities>')
+
+    def test_g4_concrete_health_observer_and_native_callback_boundary(self):
+        health = self.src('health.rs')
+        updates = health.split("impl Observer for Updates<'_>", 1)[1].split('#[derive(Clone)]', 1)[0]
+        self.assertIn('self.0.push(MotionEvent::Health(HealthEvent::Updated', updates)
+        self.assertNotIn('Game', updates)
+        setter = health.split('pub fn set_health(', 1)[1].split('pub(crate) struct Environment', 1)[0]
+        self.order(setter, 'Updates(&mut self.events)', 'PlayerAttributeHealth::new(',
+                   '&mut self.attributes', '&mut h.data', 'binding.set_absorption(value)?',
+                   'binding.set_health(value)?')
+        hooks = self.src('game/native_hooks.rs')
+        for method, dispatcher in [('native_on_effect_added', 'dispatch_on_effect_added'),
+                                   ('native_mob_effect_added', 'dispatch_mob_effect_added')]:
+            section = hooks.split('pub(super) fn ' + method + '(', 1)[1]
+            self.order(section, '&mut self', 'mod_api::' + dispatcher + '(self,')
+
+    def test_g4_finite_ordinary_plan_overlap_not_installed_closure(self):
+        evidence = self.plan['g4_followup']['ordinary_plan']
+        self.assertIn('NOT all TConstruct/other installed mods', evidence['scope'])
+        self.assertEqual({k: len(self.ordinary[k]) for k in evidence['counts']}, evidence['counts'])
+        self.assertEqual(len(evidence['direct_endpoint_inventory']), 13)
+        for endpoint in evidence['direct_endpoint_inventory']:
+            actual = [i['injection_id'] for i in self.ordinary['injections']
+                      if i['file'] == endpoint['file'] and i['target'].endswith('::' + endpoint['method'])
+                      and ('::' + endpoint['owner']) in i['target']]
+            self.assertEqual(actual, endpoint['matching_injection_ids'])
+            self.assertEqual(actual, [])
+        for saved in evidence['related_file_injections']:
+            actual = next(i for i in self.ordinary['injections'] if i['injection_id'] == saved['injection_id'])
+            self.assertEqual({k: actual[k] for k in saved}, saved)
+        saved = evidence['same_potions_file_module']
+        actual = next(m for m in self.ordinary['modules'] if m['module_id'] == saved['id'])
+        self.assertEqual(actual['name'], saved['name'])
+        self.assertEqual(hashlib.sha256(actual['source'].encode()).hexdigest(), saved['source_sha256'])
+        self.assertEqual([s['target'] for s in self.ordinary['states']], evidence['state_targets'])
+        self.assertEqual(next(g['status'] for g in self.plan['gates'] if g['id'] == 'G4_operation_continuation'), 'blocked_design')
+
     def test_official_inputs_unchanged_after_source_checks(self):
         self.assertEqual(len(self.plan['official_sha256']), 19)
-        for path, expected in self.plan['official_sha256'].items():
+        sources = {**self.plan['official_sha256'], **self.plan['g4_followup']['official_source_sha256']}
+        for path, expected in sources.items():
             self.assertEqual(hashlib.sha256((self.official / path).read_bytes()).hexdigest(), expected, path)
 
 

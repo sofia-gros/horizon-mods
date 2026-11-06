@@ -350,7 +350,221 @@
     "no_implicit_launch": true
   },
   "artifact_sha256": {
-    "pluto-lib/docs/immediate-contact-validation-plan.md": "c60c7ded07d0ede1c0449ebbbd394a1e632b98dff78c02bb0ee97515798cf43f",
-    "pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py": "de8e59db7cd7fbd075ca907487d37085646f3bbe7f37ef55ecbafc2fee4652f6"
+    "pluto-lib/docs/immediate-contact-validation-plan.md": "77f1f44b7ec61b384b0df03910916d90b10c4404bee1ab9e1b20d25ac66254c0",
+    "pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py": "edbd74246a6193342bb41d3cb5036b8e6ada274d63f92901b80a4936a7c24ab3"
+  },
+  "g4_followup": {
+    "status": "SOURCE_ONLY bounded operation and ordinary-plan overlap inventory; G4 still blocked_design",
+    "official_source_sha256": {
+      "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "crates/horizon-client/src/health.rs": "e1fd863721a623dd60575b08858b4dde95337432ed94f39944e457c6336c28a7",
+      "crates/horizon-world/src/attributes/live.rs": "04ce4c22b1d4cf2a95152a6cb4c108308693fe46836d08e926534befdfbd424c",
+      "crates/horizon-world/src/player_health.rs": "8155b315453c569db2fbe46228886c5881d1fd55eb095c5849e69bdb500ba2bd",
+      "crates/horizon-world/src/living_health.rs": "221659f85552424e937d503bba6d8003006b106ced042b32d3a6f6cc23e12ed0",
+      "crates/horizon-world/src/synced_floats.rs": "0152f2752bafaf68769d56dbc88494a976496a680c6b113d6b48a446158ba072",
+      "crates/horizon-items/src/enchant.rs": "3c61c51fbc0d16511bac79d158355dcfbae188baf00463290b7cb4a6fb9983d3",
+      "crates/horizon-items/src/items.rs": "ac65c572d00bea03ddd37899c6c40b5091b435a44fa0b5deab4fd3677248bc49"
+    },
+    "ordinary_plan": {
+      "runtime_source": "f5a83539525c26fd2142e26e43789a3dd0107033",
+      "central_source": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "8978646c181c5a074f687423a47c6337204e519f1f11dd30fdacdb84e2192e7f",
+      "bytes": 1048672,
+      "scope": "ordinary PlutoLib only; NOT all TConstruct/other installed mods",
+      "counts": {
+        "injections": 34,
+        "modules": 66,
+        "states": 3,
+        "crates": 2
+      },
+      "direct_endpoint_inventory": [
+        {
+          "file": "crates/horizon-client/src/game/potions.rs",
+          "owner": "Game",
+          "method": "add_player_effect",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/game/potions.rs",
+          "owner": "Game",
+          "method": "apply_effect_status",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/game/potions.rs",
+          "owner": "Game",
+          "method": "mod_effect_added",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client-render/src/effects.rs",
+          "owner": "EffectInstance",
+          "method": "update",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client-render/src/effects.rs",
+          "owner": "PlayerEffects",
+          "method": "add",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client-render/src/effects.rs",
+          "owner": "PlayerEffects",
+          "method": "status",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client-render/src/effects.rs",
+          "owner": "PlayerEffects",
+          "method": "modifiers",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/motion.rs",
+          "owner": "PlayerMotion",
+          "method": "set_modifier_unclamped",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/motion.rs",
+          "owner": "PlayerMotion",
+          "method": "clamp_health_to_max",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/motion.rs",
+          "owner": "PlayerMotion",
+          "method": "attribute",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/health.rs",
+          "owner": "PlayerMotion",
+          "method": "set_health",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/game/native_hooks.rs",
+          "owner": "Game",
+          "method": "native_on_effect_added",
+          "matching_injection_ids": []
+        },
+        {
+          "file": "crates/horizon-client/src/game/native_hooks.rs",
+          "owner": "Game",
+          "method": "native_mob_effect_added",
+          "matching_injection_ids": []
+        }
+      ],
+      "related_file_injections": [
+        {
+          "injection_id": "pluto_native_creative-protection-project",
+          "target": "horizon_client_render::effects::StatusFlags::protection",
+          "file": "crates/horizon-client-render/src/effects.rs",
+          "kind": "RETURN",
+          "function_fingerprint": "eef8b4a3d325db697a43f4f353693147c8702d295d6acf1c2ce5efcb049571d0"
+        },
+        {
+          "injection_id": "pluto_native_creative-protection-player-scope",
+          "target": "horizon_client_lib::health::PlayerMotion::hurt_caused_by",
+          "file": "crates/horizon-client/src/health.rs",
+          "kind": "HEAD",
+          "function_fingerprint": "92383c70d1075856aa813da0296fe80617a219313049977de237c024dd1567ff"
+        },
+        {
+          "injection_id": "pluto_native_creative-protection-arm",
+          "target": "horizon_client_lib::health::<Environment<'_> as ArmorWorld>::server_level",
+          "file": "crates/horizon-client/src/health.rs",
+          "kind": "HEAD",
+          "function_fingerprint": "ce54a2094ec77e1d4600f25ac84fc97460320c43adf7d812204628a1130fece3"
+        },
+        {
+          "injection_id": "pluto_tool_rules-speed",
+          "target": "horizon_items::items::Items::mining_speed",
+          "file": "crates/horizon-items/src/items.rs",
+          "kind": "RETURN",
+          "function_fingerprint": "f4a845565717f77f99100b43164f9197bd74043b89cb21108f3d95c9b859d262"
+        },
+        {
+          "injection_id": "pluto_tool_rules-drops",
+          "target": "horizon_items::items::Items::correct_for_drops",
+          "file": "crates/horizon-items/src/items.rs",
+          "kind": "RETURN",
+          "function_fingerprint": "171b43b7e68abf592d651f02def2f021319895c6d195917b5c04fe05675ce065"
+        }
+      ],
+      "same_potions_file_module": {
+        "id": "pluto_native_creative-cloud-factory",
+        "name": "pluto_cloud_factory",
+        "source_sha256": "5e9e0a365a8595e69b92bd1315552f044d59fe7962e509594a478f4f7694f45d"
+      },
+      "state_targets": [
+        "horizon_client_render::chunk_map::ChunkMap",
+        "horizon_client_render::chunk_map::ChunkMap",
+        "horizon_client_render::chunk_map::ChunkMap"
+      ],
+      "claim": "No injection directly targets these 13 named endpoints in this exact ordinary plan. Same-file entries are not automatically call-path overlap; no complete installed callback-free claim."
+    },
+    "operation_rows": [
+      {
+        "phase": "add/update",
+        "writes": "Entire matching owned EffectInstance including hidden-chain branches; list and wrapping changes count.",
+        "borrow_end": "Mutable list iteration ends inside PlayerEffects::add before Game::apply_effect_status.",
+        "limit": "changed=false does not skip status or later native callback dispatch."
+      },
+      {
+        "phase": "modifier reconciliation",
+        "writes": "All current effect modifiers compared with PotionState.applied; remove-all/re-add on live attributes, pending dirty/sync queues, max-health clamp, then applied cache.",
+        "borrow_end": "PlayerMotion borrow ends before later Game resource reads in status; no world/body ownership token is returned.",
+        "limit": "Each modifier/clamp Result is ignored at this caller. This is not all-or-nothing success or rollback."
+      },
+      {
+        "phase": "absorption and health",
+        "writes": "Current synchronized health/absorption values plus MotionEvent::Health through concrete Updates observer.",
+        "borrow_end": "PlayerAttributeHealth borrows only actual attributes/data/event sink within PlayerMotion::set_health.",
+        "limit": "Trait-based health helpers and native allocator/data dependencies remain part of a future closed-source contract; no external Game capability is supplied here."
+      },
+      {
+        "phase": "armor protection cache",
+        "writes": "Cloned armor snapshot plus damage-tag-generation keyed protection_for and current status protection table.",
+        "borrow_end": "Read-only stations/items/damage registry references are consumed before final mutable player.status assignment.",
+        "limit": "Computes from world_tables or Resources fallback and existing enchantment data using a local random source; audit does not close all ItemStack/attribute/data dependencies."
+      },
+      {
+        "phase": "status and callback",
+        "writes": "Replaces status preserving protection; optional absorption top-up; native content callbacks receive &mut Game only for server + is_mod_effect.",
+        "borrow_end": "Previous direct field borrows end before native_on_effect_added/native_mob_effect_added calls.",
+        "limit": "Builtin ID excludes this specific callback branch only. Syntax classification is not registration or global callback-freedom."
+      }
+    ],
+    "concrete_frontiers": [
+      "LiveAttributes can create an instance by calling a boxed Identities FnMut. Native PlayerMotion::new supplies a counter, but public with_attribute_identities accepts a caller-supplied allocator; actual caller provenance is required.",
+      "PlayerEffects::modifiers visits the full existing list and status can reconcile stale caches even for an incoming poison/blindness effect or unchanged add result.",
+      "The inspected native Game bodies show no direct teleport/world-set call in this path; that limited observation is not a transitive installed-code invariant.",
+      "Arbitrary installed injections, state layout/constructor changes, imports/module method resolution, supplied callbacks and later lifecycle entry can invalidate this source-only slice.",
+      "No emitted complete-plan guard or actual mutation fixture is introduced by this inventory."
+    ],
+    "prospective_guard_rules": [
+      "Freeze the COMPLETE selected installed plan, not just this ordinary library plan, and enumerate exact protected endpoints/dependencies first.",
+      "Reject or independently audit any hook kind/selector targeting a protected function, including call redirects/wraps/constants and return/head hooks; method name matching alone is only this bounded inventory.",
+      "Reject unreviewed state/constructor edits to EffectInstance, PlayerEffects, PotionState, PlayerMotion or relevant attribute/item data; same numeric body ID cannot make changed layout/ownership safe.",
+      "Review modules/import changes in owning namespaces and verify exact transformed function bodies plus the resolved dependency call graph; a same-file module is neither automatically forbidden nor automatically safe.",
+      "Preserve native ignored-error, full-list/cache update and callback order. Pre-admit only a proven narrow operation; do not run effects then invent continuation recovery."
+    ],
+    "source_checks": {
+      "status": "passed",
+      "count": 13,
+      "passed": 13,
+      "failed": 0,
+      "elapsed_seconds": 0.036,
+      "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c checkout> PLUTO_ORDINARY_PLAN=<exact existing v15 ordinary plan> python -B pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py",
+      "native_execution": false,
+      "existing_plan_read_only": true
+    },
+    "native_compile": false,
+    "native_execution": false,
+    "full_installed_closure_verified": false
   }
 }

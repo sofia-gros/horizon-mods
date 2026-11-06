@@ -229,3 +229,84 @@ case accounting. Its result is recorded separately from the unrun native gates.
 Source/plan checks: **9/9 passed**, first in 0.019 seconds and again against
 the finalized plan in 0.014 seconds. These were Python checks only; all 21
 proposed native cases remain not run.
+
+## G4 follow-up: concrete operation boundary, still no activation
+
+This small follow-up narrows G4 using the saved official bodies and the existing
+**ordinary PlutoLib v15 plan only** (runtime `f5a83539`, central `8715b123`,
+published equivalent `89744814`). It is not the complete installed composition
+of TConstruct plus arbitrary other mods. The JSON pins that plan's exact
+1,048,672 bytes/SHA256 and eight additional source files. No new API, frame,
+production guard or separate authority ledger is added.
+
+The direct operation has five distinct phases:
+
+1. `PlayerEffects::add` mutates the matching owned instance/hidden branches or
+   appends an instance and conditionally increments its wrapping change count.
+   Its mutable list borrow ends before Game calls `apply_effect_status`.
+2. Status derives modifiers from the **entire current list**, compares them with
+   `PotionState.applied`, removes/re-adds through live attributes, clamps health,
+   and records the new applied cache. The caller ignores each modifier/clamp
+   Result; partial failure must not be relabelled transactional success. Neither
+   an incoming poison/blindness effect nor `changed == false` makes this a no-op.
+3. Health/absorption work borrows actual PlayerMotion attributes, synchronized
+   data and its events through `PlayerAttributeHealth`. The concrete `Updates`
+   observer appends a health event; it does not receive Game. Live attribute
+   dirty callbacks queue attribute bookkeeping. These are the inspected concrete
+   paths, not a claim that every possible trait implementation is effect-free.
+4. Protection cache reconciliation clones current armor, reads the active
+   stations/items table (world tables or resource fallback), iterates damage
+   definitions and evaluates native enchantment values with a local random
+   source. It stores the keyed protection cache and replaces player status while
+   retaining that protection. A future closure must include those dependencies.
+5. The complete add operation then performs its explicit absorption top-up and
+   `mod_effect_added`. The previous direct player borrows have ended before the
+   server/content-effect branch calls native callbacks with mutable Game.
+   Builtin IDs avoid this branch, not all earlier work or all installed hooks.
+
+One concrete boundary needs more than a signature check:
+`LiveAttributes::get_instance` may allocate through a boxed `Identities: FnMut`.
+`PlayerMotion::new` supplies a native wrapping counter, while the public
+`with_attribute_identities` constructor accepts a supplied allocator. A native
+caller/setup proof must establish which implementation is actually present;
+“the field is LiveAttributes” is not that proof. The direct bodies inspected
+here contain no teleport/world-set call, but neither all transitive dependency
+implementations nor the full installed call graph have been closed.
+
+### Known overlap in the frozen ordinary plan
+
+The plan has 34 injections, 66 modules, three states and two bundled crates.
+None of its injections directly targets the 13 named add/status/update/attribute/
+health/native-effect endpoints listed in the JSON. This is a finite exact-plan
+inventory, not proof of an empty transitive call graph.
+
+Do not turn same-file changes into false conflicts or false assurances:
+
+- `effects.rs` has the shared `StatusFlags::protection` RETURN injection, not an
+  injection into `PlayerEffects::status` or `EffectInstance::update`.
+- `health.rs` has protection hooks on hurt/ArmorWorld's server-level observation,
+  not `PlayerMotion::set_health`.
+- `items.rs` has mining-speed/drop hooks, not this add/status endpoint.
+- `game/potions.rs` adds `pluto_cloud_factory`; its source hash is recorded.
+  A module declaration is not by itself an effect-add hook.
+- All three recorded state targets are ChunkMap, not the player/effect structs.
+  This does not say that another installed mod cannot change those structs.
+
+Before any future G4 pass, enumerate and seal the **complete selected installed
+composition** and the resolved call closure. Any unreviewed hook kind/selector
+at a relied-on function, state/constructor change in relevant ownership types,
+or namespace/import/module resolution change must fail the proposed admission
+until explicitly audited. Mere absence of these 13 target names does not suffice.
+Whole-Game callbacks for custom effects remain outside the narrow builtin
+candidate unless they acquire their own genuine continuation contract.
+
+G4 remains `blocked_design`. The next useful proof is still the already prepared
+actual Game borrow gate, then the actual cross-crate/no-op frame and resource
+fixture gates, not enabling a status-only shortcut. This source inventory runs
+no native job and does not change the pending CI scope. The earlier independent
+review found no serious contract defect in the plan; that was source review,
+not a type/runtime/ownership result.
+
+G4 follow-up source/ordinary-plan checks: **13/13 passed in 0.036 seconds**.
+The frozen ordinary plan was read, not regenerated; no metadata, planner, apply,
+Cargo, runtime or full-installed-composition check was executed.
