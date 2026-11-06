@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "FROZEN SOURCE; independent final review and serial release required; not executed",
+  "status": "FROZEN SOURCE: bounded artifact follow-up; same9cc1; independent review/release pending",
   "ready_for_reviewed_execution": true,
   "repository": "sofia-gros/horizon-mods",
   "branch": "checkpoint/tinkers-playtest-complete-plan-ci-20261106",
@@ -167,17 +167,18 @@
     "crates/horizon-client/src/game/native_hooks.rs": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833"
   },
   "source_sha256": {
-    ".github/workflows/playtest-complete-plan-wip.yml": "86314a92bc013b8620b6170f455b0265164a5e206784d058009a94699d955abb",
-    "pluto-lib/experiments/playtest-plan-ci/README.md": "8f90630c7553bcca1e1de84254201bbd29931ab87e26f76d3a268393cd75830d",
+    ".github/workflows/playtest-complete-plan-wip.yml": "daac75dc4aedd91e86756ba5d15eb863c6049bc9220917bb211adb16e7d45544",
+    "pluto-lib/experiments/playtest-plan-ci/README.md": "82e8d6dc248588218d297dbce2c90f5d97b929ed6d52f09efc876da4863bfc92",
     "pluto-lib/experiments/playtest-plan-ci/guard_once.py": "203925039073846fe6fddfab1ff8e785db93e36303bc2c261aa5828a7f6dd694",
     "pluto-lib/experiments/playtest-plan-ci/observe_plan.py": "0cd2019dd5a4623d6f88df4b80aa9d991d4399688848bb601c0008237c2cbe1d",
     "pluto-lib/experiments/playtest-plan-ci/prepare.py": "d1c1ab035401a9124674a5b6df8f1f4801ed269fa7488e4518308da4546fb6b6",
-    "pluto-lib/experiments/playtest-plan-ci/run.py": "49c0ca4e9ea026df3ad26e2d6f717ab27e9418facf33ceba087fbde2ce5eef8e",
+    "pluto-lib/experiments/playtest-plan-ci/run.py": "0f92dd5823c56315b936688d33411f012c2e1373c1be9ba328fffdbab099eeaf",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/README.md": "2361e0021c3334eb46b415ac6e3890016f6f349c647d1e39cfc4eafd7fee4512",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/contract.json": "218d465acd047afa80461f455ee59b83914db5a92c2ef030dcc9f31df1000e12",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/source-delta-41f.json": "3594faf44960ebe1eb0e23153366ee10d0cf7e918e5ff86d9032b3231c3918fd",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/test_collect.py": "7f828eee7ee09c8059b20c9eb24be8b83a350f18742b48e4d3ad7dd375a6dc90",
-    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "6c7943a9418177e4ee3a9bd098afd09b87df25dbc4d1a0a12621cce0202181ec"
+    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "bd9055da787d971ba286299787c722193ef17fe83561b474364f0238fdfff42d",
+    "pluto-lib/experiments/playtest-plan-ci/evidence.py": "1177646910f1ad802c80a724ca77b9427d5df21087f9dcacb6aa8fffc8599f7f"
   }
 }

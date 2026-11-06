@@ -125,4 +125,58 @@ class Tests(unittest.TestCase):
   with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
    outcome=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite([Tests('test_archive_duplicate_rejected')]))
   self.assertTrue(outcome.wasSuccessful());r.common.validate_python_checks(output.getvalue(),1)
+class EvidenceTests(unittest.TestCase):
+ def report(self):return {'head':'a'*40,'gates':{},'error':'synthetic failure','probe_completed':False,'source_verified':False,'plan_accepted':None}
+ def setup_plan(self,base,body=b'{"synthetic":true}'):
+  f,_=r.evidence.paths(base,'a'*40);f.parent.mkdir();f.write_bytes(body);return f
+ def test_partial_receipt_survives_failure(self):
+  with tempfile.TemporaryDirectory() as d:
+   report=self.report();out,m=r.evidence.persist(report,Path(d),lambda n:None);self.assertFalse(m['plan_present']);self.assertEqual(json.loads((out/'receipt.json').read_text()),report);r.evidence.verify_saved(out)
+ def test_full_plan_roundtrip(self):
+  with tempfile.TemporaryDirectory() as d:
+   f=self.setup_plan(Path(d));report=self.report();b=f.read_bytes();report.update(plan_accepted=True);report['gates']['plan_diagnostic']={'accepted':True,'plan_bytes':len(b),'plan_sha256':p.sha(b)}
+   out,m=r.evidence.persist(report,Path(d),lambda n:None);self.assertEqual((out/'plan.json').read_bytes(),b);self.assertTrue(report['artifact_preservation']['plan_matches_accepted_receipt']);r.evidence.verify_saved(out)
+ def test_partial_plan_not_claimed_accepted(self):
+  with tempfile.TemporaryDirectory() as d:
+   self.setup_plan(Path(d),b'{incomplete');report=self.report();out,m=r.evidence.persist(report,Path(d),lambda n:None);self.assertTrue(m['plan_present']);self.assertFalse(report['artifact_preservation']['plan_matches_accepted_receipt'])
+ def test_missing_accepted_plan_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   report=self.report();report['plan_accepted']=True
+   with self.assertRaisesRegex(ValueError,'missing'):r.evidence.persist(report,Path(d),lambda n:None)
+ def test_plan_digest_drift_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   self.setup_plan(Path(d));report=self.report();report['gates']['plan_diagnostic']={'accepted':True,'plan_bytes':1,'plan_sha256':'f'*64}
+   with self.assertRaisesRegex(ValueError,'differs'):r.evidence.persist(report,Path(d),lambda n:None)
+ def test_symlink_input_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   f,_=r.evidence.paths(Path(d),'a'*40);f.parent.mkdir();target=Path(d)/'other';target.write_text('x');f.symlink_to(target)
+   with self.assertRaisesRegex(ValueError,'symlink'):r.evidence.persist(self.report(),Path(d),lambda n:None)
+ def test_hardlink_input_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   f=self.setup_plan(Path(d));os.link(f,Path(d)/'other')
+   with self.assertRaisesRegex(ValueError,'regular'):r.evidence.persist(self.report(),Path(d),lambda n:None)
+ def test_oversized_plan_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   f=self.setup_plan(Path(d));f.write_bytes(b'x'*40)
+   with patch.dict(r.evidence.LIMITS,{'plan.json':32}):
+    with self.assertRaises(ValueError):r.evidence.persist(self.report(),Path(d),lambda n:None)
+ def test_existing_output_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   _,out=r.evidence.paths(Path(d),'a'*40);out.mkdir()
+   with self.assertRaisesRegex(ValueError,'already exists'):r.evidence.persist(self.report(),Path(d),lambda n:None)
+ def test_guard_failure_no_ready_directory(self):
+  with tempfile.TemporaryDirectory() as d:
+   _,out=r.evidence.paths(Path(d),'a'*40)
+   with self.assertRaises(RuntimeError):r.evidence.persist(self.report(),Path(d),lambda n:(_ for _ in ()).throw(RuntimeError('floor')))
+   self.assertFalse(out.exists())
+ def test_saved_tamper_or_extra_rejected(self):
+  with tempfile.TemporaryDirectory() as d:
+   out,_=r.evidence.persist(self.report(),Path(d),lambda n:None);(out/'receipt.json').write_text('{}')
+   with self.assertRaises(ValueError):r.evidence.verify_saved(out)
+   (out/'secret.env').write_text('synthetic')
+   with self.assertRaises(ValueError):r.evidence.verify_saved(out)
+ def test_fixed_upload_after_ready_only(self):
+  w=(r.ROOT/'.github/workflows/playtest-complete-plan-wip.yml').read_text();self.assertIn('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',w);self.assertIn("always() && steps.diagnostic.outputs.evidence_ready == 'true'",w);self.assertIn('retention-days: 3',w)
+  code=(HERE/'run.py').read_text();self.assertLess(code.index('evidence.verify_saved(output)'),code.index("out.write('evidence_ready=true"));self.assertIn('contents: read',w)
+
 if __name__=='__main__':unittest.main()

@@ -10,6 +10,7 @@ baseline=load('full_mining_baseline',HERE.parent/'latest-main-common-ci/run.py')
 package=load('playtest_prepare',HERE/'prepare.py')
 guard_once=load('playtest_guard_once',HERE/'guard_once.py')
 observer=load('full_mining_observer',HERE/'observe_plan.py')
+evidence=load('public_plan_evidence',HERE/'evidence.py')
 common=baseline.common;prepare=package;safety=baseline.safety;sha=common.sha
 Runner=baseline.Runner
 cli_witness=baseline.cli_witness
@@ -19,10 +20,10 @@ OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
 BRANCH='checkpoint/tinkers-playtest-complete-plan-ci-20261106'
-RUNNER_TESTS=34
+RUNNER_TESTS=46
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
-OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
+OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
 REQUIRED={'runner','memory_admission','fixed_checkouts','package_headers','cli_compile','tconstruct_bundle','pluto_bundle','combined_payload','collector_sources','plan_diagnostic'}
 
 def inputs():return json.loads((HERE/'inputs.json').read_text())
@@ -242,6 +243,15 @@ def main():
     try:
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:out.write('## Integrated playtest plan-only diagnostic\n\n```json\n'+json.dumps(report,indent=2)+'\n```\n')
     except BaseException as exc:common.record_error(report,exc,'summary: ');report['probe_completed']=False
+    try:
+        # Reuse the existing guards after all owned subprocesses and source seals finish.
+        temp=Path(os.environ['RUNNER_TEMP']);plan,_=evidence.paths(temp,report['head'])
+        guard_runner=Runner(plan.parent,{'CARGO_HOME':str(plan.parent/'cargo-home'),'RUSTUP_HOME':os.environ.get('RUSTUP_HOME',str(Path.home()/'.rustup'))})
+        output,_=evidence.persist(report,temp,guard_runner.guard)
+        evidence.verify_saved(output)
+        with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('evidence_ready=true\n')
+    except BaseException as exc:
+        common.record_error(report,exc,'artifact preservation: ');report['probe_completed']=False
     print('FINAL_RECEIPT',json.dumps(report,sort_keys=True),flush=True)
     if not report['probe_completed']:raise SystemExit(1)
 

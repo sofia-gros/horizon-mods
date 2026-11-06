@@ -25,4 +25,15 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
       - name: Diagnose the complete frozen playtest without applying
+        id: diagnostic
         run: python3 pluto-lib/experiments/playtest-plan-ci/run.py
+      - name: Preserve bounded public plan diagnostic evidence
+        if: ${{ always() && steps.diagnostic.outputs.evidence_ready == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: playtest-plan-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/playtest-plan-evidence-${{ github.sha }}/
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 6
+          retention-days: 3
