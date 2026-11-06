@@ -72,7 +72,27 @@ window ownership or live LAN behavior. The native input/renderer evidence
 remains unrun. Source/manifest regressions require the unchanged Pluto guards to
 accept the navigation boundary and reject the preserved remote conflict.
 
-Actual read-only official planning, exact commands and terminal results are
-recorded separately after the source is frozen. A full consumer plan may stop
-on another existing compatibility error before reaching any guard; no hook or
-feature is silently disabled to force a pass.
+At source `1c47a378c64082668b4fbeb392dc3371f24f912f` (production helpers unchanged
+from `e4fcdee7`), all eight modeled production-helper cases passed, with zero
+failed/ignored cases. Twenty-seven source/manifest/guard cases passed, including
+mandatory preflight routing and the unchanged remote-conflict rejection.
+
+The actual official planner accepted a **navigation-only consumer overlay**
+(two modules, three input/control hooks and one existing history state) together
+with the complete verified v13 Pluto package. All eleven mandatory guards passed
+on that complete selected plan. Terminal exit was zero, with minimum free disk
+10,895,065,088 bytes and no floor stop. This is not a full TConstruct plan.
+No generated host stage, apply, native typecheck or real Client was run for this
+repair. The current official host stage was left untouched.
+
+The full original consumer-plus-library plan attempt produced no diagnostic or
+plan artifact after several minutes and was interrupted (execution terminal
+exit 130). It remains **inconclusive**, not a demonstrated planner rejection or
+pass. The preserved response-hook conflict is independently demonstrated by
+source/guard regression; full integration still cannot be promoted. No hook or
+feature was disabled to force the isolated pass. The first helper fixture also
+had a missing modeled Font method; its compile failure was preserved, corrected
+only in the fixture, and the eight cases rerun successfully.
+
+See [the validation receipt](guide-pluto-navigation-validation.json) for exact
+source/package identities, logs, command scopes and remaining exclusions.
