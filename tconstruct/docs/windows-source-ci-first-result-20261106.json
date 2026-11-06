@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "status": "terminal failure; no retry launched",
+  "head": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
+  "run_id": 42230840423,
+  "job_id": 127935995641,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42230840423",
+  "observed_platform": "Windows Server 2025 (windows-2025-vs2026), existing Python 3.12.10 x64; not Windows 11",
+  "final_receipt": {
+    "error": "RuntimeError: latest failed",
+    "gates": {
+      "powershell": {
+        "executed_entry": false,
+        "parsed": true
+      }
+    },
+    "head": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
+    "native_executed": false,
+    "passed": false,
+    "phases": [
+      {
+        "argv": [
+          "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "$tokens=$null; $errors=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile($env:PLUTO_PS_ENTRY,[ref]$tokens,[ref]$errors); if ($errors.Count -ne 0) { $errors | ForEach-Object { Write-Output $_.Message }; exit 1 }; Write-Output 'PS_PARSE_OK'"
+        ],
+        "exit": 0,
+        "job_empty": true,
+        "log_bytes": 13,
+        "log_sha256": "f4b7746ac20c3c783d945d3fdad47cb488a1b097c377a0ea2f7edebf856a6794",
+        "name": "powershell-parse",
+        "process_succeeded": true,
+        "seconds": 4.6400000000001
+      },
+      {
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "D:\\a\\horizon-mods\\horizon-mods\\tconstruct\\tests\\test_windows_latest_launch.py",
+          "-v"
+        ],
+        "exit": 1,
+        "job_empty": true,
+        "log_bytes": 3142,
+        "log_sha256": "84f082a5ea844969f0ce55b6b19cc5fa9c7654411711deafc223ac2cb1ae7bd6",
+        "name": "latest",
+        "process_succeeded": false,
+        "seconds": 0.8599999999999
+      }
+    ],
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "schema": 1,
+    "scope": "PowerShell syntax and pure Python only",
+    "source_after_sha256": "38d2e763e69eb84535613d898fd9e12ab8c1064fcbcf2b54536f9874ab4df3cb",
+    "source_before_sha256": "38d2e763e69eb84535613d898fd9e12ab8c1064fcbcf2b54536f9874ab4df3cb",
+    "source_files": 6771,
+    "verified": true
+  },
+  "partial_tests": {
+    "latest": {
+      "run": 20,
+      "passed": 19,
+      "failed": 1,
+      "failed_name": "test_stage_exact_two_edit_inverse_and_guard_order"
+    },
+    "historical": {
+      "reached": false
+    },
+    "bundles": {
+      "reached": false
+    }
+  },
+  "cause": {
+    "kind": "test text-decoding defect",
+    "raw_stage_sha256": "c2d14a49bfc55caadb8159441e87ee6a21203586bf7a725b4648ecd653166092",
+    "observed_mojibake_sha256": "d15ecca5ac8051c2419ca269ed4a952b580536b1e02c55ac7734e14776e7e260",
+    "reproduction": "SHA256(stage raw UTF-8 bytes decoded as cp1252 then encoded as UTF-8) exactly equals the Windows test failure value. Source raw pin and final seal matched."
+  },
+  "scope": "PowerShell parser did not execute launch entry. No Cargo, engine, assets, install or game execution. Job Object assignment and empty teardown succeeded in both reached phases. This does not establish game build/playability.",
+  "tool_decoded_console_utf8_bytes": 20607,
+  "tool_decoded_console_utf8_sha256": "2533e95ae182bb9901e65f52bbc40bb5c8f594c3bc8aa7654c895af29b858d9b"
+}

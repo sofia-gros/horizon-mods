@@ -2,22 +2,22 @@
   "schema": 1,
   "branch": "checkpoint/windows-latest-source-ci-20261106",
   "base": "59f3fa23cc5b95fbc8e7bcb42d24e2d5d9771bc9",
-  "status": "prepared; source-only; Windows phases unrun",
+  "status": "test-only UTF-8 correction prepared; initial c936 Windows partial failure retained; retry unrun",
   "source_sha256": {
     ".github/workflows/windows-source-wip.yml": "3f864264df1e8afcbc91031d315260ac2d568bc7a89a367d8d464b2e6a6ad031",
     "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
-    "tconstruct/docs/windows-latest-launch.md": "dc3679fe79e62861713443f0efd8ae00071fe0bf5f48de1bb2126e58a6aa309a",
-    "tconstruct/experiments/windows-source-ci/README.md": "53143557a9448f827dfeb02466fe8ee29c5cb47fcaafcab98d28d685792b5d05",
+    "tconstruct/docs/windows-latest-launch.md": "8d75566bf812d4a047215b1d0a60360146772f701aba81c18b52d56a39d0d840",
+    "tconstruct/experiments/windows-source-ci/README.md": "c4eca052eb645ef7dc38c737916326dcaeb049c8391775e8420be356a1182dce",
     "tconstruct/experiments/windows-source-ci/run.py": "5d71cbece603d76113b9ac4e9acf9f3fd618e284880ebf18d6bf6f27a46d3a8e",
     "tconstruct/experiments/windows-source-ci/test_runner.py": "ce539d623e5ee98cdab44d05e182cc09e328e728d2e0081efc3652d099426e48",
     "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
     "tconstruct/experiments/windows-source-ci/winjob.py": "2c3ff616596dde7caae785d12acacc12fdd0d3096538b1b51877066147cd738d",
-    "tconstruct/tests/test_windows_latest_launch.py": "6b63fc98405de3433df43daed2d40b09714c1d663c06415043857cd8fa5d6ee5",
+    "tconstruct/tests/test_windows_latest_launch.py": "b646666f465980ee8bc7131c9006c2fa88bc7e8ce4b5ae7a1435f3be6b3cc0b0",
     "tconstruct/tests/test_windows_playtest_bundles.py": "f10bebd3563cd61bc2da93c718e1ed0a1f6a3b5e53be0115959425e314662aed",
-    "tconstruct/tests/test_windows_pluto_cache.py": "b2c538f2c37a486782cb9c16e900b0f78ce06ba75db04281e1c20837cecfb4c5",
+    "tconstruct/tests/test_windows_pluto_cache.py": "f443c48cc3f4f55c00a3ac811cedb6528660e12b906396124c6fd2c36f48f9a0",
     "tconstruct/tests/windows-latest-compat-inverse.json": "9d32830cc32dee7869455079ad3194bf2e63e65ef71de7e02f4e09d7c4c7fd09",
     "tconstruct/tests/windows-latest-entry-inverse.json": "b0c409df288de7bcbdf62ccdb3fa8d24db05dd734a90d58bd15c01345e79c88b",
-    "tconstruct/tests/windows-latest-launch-source.json": "5a8785e78cb34fbb33dee6e44a3d80dbd94dca1a0a14254c6cd15533ea8a9357",
+    "tconstruct/tests/windows-latest-launch-source.json": "afcfcc8d682b8d6f7c8e545a399a8ad13e251bb73de07a643e18bc85b2286796",
     "tconstruct/tests/windows-latest-stage-inverse.json": "a93a2470812868fc73a074d2f943fc7fed0f34e0db5cdc86fed0e08cf96cd96e",
     "tconstruct/tests/windows-pluto-cache-inverse.json": "cab985cf09edbb141fa7d6db342234e13353d590fb5ba37c56d0bd67cb092f06",
     "tconstruct/tools/play-windows.ps1": "1c4271db22fb2be948c711805224705d5117fed7e5d7fc92ffd5111f17e16411",
@@ -89,5 +89,6 @@
       ]
     }
   ],
-  "preparation_tests": 11
+  "preparation_tests": 11,
+  "retry_of": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55"
 }

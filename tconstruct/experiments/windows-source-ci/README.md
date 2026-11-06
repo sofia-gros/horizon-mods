@@ -21,3 +21,9 @@ Each phase creates one own worker behind a stdin barrier. Its CreateProcess hand
 The compact FINAL_RECEIPT always distinguishes source verified from all gates passed, includes partial phase argv/exit/timing/log bytes/hash when available, and records exact accepted test names. Failure tails are bounded. Raw phase logs are ephemeral and not uploaded. Controller test code is excluded from the four Windows phases; its source and11 Linux regressions are preparatory evidence only. No claim of latest complete-plan admission, guarded apply, Cargo/engine build, resource loading, save correctness or playability follows from this gate.
 
 Publish first to a non-trigger checkpoint. The trigger branch `checkpoint/windows-latest-source-ci-20261106` must remain absent until independent review and the coordinator's explicit release. No automatic retry or resource-limit relaxation.
+
+## Initial actual run and proposed correction
+
+The first c936 run reached Parser success and latest19/20, then stopped on implicit locale decoding in one test. See `tconstruct/docs/windows-source-ci-first-result-20261106.{md,json}`. This follow-up changes only the test read to bytes/explicit UTF-8 plus its exact CP1252 reproduction, pins and documentation. Runtime59f3, controller/workflow/limits/strict parser and all43 test names are unchanged. Local11 regressions, including actual43 merged output, pass. Retry requires independent review and a new explicit serial release.
+
+The scoped three-suite follow-up also makes the remaining eight ASCII-source/JSON reads explicitly UTF-8 and checks that source policy in an existing test. It does not set Python UTF-8 mode or change OS locale.

@@ -87,15 +87,22 @@ class Tests(unittest.TestCase):
         raw[68:70]=b'\x4c\x01';p.write_bytes(raw)
         with self.assertRaises(ValueError):m.pe_x64(p)
     def test_stage_exact_two_edit_inverse_and_guard_order(self):
-        x=json.loads((ROOT/'tests/windows-latest-stage-inverse.json').read_text());s=(ROOT/'tools/stage.py').read_text()
-        self.assertEqual(hashlib.sha256(s.encode()).hexdigest(),m.STAGE_SHA)
+        x=json.loads((ROOT/'tests/windows-latest-stage-inverse.json').read_text(encoding='utf-8'))
+        raw=(ROOT/'tools/stage.py').read_bytes();s=raw.decode('utf-8')
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),m.STAGE_SHA)
+        self.assertEqual(s.encode('utf-8'),raw)
+        # Actual Windows default CP1252 decoding of the frozen UTF-8 comment
+        # produced this false mismatch. Exact byte hashing must not use locale.
+        self.assertEqual(hashlib.sha256(raw.decode('cp1252').encode('utf-8')).hexdigest(),
+                         'd15ecca5ac8051c2419ca269ed4a952b580536b1e02c55ac7734e14776e7e260')
+        self.assertNotEqual(hashlib.sha256(raw.decode('cp1252').encode('utf-8')).hexdigest(),m.STAGE_SHA)
         self.assertEqual(m.STAGE_SHA,x['candidate_sha256'])
         self.assertLess(s.index("'plan', '--workspace'"),s.index('pluto-lib/tools/check_native_plan.py'))
         self.assertLess(s.index('pluto-lib/tools/check_native_plan.py'),s.index("'apply', '--workspace'"))
         for old,new in reversed(x['edits']):self.assertEqual(s.count(new),1);s=s.replace(new,old,1)
         self.assertEqual(hashlib.sha256(s.encode()).hexdigest(),x['base_sha256'])
     def test_ps_is_connected_and_has_no_discovery_install(self):
-        s=(ROOT/'tools/play-windows.ps1').read_text()
+        s=(ROOT/'tools/play-windows.ps1').read_text(encoding='utf-8')
         self.assertIn('play_windows_latest.py',s)
         for token in ('Get-ChildItem','A:\\Project\\horizon','Checkout-Pinned','git clone','rustup install','--no-default-features'):self.assertNotIn(token,s)
         for name in ('horizon','mixins','pluto-bundle','resources','toolchain','home'):self.assertIn('--'+name,s)
@@ -122,13 +129,13 @@ class Tests(unittest.TestCase):
         with patch.object(m,'run',fake):
             with self.assertRaisesRegex(ValueError,'archive attributes'):m.source_identity(root,'horizon',m.HORIZON,m.sha(b'lock'),'git',{})
     def test_toolchain_seal_precedes_version_execution(self):
-        s=(ROOT/'tools/play_windows_latest.py').read_text()
+        s=(ROOT/'tools/play_windows_latest.py').read_text(encoding='utf-8')
         self.assertLess(s.index('toolchain_before = tree_digest(toolchain)'),s.index("rust = run([toolchain/'bin/rustc.exe'"))
         self.assertLess(s.index("gcc_version = run("),s.index("if tree_digest(toolchain) != toolchain_before"))
 
     def test_compatibility_only_official_two_revision_delta(self):
-        value=json.loads((ROOT/'compatibility.json').read_text());m.validate_compat(value)
-        contract=json.loads((ROOT/'tests/windows-latest-compat-inverse.json').read_text())
+        value=json.loads((ROOT/'compatibility.json').read_text(encoding='utf-8'));m.validate_compat(value)
+        contract=json.loads((ROOT/'tests/windows-latest-compat-inverse.json').read_text(encoding='utf-8'))
         self.assertEqual(set(contract['changes']),{'horizon_revision','mixins_revision'})
         for key,pair in contract['changes'].items():
             self.assertEqual(value[key],pair[1]);value[key]=pair[0]
@@ -136,11 +143,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(raw.encode()).hexdigest(),contract['base_sha256'])
 
     def test_launch_order_no_fallback_or_automatic_fetch(self):
-        s=(ROOT/'tools/play_windows_latest.py').read_text();ast.parse(s)
+        s=(ROOT/'tools/play_windows_latest.py').read_text(encoding='utf-8');ast.parse(s)
         self.assertLess(s.index("repo/'tools/stage.py','--horizon'"),s.index('run(compile_args('))
         self.assertLess(s.index('if snapshot()!=initial'),s.index('ready.write_text'))
         self.assertLess(s.index("receipt.get('outputs')!=outputs()"),s.index("env['HORIZON_HOME']"))
         for token in ("'clone'","'fetch'","'install'",'rmtree','unlink('):self.assertNotIn(token,s)
         self.assertIn("game-latest-",s)
+        # All source/JSON text reads in the three pure suites are UTF-8, not locale.
+        for filename in ('test_windows_latest_launch.py','test_windows_pluto_cache.py','test_windows_playtest_bundles.py'):
+            parsed=ast.parse((ROOT/'tests'/filename).read_text(encoding='utf-8'))
+            for node in ast.walk(parsed):
+                if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and node.func.attr=='read_text':
+                    self.assertTrue(any(k.arg=='encoding' and isinstance(k.value,ast.Constant) and k.value.value=='utf-8' for k in node.keywords))
+
 
 if __name__=='__main__': unittest.main()
