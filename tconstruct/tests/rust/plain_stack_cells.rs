@@ -330,3 +330,72 @@ fn ordered_insertion_documents_unadopted_zero_count_difference() {
     assert!(new[0].is_none()); assert_eq!(incoming.as_ref().unwrap().count, 0);
     // No production wrapper has adopted this API's stricter contract.
 }
+
+#[test]
+fn slot_insertion_two_snapshot_adapter_matches_complete_old_helper() {
+    let mut cases = 0;
+    for kind in [consumer::ChestKind::Plain(4), consumer::ChestKind::Tinkers, consumer::ChestKind::Part] {
+        let target = kind.slots() - 1; // Not the planner's logical index 1.
+        for offered_count in [0, 1, 8, 16, 64, u32::MAX] {
+            for limit in [0, 1, 8, 64, u32::MAX] {
+                for destination in std::iter::once(None).chain(
+                    [0, 1, 8, 16, 64, u32::MAX].into_iter()
+                        .flat_map(|count| (0..4).map(move |variant| Some(stack(count, variant))))) {
+                    for duplicate_elsewhere in [false, true] {
+                        for tagged in [false, true] {
+                            let incoming = stack(offered_count, 2);
+                            let mut old = vec![None; kind.slots()];
+                            old[target] = destination.clone();
+                            old[0] = Some(stack(3, if duplicate_elsewhere { 2 } else { 1 }));
+                            let mut new = old.clone();
+                            let before = total(&old, &Some(incoming.clone()));
+                            let expected = crate::insert_slot_legacy::insert_slot(kind, &mut old, target, incoming.clone(), limit, tagged);
+                            let actual = crate::consumer_impl::insert_slot(kind, &mut new, target, incoming, limit, tagged);
+                            assert_eq!(state(&(&new, &actual)), state(&(&old, &expected)));
+                            assert_eq!(total(&new, &actual), before);
+                            cases += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 9000);
+}
+
+#[test]
+fn slot_insertion_invalid_shape_keeps_legacy_no_op() {
+    for (kind, len, index) in [
+        (consumer::ChestKind::Plain(0), 0, 0),
+        (consumer::ChestKind::Plain(4), 3, 0),
+        (consumer::ChestKind::Plain(4), 5, 0),
+        (consumer::ChestKind::Plain(4), 4, 4),
+        (consumer::ChestKind::Part, 255, 0),
+        (consumer::ChestKind::Tinkers, 64, usize::MAX),
+    ] {
+        for count in [0, 1, u32::MAX] {
+            let mut old = vec![Some(stack(2, 2)); len]; let mut new = old.clone();
+            let incoming = stack(count, 3);
+            let before = state(&(&new, &Some(incoming.clone())));
+            let expected = crate::insert_slot_legacy::insert_slot(kind, &mut old, index, incoming.clone(), 64, true);
+            let actual = crate::consumer_impl::insert_slot(kind, &mut new, index, incoming, 64, true);
+            assert_eq!(state(&(&new, &actual)), state(&(&old, &expected)));
+            assert_eq!(state(&(&new, &actual)), before);
+        }
+    }
+}
+
+#[test]
+fn slot_insertion_preserves_native_opaque_merge_policy() {
+    let receiving = stack(2, 2); let mut incoming = receiving.clone();
+    let decoded = incoming.clone(); incoming.data_mut().wire = Wire::new(decoded, Arc::from([99u8]));
+    assert!(same(&receiving, &incoming)); // Existing native equality omits wire.
+    let mut old = vec![Some(receiving.clone())]; let mut new = old.clone();
+    let kind = consumer::ChestKind::Plain(1);
+    let expected = crate::insert_slot_legacy::insert_slot(kind, &mut old, 0, incoming.clone(), 64, false);
+    let actual = crate::consumer_impl::insert_slot(kind, &mut new, 0, incoming, 64, false);
+    assert_eq!(state(&(&new, &actual)), state(&(&old, &expected)));
+    let mut merged = receiving; merged.count = 4;
+    assert_eq!(state(&new[0]), state(&Some(merged)));
+    assert!(actual.is_none());
+}

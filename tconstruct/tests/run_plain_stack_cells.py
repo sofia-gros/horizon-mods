@@ -22,6 +22,8 @@ paths = [
     'tconstruct/tests/rust/plain_stack_cells_legacy.json',
     'tconstruct/tests/rust/ordered_insertion_legacy.rs',
     'tconstruct/tests/rust/ordered_insertion_legacy.json',
+    'tconstruct/tests/rust/insert_slot_legacy.rs',
+    'tconstruct/tests/rust/insert_slot_legacy.json',
 ]
 seal = {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in paths}
 with tempfile.TemporaryDirectory(prefix='plain-stack-cells-') as temp:
@@ -45,12 +47,23 @@ path = "lib.rs"
     insertion_oracle = json.loads((root / 'tconstruct/tests/rust/ordered_insertion_legacy.json').read_text())
     if hashlib.sha256((root / 'tconstruct/tests/rust/ordered_insertion_legacy.rs').read_bytes()).hexdigest() != insertion_oracle['oracle_sha256']:
         raise ValueError('Frozen insertion oracle differs from its receipt')
+    slot_oracle = json.loads((root / 'tconstruct/tests/rust/insert_slot_legacy.json').read_text())
+    if hashlib.sha256((root / 'tconstruct/tests/rust/insert_slot_legacy.rs').read_bytes()).hexdigest() != slot_oracle['oracle_sha256']:
+        raise ValueError('Frozen slot insertion oracle differs from its receipt')
     (work / 'lib.rs').write_text(f'''
 include!({quote(root / 'tconstruct/tests/rust/pluto_storage_fixture.rs')});
 #[path = {quote(root / 'tconstruct/mixins/tconstruct/chest-inventory-api-lib.rs')}]
 mod tconstruct_inventory_api;
 #[path = {quote(root / 'tconstruct/mixins/tconstruct/source-tinker-chests.rs')}]
-mod consumer;
+mod consumer_impl;
+#[path = {quote(root / 'tconstruct/tests/rust/insert_slot_legacy.rs')}]
+mod insert_slot_legacy;
+// Keep both previously frozen oracle files byte-identical. Their imports
+// resolve the exact old insert_slot, while tested wrappers are production.
+mod consumer {{
+    pub(crate) use crate::consumer_impl::{{ChestKind, pickup_slot, pickup_player, take_for_drop, pickup_all_ordered}};
+    pub(crate) use crate::insert_slot_legacy::insert_slot;
+}}
 use consumer as tconstruct_chest_rules;
 #[path = {quote(root / 'tconstruct/tests/rust/ordered_insertion_legacy.rs')}]
 mod insertion_legacy;
@@ -78,6 +91,9 @@ mod differential;
         'ordered_insertion_rejects_malformed_values_before_mutation_or_policy',
         'ordered_insertion_preserves_receiving_identity_under_supplied_opaque_policy',
         'ordered_insertion_documents_unadopted_zero_count_difference',
+        'slot_insertion_two_snapshot_adapter_matches_complete_old_helper',
+        'slot_insertion_invalid_shape_keeps_legacy_no_op',
+        'slot_insertion_preserves_native_opaque_merge_policy',
     ]])
     verify_fixture_lock(manifest, host, root)
     if subprocess.check_output(['git', '-C', str(host), 'status', '--porcelain', '--untracked-files=no'], text=True):

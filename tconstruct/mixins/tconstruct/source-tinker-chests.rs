@@ -29,20 +29,21 @@ pub(super) fn insert_slot(
     item_limit: u32, tagged_part: bool,
 ) -> Option<horizon_items::items::ItemStack> {
     if slots.len() != kind.slots() || slot >= slots.len() || incoming.count == 0 { return Some(incoming); }
-    use super::tconstruct_inventory_api::{plan_move, StackSnapshot};
-    // The last entry is a borrowed, synthetic source, not a container slot.
-    let mut snapshot: Vec<_> = slots.iter().map(|cell| cell.as_ref().map(|stack| StackSnapshot { item: stack, count: stack.count })).collect();
-    let source = snapshot.len();
-    snapshot.push(Some(StackSnapshot { item: &incoming, count: incoming.count }));
+    use horizon_client::pluto_inventory::{plan_between, StackSnapshot};
+    // Only the incoming stack and selected cell participate in this move.
+    // Admission still inspects the whole container's existing Part identity.
     let first_equal = slots.iter().position(|cell| cell.as_ref().is_some_and(|stack| stack.same_item_same_components(&incoming)));
     let limit = kind.slot_limit(item_limit);
-    let Ok(Some(plan)) = plan_move(&snapshot, source, slot, incoming.count,
-        |_, _| limit, |target, _| kind.accepts(target, first_equal, tagged_part),
+    let Ok(Some(plan)) = plan_between(
+        Some(StackSnapshot { item: &incoming, count: incoming.count }),
+        slots[slot].as_ref().map(|stack| StackSnapshot { item: stack, count: stack.count }),
+        incoming.count,
+        |_, _| limit, |_, _| kind.accepts(slot, first_equal, tagged_part),
         |left, right| left.same_item_same_components(right)) else { return Some(incoming); };
     // This function has exclusive access to both inputs through planning and
     // commit. Check the planner's original counts and use only its move count;
-    // `plan.from` identifies the synthetic source, never index it in `slots`.
-    if plan.from != source || plan.to != slot || plan.source_count_before != incoming.count
+    // The planner uses logical indexes 0/1, never indexes into `slots`.
+    if plan.from != 0 || plan.to != 1 || plan.source_count_before != incoming.count
         || plan.destination_count_before != slots[slot].as_ref().map(|stack| stack.count) {
         return Some(incoming);
     }

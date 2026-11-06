@@ -1,0 +1,10 @@
+{
+  "source_commit": "6c09d53c8f60ef5e5257813ab472c2feec271f98",
+  "source_path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+  "source_sha256": "9a9c8179cfdd78e63cb628de301a0e1a6ae30b6a0e61c9bd0d9805371bd387c1",
+  "function": "insert_slot",
+  "function_sha256": "8027b453acbc35ee796705d3e59a1157d762244606d4ff51d07397463e199845",
+  "oracle_sha256": "ff37c1a29b9d543322add930f7c942b24c1a4d91563cf506dfe9a101ab427ff8",
+  "adopted_function_sha256": "b83a0ccebfaae831f63c98fb298c702b3913ba1855837ea000ebc61b140559f8",
+  "scope": "Exact old insertion body; current ChestKind policy and the shared actual plan_move dependency are separately source-guarded."
+}
