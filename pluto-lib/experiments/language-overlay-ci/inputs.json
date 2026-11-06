@@ -1,0 +1,46 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-language-overlay-ci-20261106",
+  "base": "783deeb11bbe63e72bbaefc1954439c3219d4f9a",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+  },
+  "cutoffs": {
+    "fixture": "01ccfa4f115f06aed312931f1057adc958aac5de",
+    "locale_source_followup": "783deeb11bbe63e72bbaefc1954439c3219d4f9a",
+    "successful_package_runner": "8b17fba9610c3e60a873c822f2fa04f93d5c94e4"
+  },
+  "result_groups": [
+    {
+      "expected": 8,
+      "names": [
+        "tests::mod_replaces_whole_locale_and_never_mutates_base_or_package",
+        "tests::untouched_selected_locale_survives_and_exact_missing_code_uses_output_english",
+        "tests::distinct_namespaces_keep_native_language_order_not_mod_input_order",
+        "tests::overlapping_owned_namespace_rejects_before_owned_output_recreation",
+        "tests::malformed_mod_locale_is_copied_verbatim_and_native_loader_falls_back",
+        "tests::missing_admitted_package_fails_after_owned_output_recreation_without_rollback_claim",
+        "tests::malformed_required_base_table_rejects_before_owned_output_recreation",
+        "tests::rebuilding_only_owned_output_removes_previous_mod_file_and_restores_base"
+      ],
+      "prefix": "tests::"
+    }
+  ],
+  "python_tests": 6,
+  "runner_tests": 24,
+  "inputs_sha256": {
+    ".github/workflows/language-overlay-wip.yml": "c4fb74356ac91be12f8d9f5adc539c0710d51c8dd4f2e2c2305e0412dbf5026e",
+    "pluto-lib/experiments/language-overlay/Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
+    "pluto-lib/experiments/language-overlay/README.md": "d7660d91c48641e7bc040fcfdbd0f744242befaba84fc149c2e907af5f1885b7",
+    "pluto-lib/experiments/language-overlay/fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
+    "pluto-lib/experiments/language-overlay/inputs.json": "ff5e580806d378628e38db0d378f3d7ec942b493612b19dbe89b91a0c7c8d316",
+    "pluto-lib/experiments/language-overlay/source-validation.json": "7c89cbcf11b8eee02961cc2b8e59182d21a3e3a8c8d46d3f5e795a006847ecc7",
+    "pluto-lib/experiments/language-overlay/test_source.py": "144698720692fdf363eb96ac4e250cfe3e3fa3d87bcd14f3ff8234073c05286c",
+    "pluto-lib/experiments/language-overlay-ci/README.md": "0669d2574df950e5ece2e2acb39f40fe822d46336bad0d0cb2250e0955c2bd1f",
+    "pluto-lib/experiments/language-overlay-ci/prepare.py": "08160c5f2ae28dd2a49bb4358c501795869bfdbd4a90758acb573230e030a7e7",
+    "pluto-lib/experiments/language-overlay-ci/run.py": "9754358810b51990724f87069751e0d97b873a20f359082346a8a8c9beb685eb",
+    "pluto-lib/experiments/language-overlay-ci/test_runner.py": "3a2629dcc825d1e671b053f490cd63ba5bfd879dc69e6ce5e48a884efc2a5515"
+  }
+}
