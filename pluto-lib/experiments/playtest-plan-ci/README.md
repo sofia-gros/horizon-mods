@@ -1,6 +1,6 @@
 # Fixed integrated playtest: complete plan-only diagnostic
 
-SOURCE PREPARATION ONLY. `inputs.json` deliberately has no integration head/tree and `ready_for_reviewed_execution=false`. It rejects execution before setup. The coordinator must supply the final immutable integration cutoff, exact source pins, and independent review plus serial release. No trigger branch has been created by this source preparation.
+SOURCE FROZEN, NOT EXECUTED. The integration input is exact commit `9cc1a01632913f01df1f0bcbb0b74b8bb9e80525`, tree `200cb8fcf0f22b16d82866bb67ea402d525489c9`, with 23 exact package/header/guard source pins. `ready_for_reviewed_execution=true` means the immutable inputs are complete, not that execution is authorized or compatibility is proved. Final independent review and serial release are still required. No trigger has been created by this source preparation.
 
 The production source is a separate clean checkout of the selected `integration/tinkers-latest-playtest-20261106` commit, not the historical main08afa composition. The controller checkout retains the historical guard code as provenance and imports the reviewed shared Runner, RAM predicate and metadata-only wrapper unchanged. Official Horizon is41f822b659789780f58d32c63ddfb6887ea1b8bf and Mixins is5a64af938ec86b00d53d16a408aabc0038fb3e57. Old624c/f4dc runtime evidence is not promoted to41f.
 
