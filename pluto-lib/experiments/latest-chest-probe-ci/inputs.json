@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-latest-chest-probe-ci-20261106",
+  "candidate_source": "68bddc1b7543c4822bf3c15f6312d4d4d35b76d8",
+  "status": "source-only; no native/metadata/plan execution",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "source_sha256": {
+    ".github/workflows/latest-chest-probe-wip.yml": "8004a46f8a210f1abac82641fd289f69848d2c9c9fc96c7b5da7802117100520",
+    "pluto-lib/experiments/latest-chest-pick/README.md": "4f8b7613fc899cdcc318e0055993e75755065f2aeb155d5e1dfbcf3681908d64",
+    "pluto-lib/experiments/latest-chest-pick/candidate.py": "aac2cd00be13572637a4ef618e9f3e08db7bc9af7fe18a4f7049209c4922f811",
+    "pluto-lib/experiments/latest-chest-pick/inputs.json": "659d3a1dc4a7899c8cf37a6c3cd227fcbf77ba0e8318247f9c35a38735291a3e",
+    "pluto-lib/experiments/latest-chest-pick/oracles.json": "068ef488be4fa8e1238435388e657dce144221b298bdf41e259575f5fb7e077e",
+    "pluto-lib/experiments/latest-chest-pick/preflight.json": "c87dae5e9167b543cea52e0435eeab828f54ca1899a32c9a9ab0fdcdffd907d2",
+    "pluto-lib/experiments/latest-chest-pick/source-chest-pick.rs": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc",
+    "pluto-lib/experiments/latest-chest-pick/test_candidate.py": "43c4fb51be234463318973569d7ce664a1913a9476c1a15e031838f7ce40e017",
+    "pluto-lib/experiments/latest-chest-probe-ci/README.md": "f1fe6b6a5ebdb13f70c32acf267fdf6221fe0d68586cad905c155bd8c096bb32",
+    "pluto-lib/experiments/latest-chest-probe-ci/observe_plan.py": "fff4c09453c7b17ad2e9dea4aead67b1e3fd3f823e1c1c25c3a7e47dbaaafdeb",
+    "pluto-lib/experiments/latest-chest-probe-ci/prepare.py": "5ed70ec6bcc706ed07223807273c9ba98921b2984ac565883168e7d2240cc508",
+    "pluto-lib/experiments/latest-chest-probe-ci/run.py": "c5648632294bd699f23b89e43e3c822cff652b2886c30e8bb8e37f4f23796660",
+    "pluto-lib/experiments/latest-chest-probe-ci/test_runner.py": "e6394511e398cd0499d0c767a76faa59deb2b9fe6b860844a57f125ce72e4718",
+    "pluto-lib/experiments/latest-main-common-ci/inputs.json": "da0c13315d70e6307d98f13929ec11197ad5ec5727c2eda1d72d20e740d62089",
+    "pluto-lib/experiments/latest-mining-context/README.md": "0a4072a1548dc443954f9aa81e426bc0fa780b04847d92343ac741533079d2ba",
+    "pluto-lib/experiments/latest-mining-context/candidate.py": "65585f31849d48c6d00efa0abc4e55ec3c93e131c5a31133487dee03c75a73ca",
+    "pluto-lib/experiments/latest-mining-context/inputs.json": "559c5917d65d4d5660c3ed7fbf361c185cbf0daac29c163594d21bbd068cc8c0",
+    "pluto-lib/experiments/latest-mining-context/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+    "pluto-lib/experiments/latest-mining-context/oracles.json": "709da5be03f0af3ef03dc8ecae4ea028d3c13285a98ed242053e095747620baf",
+    "pluto-lib/experiments/latest-mining-context/review/recipe-evidence.json": "86dc8c455b6ff9f1921944e0c4e3371e74d1b496573bdce1320cc09522bbaac6",
+    "pluto-lib/experiments/latest-mining-context/review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
+    "pluto-lib/experiments/latest-mining-context/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+    "pluto-lib/experiments/latest-mining-context/test_candidate.py": "0f62c08206ab4b0a1bc957154b07f78f531b44aae162b12cae9e8d2b28e6a829",
+    "pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py": "a95d3974653887d66c5302b9499006c45aee0ae9f3ef54ba6305888e0bf8c7cd"
+  },
+  "ir_contract_source_sha256": {
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+    "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637",
+    "crates/horizon-mixins-core/src/scopes.rs": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd"
+  },
+  "probe_payload_sha256": {
+    "tconstruct_native/horizon-mixin.toml": "95b04fbb60489364577643696e841703407c896a1680640bfff6cae8235c0bf4",
+    "tconstruct_native/source-chest-pick.rs": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc"
+  },
+  "scope": {
+    "members": 2,
+    "injections": 1,
+    "modules": 0,
+    "plan_timeout_seconds": 600,
+    "apply_allowed": false,
+    "native_type_verified": false,
+    "compatibility": null
+  }
+}
