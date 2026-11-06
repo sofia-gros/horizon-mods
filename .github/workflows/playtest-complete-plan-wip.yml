@@ -2,7 +2,7 @@ name: WIP fixed playtest complete plan diagnostic
 on:
   push:
     branches:
-      - checkpoint/tinkers-playtest-complete-plan-ci-20261106
+      - checkpoint/tinkers-playtest-next-plan-ci-20261106
 permissions:
   contents: read
 concurrency:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   playtest-plan:
-    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/tinkers-playtest-complete-plan-ci-20261106' }}
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/tinkers-playtest-next-plan-ci-20261106' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:

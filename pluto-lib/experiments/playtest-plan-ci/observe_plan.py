@@ -5,7 +5,7 @@ from pathlib import Path
 MAX_BYTES=64*1024
 MAX_SAMPLES=128
 INTERVAL=5.0
-BRANCH='refs/heads/checkpoint/tinkers-playtest-complete-plan-ci-20261106'
+BRANCH='refs/heads/checkpoint/tinkers-playtest-next-plan-ci-20261106'
 
 class ObservationInterrupted(Exception):pass
 def interrupted(_signum,_frame):raise ObservationInterrupted()

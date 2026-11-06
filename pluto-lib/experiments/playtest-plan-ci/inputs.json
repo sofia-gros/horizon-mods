@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "status": "FROZEN SOURCE: bounded artifact follow-up; same9cc1; independent review/release pending",
-  "ready_for_reviewed_execution": true,
+  "status": "SOURCE PREPARATION ONLY: next ordinary integration cutoff and Index phase pending; no execution",
+  "ready_for_reviewed_execution": false,
   "repository": "sofia-gros/horizon-mods",
-  "branch": "checkpoint/tinkers-playtest-complete-plan-ci-20261106",
+  "branch": "checkpoint/tinkers-playtest-next-plan-ci-20261106",
   "collector_source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
   "official": {
     "horizon": {
@@ -18,33 +18,9 @@
     }
   },
   "integration": {
-    "head": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
-    "tree": "200cb8fcf0f22b16d82866bb67ea402d525489c9",
-    "source_sha256": {
-      "pluto-lib/horizon-native.json": "586336288dc9167d36be1b92e80ad9bdcc4060b8ebc55c5c6314a55112d70bb4",
-      "pluto-lib/mixins/pluto_component_bar/horizon-mixin.toml": "23509d5abe6c2001764d4ef61dcc203b3efd89ba664e30b37b28bdf8422ba071",
-      "pluto-lib/mixins/pluto_component_display_3a/horizon-mixin.toml": "90f59d32e61e0fc4203bb343f28d1d12017868c713675a7b33942da927c27ffc",
-      "pluto-lib/mixins/pluto_items_b2/horizon-mixin.toml": "27a56e1c039ee9d63b3767cae3b76ed291a4a8fcf0503225a4cdfe1884d880e5",
-      "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "794b994c9699d079b70d827b16b78d36d8ed52b6ccd70e9483458897c4ce20c7",
-      "pluto-lib/mixins/pluto_tool_rules/horizon-mixin.toml": "db059882c99b105866681462bc5b07a7ba8919f204d183c709f800f4917c051c",
-      "pluto-lib/mixins/pluto_transport_3a/horizon-mixin.toml": "a6d7d7750ae52a799b746d7c6f9b711f405fd82fbad9f3fe0fae438ac35a5361",
-      "pluto-lib/tools/check_advancement_plan.py": "1221a0b6ad0ca2c3c2bf5f6cd7cf4db0d7d7518f84ddaf00b4534218f29b4b57",
-      "pluto-lib/tools/check_client_payload_plan.py": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
-      "pluto-lib/tools/check_cloud_insertion_plan.py": "47b7f1577470c00d1335133933a191046c9cc2a32c710cbb0748e64191853746",
-      "pluto-lib/tools/check_crafting_match_plan.py": "ceb6e770c1de129e9a64269b568eb27290ceaaa02b70ecf3eba8744195cb70fb",
-      "pluto-lib/tools/check_current_book_plan.py": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
-      "pluto-lib/tools/check_damage_equipment_plan.py": "53e54d594c815e6aba623f47f627138e5545c095296a92f1977071d54ec48fac",
-      "pluto-lib/tools/check_protection_plan.py": "f1ab24e632e751e3d9e4a65cb2f5a7c77e7f32f3ff0e7ce38a84958922a5fd91",
-      "pluto-lib/tools/check_recipe_placement_plan.py": "13a27a0077e0231b33c9ab83852c4529ba6d14c19a791888cac22d5eee67b091",
-      "pluto-lib/tools/check_station_ingredient_plan.py": "e8a2b287dc3d0bb130276c6613e720097b0fa5e0af8b79ff943d57b47ab907bb",
-      "pluto-lib/tools/check_terrain_binding_plan.py": "30e38d0cd0c22badd2457812bb78a1fccd67f05b6ca5c09ec35dba9282abbe27",
-      "pluto-lib/tools/check_terrain_cell_plan.py": "49a7ac329087f8d4e4cf0df7927dd16afad4f668678fb1603be188b747a97ed6",
-      "pluto-lib/tools/check_wire_snapshot_plan.py": "4323be93b2f8b773f747e3a982291c226eaf7f085b58a329eda4a59e4c89979b",
-      "pluto-lib/tools/package_native.py": "1b7888725401aebfe09185239ce9864e2d11e71b4b84b1ee42031dd7258c3e6e",
-      "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
-      "tconstruct/mixins/tconstruct/horizon-mixin.toml": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
-      "tconstruct/tools/package_hnmod.py": "acaa42b7208136724ede1b7cc6bd3f3a248361ac35d45ebecf12c8f2ba88d6d7"
-    }
+    "head": null,
+    "tree": null,
+    "source_sha256": {}
   },
   "official_contract": {
     "sources": [
@@ -167,18 +143,22 @@
     "crates/horizon-client/src/game/native_hooks.rs": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833"
   },
   "source_sha256": {
-    ".github/workflows/playtest-complete-plan-wip.yml": "daac75dc4aedd91e86756ba5d15eb863c6049bc9220917bb211adb16e7d45544",
-    "pluto-lib/experiments/playtest-plan-ci/README.md": "a569116fe9be3c03903a2d264ce3119497e54b140471b1e503657ddf556daa62",
+    ".github/workflows/playtest-complete-plan-wip.yml": "2c7a64fb50b0760d3e61c308ff8b2c459ea1052a12f02f7ef62f00c368e094ea",
+    "pluto-lib/experiments/playtest-plan-ci/INDEX_PROBE.md": "350fb6c6acc1a868c3bedb15395e8832c16f88e44836711822ed1ed3f8dbcc6d",
+    "pluto-lib/experiments/playtest-plan-ci/README.md": "9cf9473639264b36e68ccd8ecf898e43c3d0e4469dc048588ef3765aab7a6d95",
+    "pluto-lib/experiments/playtest-plan-ci/evidence.py": "d6af370322224088aa1bdac15e4718bf52fed6958e59fb7d5c29f42b223d3b44",
     "pluto-lib/experiments/playtest-plan-ci/guard_once.py": "203925039073846fe6fddfab1ff8e785db93e36303bc2c261aa5828a7f6dd694",
-    "pluto-lib/experiments/playtest-plan-ci/observe_plan.py": "0cd2019dd5a4623d6f88df4b80aa9d991d4399688848bb601c0008237c2cbe1d",
+    "pluto-lib/experiments/playtest-plan-ci/index_probe.py": "57210aa3b0834aa4106e3abef60f02bfd4b84c616355f3a5cf0a10ad3397699f",
+    "pluto-lib/experiments/playtest-plan-ci/observe_plan.py": "9192cf15f1e017714af4d640d5db800891c76d3ae75095f20ddecca134f53c8f",
+    "pluto-lib/experiments/playtest-plan-ci/packet_index.rs": "b5d7710643e336eca922fb4dcfb70fec83eaf501cb3c5dc31f8948937e4b375d",
     "pluto-lib/experiments/playtest-plan-ci/prepare.py": "d1c1ab035401a9124674a5b6df8f1f4801ed269fa7488e4518308da4546fb6b6",
-    "pluto-lib/experiments/playtest-plan-ci/run.py": "8619c375446e89f6dd1459db22728d990649fedfb721521249dcf754b1b0f77e",
+    "pluto-lib/experiments/playtest-plan-ci/run.py": "f891aee42dd382b21f0987f5c4db391b2cef613c6a76615bd8b7a0a8918c0a73",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/README.md": "2361e0021c3334eb46b415ac6e3890016f6f349c647d1e39cfc4eafd7fee4512",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/contract.json": "218d465acd047afa80461f455ee59b83914db5a92c2ef030dcc9f31df1000e12",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/source-delta-41f.json": "3594faf44960ebe1eb0e23153366ee10d0cf7e918e5ff86d9032b3231c3918fd",
     "pluto-lib/experiments/playtest-plan-ci/terrain-witness/test_collect.py": "7f828eee7ee09c8059b20c9eb24be8b83a350f18742b48e4d3ad7dd375a6dc90",
-    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "bafc740bd98b70cb8030adcb0a682bd2678fdcce6a1790569df475b20a3694be",
-    "pluto-lib/experiments/playtest-plan-ci/evidence.py": "d6af370322224088aa1bdac15e4718bf52fed6958e59fb7d5c29f42b223d3b44"
+    "pluto-lib/experiments/playtest-plan-ci/test_index_probe.py": "34dfcff3c10fbafa2a8512f75b833a6bf307f00558620d12e280bf00afd13f08",
+    "pluto-lib/experiments/playtest-plan-ci/test_runner.py": "3e019b3a51fb410bcf9865583d32695b5004b8c172bc60e9856d35e479a8a19f"
   }
 }

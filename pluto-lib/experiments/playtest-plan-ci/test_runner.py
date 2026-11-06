@@ -125,6 +125,40 @@ class Tests(unittest.TestCase):
   with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
    outcome=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite([Tests('test_archive_duplicate_rejected')]))
   self.assertTrue(outcome.wasSuccessful());r.common.validate_python_checks(output.getvalue(),1)
+class IndexControllerTests(unittest.TestCase):
+ def core_line(self,path='crates/horizon-mixins-core/src/lib.rs'):
+  return 'Running `rustc --crate-name horizon_mixins_core '+path+'`'
+ def test_actual_core_witness(self):
+  self.assertEqual(r.core_compile_witness(self.core_line(),Path('/mixins'))['crate'],'horizon_mixins_core')
+ def test_core_wrong_source(self):
+  with self.assertRaises(ValueError):r.core_compile_witness(self.core_line('wrong.rs'),Path('/mixins'))
+ def test_core_missing_or_duplicate(self):
+  for log in ['',self.core_line()+'\n'+self.core_line()]:
+   with self.assertRaises(ValueError):r.core_compile_witness(log,Path('/mixins'))
+ def test_actual_harness_witness(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);(root/'src').mkdir();(root/'src/main.rs').write_text('fn main(){}')
+   value=r.index_compile_witness('Running `rustc --crate-name pluto_packet_index_observer src/main.rs`',root,Path('/mixins'))
+   self.assertEqual(value['source_sha256'],p.sha(b'fn main(){}'))
+ def test_harness_wrong_source_and_test(self):
+  for tail in ['wrong.rs','src/main.rs --test']:
+   with self.assertRaises(ValueError):r.index_compile_witness('Running `rustc --crate-name pluto_packet_index_observer '+tail+'`',Path('/fixture'),Path('/mixins'))
+ def test_harness_consumer_rejected(self):
+  with self.assertRaises(ValueError):r.index_compile_witness('Running `rustc --crate-name horizon_client src/lib.rs`',Path('/fixture'),Path('/mixins'))
+ def test_index_metadata_same_group(self):
+  tree=ast.parse((HERE/'run.py').read_text());fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='capture_index_metadata')
+  calls=[n for n in ast.walk(fn) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='Popen']
+  self.assertEqual(len(calls),1);self.assertFalse({'start_new_session','process_group','shell'} & {k.arg for k in calls[0].keywords});self.assertIn('stdout',{k.arg for k in calls[0].keywords})
+ def test_index_after_main_results(self):
+  src=(HERE/'run.py').read_text();self.assertLess(src.index('result=attempt_plan('),src.index("index_output=runner.run('index-observation'"));self.assertLess(src.index('guards=attempt_guards('),src.index("index_output=runner.run('index-observation'"));self.assertIn('before_index_calls=len(calls)',src)
+ def test_index_compile_before_restriction(self):
+  src=(HERE/'run.py').read_text();self.assertLess(src.index("index_log=runner.run('index-build'"),src.index('prepare.write_wrappers('));self.assertIn("'--target-dir',str(work/'cli-target')",src)
+ def test_index_metadata_local_denied(self):
+  with patch.dict(os.environ,{},clear=True):
+   with self.assertRaises(ValueError):r.capture_index_metadata('/cargo','/fixture','adapt')
+ def test_index_bounds_and_final_preservation(self):
+  src=(HERE/'run.py').read_text();self.assertIn("output.open('xb')",src);self.assertIn('8*1024**2',src);self.assertIn("[str(index_binary),str(official)],timeout=180",src);self.assertIn('evidence.persist(report',src)
+
 class EvidenceTests(unittest.TestCase):
  def report(self):return {'head':'a'*40,'gates':{},'error':'synthetic failure','probe_completed':False,'source_verified':False,'plan_accepted':None}
  def setup_plan(self,base,body=b'{"synthetic":true}'):

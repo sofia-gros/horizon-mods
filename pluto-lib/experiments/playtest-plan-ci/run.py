@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exact integration package diagnostic; independent old guards, no apply/type success."""
-import importlib.util,json,os,re,sys
+import importlib.util,json,os,re,shlex,subprocess,sys,time
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
@@ -11,6 +11,7 @@ package=load('playtest_prepare',HERE/'prepare.py')
 guard_once=load('playtest_guard_once',HERE/'guard_once.py')
 observer=load('full_mining_observer',HERE/'observe_plan.py')
 evidence=load('public_plan_evidence',HERE/'evidence.py')
+index_probe=load('fixed_packet_index_probe',HERE/'index_probe.py')
 common=baseline.common;prepare=package;safety=baseline.safety;sha=common.sha
 Runner=baseline.Runner
 cli_witness=baseline.cli_witness
@@ -19,12 +20,12 @@ REPOSITORY=baseline.REPOSITORY
 OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
-BRANCH='checkpoint/tinkers-playtest-complete-plan-ci-20261106'
-RUNNER_TESTS=51
+BRANCH='checkpoint/tinkers-playtest-next-plan-ci-20261106'
+RUNNER_TESTS=62
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
-OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
-REQUIRED={'runner','memory_admission','fixed_checkouts','package_headers','cli_compile','tconstruct_bundle','pluto_bundle','combined_payload','collector_sources','plan_diagnostic'}
+OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md','evidence.py','index_probe.py','test_index_probe.py','packet_index.rs','INDEX_PROBE.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
+REQUIRED={'runner','memory_admission','fixed_checkouts','package_headers','cli_compile','tconstruct_bundle','pluto_bundle','combined_payload','collector_sources','plan_diagnostic','index_compile','index_observation','index_source'}
 
 def inputs():return json.loads((HERE/'inputs.json').read_text())
 def validate(config):
@@ -103,6 +104,65 @@ def attempt_plan(runner,cli,official,mods,plan):
     if value.get('status')!='ok' or not plan.is_file():raise ValueError('Planner success lacks actual plan')
     return {'accepted':True,'summary':value,'plan_sha256':sha(package.plan_bytes(plan)),'plan_bytes':len(package.plan_bytes(plan))}
 
+def capture_index_metadata(cargo,fixture,mode):
+    # Child of the unchanged Runner: no new session/group, exact owned paths.
+    if mode not in ('adapt','locked') or os.environ.get('GITHUB_ACTIONS')!='true':raise ValueError('Invalid Index metadata mode')
+    if os.environ.get('GITHUB_REF')!='refs/heads/'+BRANCH:raise ValueError('Wrong Index branch')
+    work=Path(os.environ['RUNNER_TEMP'])/('playtest-complete-plan-'+os.environ['GITHUB_SHA'])
+    fixture=Path(fixture);cargo=Path(cargo)
+    if fixture!=work/'packet-index' or fixture.is_symlink():raise ValueError('Wrong Index fixture path')
+    toolchains=Path(os.environ.get('RUSTUP_HOME',str(Path.home()/'.rustup'))).resolve()/'toolchains'
+    if not cargo.resolve().is_relative_to(toolchains) or cargo.name!='cargo':raise ValueError('Wrong Index Cargo binary')
+    output=work/('index-metadata-'+mode+'.json');proc=None
+    command=[str(cargo),'metadata','--offline','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')]
+    if mode=='locked':command.append('--locked')
+    try:
+        with output.open('xb') as out:
+            proc=subprocess.Popen(command,cwd=fixture,stdout=out)
+            while proc.poll() is None:
+                if output.stat().st_size>8*1024**2:raise ValueError('Index metadata output exceeded limit')
+                time.sleep(.1)
+            code=proc.wait()
+        if code:raise RuntimeError('Index metadata exited '+str(code))
+        raw=package.regular(output,8*1024**2);value=json.loads(raw)
+        if not isinstance(value,dict):raise ValueError('Index metadata is not an object')
+        print(json.dumps({'bytes':len(raw),'sha256':sha(raw)},sort_keys=True))
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            try:proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:proc.kill();proc.wait(timeout=2)
+
+def core_compile_witness(log,mixins):
+    found=[]
+    for line in log.splitlines():
+        if 'Running `' not in line or 'rustc' not in line:continue
+        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
+        if '--crate-name' not in args or args[args.index('--crate-name')+1]!='horizon_mixins_core':continue
+        paths=[Path(a) for a in args if a.endswith('.rs')]
+        resolved=[p if p.is_absolute() else Path(mixins)/p for p in paths]
+        if resolved!=[Path(mixins)/'crates/horizon-mixins-core/src/lib.rs'] or '--test' in args:raise ValueError('Wrong actual official Index core source')
+        found.append({'crate':'horizon_mixins_core','invocation_sha256':sha(line.encode())})
+    if len(found)!=1:raise ValueError('Expected one actual cold official core compilation')
+    return found[0]
+
+def index_compile_witness(log,fixture,mixins):
+    found=[]
+    for line in log.splitlines():
+        if 'Running `' not in line or 'rustc' not in line:continue
+        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
+        if '--crate-name' not in args:continue
+        crate=args[args.index('--crate-name')+1]
+        if crate.startswith(('horizon_client','horizon_items','horizon_world','pluto_')) and crate!='pluto_packet_index_observer':raise ValueError('Unexpected consumer compilation in Index build')
+        if crate=='pluto_packet_index_observer':
+            sources=[Path(a) for a in args if a.endswith('.rs')]
+            resolved=[p if p.is_absolute() else Path(fixture)/p for p in sources]
+            if resolved!=[Path(fixture)/'src/main.rs'] or '--test' in args:raise ValueError('Wrong actual Index source')
+            found.append({'crate':crate,'source_sha256':sha((Path(fixture)/'src/main.rs').read_bytes()),'invocation_sha256':sha(line.encode())})
+    if len(found)!=1:raise ValueError('Expected one actual Index harness compilation')
+    return found[0]
+
+
 def execute(report):
     config=inputs();validate(config)
     event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
@@ -125,6 +185,8 @@ def execute(report):
         work.mkdir();Path(env['CARGO_HOME']).mkdir();Path(env['TMPDIR']).mkdir()
         out=runner.run('runner-checks',[sys.executable,str(HERE/'test_runner.py'),'-v'])
         common.validate_python_checks(out,RUNNER_TESTS);report['gates']['runner']={'passed':True,'tests':RUNNER_TESTS}
+        out=runner.run('index-source-checks',[sys.executable,str(HERE/'test_index_probe.py'),'-v'])
+        common.validate_python_checks(out,20);report['gates']['index_source']={'passed':True,'tests':20}
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal','--component','rustfmt'],timeout=600)
         roots={}
         pins={**OFFICIAL,'integration':{'url':'https://github.com/sofia-gros/horizon-mods.git','revision':config['integration']['head']}}
@@ -157,7 +219,8 @@ def execute(report):
         env['CARGO_NET_OFFLINE']='true'
         output=runner.run('cli-cold-build',['cargo','build','--release','--offline','--locked','-p','horizon-mixins-cli','--bin','horizon-mixins','--target-dir',str(work/'cli-target'),'-vv'],cwd=roots['mixins'],timeout=1800)
         witness=cli_witness(output);cli=work/'cli-target/release/horizon-mixins';cli_hash=sha(cli.read_bytes())
-        report['gates']['cli_compile']={'passed':True,'witness':witness,'binary_sha256':cli_hash,'scope':'official tool only; no Game or consumer build'}
+        core_witness=core_compile_witness(output,roots['mixins'])
+        report['gates']['cli_compile']={'passed':True,'witness':witness,'core_witness':core_witness,'binary_sha256':cli_hash,'scope':'official tool only; no Game or consumer build'}
         main_bundle=work/'tconstruct.hnmod';common_bundle=work/'plutolib.hnmod'
         runner.run('tconstruct-package',[sys.executable,str(integration/'tconstruct/tools/package_hnmod.py'),'--output',str(main_bundle)],cwd=integration)
         tc_evidence=package.verify_tconstruct(integration,main_bundle)
@@ -176,6 +239,24 @@ def execute(report):
         real_rustc=Path(runner.run('rustc-path',['rustup','which','--toolchain','1.95.0','rustc']).strip()).resolve()
         toolchain=Path(env.get('RUSTUP_HOME',str(Path.home()/'.rustup'))).resolve()/'toolchains'
         if not real_cargo.is_relative_to(toolchain) or not real_rustc.is_relative_to(toolchain):raise ValueError('Unexpected toolchain binaries')
+        # Same official core path/lock and private Cargo home/target as the cold CLI.
+        index_root=work/'packet-index'
+        index_probe.prepare(index_root,roots['mixins'],HERE/'packet_index.rs')
+        runner.run('index-metadata-adapt',[sys.executable,str(HERE/'run.py'),'--index-metadata',str(real_cargo),str(index_root),'adapt'],timeout=180)
+        adapted_lock=index_probe.verify_lock((index_root/'Cargo.lock').read_bytes(),(roots['mixins']/'Cargo.lock').read_bytes())
+        first_meta=json.loads(package.regular(work/'index-metadata-adapt.json',8*1024**2))
+        index_probe.verify_metadata(first_meta,index_root,roots['mixins'],(index_root/'Cargo.lock').read_bytes(),(roots['mixins']/'Cargo.lock').read_bytes())
+        lock_hash=sha((index_root/'Cargo.lock').read_bytes())
+        runner.run('index-metadata-locked',[sys.executable,str(HERE/'run.py'),'--index-metadata',str(real_cargo),str(index_root),'locked'],timeout=180)
+        if sha((index_root/'Cargo.lock').read_bytes())!=lock_hash:raise ValueError('Index locked metadata changed lock')
+        second_meta=json.loads(package.regular(work/'index-metadata-locked.json',8*1024**2))
+        index_metadata=index_probe.verify_metadata(second_meta,index_root,roots['mixins'],(index_root/'Cargo.lock').read_bytes(),(roots['mixins']/'Cargo.lock').read_bytes())
+        snapshots[str(index_root)]=common.checkout_seal(index_root)
+        index_log=runner.run('index-build',[str(real_cargo),'build','--release','--offline','--locked','--manifest-path',str(index_root/'Cargo.toml'),'--bin','pluto-packet-index-observer','--target-dir',str(work/'cli-target'),'-vv'],cwd=index_root,timeout=600)
+        index_witness=index_compile_witness(index_log,index_root,roots['mixins'])
+        index_binary=work/'cli-target/release/pluto-packet-index-observer'
+        artifact_seals[str(index_binary)]=sha(package.regular(index_binary,128*1024**2))
+        report['gates']['index_compile']={'passed':True,'witness':index_witness,'actual_core_witness':core_witness,'binary_sha256':artifact_seals[str(index_binary)],'lock':adapted_lock,'metadata':index_metadata,'scope':'Standalone read-only observer tool with actual official core; not Game or applied source'}
         bindir=work/'metadata-only';wrapper_log=work/'tool-argv.jsonl'
         prepare.write_wrappers(bindir,official/'Cargo.toml',real_cargo,real_rustc,wrapper_log)
         real_tools={'cargo':str(real_cargo),'rustc':str(real_rustc)};wrappers_ready=True
@@ -197,6 +278,16 @@ def execute(report):
             guards=attempt_guards(runner,plan,official,integration)
             report['gates']['complete_guards']=guards
             if not guards['passed']:report['compatibility']=False
+        # Main plan and guards are already retained. Observation failure cannot erase them.
+        before_index_calls=len(calls)
+        index_output=runner.run('index-observation',[str(index_binary),str(official)],timeout=180)
+        if len(index_output.encode())>64*1024:raise ValueError('Oversized Index observation')
+        observation=index_probe.validate_result(index_output.encode())
+        all_calls=[json.loads(line) for line in wrapper_log.read_text().splitlines()]
+        if all_calls[:before_index_calls]!=calls:raise ValueError('Prior plan tool witness changed')
+        index_calls=all_calls[before_index_calls:]
+        if not any(c['kind']=='cargo' for c in index_calls) or not all(c.get('allowed') is True and prepare.allowed(c['kind'],c['argv'],official/'Cargo.toml') for c in index_calls):raise ValueError('Index metadata witness missing or forbidden')
+        report['gates']['index_observation']={'passed':True,'result':observation,'tool_calls':index_calls,'scope':'Public official Index identity only; not caller composition or host type proof'}
         report['diagnostic_complete']=True
         if set(report['gates'])!=required_gates(report):raise ValueError('Missing required diagnostic gates')
     except BaseException as exc:common.record_error(report,exc)
@@ -234,7 +325,7 @@ def main():
     report={'head':os.environ.get('GITHUB_SHA'),'gates':{},'phases':[],'error':None,'source_verified':False,
       'diagnostic_complete':False,'plan_accepted':None,'compatibility':None,'probe_completed':False,
       'native_type_verified':False,'apply_executed':False,
-      'scope':'Exact integration checkout with both real packages. One complete plan only, bounded terrain observation and all12 independent unchanged guards. No apply/Game/consumer build or compatibility-success claim.'}
+      'scope':'Exact integration checkout with both real packages. One complete plan only, bounded terrain observation and all12 independent unchanged guards. Adds a standalone official-core Index observer tool with two controls and one new identity observation. No apply/Game/consumer build or compatibility-success claim.'}
     try:execute(report)
     except BaseException as exc:common.record_error(report,exc)
     if report['diagnostic_complete'] and (set(report['gates'])!=required_gates(report) or type(report['plan_accepted']) is not bool or report['compatibility'] is True):
@@ -257,5 +348,6 @@ def main():
 
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--export':export_latest(Path(sys.argv[2]),sys.argv[3],Path(sys.argv[4]))
+    elif len(sys.argv)==5 and sys.argv[1]=='--index-metadata':capture_index_metadata(sys.argv[2],sys.argv[3],sys.argv[4])
     elif len(sys.argv)==1:main()
     else:raise SystemExit('Invalid controller arguments')
