@@ -1,0 +1,1065 @@
+{
+  "schema": 1,
+  "proof_head": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+  "local_equivalent": "6ce44aaadd3ad3b06ebfe8990eeec7a9f15972f7",
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42192378071",
+  "run_id": 42192378071,
+  "job_id": 127807270996,
+  "conclusion": "success",
+  "official": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "horizon_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+  },
+  "production": {
+    "head": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+    "bundle_sha256": "cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76",
+    "changed_by_fixture_fix": false
+  },
+  "previous_failure": {
+    "head": "1f7fddcb56ec0f834601aa65c571d888f2e18c91",
+    "run_id": 42188158850,
+    "receipt": "pluto-lib/experiments/terrain-material-cpu-ci/first-attempt.json",
+    "status": "preserved; never relabeled successful"
+  },
+  "counts": {
+    "python": 70,
+    "native_material_tests": 2,
+    "cpu_exact_tests_in_independent_processes": 2,
+    "no_provider_replays": 4,
+    "registered_replays": 51
+  },
+  "accepted_scope": [
+    "Exact original native mesh_reusing body used as a mechanical full-body oracle.",
+    "Original synthetic real-native Assets/StateModels/Sprites/Fusion/FaceVisibility/MeshTables/Biomes/Chunk/Mesher inputs; no modeled native owners.",
+    "No-provider/no-claim and whole-output fallback comparisons cover all SectionMesh fields and bitwise vertices, sort results, relevant scratch data and subsequent same-scratch replay.",
+    "Positive bounded material assertions cover independent animated atlas layers, mixed face materials, tint, Top reflection, opaque UV bounds and a genuine Fusion full-layout smoke case.",
+    "Actual baked incompatible-material precondition now verified before unchanged fallback comparisons.",
+    "Complete ordinary plan guards plus the extra fixture guard, official apply, real host lib/bin and renderer unit test compilation, direct sealed binary execution, final source/generated/binary verification."
+  ],
+  "unverified": [
+    "GPU output or visual correctness in a running game.",
+    "Production vanilla/resource-pack assets or full RenderAssets::load/gallery path.",
+    "TConstruct provider/bootstrap/content/model activation or all 70 fluid families in a live world.",
+    "General/inverted fluid physics, current, fog, immersion or networking.",
+    "Optimized release performance, frame rate, exhaustive Fusion/animation/resource-pack variants or allocation-capacity equality."
+  ],
+  "performance": {
+    "profile": "test; opt-level=0; debug=0; incremental=0; debug assertions enabled",
+    "samples": 7,
+    "warmup": 8,
+    "iterations_per_sample": 64,
+    "layout": "One 16x16x16 section. Ordinary timing uses 256 separated stone cells; mixed labels use 256 separated custom cells amid air, not a mixture of stone/custom cells.",
+    "interpretation": "The claimed geometry and secondary-material paths measured about 89% and 93% additional unoptimized CPU time in this synthetic workload. This is not a no-regression or optimized-game performance claim. No-provider differences are near this run's sampling noise.",
+    "medians": [
+      {
+        "case": "no-provider",
+        "baseline_median_ns": 4739087,
+        "adapter_median_ns": 4769461,
+        "ratio": 1.0064092514022216,
+        "delta_percent": 0.6409251402221594
+      },
+      {
+        "case": "registered-ordinary",
+        "baseline_median_ns": 4741710,
+        "adapter_median_ns": 4785206,
+        "ratio": 1.0091730620388004,
+        "delta_percent": 0.9173062038800417
+      },
+      {
+        "case": "provider-no-claim",
+        "baseline_median_ns": 4801855,
+        "adapter_median_ns": 4955776,
+        "ratio": 1.0320544872762714,
+        "delta_percent": 3.205448727627136
+      },
+      {
+        "case": "claimed-mixed",
+        "baseline_median_ns": 4797271,
+        "adapter_median_ns": 9045081,
+        "ratio": 1.8854638397538934,
+        "delta_percent": 88.54638397538935
+      },
+      {
+        "case": "secondary-material",
+        "baseline_median_ns": 4781317,
+        "adapter_median_ns": 9210999,
+        "ratio": 1.9264564554075791,
+        "delta_percent": 92.64564554075791
+      }
+    ]
+  },
+  "raw_evidence": "Compact Actions console and strict FINAL_RECEIPT recovered via the ordinary job-log tool. Per-phase raw logs were validated inside the runner and hashed, but not uploaded.",
+  "final_receipt": {
+    "binary_sha256": "58a1e4b90d3dbb5ae2ce641e480b24008ffb613e5d9208634cf8856bb0e52c46",
+    "cpu": {
+      "no-provider": {
+        "exact_tests": 1,
+        "mode": "no-provider",
+        "replays": [
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          }
+        ],
+        "timings": [
+          {
+            "adapter_ns_per_section": [
+              4761065,
+              4773949,
+              4769461,
+              4749392,
+              4752541,
+              4775292,
+              4817176
+            ],
+            "baseline_ns_per_section": [
+              4744257,
+              4730976,
+              4726989,
+              4731360,
+              4739087,
+              4743056,
+              4766887
+            ],
+            "case": "no-provider",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 1.0064092514022216,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          }
+        ]
+      },
+      "registered": {
+        "exact_tests": 1,
+        "mode": "registered",
+        "replays": [
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 204104,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 206408,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 3416072,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 3416072,
+            "native_replay_geometry_equal": false,
+            "valid_claim_resumed": true
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 202568,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 204872,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 202632,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 204936,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203336,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205640,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 202568,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 204872,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 203400,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 205704,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          },
+          {
+            "adapter_capacity_bytes": 202632,
+            "allocation_capacity_equality_required": false,
+            "baseline_capacity_bytes": 204936,
+            "native_replay_geometry_equal": true,
+            "valid_claim_resumed": false
+          }
+        ],
+        "timings": [
+          {
+            "adapter_ns_per_section": [
+              4782581,
+              4785206,
+              4779585,
+              4802879,
+              4786818,
+              4786886,
+              4782705
+            ],
+            "baseline_ns_per_section": [
+              4745150,
+              4728808,
+              4728296,
+              4741710,
+              4727575,
+              4768445,
+              4743321
+            ],
+            "case": "registered-ordinary",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 1.0091730620388004,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          },
+          {
+            "adapter_ns_per_section": [
+              4962964,
+              4974585,
+              4955776,
+              4953693,
+              4924750,
+              4962911,
+              4949489
+            ],
+            "baseline_ns_per_section": [
+              4805685,
+              4806507,
+              4792296,
+              4801855,
+              4787375,
+              5014433,
+              4793013
+            ],
+            "case": "provider-no-claim",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 1.0320544872762714,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          },
+          {
+            "adapter_ns_per_section": [
+              9045081,
+              9004330,
+              9006181,
+              9061926,
+              9054221,
+              9039866,
+              9049983
+            ],
+            "baseline_ns_per_section": [
+              4797271,
+              4791706,
+              4807108,
+              4787823,
+              4803346,
+              4787252,
+              4801441
+            ],
+            "case": "claimed-mixed",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 1.8854638397538934,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          },
+          {
+            "adapter_ns_per_section": [
+              9206017,
+              9227617,
+              9189739,
+              9210999,
+              9159531,
+              9227751,
+              9353172
+            ],
+            "baseline_ns_per_section": [
+              4781317,
+              4777364,
+              4767447,
+              4850185,
+              4776668,
+              4790439,
+              4826033
+            ],
+            "case": "secondary-material",
+            "debug_assertions": true,
+            "iterations_per_sample": 64,
+            "median_ratio": 1.9264564554075791,
+            "profile_label": "test; opt-level=0; debug=0; incremental=0",
+            "samples": 7,
+            "scope": "CPU mesher, original synthetic assets; no GPU or production performance threshold",
+            "warmup": 8
+          }
+        ]
+      }
+    },
+    "error": null,
+    "floor_bytes": 10871635968,
+    "gates": {
+      "apply": "passed",
+      "complete_plan_guards": "passed",
+      "cpu_no_provider": "passed",
+      "cpu_registered": "passed",
+      "fixture_plan_guard": "passed",
+      "fixture_source12": "passed",
+      "host_lib_bin_type": "passed",
+      "inherited_runner20": "passed",
+      "native_material2": "passed",
+      "official_sources": "passed",
+      "plan": "passed",
+      "prepare": "passed",
+      "production_package": "passed",
+      "renderer_compile": "passed",
+      "runner15": "passed",
+      "source23": "passed"
+    },
+    "generated_seal": "4252b4b015e4af9647e4b126f2c6d337106d4f2358f3c3f1c4807d98b86c9e94",
+    "head": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+    "minimum_free_bytes": 87837351936,
+    "passed": true,
+    "phases": [
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "runner15",
+        "raw_bytes": 1720,
+        "raw_sha256": "69bffc042c29a4c5d5b96803c6b0db82e9a6d3ef081bb8695284dc77662e49b3",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "inherited-runner20",
+        "raw_bytes": 2817,
+        "raw_sha256": "cb91b14ffb957bf98290950c2371e599257773d5e81b2aa9ec8fce8095fdd1ac",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 5.616,
+        "error": null,
+        "name": "apt-update",
+        "raw_bytes": 2177,
+        "raw_sha256": "11cb4889f39e20fca8c752a4166ad25f78c99d75b1b0294d1b6e2992174aa2d5",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 4.413,
+        "error": null,
+        "name": "apt-install",
+        "raw_bytes": 2129,
+        "raw_sha256": "2be88464ceefda78e8bdcacc3b0e0d121e54b12a8be269bbc8d444b99522095f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 8.425,
+        "error": null,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.403,
+        "error": null,
+        "name": "source23",
+        "raw_bytes": 3570,
+        "raw_sha256": "11665c3655bd56e03ce53c4474aa41a024a5eeeb1417fec8a42910bbcdf2aa86",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "horizon-init",
+        "raw_bytes": 726,
+        "raw_sha256": "bce834e4ef80bed84606bd635fa564d0b609d3f757a868f5e8fabc2a15e7abb3",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 4.614,
+        "error": null,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.603,
+        "error": null,
+        "name": "horizon-checkout",
+        "raw_bytes": 89,
+        "raw_sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 1.606,
+        "error": null,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-init",
+        "raw_bytes": 725,
+        "raw_sha256": "52a11f5ee47d60f8e030958e2946d097b99b021cb4fc78a01786489ae23eb45b",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.203,
+        "error": null,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.402,
+        "error": null,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "46a3acfd7e87f0064127d1e269a4b136861d8c1b27609da1093b39edb1fedbc7",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-checkout",
+        "raw_bytes": 98,
+        "raw_sha256": "3c31bc675aaba31de4e14000d71e185be8792b43943bc4d4ed9a55ac2df21963",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "mixins-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "fixture-source12",
+        "raw_bytes": 1385,
+        "raw_sha256": "a344e318214724e8d821ebb5b18411729998f6be65d3cd155903b47f20e2a575",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 151.832,
+        "error": null,
+        "name": "mixins-build",
+        "raw_bytes": 4245,
+        "raw_sha256": "9cb8568121496e12c2e4ca111a18bb9f98fe413886348799604493d0aac16797",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "package",
+        "raw_bytes": 109,
+        "raw_sha256": "b2230e7d131bc942c7f081024a28087a2682674a3dfeb69510630cbd24c863a2",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "prepare",
+        "raw_bytes": 83,
+        "raw_sha256": "d8163bb13ee1bf9cc2b951372c4f83d2144853b9d345f1f50017966da930622f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 22.464,
+        "error": null,
+        "name": "official-plan",
+        "raw_bytes": 272,
+        "raw_sha256": "195c8f8e9b92f893d6df022afe9225a914754b080801c7869349450cc4af54ad",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "all12guards",
+        "raw_bytes": 74,
+        "raw_sha256": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "fixture-plan-guard",
+        "raw_bytes": 94,
+        "raw_sha256": "ac2e987057e8ede2e726cb7d1c6a5d9861e126b089d74385b8f7958de7ac932c",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 25.268,
+        "error": null,
+        "name": "official-apply",
+        "raw_bytes": 336,
+        "raw_sha256": "a252187453b03943f2ea691d3f7e809d4be887767993e230381a97b64e99c1da",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 3.811,
+        "error": null,
+        "name": "locked-fetch",
+        "raw_bytes": 15088,
+        "raw_sha256": "76ec7f06b8893d39ff5648ae7da5c41db51f8123fddf1a8e5091d44c5170258f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 219.231,
+        "error": null,
+        "name": "host-type",
+        "raw_bytes": 2555902,
+        "raw_sha256": "d1de99cb56048f24762e7b7e08e4c2f7905ce1d91d9cba64e32883ebc65aec93",
+        "required_compilers": [
+          {
+            "argument_count": 144,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=e4f02c02327e51ed",
+              "extra-filename=-af4e5a6cdc81c6ca",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_render",
+            "full_invocation_sha256": "27accfe0cb13fec8f7fe9d812c17b1ed357f1f096816bf77493644e43f21f780",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 151,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=eac9c6037b573eda",
+              "extra-filename=-9209fe15e285b473",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_lib",
+            "full_invocation_sha256": "d5bfefa9117bb2e246054e5693ef385adf2a2f4c9e19c5baf2d1cf8fdc163825",
+            "source": [
+              "crates/horizon-client-lib/../horizon-client/src/client_lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 47,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=ca235c49d46030ea",
+              "extra-filename=-689ce3f004142645",
+              "strip=debuginfo"
+            ],
+            "crate": "pluto_api",
+            "full_invocation_sha256": "bf74fb810b251d7c4176f8c5c187f8504c02023e9794c51e2e11dd34c8cfa8f3",
+            "source": [
+              "native-crates/pluto_native_creative/pluto_native_creative-creative-api/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 149,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=2092e535185af033",
+              "extra-filename=-a0a91df4a8d7bef5",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client",
+            "full_invocation_sha256": "e35f4b3559c49ba7250c30bac8f5c51a1075de78eef66450159bf971d7c060c4",
+            "source": [
+              "crates/horizon-client/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "argument_count": 152,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=da7af04e4308f17b",
+              "extra-filename=-1998e8d58938f90e",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client",
+            "full_invocation_sha256": "3cb028b21d8e6b1a4eb72472dd9636b2d879f4964cea821e059001a753e051c5",
+            "source": [
+              "crates/horizon-client/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 237.281,
+        "error": null,
+        "name": "renderer-compile",
+        "raw_bytes": 2181580,
+        "raw_sha256": "a824835b17bbee6d967d8bb3e4e2087d502d299e0b5bcced6c79ba54f34b7f58",
+        "required_compilers": [
+          {
+            "argument_count": 144,
+            "codegen": [
+              "embed-bitcode=no",
+              "metadata=c3821cff58fa0a73",
+              "extra-filename=-a7f7f914ba2c3e0f",
+              "strip=debuginfo"
+            ],
+            "crate": "horizon_client_render",
+            "full_invocation_sha256": "5cceff3a225ca233d7c08878dc8357d10bda7b4d188ce5c12f0e83e92bdcec56",
+            "source": [
+              "crates/horizon-client-render/src/lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "native-material2",
+        "raw_bytes": 662,
+        "raw_sha256": "c62b1d73ba1042449e87c9386639d5f680fc2ee70e434ad08732b2ffca5f745f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 5.016,
+        "error": null,
+        "name": "cpu-no-provider",
+        "raw_bytes": 1785,
+        "raw_sha256": "12906400caf78209df6db92e64f99ea97b3c41ca65d569d4572ff3fcf7ea3ccd",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "verify-no-provider",
+        "raw_bytes": 83,
+        "raw_sha256": "d8163bb13ee1bf9cc2b951372c4f83d2144853b9d345f1f50017966da930622f",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 25.276,
+        "error": null,
+        "name": "cpu-registered",
+        "raw_bytes": 18052,
+        "raw_sha256": "a3255f1a6ba3443bb808f2ac66f7c151819371dd23def11a5feccebc72b9b1e4",
+        "required_compilers": [],
+        "terminal": "success"
+      },
+      {
+        "elapsed_seconds": 0.202,
+        "error": null,
+        "name": "verify-registered",
+        "raw_bytes": 83,
+        "raw_sha256": "d8163bb13ee1bf9cc2b951372c4f83d2144853b9d345f1f50017966da930622f",
+        "required_compilers": [],
+        "terminal": "success"
+      }
+    ],
+    "raw_logs": "validated inside runner, not uploaded",
+    "scope": "Actual CPU mesh on original synthetic resources; unoptimized timing only. No GPU, production asset or TConstruct activation proof.",
+    "seals": {
+      "/home/runner/work/_temp/terrain-material-cpu-1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f/horizon": "30dac2d6b12ac8d1975e26d5e71f0003dfdfa7d01d70647aa4b7dfdbd403574d",
+      "/home/runner/work/_temp/terrain-material-cpu-1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f/mixins": "7c4072bdd58ce7477fba8e45fbfc3ae756253807b291632e07539c8e1e93b233",
+      "/home/runner/work/_temp/terrain-material-cpu-1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f/overlay": "edb503ca55d3e6a7114985d679bd1985898cebb143017ce68ef744ec8e93a23c",
+      "/home/runner/work/_temp/terrain-material-cpu-1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f/stage": "79d50eebc88a0ff0b5691a9e57993fbe9c22135f09d0eb692fdf28b9a777ca14"
+    },
+    "verified": true
+  },
+  "console_log": {
+    "sha256": "4a746fa27f7b89ba01cd1248abf20d440c58e334a2b24c843dc6d5f798784e21",
+    "bytes": 78798,
+    "representation": "UTF-8 encoding of decoded job console returned by the ordinary GitHub job-logs tool; not the original archive."
+  },
+  "named_results": [
+    "test mesher::pluto_terrain_cell_host::material_contract_tests::every_nontexture_attribute_mismatch_rejects_the_template ... ok",
+    "test mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes ... ok",
+    "test mesher::pluto_terrain_material_cpu::tests::real_native_mesh_differential_and_timing ... ok",
+    "test mesher::pluto_terrain_material_cpu::tests::real_native_mesh_differential_and_timing ... ok"
+  ]
+}
