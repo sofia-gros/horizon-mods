@@ -43,7 +43,7 @@ supported `ChunkMap` constructor: transient landing context, advancement tag
 snapshots/custom index cache and one-shot saved recipe knowledge. All clear
 with their owning world. They do not
 inject fields into public `StatusFlags` or constructor-free `AdvState` types.
-At the exact `b19b35a1` cutoff, the complete packaged declarations, constructor
+At the exact `f5a83539` cutoff, the complete packaged declarations, constructor
 coverage, source guards, application and native lib/bin type-check passed. See
 [the complete-library proof](shared-foundation-validation-20261105.md).
 This does not establish TConstruct landing behavior, tag producer activation or

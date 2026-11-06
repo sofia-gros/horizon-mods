@@ -1,45 +1,34 @@
 # Grouped PlutoLib foundation validation (latest run 2026-11-06)
 
-Complete ordinary-library cutoff: `b19b35a10b96e398ca8dabcb46b200d88950edaf`. Official Horizon:
-`624c4f6265c02296fbe8a80f029dd0d987fb94c0`. Mixins: `e8cd0aa38cffef49cb2e088ef716baa107148c02`.
+Complete ordinary-library cutoff: `f5a83539525c26fd2142e26e43789a3dd0107033` (v15).
+Official Horizon `624c4f6265c02296fbe8a80f029dd0d987fb94c0`; Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`.
 
-**2 crates, 66 modules, 34 injections, 3 owned states.** This batch adds a bounded,
-version-pinned terrain-cell adapter, explicit product/remainder pair staging,
-native Font layout facts, and a fourth plain-cell consumer helper delegation.
-The full TConstruct consumer bundle and isolated experiments are not installed.
+**2 crates, 66 modules, 34 injections, 3 owned states.** This group adds ordered plain-cell insertion and lazy unknown-preserving predicate folds to the previously proved foundation. Five TConstruct fold bodies delegate separately; the full consumer bundle and excluded experiments are not installed by this proof.
 
 ## Actual complete-package results
 
-- Official plan passed in 21.00 seconds.
-- All twelve required source/composition guard groups passed.
-- Official apply passed in 21.39 seconds.
-- Host lib/bin type-check passed in 1m 04s, offline/locked, debug=0,
-  incremental=0 and two jobs.
-- 210 Python checks passed, invoking both complete actual API suites:
-  43 gameplay/fluid API and 122 inventory/guide API tests. Counts overlap focused tests.
-- Minimum free space: 10,897,825,792 bytes; disk guard did not stop.
-- All 5,046 generated files are sealed. 5,040 byte-identical previous
-  files received recorded timestamps after archive verification, without content edits.
+- Complete official plan and all twelve mandatory composition guards passed.
+- Official apply passed in 24.95 seconds.
+- Host lib/bin type-check passed in 83.45 seconds, offline/locked, debug=0, incremental=0, jobs=1.
+- 215 Python checks invoked 43 real fluid API and 125 inventory API tests; eight insertion guards and four real-package fold tests also passed. Counts overlap supporting tests.
+- Minimum workspace free: 10,888,589,312 bytes. Disk guard did not stop.
+- All 5,047 applied source files, including lockfiles, matched before and after.
+- Archive SHA256: `7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386`.
 
-Archive SHA256: `80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`.
-Exact artifacts are in `grouped-v14`. Previous cutoffs remain in the JSON and
-version history; this run does not retroactively validate old PR heads.
+## Verified cache and source identity
 
-## Verified stage preservation
+The applied source lived in a new temporary-filesystem directory, reached through the previous fixed logical Cargo path. Actual metadata confirmed the same 40 local package IDs, manifest paths and source paths. Only 5,043 full-byte-identical v14 files received old recorded mtimes; four changed/new files remained fresh.
 
-After the proof, the generated working stage was removed only after the existing
-full v13 archive plus a 743,068-byte v14 delta were persisted and synchronized,
-then completely restored into a separate temporary filesystem. All 5,046 hashes
-and 5,792 file/directory attribute entries matched. The retained archives and
-restoration manifest are identified in the JSON receipt. Original source, logs,
-unpublished work and dependency caches were not removed.
+The check was not accepted from Cargo's final status alone. Verbose compiler evidence contains actual invocations for the changed inventory API and client-lib, and both host library and binary targets. All three referenced native generated-input directories matched their pre-run hashes. Complete official inputs, packaged sources, central tracked sources and the restored v14 stage also remained unchanged. The temporary logical alias was removed afterward; no cache fingerprint was manually modified.
 
-This recovery-only operation retained at least 10 GiB + 32 MiB free under explicit
-authorization; the usual 10 GiB + 128 MiB native-build guard was not lowered.
-File types, permission modes, uid/gid, exact mtime and extended attributes were
-verified. Access time is excluded; symlinks and hardlinks are not accepted.
+Source/plan evidence and host proof logs/seals were compressed, synchronized and fully read back on persistent storage. The generated v15 working stage remains on tmpfs and is reproducible; a complete v15 stage archive is not claimed. The prior v14 durable base+delta restoration record remains in the JSON history and its published earlier receipt.
+
+This is a type proof, not linked execution, gameplay, full-consumer staging, CPU rendering equivalence or GPU validation. Details and exact hashes are in [the v15 receipt](shared-foundation-v15-candidate-20261106.json).
 
 ## Supporting evidence
+
+- Ordered insertion: 39 native fixture tests including 3,200 new positive comparisons; two initial test-compilation failures are retained. Existing insertion consumers remain unchanged.
+- Predicate folds: four actual-API fixture tests with 6,558 exact result/visitation comparisons, including short-circuit order and unknown handling. Strict station predicates remain unchanged.
 
 - Terrain: 17 focused standard-library tests, 19 source/package checks and actual
   plan/guards preceded this grouped apply/type proof. Actual CPU equivalence,
@@ -75,7 +64,7 @@ The existing consumer response hook conflicts with the mandatory payload guard;
 its LAN behavior has not been removed to make validation pass. The separate
 navigation repair does not resolve that response boundary.
 
-The exact source tree is preserved at [the v14 checkpoint](https://github.com/sofia-gros/horizon-mods/commit/43411ddb6e5be857db96740150319a7c2e83eed1).
+The exact v15 source tree is preserved at [the v15 checkpoint](https://github.com/sofia-gros/horizon-mods/commit/5e04dc4a1807dee17059fb1e4fafc41f0663c5ab). The previous v14 checkpoint remains separately available.
 [Draft PR #944](https://github.com/sofia-gros/horizon-mods/pull/944) remains the
 reviewed v13 snapshot, not a main-ready full consumer. Original local development
 history is also retained in a [verified recovery bundle](https://github.com/sofia-gros/horizon-mods/tree/checkpoint/plutolib-original-history-20261106/pluto-lib/history/20261106),

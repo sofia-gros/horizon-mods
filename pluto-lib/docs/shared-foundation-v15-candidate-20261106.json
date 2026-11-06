@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "source_and_plan_verified_host_type_pending",
+  "status": "complete_ordinary_library_type_verified",
   "source_cutoff": "f5a83539525c26fd2142e26e43789a3dd0107033",
   "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
@@ -53,9 +53,218 @@
     "Complete ordinary Pluto package official plan and all twelve guards, not full consumer staging."
   ],
   "not_proved": [
-    "This cutoff has not been applied or type-checked in the complete official host.",
     "The predicate tests cover fold result and visitation, not complete parsers or live gameplay.",
     "Ordered insertion focused native fixture proof remains separately pinned to source 831b92ff; no consumer adoption or live authority claim.",
     "Renderer CPU/GPU, automatic crafting consumption, native contact effects and guide UI/LAN ownership remain open."
-  ]
+  ],
+  "host_apply_and_type": {
+    "source_checkpoint": "55621fd4efee459f2a49e5724d76bf3c4906c60f",
+    "runtime_source": "f5a83539525c26fd2142e26e43789a3dd0107033",
+    "archive_sha256": "7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386",
+    "scope": "Complete ordinary library official apply and cached host lib/bin check; not full consumer or renderer CPU execution.",
+    "phases": [
+      {
+        "phase": "toolchain",
+        "returncode": 0,
+        "seconds": 0.10137672699056566,
+        "command": [
+          "rustc",
+          "-Vv"
+        ]
+      },
+      {
+        "phase": "preflight",
+        "returncode": 0,
+        "seconds": 0.30268939600500744,
+        "command": [
+          "python",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_native_plan.py",
+          "/tmp/pluto-v15-plan-20261106/plan.json",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon"
+        ]
+      },
+      {
+        "phase": "apply",
+        "returncode": 0,
+        "seconds": 24.9530987659964,
+        "command": [
+          "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+          "apply",
+          "--workspace",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+          "--mods",
+          "/tmp/pluto-v15-plan-20261106/packaged/mixins",
+          "--out",
+          "/tmp/pluto-v15-host-proof-20261106/staged"
+        ]
+      },
+      {
+        "phase": "metadata",
+        "returncode": 0,
+        "seconds": 0.10065469199616928,
+        "command": [
+          "cargo",
+          "metadata",
+          "--manifest-path",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged/Cargo.toml",
+          "--no-deps",
+          "--format-version",
+          "1",
+          "--offline",
+          "--locked"
+        ]
+      },
+      {
+        "phase": "host-check",
+        "returncode": 0,
+        "seconds": 83.44788947599591,
+        "command": [
+          "cargo",
+          "check",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged/Cargo.toml",
+          "-p",
+          "horizon-client",
+          "--lib",
+          "--bin",
+          "horizon-client",
+          "--no-default-features",
+          "-vv"
+        ]
+      }
+    ],
+    "full_type_proof": true,
+    "minimum_free_bytes": 10888589312,
+    "minimum_tmp_free_bytes": 3429105664,
+    "disk_guard_stopped": false,
+    "build_jobs": 1,
+    "debug": 0,
+    "incremental": false,
+    "native_generated_out_dirs_verified": 3,
+    "file_count": 5047,
+    "old_stage_unchanged": true,
+    "official_inputs_unchanged": true,
+    "mod_inputs_unchanged": true,
+    "temporary_alias_removed": true
+  },
+  "cache_validation": {
+    "metadata_identity": {
+      "local_packages": 40,
+      "exact_ids_manifests_targets_equal_v14": true,
+      "logical_workspace_root": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+      "command_paths_not_canonicalized": true
+    },
+    "required_rustc_targets": [
+      [
+        "pluto_inventory_api",
+        "lib"
+      ],
+      [
+        "horizon_client_lib",
+        "lib"
+      ],
+      [
+        "horizon_client",
+        "lib"
+      ],
+      [
+        "horizon_client",
+        "bin"
+      ]
+    ],
+    "observed_rustc_targets": [
+      [
+        "horizon_client",
+        "bin"
+      ],
+      [
+        "horizon_client",
+        "lib"
+      ],
+      [
+        "horizon_client_core",
+        "lib"
+      ],
+      [
+        "horizon_client_input",
+        "lib"
+      ],
+      [
+        "horizon_client_lib",
+        "lib"
+      ],
+      [
+        "horizon_client_render",
+        "lib"
+      ],
+      [
+        "horizon_command",
+        "lib"
+      ],
+      [
+        "horizon_items",
+        "lib"
+      ],
+      [
+        "horizon_protocol",
+        "lib"
+      ],
+      [
+        "horizon_server_files",
+        "lib"
+      ],
+      [
+        "horizon_world",
+        "lib"
+      ],
+      [
+        "pluto_inventory_api",
+        "lib"
+      ]
+    ],
+    "all_required_executed": true,
+    "native_generated_out_dirs_unchanged": 3,
+    "restored_identical_file_mtimes": 5043,
+    "changed_sources_left_fresh": [
+      ".horizon-mixins-stage.json",
+      "crates/horizon-client/src/client_lib.rs",
+      "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/lib.rs",
+      "native-crates/pluto_native_creative/pluto_native_creative-inventory-api/src/predicate_fold.rs"
+    ]
+  },
+  "host_artifacts": {
+    ".staged.horizon-mixins-stage.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "actual-rustc-rechecks.json": "479a9ce2e9276f819179ff23359b8abb3787d2a4fbb28b50466ab5a3a7d80a7c",
+    "apply.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "apply.out": "3f0ba6ce19d7bc3daeaca908a3c21720a7ae470e4b3ae91f684d0f42043c58ff",
+    "host-check.err": "3a6b3c724c067d06cc78772670ea443f2da8f1937d641113e0eeb527e20d65a1",
+    "host-check.out": "05095e73a6df60207bac7441729e181b5d7464f65c42c6198a74f34502caebc1",
+    "metadata-identity.json": "4594e2696d147b0963a3887af4f248cbd8d34c7ab6d353b5bdf04a3fe76be2ae",
+    "metadata.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metadata.out": "34d7b2723634ef067a0d04a05308954e2d42dc41303ed0fa00669289131c3bce",
+    "mod-source-sha256.json": "08bc6aed8db7f9f7afe30e4e2725814ec28a6af9274ee5a22e976f8a448eea4e",
+    "mtime-reuse.json": "1a0107b1589eae2f3e9156c226cc0ae29bac182ded594333082fdf5c512442ef",
+    "native-generated-inputs-before.json": "6daa2e012fcb9a7dee7e207bbfa31b7764986b100a5a455bec84f631a518c9c9",
+    "native-generated-inputs-used.json": "ef6a6783b9581ca1e98b6f1efdea34f53d756551f8b48bbbd94316712bb1de88",
+    "official-source-sha256.json": "ba8ff2c7cb9d0093a24d20680324e695584e1a9a2ee33def428d659f17e2389e",
+    "package-source-sha256.json": "770a3f424efcd08a1931655cd79bf903bd7aa2a22384e926389ff35ac6bc05b5",
+    "preflight.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight.out": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+    "previous-stage-identity.json": "10248fc862dbd26a23a56be88856eb33ff9e70e4e38aa652cdfece6720cded95",
+    "result.json": "ccca310f860d9300d215dc0436e52f5be025dc5afa3304d363cacded03eab47b",
+    "stage-source-mtime-ns.json": "8f155a6d313aa530240d1ff028d413b959537c1535254567a29d3302cb49d9a6",
+    "stage-source-sha256.json": "e16a3781aae1dea6d1a627f4bd28641469e16e822dae9704d0507a75a8d02428",
+    "toolchain.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "toolchain.out": "4fdff2578428e9c5c08ddd7a0d3079c1a106b1cdaa46e73e46f7cd32b0fb9cad"
+  },
+  "preserved_evidence": {
+    "archive_sha256": "623f2b9686bb2e169a82994797e15799702d1ad4d178248cab8faade57551731",
+    "archive_bytes": 921583,
+    "readback_verified": true,
+    "source_plan_evidence_sha256": "df3f2cba3b2a972d24a1191b033b0680827f4dbfedd308685242151949fea502",
+    "generated_stage_preserved_in_tmp": "/tmp/pluto-v15-host-proof-20261106/staged",
+    "not_a_complete_stage_archive": true
+  }
 }
