@@ -49,9 +49,12 @@ mod tests {
         let original = book(); let shown = component_stack();
         let pointer = shown.extra.as_deref().unwrap() as *const _ as usize;
         let (after, result) = stage(original, |p| {
-            let entry = address(p, 0);
+            let entry = p.entry(0).unwrap();
             assert_eq!(entry.ingredient_count, 2); // not four shaped grid cells
-            p.replace(vec![Replacement { entry, alternatives: vec![(1, vec![shown]), (0, vec![])] }])
+            let proposal = Replacement::for_entry(entry)
+                .with_ingredient(1, vec![shown])
+                .with_ingredient(0, Vec::new());
+            p.replace(vec![proposal])
         });
         assert!(result.is_ok());
         let actual = &after.entries[0].stacks[0].1[0];

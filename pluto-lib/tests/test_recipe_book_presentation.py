@@ -48,7 +48,7 @@ class PresentationSource(unittest.TestCase):
 
     def test_complete_pure_source_tests_remain_enabled(self):
         source = (NATIVE / 'inventory-api/src/recipe_book/presentation.rs').read_text()
-        self.assertEqual(source.count('#[test]'), 9)
+        self.assertEqual(source.count('#[test]'), 12)
         self.assertNotIn('#[ignore]', source)
         self.assertIn('MAX_OVERRIDES', source)
         self.assertIn('MAX_ALTERNATIVES', source)

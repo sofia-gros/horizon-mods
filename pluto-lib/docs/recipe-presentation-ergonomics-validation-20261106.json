@@ -1,0 +1,32 @@
+{
+  "parent_proof_commit": "2f692e4530acbfeef4f5b21be7708f8766e514ed",
+  "parent_tree": "11d0b8493abc99367e4a1f9a8ffb7b62c5a1abc8",
+  "prior_tested_runtime": "9da10132a6ced356d8aa83a65f0716cc1843ee3d",
+  "status": "source_only_ergonomics_rust_unverified",
+  "source_files_sha256": {
+    "pluto-lib/docs/recipe-api-usage.md": "219d8384d0cabb1c2d51c6ab90c6c42dfdee57a20e9a1563f5fc1ba7e076ad82",
+    "pluto-lib/tests/test_recipe_presentation_ergonomics.py": "a596ef2807e6918cefa98cb3a44f2b57d3a29c9ec8f86f39c3d08dc2175a3cff",
+    "pluto-lib/tests/test_recipe_book_presentation.py": "536a2ea161b002f2fa27bbf1100e0f926b0cc61c0cc4239d418676af6a20a119",
+    "pluto-lib/tests/native/recipe_presentation.rs": "d97854592f8023e0fe8bfd16d652a5f96db7e15fde8414e0c231f416f5e16edd",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/presentation.rs": "8db65d93eff10b3dc410b32976f64fe55bd76ec428f0c10f79e1d68160733e60",
+    "pluto-lib/examples/recipes/matching_registration.rs": "32a367ab7efed4c4225cfb13a4be72d12a5da32a708c47e799db1c6048035af1",
+    "pluto-lib/examples/recipes/presentation.rs": "e96922bfb9255d8adb2da6de03f9986c498869009f4d15cea875d031a90a55de"
+  },
+  "pure_python_source_checks_passed": 4,
+  "new_api_tests_prepared_not_run": 3,
+  "total_api_tests_expected": 137,
+  "examples_compiled": false,
+  "native_fixture_tests_run": 0,
+  "native_plan_apply_typecheck": false,
+  "runtime_core_error_trait_validate_bytes_unchanged": true,
+  "prior_struct_literal_api_preserved": true,
+  "new_registry_hook_state_dependency": false,
+  "notes": [
+    "Public fluent methods only construct the existing Replacement record.",
+    "Source/API134 evidence does not cover these new methods or examples.",
+    "New native fixture adopts only one fluent caller; its four tests remain unexecuted.",
+    "Two layers share one implementation and existing crate/dependency direction."
+  ],
+  "source_peer_review": "No serious signature, compatibility or authority issue found. Owned Address/Vec construction preserves existing validation; generic capability borrow ends before replace; noncapturing closures fit existing HRTB callbacks. Source review only, no Rust execution.",
+  "prepared_old_new_equivalence": "Direct legacy struct literals and fluent construction have identical address/alternative records and validation outcomes for clear and duplicate cases."
+}
