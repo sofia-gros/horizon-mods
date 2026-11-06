@@ -1,0 +1,163 @@
+{
+  "official": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "tree_truncated": false,
+  "tree_entries": 5956,
+  "owner_tree_entries": [
+    {
+      "path": "crates/horizon-items/src/items.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39219405ec00bfb54e24d37fe276cca26f78256d",
+      "size": 127617,
+      "url": "https://api.github.com/repos/horizon-rust/horizon/git/blobs/39219405ec00bfb54e24d37fe276cca26f78256d"
+    }
+  ],
+  "searches": {
+    "\"mob_visibility\"+repo:horizon-rust/horizon+language:Rust": {
+      "total_count": 5,
+      "incomplete_results": false,
+      "items": [
+        {
+          "path": "crates/horizon-items/src/items.rs",
+          "sha": "39219405ec00bfb54e24d37fe276cca26f78256d",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/items.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/mobs.rs",
+          "sha": "6c7ff695d7963b02cbfe938281dd4c2e76509dd5",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/mobs.rs"
+        },
+        {
+          "path": "crates/horizon-assets/src/item_model.rs",
+          "sha": "abd4e7ce7451d1421d2e72951455e50ebcbc0214",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-assets/src/item_model.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/mobs/goals.rs",
+          "sha": "187b8270113f2e85d5394b18f02e8686ecd5ef2c",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/mobs/goals.rs"
+        },
+        {
+          "path": "crates/horizon-protocol/src/item/hash/raw.rs",
+          "sha": "252f61fadd02d10945cd40f31470c3c89d4b2287",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-protocol/src/item/hash/raw.rs"
+        }
+      ]
+    },
+    "\"Items::for_tests\"+repo:horizon-rust/horizon+language:Rust": {
+      "total_count": 9,
+      "incomplete_results": false,
+      "items": [
+        {
+          "path": "crates/horizon-items/src/items.rs",
+          "sha": "39219405ec00bfb54e24d37fe276cca26f78256d",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/items.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/crafting.rs",
+          "sha": "c8b1262357a7a5fe3065eb04362e7f6b2d266801",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/crafting.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/menu.rs",
+          "sha": "25fd4d1b27df0d7dd0496025be5e0894f29d60f2",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/menu.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/mobs.rs",
+          "sha": "6c7ff695d7963b02cbfe938281dd4c2e76509dd5",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/mobs.rs"
+        },
+        {
+          "path": "crates/horizon-items/src/enchant.rs",
+          "sha": "1d58a74a7afbaa14728dbb0c2911905adedc6838",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/enchant.rs"
+        },
+        {
+          "path": "crates/horizon-client-render/src/brewing.rs",
+          "sha": "efe8b7ada0fcee5633b85af76dd053beea14d19a",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/brewing.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/lan/menu.rs",
+          "sha": "398f56059c3963a762157798ae0236928b20c7cf",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/lan/menu.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/merchant.rs",
+          "sha": "f64cce912935bfd02ddcdbfc30c87bbe53cab06b",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/merchant.rs"
+        },
+        {
+          "path": "crates/horizon-client/src/item_tooltip.rs",
+          "sha": "b1336f97acb5d792fb56909137abad26a1e98633",
+          "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/item_tooltip.rs"
+        }
+      ]
+    }
+  },
+  "status": "read_only_design_unapplied_no_plan_no_native",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "constructor_records": [
+    {
+      "target": "items::Items::load_with",
+      "selector": "Self",
+      "visible_literal_count": 1,
+      "function_sha256": "7db82caf7dd093127ca0182733f66ade30ab203da8f2afc49983f033288ff0af",
+      "start_line": 745,
+      "end_line": 994,
+      "cfg": null
+    },
+    {
+      "target": "items::Items::tags_only",
+      "selector": "Self",
+      "visible_literal_count": 1,
+      "function_sha256": "3b9ba3a1e99dea16998044811b4b17dc2a9b5a1a61a5a59da9616fede04b959c",
+      "start_line": 1029,
+      "end_line": 1044,
+      "cfg": null
+    },
+    {
+      "target": "items::Items::for_tests",
+      "selector": "Self",
+      "visible_literal_count": 1,
+      "function_sha256": "032ce074950aa9f5a8685a2ea39e636fd68883caf4263fa9081ea50b2f0797ae",
+      "start_line": 1046,
+      "end_line": 1064,
+      "cfg": "any(test, feature = \"test-support\")"
+    }
+  ],
+  "population_candidate": {
+    "target": "items::Items::load_with",
+    "kind": "AFTER_CALL",
+    "selector": "Ok",
+    "require": 1,
+    "ordinal": 0,
+    "result_binding": "$result_mut",
+    "result_type": "&mut crate::Result<crate::items::Items>",
+    "snapshot_capture": "$local_ref:raw:0",
+    "snapshot_type": "&std::sync::Arc<horizon_world::item_defaults::Defaults>",
+    "not_executed": true
+  },
+  "source_sha256": {
+    "crates/horizon-items/src/items.rs": "9259af2f27a631ab21f1c62a67cec231e5410b32e1bdd4e4eb11656fe82db393",
+    "crates/horizon-items/src/lib.rs": "5d5942494fe727b8de55829ea701f3375422f5ebec8e6a3e33ce84b7a77b066f",
+    "crates/horizon-items/Cargo.toml": "8c40f69e143f53a3075d873ff4a5dd1db4f97a5d33a0d5638f8f2f4a2e54f6b4",
+    "crates/horizon-world/src/item_defaults.rs": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",
+    "crates/horizon-client/src/item_tooltip.rs": "3bc2a14e616b3ff75cf921115c5d987b89d20d5865ac110cdce565a71daeaebd",
+    "crates/horizon-client/src/game/stations.rs": "dd3743c7068bc314977b669a755cf640541621380bc55473a24fc6df1fde79a3",
+    "crates/horizon-client/src/game/titles.rs": "f30ba6b37ae2dd8a50e520a905dd12142fcc44edea9f6dbc48c5914560a48639"
+  },
+  "mixins_doc_sha256": {
+    "effects-and-state.md": "ebfb99951ebce0032c6d7bc33a7a3d990342e8610de5e4d93814ee9fd3be6a70",
+    "advanced-injections.md": "a1faf74229c5e5b271a4b4e95cdfc1ae8a73363bf6ebd12cfd326afa313ebad2",
+    "mixin-api.md": "ce6fe4b498139efee3d56a0b38884404c6b304bb1052ab0ed96ead638608e78d"
+  },
+  "limitations": [
+    "No complete repository-wide lexical or parser scan; constructor census is closed by native field privacy and complete owner-module inspection, with indexed searches as supporting evidence.",
+    "Literal counts are source-inspected line anchors, not a Rust parser or planner result.",
+    "No planner/cfg/constructor/capture acceptance or native type check.",
+    "No default owner or public API installed.",
+    "No latest codec32 or Game display proof."
+  ]
+}
