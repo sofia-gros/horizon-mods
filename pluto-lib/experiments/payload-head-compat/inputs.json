@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "base_commit": "6ec43252746dfe905a40b6c9f8cb857d087affb8",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "original_sha256": {
+    "tconstruct/mixins/tconstruct/source-broad-wire-receive.rs": "9498d536c8c7cff1ede65d49f88a97eafc0009e9900bfc69c39938af35fcc4ce",
+    "tconstruct/mixins/tconstruct/source-haste-wire-receive.rs": "1c9739e95c0697563b4e9a60476dce7cd027df22be06a1aeffc91a55debf4eee",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "30013f1173b808f873b5198e33b3722c4dcacc50f62027aa307c91c01667c2e9"
+  },
+  "guide_postimage_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c0f312d906a2d42249d167663ffce771480adbefa1cae0f1745cbb78aad9e040",
+    "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
+    "pluto-lib/mixins/pluto_native_creative/client-payload-updates.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "c951069b2ebd8fee9b0bfe650d202be978219acfeeae773d65fbf9d68f24709b",
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed",
+    "tconstruct/mixins/tconstruct/source-materials-book-response-update.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "3cec1b81f40c4f657348ad56e8681a1d68d88149400e59a648460caff0f6a36f"
+  },
+  "unchanged_codec_sha256": {
+    "tconstruct/mixins/tconstruct/source-broad-wire.rs": "9548d5e3f1dfbeb657c65d1d350b948a55a60b871b802a8d7ccd7e705577a3c6",
+    "tconstruct/mixins/tconstruct/source-haste-wire.rs": "28d75e2c8796c06c26b2acc3c67c89bc532c7c93e202507a69ef1e49577c7a84"
+  },
+  "ordinary_activated": false,
+  "native_executed": false,
+  "poll_remote_fingerprint": null,
+  "cloud_move": {
+    "before_commit": "21ae9defaa1ae286105fb12449d6827b8b1a7d75",
+    "before_manifest_sha256": "4892ade2700ea3a3605478e5ba3c2a295e5fa775f018e5cb5a6a844a3c1abb6d",
+    "old": "id = \"source-fluid-cloud\"\nfile = \"crates/horizon-client/src/game/potions.rs\"",
+    "new": "id = \"source-fluid-cloud\"\nfile = \"crates/horizon-client/src/game.rs\"",
+    "full_inverse_verified": true
+  },
+  "actual_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "handle_target": "horizon_client::game::remote::Game<'_>::handle_packet",
+  "handle_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+  "cancelled_ids": [
+    "broad-wire-receive",
+    "haste-wire-receive",
+    "materials-book-response"
+  ],
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/remote.rs": "346d48f3372d4cfe135982d5f40a7306d79b7f9cbc80a3a8c306648adfdf06c2"
+  },
+  "native_channels": {
+    "crates/horizon-client/src/lan/recipes.rs": {
+      "sha256": "148d640bf09cca2ac0a073e3183e3cd4282e243988441d4fb60a139db4f40282",
+      "channel": "horizon:recipe_content"
+    },
+    "crates/horizon-protocol/src/menu_extra.rs": {
+      "sha256": "1a6ac64e73e2022098023be437edfbad520c914fa01d26865236ac3ec4fbf9fb",
+      "channel": "horizon:menu_extra"
+    },
+    "crates/horizon-protocol/src/attachment_sync.rs": {
+      "sha256": "31d249522fd53d4eb45ba35c6049e8f945146d7e157e444df9801c79a26fd333",
+      "channel": "horizon:attachment_sync"
+    },
+    "crates/horizon-protocol/src/mod_net.rs": {
+      "sha256": "66e85c0a3ab916c7fc6a0ea7e4b9aa9925d8338ede924a99fa9eb798d9654173",
+      "channel": "horizon:mod_net"
+    }
+  },
+  "actual_handle_hooks": [
+    {
+      "id": "broad-wire-receive",
+      "kind": "HEAD",
+      "cancellable": true,
+      "helper_sha256": "94ed373ff69c183523f23def30b89eed0520030b52b0c9199862fa1ee0804ae3"
+    },
+    {
+      "id": "crafting-station-client-data",
+      "kind": "HEAD",
+      "cancellable": false,
+      "helper_sha256": "15051ce101c053a2d77bba5a7fff2c09ec86e215b07d74cb565e3b136202111f"
+    },
+    {
+      "id": "haste-wire-receive",
+      "kind": "HEAD",
+      "cancellable": true,
+      "helper_sha256": "5639dbe02b3761d6474333a6a7da6899fcb28062dbdda4698625531240f47c67"
+    },
+    {
+      "id": "materials-book-response",
+      "kind": "HEAD",
+      "cancellable": true,
+      "helper_sha256": "df9a93ddf67990ccbd73fe4a901c6f8202516ea758b23b400f52ceda4045792d"
+    },
+    {
+      "id": "menu-window-state-receive",
+      "kind": "HEAD",
+      "cancellable": false,
+      "helper_sha256": "2a3596c8ce24982d789f2c892d92c894eb22673e798053ce2dcab01cc1546e24"
+    },
+    {
+      "id": "smeltery-track-menu-state",
+      "kind": "HEAD",
+      "cancellable": false,
+      "helper_sha256": "08ea5fbbf8c7e269a87af3c6a4fabb6c0992db9b575c604209eae5f1562cdfb5"
+    }
+  ],
+  "guide_provenance": {
+    "source_branch": "checkpoint/guide-legacy-response-bridge-20261106",
+    "source_commit": "79b36f7e8db11b580f2c70136d82567d4b128ce9",
+    "source_prefix": "pluto-lib/experiments/guide-legacy-response-bridge",
+    "value_test_head": "fe52ae4cc3b3a0b68b337019de643dc7271b4402",
+    "value_test_run": 42241486458,
+    "actual_tests": 10,
+    "scope": "actual core Text/value only; no Game or LAN"
+  }
+}

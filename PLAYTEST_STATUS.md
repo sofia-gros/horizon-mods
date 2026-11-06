@@ -78,3 +78,19 @@ The11-file `crafting-pure-pair` group is retained under experiments only. It pre
 The reviewed `c97771cc` ten-path repair now replaces the obsolete direct cloud constructors with the existing Pluto publication boundary plus a private native item-action entry. Guest Player/connection and local/fake Player/no-connection remain distinct. The original explicit EntityRef owner resolver and insert are byte-preserved. Effect order, duplicate entries, explicit counts above256 and native color arithmetic are retained; no new raw-color override is exposed. The only manifest change moves the cloud helper module into Game. Injection declarations, approved chest deferral and unrelated source remain unchanged.
 
 Central12 source checks and independent10-blob/inverse review passed. This is a development source integration, **not** actual cloud execution success. The strict caller/state composition guard adaptation, fresh complete plan, actual Game6+3 tests, host types, publication/charge behavior and build remain unverified. The recovered accepted9cc1 plan no longer describes current runtime. The fixed17f guard-only replay is still useful baseline evidence and should finish independently; it cannot approve this new delta. Main remains unchanged.
+
+
+## Three packet callers migrated in development source
+
+The9 reviewed Guide/Broad/Haste output files from `46fee5dd` are now integrated, with their9-file source/inverse evidence. Broad and Haste retain exact packet classification, UpdateTags invalidation, native decoder calls and state assignments; only cancellation is removed. Guide keeps its existing codec/sequence/view behavior through a private registered update behind the sole Pluto RETURN. Cloud module placement and approved chest-color deferral remain intact.11 pure source checks and48 symbolic branch cases passed, independently reviewed. The separate actual Text reply10 success remains limited to values.
+
+The intentional difference is that native/read-only observers and later HEADs now run on the3 TConstruct custom channels. Those channels reach the pinned native no-op catchall. Guide update runs after `native_client_packet`, before the remaining `handle_packet` body, not after the entire function. Subscriber side effects/panics are not rolled back.
+
+Payload guard metadata and the unobserved poll fingerprint are not guessed or relaxed. Fresh complete plan, actual Game types/registration and LAN execution are still required. No game/build success or additional feature omission is claimed; main remains unchanged.
+
+
+## Actual baseline guard replay: seven passed
+
+[Run42246975270](https://github.com/sofia-gros/horizon-mods/actions/runs/42246975270) completed at2026-11-06T15:52:25Z on controller `888a1c34`, inspecting exact `17f44dc3`. It verified the complete5,214 official input map and actual repackaged headers/members before running all12 original guard CLIs. Seven passed: protection, advancement, damage/equipment, current-book, terrain binding, station ingredient and terrain cell. Five still refused: client payload, recipe placement, Wire snapshot, crafting match and cloud insertion. All seals held, no diagnostic error; compatibility remains false.
+
+The damage/cell results include actual Linux1.95 formatter regeneration. They do not verify the separate Windows1.99.1 formatter. This replay did not regenerate a plan, apply code or build native consumers. Current cloud/payload changes are newer and still require a fresh complete plan and allguards.

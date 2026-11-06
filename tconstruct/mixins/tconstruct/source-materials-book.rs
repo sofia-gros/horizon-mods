@@ -736,6 +736,7 @@ pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool
     let book = &*stack.item;
     if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:tinkers_gadgetry" | "tconstruct:materials_and_you") { return false; }
     if remote || game.lan_acting.is_none() {
+        if !super::tconstruct_materials_book_response::ensure_registered(game) { return false; }
         let path = game.options.resources.clone();
         let Some(pages) = source_pages(game, &path, book) else { return false; };
         let sequence = game.world.chunks.__horizon_mixins_tconstruct_materials_book_request_sequence().wrapping_add(1);

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Development integration with native item-cloud repair source; current runtime differs from recovered accepted9cc1 plan. Fresh complete plan/guards/type/build are required.",
+  "stage": "Development source integration with native item-cloud and3 client-payload caller migrations; recovered9cc1 plan is reference only; fresh whole plan/guards/type/build required",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -28,7 +28,7 @@
   "pending": [
     {
       "subject": "Guide LAN response",
-      "reason": "Native Text old/new response10 tests passed, but Game/registry/observer/UI/LAN unverified. Actual full plan has3 cancellable packet HEAD callers; preserve all behavior while migrating."
+      "reason": "Source migration of all3 cancellable callers is integrated. Native Text response10 values already passed separately. Strict payloadguard/private module metadata, actualpollfingerprint, freshplan, Game typing/registration/observer/UI/LAN remain unverified. Observerresumption is explicit."
     },
     {
       "subject": "Crafting composition",
@@ -36,7 +36,7 @@
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Original12 guard CLI reached:2 pass/10 refuse. Recovered full-plan function replays pass advancement order/source, current-book check, terrain IR+sourcepins; damage order/helperbytes also match. Formatter regeneration/full CLI replay pending. Payload3 cancellable callers, crafting/placement, Wire and cloud need migrations/evidence."
+      "reason": "Fixed17f real replay7/12PASS,5refuse:payload/recipe-placement/Wire/crafting/cloud. Wire2field fullplan adaptation prepared; other ownership migrations/newfullplan remain. Linux1.95 formatter passed, Windows1.99.1 unrun."
     },
     {
       "subject": "Windows execution validation",
@@ -72,7 +72,7 @@
     "gates": {
       "git_blob_composition": "passed",
       "complete_latest_plan": "Accepted only for reference9cc1; current native item-cloud delta requires fresh complete plan",
-      "composition_guards": "Reference17f guard-only replay pending; current cloud delta needs new complete-plan and strict composition guard validation",
+      "composition_guards": "Actual fixed17f all12 CLI reached:7PASS/5refuse, including1.95 formatter regeneration. Current cloud/payload delta requires fresh fullplan and allguards.",
       "native_build": "not run on this branch",
       "windows_link": "not run",
       "game_start": "not run",
@@ -84,7 +84,7 @@
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
       "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run",
       "windows_source": "actual Windows Server2025 PowerShell parser+43 source tests passed on exact5e14,run42233831944; noCargo/game",
-      "metadata_adaptation": "7metadataJSON: advancement order+source PASS, current-book PASS, bothterrain IR+12sourcepins PASS. Damage order/helperbytes PASS. Rustfmt regeneration/fullCLI unrun."
+      "metadata_adaptation": "All5 adapted guards passed actual fullCLI on fixed17f; advancement,damage,current-book,terrain-binding,terrain-cell. No Windows1.99.1/apply/type proof."
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -156,7 +156,7 @@
       "repeat_plan_identical_to_first": true,
       "repeat_guard_results_identical": true,
       "current_runtime_changed_after_reference_plan": true,
-      "current_runtime_change": "Reviewed native item-cloud source from c97771cc; old plan remains reference evidence only."
+      "current_runtime_change": "Cloud c977 and3payload caller46fee source are integrated; old9cc1 plan is reference only."
     },
     "windows_source_ci": {
       "source": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
@@ -220,7 +220,43 @@
       "pluto-lib/docs/advancement-damage-full-ir-20261106.json",
       "pluto-lib/docs/terrain-41f-full-ir-20261106.json",
       "pluto-lib/experiments/current-book-41f/actual-plan-diagnostic.json"
-    ]
+    ],
+    "guard_only_replay": {
+      "controller": "888a1c34ffe110ce973e8a85359f3c28ac920d0a",
+      "integration": "17f44dc36fc2df28547328aa8554286ae965b208",
+      "run": 42246975270,
+      "job": 127991632763,
+      "final_at": "2026-11-06T15:52:21.9603415Z",
+      "completed_at": "2026-11-06T15:52:25Z",
+      "passed": [
+        "protection",
+        "advancement",
+        "damage_equipment",
+        "current_book",
+        "terrain_binding",
+        "station_ingredient",
+        "terrain_cell"
+      ],
+      "rejected": [
+        "client_payload",
+        "recipe_placement",
+        "wire_snapshot",
+        "crafting_match",
+        "cloud_insertion"
+      ],
+      "gates": 9,
+      "phases": 27,
+      "source_verified": true,
+      "diagnostic_complete": true,
+      "probe_completed": true,
+      "error": null,
+      "compatibility": false,
+      "all_input_package_identity_and_seals": true,
+      "formatter": "Linux1.95; not Windows1.99.1",
+      "plan_regenerated": false,
+      "apply_executed": false,
+      "native_type_verified": false
+    }
   },
   "safety": {
     "main_and_existing_prs_unchanged": true,
@@ -229,7 +265,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Finish fixed17f baseline guard-only replay without waiting; complete packet/crafting/cloud composition changes and guards, then generate a fresh full plan for current runtime and perform guarded apply/type/build/Windows link/startup before main merge.",
+  "next": "Collect exact17f guard7PASS/5refuse proof and actual crafting153/16; integrate reviewed Wire pin, finish cloud/payload observation and crafting/placement, then fresh wholeplan/allguards/apply/type/build/Windows checks before main.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -502,6 +538,21 @@
       "trigger_created": false,
       "activation": "Only dedicated branch push; integration/main/PR/manual never trigger. No bootstrap/pair/station tests mixed in.",
       "rust_executed": false
+    },
+    {
+      "subject": "Guide retained-view bridge and noncancel Broad/Haste receivers",
+      "proof": "46fee5dd0db0218e66c851a31215bbe30488ffb0",
+      "ordinary_paths": 9,
+      "proof_paths": 9,
+      "source_checks": 11,
+      "symbolic_cases": 48,
+      "independent_review": "Rendering allinputs/9outputs/actual6HEADs; central11pure andexactcurrent6ecbase",
+      "scope": "Broad/Haste decode, invalidation andwrites byte-preserved exceptControlFlow. Guide registration-only noncancelHEAD and solePlutoRETURN updates currentView. Cloud modulemove/chestdeferral retained.",
+      "intentional_difference": "Native/read-only observer and laterHEAD processing resume for3customchannels; native catchall no-op is source-pinned. Guide update occurs before handle_packet remainingbody, not after wholehandle_packet.",
+      "actual_text_values": "10passed in separatefe52 run",
+      "actual_plan_or_game_or_lan": false,
+      "guard_metadata_adapted": false,
+      "poll_remote_fingerprint_observed": false
     }
   ],
   "guide_limits": [

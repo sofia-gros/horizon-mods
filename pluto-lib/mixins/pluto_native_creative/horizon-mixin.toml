@@ -578,7 +578,7 @@ id = "client-payload-observed"
 target = "horizon_client::game::native_hooks::Game<'_>::native_client_packet"
 kind = "RETURN"
 helper = "client-payload-observed.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&Game<'_>", value = "&*self" }, { name = "packet", ty = "&ClientboundPlayPacket", value = "packet" }]
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&ClientboundPlayPacket", value = "packet" }]
 
 # Explicit recipe index operation only; no world ownership or lifecycle hook.
 [[module]]
@@ -748,3 +748,9 @@ file = "crates/horizon-client/src/game.rs"
 name = "pluto_mining_context"
 source = "mining-context.rs"
 visibility = "pub(crate)"
+
+[[module]]
+id = "client-payload-updates"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_client_payload_updates"
+source = "client-payload-updates.rs"
