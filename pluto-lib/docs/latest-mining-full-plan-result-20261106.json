@@ -1,0 +1,1436 @@
+{
+  "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "final_receipt": {
+    "apply_executed": false,
+    "artifact_seals": {
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/plutolib.hnmod": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/tconstruct.hnmod": "8178b440266664d3db4dd9784af02894ebdb29910b0dd8f13504b2d341cf8f42"
+    },
+    "compatibility": false,
+    "diagnostic_complete": true,
+    "error": null,
+    "gates": {
+      "candidate_sources": {
+        "passed": true,
+        "source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+        "tests": 16
+      },
+      "cli_compile": {
+        "binary_sha256": "4ff68e5d8091aa68468d4ca135198269b0912e754f2689c5f0cb211da104dd72",
+        "passed": true,
+        "scope": "official tool only; no Game or consumer build",
+        "witness": {
+          "crate": "horizon_mixins",
+          "invocation_sha256": "01a3316a38ea186b2fbd18fe009f3416546d64ca60a5e953fe22c855243649ee",
+          "source": [
+            "crates/horizon-mixins-cli/src/main.rs"
+          ]
+        }
+      },
+      "collector_sources": {
+        "passed": true,
+        "source": "5b87b28da1e707ca68367ca454bd3defb0256402",
+        "tests": 20
+      },
+      "combined_payload": {
+        "headers": [
+          {
+            "game": "26.3",
+            "horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+            "id": "tconstruct_native",
+            "mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+            "schema": 1,
+            "version": "0.5.0"
+          },
+          {
+            "game": "26.3",
+            "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+            "id": "pluto_native_creative",
+            "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+            "schema": 1,
+            "version": "0.1.0"
+          }
+        ],
+        "members": 644,
+        "members_seal_sha256": "64da0c8d80bf83249747ee5267a7ac8cb393ea9cb5ce3b31c16cb2c1e9e9306c",
+        "passed": true
+      },
+      "common_bundle": {
+        "bytes": 270125,
+        "passed": true,
+        "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d"
+      },
+      "fixed_checkouts": {
+        "candidate_official_sources": [
+          "crates/horizon-client/src/game.rs",
+          "crates/horizon-client/src/game/hand.rs",
+          "crates/horizon-client/src/game/native_hooks.rs",
+          "crates/horizon-client/src/game/lan_actions.rs"
+        ],
+        "contract_sources": [
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon",
+            "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon",
+            "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"
+          },
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon-mixins",
+            "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/src/main.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/index.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/manifest.rs",
+            "repo": "horizon-mixins",
+            "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/plan.rs",
+            "repo": "horizon-mixins",
+            "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/native.rs",
+            "repo": "horizon-mixins",
+            "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85"
+          }
+        ],
+        "ir_contract_sources": {
+          "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+          "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"
+        },
+        "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+        "official": {
+          "horizon": {
+            "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+            "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        },
+        "passed": true
+      },
+      "main_bundle": {
+        "bytes": 8171156,
+        "header": {
+          "game": "26.3",
+          "horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+          "id": "tconstruct_native",
+          "mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+          "schema": 1,
+          "version": "0.5.0"
+        },
+        "members": 499,
+        "passed": true,
+        "sha256": "8178b440266664d3db4dd9784af02894ebdb29910b0dd8f13504b2d341cf8f42",
+        "support_members": 4662
+      },
+      "memory_admission": {
+        "admission_available_minimum": 2147483648,
+        "available_bytes": 15725617152,
+        "capacity_minimum": 6442450944,
+        "passed": true
+      },
+      "mining_candidate": {
+        "candidate_members": 646,
+        "candidate_members_sha256": "02882fbd01e9dc5f06a3cd61d53ae9497dcabfd8302ebf98bba99892d9ceb823",
+        "changed_paths": [
+          "pluto_native_creative/horizon-mixin.toml",
+          "pluto_native_creative/mining-context.rs",
+          "tconstruct_native/horizon-mixin.toml",
+          "tconstruct_native/source-mining-context-native.rs"
+        ],
+        "changes": [
+          {
+            "after_bytes": 30073,
+            "after_sha256": "a49b89db5218409eee61c9eebf71ce7eea99c84c028aaf5503a6d9c645ea5c09",
+            "before_sha256": "f63dbc76fefa30c84d4ae8dbce844dd9fdb0465de48f2912a4d0dd2bcd91da91",
+            "path": "pluto_native_creative/horizon-mixin.toml"
+          },
+          {
+            "after_bytes": 785,
+            "after_sha256": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+            "before_sha256": null,
+            "path": "pluto_native_creative/mining-context.rs"
+          },
+          {
+            "after_bytes": 188470,
+            "after_sha256": "f650cd0a92c3c05ab045f1dad15527d3b1fdeeaa81679c5e27728c6f34a34a41",
+            "before_sha256": "12bca61e376746756ed52c2785750a27d144dc7379f48088b7ffcff249185865",
+            "path": "tconstruct_native/horizon-mixin.toml"
+          },
+          {
+            "after_bytes": 687,
+            "after_sha256": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+            "before_sha256": null,
+            "path": "tconstruct_native/source-mining-context-native.rs"
+          }
+        ],
+        "counts": {
+          "crates": 3,
+          "injections": 323,
+          "modules": 318,
+          "states": 111
+        },
+        "inverse_matches_original_archives": true,
+        "original_members": 644,
+        "original_members_sha256": "64da0c8d80bf83249747ee5267a7ac8cb393ea9cb5ce3b31c16cb2c1e9e9306c",
+        "owner_inventory_sha256": "36ef994501d5aa8978d3e8428274fed956ffb3092a34856a21b5cb248e1e7ae6",
+        "passed": true,
+        "preserved_policy": {
+          "source-mining-context-host.rs": {
+            "packaged_bytes": 352,
+            "packaged_sha256": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699",
+            "source_bytes": 352,
+            "source_sha256": "0af316fa8ff9fbd2f02deaa09db0bee5892841fc030d9003ce2fafde4f179699"
+          },
+          "source-mining-context-shared.rs": {
+            "packaged_bytes": 4434,
+            "packaged_sha256": "2b2f0d1e46e6a1499076ec2194c48f4ee623e1ac685c5ba9c35d1c3107167647",
+            "source_bytes": 4399,
+            "source_sha256": "22a8cf9b0e2671be1ee3f4bae292d43cd3f4f59bf8be2d174c3a755c1bf70193"
+          },
+          "source-mining-context.rs": {
+            "packaged_bytes": 302,
+            "packaged_sha256": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f",
+            "source_bytes": 302,
+            "source_sha256": "754962d3926ab28d575c1ca7102966090c593e8451fad7868fc7da27e710707f"
+          },
+          "source-mining-math.rs": {
+            "packaged_bytes": 10477,
+            "packaged_sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+            "source_bytes": 10477,
+            "source_sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef"
+          },
+          "source-mining-return.rs": {
+            "packaged_bytes": 1582,
+            "packaged_sha256": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b",
+            "source_bytes": 1582,
+            "source_sha256": "1634707a04fde9206b903521c201852527ee0f3b6e4f19315823df3f4d844e3b"
+          },
+          "source-mining-rules.rs": {
+            "packaged_bytes": 21886,
+            "packaged_sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+            "source_bytes": 21886,
+            "source_sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6"
+          }
+        },
+        "revision_only_members_sha256": "692fa172e45e00dcddf62d201c6dbf206702f16e8b06a7109c8e6b6c13f0c125",
+        "scope": "Both original archives and all other payload bytes preserved. New compute-only boundary has no type/apply proof."
+      },
+      "plan_diagnostic": {
+        "accepted": false,
+        "diagnostic": {
+          "code": "E_UNSUPPORTED_CONTROL_FLOW",
+          "file": "crates/horizon-client/src/game/block_items.rs",
+          "injection_id": "tinkers-chest-pick-color",
+          "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+          "mod_id": "tconstruct_native",
+          "target": "horizon_client::game::block_items::Game<'_>::picked_stack"
+        },
+        "passed": true,
+        "tool_calls": [
+          {
+            "allowed": true,
+            "argv": [
+              "metadata",
+              "--format-version",
+              "1",
+              "--no-deps",
+              "--manifest-path",
+              "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/horizon/Cargo.toml",
+              "--offline",
+              "--locked"
+            ],
+            "kind": "cargo",
+            "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+          }
+        ]
+      },
+      "revision_only_candidate": {
+        "actual_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "actual_mixins_tool": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "candidate_members_sha256": "692fa172e45e00dcddf62d201c6dbf206702f16e8b06a7109c8e6b6c13f0c125",
+        "change_count": 2,
+        "changed_paths": [
+          "pluto_native_creative/horizon-mixin.toml",
+          "tconstruct_native/horizon-mixin.toml"
+        ],
+        "changes": [
+          {
+            "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\"",
+            "after_sha256": "5fc01ef8d392bb0b38c6f7d1ee8bca5ba115ca57e8cd0193c104a495c2c9cfe6",
+            "before_line": "horizon_revision = \"0c7b5b61a5e746d621afffba919b12aeccf9c0fa\"",
+            "before_sha256": "12bca61e376746756ed52c2785750a27d144dc7379f48088b7ffcff249185865",
+            "bytes": 189162,
+            "path": "tconstruct_native/horizon-mixin.toml",
+            "prior": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+          },
+          {
+            "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\"",
+            "after_sha256": "19887c15e3a8a9a2b9ac2e5f6c8042004f46a0ad53628cb7fa142be5fe829110",
+            "before_line": "horizon_revision = \"624c4f6265c02296fbe8a80f029dd0d987fb94c0\"",
+            "before_sha256": "f63dbc76fefa30c84d4ae8dbce844dd9fdb0465de48f2912a4d0dd2bcd91da91",
+            "bytes": 29905,
+            "path": "pluto_native_creative/horizon-mixin.toml",
+            "prior": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+          }
+        ],
+        "header_policy": "Original hnmod headers remain unchanged; only two unpacked manifest horizon_revision fields change. This is a diagnostic candidate, not a repaired package.",
+        "inverse_matches_original": true,
+        "original_members_sha256": "64da0c8d80bf83249747ee5267a7ac8cb393ea9cb5ce3b31c16cb2c1e9e9306c",
+        "passed": true,
+        "unchanged_members": 642
+      },
+      "runner": {
+        "passed": true,
+        "tests": 24
+      }
+    },
+    "head": "74fc9a53e4bde161f326bbd16710b625f86716e6",
+    "input_seals": {
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/combined-original": "250b472db0035c649b7780f02a1e9938578c4b92ea4de1a7c8f1181f19d84bfc",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/horizon": "333ac5fce63c1028a1db26f9968e6e4eeced64ca89557a0d6fa65827948d46ed",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/horizon-git": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/main-git": "9560780af3936c864ea4c80c44fa0aee0b710e7238475e48dc1bb7f33fe6c1e4",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/metadata-only": "e78acd33c626ea18a0d2fba298eabae177781e07283b4bae8ebc0f682a0ba1fa",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/mining-candidate": "43342e413c67252005b160345f0a74289c2d31289dfd9243d2def21aeeed3a4d",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/mixins-git": "69dcea38dfa0e9e77ac0228d9ee5727a95fdaa7b1c175624263549bcb25d368e",
+      "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/revision-only-candidate": "ef41b6bf96d39c4c7fc117fc15cce5c6c67a86d082e58dd19bc544a8f47b1ce4"
+    },
+    "memory_observation": {
+      "admission": "not determined by this observation; guard remains independent",
+      "cgroup2_mounts": [
+        {
+          "filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot",
+          "mount_point": "/sys/fs/cgroup",
+          "options": "rw,nosuid,nodev,noexec,relatime",
+          "root": "/"
+        }
+      ],
+      "host_memory": {
+        "MemAvailable": "15357048 kB",
+        "MemTotal": "16367524 kB"
+      },
+      "self_cgroup": {
+        "text": "0::/system.slice/hosted-compute-agent.service\n"
+      },
+      "visible_ancestors": [
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "508456960\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "1337319424\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"
+            },
+            "cgroup.events": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"
+            },
+            "cgroup.type": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"
+            },
+            "memory.current": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"
+            },
+            "memory.max": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"
+            }
+          },
+          "path": "/sys/fs/cgroup"
+        }
+      ]
+    },
+    "minimum_free_bytes": 90508034048,
+    "minimum_memory_bytes": 13521154048,
+    "native_type_verified": false,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 2725,
+        "raw_sha256": "c11de6cfccea194579f6aea4574da089c52b0dba42fd284ee33daaa4795d69e8",
+        "seconds": 3.841
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "candidate-source-checks",
+        "raw_bytes": 1853,
+        "raw_sha256": "d5137eb44313e37f08037005cd2d4f29554f1fb489bf5c1dd43017cb88fa9e68",
+        "seconds": 0.607
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "collector-source-checks",
+        "raw_bytes": 2289,
+        "raw_sha256": "d036efb2c7d11af42306d42c22f7a10afe2640ca549f765e0d3ccf4875aca421",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "seconds": 8.279
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 729,
+        "raw_sha256": "c6fb9a403fc0d99a27142a2ae912a28b94d71452b881d500d49e6d2dd7d3c87b",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+        "seconds": 4.44
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 84,
+        "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+        "seconds": 0.609
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 728,
+        "raw_sha256": "57aec9fd07b0164ff6b68c025ea06dc02fa423940d0ac36ae94f21285666cc10",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541",
+        "seconds": 0.406
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 103,
+        "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-init",
+        "raw_bytes": 726,
+        "raw_sha256": "810ee477b5567f870c1bce37ab71ad951bcb69c5f11ea9be03dac7e151892cc0",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-fetch",
+        "raw_bytes": 124,
+        "raw_sha256": "8b12e295488b644311130f0dff560978c333210bc0215f6ea288efb49f33a449",
+        "seconds": 1.213
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-checkout",
+        "raw_bytes": 88,
+        "raw_sha256": "f0f08f7a30899d14c11f756b46b68382a2f4f6ece9e6ce2f638d5e87baf3c990",
+        "seconds": 0.608
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.62
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-locked-fetch",
+        "raw_bytes": 2175,
+        "raw_sha256": "d47e3502dacc811120c35b7c0f99f0b4331ba74c785451856942b2a9346ba636",
+        "seconds": 1.213
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-cold-build",
+        "raw_bytes": 295229,
+        "raw_sha256": "c02172f2c45b36c87fe3d92842d2e05dc7cd84612bbb3a28ad347ea0724c051c",
+        "seconds": 148.691
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-package",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.213
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "common-package",
+        "raw_bytes": 110,
+        "raw_sha256": "a847cb5626fec0d49dfa25b1b7de673b191745dde4c6b9b3be87f8a7af36ea5a",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cargo-path",
+        "raw_bytes": 74,
+        "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "rustc-path",
+        "raw_bytes": 74,
+        "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": "RuntimeError: official-plan exited 1",
+        "exit_code": 1,
+        "name": "official-plan",
+        "raw_bytes": 353,
+        "raw_sha256": "91a10c010fb7471747d737a1eecd08a7b65d3e64531bee388ec3bb4ab4d43863",
+        "seconds": 580.106
+      }
+    ],
+    "plan_accepted": false,
+    "plan_cpu_observation": {
+      "cli_exit_code": 1,
+      "complete": true,
+      "observer_exit_code": 1,
+      "present": true,
+      "raw_bytes": 10463,
+      "raw_sha256": "7843c68aa2e57e32bf77f7e0544e25d801bedf2893344dc0b58abbf527585181",
+      "records": [
+        {
+          "kind": "start",
+          "owner_pid": 3938,
+          "pgid": 3938,
+          "pid": 3939,
+          "session": 3938,
+          "start_ticks": 20241,
+          "ticks_per_second": 100
+        },
+        {
+          "elapsed_seconds": 0.001,
+          "kind": "sample",
+          "system_ticks": 0,
+          "user_ticks": 0
+        },
+        {
+          "elapsed_seconds": 5.004,
+          "kind": "sample",
+          "system_ticks": 88,
+          "user_ticks": 405
+        },
+        {
+          "elapsed_seconds": 10.007,
+          "kind": "sample",
+          "system_ticks": 106,
+          "user_ticks": 884
+        },
+        {
+          "elapsed_seconds": 15.011,
+          "kind": "sample",
+          "system_ticks": 107,
+          "user_ticks": 1382
+        },
+        {
+          "elapsed_seconds": 20.015,
+          "kind": "sample",
+          "system_ticks": 107,
+          "user_ticks": 1881
+        },
+        {
+          "elapsed_seconds": 25.019,
+          "kind": "sample",
+          "system_ticks": 108,
+          "user_ticks": 2381
+        },
+        {
+          "elapsed_seconds": 30.023,
+          "kind": "sample",
+          "system_ticks": 109,
+          "user_ticks": 2881
+        },
+        {
+          "elapsed_seconds": 35.027,
+          "kind": "sample",
+          "system_ticks": 110,
+          "user_ticks": 3380
+        },
+        {
+          "elapsed_seconds": 40.03,
+          "kind": "sample",
+          "system_ticks": 110,
+          "user_ticks": 3880
+        },
+        {
+          "elapsed_seconds": 45.034,
+          "kind": "sample",
+          "system_ticks": 111,
+          "user_ticks": 4380
+        },
+        {
+          "elapsed_seconds": 50.037,
+          "kind": "sample",
+          "system_ticks": 112,
+          "user_ticks": 4879
+        },
+        {
+          "elapsed_seconds": 55.041,
+          "kind": "sample",
+          "system_ticks": 112,
+          "user_ticks": 5379
+        },
+        {
+          "elapsed_seconds": 60.044,
+          "kind": "sample",
+          "system_ticks": 112,
+          "user_ticks": 5879
+        },
+        {
+          "elapsed_seconds": 65.048,
+          "kind": "sample",
+          "system_ticks": 113,
+          "user_ticks": 6379
+        },
+        {
+          "elapsed_seconds": 70.051,
+          "kind": "sample",
+          "system_ticks": 113,
+          "user_ticks": 6879
+        },
+        {
+          "elapsed_seconds": 75.055,
+          "kind": "sample",
+          "system_ticks": 114,
+          "user_ticks": 7378
+        },
+        {
+          "elapsed_seconds": 80.059,
+          "kind": "sample",
+          "system_ticks": 115,
+          "user_ticks": 7878
+        },
+        {
+          "elapsed_seconds": 85.062,
+          "kind": "sample",
+          "system_ticks": 115,
+          "user_ticks": 8377
+        },
+        {
+          "elapsed_seconds": 90.066,
+          "kind": "sample",
+          "system_ticks": 116,
+          "user_ticks": 8877
+        },
+        {
+          "elapsed_seconds": 95.069,
+          "kind": "sample",
+          "system_ticks": 116,
+          "user_ticks": 9377
+        },
+        {
+          "elapsed_seconds": 100.073,
+          "kind": "sample",
+          "system_ticks": 117,
+          "user_ticks": 9877
+        },
+        {
+          "elapsed_seconds": 105.077,
+          "kind": "sample",
+          "system_ticks": 118,
+          "user_ticks": 10376
+        },
+        {
+          "elapsed_seconds": 110.08,
+          "kind": "sample",
+          "system_ticks": 118,
+          "user_ticks": 10876
+        },
+        {
+          "elapsed_seconds": 115.084,
+          "kind": "sample",
+          "system_ticks": 119,
+          "user_ticks": 11376
+        },
+        {
+          "elapsed_seconds": 120.087,
+          "kind": "sample",
+          "system_ticks": 119,
+          "user_ticks": 11876
+        },
+        {
+          "elapsed_seconds": 125.091,
+          "kind": "sample",
+          "system_ticks": 120,
+          "user_ticks": 12375
+        },
+        {
+          "elapsed_seconds": 130.094,
+          "kind": "sample",
+          "system_ticks": 121,
+          "user_ticks": 12875
+        },
+        {
+          "elapsed_seconds": 135.098,
+          "kind": "sample",
+          "system_ticks": 122,
+          "user_ticks": 13374
+        },
+        {
+          "elapsed_seconds": 140.101,
+          "kind": "sample",
+          "system_ticks": 122,
+          "user_ticks": 13874
+        },
+        {
+          "elapsed_seconds": 145.105,
+          "kind": "sample",
+          "system_ticks": 123,
+          "user_ticks": 14374
+        },
+        {
+          "elapsed_seconds": 150.108,
+          "kind": "sample",
+          "system_ticks": 124,
+          "user_ticks": 14873
+        },
+        {
+          "elapsed_seconds": 155.112,
+          "kind": "sample",
+          "system_ticks": 124,
+          "user_ticks": 15373
+        },
+        {
+          "elapsed_seconds": 160.115,
+          "kind": "sample",
+          "system_ticks": 124,
+          "user_ticks": 15873
+        },
+        {
+          "elapsed_seconds": 165.119,
+          "kind": "sample",
+          "system_ticks": 125,
+          "user_ticks": 16373
+        },
+        {
+          "elapsed_seconds": 170.123,
+          "kind": "sample",
+          "system_ticks": 125,
+          "user_ticks": 16873
+        },
+        {
+          "elapsed_seconds": 175.126,
+          "kind": "sample",
+          "system_ticks": 126,
+          "user_ticks": 17372
+        },
+        {
+          "elapsed_seconds": 180.13,
+          "kind": "sample",
+          "system_ticks": 127,
+          "user_ticks": 17872
+        },
+        {
+          "elapsed_seconds": 185.133,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 18371
+        },
+        {
+          "elapsed_seconds": 190.136,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 18871
+        },
+        {
+          "elapsed_seconds": 195.14,
+          "kind": "sample",
+          "system_ticks": 129,
+          "user_ticks": 19371
+        },
+        {
+          "elapsed_seconds": 200.144,
+          "kind": "sample",
+          "system_ticks": 129,
+          "user_ticks": 19870
+        },
+        {
+          "elapsed_seconds": 205.147,
+          "kind": "sample",
+          "system_ticks": 130,
+          "user_ticks": 20368
+        },
+        {
+          "elapsed_seconds": 210.151,
+          "kind": "sample",
+          "system_ticks": 130,
+          "user_ticks": 20867
+        },
+        {
+          "elapsed_seconds": 215.154,
+          "kind": "sample",
+          "system_ticks": 131,
+          "user_ticks": 21364
+        },
+        {
+          "elapsed_seconds": 220.158,
+          "kind": "sample",
+          "system_ticks": 132,
+          "user_ticks": 21864
+        },
+        {
+          "elapsed_seconds": 225.162,
+          "kind": "sample",
+          "system_ticks": 133,
+          "user_ticks": 22363
+        },
+        {
+          "elapsed_seconds": 230.165,
+          "kind": "sample",
+          "system_ticks": 133,
+          "user_ticks": 22863
+        },
+        {
+          "elapsed_seconds": 235.169,
+          "kind": "sample",
+          "system_ticks": 134,
+          "user_ticks": 23363
+        },
+        {
+          "elapsed_seconds": 240.173,
+          "kind": "sample",
+          "system_ticks": 134,
+          "user_ticks": 23863
+        },
+        {
+          "elapsed_seconds": 245.176,
+          "kind": "sample",
+          "system_ticks": 135,
+          "user_ticks": 24362
+        },
+        {
+          "elapsed_seconds": 250.18,
+          "kind": "sample",
+          "system_ticks": 136,
+          "user_ticks": 24862
+        },
+        {
+          "elapsed_seconds": 255.184,
+          "kind": "sample",
+          "system_ticks": 136,
+          "user_ticks": 25361
+        },
+        {
+          "elapsed_seconds": 260.187,
+          "kind": "sample",
+          "system_ticks": 137,
+          "user_ticks": 25861
+        },
+        {
+          "elapsed_seconds": 265.19,
+          "kind": "sample",
+          "system_ticks": 138,
+          "user_ticks": 26361
+        },
+        {
+          "elapsed_seconds": 270.194,
+          "kind": "sample",
+          "system_ticks": 138,
+          "user_ticks": 26860
+        },
+        {
+          "elapsed_seconds": 275.198,
+          "kind": "sample",
+          "system_ticks": 139,
+          "user_ticks": 27360
+        },
+        {
+          "elapsed_seconds": 280.202,
+          "kind": "sample",
+          "system_ticks": 139,
+          "user_ticks": 27860
+        },
+        {
+          "elapsed_seconds": 285.205,
+          "kind": "sample",
+          "system_ticks": 140,
+          "user_ticks": 28360
+        },
+        {
+          "elapsed_seconds": 290.208,
+          "kind": "sample",
+          "system_ticks": 140,
+          "user_ticks": 28858
+        },
+        {
+          "elapsed_seconds": 295.212,
+          "kind": "sample",
+          "system_ticks": 141,
+          "user_ticks": 29357
+        },
+        {
+          "elapsed_seconds": 300.216,
+          "kind": "sample",
+          "system_ticks": 142,
+          "user_ticks": 29857
+        },
+        {
+          "elapsed_seconds": 305.22,
+          "kind": "sample",
+          "system_ticks": 143,
+          "user_ticks": 30357
+        },
+        {
+          "elapsed_seconds": 310.223,
+          "kind": "sample",
+          "system_ticks": 143,
+          "user_ticks": 30856
+        },
+        {
+          "elapsed_seconds": 315.227,
+          "kind": "sample",
+          "system_ticks": 144,
+          "user_ticks": 31356
+        },
+        {
+          "elapsed_seconds": 320.231,
+          "kind": "sample",
+          "system_ticks": 145,
+          "user_ticks": 31856
+        },
+        {
+          "elapsed_seconds": 325.235,
+          "kind": "sample",
+          "system_ticks": 145,
+          "user_ticks": 32356
+        },
+        {
+          "elapsed_seconds": 330.238,
+          "kind": "sample",
+          "system_ticks": 146,
+          "user_ticks": 32853
+        },
+        {
+          "elapsed_seconds": 335.241,
+          "kind": "sample",
+          "system_ticks": 146,
+          "user_ticks": 33353
+        },
+        {
+          "elapsed_seconds": 340.245,
+          "kind": "sample",
+          "system_ticks": 147,
+          "user_ticks": 33852
+        },
+        {
+          "elapsed_seconds": 345.248,
+          "kind": "sample",
+          "system_ticks": 148,
+          "user_ticks": 34352
+        },
+        {
+          "elapsed_seconds": 350.252,
+          "kind": "sample",
+          "system_ticks": 149,
+          "user_ticks": 34851
+        },
+        {
+          "elapsed_seconds": 355.256,
+          "kind": "sample",
+          "system_ticks": 150,
+          "user_ticks": 35351
+        },
+        {
+          "elapsed_seconds": 360.259,
+          "kind": "sample",
+          "system_ticks": 150,
+          "user_ticks": 35850
+        },
+        {
+          "elapsed_seconds": 365.263,
+          "kind": "sample",
+          "system_ticks": 151,
+          "user_ticks": 36350
+        },
+        {
+          "elapsed_seconds": 370.266,
+          "kind": "sample",
+          "system_ticks": 152,
+          "user_ticks": 36850
+        },
+        {
+          "elapsed_seconds": 375.27,
+          "kind": "sample",
+          "system_ticks": 152,
+          "user_ticks": 37350
+        },
+        {
+          "elapsed_seconds": 380.274,
+          "kind": "sample",
+          "system_ticks": 153,
+          "user_ticks": 37849
+        },
+        {
+          "elapsed_seconds": 385.277,
+          "kind": "sample",
+          "system_ticks": 154,
+          "user_ticks": 38348
+        },
+        {
+          "elapsed_seconds": 390.281,
+          "kind": "sample",
+          "system_ticks": 154,
+          "user_ticks": 38848
+        },
+        {
+          "elapsed_seconds": 395.284,
+          "kind": "sample",
+          "system_ticks": 155,
+          "user_ticks": 39348
+        },
+        {
+          "elapsed_seconds": 400.288,
+          "kind": "sample",
+          "system_ticks": 155,
+          "user_ticks": 39848
+        },
+        {
+          "elapsed_seconds": 405.291,
+          "kind": "sample",
+          "system_ticks": 156,
+          "user_ticks": 40347
+        },
+        {
+          "elapsed_seconds": 410.295,
+          "kind": "sample",
+          "system_ticks": 157,
+          "user_ticks": 40847
+        },
+        {
+          "elapsed_seconds": 415.298,
+          "kind": "sample",
+          "system_ticks": 157,
+          "user_ticks": 41347
+        },
+        {
+          "elapsed_seconds": 420.302,
+          "kind": "sample",
+          "system_ticks": 158,
+          "user_ticks": 41846
+        },
+        {
+          "elapsed_seconds": 425.305,
+          "kind": "sample",
+          "system_ticks": 158,
+          "user_ticks": 42346
+        },
+        {
+          "elapsed_seconds": 430.309,
+          "kind": "sample",
+          "system_ticks": 159,
+          "user_ticks": 42846
+        },
+        {
+          "elapsed_seconds": 435.312,
+          "kind": "sample",
+          "system_ticks": 160,
+          "user_ticks": 43345
+        },
+        {
+          "elapsed_seconds": 440.316,
+          "kind": "sample",
+          "system_ticks": 160,
+          "user_ticks": 43845
+        },
+        {
+          "elapsed_seconds": 445.32,
+          "kind": "sample",
+          "system_ticks": 161,
+          "user_ticks": 44345
+        },
+        {
+          "elapsed_seconds": 450.323,
+          "kind": "sample",
+          "system_ticks": 162,
+          "user_ticks": 44844
+        },
+        {
+          "elapsed_seconds": 455.326,
+          "kind": "sample",
+          "system_ticks": 163,
+          "user_ticks": 45342
+        },
+        {
+          "elapsed_seconds": 460.33,
+          "kind": "sample",
+          "system_ticks": 163,
+          "user_ticks": 45842
+        },
+        {
+          "elapsed_seconds": 465.334,
+          "kind": "sample",
+          "system_ticks": 164,
+          "user_ticks": 46341
+        },
+        {
+          "elapsed_seconds": 470.337,
+          "kind": "sample",
+          "system_ticks": 164,
+          "user_ticks": 46841
+        },
+        {
+          "elapsed_seconds": 475.34,
+          "kind": "sample",
+          "system_ticks": 165,
+          "user_ticks": 47341
+        },
+        {
+          "elapsed_seconds": 480.344,
+          "kind": "sample",
+          "system_ticks": 165,
+          "user_ticks": 47840
+        },
+        {
+          "elapsed_seconds": 485.347,
+          "kind": "sample",
+          "system_ticks": 166,
+          "user_ticks": 48340
+        },
+        {
+          "elapsed_seconds": 490.351,
+          "kind": "sample",
+          "system_ticks": 167,
+          "user_ticks": 48840
+        },
+        {
+          "elapsed_seconds": 495.354,
+          "kind": "sample",
+          "system_ticks": 167,
+          "user_ticks": 49340
+        },
+        {
+          "elapsed_seconds": 500.358,
+          "kind": "sample",
+          "system_ticks": 167,
+          "user_ticks": 49840
+        },
+        {
+          "elapsed_seconds": 505.361,
+          "kind": "sample",
+          "system_ticks": 168,
+          "user_ticks": 50339
+        },
+        {
+          "elapsed_seconds": 510.365,
+          "kind": "sample",
+          "system_ticks": 169,
+          "user_ticks": 50839
+        },
+        {
+          "elapsed_seconds": 515.368,
+          "kind": "sample",
+          "system_ticks": 169,
+          "user_ticks": 51339
+        },
+        {
+          "elapsed_seconds": 520.372,
+          "kind": "sample",
+          "system_ticks": 169,
+          "user_ticks": 51839
+        },
+        {
+          "elapsed_seconds": 525.375,
+          "kind": "sample",
+          "system_ticks": 170,
+          "user_ticks": 52338
+        },
+        {
+          "elapsed_seconds": 530.379,
+          "kind": "sample",
+          "system_ticks": 171,
+          "user_ticks": 52838
+        },
+        {
+          "elapsed_seconds": 535.382,
+          "kind": "sample",
+          "system_ticks": 172,
+          "user_ticks": 53337
+        },
+        {
+          "elapsed_seconds": 540.386,
+          "kind": "sample",
+          "system_ticks": 173,
+          "user_ticks": 53837
+        },
+        {
+          "elapsed_seconds": 545.389,
+          "kind": "sample",
+          "system_ticks": 174,
+          "user_ticks": 54336
+        },
+        {
+          "elapsed_seconds": 550.393,
+          "kind": "sample",
+          "system_ticks": 174,
+          "user_ticks": 54836
+        },
+        {
+          "elapsed_seconds": 555.396,
+          "kind": "sample",
+          "system_ticks": 175,
+          "user_ticks": 55335
+        },
+        {
+          "elapsed_seconds": 560.4,
+          "kind": "sample",
+          "system_ticks": 176,
+          "user_ticks": 55834
+        },
+        {
+          "elapsed_seconds": 565.403,
+          "kind": "sample",
+          "system_ticks": 176,
+          "user_ticks": 56334
+        },
+        {
+          "elapsed_seconds": 570.407,
+          "kind": "sample",
+          "system_ticks": 177,
+          "user_ticks": 56834
+        },
+        {
+          "elapsed_seconds": 575.41,
+          "kind": "sample",
+          "system_ticks": 177,
+          "user_ticks": 57333
+        },
+        {
+          "elapsed_seconds": 580.014,
+          "exit_code": 1,
+          "kind": "end",
+          "samples": 116
+        }
+      ],
+      "scope": "Samples of the direct owned CLI PID only; no child aggregation, CPU percentage, completion or planner target inference."
+    },
+    "probe_completed": true,
+    "scope": "Original main/common archives plus exact b78 four-path mining/revision candidate. One full646 plan only; accepted plan witness then unchanged old12 guards. No apply/Game/consumer build or compatibility-success claim.",
+    "source_seal_sha256": "6772ae3a1595a49c2ab0ef6c3f443e2683baf0283d8300bc8a718d2f04d8689f",
+    "source_verified": true,
+    "tool_argv": {
+      "calls": [
+        {
+          "allowed": true,
+          "argv": [
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+            "/home/runner/work/_temp/latest-mining-full-plan-74fc9a53e4bde161f326bbd16710b625f86716e6/horizon/Cargo.toml",
+            "--offline",
+            "--locked"
+          ],
+          "kind": "cargo",
+          "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+        }
+      ],
+      "log_present": true,
+      "mtime_ns": 1793967333887544790,
+      "raw_bytes": 335,
+      "raw_sha256": "e3c784d475e50e7c3d35737751e3969c90b81240cf19b5266c9a8402304b2862",
+      "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.",
+      "validated": true,
+      "validation_error": null,
+      "wrapper_installed": true
+    }
+  },
+  "full_console": {
+    "bytes": 54994,
+    "encoding": "gzip+base64",
+    "gzip_bytes": 12623,
+    "payload": "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",
+    "sha256": "b794d7a06a22ae769ced2942d0a66368f449a53384dc071d96ed9265d71490ff"
+  },
+  "job_id": 127885664173,
+  "reconstructed_exact_records": {
+    "plan-cpu-reconstructed.jsonl": {
+      "bytes": 10463,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 1323,
+      "payload": "H4sIAAAAAAACA52a3WocORCF7/MUYa6DaVXpp7QvY4w9BJPENhmH3SXk3XPKJN6NSwcKXYXpMJ8/NK1zatTz/fTp/uHu9Nf70+X55uvz6cP70+PfD+ev10/3flWnGi49ffzj1e8XEy8u58vl/vHhv/994Vw/399+uuCiHFILrr68vn4C+HK+fXz5i+U4frz7fjp/vnm6nO9+Xff3HFfH4e95Nbv58vT57GqXfy/P5y+v8AOXvl3AfL2wBjYAawZo9pZYj7ZmFrccGWg5+luqWSVUqJaSo4631KIma6xAtrRdrFkhWLedOWxYWVGGVdiK5rAzYKmtwlZyn1gJd5aqkZurwlZ3qUapkNWaw5Zw01LZ5rLJNZCAtTEJFra1bGKbMmyHba27WGrb3dZyWH2L7dR2wLaVXSy1HbBtub1b6lvs0GFrrLltbu++JMefWKNY2HbZxJqOscZO2Paewy7SlmLddm5iJ7VFs10dIxkKIW+ncS58R3L7hsAt2PmdgL3NbJtrnAthS+7gEOXYJhTsjWZjG8yNvdNmbhdLyPMiOti84K02c0shJYKNg9049+GJxJlBB5tF0GzlKNtg4+AGcC7SJCRlqdy4uXFyKWoE21AGhnGRXTAajoFRcSU5ma3A3Li7cS7aJARx6dwYNVeS09kKzI1RdEVyGS8hjAuajgy/BVVXksJx+EXVUS6ENQmOqYmyI4NqmS7ct8HGwTBORlAMzUmFBX1X6j7YxsHALpyLeQ1pLId2MqYICq8kh7UV2PpgYBi33FJoiHnBx06yTcSNc9mmEsHGwTBOjmwa0lhEO9nQgsZDDG2DjYPdOJdtWuP3Tm7sjZec21ZgbuyNN3I7WkNoStXOvth74yVvih65xrkQTg5uC3DTzqLCCy85uOmIYONgGCfviXgW0bmw911ybluBrbNs875Lzm0ajzmGUjD6Tg7ZBnNjFJ4k57YaQ9O48XRj2wZbYzGPwpPk3FZjGk9tgx1RwbjkNnSNaTyNg2GcFA6ZqQcXRuFJcmxbga11Bnbh3IauITMVccfAKDzRXEXXFsHcGIUn2nbBwo3VjZO3cY9ga8rAME6ery3AeDsDo/CkJpdiLM5EmzCwGyeXIqSmVqVgFJ605AaZEWyNng7DuOV2dIsHuU0puLvx3AZbOxgYxj23pVsINwxBFIzKk+RpW5MI5saovGRULLiDC3vjjVxHtxhuw+pkYBdOGsdwM9xvBOyNZ2UbbBwM4+Tg1mK4TWpcvfHMtsHGwTBOnri1Hp/PaSWVV73yZi7c2ohg42A3tl1w4caoPE1Obi0+qsTA3hm4Adx2waIUrG6cDLcZwdwYlafJya0f8QEYCoiAUXmanNxWYONgGCeF4xO7yoXReJqc3Hp8ZletVgZ24eRKhNSsTSvp6IrGS56LrbjGuRBOPhTtITRr10oqug4XHttg42AYJ4VDZtbBhVF4WvfBVtljZ3Ph5ErEMEbhMTAKT5MHbj1mpnFjFJ4mD9wW4EmN2+HGtg02DoZxTy5FCON2qLKn8Cg8TR649RnBxsFubLvgwo298IZsg7mxF97ILcUIKd8EX20I2Atv5ApvlAg2Doax5ZZiLH5DgfwiYC88y8X80Ag2Dnbj5FKE1Gzo6M5+TQLjqdtg42AYz+RShNhsWGTS0Q2Nl4ug0SMWqcmw7aomf1y0AHelYBReTf56bYwI5sYovORBxYI7cBcTrv9c5eXR1fmf++fr28e7szP+94fO+OfD77/36xcbP979BGtsl3nfKAAA",
+      "sha256": "7843c68aa2e57e32bf77f7e0544e25d801bedf2893344dc0b58abbf527585181"
+    },
+    "tool-argv-reconstructed.jsonl": {
+      "bytes": 335,
+      "encoding": "gzip+base64",
+      "gzip_bytes": 254,
+      "payload": "H4sIAAAAAAACA1WQz27DIAzG73uKivMIpU3on+seY5oqEkyCAnZEoKk27d0Hymkn2z9b9vf5h80ODbsf2KDjSOz9wEp8FvDJAiRtdNIVcm4pBp34E+LqCCuTewOJG1jWvQganYU18UWnqSIxUQARMyJEsVGcxSNBWITXqY4Fhw5HbrP3fPEa+aW1w013Z2h7A1JJez6pvjdSXeSxV6fOXkumQJW90X0Tio+qu0kU/K6ArPUOYS88DTMY9lVteU8bVKspZigggvbV+D+FTcxryotIRH6YtMNVyObWNUf+uqqHannGGWlDXm7kFx8xi96h2J/3+/YH0sgx0E8BAAA=",
+      "sha256": "e3c784d475e50e7c3d35737751e3969c90b81240cf19b5266c9a8402304b2862"
+    }
+  },
+  "run": {
+    "conclusion": "success",
+    "created_at": "2026-11-06T12:12:26Z",
+    "head_branch": "checkpoint/plutolib-latest-mining-full-plan-ci-20261106",
+    "head_sha": "74fc9a53e4bde161f326bbd16710b625f86716e6",
+    "html_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42215886835",
+    "id": 42215886835,
+    "updated_at": "2026-11-06T12:25:20Z"
+  },
+  "schema": 1,
+  "scope_limits": [
+    "Diagnostic only. Original main/PR, original archives and CLI are unchanged; no apply, host/Game type proof or runtime authority claim.",
+    "A valid complete rejection is a completed diagnostic, not compatible software. Timeout or collector refusal remains unjudged.",
+    "Only successfully collected selected plan IR is retained. Whole plan digest/size and unretained input hashes do not reconstruct the ephemeral complete plan.",
+    "Unchanged aggregate old12 guards stop at first rejection. No later guard is implied by an earlier result.",
+    "Tool argv records are pre-exec starts, not completion markers. CPU observations are only the known direct CLI PID, not aggregate children or internal planner phase timing.",
+    "The fetched full job console and exact FINAL_RECEIPT are retained; raw verbose phase files were not downloaded.",
+    "This docs-only closure does not alter the trigger or authorize a retry."
+  ],
+  "small_probe_proof": "f2f2cf42a06fa0159dc94491f68108ef5ae55e71",
+  "status": "diagnostic complete; official full plan rejected; compatibility false",
+  "unreconstructed_record_names": []
+}
