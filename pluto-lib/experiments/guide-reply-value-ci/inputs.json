@@ -23,7 +23,7 @@
     "pluto-lib/experiments/guide-legacy-response-bridge/consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
     "pluto-lib/experiments/guide-reply-value-ci/run.py": "86fc0faa6b5701c46f24b4d2b694c182c3298350b3f878ff128cde445fe1a9ea",
     "pluto-lib/experiments/guide-reply-value-ci/test_runner.py": "b5efe77bed209f794ed3dacb418ccdfa18deb01dd68364d517b6f363fe4bcffb",
-    "pluto-lib/experiments/guide-reply-value-ci/README.md": "e2919b3215b0d803cea24e31671072289989e53331d79faaef46d65f7d772874",
+    "pluto-lib/experiments/guide-reply-value-ci/README.md": "70db0cebe9a4aa0130c6f0b70a707d2852816b4efc8a65c10de091aaeb9f3320",
     ".github/workflows/guide-reply-value-wip.yml": "fc72f073ae88b60b01f96896364b30ab6fd6ae9093133be62ecd248db3acc647"
   },
   "pure_source_validation": {
@@ -32,5 +32,14 @@
     "extraction_tests": 6,
     "native_executed": false,
     "initial_attempt": "24-test runner suite rejected a documentation phrase split by a newline; its nested suite reported the same assertion. Test-only whitespace normalization fixes that assertion; no runtime or fixture changes."
+  },
+  "utility_provenance": {
+    "source": "06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75",
+    "missing_in_first_checkpoint": "903fef4a71c6790a6e2fb39be0742f964d1c408f",
+    "runtime_changed": false,
+    "git_blobs": {
+      "pluto-lib/experiments/guide-storage-ci/run.py": "a9f02d6729875b15c9a88f04d1790e8ed09c9b3b",
+      "tconstruct/tests/guide-identity-ci/run.py": "f13e5a60c8aa49cc897356e6540337d10618cd2e"
+    }
   }
 }

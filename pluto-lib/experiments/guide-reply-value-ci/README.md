@@ -36,3 +36,9 @@ native Text spans/components. It does not prove Game admission, bootstrap,
 registry ordering, native observer flow, real Client, overlays, language reload,
 retained screen lifetime, owned opening, packet delivery or LAN behavior. Those
 require the separate actual-plan/applied-host/transport gates before integration.
+
+Publication admission found that the first controller checkpoint903f lacked its
+two imported safety utilities on that remote tree. No run was started. The next
+checkpoint includes those two files unchanged from successful06305; their exact
+Git blobs and SHA256 pins are recorded. Reusing utility source does not reuse its
+old native runtime results as evidence for this41f reply fixture.
