@@ -242,7 +242,12 @@ def execute(report):
         evidence=json.loads((fixture/'fixture-sources.json').read_text())
         if evidence['revision']!=pin['revision'] or evidence['expected_names']!=expected:
             raise ValueError('Fixture evidence differs from exact CI scope')
-        fixture_seal=regular_seal(fixture);gates['metadata']={'passed':True,'packages':evidence['dependency_packages']}
+        fixture_seal=regular_seal(fixture)
+        packages=evidence['dependency_packages']
+        gates['metadata']={'passed':True,'package_count':len(packages),
+            'packages_sha256':sha(json.dumps(packages,sort_keys=True).encode()),
+            'lock_sha256':evidence['lock_sha256'],'metadata_sha256':evidence['metadata_sha256'],
+            'required_local_owners':[p for p in packages if p['name'] in ['pluto-language-overlay-fixture','horizon-client-core','horizon-mods','horizon-client-lib']]}
         cmd=['cargo','test','--lib','--locked','--offline','--manifest-path',str(fixture/'Cargo.toml'),'-vv']
         built=runner.run('actual-native-compile',cmd+['--no-run'],timeout=1800)
         for crate in ['horizon_client_core','horizon_mods','horizon_client_lib']:

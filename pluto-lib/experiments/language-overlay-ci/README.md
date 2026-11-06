@@ -42,7 +42,9 @@ not a claim that this separately authorized controller has run already.
 
 Raw logs are complete files consumed by strict validators. Console output is
 bounded: per-phase byte count/SHA/exit, actual compile witness hashes, validated
-test names, and the final receipt. A failed command prints only its bounded
+test names, and the final receipt. The metadata receipt retains the complete
+graph count/hash and exact four required local owners, not hundreds of repeated
+registry paths; the full metadata file is still verified and sealed. A failed command prints only its bounded
 16 KB tail. This avoids losing the final proof in a huge Cargo log; the summary
 is not substituted for the raw test parser. Recompilation is detected after the
 execution command completes, not intercepted before rustc could start.

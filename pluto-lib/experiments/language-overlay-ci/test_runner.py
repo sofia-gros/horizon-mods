@@ -157,6 +157,8 @@ class OverlayCI(unittest.TestCase):
  def test_source_only_fixture_scope_remains_distinct(self):
   c=m.read_inputs();self.assertEqual(c['python_tests'],6)
   self.assertEqual(c['cutoffs']['successful_package_runner'],'8b17fba9610c3e60a873c822f2fa04f93d5c94e4')
+  self.assertIn("'package_count':len(packages)",(HERE/'run.py').read_text())
+  self.assertNotIn("'packages':evidence['dependency_packages']",(HERE/'run.py').read_text())
   s=(HERE/'run.py').read_text()
   for v in ['selected/server pack merge or filters','priority repair','Options/live UI']:
    self.assertIn(v,s)
