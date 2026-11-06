@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "head": "c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a",
+  "run_id": 42207740778,
+  "job_id": 127858494797,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42207740778",
+  "conclusion": "failure",
+  "terminal_utc": "2026-11-06T11:06:59Z",
+  "console": {
+    "utf8_bytes": 18518,
+    "sha256": "eb7317b1aa58f3604b6a3e7616482a1ee0fce13075634f87194fcb62502a862e",
+    "complete_console_retrieved": true,
+    "raw_phase_files_retrieved": false
+  },
+  "final_receipt": {
+    "build_outputs_seal": null,
+    "error": "RuntimeError: latest-inventory exited 1; ValueError: Missing required gate",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "prior_runner": 15,
+      "runner": 13,
+      "source": {
+        "native_type_executed": false,
+        "ownership_tests": 10,
+        "rust_executed": false,
+        "source_files": 12
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a",
+    "minimum_free_bytes": 91223425024,
+    "mod_source_seal": "8908b329e879588c6053c56423d8d210e966f23116c19a4cd9951ed833789ac8",
+    "passed": false,
+    "scope": "Latest f4dc target: ten generic owned-storage tests plus excluded official Game/BookScreen lib+bin typing. Not ordinary Pluto composition, permitted Game opening, actual Client/UI, catalog reload or LAN reply execution.",
+    "source_seals": {
+      "/home/runner/work/_temp/guide-latest-owned-opening-c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a/official-git": "7a9e25fbe124ddfa631574c1e694f36755c918151b52111d97912058af757a2c"
+    },
+    "verified": true
+  },
+  "failed_phase": "latest-inventory",
+  "unrun": [
+    "std Rust compilation",
+    "17-case inventory",
+    "10 owned-storage tests",
+    "11-file experiment preparation",
+    "metadata comparison",
+    "actual three compiler gate",
+    "UI or LAN"
+  ],
+  "reviewed_missing_files": [
+    {
+      "path": "crates/horizon-client/src/game/boat_authority_fixture.rs",
+      "git_blob": "1910c6d5c665189304b2bbf987d6073837a815f1",
+      "sha256": "39e89a7a05d9afe324120220c5f49bf3534dcc3563c75565957687b814ddcc75",
+      "lines": [
+        75
+      ],
+      "finding": "self.player = Some(player); actual player replacement after successful construction."
+    },
+    {
+      "path": "crates/horizon-client/src/game/boat_rider_fixture.rs",
+      "git_blob": "c1dc893d422fcba7e89cf44c3fa2bb9b07e5477b",
+      "sha256": "91fa5383a873eaca9be301e342e957196ed9fc50a40307396f988b3c93b53c5d",
+      "lines": [
+        27,
+        86
+      ],
+      "finding": "fallible PlayerMotion construction before assignment; remote=None on fixture completion."
+    }
+  ],
+  "proposed_followup": {
+    "status": "not implemented or retried",
+    "known_sources": 21,
+    "book_sites": 79,
+    "attachment_transition_sites": 26,
+    "principle": "Do not exclude fixtures; review three exact transitions, preserve failed RHS evaluation before any new invalidation. Re-run full fresh inventory in a separately reviewed cutoff."
+  }
+}
