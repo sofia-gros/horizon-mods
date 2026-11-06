@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "head": "0447b0bab69102dbd5456617a6b6542f8bada4db",
+  "run_id": 42209312310,
+  "job_id": 127863736281,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42209312310",
+  "conclusion": "failure",
+  "terminal_utc": "2026-11-06T11:19:23Z",
+  "console": {
+    "utf8_bytes": 21082,
+    "sha256": "d139cbd54b075c90c32d1b6585727edcd22bb2306999ecf69d012fecc0043c0d",
+    "complete_console_retrieved": true,
+    "raw_phase_files_retrieved": false
+  },
+  "final_receipt": {
+    "build_outputs_seal": null,
+    "error": "RuntimeError: compile-ownership exited 1; ValueError: Missing required gate",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "latest_inventory": {
+        "attachment_sites": 26,
+        "book_sites": 79,
+        "full_inventory_verified": true,
+        "known_source_files": 19,
+        "patch_sha256": "e35455951b4bc7e3aa01912f348a4c178523dc128c712ece6c7413a7c2d987d0",
+        "receipt_sha256": "e00de6ae236610b1cde4375dc4556964d676e03a1df4cfa68907e9e52490ff72"
+      },
+      "latest_source": 14,
+      "official_source": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"
+      },
+      "prior_runner": 15,
+      "prototype_identity": {
+        "helper_sha256": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398",
+        "original_fragments_unchanged": true
+      },
+      "runner": 14,
+      "source": {
+        "native_type_executed": false,
+        "ownership_tests": 10,
+        "rust_executed": false,
+        "source_files": 12
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "0447b0bab69102dbd5456617a6b6542f8bada4db",
+    "minimum_free_bytes": 91088003072,
+    "mod_source_seal": "0da4bc6f906f35436910ce04a3e0feb66ca745627c35f28b22015fbdad1a87e2",
+    "passed": false,
+    "scope": "Latest f4dc target: ten generic owned-storage tests plus excluded official Game/BookScreen lib+bin typing. Not ordinary Pluto composition, permitted Game opening, actual Client/UI, catalog reload or LAN reply execution.",
+    "source_seals": {
+      "/home/runner/work/_temp/guide-latest-owned-opening-0447b0bab69102dbd5456617a6b6542f8bada4db/official-git": "7a9e25fbe124ddfa631574c1e694f36755c918151b52111d97912058af757a2c",
+      "/home/runner/work/_temp/guide-latest-owned-opening-0447b0bab69102dbd5456617a6b6542f8bada4db/pristine": "a5aa60c573d189d1e9b207247f9aba76516764849a2fec1edc1a85cb6af093a7"
+    },
+    "verified": true
+  },
+  "failed_phase": "compile-ownership",
+  "diagnostic": {
+    "code": "E0282",
+    "path": "pluto-lib/experiments/guide-owned-opening/fixture.rs",
+    "line": 96,
+    "cause": "RetainedBook generic value cannot be inferred before the callback field access."
+  },
+  "receipt_correction": {
+    "field": "gates.latest_inventory.known_source_files",
+    "emitted": 19,
+    "actual_pinned_source_map_length": 21,
+    "original_receipt_preserved": true,
+    "reason": "The summarized count was a stale hardcoded literal. The complete receipt was strictly compared to the 21-file generation map before this summary was emitted."
+  },
+  "passed_scope": [
+    "fresh complete game assignment-spelling inventory (79 book accesses, 26 attachment sites)",
+    "exact official f4dc checkout and lock",
+    "14 runner and 14 latest-source Python checks",
+    "original helper identity and final source seals"
+  ],
+  "unrun": [
+    "17-case binary inventory",
+    "10 owned-storage test execution",
+    "13-file experiment preparation",
+    "metadata comparison",
+    "actual three compiler gate",
+    "Client/UI, owned opening, reload or LAN"
+  ],
+  "proposed_followup": "Explicit fixture Value type and derived receipt count only; separate reviewed cutoff. No automatic retry."
+}
