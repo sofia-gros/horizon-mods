@@ -15,10 +15,10 @@ m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 def legacy_script():
     """Verify exact latest entry, then test the preserved historical 60e42 source."""
-    text=(ROOT/'tools/play-windows.ps1').read_text()
+    text=(ROOT/'tools/play-windows.ps1').read_text(encoding='utf-8')
     latest=ROOT/'tests/windows-latest-entry-inverse.json'
     if latest.exists():
-        value=json.loads(latest.read_text())
+        value=json.loads(latest.read_text(encoding='utf-8'))
         if hashlib.sha256(text.encode()).hexdigest()!=value['candidate_script_sha256']:
             raise ValueError('Latest entry differs from frozen inverse witness')
         text=value['base_script']
@@ -69,7 +69,7 @@ class Tests(unittest.TestCase):
         path=self.bundle/'source.rs'; before=path.stat(); path.write_bytes(b'changed length')
         with self.assertRaisesRegex(ValueError,'changed before read'):m.file_hash(path,before)
     def test_script_exact_inverse_keeps_other_behavior(self):
-        value=json.loads((ROOT/'tests/windows-pluto-cache-inverse.json').read_text()); text=legacy_script()
+        value=json.loads((ROOT/'tests/windows-pluto-cache-inverse.json').read_text(encoding='utf-8')); text=legacy_script()
         self.assertEqual(hashlib.sha256(text.encode()).hexdigest(),value['candidate_script_sha256'])
         for old,new in reversed(value['edits']):
             if not new:

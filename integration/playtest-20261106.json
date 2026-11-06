@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "reviewable source integration; latest complete plan and build not run",
+  "stage": "source integration; first actual complete-plan diagnostic running on fixed 9cc1; latest build not yet run",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -40,7 +40,7 @@
     },
     {
       "subject": "Windows execution validation",
-      "reason": "Latest same-branch guarded launch source is integrated and pure-tested. PowerShell parser/Windows pure CI, actual packaging, all twelve accepted guards, Windows native build/link/resources/startup remain unrun."
+      "reason": "Actual Windows PowerShell parse passed; first pure suite19/20 due to test encoding. Test-only correction is reviewed and pure43 passed, Windows retry pending. Actual all-guard acceptance, Windows native build/link/resources/startup remain unrun."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -67,7 +67,7 @@
     },
     "gates": {
       "git_blob_composition": "passed",
-      "complete_latest_plan": "not run on this branch",
+      "complete_latest_plan": "actual diagnostic running on fixed9cc1; no result yet as of2026-11-06T14:15:28Z",
       "composition_guards": "not passed on this branch",
       "native_build": "not run on this branch",
       "windows_link": "not run",
@@ -78,7 +78,8 @@
       "mining_source_adaptation": "16 pure source checks and complete selected-source inverse passed; exact ten input Git blobs checked against integration tree",
       "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution",
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
-      "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run"
+      "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run",
+      "windows_source": "actual PowerShell parse passed; first pure suite19/20, encoding correction pure43 passed locally; Windows retry not yet run"
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -94,6 +95,40 @@
       "native_type_verified": false,
       "console_sha256": "add0dd6526fea3ae533fbe4c93886945430d6547b1597aaab3f54132a59323ad",
       "receipt_losslessly_rechecked": true
+    },
+    "current_complete_plan": {
+      "controller": "11794d5f90b274caf46e97b44330b41424ad98de",
+      "integration": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+      "tree": "200cb8fcf0f22b16d82866bb67ea402d525489c9",
+      "run": 42231588813,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42231588813",
+      "started_at": "2026-11-06T14:10:40Z",
+      "as_of": "2026-11-06T14:15:28Z",
+      "state": "in_progress",
+      "apply_in_scope": false,
+      "build_in_scope": false
+    },
+    "windows_source_ci": {
+      "source": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
+      "run": 42230840423,
+      "job": 127935995641,
+      "result": "failure",
+      "powershell": "syntax parser passed; launch entry not executed",
+      "latest_tests": {
+        "passed": 19,
+        "failed": 1,
+        "total": 20
+      },
+      "historical_tests": "not reached",
+      "bundle_tests": "not reached",
+      "cause": "Test used Windows-default CP1252 for UTF-8 stage source; raw source and before/after seals matched",
+      "correction": "a186e44278daae717d3ad3fb69c4b9598e4d7dd1",
+      "correction_scope": "two test files use explicit UTF-8/bytes; runtime, PowerShell, stage, guard and CI execution code unchanged",
+      "corrected_pure_checks": 43,
+      "corrected_controller_checks": 11,
+      "retry": "not yet run",
+      "platform": "Windows Server 2025; not user Windows 11",
+      "record": "tconstruct/docs/windows-source-ci-first-result-20261106.json"
     }
   },
   "safety": {
@@ -244,11 +279,35 @@
       "powershell_executed": false,
       "windows_build_executed": false,
       "game_started": false
+    },
+    {
+      "subject": "Windows test encoding correction and first Windows source-CI record",
+      "source": "a186e44278daae717d3ad3fb69c4b9598e4d7dd1",
+      "paths": 6,
+      "ordinary_runtime_changed": false,
+      "pure_checks": 43,
+      "controller_pure_checks": 11,
+      "independent_review": "Guide read-only plus independent CP1252 reproduction; no concrete blocker",
+      "windows_retry_executed": false
+    },
+    {
+      "subject": "Stored crafting facts fixture preparer",
+      "paths": 4,
+      "pure_checks": 21,
+      "activation": "excluded preparation source only; no workflow, registration or ordinary hook changes",
+      "api_tests_planned": 153,
+      "finite_tests_planned": 16,
+      "actual_rust_executed": false
     }
   ],
   "guide_limits": [
     "Native 41f draw_book invokes the new transparent-background API; TConstruct custom draw retains its own fill and bypasses that new path.",
     "Legacy oracle scripts still pin their original candidate and are not relabeled as tests of this merged composition.",
     "Guide LAN conflict remains; no response behavior is silently disabled."
-  ]
+  ],
+  "merge_policy": {
+    "destination": "main",
+    "authorized_condition": "Actual full plan, composition guards, apply/build and available startup error checks must pass; imperfect development features are allowed but unverified build success is not.",
+    "old_prs": "Do not close before individual verification"
+  }
 }

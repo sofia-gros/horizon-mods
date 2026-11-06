@@ -14,7 +14,7 @@ This branch combines the current ordinary source work for review and a future pl
 - PR #944 foundation, PR #945 navigation, and later common035273 ordinary source, merged by exact Git type/mode/blob records.
 - Guide lazy page text/query, stable BookId and modifier anchors from d9f8. The overlapping files preserve all PR #945 navigation injections, controls and history handling. Eight source checks and complete inverse reconstruction passed. This is not a new native/Font/UI result.
 - Mining context now uses one native BreakSpeed HEAD plus a Pluto borrowed-facts module. Both raw manifests explicitly target 41f; PR #945 policies remain unchanged. Sixteen pure adaptation checks passed; no latest complete native build is claimed.
-- The Windows launch source now selects explicit official inputs and generates both native packages from this same branch. Whole package/cache seals, preserved default gameplay features, isolated saves, and mandatory plan → guards → apply are wired in. Twenty latest, twelve historical-cache, and eleven synthetic-package checks passed; PowerShell/Windows execution remains unrun.
+- The Windows launch source now selects explicit official inputs and generates both native packages from this same branch. Whole package/cache seals, preserved default gameplay features, isolated saves, and mandatory plan → guards → apply are wired in. Twenty latest, twelve historical-cache, and eleven synthetic-package checks passed locally. The first Windows source CI passed PowerShell syntax, then stopped at 19/20 tests because of a test-only CP1252/UTF-8 mismatch; the reviewed correction is included, and its Windows retry is pending.
 - Three existing outer-tank NBT delegation changes are included without reverting PR #945 storage migrations. Twelve source/inverse checks passed. The earlier 160-case proof used official624c and is not a latest Game/build result.
 - Pluto's package header and all six ordinary components now declare the same 41f target, with the header fixed to Mixins5a64. Eight declaration/inverse checks passed. This removes a packaging-input mismatch, not the remaining plan/guard/type failures.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
@@ -43,3 +43,9 @@ See [the machine-readable intake and verification record](integration/playtest-2
 ## Existing PR coverage
 
 [The fixed 265-PR intake tracker](integration/pr-intake-tracker/README.md) separates individually confirmed source intakes from unresolved comparisons and actual execution evidence. Old PRs remain open until reviewed.
+
+## Current execution record
+
+As of 2026-11-06 14:15:28 UTC, [the first complete-plan diagnostic](https://github.com/sofia-gros/horizon-mods/actions/runs/42231588813) is running against fixed implementation `9cc1a01632913f01df1f0bcbb0b74b8bb9e80525`, not a moving branch head. Its scope is real packaging, one complete plan and twelve guard diagnostics, with no apply or game build. Subsequent test, documentation and excluded-fixture changes do not change those native inputs.
+
+[The first Windows source check](tconstruct/docs/windows-source-ci-first-result-20261106.md) records a real PowerShell syntax pass and a failed test suite, not a game launch. The encoding correction changes only tests; the inherited runtime is unchanged. The stored crafting fixture preparer has 21 pure checks, but its planned API153/native16 tests have not run.
