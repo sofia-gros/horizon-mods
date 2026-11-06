@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Latest official revision-only candidate: public plan-only diagnostic, never apply."""
-import importlib.util,json,os,re,shlex,shutil,sys
+import importlib.util,json,os,re,shlex,shutil,stat,sys
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
@@ -17,7 +17,7 @@ OFFICIAL={'horizon':{'url':'https://github.com/horizon-rust/horizon.git','revisi
  'lock':'0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'},
  'mixins':{'url':'https://github.com/horizon-rust/horizon-mixins.git','revision':prepare.MIXINS,
  'lock':'35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca'}}
-RUNNER_TESTS=28
+RUNNER_TESTS=32
 PREFIX='pluto-lib/experiments/latest-main-common-ci/'
 INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','README.md','official-contract.json']}
 INPUT_PATHS|={'.github/workflows/latest-main-common-plan-wip.yml','pluto-lib/experiments/common-composite-ci/run.py',
@@ -105,6 +105,40 @@ def attempt_guards(runner,plan,official):
           'first_rejection':log,'later_groups':'not claimed; unchanged aggregate stops at first rejection'}
     return {'passed':True,'aggregate_invoked':True,'groups_configured':12,'exit_code':0}
 
+def collect_tool_calls(report,log,official,real_tools,wrappers_ready):
+    observation={'wrapper_installed':wrappers_ready,'log_present':False,'calls':[],
+      'validated':False,'validation_error':None,
+      'semantics':'Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.'}
+    report['tool_argv']=observation
+    try:
+        if log is None:
+            observation['validated']=True
+            return observation
+        try:info=log.lstat()
+        except FileNotFoundError:
+            observation['validated']=True
+            return observation
+        observation['log_present']=True
+        if not stat.S_ISREG(info.st_mode) or info.st_size>64*1024:raise ValueError('Unsafe or oversized tool argv log')
+        raw=log.read_bytes()
+        if len(raw)!=info.st_size or len(raw)>64*1024:raise ValueError('Tool argv log changed during read')
+        observation.update(raw_bytes=len(raw),raw_sha256=sha(raw),mtime_ns=info.st_mtime_ns)
+        lines=raw.decode().splitlines()
+        if len(lines)>64 or raw and not raw.endswith(b'\n'):raise ValueError('Too many or incomplete argv records')
+        calls=[json.loads(line) for line in lines];observation['calls']=calls
+        if calls and (not wrappers_ready or official is None or real_tools is None):raise ValueError('Unexpected calls before wrapper installation')
+        for call in calls:
+            if not isinstance(call,dict) or set(call)!={'kind','argv','allowed','real'}:raise ValueError('Wrong argv record shape')
+            kind=call['kind']
+            if (call['allowed'] is not True or not isinstance(kind,str) or kind not in real_tools or
+                call['real']!=real_tools[kind] or not prepare.allowed(kind,call['argv'],official/'Cargo.toml')):
+                raise ValueError('Unexpected tool invocation in final witness')
+        observation['validated']=True
+        return observation
+    except BaseException as exc:
+        observation['validation_error']=type(exc).__name__+': '+str(exc)
+        raise
+
 def execute(report):
     config=inputs();validate(config)
     event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
@@ -120,7 +154,7 @@ def execute(report):
     env.update(RUSTUP_TOOLCHAIN='1.95.0',CARGO_HOME=str(work/'cargo-home'),CARGO_TARGET_DIR=str(work/'cli-target'),
       CARGO_BUILD_JOBS='1',CARGO_PROFILE_RELEASE_DEBUG='0',CARGO_INCREMENTAL='0',CARGO_TERM_COLOR='never',
       TMPDIR=str(work/'tmp'),PYTHONDONTWRITEBYTECODE='1',GIT_OPTIONAL_LOCKS='0')
-    runner=Runner(work,env,report);snapshots={};git_snapshots={};artifact_seals={};cli=None;cli_hash=None;plan=None
+    runner=Runner(work,env,report);snapshots={};git_snapshots={};artifact_seals={};cli=None;cli_hash=None;plan=None;wrapper_log=None;official=None;real_tools=None;wrappers_ready=False
     try:
         runner.guard(reserve=4*1024**3)
         report['gates']['memory_admission']={'passed':True,'available_bytes':runner.minimum_memory,'capacity_minimum':6*1024**3,'admission_available_minimum':2*1024**3}
@@ -175,6 +209,7 @@ def execute(report):
         if not real_cargo.is_relative_to(toolchain) or not real_rustc.is_relative_to(toolchain):raise ValueError('Unexpected toolchain binaries')
         bindir=work/'metadata-only';wrapper_log=work/'tool-argv.jsonl'
         prepare.write_wrappers(bindir,official/'Cargo.toml',real_cargo,real_rustc,wrapper_log)
+        real_tools={'cargo':str(real_cargo),'rustc':str(real_rustc)};wrappers_ready=True
         snapshots[str(bindir)]=common.checkout_seal(bindir)
         env.update(CARGO=str(bindir/'cargo'),RUSTC=str(bindir/'rustc'),PATH=str(bindir)+os.pathsep+env['PATH'])
         plan=work/'plan.json';result=attempt_plan(runner,cli,official,mods,plan)
@@ -193,6 +228,8 @@ def execute(report):
         if set(report['gates'])!=(REQUIRED|({'complete_guards'} if result['accepted'] else set())):raise ValueError('Missing required diagnostic gates')
     except BaseException as exc:common.record_error(report,exc)
     finally:
+        try:collect_tool_calls(report,wrapper_log,official,real_tools,wrappers_ready)
+        except BaseException as exc:common.record_error(report,exc,'tool-argv verification: ')
         try:
             common.assert_git_clean(ROOT);common.assert_full_seal(ROOT,original)
             if prepare.git_state(ROOT)!=original_git:raise ValueError('Original checkout refs/index/HEAD drift')

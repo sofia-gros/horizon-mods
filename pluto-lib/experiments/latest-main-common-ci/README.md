@@ -90,10 +90,33 @@ Full receipt distinguishes `diagnostic_complete`, `source_verified`,
 
 ## Verification status
 
-28 pure Python regressions passed for this source cutoff (0.085 seconds), including exact pin and
+32 pure Python regressions passed for this source cutoff (0.110 seconds), including exact pin and
 source guards, wrapper refusal, one-shot rejection, two-manifest byte inverse,
 all 644 entries, untouched archive headers, explicit latest export marker,
 guard rejection versus safety interruption, and unchanged memory function
 bodies. These source tests do not execute Cargo, native code or the planner.
 Publish a non-trigger checkpoint and obtain independent review and a separate
 serial release before creating the trigger.
+
+
+## Post-timeout observability-only follow-up
+
+The first latest run at db543107 timed out in its one 180-second plan. Complete
+console/receipt are immutable at ac311972; compatibility remains unknown. Its
+old collection occurred only after the plan returned, so wrapper invocation
+records were not available in the failure receipt.
+
+This follow-up collects the existing wrapper log in finally, even after timeout
+or another exception. It validates every record against the same exact argv and
+real tool paths, and includes raw byte count/hash and file mtime-ns. Reads are
+limited to one regular non-symlink file, 64 KiB and 64 complete JSON lines. A
+partial/unexpected record is a separate verification failure. An absent file
+means no recorded invocation witness, not evidence that metadata completed.
+These are pre-exec call-start records only; metadata completion and planner
+subphase/target remain unknown without further evidence.
+
+Wrapper generation and permission semantics, tool/source pins, two manifest
+changes, 180-second timeout, memory/disk/PGID guards and all old native guards
+are unchanged. No per-process CPU data is added in this small follow-up; the
+shared monitor does not expose the child PID to its subclass guard. This source
+checkpoint is non-trigger only and needs review plus a new execution release.

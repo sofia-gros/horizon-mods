@@ -168,4 +168,42 @@ class Tests(unittest.TestCase):
    with mock.patch.object(m.common,'export') as export,self.assertRaises(ValueError):m.export_latest(root/'git','0'*40,root/'other')
    export.assert_not_called()
 
+
+
+ def test_29_timeout_path_still_collects_valid_started_call(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);log=root/'argv';official=Path('/official');tools={'cargo':'/tool/cargo','rustc':'/tool/rustc'}
+   call={'kind':'cargo','argv':p.metadata_args(official/'Cargo.toml'),'allowed':True,'real':tools['cargo']};log.write_text(json.dumps(call)+'\n')
+   report={'error':'TimeoutError: official-plan'}
+   result=m.collect_tool_calls(report,log,official,tools,True)
+   self.assertTrue(result['validated']);self.assertEqual(result['calls'],[call]);self.assertEqual(report['error'],'TimeoutError: official-plan')
+   self.assertIn('no metadata completion',result['semantics'])
+ def test_30_final_witness_rejects_unexpected_or_partial_record(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);log=root/'argv';official=Path('/official');tools={'cargo':'/tool/cargo'}
+   good={'kind':'cargo','argv':p.metadata_args(official/'Cargo.toml'),'allowed':True,'real':tools['cargo']}
+   for call in [{**good,'allowed':False},{**good,'argv':['build']},{**good,'real':'/other'}, {**good,'extra':1}]:
+    log.write_text(json.dumps(call)+'\n');report={}
+    with self.assertRaises(ValueError):m.collect_tool_calls(report,log,official,tools,True)
+    self.assertFalse(report['tool_argv']['validated']);self.assertIsNotNone(report['tool_argv']['validation_error'])
+   log.write_text(json.dumps(good));report={}
+   with self.assertRaises(ValueError):m.collect_tool_calls(report,log,official,tools,True)
+ def test_31_final_witness_bounded_absence_and_no_links(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);log=root/'argv'
+   self.assertFalse(m.collect_tool_calls({},None,None,None,False)['log_present'])
+   self.assertFalse(m.collect_tool_calls({},log,Path('/official'),{},True)['log_present'])
+   log.write_bytes(b'x'*(64*1024+1))
+   with self.assertRaises(ValueError):m.collect_tool_calls({},log,Path('/official'),{},True)
+   link=root/'link';link.symlink_to(log)
+   with self.assertRaises(ValueError):m.collect_tool_calls({},link,Path('/official'),{},True)
+ def test_32_final_collection_is_exception_path_and_timeout_unchanged(self):
+  text=(HERE/'run.py').read_text();tree=ast.parse(text);execute=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='execute')
+  tries=[n for n in ast.walk(execute) if isinstance(n,ast.Try) and n.finalbody]
+  self.assertTrue(any(any(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='collect_tool_calls' for b in t.finalbody for n in ast.walk(b)) for t in tries))
+  attempt=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='attempt_plan')
+  calls=[n for n in ast.walk(attempt) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='run']
+  self.assertEqual(len(calls),1);self.assertEqual(next(k.value.value for k in calls[0].keywords if k.arg=='timeout'),180)
+  self.assertEqual(p.write_wrappers,p.baseline.write_wrappers)
+
 if __name__=='__main__':unittest.main()
