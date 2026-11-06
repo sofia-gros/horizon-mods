@@ -1,6 +1,6 @@
 # Reuse the two-cell planner for chest insertion
 
-Source-preparation status: **native differential tests not yet run**.
+Focused validation status: **42 native tests passed at `c8089606`**.
 This consumer-only change is separate from the frozen v15 library cutoff.
 
 `source-tinker-chests.rs::insert_slot` previously allocated one borrowed
@@ -25,7 +25,7 @@ an admitted merge keeps the existing receiver's full native value. This is
 neither a stronger lossless policy nor authority to write live storage.
 No caller layout, notification, save, held-item or LAN sequence changes.
 
-## Independent oracle and planned validation
+## Independent oracle and focused validation
 
 The complete old `insert_slot` body was frozen from `6c09d53c`, before editing,
 in `tconstruct/tests/rust/insert_slot_legacy.rs` with source/function/file hashes.
@@ -46,7 +46,17 @@ call its actual insertion helper directly against the frozen implementation:
 - 18 malformed shape/index cases requiring unchanged full values.
 - An explicit opaque-wire merge case retaining the original receiver value.
 
-The planned 42-test fixture also repeats the prior 39 tests, with actual
-clean official ItemStack/NBT types and one real shared Cargo API crate.
-Host path/lock and full source identity checks remain mandatory. This document
-is not a completed test receipt or evidence of full TConstruct/gameplay proof.
+The 42-test fixture passed, including the prior 39 tests, with actual clean
+official ItemStack/NBT types and one real shared Cargo API crate. All 9,019 new
+direct comparisons passed. The 12,772 earlier matrix comparisons were repeated,
+not counted as new coverage. Both earlier oracle files and receipts are unchanged.
+
+Eight source guards and eleven package Python checks passed. Strict official
+path/lock identity and all 6,601 tracked MOD hashes were verified before and
+after the actual fixture. The normal continuous 10 GiB + 128 MiB disk guard
+held, with a minimum 10,889,220,096 bytes free. No retry was needed.
+
+The [exact-cutoff receipt](slot-insertion-validation-20261106.json) records the
+hashes, remote source checkpoint and scope. This is not full native-package,
+TConstruct gameplay, save/reload or LAN proof. Notification and publication
+call sites remain unchanged.

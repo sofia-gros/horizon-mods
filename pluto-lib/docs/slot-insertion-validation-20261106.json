@@ -1,0 +1,60 @@
+{
+  "source_cutoff": "c80896060abd1bed623bb73de881c455c840398c",
+  "remote_source_checkpoint": "201cd2535d277d924d912c15b7fd7d43c3734d2a",
+  "remote_source_tree": "fa96b9daad89927e22710ff7ddf2484000dfa200",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "scope": "Actual native ItemStack/NBT and one real shared inventory API package; source chest insert_slot adoption of existing plan_between with independent full old helper. Not full native package or TConstruct gameplay.",
+  "result": "passed",
+  "rust_tests_passed": 42,
+  "rust_tests_failed": 0,
+  "source_guards_passed": 8,
+  "package_python_guards_passed": 11,
+  "new_direct_legacy_comparisons": {
+    "count_limit_components_and_part_policy": 9000,
+    "malformed_shape_and_index": 18,
+    "explicit_opaque_receiver_preservation": 1,
+    "total": 9019
+  },
+  "prior_rust_tests_repeated": 39,
+  "prior_matrix_comparisons_repeated": 12772,
+  "independent_oracle": {
+    "source_commit": "6c09d53c8f60ef5e5257813ab472c2feec271f98",
+    "source_path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+    "source_sha256": "9a9c8179cfdd78e63cb628de301a0e1a6ae30b6a0e61c9bd0d9805371bd387c1",
+    "function": "insert_slot",
+    "function_sha256": "8027b453acbc35ee796705d3e59a1157d762244606d4ff51d07397463e199845",
+    "oracle_sha256": "ff37c1a29b9d543322add930f7c942b24c1a4d91563cf506dfe9a101ab427ff8",
+    "adopted_function_sha256": "b83a0ccebfaae831f63c98fb298c702b3913ba1855837ea000ebc61b140559f8",
+    "scope": "Exact old insertion body; current ChestKind policy and the shared actual plan_move dependency are separately source-guarded."
+  },
+  "previous_oracles_and_receipts_unchanged": true,
+  "oracle_dependency_routing": "Frozen old files import the old insert_slot through a fixture-only facade. Tested production wrappers and direct insertion compile intact as consumer_impl. No original oracle bytes were rewritten.",
+  "full_tracked_source_files_unchanged": 6601,
+  "full_source_seal_sha256": "e9472a1a6d79a297089c3e2a6c227d09299a87eaee802f5e1fd2f03ceb5c0506",
+  "log_path": "/tmp/pluto-slot-insertion-20261106.log",
+  "log_sha256": "0bf970beb0c2f3eae7266f7dbfdb0be3ee55861b88afe43f0670137cadd59198",
+  "runner_sha256": "74831e9a55fe9cf1e7ed59b237f20c6a57bc07ce579753b0f4ffddfe1f09fa35",
+  "strict_official_path_and_lock_identity_verified_before_and_after": true,
+  "official_tracked_source_clean": true,
+  "native_profile": {
+    "jobs": 2,
+    "debug": 0,
+    "incremental": false
+  },
+  "disk_guard_bytes": 10871635968,
+  "disk_guard_stopped": false,
+  "initial_free_bytes": 10890772480,
+  "minimum_free_bytes": 10889220096,
+  "free_bytes_after": 10890719232,
+  "behavior_changes": [
+    "No acceptance or malformed-input policy change; eliminates allocation of a full container snapshot. Planner indexes are now logical0/1, while Part admission retains physical slot."
+  ],
+  "not_verified": [
+    "Complete native package after this consumer-only change",
+    "Complete TConstruct bundle",
+    "Live native menu dispatch",
+    "Storage save/reload",
+    "LAN synchronization"
+  ]
+}
