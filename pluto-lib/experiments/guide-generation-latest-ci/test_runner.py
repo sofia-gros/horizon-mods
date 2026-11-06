@@ -17,7 +17,7 @@ def compiler_log(meta):
     return '\n'.join('Running `rustc --crate-name '+p['name'].replace('-','_')+' '+p['targets'][0]['src_path']+(' --test' if p['name']==m.NAME else '')+'`' for p in meta['packages'])
 def artifact_row(meta):
     p=meta['packages'][-1]
-    return {'reason':'compiler-artifact','package_id':p['id'],'profile':{'test':True},'executable':'/target/debug/deps/test-binary','target':p['targets'][0]}
+    return {'fresh':False,'reason':'compiler-artifact','package_id':p['id'],'profile':{'test':True},'executable':'/target/debug/deps/test-binary','target':p['targets'][0]}
 def results(names):
     return 'running 6 tests\n'+''.join('test '+n+' ... ok\n' for n in names)+'\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.01s\n'
 
@@ -56,7 +56,7 @@ class Checks(unittest.TestCase):
         self.assertEqual(m.artifact(json.dumps(row),meta,Path('/target')),Path('/target/debug/deps/test-binary'))
     def test_artifact_wrong_owner_extra_path_and_json_reject(self):
         meta=graph();row=artifact_row(meta)
-        for key,bad in [('package_id','other'),('executable','/elsewhere/test'),('profile',{'test':False}),('target',{'kind':['bin'],'src_path':'/fixture/lib.rs'})]:
+        for key,bad in [('fresh',True),('fresh',None),('package_id','other'),('executable','/elsewhere/test'),('profile',{'test':False}),('target',{'kind':['bin'],'src_path':'/fixture/lib.rs'})]:
             changed=dict(row);changed[key]=bad
             with self.assertRaises(ValueError):m.artifact(json.dumps(changed),meta,Path('/target'))
         for log in [json.dumps(row)+'\n'+json.dumps(row),'warning\n'+json.dumps(row),'{}']:

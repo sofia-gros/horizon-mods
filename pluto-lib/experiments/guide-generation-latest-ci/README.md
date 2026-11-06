@@ -15,7 +15,7 @@ are not executed. There is no Mixins, host patch or Game compilation here.
 
 Locked dependency fetch precedes offline fixture resolution. Only the owned
 fixture lock may adapt, then locked metadata must match. Three actual rustc
-invocations (core, render, fixture test) and one exact Cargo artifact are required.
+invocations (core, render, fixture test) and one exact Cargo artifact with `fresh: false` are required.
 All compilation ends before binary/source/OUT_DIR sealing. That same executable
 is invoked twice: exact sorted 21-name terse inventory, then generation's six
 names with 15 filtered and zero failures/ignored. The twelve older consumer cases

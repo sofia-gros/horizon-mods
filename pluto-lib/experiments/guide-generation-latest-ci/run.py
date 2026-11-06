@@ -86,7 +86,7 @@ def artifact(log,metadata,target):
     candidates=[r for r in rows if r.get('reason')=='compiler-artifact' and r.get('package_id')==packages[0]['id'] and r.get('profile',{}).get('test') is True and r.get('executable')]
     if len(candidates)!=1:raise ValueError('Missing/duplicate fixture executable')
     row=candidates[0];path=Path(row['executable'])
-    if row['target']['kind']!=['lib'] or Path(row['target']['src_path']).resolve()!=Path(packages[0]['manifest_path']).parent/'lib.rs' or not path.is_absolute() or not path.resolve().is_relative_to(target.resolve()):raise ValueError('Wrong executable path/target')
+    if row.get('fresh') is not False or row['target']['kind']!=['lib'] or Path(row['target']['src_path']).resolve()!=Path(packages[0]['manifest_path']).parent/'lib.rs' or not path.is_absolute() or not path.resolve().is_relative_to(target.resolve()):raise ValueError('Wrong executable path/target')
     return path
 
 def outputs(target):
