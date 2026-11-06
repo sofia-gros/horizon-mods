@@ -10,13 +10,35 @@ Start with the operation you actually need:
 
 | Need | Existing entry point | What remains yours |
 |---|---|---|
-| Decide how many items fit | `plan_between` or `plan_move` | Identity, destination admission, limits and applying the plan |
-| Build proposals for multiple storage partitions | `storage::stage_updates` | Independent copies, schema validation, fresh authority and commit |
+| Decide how many items fit | `inventory::plan_between` or `inventory::plan_move` | Identity, destination admission, limits and applying the plan |
+| Build proposals for multiple storage partitions | `inventory::stage_updates` | Independent copies, schema validation, fresh authority and commit |
 | Compare a present generic value | `snapshot_matches` | Equality coverage and protection against changes after the check |
 | Stage an actual native item for saving | `pluto_stack_storage::encode_item_lossless` | Original raw-record validation, slot policy and persistence |
 | Validate a saved native item Tag | `pluto_stack_storage::decode_item_canonical` | Empty-slot forms, aliases and other schema rules |
 | Replace selected fields in a native Compound | `pluto_nbt_storage::patch_compound` | Owned keys, values, aliases, nested patches and eventual write |
 | Manipulate already-admitted plain native cells | `pluto_stack_cells::{pickup,take,collect_ordered,insert_ordered}` | Layout, merge policy, permissions, native hooks and notifications |
+
+## A thin public entry, one implementation
+
+New consumers can import the common pure operations together:
+
+```rust
+use pluto_inventory_api::inventory::{
+    plan_between, plan_move, stage_updates, MoveError, MovePlan, StackSnapshot,
+};
+```
+
+The `inventory` module only re-exports the existing items. It adds no wrapper
+type, algorithm, validation order, registry or commit operation. Root imports
+such as `pluto_inventory_api::plan_between` and the original
+`pluto_inventory_api::storage::stage_updates` remain supported. Their types,
+public struct literals and error values are the same types, not converted DTOs.
+Existing `FnOnce`/`FnMut` callback contracts and result meanings stay unchanged.
+
+This separates the mod-facing choice of operation from the implementation
+without duplicating it. Host-dependent item codecs and native cell operations
+remain in their existing adapter modules; the pure crate cannot import the
+native host back into itself.
 
 ## One API instance, explicit imports
 
@@ -33,12 +55,14 @@ specific documented feature actually owns those capabilities.
 
 Native adapters remain host-qualified: for example,
 `horizon_client::pluto_nbt_storage` and
-`horizon_client::pluto_stack_storage`. No new facade, registration mechanism,
-transaction token or storage ownership type is introduced by this guide.
+`horizon_client::pluto_stack_storage`. The installed package exposes the same
+pure entry as `horizon_client::pluto_inventory::inventory`. This is still one
+crate instance. No new registration mechanism, transaction token or storage
+ownership type is introduced.
 
 ## Typed planning and proposal example
 
-The [complete value example](../examples/inventory/stage_proposals.rs) imports
+The [public-entry value example](../examples/inventory/stage_proposals_public.rs) imports
 the actual `pluto_inventory_api` crate. It uses consumer-defined `Variant`,
 `Bin` and `Cell` values, not simulated native ItemStack/Game declarations:
 
@@ -56,10 +80,19 @@ the originals remain unchanged. This does not roll back external callback
 effects, native RNG, hooks, writes or packets. Returned proposals are in key
 order; that is not a directive to change the consumer's commit order.
 
-**Validation status:** source-reviewed example only. It has not yet been
-compiled or executed. Its new assertions do not inherit the existing API's
-test results. A future check must use the actual Cargo crate, not a copied
-implementation, declaration stub or disabled module set.
+The [legacy-import example](../examples/inventory/stage_proposals.rs) is retained
+unchanged. The public-entry example changes only that import, leaving its
+consumer policy, six assertions and required-success checks identical.
+
+**Validation status:** the additive entry and its public example have not yet
+been compiled or executed. Four new crate tests cover old/new type identity,
+planner results and callback order, logical indexes, and detached staging.
+Those tests are unrun; the earlier API and legacy-example proofs do not cover
+this addition. Four Python source guards pass for the re-export-only surface,
+unchanged implementations, example imports and crate-source packaging; these
+are not Rust type checks. A future check must use the actual Cargo crate, not a copied
+implementation, declaration stub or disabled module set. Legacy-example CI is
+a separate, currently pending gate against its frozen source.
 
 ## Keep the boundaries separate
 
