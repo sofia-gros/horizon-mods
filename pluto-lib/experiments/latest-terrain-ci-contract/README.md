@@ -2,7 +2,7 @@
 
 **Pure contract code only, not a runnable CI or a compatibility result.**
 There is no workflow, command launcher, fetch, apply, compile or filesystem
-mutation in `contract.py`. Eighteen Python parser/source regressions pass on synthetic
+mutation in `contract.py`. Twenty-four Python parser/source regressions pass on synthetic
 strings. Those strings are not compiler output or Rust results. The latest
 complete plan and its actual rendering identities remain unavailable.
 
@@ -70,8 +70,7 @@ After latest package/guard admission is resolved, the proposed runner must:
    timing arrays and phase SHA/bytes; keep failure tails and missing phases.
 
 The old runner and fixtures are unmodified. The future runner still needs its
-current package preparation/guard admission, execution controller, complete
-legacy-mode validation and source/resource final verification. Do not call
+current package preparation/guard admission, execution controller and source/resource final verification. Do not call
 this checkpoint a ready-to-trigger workflow.
 
 ## New strict result contracts
@@ -101,3 +100,32 @@ separate emission cost. Opt3 can specialize fixed-shape code, so results are
 not a generic caching benefit or shipping performance claim. Keep original
 end-to-end data beside paired measurements, including unfavorable or noisy
 results, and keep CPU synthetic results separate from GPU/live-game behavior.
+
+## Original end-to-end receipt preservation
+
+The pure legacy-mode validator now requires the original five timing cases
+(across two processes), four no-provider and fifty-one registered fallback
+replay receipts, exactly one resumed claim at the dense-budget replay, all five
+registered case markers, and all thirty-two ordered material-fallback input
+tuples. It checks complete schemas, scalar types, finite positive timing
+samples and recomputed ratios. Missing, duplicate, malformed or cross-mode
+markers are rejected. These receipts do not replace the frozen Rust full-output
+and scratch assertions, or the post-execution source seals.
+
+The number and ordering are derived from the pinned original fixture. No
+production or Rust fixture bytes changed, and no new Rust/CPU run occurred.
+Claimed-mixed and secondary-material still compare altered geometry to the
+original native geometry; their ratios are not isolated adapter overhead.
+A zero-duration original timing is rejected rather than producing a ratio.
+The separate profile microkernel parser still accepts explicitly inconclusive
+zero-duration samples under its own schema.
+
+A read-only parser audit of the already retained historical log from
+[run 42192378071](https://github.com/sofia-gros/horizon-mods/actions/runs/42192378071)
+(78,798 bytes, SHA-256
+`4a746fa27f7b89ba01cd1248abf20d440c58e334a2b24c843dc6d5f798784e21`)
+confirmed the 4/51 replay split, resumed index 18 and exact 32 fallback tuples.
+Only GitHub timestamp prefixes were removed for that array comparison. Its
+old compiler profile label and evidence scope were not relabeled or used as
+a latest-cutoff execution. The 24 committed regression tests use synthetic
+strings and do not depend on that private local log being present.

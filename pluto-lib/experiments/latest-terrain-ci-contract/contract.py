@@ -112,6 +112,75 @@ def validate_replays(rows, count, resumes=0):
     require(sum(r['valid_claim_resumed'] for r in rows) == resumes, 'resumed-claim count')
 
 
+def legacy_fallbacks():
+    # Exact frozen material_cases loop. These are input receipts, not permission
+    # to omit the subsequent full-output/scratch assertions in the Rust test.
+    material, geometry = 'pluto_fixture:material', 'pluto_fixture:geometry'
+    model = 'pluto_fixture:block/flow'
+    cases = [('ordinary', material, 0, model, False),
+             ('ordinary', material, 2, None, False),
+             ('ordinary', geometry, 1, model, False),
+             ('ordinary', material, 4, model, False),
+             ('ordinary', material, 2, model, True),
+             ('ordinary', material, 2, 'pluto_fixture:block/missing', False),
+             ('incompatible', material, 2, model, False),
+             ('opaque', material, 2, model, False)]
+    return [dict(zip(('kind', 'group', 'variant', 'model', 'stale', 'smooth', 'pack'),
+                     (*row, smooth, pack)))
+            for smooth in (False, True) for pack in (False, True) for row in cases]
+
+
+def validate_legacy(log, mode, opt, inventory):
+    require(mode in ('no-provider', 'registered'), 'not a legacy mode')
+    validate_result(log, mode, inventory)
+    completed = f'PLUTO_TERRAIN_MODE {mode} complete; actual native CPU mesh, original synthetic resources only'
+    require([s for s in log.splitlines() if s.startswith('PLUTO_TERRAIN_MODE')] == [completed],
+            'legacy completion')
+    timings = records(log, 'PLUTO_TERRAIN_CPU')
+    names = ['no-provider'] if mode == 'no-provider' else [
+        'registered-ordinary', 'provider-no-claim', 'claimed-mixed', 'secondary-material']
+    require([r.get('case') for r in timings] == names, 'legacy timing case order/set')
+    for row in timings:
+        require(set(row) == {'case', 'profile_label', 'debug_assertions', 'iterations_per_sample',
+            'warmup', 'samples', 'baseline_ns_per_section', 'adapter_ns_per_section', 'median_ratio', 'scope'},
+            'legacy timing schema')
+        require(row['profile_label'] == label(opt) and row['debug_assertions'] is True and
+                all(type(row[k]) is int and row[k] == n for k, n in
+                    [('iterations_per_sample', 64), ('warmup', 8), ('samples', 7)]) and
+                row['scope'] == 'CPU mesher, original synthetic assets; no GPU or production performance threshold',
+                'legacy timing configuration')
+        left, right = samples(row['baseline_ns_per_section']), samples(row['adapter_ns_per_section'])
+        require(all(x > 0 for x in left+right), 'legacy zero-duration timing cannot supply a ratio')
+        # Match the frozen Rust u64-as-f64 conversion before division.
+        ratio = float(sorted(right)[3]) / float(sorted(left)[3])
+        require(type(row['median_ratio']) in (float, int) and row['median_ratio'] == ratio,
+                'legacy ratio must be recomputed')
+    replay_rows = records(log, 'PLUTO_TERRAIN_REPLAY')
+    expected_replays, resumes = (4, 0) if mode == 'no-provider' else (51, 1)
+    validate_replays(replay_rows, expected_replays, resumes)
+    require([i for i, row in enumerate(replay_rows) if row['valid_claim_resumed']] ==
+            ([] if mode == 'no-provider' else [18]), 'only dense-budget replay resumes a valid claim')
+    cases = [] if mode == 'no-provider' else [
+        'no-claim passed 4 lighting combinations', 'claimed passed 4 lighting combinations',
+        'invalid-cell passed 4 lighting combinations', 'post-stale passed 4 lighting combinations',
+        'materials passed: layers, mixed faces, tint, Top, UV, fallback replay, Fusion full-layout smoke']
+    require([s for s in log.splitlines() if s.startswith('PLUTO_TERRAIN_CASE')] ==
+            ['PLUTO_TERRAIN_CASE '+c for c in cases], 'legacy required case order/set')
+    fallbacks = records(log, 'PLUTO_TERRAIN_FALLBACK')
+    require(fallbacks == ([] if mode == 'no-provider' else legacy_fallbacks()), 'legacy material fallback tuples')
+    for row in fallbacks:
+        require(type(row['variant']) is int and all(type(row[k]) is bool for k in ('stale', 'smooth', 'pack')),
+                'legacy fallback scalar types')
+    allowed = {'PLUTO_TERRAIN_REPLAY', 'PLUTO_TERRAIN_CPU', 'PLUTO_TERRAIN_MODE'}
+    if mode == 'registered': allowed |= {'PLUTO_TERRAIN_CASE', 'PLUTO_TERRAIN_FALLBACK'}
+    require(all(s.partition(' ')[0] in allowed for s in log.splitlines() if s.startswith('PLUTO_')),
+            'foreign legacy receipt')
+    return {'mode': mode, 'timings': timings, 'replay_rows': expected_replays,
+            'resumed_claim_replay_indices': [] if mode == 'no-provider' else [18],
+            'cases': cases, 'material_fallback_rows': len(fallbacks),
+            'scope': 'original end-to-end comparisons; claimed geometry differs from native, not isolated adapter overhead'}
+
+
 def validate_profile(log, opt, inventory):
     validate_result(log, 'profile', inventory)
     equal = records(log, 'PLUTO_PROFILE_EQUAL')

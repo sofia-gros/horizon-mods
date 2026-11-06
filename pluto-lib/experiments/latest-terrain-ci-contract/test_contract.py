@@ -52,6 +52,38 @@ def profile(opt=0):
     return result('profile')+'\n'.join(rows)+'\n'
 
 
+def legacy(mode='registered', opt=0):
+    rows = []
+    def add(marker, value): rows.append(marker+' '+json.dumps(value))
+    for i in range(4 if mode == 'no-provider' else 51):
+        row = replay()
+        if mode == 'registered' and i == 18:
+            row.update(valid_claim_resumed=True, native_replay_geometry_equal=False)
+        add('PLUTO_TERRAIN_REPLAY', row)
+    if mode == 'registered':
+        for name in ['no-claim', 'claimed', 'invalid-cell', 'post-stale']:
+            rows.append('PLUTO_TERRAIN_CASE '+name+' passed 4 lighting combinations')
+        for smooth in (False, True):
+            for pack in (False, True):
+                for kind, group, variant, model, stale in [
+                    ('ordinary','material',0,'flow',False), ('ordinary','material',2,None,False),
+                    ('ordinary','geometry',1,'flow',False), ('ordinary','material',4,'flow',False),
+                    ('ordinary','material',2,'flow',True), ('ordinary','material',2,'missing',False),
+                    ('incompatible','material',2,'flow',False), ('opaque','material',2,'flow',False)]:
+                    add('PLUTO_TERRAIN_FALLBACK', dict(kind=kind, group='pluto_fixture:'+group,
+                        variant=variant, model=None if model is None else 'pluto_fixture:block/'+model,
+                        stale=stale, smooth=smooth, pack=pack))
+        rows.append('PLUTO_TERRAIN_CASE materials passed: layers, mixed faces, tint, Top, UV, fallback replay, Fusion full-layout smoke')
+    for name in (['no-provider'] if mode == 'no-provider' else [
+                 'registered-ordinary','provider-no-claim','claimed-mixed','secondary-material']):
+        add('PLUTO_TERRAIN_CPU', dict(case=name, profile_label=m.label(opt), debug_assertions=True,
+            iterations_per_sample=64, warmup=8, samples=7,
+            baseline_ns_per_section=[2_000_000]*7, adapter_ns_per_section=[3_000_000]*7,
+            median_ratio=1.5, scope='CPU mesher, original synthetic assets; no GPU or production performance threshold'))
+    rows.append('PLUTO_TERRAIN_MODE '+mode+' complete; actual native CPU mesh, original synthetic resources only')
+    return result(mode)+'\n'.join(rows)+'\n'
+
+
 def change(log, marker, key, value):
     out = []
     changed = False
@@ -116,6 +148,58 @@ class Contracts(unittest.TestCase):
         for opt in (0,3):
             r = m.validate_profile(profile(opt), opt, NAMES)
             self.assertEqual((len(r['equal_rows']),len(r['pairs']),len(r['micro']),r['replay_rows']), (20,3,5,3))
+
+    def test_both_original_modes_require_all_replays_cases_and_timings(self):
+        for opt in (0,3):
+            for mode, n, timings, fallbacks in [('no-provider',4,1,0),('registered',51,4,32)]:
+                r = m.validate_legacy(legacy(mode,opt),mode,opt,NAMES)
+                self.assertEqual((r['replay_rows'],len(r['timings']),r['material_fallback_rows']), (n,timings,fallbacks))
+
+    def test_original_replay_exact_count_position_and_semantics(self):
+        good = legacy(); lines = good.splitlines(); first = next(s for s in lines if s.startswith('PLUTO_TERRAIN_REPLAY'))
+        resumed = next(s for s in lines if s.startswith('PLUTO_TERRAIN_REPLAY') and '"valid_claim_resumed": true' in s)
+        for bad in [good.replace(first+'\n','',1),good+first+'\n',
+                    good.replace(resumed,first),good.replace(first,resumed,1),
+                    good.replace(resumed+'\n','',1)+resumed+'\n',
+                    change(good,'PLUTO_TERRAIN_REPLAY','allocation_capacity_equality_required',True)]:
+            with self.assertRaises(ValueError): m.validate_legacy(bad,'registered',0,NAMES)
+
+    def test_material_fallback_input_tuples_are_exact_not_just_counted(self):
+        good=legacy(); row=next(s for s in good.splitlines() if s.startswith('PLUTO_TERRAIN_FALLBACK'))
+        for bad in [good.replace(row+'\n','',1),good+row+'\n',
+                    change(good,'PLUTO_TERRAIN_FALLBACK','model','pluto_fixture:block/unreviewed'),
+                    change(good,'PLUTO_TERRAIN_FALLBACK','group','pluto_fixture:cell'),
+                    change(good,'PLUTO_TERRAIN_FALLBACK','variant',False),
+                    change(good,'PLUTO_TERRAIN_FALLBACK','smooth',0)]:
+            with self.assertRaises(ValueError): m.validate_legacy(bad,'registered',0,NAMES)
+
+    def test_original_timing_schema_samples_and_ratio_remain_strict(self):
+        for key,value in [('median_ratio',True),('median_ratio',1.6),('samples',True),
+                          ('warmup',9),('profile_label','old-unadmitted-label'),
+                          ('baseline_ns_per_section',[0]*7),('adapter_ns_per_section',[True]*7),
+                          ('adapter_ns_per_section',[2**64]*7),('debug_assertions',False)]:
+            with self.assertRaises(ValueError): m.validate_legacy(change(legacy(),'PLUTO_TERRAIN_CPU',key,value),'registered',0,NAMES)
+        good=legacy(); row=next(s for s in good.splitlines() if s.startswith('PLUTO_TERRAIN_CPU'))
+        for bad in [good.replace(row+'\n','',1),good+row+'\n',good.replace('"median_ratio": 1.5','"median_ratio": NaN',1)]:
+            with self.assertRaises(ValueError): m.validate_legacy(bad,'registered',0,NAMES)
+
+    def test_original_markers_reject_missing_malformed_and_cross_mode_receipts(self):
+        good=legacy(); case='PLUTO_TERRAIN_CASE claimed passed 4 lighting combinations\n'
+        for bad in [good.replace(case,''),good+case,good+'PLUTO_TERRAIN_CASE\n',
+                    good+'PLUTO_TERRAIN_CPU \n',good+'PLUTO_PROFILE_FOREIGN {}\n',
+                    good.replace('PLUTO_TERRAIN_MODE registered','PLUTO_TERRAIN_MODE no-provider'),
+                    good.replace('PLUTO_TERRAIN_MODE','INCOMPLETE')]:
+            with self.assertRaises(ValueError): m.validate_legacy(bad,'registered',0,NAMES)
+        with self.assertRaises(ValueError): m.validate_legacy(legacy('no-provider')+case,'no-provider',0,NAMES)
+
+    def test_original_group_names_and_replay_structure_are_source_pinned(self):
+        source=(HERE.parent/'terrain-material-cpu/fixture.rs').read_text()
+        self.assertIn('const GROUP: &str = "pluto_fixture:geometry";',source)
+        self.assertIn('const MATERIAL_GROUP: &str = "pluto_fixture:material";',source)
+        self.assertIn('for kind in ["ordinary", "empty", "single"]',source)
+        self.assertIn('let claimed_replay = resume_valid_claim && kind == "single";',source)
+        self.assertIn('for smooth in [false, true]',source)
+        self.assertIn('for pack in [false, true]',source)
 
     def test_missing_duplicate_or_typed_equality_rows_reject(self):
         good = profile(); first = next(x for x in good.splitlines() if x.startswith('PLUTO_PROFILE_EQUAL'))
