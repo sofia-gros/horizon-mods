@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "status": "source only; fixture uncompiled and all eight native tests unrun",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "separate_from_i18n22_cutoff": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+  "official_inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-mods/Cargo.toml",
+      "sha256": "57e03f255286396977f889aa8fe90ca43694be1178c411e64e24f5093d10baf0",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-mods/src/lib.rs",
+      "sha256": "729233bfb444ec833a1eb8bb487856c687aa7c5ed3b8bbe4ed2de71624695840",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-mods/src/manifest.rs",
+      "sha256": "b4cf560d11c589ae65f17578867d6f4d97223f8ce4661d5eff433b8296f5930a",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-mods/src/content.rs",
+      "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client-core/Cargo.toml",
+      "sha256": "37de7590de671be779cb55db7dcf998646ae0b0bcc55531f517d69eb8971d180",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "sha256": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client/src/game/mods.rs",
+      "sha256": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content.rs",
+      "sha256": "8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs.rs",
+      "sha256": "c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+    }
+  ],
+  "fixture_inputs": {
+    "fixture.rs": "5bc5864eee68d924511fcac9e70bfe7ae2c528968eb1de6766322279d60e8d90",
+    "Cargo.toml.in": "4966b727ff00979adc3e5e059d7213d329d8520003119459a52b3038e2a71b0a"
+  },
+  "expected_test_names": [
+    "tests::hmod_round_trip_preserves_owned_locale_bytes_and_actual_lookup",
+    "tests::packaged_missing_exact_locale_uses_english_not_regional_guess",
+    "tests::content_admission_rejects_unowned_locale_namespace",
+    "tests::content_admission_requires_registries_even_for_only_language_files",
+    "tests::package_toml_asset_is_not_runtime_language_support",
+    "tests::package_content_admission_does_not_validate_language_json_schema",
+    "tests::custom_owned_locale_does_not_prove_native_locale_menu_discovery",
+    "tests::admitted_file_loss_is_failure_not_missing_resource_success"
+  ],
+  "dependencies": [
+    "actual horizon-client-core",
+    "actual horizon-mods; default-features=false; no index"
+  ],
+  "excluded": [
+    "Game::content_root enabled/dev/known_components admission",
+    "mod_content::build and native resource-pack overlay",
+    "installed Pluto module placement or full host type proof",
+    "real locale settings changes, startup, reload, glyph rendering or UI display",
+    "runtime TOML support",
+    "production consumer translation asset publication"
+  ],
+  "execution": {
+    "run_now": false,
+    "planned": "Separate explicitly granted CI: clean exact official source and full file-set seal; seed host lock; permit only official dependency identities plus exact fixture; compile actual crate; validate exact 8-name inventory; run once without filters/skips; reverify source/lock/OUT_DIR; preserve receipt."
+  },
+  "source_validation": {
+    "python_checks": 5,
+    "result": "passed",
+    "initial_attempt": "one source guard mistakenly expected seven excluded boundaries; actual explicit list has six; guard-only count corrected and all five rerun successfully",
+    "rust_compilation": false,
+    "native_tests_run": 0
+  }
+}
