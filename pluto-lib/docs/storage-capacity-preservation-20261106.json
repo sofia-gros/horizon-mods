@@ -52,6 +52,48 @@
         "active_handles_or_mappings": 0,
         "unreadable_processes": 0
       }
+    },
+    {
+      "executable": "pluto_inventory_api-6d08871139ab16a9",
+      "source_cutoff": "54037209 production plus 46984 test correction",
+      "original_sha256": "515d08fbf7dc98472437e68ccf88aab7c23639d641a9301d4c8d5530d6f01009",
+      "original_bytes": 3490648,
+      "archive": "completed-pluto_inventory_api-6d08871139ab16a9-20261106.tar.gz",
+      "archive_bytes": 955377,
+      "archive_sha256": "5919c856e3d067694c4c24663eb76e0820c3d0d9b7930cddd0fa4c83b1e3c21f",
+      "receipt": "products-font-completed-executables-cleanup-20261106.json",
+      "receipt_sha256": "f0f7b353649c84c70df31659b3ed45c181fcc6df3582c0807a6767de17a3de40",
+      "payload_count": 7,
+      "initial_free_bytes": 10878672896,
+      "minimum_free_bytes": 10877714432,
+      "free_before_receipt": 10881204224,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 80
+    },
+    {
+      "executable": "pluto_guide_text_tests-3ac29c54c820c202",
+      "source_cutoff": "0d67efc71cd65c0727f66ab2cc9b170c22e5c355",
+      "original_sha256": "b3f42f9d788d021b6ad17850b0144f87612ecde411c0e06847fe998e9392267e",
+      "original_bytes": 12493320,
+      "archive": "completed-pluto_guide_text_tests-3ac29c54c820c202-20261106.tar.gz",
+      "archive_bytes": 3482949,
+      "archive_sha256": "06b67ba9795a898dacfc79509a56ec4a9c887111458208f7a89814486078009a",
+      "receipt": "products-font-completed-executables-cleanup-20261106.json",
+      "receipt_sha256": "f0f7b353649c84c70df31659b3ed45c181fcc6df3582c0807a6767de17a3de40",
+      "payload_count": 7,
+      "initial_free_bytes": 10881204224,
+      "minimum_free_bytes": 10877718528,
+      "free_before_receipt": 10890153984,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 11
     }
   ],
   "attributes_verified": [
@@ -80,12 +122,19 @@
     "native_working_floor_bytes": 10871635968,
     "preservation_only_minimum_authorized_bytes": 10804527104,
     "last_observed_after_second_receipt": 10878877696,
-    "normal_native_threshold_unchanged": true
+    "normal_native_threshold_unchanged": true,
+    "last_observed_after_final_receipt": 10890149888,
+    "last_two_net_recovered_bytes": 11476992,
+    "last_two_used_normal_floor_plus_2MiB": true
   },
-  "protected_unknown_executable": "pluto_inventory_api-6d08871139ab16a9: exact terminal provenance not established; left untouched",
   "limits": [
     "No new native build was authorized by this preservation work.",
     "Archives retain complete executable bytes for restoration; restoring a binary is not a fresh compatibility test.",
     "No library cache, registry dependency, source, unpublished work, existing PR state or Horizon fork was modified or accessed."
-  ]
+  ],
+  "resolved_provenance": {
+    "previous_status": "pluto_inventory_api-6d08871139ab16a9: exact terminal provenance not established; left untouched",
+    "resolution": "Exact completed products API proof was subsequently found in crafting-products-plan/api-result.log and api-result.json: 80 tests passed, exit 0. The original producer confirmed no future use. Complete preservation and non-use checks then permitted removal of this dedicated executable only.",
+    "archive": "completed-pluto_inventory_api-6d08871139ab16a9-20261106.tar.gz"
+  }
 }
