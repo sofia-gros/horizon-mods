@@ -1,0 +1,111 @@
+{
+  "status": "source-only checkpoint proposal; no runtime change or activation",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "catalog_counts": {
+    "helpers": 174,
+    "hooks": 432
+  },
+  "selected_catalog_entries": {
+    "helpers": [
+      {
+        "name": "attachments",
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_attachments"
+      },
+      {
+        "name": "entity_nbt",
+        "target": "horizon_client::game::native_entity_data::Game<'_>::native_entity_nbt",
+        "receiver": "entity"
+      },
+      {
+        "name": "entity_merge_nbt",
+        "target": "horizon_client::game::native_entity_data::Game<'_>::native_entity_merge_nbt",
+        "receiver": "entity"
+      }
+    ],
+    "hooks": [
+      {
+        "name": "should_apply_effect_tick_this_tick",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_should_apply_effect_tick_this_tick",
+        "mod_api": {
+          "contract": "listen"
+        }
+      },
+      {
+        "name": "apply_effect_tick",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_apply_effect_tick",
+        "mod_api": {
+          "contract": "listen"
+        }
+      },
+      {
+        "name": "on_effect_added",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_on_effect_added",
+        "mod_api": {
+          "contract": "listen"
+        }
+      },
+      {
+        "name": "mob_effect_added",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_mob_effect_added",
+        "mod_api": {
+          "contract": "listen"
+        }
+      },
+      {
+        "name": "block_entity_inside",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_block_entity_inside",
+        "side": "server",
+        "mod_api": {
+          "contract": "listen"
+        }
+      },
+      {
+        "name": "consume_effect",
+        "version": 1,
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_consume_effect",
+        "mod_api": {
+          "contract": "listen"
+        }
+      }
+    ]
+  },
+  "horizon_sha256": {
+    "native-hooks.json": "b5f2b0cb5523b15eef52c1f8afcdb2afe1e79bee72ffb691a1a8ddf477932dbe",
+    "docs/native-mods.md": "b49ee716be3f22063c70d4e71769054610a093e677251b9bc2754761d552e693",
+    "crates/horizon-world/src/attachments.rs": "1de615241eb6c44f4ce83185bc59aaef4a1d3a2c8d0c6abe2a8aa18cd42bb99a",
+    "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/consume.rs": "6e24f541bc2d6c7a2eccf15d7711950be3eba3ccdfd603dd4e915047306222c6",
+    "crates/horizon-client/src/game/native_entity_data.rs": "bfafa5c4465410130c3a2a53cb09f8ec2618885018f75d15a0e2a26a332c4440",
+    "crates/horizon-client/src/game/native_entity_refs.rs": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+    "crates/horizon-client/src/game/native_living_refs.rs": "27f26d35b112d486256fc7f180c21e7e0fa5d4ff244ac4e8f8d5520b3e584e43",
+    "crates/horizon-client/src/mod_api.rs": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
+    "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "crates/horizon-client/src/mobs.rs": "425f605cf6daeaa0f5e76b8bed5bcfee5110daef3a741ea34fc66133a04a6028"
+  },
+  "mixins_sha256": {
+    "docs/scopes-and-bridges.md": "19170208990c9646d5b9071b4dd41ccc5d3f077b2ebdf457d859dca5f719be0f",
+    "crates/horizon-mixins-core/src/bridges.rs": "e50f216982025abaa360bcf21519a58f0aa87ba5d34418dc4eaf2e0ba161353f",
+    "crates/horizon-mixins-core/src/state.rs": "ae74844a3c88e2001be7d65f3ffc7cf2fb8c74baf0ebac71a37b997f2d9d1c9a"
+  },
+  "dispositions": {
+    "typed_attachments": "Reusable holder-owned persistence; not effect-instance identity or contact authority",
+    "effect_callbacks": "Current content-effect observation/tick control; no incoming instance metadata or hidden/copy contract",
+    "custom_consume": "Valid mutable acting-player context for explicit custom consume kind; does not receive consumed stack or cover vanilla clears",
+    "entity_living_refs": "Validated native entity identity; not a borrow of a ticking actor or effect lifetime",
+    "entity_nbt_merge": "Saved entity reload, refuses players/guests; unsuitable runtime metadata attachment",
+    "mixins_bridges": "Existing member access preserving Rust ownership; no new state or lifetime identity"
+  },
+  "proposed_missing_contracts": [
+    "Owned per-instance metadata with explicit clone/update/hidden/save/replace semantics",
+    "Same-invocation live-actor capability plus correct earlier fluid snapshot",
+    "Explicit consumed-stack cure entry distinct from general clear/removal"
+  ],
+  "validation": "Read pinned official source and declared hook/helper catalog; no new planner/apply/native tests in this proposal; earlier negative EffectInstance state proof remains separate"
+}

@@ -1,0 +1,15 @@
+{
+  "status": "unfinished research checkpoint; not a release or merge recommendation",
+  "branch": "checkpoint/pluto-contact-effects-20261106",
+  "base_commit": "f33061b838c76cccda784dd6dd29d7279f57ba05",
+  "base_scope": "Central Pluto foundation including prior verified v13 work and pending v14 candidate sources. This checkpoint does not verify all baseline candidates.",
+  "last_complete_package_proof": "31cf76672d3a7b982aebab86a91a78440afd163e",
+  "this_delta": "Pinned source inventory and concrete contact/effect extension proposal only; no runtime source changes",
+  "runtime_activation": false,
+  "native_effect_attachment": "Unsupported through current Mixins state contract; exact E_STATE rejection retained in prior proof",
+  "live_contact_timing": "No effectful contact adapter implemented or enabled",
+  "source_proposal": "../effect-extension-proposal.md",
+  "source_inventory": "../effect-extension-inventory.json",
+  "validation": "Read-only official source/catalog audit. No additional plan/apply/build/test is claimed for this proposal.",
+  "publication_destination": "sofia-gros/horizon-mods only; no official-host changes and no independent merge"
+}
