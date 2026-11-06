@@ -1,0 +1,29 @@
+name: WIP pure Mod-author API contracts
+on:
+  push:
+    branches:
+      - checkpoint/plutolib-author-api-ci-20261106
+permissions:
+  contents: read
+concurrency:
+  group: author-api-wip-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  author-api:
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/plutolib-author-api-ci-20261106' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CARGO_BUILD_JOBS: '1'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify real API suites and external author examples
+        run: python3 pluto-lib/experiments/author-api-ci/run.py

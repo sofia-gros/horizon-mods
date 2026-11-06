@@ -122,6 +122,50 @@ impl Registry {
 }
 static SUBSCRIPTIONS: Registry = Registry::new();
 
+/// Read-only event entry for the existing clientbound play-payload observer.
+///
+/// This adds no registry or native hook. The installed adapter observes after
+/// native mod observation; calling [`observe`] directly does not prove that phase.
+/// Registration grants no send, cancel, reply, screen or identity capability.
+pub const OBSERVED: ObservedEvent = ObservedEvent { _private: () };
+
+/// A zero-sized entry point. Every copy uses the same existing subscriptions.
+#[derive(Clone, Copy, Debug)]
+pub struct ObservedEvent {
+    _private: (),
+}
+
+/// Borrowed registration settings, not ownership of a channel or a subscription.
+/// The same ID/channel/limit validation runs only when `register` is called.
+#[derive(Clone, Copy, Debug)]
+pub struct ChannelObservation<'a> {
+    channel: &'a str,
+    max_bytes: usize,
+}
+
+impl ObservedEvent {
+    /// Select an exact channel and an explicit byte ceiling; zero means empty
+    /// payloads only. No allocation, validation or registration happens here.
+    pub const fn channel(self, channel: &str, max_bytes: usize) -> ChannelObservation<'_> {
+        ChannelObservation { channel, max_bytes }
+    }
+
+    /// Explicitly remove a subscriber, including one created by the old API.
+    /// The ID is a shared registry key, not a private ownership token.
+    pub fn remove(self, id: &str) -> Result<bool, RegistrationError> {
+        remove(id)
+    }
+}
+
+impl ChannelObservation<'_> {
+    /// Register a non-capturing synchronous callback during the consumer's
+    /// explicit startup. Dropping this settings value does not unregister it.
+    /// Duplicate IDs never replace entries, even across old and event APIs.
+    pub fn register(self, id: &str, callback: Callback) -> Result<(), RegistrationError> {
+        register(id, self.channel, self.max_bytes, callback)
+    }
+}
+
 /// Subscribe during setup to one exact channel and a consumer-selected byte cap.
 /// A zero cap observes only empty payloads. IDs are unique; duplicate registration
 /// never replaces a subscriber. A channel is a selector, not ownership of it.
@@ -315,5 +359,64 @@ mod tests {
             registry.register("example:id", "example:guide", 0, noop),
             Err(RegistrationError::Poisoned)
         );
+    }
+
+    #[test]
+    fn event_entry_uses_old_registry_and_explicit_removal() {
+        let _lock = SERIAL.lock().unwrap();
+        CALLS.store(0, Ordering::SeqCst);
+        let channel = String::from("example:guide");
+        OBSERVED.channel(&channel, 0).register("test:event", count).unwrap();
+        drop(channel); // Registration owns its selectors; the builder only borrowed them.
+        assert_eq!(register("test:event", "example:other", 1, noop), Err(RegistrationError::DuplicateId));
+        observe(Payload { channel: "example:guide", bytes: &[1] });
+        observe(Payload { channel: "example:guide", bytes: &[] });
+        assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+        assert!(remove("test:event").unwrap());
+        register("test:legacy", "example:guide", 0, count).unwrap();
+        assert_eq!(OBSERVED.channel("example:other", 1).register("test:legacy", noop), Err(RegistrationError::DuplicateId));
+        assert!(OBSERVED.remove("test:legacy").unwrap());
+        assert!(!OBSERVED.remove("test:legacy").unwrap());
+    }
+
+    #[test]
+    fn event_settings_preserve_registration_error_order_and_bounds() {
+        assert_eq!(std::mem::size_of_val(&OBSERVED), 0);
+        let invalid = OBSERVED.channel("invalid", MAX_BYTES + 1);
+        assert_eq!(invalid.register("invalid", noop), Err(RegistrationError::InvalidId));
+        assert_eq!(invalid.register("example:valid", noop), Err(RegistrationError::InvalidChannel));
+        assert_eq!(OBSERVED.channel("example:guide", MAX_BYTES + 1).register("example:valid", noop), Err(RegistrationError::InvalidLimit));
+    }
+
+    #[test]
+    fn event_and_legacy_subscribers_share_order_and_borrowed_bytes() {
+        let _lock = SERIAL.lock().unwrap();
+        CALLS.store(0, Ordering::SeqCst);
+        let bytes = [0, 255, 128];
+        POINTER.store(bytes.as_ptr() as usize, Ordering::SeqCst);
+        register("test:event_b", "example:guide", 3, second).unwrap();
+        OBSERVED.channel("example:guide", 3).register("test:event_a", first).unwrap();
+        observe(Payload { channel: "example:guide", bytes: &bytes });
+        assert_eq!(CALLS.load(Ordering::SeqCst), 2);
+        OBSERVED.remove("test:event_a").unwrap();
+        OBSERVED.remove("test:event_b").unwrap();
+    }
+
+    fn install_late(_: Payload<'_>) {
+        CALLS.fetch_add(1, Ordering::SeqCst);
+        OBSERVED.remove("test:event_install").unwrap();
+        OBSERVED.channel("example:guide", 0).register("test:event_late", count).unwrap();
+    }
+
+    #[test]
+    fn event_registration_during_callback_changes_only_next_snapshot() {
+        let _lock = SERIAL.lock().unwrap();
+        CALLS.store(0, Ordering::SeqCst);
+        OBSERVED.channel("example:guide", 0).register("test:event_install", install_late).unwrap();
+        observe(Payload { channel: "example:guide", bytes: &[] });
+        assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+        observe(Payload { channel: "example:guide", bytes: &[] });
+        assert_eq!(CALLS.load(Ordering::SeqCst), 2);
+        OBSERVED.remove("test:event_late").unwrap();
     }
 }

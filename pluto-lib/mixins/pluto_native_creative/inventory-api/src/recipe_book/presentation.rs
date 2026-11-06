@@ -53,6 +53,34 @@ pub struct Replacement<T> {
     pub alternatives: Vec<(usize, Vec<T>)>,
 }
 
+impl<T> Replacement<T> {
+    /// Start an owned proposal from facts borrowed in the current staging scope.
+    /// Only the recipe ID string is copied; stack payloads are never cloned.
+    /// An unchanged empty proposal clears this entry's overrides when applied.
+    /// This is not a registration, lifetime token or placement permission.
+    pub fn for_entry(entry: EntryFacts<'_>) -> Self {
+        Self {
+            entry: Address {
+                index: entry.index,
+                recipe_id: entry.recipe_id.to_owned(),
+                display_id: entry.display_id,
+                ingredient_count: entry.ingredient_count,
+                kind: entry.kind,
+            },
+            alternatives: Vec::new(),
+        }
+    }
+
+    /// Append one owned ingredient-alternative list without cloning its stacks.
+    /// Ordering and explicit empty lists are retained. Duplicate/out-of-range
+    /// indices are not silently merged: replace validates the complete batch.
+    /// Caller construction/allocation occurs before the staging service's bounds.
+    pub fn with_ingredient(mut self, index: usize, alternatives: Vec<T>) -> Self {
+        self.alternatives.push((index, alternatives));
+        self
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     TooManyEntries,
@@ -152,6 +180,46 @@ mod tests {
     }
     fn request(index: usize, alternatives: Vec<(usize, Vec<u8>)>) -> Replacement<u8> {
         Replacement { entry: address(index), alternatives }
+    }
+    #[test]
+    fn fluent_proposal_copies_current_address_and_moves_nonclone_values() {
+        struct NotClone(u8);
+        let values = vec![NotClone(7)];
+        let pointer = values.as_ptr();
+        let edit = Replacement::for_entry(facts(3))
+            .with_ingredient(1, values)
+            .with_ingredient(0, Vec::new());
+        assert_eq!(edit.entry, address(3));
+        assert_eq!(edit.alternatives[0].1.as_ptr(), pointer);
+        assert_eq!(edit.alternatives[0].1[0].0, 7);
+        assert_eq!(edit.alternatives[0].0, 1);
+        assert!(edit.alternatives[1].1.is_empty());
+        assert_eq!(validate(&[edit], |i| Some(facts(i))), Ok(()));
+    }
+    #[test]
+    fn fluent_proposal_keeps_empty_clear_and_duplicate_rejection() {
+        let clear = Replacement::<u8>::for_entry(facts(0));
+        let direct_clear = request(0, vec![]);
+        assert_eq!(clear.entry, direct_clear.entry);
+        assert_eq!(clear.alternatives, direct_clear.alternatives);
+        assert_eq!(validate(&[clear], |i| Some(facts(i))),
+            validate(&[direct_clear], |i| Some(facts(i))));
+        let duplicate = Replacement::<u8>::for_entry(facts(0))
+            .with_ingredient(0, vec![1]).with_ingredient(0, Vec::new());
+        let direct_duplicate = request(0, vec![(0, vec![1]), (0, Vec::new())]);
+        assert_eq!(duplicate.entry, direct_duplicate.entry);
+        assert_eq!(duplicate.alternatives, direct_duplicate.alternatives);
+        let legacy = validate(&[direct_duplicate], |i| Some(facts(i)));
+        assert_eq!(legacy, Err(Error::DuplicateIngredient { entry: 0, ingredient: 0 }));
+        assert_eq!(validate(&[duplicate], |i| Some(facts(i))), legacy);
+    }
+    #[test]
+    fn fluent_proposal_is_not_a_freshness_or_kind_bypass() {
+        let edit = Replacement::<u8>::for_entry(facts(0)).with_ingredient(0, vec![1]);
+        assert_eq!(validate(&[edit], |_| Some(facts(1))), Err(Error::AddressMismatch(0)));
+        let mut furnace = facts(0); furnace.kind = Kind::Furnace;
+        let edit = Replacement::<u8>::for_entry(furnace);
+        assert_eq!(validate(&[edit], |_| Some(furnace)), Err(Error::UnsupportedFurnace(0)));
     }
     #[test]
     fn empty_batch_does_not_lookup_any_entry() {

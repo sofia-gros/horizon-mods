@@ -26,6 +26,19 @@ pub struct Span {
     pub text: String,
     pub style: Style,
 }
+impl Span {
+    /// Plain text with inherited/default styling. This does not validate limits;
+    /// the containing Document validates content and metadata when constructed.
+    pub fn plain(text: impl Into<String>) -> Self {
+        Self::styled(text, Style::default())
+    }
+
+    /// Text and explicit semantic style. No action is executed or admitted here.
+    /// Link bounds and metadata policy remain the containing Document's checks.
+    pub fn styled(text: impl Into<String>, style: Style) -> Self {
+        Self { text: text.into(), style }
+    }
+}
 pub type Page = Vec<Span>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Document {
