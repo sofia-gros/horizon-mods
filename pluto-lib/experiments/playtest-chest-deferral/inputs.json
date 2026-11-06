@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "source_sha256": {
+    "pluto-lib/experiments/playtest-chest-deferral/README.md": "92f937dfd7cb4ee263bc774b8890498e2bce8bc44a8c7aa82d2aac95ebc22236",
+    "pluto-lib/experiments/playtest-chest-deferral/adoption.patch": "a736c541cd0753cc22db08c6611048978dbf34e20f5a67a45a12002a35c7f086",
+    "pluto-lib/experiments/playtest-chest-deferral/intake.json": "a0fe7dd57ed7e72050191e4d032e7da255d92fc01dc526dcff7d131b7456e033",
+    "pluto-lib/experiments/playtest-chest-deferral/intake.py": "0b6a8b2e6fbd812fe719c57ef2d6571cceec29f45c9a494a4ba0e71e603994d3",
+    "pluto-lib/experiments/playtest-chest-deferral/source-validation.json": "94e5035d2a4ccca14ac3f324c2eb858213b98b2b8c945c1e8df712afd7124cb2",
+    "pluto-lib/experiments/playtest-chest-deferral/test_intake.py": "c4d08b245cb54d50e41785e43590cf2b6f20d77067005def81717a2388948e01"
+  },
+  "pure_tests": 12,
+  "actual_inverse_verified": true,
+  "execution": "source-only; integration adoption owned by coordinator"
+}
