@@ -1,0 +1,36 @@
+{
+  "status": "WIP manual CI source checkpoint; no native run dispatched or completed",
+  "target_repository": "sofia-gros/horizon-mods",
+  "base_remote_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "base_tree": "267be30ceab0c59e8763a1e2de4db0f4fff83cf5",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "ordinary_package_sha256": "7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386",
+  "canonical_applied_v15_seal_sha256": "ff7c2320c2e9d603ca99138c5d722e7241166da89bd99bab44946b2e6397bdde",
+  "probe_source_remote_commit": "6e44c9bbca8734e679b5bc039f8d9be16cdfab3d",
+  "old_cpu_only_remote_unchanged": "74d4cb7c1ff7d759ee3b021203e55e087dfe0620",
+  "small_python_checks": {
+    "terrain_ci": 8,
+    "terrain_overlay": 7,
+    "game_borrow_ci": 10
+  },
+  "source_review": [
+    "Integration review found no specific nonportable stage-seal input; fresh exact apply equality remains an execution gate.",
+    "World review found no serious compile-order/seal defect. CI-only diagnostic parser tolerates one exact spanless abort summary, with a regression, without admitting another coded error."
+  ],
+  "ordinary_job_body_unchanged": true,
+  "actual_v15_package_verified_in_memory": true,
+  "workflow_yaml_parsed": true,
+  "local_host_copy_or_compile_performed": false,
+  "positive_compile_executed": false,
+  "negative_compile_executed": false,
+  "terrain_cpu_executed": false,
+  "gpu_executed": false,
+  "excluded": [
+    "Guest continuation observer",
+    "Guide retained-book prototype",
+    "Local raw-rustc replay",
+    "Local tmpfs renderer attempt",
+    "Production consumer activation"
+  ]
+}
