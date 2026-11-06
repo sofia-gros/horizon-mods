@@ -1,0 +1,124 @@
+{
+  "status": "read_only_source_diff_no_latest_build",
+  "old_official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "latest_official": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "old_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "latest_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "common_source": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "common_ci": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+  "common_archive_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "common_archive_members": 147,
+  "files": [
+    {
+      "path": "crates/horizon-protocol/src/item.rs",
+      "old_sha256": "01a9be205a065a0db7335e65cd6ba08e0951b21899a5401a096818c46cf88ad0",
+      "new_sha256": "da7c1fc5a9b5c085c657f26d854360138e753b3adc76dcc46d02acb7dfd6c5fd",
+      "same": false,
+      "diff_lines": 44
+    },
+    {
+      "path": "crates/horizon-world/src/item_defaults.rs",
+      "old_sha256": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",
+      "new_sha256": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",
+      "same": true,
+      "diff_lines": 0
+    },
+    {
+      "path": "crates/horizon-items/src/items.rs",
+      "old_sha256": "ac65c572d00bea03ddd37899c6c40b5091b435a44fa0b5deab4fd3677248bc49",
+      "new_sha256": "9259af2f27a631ab21f1c62a67cec231e5410b32e1bdd4e4eb11656fe82db393",
+      "same": false,
+      "diff_lines": 102
+    },
+    {
+      "path": "crates/horizon-items/src/item_data.rs",
+      "old_sha256": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+      "new_sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402",
+      "same": false,
+      "diff_lines": 332
+    },
+    {
+      "path": "crates/horizon-client/src/item_tooltip.rs",
+      "old_sha256": "8baf7a5810b038c7fbdab3686a3591492574ad4b07256e027ae3262457767501",
+      "new_sha256": "3bc2a14e616b3ff75cf921115c5d987b89d20d5865ac110cdce565a71daeaebd",
+      "same": false,
+      "diff_lines": 118
+    },
+    {
+      "path": "crates/horizon-client/src/crafting.rs",
+      "old_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+      "new_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+      "same": false,
+      "diff_lines": 220
+    },
+    {
+      "path": "crates/horizon-client/src/item_sync.rs",
+      "old_sha256": "abfed8999de083b4dcc06935c468679f24903c31243c02056135de92375af912",
+      "new_sha256": "abfed8999de083b4dcc06935c468679f24903c31243c02056135de92375af912",
+      "same": true,
+      "diff_lines": 0
+    },
+    {
+      "path": "crates/horizon-client/src/game/titles.rs",
+      "old_sha256": "f30ba6b37ae2dd8a50e520a905dd12142fcc44edea9f6dbc48c5914560a48639",
+      "new_sha256": "f30ba6b37ae2dd8a50e520a905dd12142fcc44edea9f6dbc48c5914560a48639",
+      "same": true,
+      "diff_lines": 0
+    },
+    {
+      "path": "crates/horizon-client/src/game/stations.rs",
+      "old_sha256": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+      "new_sha256": "dd3743c7068bc314977b669a755cf640541621380bc55473a24fc6df1fde79a3",
+      "same": false,
+      "diff_lines": 41
+    },
+    {
+      "path": "crates/horizon-client/src/lan/guest.rs",
+      "old_sha256": "f9ea0bec8ac9e0fa87fff0917bf7725db68deba789f3def5d5235bd576eefd34",
+      "new_sha256": "86330345c2093a1c0cf9a0c8778e3c05de0c174ca24c7e1224e9b55b38c575c9",
+      "same": false,
+      "diff_lines": 39
+    },
+    {
+      "path": "crates/horizon-client/src/recipe_book.rs",
+      "old_sha256": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+      "new_sha256": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+      "same": true,
+      "diff_lines": 0
+    }
+  ],
+  "regions": [
+    {
+      "path": "crates/horizon-client/src/lan/guest.rs",
+      "start": "fn network_explosion(",
+      "end": "/// `Player.isWithinBlockInteractionRange`",
+      "old_sha256": "c3899ab5e0f2c16654341361d6a21e2ed20dd38eb4ea83a8bfbbd27fef7d2d08",
+      "new_sha256": "c3899ab5e0f2c16654341361d6a21e2ed20dd38eb4ea83a8bfbbd27fef7d2d08",
+      "same": true
+    },
+    {
+      "path": "crates/horizon-client/src/crafting.rs",
+      "start": "    pub fn create(&self) -> ItemStack {",
+      "end": "    /// `TransmuteRecipe.createWithOriginalComponents`",
+      "old_sha256": "334ff3ae340b0e7743b5fae57aafc4833a2e0b434b28fbba937609ad9625ca16",
+      "new_sha256": "334ff3ae340b0e7743b5fae57aafc4833a2e0b434b28fbba937609ad9625ca16",
+      "same": true
+    },
+    {
+      "path": "crates/horizon-client/src/crafting.rs",
+      "start": "pub struct Input<'a> {",
+      "end": "/// What recipes need to know about an item.",
+      "old_sha256": "b7764a87c02c63c479d1c5cbd30ab2ca436a376bbe807bc39584b35ac75bada1",
+      "new_sha256": "b7764a87c02c63c479d1c5cbd30ab2ca436a376bbe807bc39584b35ac75bada1",
+      "same": true
+    },
+    {
+      "path": "crates/horizon-client/src/item_tooltip.rs",
+      "start": "pub fn styled_name(",
+      "end": "#[cfg(test)]\nmod tests",
+      "old_sha256": "6a6f5c47ca06d2c7686aa87d30be4e95db7553f0c5a6974c7f2e64708d54b7a9",
+      "new_sha256": "6a6f5c47ca06d2c7686aa87d30be4e95db7553f0c5a6974c7f2e64708d54b7a9",
+      "same": true
+    }
+  ]
+}

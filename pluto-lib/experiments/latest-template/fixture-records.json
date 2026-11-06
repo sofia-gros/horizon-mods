@@ -1,0 +1,14 @@
+[
+  {
+    "path": "pluto-lib/tests/native/crafting_match.rs",
+    "old_sha256": "bca71a94c684b743aa7faad17590d3c0c0c6d5f55123ac411bf1120d7a7fc3f5",
+    "proposed_sha256": "a90504ee7647f80e86632f203ae9be9c235091710e7a8b02c3c74569e4eca92f",
+    "after": "            extra: stack.extra,\n"
+  },
+  {
+    "path": "pluto-lib/tests/native/recipe_placement.rs",
+    "old_sha256": "12d33bd662b02ef1c6de98fb0202205fe47f3199fada4b195b5ecbeea3688088",
+    "proposed_sha256": "2ae140cbce2cab5dbf37407663c3d98c22e89419713474ccc6aa618bdf1b0cca",
+    "after": "            extra: None,\n"
+  }
+]
