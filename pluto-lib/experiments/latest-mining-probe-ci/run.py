@@ -17,7 +17,7 @@ REPOSITORY='sofia-gros/horizon-mods'
 BRANCH='checkpoint/plutolib-latest-mining-probe-ci-20261106'
 SOURCE='b78ee288d7627e1be1c046db73541fab1d40c249'
 OFFICIAL=baseline.OFFICIAL
-RUNNER_TESTS=20
+RUNNER_TESTS=27
 PREFIX='pluto-lib/experiments/latest-mining-probe-ci/'
 INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','observe_plan.py','README.md']}
 INPUT_PATHS|={'.github/workflows/latest-mining-probe-wip.yml','pluto-lib/experiments/latest-main-common-ci/inputs.json'}
@@ -103,7 +103,7 @@ def execute(report):
             if 'lock' in pin and sha((root/'Cargo.lock').read_bytes())!=pin['lock']:raise ValueError('Wrong official lock')
             snapshots[str(root)]=common.checkout_seal(root);git_snapshots[str(root)]=prepare.git_state(root)
         contract_sources=prepare.verify_official(roots)
-        report['gates']['fixed_checkouts']={'passed':True,'official':OFFICIAL,'contract_sources':contract_sources}
+        report['gates']['fixed_checkouts']={'passed':True,'official':OFFICIAL,'contract_sources':contract_sources,'ir_contract_sources':probe.verify_ir_sources(roots['mixins'])}
         official=work/'horizon'
         runner.run('horizon-export',[sys.executable,str(HERE/'run.py'),'--export',str(roots['horizon']),prepare.HORIZON,str(official)])
         report['gates']['fixed_checkouts']['candidate_official_sources']=probe.candidate.verify_official(official)

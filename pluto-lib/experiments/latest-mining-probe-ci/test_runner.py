@@ -7,8 +7,8 @@ p=m.probe
 
 def plan_value():
     payload=p.payload();a=tomllib.loads(payload[p.candidate.MANIFEST].decode());b=tomllib.loads(payload[p.candidate.COMMON_MANIFEST].decode());d=a['injection'][0]
-    return {'schema':6,'transformer':'fixture-only','rustc':'fixture-only','inputs':{'crates/horizon-client/src/game.rs':'1'*64},
-      'injections':[{'mod_id':'tconstruct_native','mod_version':a['mod']['version'],'injection_id':d['id'],'target':d['target'],'kind':'HEAD','file':'crates/horizon-client/src/game/native_hooks.rs','cancellable':False,'helper_source':payload[p.candidate.HELPER].decode(),'bindings':d['bindings'],'node':[1,2],'function_fingerprint':'2'*64}],
+    return {'schema':6,'transformer':'fixture-only','rustc':'fixture-only','inputs':p.required_plan_inputs(),
+      'injections':[{'mod_id':'tconstruct_native','mod_version':a['mod']['version'],'injection_id':d['id'],'target':d['target'],'kind':'HEAD','file':'crates/horizon-client/src/game/native_hooks.rs','cancellable':False,'priority':a['mod']['priority'],'contract':dict(p.VOID_HEAD_CONTRACT),'helper_source':payload[p.candidate.HELPER].decode(),'bindings':d['bindings'],'node':[1,2],'function_fingerprint':'2'*64}],
       'modules':[{'mod_id':'pluto_native_creative','mod_version':b['mod']['version'],'module_id':'mining-context-facts','file':'crates/horizon-client/src/game.rs','name':'pluto_mining_context','source':payload[p.candidate.COMMON_SOURCE].decode(),'fingerprint':'3'*64}]}
 
 def verify(value):
@@ -47,7 +47,7 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):p.write_probe(root)
  def test_08_selected_plan_validation_is_not_type_proof(self):
     result=verify(plan_value());self.assertTrue(result['passed']);self.assertFalse(result['native_type_verified']);self.assertFalse(result['full_composition_tested'])
-    self.assertEqual(result['input_count'],1)
+    self.assertEqual(result['input_count'],5)
  def test_09_extra_plan_work_rejected(self):
     for key in ['injections','modules','states','bridges','crates','data','post_build']:
         x=plan_value();x[key]=x.get(key,[])+[{}]
@@ -109,4 +109,38 @@ class Tests(unittest.TestCase):
     with tempfile.TemporaryDirectory() as d,mock.patch.object(m,'execute',side_effect=false_success),mock.patch.dict(os.environ,{'GITHUB_STEP_SUMMARY':str(Path(d)/'summary')}),contextlib.redirect_stdout(io.StringIO()):
         with self.assertRaises(SystemExit) as exc:m.main()
         self.assertEqual(exc.exception.code,1)
+ def test_21_required_input_map_retained_exactly(self):
+    result=verify(plan_value());self.assertEqual(result['required_inputs'],p.required_plan_inputs());self.assertEqual(len(result['required_inputs']),5)
+    self.assertEqual(result['required_inputs']['Cargo.lock'],m.OFFICIAL['horizon']['lock'])
+ def test_22_each_missing_required_input_rejected(self):
+    for key in p.required_plan_inputs():
+        x=plan_value();del x['inputs'][key]
+        with self.subTest(path=key),self.assertRaises(ValueError):verify(x)
+ def test_23_each_changed_required_input_rejected(self):
+    for key in p.required_plan_inputs():
+        x=plan_value();x['inputs'][key]='0'*64
+        with self.subTest(path=key),self.assertRaises(ValueError):verify(x)
+ def test_24_actual_owner_priority_required(self):
+    source=p.payload();a=tomllib.loads(source[p.candidate.MANIFEST].decode())
+    self.assertEqual(a['mod']['priority'],100);self.assertNotIn('priority',a['injection'][0])
+    for wrong in [None,0,99]:
+        x=plan_value()
+        if wrong is None:del x['injections'][0]['priority']
+        else:x['injections'][0]['priority']=wrong
+        with self.assertRaises(ValueError):verify(x)
+ def test_25_non_cancellable_head_contract_exact(self):
+    for wrong in [None,{}, {'output':'::core::ops::ControlFlow < () >','value':None,'operation':None},
+                  {'output':'()','value':'f32','operation':None}, {**p.VOID_HEAD_CONTRACT,'bundle':None}]:
+        x=plan_value();x['injections'][0]['contract']=wrong
+        with self.assertRaises(ValueError):verify(x)
+ def test_26_ir_source_missing_and_byte_drift_rejected(self):
+    with tempfile.TemporaryDirectory() as d:
+        with self.assertRaises(FileNotFoundError):p.verify_ir_sources(Path(d))
+        for name in p.IR_SOURCE_PINS:
+            f=Path(d)/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(b'changed')
+        with self.assertRaises(ValueError):p.verify_ir_sources(Path(d))
+ def test_27_ir_contract_pin_drift_rejected_before_files(self):
+    config=m.inputs();config['ir_contract_source_sha256']={}
+    with mock.patch.object(p.json,'loads',return_value=config),self.assertRaisesRegex(ValueError,'IR contract source pins'):
+        p.verify_ir_sources(Path('/not-read'))
 if __name__=='__main__':unittest.main()

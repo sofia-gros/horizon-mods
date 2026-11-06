@@ -5,6 +5,29 @@ HERE=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('mining_candidate',HERE.parent/'latest-mining-context/candidate.py');candidate=importlib.util.module_from_spec(spec);spec.loader.exec_module(candidate)
 sha=lambda b:hashlib.sha256(b).hexdigest()
 
+
+# Exact 5a64 source contracts, independently checked against its Git tree blobs.
+IR_SOURCE_PINS={
+    'crates/horizon-mixins-core/src/helpers.rs':'5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661',
+    'crates/horizon-mixins-core/src/source.rs':'b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637',
+}
+VOID_HEAD_CONTRACT={'output':'()','value':None,'operation':None}
+
+def verify_ir_sources(mixins):
+    config=json.loads((HERE/'inputs.json').read_text())
+    if config.get('ir_contract_source_sha256')!=IR_SOURCE_PINS:raise ValueError('IR contract source pins changed')
+    for name,digest in IR_SOURCE_PINS.items():
+        path=Path(mixins)/name
+        if not stat.S_ISREG(path.lstat().st_mode) or sha(path.read_bytes())!=digest:raise ValueError('IR contract source changed: '+name)
+    return dict(IR_SOURCE_PINS)
+
+def required_plan_inputs():
+    candidate_inputs=json.loads((candidate.HERE/'inputs.json').read_text())
+    expected={name:value['sha256'] for name,value in candidate_inputs['source_inputs'].items()}
+    expected['Cargo.lock']=json.loads((HERE/'inputs.json').read_text())['official']['horizon']['lock']
+    return expected
+
+
 def payload():
     full_main=candidate.transform_manifest(candidate.revision_only_manifest())
     full_common=candidate.transform_common_manifest(candidate.common_revision_only_manifest())
@@ -48,9 +71,12 @@ def verify_plan(path):
     if not isinstance(inputs,dict) or not inputs:raise ValueError('Missing actual source input fingerprints')
     for name,digest in inputs.items():
         if not isinstance(name,str) or PurePosixPath(name).is_absolute() or '..' in PurePosixPath(name).parts or not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest):raise ValueError('Wrong source input fingerprint')
+    required_inputs=required_plan_inputs()
+    for name,digest in required_inputs.items():
+        if inputs.get(name)!=digest:raise ValueError('Missing or changed required plan input: '+name)
     source=payload();main=tomllib.loads(source[candidate.MANIFEST].decode());common=tomllib.loads(source[candidate.COMMON_MANIFEST].decode())
     injection=value['injections'][0];module=value['modules'][0];decl=main['injection'][0]
-    for key,expected in {'mod_id':'tconstruct_native','mod_version':main['mod']['version'],'injection_id':candidate.NEW_ID,'target':decl['target'],'kind':'HEAD','file':'crates/horizon-client/src/game/native_hooks.rs','cancellable':False,'helper_source':source[candidate.HELPER].decode(),'bindings':decl['bindings']}.items():
+    for key,expected in {'mod_id':'tconstruct_native','mod_version':main['mod']['version'],'injection_id':candidate.NEW_ID,'target':decl['target'],'kind':'HEAD','file':'crates/horizon-client/src/game/native_hooks.rs','cancellable':False,'priority':decl.get('priority',main['mod'].get('priority',0)),'contract':VOID_HEAD_CONTRACT,'helper_source':source[candidate.HELPER].decode(),'bindings':decl['bindings']}.items():
         if injection.get(key)!=expected:raise ValueError('Wrong selected injection: '+key)
     if injection.get('captures',[])!=[]:raise ValueError('Lexical capture in formal probe')
     for key in ['argument','constant_site','call_site','site_fingerprint','selector','ordinal','require','expression_site','variable_site','variable','slice','hook','hook_version']:
@@ -63,6 +89,6 @@ def verify_plan(path):
     subset={'schema':value['schema'],'transformer':value['transformer'],'rustc':value['rustc'],'injections':[injection],'modules':[module]}
     if len(json.dumps(subset).encode())>32*1024:raise ValueError('Selected plan witness exceeds bound')
     return {'passed':True,'plan_sha256':sha(raw),'plan_bytes':len(raw),'input_count':len(inputs),
-      'inputs_sha256':sha(json.dumps(inputs,sort_keys=True).encode()),'selected_plan':subset,
+      'inputs_sha256':sha(json.dumps(inputs,sort_keys=True).encode()),'required_inputs':required_inputs,'selected_plan':subset,
       'native_type_verified':False,'full_composition_tested':False,
-      'retained_scope':'Exact selected injection/module IR is retained; the full plan input map is represented only by count/hash.'}
+      'retained_scope':'Exact selected injection/module IR is retained; the four required official source inputs and Cargo.lock are retained exactly; remaining plan inputs are represented only by count/hash.'}

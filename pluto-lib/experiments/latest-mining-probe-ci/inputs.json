@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "source-only frozen; 20 runner and 16 candidate pure guards passed; actual CLI/metadata/planner unrun",
+  "status": "source-only frozen; 27 runner and 16 candidate pure guards passed; actual CLI/metadata/planner unrun",
   "repository": "sofia-gros/horizon-mods",
   "branch": "checkpoint/plutolib-latest-mining-probe-ci-20261106",
   "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
@@ -28,11 +28,11 @@
     "pluto-lib/experiments/latest-mining-context/review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
     "pluto-lib/experiments/latest-mining-context/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
     "pluto-lib/experiments/latest-mining-context/test_candidate.py": "0f62c08206ab4b0a1bc957154b07f78f531b44aae162b12cae9e8d2b28e6a829",
-    "pluto-lib/experiments/latest-mining-probe-ci/README.md": "9e268cc1eea24f805ba98a6b25a15a4dbc734a37a02eeb4f2c7badf67ffe467f",
+    "pluto-lib/experiments/latest-mining-probe-ci/README.md": "cd637aa266e1a1df1ebe7e2780d9ce8e4085491ec6f5da504bf0afb0b51698e3",
     "pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py": "a95d3974653887d66c5302b9499006c45aee0ae9f3ef54ba6305888e0bf8c7cd",
-    "pluto-lib/experiments/latest-mining-probe-ci/prepare.py": "6092b47df2e126c6f2fdf63b5f6ee56bb33bc6db190a17e0370a3a5277fe2960",
-    "pluto-lib/experiments/latest-mining-probe-ci/run.py": "881ac751aab94fed0738efde3d85e3074b15b764939694fabad64facf32b9c19",
-    "pluto-lib/experiments/latest-mining-probe-ci/test_runner.py": "b60d50710d8cdc00e0b86ff83d251e35e3703ad644f9970456dc62e891740bb7"
+    "pluto-lib/experiments/latest-mining-probe-ci/prepare.py": "e84a19150858a2c900f8b60a01470fbba64dc412e5c32c2edc7240055639b738",
+    "pluto-lib/experiments/latest-mining-probe-ci/run.py": "2fe98334a3ac55d83979809a2e3d49b0b0d283316d33d117fbfb90fd77d0f71c",
+    "pluto-lib/experiments/latest-mining-probe-ci/test_runner.py": "4f254eb30a66579e60632ad74deffb16e718b7feb454410c06929f8e2893b668"
   },
   "probe_payload_sha256": {
     "pluto_native_creative/horizon-mixin.toml": "c749b00570360b3722006234e6043779366cc2b34baf166c3046c6864380d2c4",
@@ -50,5 +50,9 @@
     "native_type_verified": false,
     "full_composition_tested": false,
     "apply_allowed": false
+  },
+  "ir_contract_source_sha256": {
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+    "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"
   }
 }
