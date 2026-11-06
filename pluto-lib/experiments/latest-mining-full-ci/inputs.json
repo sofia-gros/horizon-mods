@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "status": "source-only frozen; 24 runner + 16 candidate + 20 collector pure checks passed; actual full plan unrun",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-latest-mining-full-plan-ci-20261106",
+  "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "collector_source": "5b87b28da1e707ca68367ca454bd3defb0256402",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "source_sha256": {
+    ".github/workflows/latest-mining-full-plan-wip.yml": "8e8e0fd58b590a55ace862bb2c8779550dd70968a3557574eac80c4000ca4b89",
+    "pluto-lib/experiments/latest-mining-full-ci/README.md": "6a11a48334b4222aa55952b1e7279a3b78982bf2915de0d0e9581522b5dc23f6",
+    "pluto-lib/experiments/latest-mining-full-ci/observe_plan.py": "9de1e41464a1cfd1dfb6008492d745851060e0039207923ea9de8cb0d119c983",
+    "pluto-lib/experiments/latest-mining-full-ci/prepare.py": "f5280129c38327e9142fb811a4f1c5e23d05f48f0bc6c6976ccc147954fa9e11",
+    "pluto-lib/experiments/latest-mining-full-ci/run.py": "d1159c7458183b9677d2bc464b000b54138b7b80ae9a587d9745ebdc2f2e3a1d",
+    "pluto-lib/experiments/latest-mining-full-ci/test_runner.py": "cb947e56d2cf7fb59aab8e16726b09a620f75214ced9440476495c0fb1192c8a",
+    "pluto-lib/experiments/latest-mining-probe-ci/inputs.json": "c80d8a1fcadeb8c14253be491dd5ae85e0dc677a0f1762fc33355d20d7767d61",
+    "pluto-lib/experiments/latest-terrain-witness/README.md": "8d7691443a0902513439b4b7a5a79688a5206aa4c8f300af01cab02cd72cc116",
+    "pluto-lib/experiments/latest-terrain-witness/collect.py": "fbee312cc5d18c428fe6d9a1b4bac56069ac24341fa203778a661c2b8c1d5838",
+    "pluto-lib/experiments/latest-terrain-witness/contract.json": "c518e3588e8b00134ce519c50f08ddc70f326b14698660aa8f87c5a7f2962ff6",
+    "pluto-lib/experiments/latest-terrain-witness/test_collect.py": "421041a4b40ffa3ac79da8e35ba7633119de142f3ac742cfd37bc544e15fea8b"
+  },
+  "scope": {
+    "members": 646,
+    "plan_timeout_seconds": 600,
+    "apply_allowed": false,
+    "native_type_verified": false,
+    "compatibility_success_claim_allowed": false
+  }
+}
