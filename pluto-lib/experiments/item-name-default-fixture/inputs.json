@@ -1,0 +1,33 @@
+{
+  "status": "preparer_source_only_native_and_metadata_unrun",
+  "runtime_source": "62f050a1c4eab72da11032f4d6f059323c7e1e8a",
+  "codec32_separate": "37f0977a8bc6348b7735bc8818294143501716ab",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "original_group_sha256": {
+    "README.md": "6220ce4c3749a90c94dad026ce6258abaa98e24736b18721f6d769e27127d78c",
+    "catalog_tests.rs": "864db7e085caea9ac6ef7a5105e88746d3c2ab867cddfa411bad44d83287c123",
+    "inputs.json": "c117cfa83cf2d1b96ea86138307b580df1293eb4be33226a31ad884d5436e404",
+    "test_source.py": "0736780559dfd598f17e0fb9e632ac146369c69dc55bfb3a27241c5b05eb1226"
+  },
+  "helper_sha256": {
+    "README.md": "d71411b3f7b81d6bbf561d9f343c05e27d981b1f43fb395bde51f4f6e25d87ef",
+    "prepare.py": "d261c3475b97e13f0fbea22e9ee0555bc04f90bbb2dd064eef7f65ced6055d3d",
+    "test_prepare.py": "74e2a3cf88baa0f293d9e8fcff09932131704c75257c1b07f4f74e71319c1f65"
+  },
+  "native_sha256": {
+    "crates/horizon-world/src/item_defaults.rs": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",
+    "crates/horizon-world/src/loot.rs": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+    "crates/horizon-items/src/items.rs": "ac65c572d00bea03ddd37899c6c40b5091b435a44fa0b5deab4fd3677248bc49",
+    "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "crates/horizon-client/src/item_tooltip.rs": "8baf7a5810b038c7fbdab3686a3591492574ad4b07256e027ae3262457767501",
+    "crates/horizon-client/src/game/stations.rs": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+    "crates/horizon-client/src/game/titles.rs": "f30ba6b37ae2dd8a50e520a905dd12142fcc44edea9f6dbc48c5914560a48639"
+  },
+  "expected_tests": [
+    "catalog_retains_key_but_not_standard_name_value",
+    "holding_native_snapshot_keeps_old_defaults_until_release",
+    "catalog_does_not_retain_native_defaults_snapshot",
+    "display_reads_do_not_materialize_prototype_or_change_patch"
+  ]
+}
