@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "status": "source-only; no CI trigger or native/plan execution",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-main-common-plan-ci-20261106",
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "common_bundle_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "source_base": "23b60081babf6a80a125276d74e73358a31639a2",
+  "source_sha256": {
+    ".github/workflows/main-common-plan-wip.yml": "fce4b85553cb9e30bb6f68fb1e34b074efb65ba2552c408bbc441b76281601f1",
+    "pluto-lib/experiments/common-composite-ci/inputs.json": "e564c7306e228676165aa5cb7454d8f5452d98f4b2bdaebb7513c43e129fc36e",
+    "pluto-lib/experiments/common-composite-ci/run.py": "a9efcb9f10a99c77ac9f36f6967253aa9d085452a6e9087f76edf82f80ea8959",
+    "pluto-lib/experiments/main-common-ci/README.md": "6f31b06d1335c28f9daf44b1a7589445f202743d0092afd84c019412fc753883",
+    "pluto-lib/experiments/main-common-ci/prepare.py": "7b3357c8b103e18fba7cf220393bee955dd1581a12f59936674455579dd3f233",
+    "pluto-lib/experiments/main-common-ci/run.py": "12bc79b3a269598161f7c033f1c6743993113e86ca0fe4878ecce2f28cb0b430",
+    "pluto-lib/experiments/main-common-ci/safety.py": "447d5b86fd2c0b0459d6d8cda6841386751e89ee2eb6930d23530e78f1f293f0",
+    "pluto-lib/experiments/main-common-ci/test_runner.py": "be350301df336ed469252a071162efd18a315fa5ff3d69a1dc73d48006206d6a",
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+  },
+  "memory_original_commit": "e33fa3282ef90e0116c623b171e8dbe2a4da41f8",
+  "memory_original_source_sha256": "5203d61d9121eaa61d6dcd61d58591f3482926f9a954ec09d87a08724a7f7eab",
+  "memory_function_sha256": {
+    "memory_hierarchy": "0ca5634770a832e43dacaf62356b53e9ea093180461441e4181e3fe13f762f50",
+    "check_memory": "1452e59c8a1dd4f203f2ffcd8c00eea4be9a1efe485be3593c096fe18ed88279",
+    "memory_observation": "7aeac14090c96f8d27dd724a31997cd76ef6d9c5d80852f8cb1c008a9238f691"
+  }
+}
