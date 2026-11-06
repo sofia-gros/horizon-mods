@@ -210,7 +210,9 @@ pub(super) fn tint_color(original: Option<i32>, tint: u32) -> Option<i32> {
         return original;
     }
     let original = original.map(|v| v as u32).unwrap_or(0xFFFF_FFFF);
-    let c = |shift| ((original >> shift) & 255) * ((tint >> shift) & 255) / 255;
+    let c = |shift: u32| -> u32 {
+        ((original >> shift) & 255u32) * ((tint >> shift) & 255u32) / 255u32
+    };
     Some(((original & 0xFF00_0000) | (c(16) << 16) | (c(8) << 8) | c(0)) as i32)
 }
 // Baked opacity proves only the original UV rectangle (in every sprite frame).

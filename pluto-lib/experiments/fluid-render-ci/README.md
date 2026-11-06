@@ -2,8 +2,8 @@
 
 Prepared, not executed. Runtime source is local `510f0fa8` / remote `a432ce45`,
 based on the ordinary v15 library. The packaged runtime archive must be exactly
-`8b9b11366f8f0aa318eebc026723bf12f41276de1a3048651916f692fb40a9e2`.
-This experiment does not alter production runtime or mix other WIP groups into it.
+`b448763e77488d5f7c119d99d675351a8d3244db1a80b3dfd374fa439f039e81`.
+The first run exposed the production tint closure type error described below. Only that minimal runtime correction is added; no other WIP group is mixed in.
 
 The dedicated push workflow is restricted to the public target repository and
 `checkpoint/plutolib-fluid-render-ci-20261106`. Start only after the preceding
@@ -56,3 +56,7 @@ No TConstruct consumer is activated. Those claims need later dedicated evidence.
 Source preparation currently has 10 small runner/scope/parser tests passing.
 All native gates in this document are unexecuted until an exact matching run
 reaches its recorded terminal result.
+
+## Preserved initial failure
+
+Run 42172857479 at 1b60c96a passed source 19, then std compilation failed with E0277 (`u32 & i32`) in the tint closure. No Rust tests, API, planner, apply or host type gate ran. Minimum free space was 91,144,896,512 bytes. The retry explicitly types the shift, masks and divisor as u32 without changing channel arithmetic, and updates exact bundle/module/source pins. This is a correction to the a432 base, not reused evidence of a pass.

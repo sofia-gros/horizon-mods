@@ -101,7 +101,7 @@
       "name": "pluto_terrain_cells",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-cell-providers.rs",
-      "sha256": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c"
+      "sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
     },
     {
       "module_id": "terrain-cell-host",

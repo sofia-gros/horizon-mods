@@ -218,7 +218,7 @@ def main():
         for path,before in snapshots.items():assert_seal(Path(path),before)
         if stage_before is not None:assert_seal(stage,stage_before)
         if generated is not None and out_dirs(work/'host-target')!=generated:raise ValueError('Generated native inputs changed during material tests')
-        report={'head':os.environ['GITHUB_SHA'],'production_source':config['remote_source'],'bundle_sha256':config['bundle_sha256'],
+        report={'head':os.environ['GITHUB_SHA'],'production_base':config['remote_source'],'runtime_corrections':config.get('runtime_corrections',[]),'bundle_sha256':config['bundle_sha256'],
                 'gates':gates,'minimum_free_bytes':runner.minimum_free,'floor_bytes':FLOOR,
                 'scope':'Plan/apply/type and pure/material contracts only; no consumer activation, live loader, meshing differential, timing, gameplay or GPU proof',
                 'stage_seal_sha256':sha(json.dumps(stage_before,sort_keys=True).encode()) if stage_before else None}

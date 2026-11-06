@@ -3,7 +3,7 @@
   "branch": "checkpoint/plutolib-fluid-render-ci-20261106",
   "local_source": "510f0fa89551f89c81097052ced06235037a6451",
   "remote_source": "a432ce4561ae1c81448b37a5b19e71126d8c4e72",
-  "bundle_sha256": "8b9b11366f8f0aa318eebc026723bf12f41276de1a3048651916f692fb40a9e2",
+  "bundle_sha256": "b448763e77488d5f7c119d99d675351a8d3244db1a80b3dfd374fa439f039e81",
   "official": {
     "horizon": {
       "url": "https://github.com/horizon-rust/horizon.git",
@@ -82,9 +82,17 @@
   "source_sha256": {
     "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
     "pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
-    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
     "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "180ba04c5507535441011ea40e255cdd1e8373462056026dd66daf112b12e43a",
     "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
     "pluto-lib/tests/fluid-api.Cargo.lock": "a256e8b9e85dcd613f31149f5cd7f120e1666a54f0979bb022823c73cb47ead5"
-  }
+  },
+  "runtime_corrections": [
+    {
+      "path": "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs",
+      "before_sha256": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+      "after_sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+      "reason": "Run42172857479 actual std compile E0277: make tint closure shift/masks/divisor explicitly u32; arithmetic unchanged"
+    }
+  ]
 }

@@ -1,0 +1,23 @@
+{
+  "run_id": 42172857479,
+  "job_id": 127744484337,
+  "head": "1b60c96a2cb1420c239678df308062733bb181a3",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42172857479",
+  "status": "failure",
+  "passed": {
+    "source_tests": 19
+  },
+  "failed_gate": "std compile",
+  "error": "E0277 u32 & i32 in terrain-cell-providers.rs tint_color closure",
+  "std_tests_executed": 0,
+  "not_reached": [
+    "fluid API21",
+    "official plan",
+    "complete plan12guards",
+    "official apply",
+    "host lib/bin type",
+    "native material2"
+  ],
+  "minimum_free_bytes": 91144896512,
+  "correction": "Explicit u32 closure shift, masks and divisor only; no channel arithmetic change"
+}
