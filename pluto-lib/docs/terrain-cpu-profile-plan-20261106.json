@@ -1,0 +1,71 @@
+{
+  "emission_phase": "not independently isolated; do not infer by subtracting microbenchmark medians",
+  "execution_authorization": "runner/fixture must be implemented, frozen, independently reviewed and separately released after the higher-priority queue",
+  "new_native_execution": false,
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "preserved_source_sha256": {
+    "pluto-lib/experiments/terrain-material-cpu/check_plan.py": "22ff48bc6ee66799f7d87715771c10acc0bdd7c3e549ed3e1c1acd17d8a4665e",
+    "pluto-lib/experiments/terrain-material-cpu/fixture.rs": "682ac48e12dfd7367fc19a6fca758293df9c7c7f82872b058c8d7654ef04644c",
+    "pluto-lib/experiments/terrain-material-cpu/inputs.json": "812ac9f0c9fc7b166cf9d1cc943a4ae93a1089512ddcee1939dece5c2015a418",
+    "pluto-lib/experiments/terrain-material-cpu/prepare.py": "0454ff69e59c6e5d6e8b93b9f6392b5aa5647d76792f966ee6dbe9fa9f914ffc",
+    "pluto-lib/experiments/terrain-material-cpu/test_source.py": "15465c7336ea8ecf8c2e7c0ffe660d52a131cc19930b848c5c18d8df39439355",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
+  },
+  "production_bundle_sha256": "cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76",
+  "production_changes": false,
+  "production_head": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "proposed_callback_variants": [
+    "geometry_original_checks_build",
+    "geometry_lean_build",
+    "geometry_fixed_batch_clone",
+    "material_original_build",
+    "material_fixed_batch_clone"
+  ],
+  "proposed_legacy_modes": [
+    "no-provider",
+    "registered"
+  ],
+  "proposed_microkernels": [
+    "geometry_build",
+    "batch_clone",
+    "cell_local",
+    "uv_subset_accept_and_reject"
+  ],
+  "proposed_profiles": [
+    {
+      "codegen_units": 16,
+      "debug": 0,
+      "debug_assertions": true,
+      "incremental": false,
+      "jobs": 1,
+      "lto": false,
+      "overflow_checks": true,
+      "test_opt_level": 0
+    },
+    {
+      "codegen_units": 16,
+      "debug": 0,
+      "debug_assertions": true,
+      "incremental": false,
+      "jobs": 1,
+      "lto": false,
+      "overflow_checks": true,
+      "test_opt_level": 3
+    }
+  ],
+  "required_before_timing": [
+    "actual compiler and artifact profile verification",
+    "complete unsorted/sorted SectionMesh equality across callback variants",
+    "scratch/light/replay equality",
+    "equal vertex counts and identical layer/UV/tint facts",
+    "all old correctness assertions and 55 replay receipts retained"
+  ],
+  "schema": 1,
+  "status": "design only; new profiling code, workflow and execution not implemented",
+  "successful_fixture_head": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+  "successful_proof_head": "2c78ab519fc7411bc3ff83aaa0ce1616f4c0b36f",
+  "successful_run": 42192378071
+}
