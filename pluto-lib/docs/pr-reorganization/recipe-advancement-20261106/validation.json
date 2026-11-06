@@ -1,0 +1,40 @@
+{
+  "kind": "documentation_data_consistency_only",
+  "status": "pass",
+  "checks": [
+    "second deterministic Git-object regeneration byte-equal for all three outputs",
+    "51 exact heads match historical acquisition selection",
+    "all 36 declared stack parent heads equal frozen child base",
+    "1120 CSV file transitions equal row path sets",
+    "33 PR main stack verified",
+    "two merge tips identified from actual commit parents",
+    "all 51 PRs covered by migration responsibility mapping",
+    "boundary IDs validated against separately published source inventory"
+  ],
+  "no_runtime_or_ci_validation": true,
+  "files": {
+    "README.md": "4fc97c12b61bbfe445804a2a70f3d99af528a50ebcb1a6ffe04246848048dce1",
+    "file-deltas.csv": "e96ba90ff55223e1c4b3909b70bf4bf6e6509703a943d9b4161adee5d57c5c15",
+    "frozen-prs.json": "35defa4adecbf3bde6f6270062f164b9f73621fce287b5dfb11092a5c03d423a",
+    "ledger.json": "c4711ebbf8e8d25c5e88e0cb948c8bfd6a94d39b2b74c7da4dad525d2bb63282",
+    "migration-map.json": "0c88d1986def186f47c962218effb613490af63d6850c38ebd33dc73b85a19fb",
+    "path-intersections.csv": "8e34f3157ce76fe8bdf92699e9424f7df000ae7ed7b061cb316e74da073cb4c4",
+    "reproduce.py": "a5e773f448890b6f7dca25b5514ef2f716b69469a835f682ca3f1d9fae63cd07",
+    "scope.json": "bb70684631b535a929e49c6d620c54d4a5e39145c688a91b31ed1fbd2f4f8cf7"
+  },
+  "independent_source_review": {
+    "result": "no serious evidence/classification error found",
+    "checks": [
+      "941 actual Git delta14, cumulative478, extra464 independently recalculated",
+      "665/675 actual two parents and first parent differs from frozen base",
+      "zero duplicate exact CSV transitions confirmed",
+      "56 total intersections are not all selected-vs-selected;51 paths intersect multiple selected PRs",
+      "five exact target strings are not all exclusive-guard targets; no repaired original-head claim"
+    ],
+    "reviewed_sha256": {
+      "README.md": "4fc97c12b61bbfe445804a2a70f3d99af528a50ebcb1a6ffe04246848048dce1",
+      "ledger.json": "c4711ebbf8e8d25c5e88e0cb948c8bfd6a94d39b2b74c7da4dad525d2bb63282",
+      "migration-map.json": "0c88d1986def186f47c962218effb613490af63d6850c38ebd33dc73b85a19fb"
+    }
+  }
+}

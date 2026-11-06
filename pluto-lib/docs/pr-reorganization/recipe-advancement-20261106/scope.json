@@ -1,0 +1,514 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "snapshot_source_sha256": "74a47c168c8c2963c32b7bbeaece8d8a6a7304612ba62cf781984305fcd78f9c",
+  "central_local": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "central_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "central_tree": "267be30ceab0c59e8763a1e2de4db0f4fff83cf5",
+  "historical_main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "scope_provenance": "51 PR acquisition partition from the completed 2026-11-05 audit; scoped review group, not final assignment of all recipe/station changes in the repository.",
+  "groups": [
+    {
+      "id": "advancement_acquisition",
+      "prs": [
+        675,
+        760,
+        763,
+        769,
+        775,
+        778,
+        790,
+        814,
+        818,
+        821,
+        823,
+        828,
+        831,
+        839,
+        843,
+        845,
+        847,
+        850,
+        855
+      ],
+      "related_boundary_ids": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "P01",
+        "P02",
+        "P03",
+        "P04"
+      ]
+    },
+    {
+      "id": "static_unlocks_and_slime_content",
+      "prs": [
+        717,
+        721,
+        727,
+        729,
+        735,
+        739,
+        741,
+        744,
+        748,
+        751,
+        754,
+        771,
+        809
+      ],
+      "related_boundary_ids": [
+        "P04",
+        "P05"
+      ]
+    },
+    {
+      "id": "configured_crafting",
+      "prs": [
+        665,
+        786,
+        815
+      ],
+      "related_boundary_ids": [
+        "S14",
+        "P05"
+      ]
+    },
+    {
+      "id": "station_variants_and_live_tags",
+      "prs": [
+        781,
+        858,
+        861,
+        864,
+        868,
+        914,
+        919,
+        921,
+        924,
+        926
+      ],
+      "related_boundary_ids": [
+        "S04",
+        "S11",
+        "S17",
+        "P05"
+      ]
+    },
+    {
+      "id": "fake_material_recipe_book",
+      "prs": [
+        930,
+        935,
+        938,
+        941
+      ],
+      "related_boundary_ids": [
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S13",
+        "P04",
+        "P06",
+        "B01",
+        "B02",
+        "B03"
+      ]
+    },
+    {
+      "id": "travelers_material_recipe_book",
+      "prs": [
+        713,
+        943
+      ],
+      "related_boundary_ids": [
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "P06",
+        "B01",
+        "B02",
+        "B03"
+      ]
+    }
+  ],
+  "prior_audit": {
+    "943": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-travelers-crafter-result: obsolete exact expression selector must adapt to latest official world recipes and saved-map context; no blanket substitution before review."
+      ]
+    },
+    "941": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "938": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "935": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "930": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "926": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "924": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "921": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "919": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "914": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "868": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "864": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "861": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity.",
+        "source-stonecutting-ingredient: repair canonical client-library target identity."
+      ]
+    },
+    "858": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity."
+      ]
+    },
+    "855": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity.",
+        "source-advancement-tank-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tank-predicate: fix canonical target crate identity."
+      ]
+    },
+    "850": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity."
+      ]
+    },
+    "847": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity."
+      ]
+    },
+    "845": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity."
+      ]
+    },
+    "843": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity."
+      ]
+    },
+    "839": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-advancement-tool-predicate: replace missing ItemView.custom_data dependency with generic PlutoLib scoped metadata API; official inventory event currently hashes IDs/counts only.",
+        "source-advancement-tool-predicate: fix canonical target crate identity."
+      ]
+    },
+    "831": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "828": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "823": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "821": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "818": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "815": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "814": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "809": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "790": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "786": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "781": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "778": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "775": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "771": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "769": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "763": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "760": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "754": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "751": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "748": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "744": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "741": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "739": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "735": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "729": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "727": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "721": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "717": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "713": {
+      "classification": "needs_fix",
+      "blockers": [
+        "source-travelers-crafter-result: obsolete exact expression selector must adapt to latest official world recipes and saved-map context; no blanket substitution before review."
+      ]
+    },
+    "675": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    },
+    "665": {
+      "classification": "unverified",
+      "blockers": [
+        "No exact-head full native bundle plan/build/runtime proof on the selected latest official target was established. Content-only incremental changes do not verify inherited hooks."
+      ]
+    }
+  },
+  "excluded_cross_scope": [
+    693,
+    805,
+    944,
+    945
+  ]
+}

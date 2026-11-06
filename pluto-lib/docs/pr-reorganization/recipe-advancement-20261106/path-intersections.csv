@@ -1,0 +1,57 @@
+path,selected_prs,other_prs,interpretation
+.github/workflows/mixins.yml,665,676 678 679 682 683 694 695 699 700 701 702 705 714,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_anvil.json,769 781 926,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/advancement/recipes/decorations/tinkers_anvil.json,769 781 926,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/scorched_anvil_knightmetal.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/scorched_anvil_pig_iron.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/tinkers_anvil_knightmetal.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/tinkers_anvil_pig_iron.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/zz_scorched_anvil_mixed_alloys.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/content/data/tconstruct/recipe/zz_tinkers_anvil_mixed_alloys.json,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/anvil-discovery-unlocks.md,769 781 926,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/anvil-masonry-live-tags.md,914 919,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/colored-slime-blocks.md,717 771 809,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/fake-metal-discovery.md,935 938 941,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/material-master-advancement.md,843 845 847 850,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/modified-tool-advancement.md,839 843 845,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/slime-crafting.md,665 815,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/slimeskull-advancement.md,845 847,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/smeltery-opening-advancement.md,828 831,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/tagged-recipe-unlocks.md,760 763 814,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/tinker-tool-progression.md,675 760,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/tool-forge-acquisition.md,921 924,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/travelers-crafting.md,713 943,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/workstation-advancements.md,818 828,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/docs/workstation-discovery-unlocks.md,763 769,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/horizon-mixin.toml,665 675 713 828 839 855 861 930 935 938 941 943,559 631 676 683 694 699 702 705 706 714 715 724 734 742 745 749 755 761 764 772 777 783 788 793 796 798 799 801 804 806 808 812 817 825 829 837 842 851 862 871 873 874 875 876 877 879 880 881 882 883 884 886 887 888 889 890 891 893 894 895 896 897 898 902 903 904 905 906 907 908 910 911 912 913 915 916 917 923 925 928 929 931 933 934 936,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/recipe-reload.rs,675 713 930,705 724 742 755 764 808 871 874 876 890 893 897 898 899 901 902 903 905 907 910 911 912 917,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-advancement-tag-index.rs,675 760,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-advancement-tag-predicate.rs,675 760,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-advancement-tag.rs,675 760 763 769 790 814 818 823 839 847 861,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs,839 843 845 847 850,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-container-advancement.rs,828 831,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-fake-material-world.rs,930 935 938 941,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-machine-open.rs,828,631,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-melter-world.rs,713,696 701 703 710 922,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-slime-crafting.rs,665 815,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-station-world.rs,847,683 701 702 704 715 833 854 862 865 871 873 874 875 876 877 878 879 880 887 888 889 891 913 940 942,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-travelers-crafting.rs,713 943,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/mixins/tconstruct/source-travelers-world.rs,713 943,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/condition-snapshot/src/lib.rs,713,691 698 706 715 718 724 734 742 745 749 755 761 764 772 777 793 796 799 801 808 812 817 825 893 894 896 897 898,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/modified-advancement/src/lib.rs,839 843 845 847 850 855,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/run_slime_crafting_overlay_rust.py,665 815,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/rust/tinker_tool_advancement.rs,675 760 763 769 790 814 818 823 839 847 861,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/slime-crafting/src/lib.rs,665 815,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/smeltery-advancement/src/lib.rs,828 831,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_anvil_discovery_unlocks.py,769 781 924 926,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_anvil_native_metals.py,781 921,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_fake_metal_book_load.py,938 941,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_material_master_advancement.py,843 850,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_slimeskull_advancement.py,845 847,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_smeltery_opening_advancement.py,828 831,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_tagged_recipe_unlocks.py,760 763 769 790 814 818 823 839 847 861,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_tinker_chests.py,864 868,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_tinker_tool_progression.py,675 760,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_tool_forge_acquisition.py,921 924,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tests/test_workstation_discovery_unlocks.py,763 919,,same_path_review_intersection_not_duplicate_or_conflict_proof
+tconstruct/tools/generate_anvil_variants.py,781 914,,same_path_review_intersection_not_duplicate_or_conflict_proof

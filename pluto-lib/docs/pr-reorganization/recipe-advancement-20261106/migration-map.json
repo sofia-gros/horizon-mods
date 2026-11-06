@@ -1,0 +1,279 @@
+{
+  "kind": "responsibility_mapping_not_completed_consumer_migration",
+  "boundary_inventory_remote": "69e3ddc6f220def799031813ed025b19842de1f9",
+  "rows": [
+    {
+      "id": "static_unlock_content",
+      "prs": [
+        717,
+        721,
+        727,
+        729,
+        735,
+        739,
+        741,
+        744,
+        748,
+        751,
+        754,
+        771,
+        809
+      ],
+      "boundary_ids": [
+        "P04",
+        "P05"
+      ],
+      "action": "Keep distinct JSON definitions, rewards and assets; identical fixtures are not duplicate features. Block registration in717 is a cross-category seam.",
+      "changed_source_paths": []
+    },
+    {
+      "id": "managed_tag_predicates",
+      "prs": [
+        675,
+        760,
+        763,
+        769,
+        790,
+        814,
+        818,
+        823,
+        839,
+        847,
+        861
+      ],
+      "boundary_ids": [
+        "S04",
+        "S17",
+        "P02"
+      ],
+      "action": "Port snapshot/cache boundary once; retain every consumer allowlist and criteria extension, not last-head wholesale.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/recipe-reload.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tag-index.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tag-predicate.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs",
+        "tconstruct/mixins/tconstruct/source-glass-crafting.rs",
+        "tconstruct/mixins/tconstruct/source-station-world.rs",
+        "tconstruct/mixins/tconstruct/source-stonecutting-ingredient.rs"
+      ]
+    },
+    {
+      "id": "item_metadata_criteria",
+      "prs": [
+        839,
+        843,
+        845,
+        847,
+        850,
+        855
+      ],
+      "boundary_ids": [
+        "S01",
+        "S02",
+        "P01"
+      ],
+      "action": "Register tool/tank criteria through shared metadata dispatch and startup event opt-in; original heads remain unported.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tank-predicate.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs",
+        "tconstruct/mixins/tconstruct/source-station-world.rs"
+      ]
+    },
+    {
+      "id": "controller_open_events",
+      "prs": [
+        828,
+        831
+      ],
+      "boundary_ids": [
+        "S03",
+        "P03"
+      ],
+      "action": "Preserve successful local/authoritative guest open and type mapping; coordinate machine source owner.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/guest-open.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-container-advancement.rs",
+        "tconstruct/mixins/tconstruct/source-machine-open.rs"
+      ]
+    },
+    {
+      "id": "configured_discovery",
+      "prs": [
+        665,
+        786,
+        790,
+        815
+      ],
+      "boundary_ids": [
+        "S14",
+        "P05"
+      ],
+      "action": "Keep config eligibility and discovery data local; shared fold is not full overlay migration.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/slime-crafting-injection.rs",
+        "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+        "tconstruct/mixins/tconstruct/source-glass-crafting.rs",
+        "tconstruct/mixins/tconstruct/source-gravel-crafting.rs",
+        "tconstruct/mixins/tconstruct/source-slime-crafting.rs"
+      ]
+    },
+    {
+      "id": "station_recipe_variants",
+      "prs": [
+        781,
+        858,
+        861,
+        864,
+        868,
+        914,
+        919,
+        921,
+        924,
+        926
+      ],
+      "boundary_ids": [
+        "S11",
+        "S17",
+        "P05"
+      ],
+      "action": "Retain recipes, tag meanings and generator/source constraints; station ingredient generic hook is one separate adoption.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/anvil-material-recipe.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+        "tconstruct/mixins/tconstruct/source-stonecutting-ingredient.rs"
+      ]
+    },
+    {
+      "id": "fake_material_assembly",
+      "prs": [
+        930
+      ],
+      "boundary_ids": [
+        "S10",
+        "B01"
+      ],
+      "action": "Same target as protected deny-only matcher; no safe output-producing automatic authority established.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/fake-material-recipe.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/recipe-reload.rs",
+        "tconstruct/mixins/tconstruct/source-builder-world.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-crafting.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-world.rs"
+      ]
+    },
+    {
+      "id": "fake_material_index_preview",
+      "prs": [
+        935
+      ],
+      "boundary_ids": [
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "P06",
+        "B02"
+      ],
+      "action": "Current-value CAS and explicit preview/denial are reusable; preserve family allocation and avoid persistent ownership.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/fake-material-book-build.rs",
+        "tconstruct/mixins/tconstruct/fake-material-book-overlay.rs",
+        "tconstruct/mixins/tconstruct/fake-material-book-placement.rs",
+        "tconstruct/mixins/tconstruct/fake-material-book-preview.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-fake-material-book-ui.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-book.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-world.rs"
+      ]
+    },
+    {
+      "id": "saved_recipe_knowledge",
+      "prs": [
+        938
+      ],
+      "boundary_ids": [
+        "S13",
+        "P06"
+      ],
+      "action": "Use exact prepared-world capability only when ready, no global cache.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/fake-material-book-prepare.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/recipe-level-enter.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-book-load.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-world.rs"
+      ]
+    },
+    {
+      "id": "dynamic_discovery_projection",
+      "prs": [
+        941
+      ],
+      "boundary_ids": [
+        "S05",
+        "P04",
+        "B03"
+      ],
+      "action": "Use loaded-tree projection without unsupported native state; preserve rewards/criteria, no guest publication proof.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/fake-material-discovery-tree.rs",
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/source-fake-material-discovery-world.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-discovery.rs",
+        "tconstruct/mixins/tconstruct/source-fake-material-world.rs"
+      ]
+    },
+    {
+      "id": "travelers_crafting_book",
+      "prs": [
+        713,
+        943
+      ],
+      "boundary_ids": [
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "P06",
+        "B01",
+        "B02",
+        "B03"
+      ],
+      "action": "Keep material selection and family allocation; legacy crafter exact selector is separately broken and not fixed by book extraction.",
+      "changed_source_paths": [
+        "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "tconstruct/mixins/tconstruct/recipe-reload.rs",
+        "tconstruct/mixins/tconstruct/source-melter-world.rs",
+        "tconstruct/mixins/tconstruct/source-travelers-book-ui.rs",
+        "tconstruct/mixins/tconstruct/source-travelers-book.rs",
+        "tconstruct/mixins/tconstruct/source-travelers-crafting.rs",
+        "tconstruct/mixins/tconstruct/source-travelers-world.rs",
+        "tconstruct/mixins/tconstruct/travelers-crafter-result.rs",
+        "tconstruct/mixins/tconstruct/travelers-crafting-injection.rs",
+        "tconstruct/mixins/tconstruct/travelers-crafting-preview.rs"
+      ]
+    },
+    {
+      "id": "standalone_discovery_definitions",
+      "prs": [
+        775,
+        778,
+        821
+      ],
+      "boundary_ids": [
+        "P04"
+      ],
+      "action": "Content-specific unlocks remain distinct even when they inherit the shared tag layer.",
+      "changed_source_paths": []
+    }
+  ]
+}
