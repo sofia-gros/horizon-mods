@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "independently verified bounded CI result",
+  "source_head": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "workflow_head": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+  "proof_parent": "ae8d4f6bbcc56087e9b6276e8e0265d3b61d5ee6",
+  "run_id": 42189798838,
+  "job_id": 127798725171,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42189798838",
+  "checks": {
+    "github_run_and_job": "independently retrieved: completed/success at exact head",
+    "console": {
+      "bytes": 46787,
+      "sha256": "bafa8e5db48c8a99a5b349d59a3c5753798982c977f541f77152abd56c2924e7",
+      "independent_fetch_equals_saved_and_gzip": true
+    },
+    "proof_json_sha256": "08a10926076434b086b9ea72507e29e73045f25ec3e3cc5349dac101efda4030",
+    "final_receipt_matches_console": true,
+    "all_required_gates_passed": 16,
+    "all_phases_exit_zero": 33,
+    "host_actual_rustc_targets": [
+      "pluto_api",
+      "pluto_inventory_api",
+      "horizon_client_render",
+      "horizon_client_lib",
+      "horizon_client lib",
+      "horizon_client bin"
+    ],
+    "actual_test_rustc_targets": [
+      "horizon_client_lib",
+      "horizon_client_render"
+    ],
+    "exact_unique_test_names": 18,
+    "groups": [
+      {
+        "name": "key6",
+        "passed": 6,
+        "filtered": 1983
+      },
+      {
+        "name": "internal8",
+        "passed": 8,
+        "filtered": 1981
+      },
+      {
+        "name": "facade2",
+        "passed": 2,
+        "filtered": 1987
+      },
+      {
+        "name": "material2",
+        "passed": 2,
+        "filtered": 1554
+      }
+    ],
+    "all_groups_failed_ignored_measured_zero": true,
+    "source_stage_checkout_official_outdir_seals_present_and_receipt_equal": true,
+    "passed": true,
+    "verified": true,
+    "error": null,
+    "minimum_runner_free_bytes": 87289589760
+  },
+  "limits": [
+    "This is an independent examination of the exact remote run, console, source contract and published receipt, not a second native execution.",
+    "Raw verbose per-phase logs are not available; their hashes and bounded compiler witnesses are not a substitute for full raw log preservation.",
+    "Pure API147/58, author examples, Font12 and Book4 are not rerun by this job.",
+    "No full TConstruct composition, live Game/UI/GPU/LAN, overlay behavior or item-name candidate authority is established.",
+    "Directory presence/kind and regular-file mode are sealed; directory permissions and symlink modes are not.",
+    "No fork access, local native build, source/cache deletion or permission changes performed."
+  ]
+}
