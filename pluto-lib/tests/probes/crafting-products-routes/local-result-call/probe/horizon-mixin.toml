@@ -1,0 +1,15 @@
+[mod]
+id = "pluto_products_route_probe"
+version = "0.0.0"
+
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id = "local-result-call"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "BEFORE_CALL"
+selector = "craft_recipe"
+require = 1
+ordinal = 0
+helper = "probe.rs"

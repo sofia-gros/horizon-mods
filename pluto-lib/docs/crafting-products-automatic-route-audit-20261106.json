@@ -1,0 +1,155 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "source_sha256": {
+    "crates/horizon-client/src/menu.rs": "d1c87e41131b3338b13201f362eca52790440a25536a8d8495413d5e15eb4c36",
+    "crates/horizon-client/src/menu/bundle.rs": "6a4c6c1e7234621f3367230745da62d7c8c36a0b6aa5a07766b5c482556bb7ee",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/lan_crafting.rs": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+    "crates/horizon-client/src/game/machines/crafter.rs": "e01f16cdf1b76d58e6b8843ae48f2f6f555f14b96d91c28e69306a821711e808",
+    "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71"
+  },
+  "fragments": {
+    "game::menu_ops": {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 9855,
+      "sha256": "28ec358d2d0a5008e468e3610736469923e203e58daaf505a20aafa0a48b94c4"
+    },
+    "game::click_inventory": {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 10935,
+      "sha256": "8c1e1d647281f66814f481c13ca1dfa0b101e7692c1f18232bd304359bbcbd0a"
+    },
+    "game::menu_session": {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 9921,
+      "sha256": "bfad677950a916df0d7685f1b5385c195c6190905ad9a299501eb256a490655d"
+    },
+    "menu::click": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 2700,
+      "sha256": "95aac13396248fde3a1d760a714514183ee0e2383fbafa5c228cd7105a2fc244"
+    },
+    "menu::safe_take": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 1964,
+      "sha256": "b3b72936c6bcb39f738b8b83d8f4c40f76356d2e102bd8db9fd73212fda68fb7"
+    },
+    "menu::pickup_inner": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 2899,
+      "sha256": "881df43cf1e2b1c18910fa81b63f053d6045b6d8631e58487bfb7bfd50401031"
+    },
+    "menu::quick_move": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 2174,
+      "sha256": "66942fe040fc3e51dc53c32d1239f775d041ff705714cfbcc0e857886a2b37c1"
+    },
+    "menu::swap": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 2975,
+      "sha256": "2521acd42b7ac3b27fae29cf791d40d856bd3c67cac9c24fa35806359464d7e2"
+    },
+    "menu::on_take": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 1772,
+      "sha256": "8acbf9a8868850acca20f070f6ab57818eda6b5820991440dbec099ae7147bf2"
+    },
+    "bundle::carried_bundle_click": {
+      "file": "crates/horizon-client/src/menu/bundle.rs",
+      "line": 21,
+      "sha256": "51d7ca4a192c2f603446362a5169a46bcf1bbc3eeebec84c617d759cd2496e42"
+    },
+    "menu::can_take_for_pick_all": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 3034,
+      "sha256": "74aca9a750210915533cf46bd016fdccde76e1b5a1af0347930ae4fc0ef0cba4"
+    },
+    "menu::recompute": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 1750,
+      "sha256": "058b8bb06045cfe4b5a3cf342fec224d126b6c291953fb1df7e782588fee417c"
+    },
+    "lan::guest_menu_op": {
+      "file": "crates/horizon-client/src/game/lan_crafting.rs",
+      "line": 121,
+      "sha256": "cefb8da8c7a69345db1184523452c9ca9b2d1a8bf1d232f508a541f42b629a02"
+    },
+    "lan::lan_inventory_click": {
+      "file": "crates/horizon-client/src/game/lan_crafting.rs",
+      "line": 201,
+      "sha256": "ad43a5998437387a16dcbdc30a0f74ac7de7279b5e895858c313c1ae71b8bf79"
+    },
+    "lan::lan_crafting_click": {
+      "file": "crates/horizon-client/src/game/lan_crafting.rs",
+      "line": 532,
+      "sha256": "88d2a54b306c1b09f8d2e6b27ab115c1eb6d517950f0a8bdc906a42739488786"
+    },
+    "menu::remove": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 1654,
+      "sha256": "b9646ad7235007dd5e3d8e0c8a9f0fbc62d259f3ad384d2ca015935645d9310b"
+    },
+    "crafter::crafter_dispense": {
+      "file": "crates/horizon-client/src/game/machines/crafter.rs",
+      "line": 90,
+      "sha256": "471a7b2b1aae7cf8cc099fded0f7cf6684752ea300884060e3f80f1ac46107d3"
+    },
+    "remote::remote_menu_ops": {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "line": 9425,
+      "sha256": "86d8f16a36f3988bc290faa7b0fda3308ddc2bb3b44edd23b9007f860236e422"
+    },
+    "remote::send_clicks": {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "line": 9486,
+      "sha256": "5ccaf46f0d768384149e734f33765c323941ca6f690a255b4b7d47eafd0fb1f6"
+    },
+    "menu::new": {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 501,
+      "sha256": "6f96b10b6103f982c8bc85942deeff64ef06ff1c18e85e2714b991b52ef8f538"
+    }
+  },
+  "source_assertions": [
+    "local non-QuickMove result bypasses Menu",
+    "local authority excludes remote before result branch",
+    "local result/remainder derive before output and consumption",
+    "local menu changes commit only after successful callback",
+    "QuickMove recomputes/retries within one click",
+    "safe_take has already removed output before on_take",
+    "pickup has already published cursor before on_take",
+    "quick_move has already moved items before on_take",
+    "swap has already published player slot before on_take",
+    "on_take recalculates matches/remainders before decrement",
+    "carried bundle extraction also uses safe_take",
+    "crafting result excluded from pickup-all",
+    "menu result generation applies limited crafting before storing",
+    "LAN guest authority copies input and output around same Menu op",
+    "LAN inventory prepare hook can replace result after op",
+    "LAN table validates authority then can replace result after op",
+    "ResultContainer removes the whole result, not a partial split",
+    "crafter postprocesses output before deriving remainder then publishes before decrement",
+    "remote predicts on client copy then sends clicks, not authority",
+    "remote sends changed-slot hashes and server state",
+    "three syntactic production remainder calls belong to audited Game/Menu/Crafter bodies",
+    "Menu has one selected Self literal, planner feasibility still separate"
+  ],
+  "source_assertion_count": 22,
+  "production_remainder_call_sites": [
+    {
+      "file": "crates/horizon-client/src/game/machines/crafter.rs",
+      "line": 129
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 11009
+    },
+    {
+      "file": "crates/horizon-client/src/menu.rs",
+      "line": 1887
+    }
+  ],
+  "runtime_validation": false,
+  "automatic_hooks_installed": false
+}

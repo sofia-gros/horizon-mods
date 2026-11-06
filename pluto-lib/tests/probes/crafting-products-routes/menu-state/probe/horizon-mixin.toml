@@ -1,0 +1,17 @@
+[mod]
+id = "pluto_products_route_probe"
+version = "0.0.0"
+
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[state]]
+id = "receipt"
+target = "horizon_client_lib::menu::Menu"
+ty = "Option<u64>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client_lib::menu::Menu::new"
+selector = "Self"
+require = 1
