@@ -27,6 +27,15 @@ Preparation is first published to the non-trigger
 coordinator release is the same tree published to the trigger branch
 `checkpoint/guide-identity-ci-20261106`. Preparation alone is not a passing test.
 
-Even a successful run proves only these two pure helpers. It does not prove
+The first run succeeded at exact head
+`93424e7914f8e31ca289beb29254c4e7740c4f82`:
+[42187284494](https://github.com/sofia-gros/horizon-mods/actions/runs/42187284494).
+The actual compiler completed once, all 21 inventory names matched, and each
+five-case process passed with sixteen filtered tests. Twelve runner tests passed;
+final source and executable seals matched. The minimum monitored free space was
+91,285,213,184 bytes. The [receipt](../../docs/guide-identity-ci-result-20261106.json)
+is recorded by a separate docs-only non-trigger checkpoint, not a changed input.
+
+This successful run proves only these two pure helpers' tested behavior. It does not prove
 source_pages native typing, Font/Text page generation, translated Guide refresh,
 live screen lifetime, packets or LAN behavior. The existing LAN code is unchanged.

@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "run_id": 42187284494,
+  "job_id": 127790525158,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42187284494",
+  "remote_head": "93424e7914f8e31ca289beb29254c4e7740c4f82",
+  "local_equivalent": "41cc7d0b1969d77a1bd35eacd97ea1eb51d53e72",
+  "tree": "6a0ab5641b31c23985a13b96f4c7a25e363e0e98",
+  "conclusion": "success",
+  "final_receipt": {
+    "binary_seal": {
+      "mode": 493,
+      "sha256": "75a9a842b1ba99a3655cf3cc70ab520db94391732580bae17b526e77e700ecdf",
+      "size": 7044992
+    },
+    "compiler": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+    "error": null,
+    "floor_bytes": 10871635968,
+    "frozen_fixture": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+    "full_source_seal_sha256": "4bedb36e3607336e21e3211e2d97ed8a84291819117946aae6d750a43c0f437e",
+    "gates": {
+      "book_identity5": {
+        "filtered": 16,
+        "names": [
+          "identity::tests::source_item_root_and_title_pairs_are_unchanged",
+          "identity::tests::six_legacy_titles_and_body_suffixes_match_the_old_branches",
+          "identity::tests::near_titles_do_not_normalize_case_space_or_newlines",
+          "identity::tests::unknown_and_translated_titles_preserve_the_asymmetric_fallback",
+          "identity::tests::item_ids_are_exact_and_not_translated_titles_or_prefixes"
+        ],
+        "passed": 5
+      },
+      "compile": {
+        "mode": 493,
+        "sha256": "75a9a842b1ba99a3655cf3cc70ab520db94391732580bae17b526e77e700ecdf",
+        "size": 7044992
+      },
+      "inventory": 21,
+      "modifier_anchors5": {
+        "filtered": 16,
+        "names": [
+          "index::modifier_anchor_tests::equal_titles_keep_distinct_source_destinations",
+          "index::modifier_anchor_tests::first_successful_chunk_wins_without_title_aliases",
+          "index::modifier_anchor_tests::unknown_or_differently_spelled_paths_do_not_acquire_offsets",
+          "index::modifier_anchor_tests::notice_shift_preserves_relative_offsets_and_missing_entries",
+          "index::modifier_anchor_tests::overflowing_notice_shift_is_atomic"
+        ],
+        "passed": 5
+      },
+      "runner": 12,
+      "toolchain": "1.95.0"
+    },
+    "head": "93424e7914f8e31ca289beb29254c4e7740c4f82",
+    "minimum_free_bytes": 91285213184,
+    "passed": true,
+    "scope": "Exact std-only production BookId5 and modifier-anchor5. No native Text/Font/Game, installed consumer, translation refresh, screen lifetime, packets or LAN proof.",
+    "verified": true
+  },
+  "limits": [
+    "The 11 other compiled index tests were not executed.",
+    "No source_pages/native Text/Font/Game/installed consumer compilation or execution.",
+    "No translated Guide refresh, actual screen lifetime, packets or LAN proof.",
+    "Existing LAN runtime is unchanged."
+  ]
+}

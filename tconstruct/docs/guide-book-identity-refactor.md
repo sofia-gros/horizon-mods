@@ -37,13 +37,20 @@ Thus packet encoding/decoding bodies, sequence, limits, root guards, history and
 all other source bytes in those files are unchanged. This is source evidence,
 not execution equivalence of the installed game.
 
-Five pure Rust tests are supplied for exact item/root/title mappings, legacy
+Five pure Rust tests cover exact item/root/title mappings, legacy
 prefixes and suffixes, near misses, unknown/translated-title asymmetry and exact
-item IDs. They have **not run** at this checkpoint. The pre-existing book-wire
+item IDs. They passed in the dedicated std-only identity CI at
+`93424e7914f8e31ca289beb29254c4e7740c4f82`, run
+[42187284494](https://github.com/sofia-gros/horizon-mods/actions/runs/42187284494).
+The same compiled binary separately passed five modifier-anchor tests. Its full
+21-test inventory was checked; each selected process reported five passed and
+sixteen filtered tests. See [the exact receipt](guide-identity-ci-result-20261106.json).
+The pre-existing book-wire
 fixture uses a mock Text type; any future result from that fixture must not be
 reported as an actual native Text, Game, UI or LAN test.
 
-No Rust build, official plan/apply, full consumer type check, live screen or LAN
+Only the two production std-only helpers were compiled. No official plan/apply,
+full consumer type check, live screen or LAN
 test has run for this refactor. Existing consumer/Pluto hook-composition blockers
 remain. The independently prepared language/Key/native-item 22-test CI input is
 not changed or expanded by this branch.

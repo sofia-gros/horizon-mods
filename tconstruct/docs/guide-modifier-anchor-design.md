@@ -96,16 +96,24 @@ run against the later source correctly failed the old whole-file hash; the layer
 reconstruction fixes that test composition without weakening either boundary.
 This is not execution equivalence proof.
 
-Five Rust helper tests are supplied but **not run**. They cover duplicate display
+Five Rust helper tests passed at dedicated CI head
+`93424e7914f8e31ca289beb29254c4e7740c4f82`, run
+[42187284494](https://github.com/sofia-gros/horizon-mods/actions/runs/42187284494).
+They cover duplicate display
 titles, first admissible chunk, exact paths, notice shifts and atomic overflow
-rejection. No native resolver, Text, Font, Game, book-wire fixture, Mixins plan,
+rejection. The exact production helper was included as a module, without an
+extracted algorithm or mock Text. Five separate BookId tests passed against the
+same sealed executable, with 21 total discovered tests and sixteen filtered in
+each process. Twelve runner checks also passed. Source and binary seals remained
+unchanged; [the receipt](guide-identity-ci-result-20261106.json) records the exact
+scope. No native resolver, Text, Font, Game, book-wire fixture, Mixins plan,
 package application or rendered screen was executed for this candidate. None of
 these tests belongs to the successful 22-test language/Key/item CI.
 
 ## Activation gates still open
 
-1. Review and run the candidate helper tests and intentional behavior differences
-   before integrating this source into a verified consumer build.
+1. The helper tests and bounded source review are complete. Integrating this
+   source into a verified consumer build still requires the native gates below.
 2. The candidate records after graphic/body/overflow generation, including the
    former graphic-only early continue, and shifts by actual later prepend count.
    Full inverse-source hashes and Font-call ordering guards pass, but actual native

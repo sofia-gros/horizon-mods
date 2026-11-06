@@ -1,7 +1,11 @@
 # Bounded consumer identity helper proof
 
-Status: source preparation; no Rust compilation or execution has run for this
-checkpoint. Local Python source checks are not its substitute.
+Status: the exact production helper fixture passed its dedicated CI at
+`93424e7914f8e31ca289beb29254c4e7740c4f82`, run
+[42187284494](https://github.com/sofia-gros/horizon-mods/actions/runs/42187284494).
+The immutable `inputs.json` describes the original source-preparation cutoff;
+the later [result receipt](../../docs/guide-identity-ci-result-20261106.json)
+records actual execution without rewriting those frozen inputs.
 
 The fixture includes the exact production BookId and page-index helpers, without
 copying their algorithms or introducing a mock Text. A standalone `rustc --test`
@@ -38,7 +42,7 @@ that adds those checks must explicitly provision the corresponding published
 baseline tree and verify its pinned source bytes. This helper-only fixture does
 not pretend to run those Git-dependent guards.
 
-If the ten selected Rust tests pass, they prove only the two pure production
-helpers' behavior. Actual source_pages typing, native Text/Font generation,
+The ten selected Rust tests passed and prove only the two pure production
+helpers' tested behavior. Actual source_pages typing, native Text/Font generation,
 complete consumer hook compatibility, screen lifetime, localization refresh and
 LAN behavior remain separate gates.
