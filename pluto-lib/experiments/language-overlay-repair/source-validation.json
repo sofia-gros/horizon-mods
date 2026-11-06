@@ -1,18 +1,18 @@
 {
   "status": "source checks passed; excluded candidate; Rust unexecuted",
-  "created_at": "2026-11-06T11:18:34.279031+00:00",
+  "created_at": "2026-11-06T11:22:19.408405+00:00",
   "official_revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
   "source_checks": {
     "command": "PLUTO_SELECTED_SOURCE=<exact selected official sources> PYTHONDONTWRITEBYTECODE=1 python3 test_source.py",
-    "passed": 12,
+    "passed": 13,
     "failed": 0,
     "scope": "Python source hashes, exact seam inverse, lexical order, path denial and unexecuted Rust inventory; not Rust semantics"
   },
   "inputs": {
     "merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
-    "source.py": "01f675dea20f884a426196ae76e72befbaf4ec0c693c2be606ad7b897cee05fe",
-    "inputs.json": "7f6213c025430987f8cfa0302439cc67747d312541246f3a7a79cf9246cd7524",
-    "test_source.py": "25463da03650aeb25543052cb6c6f81b73b755aedcd08211a4428741f3c54e26"
+    "source.py": "012e65e0fe70e2c757663b760d1ef2a9b2118c54b1a16d87b04bda37e24be4c3",
+    "inputs.json": "61d7b1ed8d3bd558a565eefdb855a38ee0cd0a45a3f58f62bbff7d0f61a5bd1d",
+    "test_source.py": "6470b733cb3b298656cfd2fbeae7b0e1bd427f6a61495388c2e4b1bed377758b"
   },
   "candidate": {
     "bytes": 129946,
@@ -30,5 +30,6 @@
   "native_placement_verified": false,
   "ordinary_bundle_changed": false,
   "complete_composition_verified": false,
-  "game_ui_verified": false
+  "game_ui_verified": false,
+  "admission_assumption": "Native Content admission and no later Content mutation; arbitrary public build inputs are not guaranteed"
 }

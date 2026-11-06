@@ -18,6 +18,15 @@ file in the already filtered, prepared absolute base root. It never reads raw
 packs, the mutable output root, or another Mod's source. The native namespace
 clash check and Plan construction still occur before output recreation.
 
+This lower=base rule requires native-admitted, subsequently unmodified Content.
+Official `Content::check` permits language assets only in owned namespaces;
+its shared-namespace exceptions are data tags and Minecraft atlases, not lang.
+Then `build` rejects overlapping namespace owners before any output recreation.
+Thus another admitted Mod cannot already have written the same locale path.
+The public build API does not independently revalidate arbitrary hand-constructed
+or later-mutated Content; this candidate does not promise that broader contract.
+The exact admission prefix, full content.rs, and build source are pinned.
+
 Only `assets/<namespace>/lang/<locale>.json` with the documented ASCII safe
 namespace/locale path is eligible. Both layers must be complete strict JSON
 objects of unique string keys and string values. Escaped duplicate keys are also
@@ -92,7 +101,7 @@ output. Rust execution requires a separately reviewed runner and serial grant.
 
 ## Source checkpoint
 
-Twelve pure Python source/inverse checks passed. The in-memory candidate is
+Thirteen pure Python source/inverse checks passed. The in-memory candidate is
 129,946 bytes, SHA-256 `1c3ebe1c8bf56ae6a2aab926bd6704d3b1ee40e1028eb32928ea0b76a2eea71e`.
 Independent read-only review found no concrete serious type/borrow/order blocker.
 This is not native compilation or execution of the fourteen Rust cases.

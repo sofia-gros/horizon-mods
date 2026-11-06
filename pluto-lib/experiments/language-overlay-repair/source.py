@@ -72,6 +72,12 @@ def compose(selected_root):
             contract['official_url'] == 'https://github.com/horizon-rust/horizon.git', 'wrong official contract')
     require(contract['status'] == 'excluded source candidate; no native execution or activation', 'execution claim changed')
     sources = {p: read(selected_root, p, digest) for p, digest in contract['official_sources'].items()}
+    admission = contract['admission_contract']
+    body = sources[admission['path']]
+    start, end = admission['start'].encode(), admission['end'].encode()
+    require(body.count(start) == body.count(end) == 1, 'admission bounds changed')
+    at, until = body.index(start), body.index(end)
+    require(at < until and sha(body[at:until]) == admission['sha256'], 'admission namespace contract changed')
     helper = read(HERE, 'merge.rs', contract['helper_sha256'])
     generated = candidate(sources[TARGET], helper)
     names = re.findall(rb'#\[test\]\s*fn\s+(\w+)\(', helper)

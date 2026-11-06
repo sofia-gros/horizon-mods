@@ -18,10 +18,21 @@ HELPER = (HERE / 'merge.rs').read_bytes()
 
 
 class SourceTests(unittest.TestCase):
-    def test_exact_six_official_sources_and_helper(self):
-        self.assertEqual(len(CONFIG['official_sources']), 6)
+    def test_exact_seven_official_sources_and_helper(self):
+        self.assertEqual(len(CONFIG['official_sources']), 7)
         for p, h in CONFIG['official_sources'].items(): m.read(OFFICIAL, p, h)
         self.assertEqual(m.sha(HELPER), CONFIG['helper_sha256'])
+
+    def test_native_admission_and_build_clash_are_both_required(self):
+        native = (OFFICIAL / 'crates/horizon-mods/src/content.rs').read_bytes()
+        a = CONFIG['admission_contract']; start = native.index(a['start'].encode()); end = native.index(a['end'].encode())
+        contract = native[start:end]
+        self.assertEqual(m.sha(contract), a['sha256'])
+        self.assertIn(b'let owned = own || manifest.namespaces.iter().any(|n| n == namespace);', contract)
+        self.assertIn(b'let allowed = owned || (top == "data" && shared && rest.starts_with("tags/")) || atlas;', contract)
+        writer = (OFFICIAL / m.TARGET).read_bytes()
+        build = writer.index(b'pub fn build(')
+        self.assertLess(writer.index(b'horizon_mods::content::clash(b, a)', build), writer.index(b'Overlay::new(base, out)?', build))
 
     def test_complete_native_inverse_and_deterministic_source(self):
         first, evidence = m.compose(OFFICIAL)

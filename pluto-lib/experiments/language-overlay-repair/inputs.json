@@ -12,7 +12,8 @@
     "crates/horizon-client/src/client_lib.rs": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
     "crates/horizon-client/src/mod_content.rs": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c",
     "crates/horizon-client-core/src/lang.rs": "743734901c1fd5e0c3c2822ea0207d46c4ac04ad7768b6d93f3b0e235e72f417",
-    "crates/horizon-client-render/src/packs.rs": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783"
+    "crates/horizon-client-render/src/packs.rs": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783",
+    "crates/horizon-mods/src/content.rs": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
   },
   "helper_sha256": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
   "prepared_tests": [
@@ -30,5 +31,12 @@
     "native_prepared_lower_is_read_only_and_mod_wins",
     "invalid_or_large_lower_preserves_original_higher",
     "lower_directory_is_not_opened_as_a_file"
-  ]
+  ],
+  "admission_contract": {
+    "path": "crates/horizon-mods/src/content.rs",
+    "start": "    fn check(&mut self, manifest: &Manifest, declared: &[String]) -> Result<(), String> {",
+    "end": "            if !own && top == \"data\"",
+    "sha256": "10d23d3a237a513c71aae05e8eb9ee607b111b9b45170d098922ef5471ee31cb",
+    "assumption": "Content returned by native admission and not subsequently mutated; build does not revalidate arbitrary hand-constructed or modified Content"
+  }
 }
