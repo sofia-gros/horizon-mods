@@ -1,6 +1,6 @@
 # Mod-author API layers: exact pure-crate validation
 
-**Inventory public-entry follow-up prepared, not yet run. This is a validation-only composition, not an installed
+**Inventory public-entry follow-up passed in exact run42177564770 at7094f48e. This is a validation-only composition, not an installed
 native package or a main-ready TConstruct migration.**
 
 The user's direction is two logical layers: maintainable typed internal services
@@ -105,7 +105,7 @@ registration does not install assets or prove an actual rendered fluid. New
 source-compatible entry points are tested against existing calls; untested
 host versions and live display paths remain explicitly unverified.
 
-Preparation: 13 Python checks pass. The first local attempt imported the runner
+Validation closure: 13 Python checks and all 207 Rust cases passed. Both external Storage paths were built and executed. Exact evidence is in pluto-lib/docs/author-api-inventory-entry-result-20261106.json. Preparation: 13 Python checks passed. The first local attempt imported the runner
 from an unrealistically shallow temporary path and stopped before tests; it was
 rerun from its exact repository-shaped path. No Rust or CI result is claimed
 until an exact matching run reaches terminal status. Evidence is retained in
