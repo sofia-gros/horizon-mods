@@ -163,6 +163,48 @@
       },
       "terminal_tests": 11,
       "identity_note": "Current combined Java/menu proof binary; exact hash checked independently from earlier similarly named executables."
+    },
+    {
+      "executable": "pluto_crafting_products_tests-857e9e9f40c1762f",
+      "source_cutoff": "54037209 production plus 46984 test correction",
+      "original_sha256": "eca216cd270c9a5f4e5126bbc0add977232d001c8fb142b1bf15aa59e317c27e",
+      "original_bytes": 7350904,
+      "archive": "completed-products-fold-pluto_crafting_products_tests-857e9e9f40c1762f-20261106.tar.gz",
+      "archive_bytes": 1951652,
+      "archive_sha256": "f49508f28118e4e986875eb365c25edbcc73627c1f4bce71bb3dd260f9094030",
+      "receipt": "products-fold-executables-cleanup-20261106.json",
+      "receipt_sha256": "b09383252726532b2b7ec2c2bb12b476f9a8a5073b19110584c9d0f379b74240",
+      "payload_count": 7,
+      "initial_free_bytes": 10884030464,
+      "minimum_free_bytes": 10882076672,
+      "free_before_receipt": 10889359360,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 15
+    },
+    {
+      "executable": "pluto_predicate_fold_tests-81b8d75632697159",
+      "source_cutoff": "3c5f56e2dc27145491fc31a738205b691baf1113",
+      "original_sha256": "623695104636faab9cd63b80e21e80ad413e157d1c265a62ed0c89c9fb209892",
+      "original_bytes": 1305192,
+      "archive": "completed-products-fold-pluto_predicate_fold_tests-81b8d75632697159-20261106.tar.gz",
+      "archive_bytes": 473598,
+      "archive_sha256": "c07275eac38f0c60c3b8debbf377ac335333f795ea1d2f80b7f0b76f3fd38d1d",
+      "receipt": "products-fold-executables-cleanup-20261106.json",
+      "receipt_sha256": "b09383252726532b2b7ec2c2bb12b476f9a8a5073b19110584c9d0f379b74240",
+      "payload_count": 8,
+      "initial_free_bytes": 10889359360,
+      "minimum_free_bytes": 10888884224,
+      "free_before_receipt": 10890190848,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 4
     }
   ],
   "attributes_verified": [
@@ -200,7 +242,10 @@
     "api125_used_normal_floor_plus_2MiB": true,
     "last_observed_after_consumer_receipt": 10884169728,
     "consumer_net_recovered_bytes": 1708032,
-    "consumer_used_normal_floor_plus_2MiB": true
+    "consumer_used_normal_floor_plus_2MiB": true,
+    "last_observed_after_products_fold_receipt": 10890186752,
+    "products_fold_net_recovered_bytes": 6156288,
+    "products_fold_used_normal_floor_plus_2MiB": true
   },
   "limits": [
     "No new native build was authorized by this preservation work.",
