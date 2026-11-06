@@ -70,7 +70,27 @@ pinned input archives, the source checkout and installed Java tools. Those input
 are not replaced with a synthetic corpus and that full comparison is not claimed
 as executed by the focused fixture.
 
-Initial checkpoint status: source prepared; six Python source/dependency guards
-pass, including four deliberately corrupted policy samples. Focused Rust checks
-have not yet run. Native package/apply/build/gameplay are not part of this pure test
-scope. See the validation receipt for the eventual immutable focused cutoff.
+## Focused result
+
+Exact runtime `18976165d9623057730464c277a55a22c6af53fd`, with test-only
+path correction `a92a41b5fcfff52373d6150f7221d2cb683bbd45`, passed eight Rust
+tests and seven Python guards. The Rust fixture performs 1,311 legacy result
+comparisons and retains both the old and migrated Java-generated golden/tree
+cases. It also checks raw-hash spread, resize partition order, equal-hash distinct
+entries, tree refusal, UTF-16 surrogates and wrapping. Four deliberately corrupted
+consumer policies are rejected by the source guard.
+
+The first exact runtime attempt failed before tests because the fixture path had
+one extra `../`. Its log is preserved. The correction changes only test wiring
+and adds an exact-path guard; no runtime code or expected result was weakened.
+All 41 captured API/fixture/lock/source hashes matched before and after the
+successful run. Locked registry package identities match the pinned official
+host lock. The continuous disk floor held (minimum 10,883,473,408 bytes).
+
+No live Java comparison ran: `javac` was unavailable on PATH. The golden vector
+is historical independent Java evidence; frozen legacy equivalence is a separate,
+non-independent regression check. The full pinned input corpus, full API unit
+suite, native package/apply/build and gameplay were not run. The focused fixture
+compiles the real API crate but does not claim all its operations were exercised.
+The [receipt](java-hashmap-validation-20261106.json) records the exact cutoff,
+initial failure, successful proof and source hashes.
