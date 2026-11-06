@@ -151,13 +151,19 @@ class IndexControllerTests(unittest.TestCase):
   self.assertEqual(len(calls),1);self.assertFalse({'start_new_session','process_group','shell'} & {k.arg for k in calls[0].keywords});self.assertIn('stdout',{k.arg for k in calls[0].keywords})
  def test_index_after_main_results(self):
   src=(HERE/'run.py').read_text();self.assertLess(src.index('result=attempt_plan('),src.index("index_output=runner.run('index-observation'"));self.assertLess(src.index('guards=attempt_guards('),src.index("index_output=runner.run('index-observation'"));self.assertIn('before_index_calls=len(calls)',src)
- def test_index_compile_before_restriction(self):
-  src=(HERE/'run.py').read_text();self.assertLess(src.index("index_log=runner.run('index-build'"),src.index('prepare.write_wrappers('));self.assertIn("'--target-dir',str(work/'cli-target')",src)
+ def test_index_compile_after_primary_diagnostic(self):
+  src=(HERE/'run.py').read_text();self.assertLess(src.index("report['diagnostic_complete']=True"),src.index("index_log=runner.run('index-build'"));self.assertIn("'--target-dir',str(work/'cli-target')",src)
  def test_index_metadata_local_denied(self):
   with patch.dict(os.environ,{},clear=True):
    with self.assertRaises(ValueError):r.capture_index_metadata('/cargo','/fixture','adapt')
  def test_index_bounds_and_final_preservation(self):
   src=(HERE/'run.py').read_text();self.assertIn("output.open('xb')",src);self.assertIn('8*1024**2',src);self.assertIn("[str(index_binary),str(official)],timeout=180",src);self.assertIn('evidence.persist(report',src)
+
+class AuxiliaryReceiptTests(unittest.TestCase):
+ def test_auxiliary_receipt_separate(self):
+  src=(HERE/'run.py').read_text();self.assertIn("aux=report['index_receipt']",src);self.assertIn('common.record_error(aux,exc)',src);self.assertIn("not report['index_receipt']['completed']",src)
+ def test_compiler_environment_restored(self):
+  src=(HERE/'run.py').read_text();self.assertIn('runner.env=build_env',src);self.assertGreaterEqual(src.count('runner.env=env'),2);self.assertLess(src.index('runner.env=env'),src.index("index_output=runner.run('index-observation'"))
 
 class EvidenceTests(unittest.TestCase):
  def report(self):return {'head':'a'*40,'gates':{},'error':'synthetic failure','probe_completed':False,'source_verified':False,'plan_accepted':None}
