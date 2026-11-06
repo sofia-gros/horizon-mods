@@ -85,13 +85,16 @@ merge the final root or install another CURRENT. No such ordering change is made
 The user-facing API can remain a thin `key(...).resolve(...)` over the native
 owner. None of the proposals adds language ownership or changes contact/effects.
 
-## Asset-only native baseline fixture, still unrun
+## Asset-only native baseline: eight cases passed
 
 The separate `experiments/language-overlay` source candidate imports actual
 public `horizon_client_lib::mod_content::build`, real Package/Content admission
-and the native PathBuf Language resource view. Eight Rust cases are prepared,
-not compiled or executed. Six source guards passed against exact official 624c.
-The successful Package8 result does not count as overlay execution.
+and the native PathBuf Language resource view. All eight Rust cases now passed
+at exact `ce495a88`, run `42195249104`, after the first attempt failed before
+compilation because external workspace patches were missing. Runner26/source6,
+actual client-library compilation, exact lock identities and final seals passed.
+See [the scoped result](language-overlay-result-20261106.md). The separate
+successful Package8 result was not used as overlay execution evidence.
 
 Two native phase constraints are explicit in this candidate. `build` rejects
 overlapping owned namespaces before creating the overlay: Mod-wins means Mod
@@ -102,9 +105,9 @@ that behavior only inside its own exclusively-created scratch tree.
 
 Minimal original facts/gameplay/items tables suffice for the asset-only source
 path; they do not represent playable assets or selected/server pack preparation.
-The real client-library dependency makes eventual compilation a separate native
-gate. Options/CURRENT mutation, cache installation, live reload and actual UI
-remain outside this fixture. Guide retains ownership of those caller/lifetime
+The real client-library dependency was actually compiled in this baseline gate.
+Options/CURRENT mutation, cache installation, live reload and actual UI remain
+outside this fixture. Guide retains ownership of those caller/lifetime
 questions; no second locale owner or priority repair is introduced here.
 
 ## Locale transitions still owned by the official caller
@@ -128,13 +131,14 @@ current language each time; an already-resolved Text remains a span snapshot.
 No new locale setter, independent generation counter, event or retained Guide
 refresh is added here. A later UI proof must enter the actual appropriate caller
 and preserve its load/install/refresh order, including the stale-reload selection
-case. Neither Package8 nor this unrun overlay baseline is that proof.
+case. Neither Package8 nor the passed overlay baseline is that proof.
 
 ## Bounded repair candidate after the baseline gate
 
 Source-only design follow-up; neither an implemented merger nor an approved
-activation. The reviewed baseline CI remains frozen at `14902fcc`; this section
-is not an input or a result of those eight Rust cases.
+activation. The initial baseline CI at `14902fcc` is preserved as a pre-compilation failure;
+its reviewed dependency-only correction passed at `ce495a88`. This design section
+is not an implementation or repair result of those eight Rust cases.
 
 A potentially smaller compatibility domain is **two strict JSON objects whose
 values are all strings**. The native `read_lang_file` fast path already accepts

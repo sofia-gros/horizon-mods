@@ -1,0 +1,230 @@
+{
+  "status": "passed",
+  "attempt": 2,
+  "tested_commit": "ce495a88afe32b6322703ad778263a90b2bb98a9",
+  "local_source": "2c54a5a4043df801067f36bad1d1765c957af9b1",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "run_id": 42195249104,
+  "job_id": 127816778163,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42195249104",
+  "observed_terminal_utc": "2026-11-06T09:33:24Z",
+  "fixture_source": "01ccfa4f115f06aed312931f1057adc958aac5de",
+  "fixture_sha256": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
+  "template_sha256": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
+  "actual_compile_seconds_approx": 295.1,
+  "scope": "Actual official mod_content::build, Package/Content and native Language on eight owned minimal baseline cases. Existing whole-file Mod overlay only. No installed Game admission, selected/server pack merge or filters, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+  "first_failure": {
+    "run_id": 42191906292,
+    "head": "14902fcc18a86d819fe48f0b9c4d687a3452d823",
+    "path": "pluto-lib/experiments/language-overlay-ci/first-attempt.json",
+    "passed": false,
+    "verified": true,
+    "native_tests_executed": 0,
+    "correction": "Inherited only the three exact official local crates.io patch paths in the external fixture manifest. No fixture/runtime/lock/controller/workflow change or registry substitution."
+  },
+  "actual_compiler_witnesses": [
+    {
+      "crate": "horizon_client_core",
+      "test": false,
+      "line_sha256": "e13ad7f0c5160997580c2f195186e7c7a98c008b449501920c0834fd9401f75b"
+    },
+    {
+      "crate": "horizon_mods",
+      "test": false,
+      "line_sha256": "b8fa5e87d827d0698128c6905e8c5ea335328ef171c637f78a82c8a5cd0ef78b"
+    },
+    {
+      "crate": "horizon_client_lib",
+      "test": false,
+      "line_sha256": "4ba4a7f183f908130372159ac9cfacc20c6c8250ccf5e1a49422729b4b998010"
+    },
+    {
+      "crate": "pluto_language_overlay_fixture",
+      "test": true,
+      "line_sha256": "661c3d65a5cd8112cebc83556ddf056b2b4ff82639f9c311552dd88ca58f869d"
+    }
+  ],
+  "phase_summaries": [
+    {
+      "phase": "runner-checks",
+      "bytes": 3303,
+      "sha256": "c57e6acdfd981a8cbbceca3d3e8372c13e23511d480f63fca13a7a2a87e170ae",
+      "exit": 0
+    },
+    {
+      "phase": "toolchain",
+      "bytes": 257,
+      "sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+      "exit": 0
+    },
+    {
+      "phase": "official-init",
+      "bytes": 725,
+      "sha256": "f0b0b4bc16ebd0a4277fbf63c7186304f5fb377fa5dc8deea4fbfd7553bce3db",
+      "exit": 0
+    },
+    {
+      "phase": "official-origin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "official-fetch",
+      "bytes": 121,
+      "sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+      "exit": 0
+    },
+    {
+      "phase": "official-checkout",
+      "bytes": 89,
+      "sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+      "exit": 0
+    },
+    {
+      "phase": "source-checks",
+      "bytes": 872,
+      "sha256": "50470c8bd8e9ff768587f0934b9612df6a2d093c8664f30d280971c85a529370",
+      "exit": 0
+    },
+    {
+      "phase": "official-locked-fetch",
+      "bytes": 15993,
+      "sha256": "7f31df6f3b4b19045676c75724be4665b90118adcdb3fee70f0fab2f3297bece",
+      "exit": 0
+    },
+    {
+      "phase": "prepare",
+      "bytes": 68,
+      "sha256": "d8d176f5717e74f670cc2cd3592e74096182131fc2d37c20b5e6ab9d81db7102",
+      "exit": 0
+    },
+    {
+      "phase": "metadata-resolve",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "verify-before",
+      "bytes": 71,
+      "sha256": "036aed7a6a50d72f529ffa80a0d8b85465ef95110436e57612d04c10f5ff51f6",
+      "exit": 0
+    },
+    {
+      "phase": "actual-native-compile",
+      "bytes": 2432172,
+      "sha256": "b1ade48907e5f7323b69d4a8933b2ab0cf802eb324b09f96d9282b2e929fc117",
+      "exit": 0
+    },
+    {
+      "phase": "native8",
+      "bytes": 1232324,
+      "sha256": "0863760a83fb49a5b9ce342683df9f94bc91a692c5d4a3fb73be80c7a0d0fd9f",
+      "exit": 0
+    },
+    {
+      "phase": "verify-after",
+      "bytes": 71,
+      "sha256": "036aed7a6a50d72f529ffa80a0d8b85465ef95110436e57612d04c10f5ff51f6",
+      "exit": 0
+    }
+  ],
+  "receipt": {
+    "cutoffs": {
+      "fixture": "01ccfa4f115f06aed312931f1057adc958aac5de",
+      "locale_source_followup": "783deeb11bbe63e72bbaefc1954439c3219d4f9a",
+      "successful_package_runner": "8b17fba9610c3e60a873c822f2fa04f93d5c94e4"
+    },
+    "error": null,
+    "fixture_seal_sha256": "7395f4eb8e36c621e55868bb1456d37ea4229b401010a64c989e177d8d3378ef",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "actual_compile": {
+        "fixture": "actual public mod_content::build and PathBuf ResourceSource; owned minimal fixture roots; no Game admission, priority repair or live UI",
+        "native_crates": [
+          "horizon_client_core",
+          "horizon_mods",
+          "horizon_client_lib"
+        ],
+        "passed": true
+      },
+      "metadata": {
+        "lock_sha256": "12625aca46d5aa7f6ce4239296685997fcd15ffa299bfd2c12ad71e89a5ba357",
+        "metadata_sha256": "5a3de0eef475777879c2e7bac90c32028ca50963d8e4e4e78304c98c7f3b75c2",
+        "package_count": 439,
+        "packages_sha256": "868efa076a8c9b7a9b8f6e2f69f33535d55eb6e339299d5c5cd088d0a20a5163",
+        "passed": true,
+        "required_local_owners": [
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-overlay-ce495a88afe32b6322703ad778263a90b2bb98a9/official/crates/horizon-client-core/Cargo.toml",
+            "name": "horizon-client-core",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-overlay-ce495a88afe32b6322703ad778263a90b2bb98a9/official/crates/horizon-client-lib/Cargo.toml",
+            "name": "horizon-client-lib",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-overlay-ce495a88afe32b6322703ad778263a90b2bb98a9/official/crates/horizon-mods/Cargo.toml",
+            "name": "horizon-mods",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-language-overlay-ce495a88afe32b6322703ad778263a90b2bb98a9/fixture/Cargo.toml",
+            "name": "pluto-language-overlay-fixture",
+            "source": null
+          }
+        ]
+      },
+      "runner": {
+        "passed": true,
+        "tests": 26
+      },
+      "source": {
+        "passed": true,
+        "tests": 6
+      },
+      "tests::": {
+        "names": [
+          "tests::distinct_namespaces_keep_native_language_order_not_mod_input_order",
+          "tests::malformed_mod_locale_is_copied_verbatim_and_native_loader_falls_back",
+          "tests::malformed_required_base_table_rejects_before_owned_output_recreation",
+          "tests::missing_admitted_package_fails_after_owned_output_recreation_without_rollback_claim",
+          "tests::mod_replaces_whole_locale_and_never_mutates_base_or_package",
+          "tests::overlapping_owned_namespace_rejects_before_owned_output_recreation",
+          "tests::rebuilding_only_owned_output_removes_previous_mod_file_and_restores_base",
+          "tests::untouched_selected_locale_survives_and_exact_missing_code_uses_output_english"
+        ],
+        "passed": true,
+        "tests": 8
+      }
+    },
+    "generated_output_seal_sha256": "204b91e8d3fb3b433f1eab8167e78ed0838de75c56e2be8276b1795a9449b436",
+    "head": "ce495a88afe32b6322703ad778263a90b2bb98a9",
+    "minimum_free_bytes": 88705925120,
+    "official_seal_sha256": "e1f94b0f68a4088615408abe8fec63488bbfd1faba041899240a6b99dd4ac385",
+    "passed": true,
+    "scope": "Actual official mod_content::build, Package/Content and native Language on eight owned minimal baseline cases. Existing whole-file Mod overlay only. No installed Game admission, selected/server pack merge or filters, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+    "source_seal_sha256": "5ec7d780c715d8bf52e131f0887d54b6f4a9be2819fe8c2499f59269900a13b9",
+    "verified": true
+  },
+  "conclusions": [
+    "Actual native build confirms Mod locale whole-file replacement over the provided lower root, including lower-only key loss.",
+    "Real namespace ordering, exact-locale English fallback, malformed locale passthrough, namespace rejection, error phase and owned rebuild cases passed.",
+    "The Rust fixture and official sources were unchanged; only external-workspace dependency patch inheritance changed from the first attempt.",
+    "Official package identities and exact local owner paths, all source file/byte/link seals, fixture lock/metadata and generated OUT_DIR were checked before/after.",
+    "CI validates full raw phase outputs before emitting bounded summaries. These SHA summaries do not provide later retrieval of ephemeral raw Cargo logs."
+  ],
+  "excluded": [
+    "selected/server resource-pack merge and filters",
+    "translation key-retention or priority repair",
+    "Game::content_root admission and user locale settings",
+    "startup/reload installation and live UI or glyph display",
+    "retained Guide/LAN refresh",
+    "runtime TOML loading",
+    "arbitrary production asset/package coverage",
+    "filesystem modes and empty-directory preservation"
+  ]
+}
