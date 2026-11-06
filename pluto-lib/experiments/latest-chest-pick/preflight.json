@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "scope": "All remaining non-HEAD main hooks after original index209 (chest), relative to full646 candidate. Earlier hooks, HEAD signature/semantic checks and all other failure classes are out of scope. Source-only lexical aid plus manual method review, not Rust parsing or acceptance. Existing mining delta is earlier and does not change these hooks.",
+  "official_revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "actual_prior_diagnostic": {
+    "code": "E_UNSUPPORTED_CONTROL_FLOW",
+    "hook": "tinkers-chest-pick-color",
+    "run": 42215886835
+  },
+  "count": 15,
+  "distinct_targets": 10,
+  "rows": [
+    {
+      "original_hook_index": 225,
+      "id": "source-necrotic-return",
+      "kind": "RETURN",
+      "target": "horizon_client::game::Game<'_>::attack_mob",
+      "source_path": "crates/horizon-client/src/game.rs",
+      "file_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "method_lines": [
+        12389,
+        12569
+      ],
+      "method_sha256": "c7da44b546345e9e80b3ff9bfa94ec5f3b406e3f2b956c8ab6126960fa9be476",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 228,
+      "id": "source-spilling-return",
+      "kind": "RETURN",
+      "target": "horizon_client::game::Game<'_>::attack_mob",
+      "source_path": "crates/horizon-client/src/game.rs",
+      "file_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "method_lines": [
+        12389,
+        12569
+      ],
+      "method_sha256": "c7da44b546345e9e80b3ff9bfa94ec5f3b406e3f2b956c8ab6126960fa9be476",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 231,
+      "id": "source-splash-bottle-brewing",
+      "kind": "MODIFY_EXPRESSION_VALUE",
+      "target": "horizon_client_lib::stations::StationData::load",
+      "source_path": "crates/horizon-client/src/stations.rs",
+      "file_sha256": "3de174a22da3dbd708cea70fbed8ae50489c2891bd1d7ca7296c944681919f36",
+      "method_lines": [
+        28,
+        37
+      ],
+      "method_sha256": "a666fe2ce7ca4b1707b27efa36e18dc3afa560a585ce1130e277a6d0136b7c23",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 269,
+      "id": "copper-can-contents-gui",
+      "kind": "RETURN",
+      "target": "horizon_client::game::item_draw::Game<'_>::draw_item_model",
+      "source_path": "crates/horizon-client/src/game/item_draw.rs",
+      "file_sha256": "2e3b46edfc8a6a908d1506f3eec7129b7523e8c834a3c4ad6f975116fb744e7f",
+      "method_lines": [
+        385,
+        400
+      ],
+      "method_sha256": "9459e61b607152ecd8f6a189f469bf6cf143c4f244448a3f9c9bfdc8dd4473c9",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 274,
+      "id": "source-blazing-barter-pack-start",
+      "kind": "RETURN",
+      "target": "horizon_client::game::functions::content_overlay",
+      "source_path": "crates/horizon-client/src/game/functions.rs",
+      "file_sha256": "50b639ce6ea33d1e48ada61dd8d8884da7b566025a269a8b8fd6587c9ad6a537",
+      "method_lines": [
+        95,
+        107
+      ],
+      "method_sha256": "7754986d02625543702a3ca68f03ba5b9ea5bb18d4131c26b419d3fbfd230d9e",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 275,
+      "id": "source-blazing-barter-pack-loot",
+      "kind": "RETURN",
+      "target": "horizon_world::loot::overlay_map",
+      "source_path": "crates/horizon-world/src/loot.rs",
+      "file_sha256": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+      "method_lines": [
+        468,
+        475
+      ],
+      "method_sha256": "c8e08bef4e3c95b9c37647ed1609fe30a6e3cf130a5ebbb435d7ccb50878ad8f",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 276,
+      "id": "source-blazing-barter-pack-native",
+      "kind": "RETURN",
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files",
+      "source_path": "crates/horizon-client/src/game/native_hooks.rs",
+      "file_sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "method_lines": [
+        2426,
+        2428
+      ],
+      "method_sha256": "96a24a57434484baa6a1f7734057b20c38c28a8faad8e666a684441c77969ba2",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 277,
+      "id": "source-blazing-barter-function",
+      "kind": "AFTER_CALL",
+      "target": "horizon_world::loot::native_loot_function",
+      "source_path": "crates/horizon-world/src/loot.rs",
+      "file_sha256": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+      "method_lines": [
+        70,
+        77
+      ],
+      "method_sha256": "ca06b53112108235484156586069b6d298a766a423fe6b79979e005bb530fbc4",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 278,
+      "id": "lan-craft-open-record-generation",
+      "kind": "RETURN",
+      "target": "horizon_client::game::lan_crafting::Game<'_>::lan_open_crafting",
+      "source_path": "crates/horizon-client/src/game/lan_crafting.rs",
+      "file_sha256": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+      "method_lines": [
+        516,
+        529
+      ],
+      "method_sha256": "aec192aed307f54d9a7ec2b1d9db128c2fa0b0d44e46fb7a3102147185e98045",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 279,
+      "id": "lan-craft-close-clear-generation",
+      "kind": "RETURN",
+      "target": "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_closed",
+      "source_path": "crates/horizon-client/src/game/lan_crafting.rs",
+      "file_sha256": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+      "method_lines": [
+        681,
+        688
+      ],
+      "method_sha256": "3b7264820a7d19459737e15f17e167688e0ff13c38441058c67bd5958948d01e",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 285,
+      "id": "source-slimy-loot-pack",
+      "kind": "RETURN",
+      "target": "horizon_client::game::functions::content_overlay",
+      "source_path": "crates/horizon-client/src/game/functions.rs",
+      "file_sha256": "50b639ce6ea33d1e48ada61dd8d8884da7b566025a269a8b8fd6587c9ad6a537",
+      "method_lines": [
+        95,
+        107
+      ],
+      "method_sha256": "7754986d02625543702a3ca68f03ba5b9ea5bb18d4131c26b419d3fbfd230d9e",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 286,
+      "id": "source-slimy-loot-native",
+      "kind": "RETURN",
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files",
+      "source_path": "crates/horizon-client/src/game/native_hooks.rs",
+      "file_sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "method_lines": [
+        2426,
+        2428
+      ],
+      "method_sha256": "96a24a57434484baa6a1f7734057b20c38c28a8faad8e666a684441c77969ba2",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 287,
+      "id": "source-slimy-loot-world",
+      "kind": "RETURN",
+      "target": "horizon_world::loot::overlay_map",
+      "source_path": "crates/horizon-world/src/loot.rs",
+      "file_sha256": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+      "method_lines": [
+        468,
+        475
+      ],
+      "method_sha256": "c8e08bef4e3c95b9c37647ed1609fe30a6e3cf130a5ebbb435d7ccb50878ad8f",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 288,
+      "id": "source-gravel-crafting-files",
+      "kind": "RETURN",
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files",
+      "source_path": "crates/horizon-client/src/game/native_hooks.rs",
+      "file_sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "method_lines": [
+        2426,
+        2428
+      ],
+      "method_sha256": "96a24a57434484baa6a1f7734057b20c38c28a8faad8e666a684441c77969ba2",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    },
+    {
+      "original_hook_index": 289,
+      "id": "source-gold-guard-attributes",
+      "kind": "RETURN",
+      "target": "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes",
+      "source_path": "crates/horizon-client/src/game/enchant_effects.rs",
+      "file_sha256": "9b6e0bf8781bf9d77f2bef2d6482ff89a72a5e795c8c96f6e36522e1cb2f9b3c",
+      "method_lines": [
+        1058,
+        1087
+      ],
+      "method_sha256": "0d7871e3a0eca041e8e2350f7fe7e61f780c861f621c0e2c8bcb828821c719f7",
+      "lexical_control_flow_candidates": [],
+      "status": "source-only; not an actual planner diagnostic or acceptance"
+    }
+  ],
+  "verified_new_sources": [
+    {
+      "path": "crates/horizon-client/src/game/enchant_effects.rs",
+      "git_blob": "91a10540f1e4acb20b71657d4dafd51f49ee2348",
+      "sha256": "9b6e0bf8781bf9d77f2bef2d6482ff89a72a5e795c8c96f6e36522e1cb2f9b3c",
+      "bytes": 51213
+    },
+    {
+      "path": "crates/horizon-client/src/game/functions.rs",
+      "git_blob": "fa9ba79c92800c82c6f813d9fca48d32a22e6654",
+      "sha256": "50b639ce6ea33d1e48ada61dd8d8884da7b566025a269a8b8fd6587c9ad6a537",
+      "bytes": 45655
+    },
+    {
+      "path": "crates/horizon-client/src/game/item_draw.rs",
+      "git_blob": "5eacff61f237c3a43ff1993dbf1ce4099f2c84ce",
+      "sha256": "2e3b46edfc8a6a908d1506f3eec7129b7523e8c834a3c4ad6f975116fb744e7f",
+      "bytes": 29543
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_crafting.rs",
+      "git_blob": "8db2ec972f94d00e970e6e971e6347d543143a1d",
+      "sha256": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+      "bytes": 30472
+    },
+    {
+      "path": "crates/horizon-client/src/stations.rs",
+      "git_blob": "bd0c9f8591610a75bef048462cdab09d8aa5f4bf",
+      "sha256": "3de174a22da3dbd708cea70fbed8ae50489c2891bd1d7ca7296c944681919f36",
+      "bytes": 39445
+    },
+    {
+      "path": "crates/horizon-world/src/loot.rs",
+      "git_blob": "9409f72ddb8a88be7b8eee5372e9660fb53655cd",
+      "sha256": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+      "bytes": 99181
+    }
+  ],
+  "additional_same_class_candidates": [],
+  "acceptance_claim": false,
+  "scope_41f": {
+    "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "block_items_sha256": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7",
+    "block_items_equal_f4dc": true,
+    "native_hooks_sha256": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833",
+    "native_break_speed_body_equal_f4dc": true,
+    "native_player_pick_item_body_equal_f4dc": true,
+    "actual_latest_plan": false
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "base_candidate": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "base_full_source": "74fc9a53e4bde161f326bbd16710b625f86716e6",
+  "base_full_result": "5db8371b1018355c9686e5e801c76900cabd5750",
+  "independent_policy_review": "ed6c9e1e80d5eb1932560aacd59b592ced10fcb1",
+  "base_manifest_sha256": "f650cd0a92c3c05ab045f1dad15527d3b1fdeeaa81679c5e27728c6f34a34a41",
+  "old_helper_sha256": "13b5cdd49c2366b5f097c62b4286b75684c941410e30bf0c5b5ed88ad20f81b6",
+  "new_helper_sha256": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc",
+  "old_helper": "fn tconstruct_chest_pick(mut value: Option<ItemStack>,game: &crate::game::Game<'_>,pos: [i32;3]) -> Option<ItemStack> {\n    use horizon_world::nbt::Tag;\n    let Some(stack)=value.as_mut() else {return value;};\n    if &*stack.item!=\"tconstruct:tinkers_chest\" {return value;}\n    if let Some(Tag::Int(color))=crate::game::tconstruct_source_melter_store::read(&game.world,(pos[0],pos[1],pos[2]),\"tconstruct:modifier_chest\").and_then(|value|value.get(\"color\").cloned()) {stack.data_mut().dyed_color=Some(color);}\n    value\n}\n",
+  "old_header": "fn tconstruct_chest_pick(mut value: Option<ItemStack>,game: &crate::game::Game<'_>,pos: [i32;3]) -> Option<ItemStack> {\n",
+  "new_header": "fn tconstruct_chest_pick(mut value: ItemStack,game: &crate::game::Game<'_>,pos: [i32;3]) -> ItemStack {\n",
+  "old_binding": "    let Some(stack)=value.as_mut() else {return value;};\n",
+  "new_binding": "    let stack=&mut value;\n",
+  "old_hook": "[[injection]]\nid = \"tinkers-chest-pick-color\"\ntarget = \"horizon_client::game::block_items::Game<'_>::picked_stack\"\nkind = \"RETURN\"\nhelper = \"source-chest-pick.rs\"\nbindings = [\n  { name = \"value\", ty = \"Option<ItemStack>\", value = \"$value\" },\n  { name = \"game\", ty = \"&crate::game::Game<'_>\", value = \"&*self\" },\n  { name = \"pos\", ty = \"[i32;3]\", value = \"pos\" },\n]\n\n",
+  "new_hook": "[[injection]]\nid = \"tinkers-chest-pick-color\"\ntarget = \"horizon_client::game::block_items::Game<'_>::picked_stack\"\nkind = \"MODIFY_VARIABLE\"\nvariable = { name = \"stack\", ordinal = 0, at = \"LOAD\" }\nrequire = 4\nordinal = 3\nhelper = \"source-chest-pick.rs\"\nbindings = [\n  { name = \"value\", ty = \"ItemStack\", value = \"$value\" },\n  { name = \"game\", ty = \"&crate::game::Game<'_>\", value = \"&*self\" },\n  { name = \"pos\", ty = \"[i32;3]\", value = \"pos\" },\n]\n\n",
+  "official_revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "official_block_items_sha256": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7",
+  "official_method": "    pub(super) fn picked_stack(&self, pos: [i32; 3], include_data: bool) -> Option<ItemStack> {\n        let key = (pos[0], pos[1], pos[2]);\n        let state = self.world.block(pos[0], pos[1], pos[2]);\n        let facts = self.res.facts().get(state);\n        // PistonHeadBlock.getCloneItemStack: the piston the head belongs to.\n        let head = self\n            .pack\n            .assets\n            .registry\n            .state(state)\n            .filter(|s| s.name.as_str() == \"minecraft:piston_head\")\n            .map(|s| match s.properties.get(\"type\") {\n                Some(t) if t == \"sticky\" => \"minecraft:sticky_piston\",\n                _ => \"minecraft:piston\",\n            });\n        let item = clone_item(&facts.name, head.unwrap_or(&facts.item));\n        // FlowerPotBlock.getCloneItemStack: a potted plant picks as that plant\n        // (`new ItemStack(potted)`), an empty pot as the pot itself.\n        let item = picked_item(self.res.behaviours(), state, item)?;\n        let mut stack = ItemStack::new(item, 1);\n        let mut patch = Compound::new();\n        // BeehiveBlock.getCloneItemStack: the honey level as the item's block state.\n        if include_data\n            && let Some(level) = self\n                .pack\n                .assets\n                .registry\n                .state(state)\n                .filter(|s| matches!(s.name.as_str(), \"minecraft:beehive\" | \"minecraft:bee_nest\"))\n                .and_then(|s| s.properties.get(\"honey_level\"))\n        {\n            patch.insert(\n                \"minecraft:block_state\".into(),\n                Tag::compound([(\"honey_level\", Tag::String(level.as_str().into()))]),\n            );\n        }\n        // CopperGolemStatueBlock.getCloneItemStack: the statue's pose as the item's\n        // block_state (`CopperGolemStatueBlockEntity.getItem`), data or not.\n        if let Some(pose) = self\n            .pack\n            .assets\n            .registry\n            .state(state)\n            .filter(|s| s.name.ends_with(\"copper_golem_statue\"))\n            .and_then(|s| s.properties.get(\"copper_golem_pose\"))\n        {\n            patch.insert(\n                \"minecraft:block_state\".into(),\n                Tag::compound([(\"copper_golem_pose\", Tag::String(pose.as_str().into()))]),\n            );\n        }\n        // LightBlock.getCloneItemStack, setLightOnStack: the light's level as\n        // the item's block state, whether or not the block data is picked.\n        if let Some(level) = self\n            .pack\n            .assets\n            .registry\n            .state(state)\n            .filter(|s| s.name.as_str() == \"minecraft:light\")\n            .and_then(|s| s.properties.get(\"level\"))\n        {\n            patch.insert(\n                \"minecraft:block_state\".into(),\n                Tag::compound([(\"level\", Tag::String(level.as_str().into()))]),\n            );\n        }\n        // AbstractBannerBlock.getCloneItemStack: the banner's own item\n        // (BannerBlockEntity.getItem), data or not.\n        let banner = matches!(\n            self.world.block_entities.get(&key),\n            Some(BlockEntity::Banner(_))\n        );\n        // DecoratedPotBlock.getCloneItemStack: createDecoratedPotInstance, the\n        // sherds only; the pot's item comes with include_data.\n        let pot = &*facts.name == \"minecraft:decorated_pot\";\n        if (include_data || banner || pot)\n            && let Some(saved) = self.saved_block_entity(key)\n        {\n            let mut picked = block_entity_item::pick(&saved);\n            if pot && !include_data {\n                picked.retain(|k, _| *k == JavaString::from(\"minecraft:pot_decorations\"));\n            }\n            patch.extend(picked);\n        }\n        if !patch.is_empty() {\n            let mut all = components(&stack);\n            all.extend(patch);\n            (stack.damage, stack.extra) = item_data::decode_components(Some(&Tag::Compound(all)));\n        }\n        Some(stack)\n    }",
+  "official_method_sha256": "9d18e2f8a7917a5526e3c45663eadb433a1ba4b72499cf48b48e923503a0537f",
+  "static_loads": [
+    {
+      "ordinal": 0,
+      "expression": "components(&stack)",
+      "place": true,
+      "supported_candidate": false
+    },
+    {
+      "ordinal": 1,
+      "expression": "stack.damage",
+      "place": true,
+      "supported_candidate": false
+    },
+    {
+      "ordinal": 2,
+      "expression": "stack.extra",
+      "place": true,
+      "supported_candidate": false
+    },
+    {
+      "ordinal": 3,
+      "expression": "Some(stack)",
+      "place": false,
+      "supported_candidate": true
+    }
+  ],
+  "actual_ir_verified": false,
+  "native_type_verified": false
+}

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "source-only; 16 pure tests passed; actual IR/Rust/full composition unrun",
+  "base_full_result": "5db8371b1018355c9686e5e801c76900cabd5750",
+  "source_sha256": {
+    "candidate.py": "aac2cd00be13572637a4ef618e9f3e08db7bc9af7fe18a4f7049209c4922f811",
+    "test_candidate.py": "43c4fb51be234463318973569d7ce664a1913a9476c1a15e031838f7ce40e017",
+    "source-chest-pick.rs": "b7091136b67115babbe19dae8365f490c09b4a75e2c94d2ab41b39d086ffc1cc",
+    "oracles.json": "068ef488be4fa8e1238435388e657dce144221b298bdf41e259575f5fb7e077e",
+    "README.md": "4f8b7613fc899cdcc318e0055993e75755065f2aeb155d5e1dfbcf3681908d64",
+    "preflight.json": "c87dae5e9167b543cea52e0435eeab828f54ca1899a32c9a9ab0fdcdffd907d2"
+  },
+  "official": {
+    "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "block_items_sha256": "0bbdbf91760376e6e97b9769048e7f827f1a3e16c478872408429d5e389c8dd7",
+    "plan_sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+    "scopes_sha256": "b17add85c4d5e1afa953a9cda708d35a6ef3beaee29d0bb0d3142c5dd4e5fba9"
+  },
+  "changed_payload_paths": [
+    "tconstruct_native/horizon-mixin.toml",
+    "tconstruct_native/source-chest-pick.rs"
+  ],
+  "game_type_verified": false,
+  "compatibility_success": false
+}
