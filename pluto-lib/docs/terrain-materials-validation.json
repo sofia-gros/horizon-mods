@@ -1,14 +1,12 @@
 {
-  "status": "source WIP; actual native proof pending",
+  "status": "bounded official plan/apply/type and material contracts passed; live renderer unverified",
   "first_cutoff": "a6e25c8ef6e5862234378c9feb90256234b90827",
   "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
-  "python_source_package_checks": 19,
-  "python_elapsed_seconds": 0.099,
   "pure_rust_tests_added": 7,
   "native_type_tests_added": 2,
-  "new_rust_tests_executed": 0,
-  "official_plan_apply_type": "not run",
+  "new_rust_tests_executed": 9,
+  "official_plan_apply_type": "passed exact CI e210b8c1 run42174754526",
   "cpu_differential_timing": "not run",
   "gpu": "not run",
   "consumer_activation": false,
@@ -21,10 +19,22 @@
     "pluto-lib/mixins/pluto_native_creative/terrain-binding-host.rs": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4",
     "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
     "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
-    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
     "pluto-lib/tests/test_terrain_cells.py": "9fd9c8a6b480d9e7d621aec4ea80deb80d49cf54986ac7c5ed7f0699a74b4536",
     "pluto-lib/tools/prepare_terrain_binding_fixture.py": "fd304171af12d88ffd9981bec1d13538148d5ee6a2edfd6a41fed27984de378a",
     "pluto-lib/tools/terrain-binding-source.json": "63dc9a768b8d369a47e6f18761a1771a1b394db7e1dddb4a42a8024fdc3f6c19",
-    "pluto-lib/tools/terrain-cell-source.json": "0400261e14970fb439f97ab21dedb6d6193c2786ded784a117bea28356042a3b"
-  }
+    "pluto-lib/tools/terrain-cell-source.json": "af3cfc65f4d73467880ebd3af0e431af0a2e4e75a953fbabb6a25c247e12f04e"
+  },
+  "historical_first_source_checks": {
+    "count": 19,
+    "seconds": 0.099
+  },
+  "current_contract_tests": {
+    "std": 30,
+    "fluid_api": 21,
+    "native_material": 2,
+    "source_guards": 19
+  },
+  "proof_file": "terrain-materials-native-proof.json",
+  "verification_does_not_include": "Later terrain author facade24574695 or fluid Declaration author API"
 }

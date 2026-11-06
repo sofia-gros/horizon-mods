@@ -1,10 +1,17 @@
 # Prepared native materials for bounded terrain geometry
 
-This follow-up is a SOURCE WIP on the first render-contract checkpoint
-`a6e25c8e` (published `52c551d1`). It has not passed a new official native
-plan/apply/type gate, CPU differential, timing run or GPU display test. The old
-frozen CPU/Game CI checkpoints are unchanged; their results cannot validate
-this different source. No TConstruct consumer is activated.
+The material implementation based on `a432ce45`, with the minimal u32 tint
+correction, passed the bounded official native CI at `e210b8c1`,
+[run 42174754526](https://github.com/sofia-gros/horizon-mods/actions/runs/42174754526).
+Source 19, std 30, fluid API 21, actual official plan/12 guards/apply, host
+library/binary type checks and two actual native BakedFace tests passed. The
+exact package is `b448763e77488d5f7c119d99d675351a8d3244db1a80b3dfd374fa439f039e81`.
+The detailed receipt is in `terrain-materials-native-proof.json`.
+
+This does not prove native asset loading/reload, CPU mesh differential or timing,
+GPU display, or upward simulation/contact. No TConstruct consumer is activated.
+The old CPU/Game experiments and the later Mod-author facade are separate
+cutoffs and do not inherit this proof.
 
 ## One cache and one provider registry
 
@@ -96,14 +103,21 @@ silently reinterpreted or activated.
 
 ## Verification scope
 
-- Nineteen terrain Python/source/package checks and exact copied native body /
-  face-filter regeneration passed against official 624c source.
-- Seven new pure Rust tests cover appearance validation, shared callback kinds,
-  fixed material selection, tint and additive content generation. Two additional
-  native-type tests cover compatible versus mismatched BakedFace attributes.
-  They are written but unexecuted; earlier first-cutoff tests are also pending.
-- The legacy modeled-renderer binding fixture now rejects this source before
-  creating output. It lacks actual native material templates and must not be
-  expanded with a fake positive model catalog. Full native material proof needs
-  the real renderer types/resources in the next authorized fixture.
-- No native compiler, Cargo/metadata, runtime renderer or GPU run is claimed.
+- Exact source 19, production std-module 30 and real API 21 tests passed.
+  The API suite used three exact module selections (10 base, 2 revision,
+  9 render-registration tests), without unrelated contact cases.
+- Official Horizon 624c / Mixins e8 actual plan, all twelve complete-plan guards,
+  apply and host library/binary checks passed. Actual rustc invocations were
+  required for Pluto API, renderer, client-library adapter and both host targets.
+- The complete actual renderer unit-test target compiled. Its two native
+  BakedFace compatibility cases passed, with 1,554 unrelated tests filtered out.
+  These are material attribute contracts, not loading or meshing tests.
+- Final source/file-set/manifest/Cargo.lock seals and generated native OUT_DIR
+  comparisons passed. Minimum free disk was 87,804,133,376 bytes.
+- Four earlier failed attempts remain recorded: one tint integer compile error
+  and three strict selector/name validation failures. Their partial passing
+  tests are not presented as complete-run successes. Runtime was unchanged
+  during the three selector repairs.
+- The legacy modeled binding fixture still rejects this material-aware source.
+  No fake positive catalog replaces native resources. Live loader/reload,
+  section fallback/cache replay, CPU performance and GPU checks remain open.

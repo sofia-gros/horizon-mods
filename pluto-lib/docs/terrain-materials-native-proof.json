@@ -1,0 +1,169 @@
+{
+  "run_id": 42174754526,
+  "job_id": 127750554537,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42174754526",
+  "head": "e210b8c162496b83fec3adca7099ea10cf49b2e8",
+  "conclusion": "success",
+  "official": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "receipt": {
+    "bundle_sha256": "b448763e77488d5f7c119d99d675351a8d3244db1a80b3dfd374fa439f039e81",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "apply": "passed",
+      "complete_plan_guards": "passed",
+      "fluid21": "passed",
+      "fluid_group_0": "10 passed",
+      "fluid_group_1": "2 passed",
+      "fluid_group_2": "9 passed",
+      "host_lib_bin_type": "passed",
+      "native_material2": "passed",
+      "plan": "passed",
+      "source19": "passed",
+      "std30": "passed"
+    },
+    "head": "e210b8c162496b83fec3adca7099ea10cf49b2e8",
+    "minimum_free_bytes": 87804133376,
+    "production_base": "a432ce4561ae1c81448b37a5b19e71126d8c4e72",
+    "runtime_corrections": [
+      {
+        "after_sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+        "before_sha256": "ce7d2883c8cf20706c62a4c51f66448cd86f5248d41805673d7755f257859d4c",
+        "path": "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs",
+        "reason": "Run42172857479 actual std compile E0277: make tint closure shift/masks/divisor explicitly u32; arithmetic unchanged"
+      }
+    ],
+    "scope": "Plan/apply/type and pure/material contracts only; no consumer activation, live loader, meshing differential, timing, gameplay or GPU proof",
+    "stage_seal_sha256": "0cc539cfdd1924a8517dea8c09f8237c3167ae227a204f9d85da7390f64a9ef2"
+  },
+  "test_summaries": [
+    "test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.01s",
+    "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.00s",
+    "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s",
+    "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1554 filtered out; finished in 0.00s"
+  ],
+  "passed_test_names": [
+    "pluto_terrain_bindings::appearance_tests::duplicate_unknown_and_invalid_material_selectors_fail",
+    "pluto_terrain_bindings::appearance_tests::legacy_empty_and_single_appearance_validate",
+    "pluto_terrain_bindings::appearance_tests::material_text_is_charged_to_the_same_total_budget",
+    "pluto_terrain_bindings::revision_view_tests::revision_changed_during_inspection_discards_return_value",
+    "pluto_terrain_bindings::revision_view_tests::stale_before_inspection_is_explicitly_unavailable",
+    "pluto_terrain_bindings::tests::exact_owner_triple_survives_arc_clones_not_identical_reload_values",
+    "pluto_terrain_bindings::tests::live_owner_budget_never_evicts_an_existing_resource_set",
+    "pluto_terrain_bindings::tests::request_validation_precedes_native_resolution",
+    "pluto_terrain_bindings::tests::same_owner_snapshot_cannot_be_changed_by_late_registration",
+    "pluto_terrain_bindings::tests::snapshot_failure_is_not_an_empty_catalog",
+    "pluto_terrain_bindings::tests::weak_cache_does_not_retain_values_and_expired_entries_are_pruned",
+    "pluto_terrain_cell_geometry::tests::bottom_orientation_is_exact_legacy_output",
+    "pluto_terrain_cell_geometry::tests::diagonal_rotates_position_uv_pairs_only_on_top",
+    "pluto_terrain_cell_geometry::tests::fixed_capacity_order_and_paired_back_winding",
+    "pluto_terrain_cell_geometry::tests::invalid_inputs_fail_before_returning_any_batch",
+    "pluto_terrain_cell_geometry::tests::omissions_and_section_boundary_remain_bounded",
+    "pluto_terrain_cell_geometry::tests::top_orientation_keeps_section_origin_and_shared_validation",
+    "pluto_terrain_cell_geometry::tests::top_reflects_positions_uv_pairs_faces_and_back_winding",
+    "pluto_terrain_cells::tests::batch_duplicates_and_invalid_groups_publish_nothing",
+    "pluto_terrain_cells::tests::duplicates_bounds_and_freeze_are_atomic",
+    "pluto_terrain_cells::tests::exact_capacity_and_overflow_are_atomic",
+    "pluto_terrain_cells::tests::first_empty_snapshot_freezes_registration",
+    "pluto_terrain_cells::tests::geometry_and_material_callbacks_share_capacity_identity_and_freeze",
+    "pluto_terrain_cells::tests::opacity_uv_envelope_handles_reverse_degenerate_and_nonfinite",
+    "pluto_terrain_cells::tests::output_budget_does_not_wrap_or_mutate_on_failure",
+    "pluto_terrain_cells::tests::painting_preserves_fixed_geometry_and_paired_back_selection",
+    "pluto_terrain_cells::tests::poison_cannot_publish_a_partial_registry",
+    "pluto_terrain_cells::tests::section_relative_geometry_is_not_admitted_as_cell_local",
+    "pluto_terrain_cells::tests::seventy_groups_share_one_function_without_exceeding_budget",
+    "pluto_terrain_cells::tests::tint_keeps_white_identity_and_multiplies_rgb_without_losing_alpha",
+    "fluid::tests::batch_conflict_preserves_existing_and_does_not_publish_valid_prefix",
+    "fluid::tests::batch_rejects_internal_identity_collisions_and_invalid_members_atomically",
+    "fluid::tests::captured_snapshots_do_not_change_with_later_registration",
+    "fluid::tests::concurrent_snapshot_reader_never_observes_part_of_a_batch",
+    "fluid::tests::falls_before_spreading_and_preserves_obstacles",
+    "fluid::tests::missing_chunk_is_not_air_and_refused_write_is_noop",
+    "fluid::tests::registry_is_idempotent_and_rejects_identity_replacement",
+    "fluid::tests::source_spreads_and_entire_pool_decays_after_pickup",
+    "fluid::tests::successful_batch_is_idempotent_and_snapshot_indexes_are_consistent",
+    "fluid::tests::validates_ids_bounds_and_generated_levels",
+    "fluid::revision_tests::idempotent_empty_and_failed_batches_keep_the_same_valid_revision",
+    "fluid::revision_tests::successful_addition_invalidates_only_previous_revision_and_keeps_old_values",
+    "fluid::render_registration_tests::conflicting_batch_internal_styles_leave_empty_registry",
+    "fluid::render_registration_tests::conflicting_batch_rolls_back_both_maps_and_keeps_revision",
+    "fluid::render_registration_tests::custom_display_and_definition_publish_under_one_revision",
+    "fluid::render_registration_tests::invalid_rgb_and_texture_identity_are_rejected",
+    "fluid::render_registration_tests::legacy_registration_keeps_its_single_texture_default",
+    "fluid::render_registration_tests::legacy_repeat_does_not_erase_custom_display_or_invalidate",
+    "fluid::render_registration_tests::long_legacy_texture_and_explicit_default_have_one_validation_contract",
+    "fluid::render_registration_tests::render_content_is_additive_and_default_bytes_remain_semantically_exact",
+    "fluid::render_registration_tests::retained_render_values_survive_new_registration_with_stale_token",
+    "mesher::pluto_terrain_cell_host::material_contract_tests::every_nontexture_attribute_mismatch_rejects_the_template",
+    "mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes"
+  ],
+  "actual_rustc": {
+    "pluto_api": {
+      "actual_invocations": 1
+    },
+    "horizon_client_render": {
+      "actual_invocations": 2
+    },
+    "horizon_client_lib": {
+      "actual_invocations": 1,
+      "expected_source_targets": [
+        "src/client_lib.rs"
+      ]
+    },
+    "horizon_client": {
+      "actual_invocations": 2,
+      "expected_source_targets": [
+        "src/lib.rs",
+        "src/main.rs"
+      ]
+    }
+  },
+  "phase_terminals": [
+    "TERMINAL std-compile 0 seconds 0.402",
+    "TERMINAL std30 0 seconds 0.201",
+    "TERMINAL fluid-group-0 0 seconds 3.609",
+    "TERMINAL fluid-group-1 0 seconds 0.202",
+    "TERMINAL fluid-group-2 0 seconds 0.202",
+    "TERMINAL official-plan 0 seconds 18.447",
+    "TERMINAL all12guards 0 seconds 0.201",
+    "TERMINAL official-apply 0 seconds 20.846",
+    "TERMINAL host-type 0 seconds 166.997",
+    "TERMINAL native-material-compile 0 seconds 181.427",
+    "TERMINAL native-material2 0 seconds 0.402"
+  ],
+  "final_integrity": "Complete source/file-set/manifest/Cargo.lock seals and post-compilation native OUT_DIR contents checks completed in finally before successful process exit",
+  "not_proven": [
+    "70 actual content families registered",
+    "live native asset loading or reload lifecycle",
+    "section mesh fallback/cache replay equivalence",
+    "CPU meshing time/performance",
+    "upward flow/contact simulation",
+    "TConstruct consumer activation",
+    "GPU display"
+  ],
+  "failure_history": [
+    {
+      "run": 42172857479,
+      "head": "1b60c96a",
+      "outcome": "production tint E0277 after source19; no Rust execution"
+    },
+    {
+      "run": 42173321338,
+      "head": "60054f8b",
+      "outcome": "std30 passed; incorrect qualified expected-name metadata rejected"
+    },
+    {
+      "run": 42174045690,
+      "head": "2b458c72",
+      "outcome": "std30 and selectedAPI10 passed; filter omitted11 required cases"
+    },
+    {
+      "run": 42174476137,
+      "head": "468cc7f7",
+      "outcome": "std30 and all37 fluid subtree cases passed; selector guard rejected16 extra contact cases"
+    }
+  ]
+}
