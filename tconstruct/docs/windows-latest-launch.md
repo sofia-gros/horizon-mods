@@ -2,6 +2,10 @@
 
 Source-only follow-up to `9fc10b9a4872643ff52b30502c28a95aa4613323`, based on integration `e128d61478971e247b1e3e2e09516cf99652f9fc`. The PowerShell entry is wired to a Python controller; it is not merely an admission design. No PowerShell interpreter, Windows host, Cargo build, source fetch, toolchain installation or game startup was available/run in this validation environment. Twenty latest pure Python/source checks and eleven synthetic package checks passed; twelve historical cache checks also passed against the exact reconstructed 60e42 entry, not against the replaced entry as if behavior were unchanged. This is not a playable-release claim.
 
+## Current formatter/encoding follow-up
+
+The source candidates `f9fcdd39` and `6ecd8daa` add a required pinned formatter input and process-local UTF-8 for child Python. The earlier `5e14cf74` Windows Server 2025 source check succeeded with PowerShell parsing and 43 pure tests ([run 42233831944](https://github.com/sofia-gros/horizon-mods/actions/runs/42233831944)); that result does **not** cover the newly changed formatter entry, a Windows 11 game build, or gameplay. The original source-only history below remains separate.
+
 ## Fixed client contract
 
 - Official Horizon `41f822b659789780f58d32c63ddfb6887ea1b8bf` and Mixins `5a64af938ec86b00d53d16a408aabc0038fb3e57`, exact official HTTPS origins, clean committed source and exact Cargo.lock hashes.
@@ -14,16 +18,32 @@ This follow-up also changes only the two revision values in compatibility.json t
 
 ## Explicit preparation, without an automatic installer
 
-`play-windows.ps1` accepts `-HorizonSource`, `-MixinsSource`, `-Resources`, `-Toolchain`, optional `-PlaytestHome`, and an optional compatibility `-PlutoBundle`. Pluto is normally generated from this same checkout, not selected externally. Other missing input folders are requested explicitly; no drive, adjacent checkout, previous launcher setting or wildcard resource discovery is performed. Choose only your official prepared Horizon26.3 resource folder, not a source checkout, modded resource folder or saves directory. No discarded fork path is accessed.
+`play-windows.ps1` accepts `-HorizonSource`, `-MixinsSource`, `-Resources`, `-Toolchain`, required `-RustfmtArchive`, optional `-PlaytestHome`, and an optional compatibility `-PlutoBundle`. Pluto is normally generated from this same checkout, not selected externally. Other missing input folders are requested explicitly; no drive, adjacent checkout, previous launcher setting or wildcard resource discovery is performed. Choose only your official prepared Horizon26.3 resource folder, not a source checkout, modded resource folder or saves directory. No discarded fork path is accessed.
 
 On an approved Windows machine/CI, preparation can use the normal official sources:
 
 - `https://github.com/horizon-rust/horizon` at the exact Horizon commit above.
 - `https://github.com/horizon-rust/horizon-mixins` at the exact Mixins commit above.
 - The official Horizon launcher's prepared `rust/1.99.1-x86_64-pc-windows-gnu` toolchain, including its `bin` and `mingw64` trees. Its Rust component archive hashes and WinLibs archive SHA256 are pinned in official `launcher/src/rust_toolchain.rs`. Do not substitute a rustup shim, MSVC toolchain or arbitrary same-named binaries.
+- The separate official Rust 1.99.1 GNU formatter archive: [rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz](https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz), SHA256 `488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa`. The official Horizon toolchain preparation does not itself supply rustfmt. An explicitly authorized preparation step must place that same component's `bin/rustfmt.exe` into the selected toolchain before launch. Keep the original archive in a separate input folder outside the toolchain, source, resources and PlaytestHome. The controller reads the archive, requires the exact pinned checksum and executable-member byte equality, and rejects a missing/different binary; it never extracts or installs it. The manifest/sidecar were verified, but actual archive layout, executable version output and helper regeneration have not yet run. See [formatter evidence and limits](windows-guard-rustfmt-20261106.md).
 - User-owned game assets prepared through the official launcher. Toolchain preparation/downloads and licensed game assets are separate prerequisites; this change does not provide them or change their permissions.
 
 This source candidate defaults to offline Cargo, not a permanent ban on official network preparation. Before use, an authorized preparation step can prefetch both exact official workspaces with their locked dependencies into `PlaytestHome/cargo-home-latest-gnu`, using the selected Cargo/Rust/toolchain environment. The minimal commands are `cargo fetch --locked --manifest-path <official-horizon>/Cargo.toml` and the same command for `<official-mixins>/Cargo.toml`, with that `CARGO_HOME`. Execute preparation from a location without inherited Cargo config. Missing crates fail visibly offline; the launcher does not silently fetch, install or retry. A future approved Windows CI may perform those official fetch steps explicitly before invoking this route.
+
+
+After the authorized preparations and only when the complete guards are ready, this is the explicit entry from the combined checkout root. Replace every example path with the already prepared inputs; this command has **not** been executed for the formatter candidate:
+
+```powershell
+& .\tconstruct\tools\play-windows.ps1 `
+  -HorizonSource 'C:\Prepared\horizon-41f' `
+  -MixinsSource 'C:\Prepared\mixins-5a64' `
+  -Resources 'C:\Prepared\resources-26.3' `
+  -Toolchain 'C:\Prepared\rust-1.99.1-gnu' `
+  -RustfmtArchive 'C:\Prepared\archives\rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz' `
+  -PlaytestHome 'C:\TConstructPlaytest'
+```
+
+No external `-PlutoBundle` is needed: the same-checkout packagers supply it. Missing arguments use explicit selectors rather than searching other source trees. Passing the archive is not permission to bypass a failed guard. The launcher selects the verified formatter by absolute path, and starts child Python with process-only `PYTHONUTF8=1` plus `PYTHONIOENCODING=utf-8`; it does not change OS locale or user configuration. See [UTF-8 source-hash evidence](windows-python-utf8-20261106.md).
 
 No preparation commands above were executed for this checkpoint. We do not claim the toolchain's whole-tree fingerprint authenticates a download. Use the official archive hashes/preparation route; version checks plus a fingerprint distinguish the actual selected inputs, not their provenance by themselves.
 
@@ -66,12 +86,12 @@ A fresh temporary packaging attempt is cleaned after completion/failure; only fi
 
 ## Strict pure-output follow-up
 
-The intentional duplicate ZIP negative case now captures and checks exactly one `UserWarning` with `Duplicate name: 'a'`; case-only collisions require no warning. Unexpected warnings are not globally suppressed. All actual verbose, merged stdout/stderr outputs from the20 latest,12 historical and11 bundle suites pass the planned strict named-output validator. Seven controller/parser regressions passed on Linux; PowerShell parsing and Windows Job Object execution are still unrun. No launcher or bundle runtime code changed in this follow-up.
+The intentional duplicate ZIP negative case now captures and checks exactly one `UserWarning` with `Duplicate name: 'a'`; case-only collisions require no warning. Unexpected warnings are not globally suppressed. All actual verbose, merged stdout/stderr outputs from the20 latest,12 historical and11 bundle suites pass the planned strict named-output validator. Seven controller/parser regressions passed on Linux; PowerShell parsing and Windows Job Object execution were still unrun at that intermediate cutoff. No launcher or bundle runtime code changed in this follow-up.
 
 The integration review found one extra terminal LF in the earlier local stage baseline reconstruction. The candidate now removes that single extra byte, and its two-edit inverse returns the actual e128/bff3 Git source,7058 bytes/SHA256 `61f70d88077297d6d827c6d7866cabb7b4983101386ec7233c766e3e36e3d200`. The launch STAGE_SHA and inverse receipt follow this correction; planner/guard/apply ordering and behavior are unchanged.
 
 ## First actual Windows source check
 
-Run42230840423 parsed the PowerShell entry successfully but stopped after19/20 latest tests: the remaining test implicitly decoded UTF-8 source with Windows CP1252. The raw stage/source seals matched; the reproduced mojibake SHA exactly matches the failure. The test now hashes bytes and decodes UTF-8 explicitly, with the exact reproduction retained. Runtime source, stage, inverse expected hash and guards are unchanged. Historical12/bundle11 were not reached in that run; see `windows-source-ci-first-result-20261106.json` for the false receipt. A corrected Windows retry is still pending.
+Run42230840423 parsed the PowerShell entry successfully but stopped after19/20 latest tests: the remaining test implicitly decoded UTF-8 source with Windows CP1252. The raw stage/source seals matched; the reproduced mojibake SHA exactly matches the failure. The test now hashes bytes and decodes UTF-8 explicitly, with the exact reproduction retained. Runtime source, stage, inverse expected hash and guards are unchanged. Historical12/bundle11 were not reached in that run; see `windows-source-ci-first-result-20261106.json` for the false receipt. The corrected source retry later succeeded at exact `5e14cf74` / run42233831944 with all 43 pure tests and PowerShell parsing. The subsequent formatter/UTF-8 changes are separate source candidates, not a rerun or game-build success.
 
 The limited three-suite audit found eight remaining implicit text reads, all referring to currently ASCII-only source/JSON, and no read_text call in the bundle suite. Those eight reads now also state UTF-8 explicitly; an AST regression in the existing test requires that policy across all three suites. This changes tests only, not runtime decoding or environment configuration.
