@@ -1,0 +1,47 @@
+{
+  "status": "source-only inventory; no loader/UI/native execution",
+  "mod_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "published_equivalent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mod_files": {
+    "tconstruct/content/reference/tconstruct-melter-fluids.json": "36aac644595a5e53f45ae0cb096575f83d8ad24e59c1f3241806c9a3e0b3e9e0",
+    "tconstruct/content/assets/tconstruct/lang/en_us.json": "8b5cb983b8cb5c5e36d98b07985b08a6466539d831093a157cda869cbdb16b33",
+    "tconstruct/content/reference/tconstruct-part-visuals.zip": "79013c80f3626566eba306c3bde4c34849e4745e1176a4cb84c3030f38bd12f9",
+    "tconstruct/content/reference/tconstruct-tool-visuals.zip": "aa9a44038afb55e563d5f0296b46077ee89ae0419d6c5c5acfaf9d758fa63156",
+    "tconstruct/mixins/tconstruct/source-fluid-display.rs": "fce8229c4ecb5cc67886197603079da0af5c20455ca69371df4e02d9c9c1b8dd",
+    "tconstruct/mixins/tconstruct/source-melter-render.rs": "f525eff6e163f2d504c1488c22ffd3aa39a7811a520f2c7a599a4530a43e26fc",
+    "tconstruct/mixins/tconstruct/source-gauge.rs": "1acfa029768b8b4b47511be2fff18a2c73961e9da0dc2e949468546dd17c2c07",
+    "tconstruct/mixins/tconstruct/source-smeltery-fuel.rs": "bb7922dc006fae5ac203b302c4f9b7693fb35c4225f0b0f9630a5468cbec5df3",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96",
+    "tconstruct/mixins/tconstruct/part-name-injection.rs": "15ef3ed5915aff79e926788f21746ffa5a6060db1d28febe06e10f6a8b337afe",
+    "tconstruct/tools/package_hmod.py": "e68d5a63c1b60d5ebfe4f1d859960ef15bdd2c45541ee87ae50c944a9462fdc3",
+    "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "71e8324bcfd6996ebaf7823f3f1bc80ef33f5e4f5a078cb38f92d1fe7b804709"
+  },
+  "official_files": {
+    "crates/horizon-client/src/creative.rs": "29eedabcb03e331e0f00094ed63dd1ad2acc42921cba7e9032ece37d965e466d",
+    "crates/horizon-client/src/item_tooltip.rs": "8baf7a5810b038c7fbdab3686a3591492574ad4b07256e027ae3262457767501",
+    "crates/horizon-client/src/game/stations.rs": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+    "crates/horizon-client-core/src/lang.rs": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+    "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67"
+  },
+  "reference_inventory": {
+    "ids": 142,
+    "display_families": 72,
+    "flow_still_pairs": 70,
+    "unpaired": [
+      "tconstruct:potion",
+      "tconstruct:powdered_snow"
+    ],
+    "en_us_fluid_keys": 72,
+    "ja_jp_fluid_keys": 72,
+    "bucket_keys_each": 71,
+    "bucket_exception": "tconstruct:powdered_snow"
+  },
+  "scope_limits": [
+    "Counts are source reference coverage, not world registration",
+    "Archive language exists; no actual content packaging or loader run",
+    "No locale switch, UI refresh, LAN client display or GPU proof",
+    "New render and Declaration APIs do not introduce translation key policy"
+  ],
+  "world_loader_audit": "https://github.com/sofia-gros/horizon-mods/blob/d92b7046f86789103f27e7a7905e1a0bb7cc377a/pluto-lib/docs/language-resource-audit-20261106.md"
+}
