@@ -1,0 +1,85 @@
+{
+  "source_commit": "150acf22dda956979805da9d3a26c8a4feee8654",
+  "source_path": "pluto-lib/experiments/language-placement-ci/run.py",
+  "source_sha256": "18f536a58843680f5421e53786a34bb20dc1e8003a17651dde09c1a525207c8f",
+  "changes": [
+    {
+      "label": "separate trigger and source directory",
+      "before": "language-placement",
+      "after": "language-root",
+      "count": 5
+    },
+    {
+      "label": "candidate exact source",
+      "before": "489f63c54861225874efe99f11dbb0399fe8e1c7",
+      "after": "e7cc3021bca49678506f8d15ed38945fba9fadcf",
+      "count": 1
+    },
+    {
+      "label": "root-only description",
+      "before": "Language writer/stamp placement only; no apply, type, cache or Game proof.",
+      "after": "Language root-key placement only; no apply, type, cache or Game proof.",
+      "count": 1
+    },
+    {
+      "label": "runner cases",
+      "before": "RUNNER_TESTS=18",
+      "after": "RUNNER_TESTS=21",
+      "count": 1
+    },
+    {
+      "label": "derive from frozen prior controller",
+      "before": "'pluto-lib/experiments/latest-mining-probe-ci/run.py','pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py'",
+      "after": "'pluto-lib/experiments/language-placement-ci/run.py','pluto-lib/experiments/language-placement-ci/observe_plan.py'",
+      "count": 1
+    },
+    {
+      "label": "root candidate graph",
+      "before": "INPUT_PATHS|={'pluto-lib/experiments/language-overlay-placement/'+p for p in ['horizon-mixin.toml','write-head.rs','stamp-store.rs','prepare.py','test_source.py','inputs.json','Cargo.toml.in','fixture.rs','README.md','source-validation.json']}",
+      "after": "INPUT_PATHS|={'pluto-lib/experiments/language-root-key/'+p for p in ['horizon-mixin.toml','root-store.rs','source.py','test_source.py','inputs.json','README.md','source-validation.json']}",
+      "count": 1
+    },
+    {
+      "label": "native source checks with explicit Mixins root",
+      "before": "probe.verify_native_sources(official)",
+      "after": "probe.verify_native_sources(official,roots['mixins'])",
+      "count": 1
+    },
+    {
+      "label": "only root source suite",
+      "before": "for label,folder,count in [('repair',probe.placement.REPAIR,13),('placement',probe.placement.HERE,12)]:",
+      "after": "env['PLUTO_REPAIR_SOURCE']=str(probe.REPAIR)\n        env['PLUTO_MIXINS_SOURCE']=str(roots['mixins'])\n        for label,folder,count in [('root',probe.candidate.HERE,10)]:",
+      "count": 1
+    },
+    {
+      "label": "source gate count",
+      "before": "'repair_python':13,'placement_python':12",
+      "after": "'root_python':10",
+      "count": 1
+    },
+    {
+      "label": "payload needs exact capture source",
+      "before": "probe.write_probe(mods,official)",
+      "after": "probe.write_probe(mods,official,roots['mixins'])",
+      "count": 1
+    },
+    {
+      "label": "plan needs exact capture source",
+      "before": "probe.verify_plan(plan,official)",
+      "after": "probe.verify_plan(plan,official,roots['mixins'])",
+      "count": 1
+    },
+    {
+      "label": "receipt scope",
+      "before": "Exact shared helper module plus cancellable Overlay::write HEAD and stamp parts STORE only. Placement acceptance is not type/build/cache proof.",
+      "after": "Exactly one resource_root out STORE with explicit stamp local_ref capture. Placement acceptance is not type/build/cache proof.",
+      "count": 1
+    },
+    {
+      "label": "summary",
+      "before": "Language writer/stamp placement probe",
+      "after": "Language root-key placement probe",
+      "count": 1
+    }
+  ]
+}

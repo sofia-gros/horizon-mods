@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "status": "source-only; no official CLI/planner execution",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-language-root-ci-20261106",
+  "candidate_source": "e7cc3021bca49678506f8d15ed38945fba9fadcf",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "ir_contract_source_sha256": {
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+    "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637",
+    "crates/horizon-mixins-core/src/scopes.rs": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd"
+  },
+  "source_sha256": {
+    ".github/workflows/language-root-wip.yml": "6a93db95ccc58f58bab4f2b47dfdd3a2bcf23f9905d1c41465e5f5de842197a9",
+    "pluto-lib/experiments/language-overlay-repair/README.md": "25921902c3e912e6d7f38f45571cddf7403956a46b8fc46cd3ebbd36353312f8",
+    "pluto-lib/experiments/language-overlay-repair/inputs.json": "61d7b1ed8d3bd558a565eefdb855a38ee0cd0a45a3f58f62bbff7d0f61a5bd1d",
+    "pluto-lib/experiments/language-overlay-repair/merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+    "pluto-lib/experiments/language-overlay-repair/source-validation.json": "2a46f06d2654169934303cf279276f3f63f83824ffb9cbc9a3967005ce37b563",
+    "pluto-lib/experiments/language-overlay-repair/source.py": "012e65e0fe70e2c757663b760d1ef2a9b2118c54b1a16d87b04bda37e24be4c3",
+    "pluto-lib/experiments/language-overlay-repair/test_source.py": "6470b733cb3b298656cfd2fbeae7b0e1bd427f6a61495388c2e4b1bed377758b",
+    "pluto-lib/experiments/language-placement-ci/observe_plan.py": "cb9080c1896d0480621760c0cd15cf3fe3d9e300c3ae16d658eca5d3c75d8d63",
+    "pluto-lib/experiments/language-placement-ci/run.py": "18f536a58843680f5421e53786a34bb20dc1e8003a17651dde09c1a525207c8f",
+    "pluto-lib/experiments/language-root-ci/README.md": "3c49f65936b25ba922558695d99f64400f630498247dc2a65889068cc7f74d56",
+    "pluto-lib/experiments/language-root-ci/derivation.json": "b3487ee504a469b23c7453cc0a41b2c661d18971c7533f0d228a4e3cfed7aabf",
+    "pluto-lib/experiments/language-root-ci/observe_plan.py": "7f1b31264f53c44fe891afb836bd91d5a653c8135385637de8a424f47026e343",
+    "pluto-lib/experiments/language-root-ci/prepare.py": "15bc6b9494464bafee22e76de1b99fe2296a2773e90acd394ea9420394a9b2c2",
+    "pluto-lib/experiments/language-root-ci/run.py": "8d3bd142782a727280cc5748444de798cedf7256f61934ca07cf31a1e9ebfd8c",
+    "pluto-lib/experiments/language-root-ci/test_runner.py": "15e761a849b702ee26fa0ebc2dc398262a61f4632e2e33eec92ff594145a42b4",
+    "pluto-lib/experiments/language-root-key/README.md": "bffb3a69f137532916ca62535f18e1b90bfa5ac62897a6528432cad6de6154d7",
+    "pluto-lib/experiments/language-root-key/horizon-mixin.toml": "46654e55a52ed3226c28ddad6b0171dd094b868dc8717947fd928b8f4c0bd702",
+    "pluto-lib/experiments/language-root-key/inputs.json": "473a30f5d30f66e28a511d629f1a9b0ee39a5ba428966c141dbde6151bef0df7",
+    "pluto-lib/experiments/language-root-key/root-store.rs": "34d58c2e35d07d2b5920623a9e5e03c4a2e24f05866c4cf450a0f94b0275d980",
+    "pluto-lib/experiments/language-root-key/source-validation.json": "7e76dbc66cf5773d7cace7aa27f49586aacda61788b7d24dbd12edfe549abbf6",
+    "pluto-lib/experiments/language-root-key/source.py": "d3204b83356dd27cf0d44021c1ce1295b44f0d3727884b6fc10af9f5f226e633",
+    "pluto-lib/experiments/language-root-key/test_source.py": "b9605aa052039d1d33c0dd02eb0a1badcd992d677456d396f6a4f2eed0d837ea",
+    "pluto-lib/experiments/latest-main-common-ci/inputs.json": "da0c13315d70e6307d98f13929ec11197ad5ec5727c2eda1d72d20e740d62089"
+  },
+  "probe_payload_sha256": {
+    "pluto_language_root_probe/horizon-mixin.toml": "46654e55a52ed3226c28ddad6b0171dd094b868dc8717947fd928b8f4c0bd702",
+    "pluto_language_root_probe/root-store.rs": "34d58c2e35d07d2b5920623a9e5e03c4a2e24f05866c4cf450a0f94b0275d980"
+  }
+}
