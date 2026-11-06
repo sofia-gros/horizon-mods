@@ -1,0 +1,104 @@
+{
+  "status": "UNAPPLIED_SOURCE_ONLY_NOT_AUTHORITY_OR_RUNTIME_PROOF",
+  "official_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "integration_source": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "actual_plan_identity": null,
+  "actual_type_result": null,
+  "shared": {
+    "before_sha256": "374dd81a2483345319a029657b46adf8501c4de0036830b15f76708077a27033",
+    "after_sha256": "d666334cf1bd11cc09723026069e91e2c35830fef050a5327b9ba352d2b38e4c",
+    "added_error": "    ActionContextChanged,\n",
+    "added_frame_block": "// BEGIN UNAPPLIED NATIVE ITEM FRAME CANDIDATE\n// This observation is not an authority capability. Only the source-pinned\n// completed native item-use invocation may call this entry. Complete installed\n// composition must preserve that caller; matching fields alone do not prove it.\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\nenum NativeItemActor {\n    Guest { connection: u32, uuid: u128, entity_id: u32 },\n    PlayerWithoutGuest { body_entity_id: i32 },\n}\nimpl NativeItemActor {\n    fn attribution(self) -> Attribution {\n        Attribution::Player { guest_connection: match self {\n            Self::Guest { connection, .. } => Some(connection),\n            Self::PlayerWithoutGuest { .. } => None,\n        } }\n    }\n}\n\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub(in crate::game) struct NativeItemFrame {\n    level: LevelRef,\n    actor: NativeItemActor,\n    phase: u8,\n    hand: u8,\n    held_slot: usize,\n    creative: bool,\n}\nimpl NativeItemFrame {\n    pub(in crate::game) fn attribution(&self) -> Attribution { self.actor.attribution() }\n}\n\n// Classifies a previously admitted native frame; it never manufactures a\n// native entity handle or resolves numeric fields as an authorization check.\nfn item_actor(body: i32, connection: Option<u32>, uuid: Option<u128>, entity: Option<u32>,\n    phase: u8) -> Result<NativeItemActor, Error> {\n    if phase > 2 { return Err(Error::UnsupportedActor); }\n    match (connection, uuid, entity) {\n        (Some(connection), Some(uuid), Some(entity_id)) if phase != 0\n            && entity_id == body as u32 =>\n            Ok(NativeItemActor::Guest { connection, uuid, entity_id }),\n        (None, None, None) => Ok(NativeItemActor::PlayerWithoutGuest { body_entity_id: body }),\n        _ => Err(Error::ActorUnavailable),\n    }\n}\n\n/// Only from the current native use_block_transformer held-item action.\n/// Guest packet admission already checked the real host/guest before as_guest;\n/// the detached invocation exposes its established tuple, not an attached\n/// roster. Local/fake use_item also supplies Who::Player, with guest=None.\n/// Neither branch promises a permanent entity/UUID for a fake player.\npub(in crate::game) fn native_item_frame(game: &Game<'_>) -> Result<NativeItemFrame, Error> {\n    if game.remote.is_some() || !game.native_authoritative() { return Err(Error::NotAuthoritative); }\n    let epoch = pluto_lifecycle_readiness::ready_server_epoch(&game.native_lifecycle)\n        .ok_or(Error::NotReady)?;\n    let level = game.native_level(game.dim.id()).ok_or(Error::StaleOrForeignLevel)?;\n    if level.epoch() != epoch || game.native_level_height(level).is_none() {\n        return Err(Error::StaleOrForeignLevel);\n    }\n    if !matches!(game.sculk_actor(), Some(horizon_client_core::who::Who::Player)) {\n        return Err(Error::UnsupportedActor);\n    }\n    let motion = game.player.as_ref().ok_or(Error::ActorUnavailable)?;\n    let phase = match game.guest_use {\n        None => 0,\n        Some(super::GuestUse::OnBlock(super::Hand::Main)) => 1,\n        Some(super::GuestUse::OnBlock(super::Hand::Off)) => 2,\n        _ => return Err(Error::UnsupportedActor),\n    };\n    let hand = match game.hand { super::Hand::Main => 1, super::Hand::Off => 2 };\n    if phase != 0 && phase != hand { return Err(Error::ActionContextChanged); }\n    let actor = item_actor(motion.entity_id, game.lan_acting, game.lan_acting_uuid,\n        game.lan_acting_entity, phase)?;\n    Ok(NativeItemFrame { level, actor, phase, hand,\n        held_slot: game.held_slot(), creative: game.creative })\n}\n\n/// Same-invocation continuation check, not an ABA-proof lease. Complete-plan\n/// review must exclude arbitrary actor re-entry/replacement across callbacks.\n/// The consumer separately checks the held stack before charging it.\npub(in crate::game) fn require_native_item_frame(game: &Game<'_>, expected: &NativeItemFrame)\n    -> Result<(), Error> {\n    if native_item_frame(game)? == *expected { Ok(()) }\n    else { Err(Error::ActionContextChanged) }\n}\n\n/// Native item-action entry, separate from the unchanged explicit EntityRef\n/// resolver below. Its authority comes from the exact caller contract, not the\n/// snapshot. The requested attribution must retain the native Player/guest pair.\n/// All recoverable errors precede the same native allocation/publication tail.\npub(in crate::game) fn insert_native_item_frame(game: &mut Game<'_>, frame: &NativeItemFrame,\n    request: Validated) -> Result<EntityRef, Error> {\n    require_native_item_frame(game, frame)?;\n    require_attribution(frame.attribution(), request.descriptor().attribution)?;\n    let epoch = frame.level.epoch();\n    let [x, _, z] = request.descriptor().position.map(|n| n.floor() as i32);\n    if !game.world.loaded(x, z) { return Err(Error::CenterNotLoaded); }\n    require_entity_successor(game.next_entity)?;\n    let mut native = pluto_cloud_factory::construct(request).into_native();\n    game.breath_clouds.try_reserve(1).map_err(|_| Error::Capacity)?;\n    let id = game.take_entity_id();\n    native.id = id;\n    game.breath_clouds.push(native);\n    Ok(EntityRef::new(epoch, id))\n}\n// END UNAPPLIED NATIVE ITEM FRAME CANDIDATE\n\n",
+    "added_tests": "    // These tests exercise proposed classification/value rules, not real Game dispatch.\n    #[test]\n    fn native_item_guest_keeps_native_player_connection() {\n        let actor = item_actor(23, Some(4), Some(100), Some(23), 1).unwrap();\n        assert_eq!(actor, NativeItemActor::Guest { connection:4, uuid:100, entity_id:23 });\n        assert_eq!(actor.attribution(), Attribution::Player { guest_connection:Some(4) });\n        assert!(item_actor(23, Some(4), Some(100), Some(23), 2).is_ok());\n        // Match native enter_guest: its signed body ID is stored as u32 bits.\n        assert!(item_actor(-1, Some(4), Some(100), Some(u32::MAX), 1).is_ok());\n    }\n\n    #[test]\n    fn native_item_local_and_fake_keep_player_without_guest_not_unowned() {\n        for body in [-1, 0, 23] {\n            for phase in [0, 1, 2] {\n                let actor = item_actor(body,None,None,None,phase).unwrap();\n                assert_eq!(actor,NativeItemActor::PlayerWithoutGuest { body_entity_id:body });\n                assert_eq!(actor.attribution(),Attribution::Player { guest_connection:None });\n                assert_ne!(actor.attribution(),Attribution::Unowned);\n            }\n        }\n    }\n\n    #[test]\n    fn native_item_partial_guest_wrong_body_and_other_phase_fail_closed() {\n        for mask in 1..7 {\n            assert!(item_actor(23, (mask&1!=0).then_some(4), (mask&2!=0).then_some(100),\n                (mask&4!=0).then_some(23), 1).is_err());\n        }\n        for (body,entity,phase) in [(24,23,1),(-1,23,1),(23,23,0),(23,23,3)] {\n            assert!(item_actor(body,Some(4),Some(100),Some(entity),phase).is_err());\n        }\n        assert!(item_actor(0,None,None,None,3).is_err());\n    }\n\n    #[test]\n    fn native_item_snapshot_detects_observed_frame_hand_slot_and_mode_changes() {\n        use horizon_client::mod_api::NativeWorldEpoch;\n        let frame=NativeItemFrame { level:LevelRef::new(NativeWorldEpoch::new(7),\"minecraft:overworld\"),\n            actor:NativeItemActor::Guest { connection:4,uuid:100,entity_id:23 },phase:1,hand:1,\n            held_slot:2,creative:false };\n        for changed in [\n            NativeItemFrame { level:LevelRef::new(NativeWorldEpoch::new(8),\"minecraft:overworld\"),..frame },\n            NativeItemFrame { level:LevelRef::new(NativeWorldEpoch::new(7),\"minecraft:the_nether\"),..frame },\n            NativeItemFrame { actor:NativeItemActor::Guest { connection:5,uuid:100,entity_id:23 },..frame },\n            NativeItemFrame { actor:NativeItemActor::Guest { connection:4,uuid:101,entity_id:23 },..frame },\n            NativeItemFrame { actor:NativeItemActor::Guest { connection:4,uuid:100,entity_id:24 },..frame },\n            NativeItemFrame { actor:NativeItemActor::PlayerWithoutGuest { body_entity_id:23 },..frame },\n            NativeItemFrame { phase:2,..frame },NativeItemFrame { hand:2,..frame },\n            NativeItemFrame { held_slot:3,..frame },NativeItemFrame { creative:true,..frame },\n        ] { assert_ne!(frame,changed); }\n    }\n\n"
+  },
+  "caller": {
+    "scope": "pub(super) fn block(",
+    "before_sha256": "e56cab690999023a7d9a2d159a9d3c9854dcf26ec2b09ff296a9d318c3630ea3",
+    "after_sha256": "6c44a9bdbe6356efbda5ad0f0821b40b77acc8e964dd2e168450e537e542c06f",
+    "edits": [
+      [
+        "    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);",
+        "    // This branch is the existing held-item action, not a generic cloud source.\n    // Capture before cooldown/world effects; missing/changed native action context is explicit.\n    let cloud_frame = if is_cloud {\n        match super::tconstruct_source_fluid_cloud::capture(game) {\n            Ok(frame) => Some(frame),\n            Err(error) => {\n                if !mixed_glow { return Some(Err(format!(\"TConstruct cloud action unsupported: {error:?}\").into())); }\n                eprintln!(\"TConstruct cloud action unsupported, retaining glow-only attempt: {error:?}\");\n                None\n            }\n        }\n    } else { None };\n    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);"
+      ],
+      [
+        "        let mut successes = 0usize;\n        let mut remaining = fluid.clone();",
+        "        let mut successes = 0usize;\n        let mut published_cloud = false;\n        let mut remaining = fluid.clone();"
+      ],
+      [
+        "                        super::potions::tconstruct_source_fluid_cloud::spawn(game, at, scaled_cloud.clone());\n                        cloud_spawned = true;",
+        "                        if let Some(frame) = cloud_frame.as_ref() {\n                            super::tconstruct_source_fluid_cloud::spawn(game, frame, at, scaled_cloud.clone())\n                                .map_err(|error| format!(\"TConstruct cloud publication failed: {error:?}\"))?;\n                            cloud_spawned = true;\n                            published_cloud = true;\n                        }"
+      ],
+      [
+        "        if successes > 0 && !game.creative {\n            *game.held_mut() = last_updated;",
+        "        if published_cloud {\n            let Some(frame) = cloud_frame.as_ref() else {\n                return Err(\"TConstruct cloud published without action frame; item commit withheld\".into());\n            };\n            super::tconstruct_source_fluid_cloud::require_current(game, frame)\n                .map_err(|error| format!(\"TConstruct cloud already published; changed actor prevents item commit: {error:?}\"))?;\n            if !game.held().is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)) {\n                return Err(\"TConstruct cloud already published; changed held item prevents item commit\".into());\n            }\n        }\n        if successes > 0 && !game.creative {\n            *game.held_mut() = last_updated;"
+      ]
+    ]
+  },
+  "consumer": {
+    "derived_from": "70a589b21b1b202b44debb8b5aa848c83daf9207",
+    "after_sha256": "e7fb20002db22280abdf34adbf5894a6790b3c6d05d1143242cd30c0eb4b8323"
+  },
+  "manifest_required_but_not_applied": {
+    "before_sha256": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2",
+    "after_sha256": "a5ff8118311bb86ae6954efe344907d490555d17b31df113a2ec05de055e412d",
+    "old": "id = \"source-fluid-cloud\"\nfile = \"crates/horizon-client/src/game/potions.rs\"",
+    "new": "id = \"source-fluid-cloud\"\nfile = \"crates/horizon-client/src/game.rs\""
+  },
+  "rust_prepared_unrun": {
+    "old_insertion": 2,
+    "new_frame_value_rules": 4,
+    "consumer_policy": 3
+  },
+  "exclusions": [
+    "complete-plan identity",
+    "native Game call admission",
+    "callback reentry / ABA",
+    "publication execution",
+    "fake / guest / local gameplay",
+    "runtime guard changes",
+    "cleanup"
+  ],
+  "official_inputs": {
+    "crates/horizon-client/src/game.rs": {
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "bytes": 1032243
+    },
+    "crates/horizon-client/src/game/lan_actions.rs": {
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "git_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "bytes": 270381
+    },
+    "crates/horizon-client/src/game/native_machines.rs": {
+      "sha256": "a7d89ec51853b66534666963e95e4782abbed856766fb7e1a6a6aab8787e4613",
+      "git_blob": "71b7483d64ae304a36af7970df1041db549253d8",
+      "bytes": 20947
+    },
+    "crates/horizon-client/src/game/sculk.rs": {
+      "sha256": "a9ca7d499f73378bfe54504a1099b5994f288e1cae89875f24c32dd3b221cebc",
+      "git_blob": "923e5c1ba662d272fe74e9724d8373a06e0b9d21",
+      "bytes": 94617
+    },
+    "crates/horizon-client/src/game/potions.rs": {
+      "sha256": "635fda59a1ba10db646caf82669362678e12b4c5a16159067c404cd1c11795d7",
+      "git_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+      "bytes": 100019
+    },
+    "crates/horizon-client/src/game/native_entity_refs.rs": {
+      "sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "git_blob": "488625055753dfe9ae714fbd0ab854e37040fa0e",
+      "bytes": 20171
+    },
+    "crates/horizon-client/src/game/native_level_refs.rs": {
+      "sha256": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+      "git_blob": "be33b4b4314ec3974ce45af0942287ee8c6e2bdc",
+      "bytes": 4247
+    },
+    "crates/horizon-client/src/game/mod_api_host.rs": {
+      "sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+      "git_blob": "c34b42fdfc2be8b743ca5eb6458cf4ebbc7abf24",
+      "bytes": 9498
+    }
+  }
+}
