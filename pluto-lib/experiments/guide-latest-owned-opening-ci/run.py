@@ -20,7 +20,7 @@ LATEST = ROOT/'pluto-lib/experiments/guide-latest-owned-opening'
 PRIOR = ROOT/'pluto-lib/experiments/guide-owned-opening-ci'
 HORIZON = 'f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd'
 LOCK = '0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'
-RUNNER_TESTS = 14
+RUNNER_TESTS = 16
 REQUIRED = {'runner', 'prior_runner', 'source', 'toolchain', 'compile', 'inventory', 'ownership10',
             'official_source', 'latest_inventory', 'prototype_identity', 'latest_source', 'experiment_delta', 'metadata', 'host_type'}
 
@@ -91,6 +91,12 @@ def complete_inventory(log):
     if complete!=expected:raise ValueError('Wrong complete latest inventory receipt')
     return complete
 
+def inventory_summary(complete):
+    return {'full_inventory_verified':True,'known_source_files':len(complete['source_sha256']),
+            'book_sites':sum(len(x['accesses']) for x in latest.config()['book_field_inventory']),
+            'attachment_sites':sum(len(x['sites']) for x in latest.config()['attachment_inventory']),
+            'patch_sha256':complete['patch_sha256'],'receipt_sha256':sha(json.dumps(complete,sort_keys=True).encode())}
+
 def export(checkout, destination):
     old.independent_roots(checkout,destination)
     portable=load('latest_portable_git', ROOT/'tconstruct/tools/portable_archive.py')
@@ -157,10 +163,7 @@ def execute(report):
         if exact!=HORIZON:raise ValueError('Wrong official commit')
         seals[str(checkout)]=seal(checkout)
         complete=complete_inventory(runner.run('latest-inventory',[sys.executable,str(LATEST/'generate.py'),'--official',str(checkout)],timeout=180))
-        report['gates']['latest_inventory']={'full_inventory_verified':True,'known_source_files':19,
-            'book_sites':sum(len(x['accesses']) for x in latest.config()['book_field_inventory']),
-            'attachment_sites':sum(len(x['sites']) for x in latest.config()['attachment_inventory']),
-            'patch_sha256':complete['patch_sha256'],'receipt_sha256':sha(json.dumps(complete,sort_keys=True).encode())}
+        report['gates']['latest_inventory']=inventory_summary(complete)
         report['gates']['prototype_identity']={'original_fragments_unchanged':True,'helper_sha256':sha(composed_helper())}
         runner.run('official-export',[sys.executable,str(HERE/'run.py'),'--export',str(checkout),str(pristine)])
         if sha((pristine/'Cargo.lock').read_bytes())!=LOCK:raise ValueError('Official lock drift')

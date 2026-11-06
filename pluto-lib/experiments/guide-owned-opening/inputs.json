@@ -7,7 +7,7 @@
   "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
   "source_sha256": {
     "pluto-lib/experiments/guide-owned-opening/owned.rs": "81b6f4db5309f5cfe63d78e53ef268b928da41967d1034eba58ee8a3c29f3eb7",
-    "pluto-lib/experiments/guide-owned-opening/fixture.rs": "50803000cf238cea8d48ac925f4b52551af954c64d51650bb615418e90af54e5",
+    "pluto-lib/experiments/guide-owned-opening/fixture.rs": "942eab4866228798aa8def67554bc4c3f083d0cfabcd118e1ac70c8942ccc13a",
     "pluto-lib/experiments/guide-owned-opening/book-view.rs": "578a90247018edcef1578cd5481df6c5eaa8894ae8f1f0b153ad9120ac70f978",
     "pluto-lib/experiments/guide-owned-opening/check_source.py": "b0c1891c5cc314ae8afb9bed136a110b5bb71eec86a2c9236869649561c39820",
     "pluto-lib/experiments/guide-owned-opening/README.md": "d3c1bd91bfd8049fcaccfd185a8f09a27e5bb2d9210cd165878aa5caf3468ce1",

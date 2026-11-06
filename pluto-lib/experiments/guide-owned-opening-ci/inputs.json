@@ -10,7 +10,7 @@
   },
   "source_sha256": {
     "pluto-lib/experiments/guide-owned-opening/owned.rs": "81b6f4db5309f5cfe63d78e53ef268b928da41967d1034eba58ee8a3c29f3eb7",
-    "pluto-lib/experiments/guide-owned-opening/fixture.rs": "50803000cf238cea8d48ac925f4b52551af954c64d51650bb615418e90af54e5",
+    "pluto-lib/experiments/guide-owned-opening/fixture.rs": "942eab4866228798aa8def67554bc4c3f083d0cfabcd118e1ac70c8942ccc13a",
     "pluto-lib/experiments/guide-owned-opening/book-view.rs": "578a90247018edcef1578cd5481df6c5eaa8894ae8f1f0b153ad9120ac70f978",
     "pluto-lib/experiments/guide-owned-opening/check_source.py": "b0c1891c5cc314ae8afb9bed136a110b5bb71eec86a2c9236869649561c39820",
     "pluto-lib/experiments/guide-owned-opening/README.md": "d3c1bd91bfd8049fcaccfd185a8f09a27e5bb2d9210cd165878aa5caf3468ce1",
@@ -21,7 +21,7 @@
     "pluto-lib/experiments/guide-response-phase/native-patch/prototype.patch": "fe77790980cf115f674ec593ea4efce9f9a8c11bcbcefd3f21af0781f0be0628",
     "pluto-lib/experiments/guide-response-phase/native-patch/test_patch.py": "30d672c71174f7a18861afda6de88a2980df9b7c4a84015eb7439075f071e07c",
     "pluto-lib/experiments/guide-response-phase/native-patch/HORIZON-LICENSE.txt": "b4b374ae9d0f2d8f7be35c6783e41327431da3b5662605da9ba31493630621df",
-    "pluto-lib/experiments/guide-owned-opening/inputs.json": "e79331988d99941e139f9197aab714a5832e93c8e39c830812da880bb4046eef",
+    "pluto-lib/experiments/guide-owned-opening/inputs.json": "2d47f282dab9abfd722497a6f9adc0eab8ff417850b7fa25bed875cc10c2c936",
     "pluto-lib/experiments/guide-storage-ci/run.py": "2aee646d16d89985a36ac19ceaad3df1b03f75ff1eda2def79e6aa524e2662c0",
     "pluto-lib/experiments/guide-storage-ci/inputs.json": "47ece903900f56825b205d23a6e0f20bc2ee614b457a490c2cc0280496b67b5c",
     "pluto-lib/experiments/guide-storage-ci/test_runner.py": "a2e8d17a0aa3059053649586e52453f4898419178b1c6d6b45827f577d9886ba",

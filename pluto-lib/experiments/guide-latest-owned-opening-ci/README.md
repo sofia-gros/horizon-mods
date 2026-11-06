@@ -64,3 +64,19 @@ there is no filename exclusion or relaxed full scan. The original 19 sources,
 commits. Current shape is 21 sources, 25 rewrite records and 13 output files.
 A new source cutoff and explicit serial release are required before updating
 the dedicated trigger; no automatic retry or inherited success is claimed.
+
+## Test-only correction after run 42209312310
+
+The corrected fresh full inventory passed (21 source files, 79 book accesses,
+26 attachment sites). The following std compilation failed with E0282 before
+any test ran. `result-0447.json` preserves the original false receipt, including
+its stale summarized count of 19. The fixture now explicitly types its shared
+`RetainedBook<Value>` before the callback field access. A reverse-hash regression
+proves this is the only Rust fixture change. Receipt source count now derives
+from the strictly checked complete source map; a separate regression prevents
+reintroducing a fixed count. There are 16 runner checks, not a native success.
+
+The original runtime fragments, 13-file output delta, 10 requested test names
+and all host gates are unchanged. Prior fixture/runner input hash lists are
+refreshed solely for this test-only annotation and dependent pin files. Earlier
+immutable cutoffs remain unchanged. No new run is implied by this source fix.

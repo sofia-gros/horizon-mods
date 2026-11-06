@@ -125,5 +125,19 @@ class Checks(unittest.TestCase):
         self.assertEqual(value['runtime_source_publication'],'0fa3fd013a8cb7f03c3f3a5d5a6d927ed4e58eb2')
         self.assertEqual(value['expected_delta'][m.HELPER],m.prior.config()['expected_delta'][m.HELPER])
 
+    def test_receipt_source_count_is_derived_not_stale_summary_literal(self):
+        complete=json.loads((m.LATEST/'generation.json').read_text())
+        self.assertEqual(m.inventory_summary(complete)['known_source_files'],21)
+        smaller=dict(complete,source_sha256={k:v for k,v in list(complete['source_sha256'].items())[:2]})
+        self.assertEqual(m.inventory_summary(smaller)['known_source_files'],2)
+        self.assertIn("report['gates']['latest_inventory']=inventory_summary(complete)",(HERE/'run.py').read_text())
+
+    def test_fixture_fix_is_only_explicit_value_type_before_callback(self):
+        fixture=(m.SOURCE/'fixture.rs').read_text()
+        original='let shared = Rc::new(RefCell::new(RetainedBook::default())); let weak = Rc::downgrade(&shared);'
+        corrected='let shared: Rc<RefCell<RetainedBook<Value>>> = Rc::new(RefCell::new(RetainedBook::default())); let weak = Rc::downgrade(&shared);'
+        self.assertEqual(fixture.count(corrected),1)
+        self.assertEqual(m.sha(fixture.replace(corrected,original).encode()),'50803000cf238cea8d48ac925f4b52551af954c64d51650bb615418e90af54e5')
+
 if __name__=='__main__':unittest.main()
 

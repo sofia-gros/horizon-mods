@@ -93,7 +93,7 @@ mod retained_book {
             use std::{cell::RefCell, rc::Rc};
             struct Value { label: &'static str, on_drop: Option<Box<dyn FnOnce()>> }
             impl Drop for Value { fn drop(&mut self) { if let Some(f) = self.on_drop.take() { f() } } }
-            let shared = Rc::new(RefCell::new(RetainedBook::default())); let weak = Rc::downgrade(&shared);
+            let shared: Rc<RefCell<RetainedBook<Value>>> = Rc::new(RefCell::new(RetainedBook::default())); let weak = Rc::downgrade(&shared);
             let owned = install(&mut shared.borrow_mut(), Value { label: "old", on_drop: Some(Box::new(move || {
                 let shared = weak.upgrade().unwrap(); let mut slot = shared.borrow_mut();
                 assert_eq!(slot.as_ref().unwrap().label, "new");
