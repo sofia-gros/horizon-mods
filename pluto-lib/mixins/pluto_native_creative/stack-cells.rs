@@ -139,3 +139,61 @@ pub fn collect_ordered(
     }
     Ok(cursor.count != before)
 }
+
+/// Insert an incoming stack into caller-selected plain cells: visit occupied
+/// cells in `merge_order`, then empty cells in `empty_order`. An empty merge
+/// order disables merging. Indexes outside the slice are ignored; duplicate
+/// indexes remain duplicate visits. This does not choose layout or admission.
+/// `same(receiving, incoming)` is the caller's read-only merge policy, and
+/// `limit` is its resolved per-cell limit for this insertion.
+///
+/// Zero limit, zero incoming count, or a zero-count cell in either order is
+/// rejected before mutation or policy calls. Unlisted cells are not inspected.
+/// Empty input returns false after validation. Over-limit positive cells cannot
+/// receive more. The remainder stays in `incoming`; no drop or disposal occurs.
+/// An admitted merge keeps the receiving identity, not both opaque identities.
+/// There are no native menu hooks, authority checks, saving or notifications,
+/// and no rollback of a panicking or side-effecting predicate.
+pub fn insert_ordered(
+    slots: &mut [Option<ItemStack>],
+    incoming: &mut Option<ItemStack>,
+    merge_order: &[usize],
+    empty_order: &[usize],
+    limit: u32,
+    mut same: impl FnMut(&ItemStack, &ItemStack) -> bool,
+) -> Result<bool, CellError> {
+    use pluto_inventory_api::{plan_between, StackSnapshot};
+    if limit == 0 { return Err(CellError::ZeroLimit); }
+    valid(incoming)?;
+    for &index in merge_order.iter().chain(empty_order) {
+        if let Some(cell) = slots.get(index) { valid(cell)?; }
+    }
+    let Some(source) = incoming.as_mut() else { return Ok(false); };
+    let before = source.count;
+    for (occupied, order) in [(true, merge_order), (false, empty_order)] {
+        for &index in order {
+            let Some(cell) = slots.get_mut(index) else { continue; };
+            if cell.is_some() != occupied { continue; }
+            let planned = plan_between(
+                Some(StackSnapshot { item: &*source, count: source.count }),
+                cell.as_ref().map(|item| StackSnapshot { item, count: item.count }),
+                source.count, |_, _| limit, |_, _| true,
+                |offered, receiving| same(receiving, offered),
+            ).expect("two local snapshots have valid fixed indexes");
+            let Some(planned) = planned else { continue; };
+            if let Some(receiving) = cell.as_mut() {
+                receiving.count += planned.count;
+            } else {
+                let mut placed = source.clone();
+                placed.count = planned.count;
+                *cell = Some(placed);
+            }
+            source.count -= planned.count;
+            if source.count == 0 {
+                *incoming = None;
+                return Ok(true);
+            }
+        }
+    }
+    Ok(source.count != before)
+}

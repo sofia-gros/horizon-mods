@@ -1,0 +1,10 @@
+{
+  "source_commit": "4e012edea20b007c722649d5cbf6f18b6e115a10",
+  "source_path": "tconstruct/mixins/tconstruct/transaction.rs",
+  "source_sha256": "7ac6ccb9a153728f2d7cf18ff75b8256c250f9c59af5a2808bd83d860e16816b",
+  "functions": {
+    "source_give_inventory": "21a5d37220e7ecd795c4e407889615288c9b39500caa6d6d3f961532b81c58c2",
+    "source_quick_move_player": "3c7d0995f9081432959e3410fb2fc8e5da9cb5905d5e4fc1e0898c3ee0626a46"
+  },
+  "oracle_sha256": "8ba72272993795b2d692dae90ddafa928fe2cde2bc7938b233f1fd8123552409"
+}

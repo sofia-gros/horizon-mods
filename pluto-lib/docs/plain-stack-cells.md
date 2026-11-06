@@ -154,3 +154,27 @@ caches. See the [complete-package receipt](plain-stack-cells-v13-validation-2026
 The focused 31-test consumer proof and this full library composition proof remain
 separate. Neither proves the complete TConstruct package, live gameplay, saved
 world reload, LAN synchronization, or the later pickup_slot source delta.
+
+## Additive ordered insertion (validation pending)
+
+The subsequent source-only `insert_ordered` addition visits caller-specified
+occupied cells first, then caller-specified empty cells. Its merge and empty
+orders are independent; an empty merge order disables merging. It reuses
+`pluto-inventory-api::plan_between` for each quantity rather than defining
+another arithmetic planner. The caller provides the resolved limit and
+`same(receiving, incoming)` merge policy. Missing indexes are ignored and
+duplicates remain visits. The uninserted remainder stays in the borrowed input.
+
+Like the other plain-cell operations, this API rejects zero limit, zero input
+count and zero-count cells named in either order before mutation or equality
+calls. Unlisted cells are not inspected. This is a new explicit API contract,
+not a change to existing consumers: `source_give_inventory` and
+`source_quick_move_player` remain byte-for-byte unchanged. In particular, the
+former's legacy zero-count behavior differs and must not be called parity.
+
+The prepared native fixture freezes both old helpers unchanged and adds 1,920
+positive give cases and 1,280 positive quick-move cases, plus distinct orders,
+duplicates, missing indexes, disabled merges, retained-wire policy, overflow
+limits and separately named malformed-input cases. These new tests have **not
+yet executed**. Earlier fixture/package receipts do not cover this addition.
+No consumer migration, native dispatch, save/sync authority or registry is added.

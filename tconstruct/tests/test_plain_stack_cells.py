@@ -18,8 +18,30 @@ class PlainStackCells(unittest.TestCase):
         self.assertNotRegex(source, r'(?m)^(?://!|/\*!|#!)')
         for name in ('ChestKind', 'tconstruct', 'Game<', 'static ', 'Registry', 'item_to_nbt', 'item_from_nbt', 'container_changed'):
             self.assertNotIn(name, source)
-        for name in ('pub fn pickup(', 'pub fn take(', 'pub fn collect_ordered(', 'ZeroCount', 'ZeroLimit'):
+        for name in ('pub fn pickup(', 'pub fn take(', 'pub fn collect_ordered(', 'pub fn insert_ordered(', 'ZeroCount', 'ZeroLimit'):
             self.assertIn(name, source)
+
+    def test_ordered_insertion_reuses_planner_and_leaves_consumers_unchanged(self):
+        base = ROOT / 'pluto-lib/mixins/pluto_native_creative'
+        source = (base / 'stack-cells.rs').read_text().split('pub fn insert_ordered(', 1)[1]
+        self.assertIn('plan_between(', source)
+        self.assertIn('same(receiving, offered)', source)
+        self.assertNotIn('saturating_sub', source)
+        oracle_path = ROOT / 'tconstruct/tests/rust/ordered_insertion_legacy.rs'
+        oracle = oracle_path.read_text()
+        receipt = json.loads(oracle_path.with_suffix('.json').read_text())
+        self.assertEqual(hashlib.sha256(oracle_path.read_bytes()).hexdigest(), receipt['oracle_sha256'])
+        consumer = ROOT / receipt['source_path']
+        self.assertEqual(hashlib.sha256(consumer.read_bytes()).hexdigest(), receipt['source_sha256'])
+        for name, expected in receipt['functions'].items():
+            for text in (oracle, consumer.read_text()):
+                start = text.index(f'pub(super) fn {name}(')
+                end = text.index('{', start) + 1
+                depth = 1
+                while depth:
+                    depth += (text[end] == '{') - (text[end] == '}')
+                    end += 1
+                self.assertEqual(hashlib.sha256(text[start:end].encode()).hexdigest(), expected)
 
     def test_four_callers_still_use_same_helpers_and_only_four_bodies_changed(self):
         source = ROOT / 'tconstruct/mixins/tconstruct'
