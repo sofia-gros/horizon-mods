@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "status": "UNAPPLIED verification plan; no native implementation, execution or activation",
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "proposal_parent_commit": "97e2f283f61c47b37831bb55aa879de6f8093e20",
+  "architecture": {
+    "host": "Horizon",
+    "loader": "Mixins",
+    "shared_services": "PlutoLib is optional for other mods; TConstruct uses PlutoLib",
+    "consumer_policy": "TConstruct retains selection, timing, effect values and curative policy"
+  },
+  "future_execution_requires_separate_grant": true,
+  "official_files_changed": false,
+  "runtime_changed": false,
+  "production_activation": false,
+  "official_sha256": {
+    "crates/horizon-client/src/block_contact.rs": "359d9c95134d07e86e3ba92bcdc9fc23afbe59799bf5fc5e46c20e43c1c9d143",
+    "crates/horizon-client/src/motion.rs": "32caf71a62f87dda437f650e271922a9e5add6dec7056a67cf0d82471b56a4ae",
+    "crates/horizon-client/src/mobs.rs": "425f605cf6daeaa0f5e76b8bed5bcfee5110daef3a741ea34fc66133a04a6028",
+    "crates/horizon-client/src/mobs/ai.rs": "81ecf5da5119d8711de9c3ca5689c78758202ad315268b7e08ccb93ffe4b8056",
+    "crates/horizon-client/src/mobs/riders.rs": "ca22f78d4b5b741f212778f36d695929a5f5b010366bf1d9c137e1924c449d44",
+    "crates/horizon-client/src/game/creatures.rs": "b5a2e3f52ac802182855251d2b67dec975b228550aaaaf3a0582560dee8ba90b",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/prediction.rs": "bb58dc9294cd549a0a2e3fc9e7de7e5dd733d7333e052594dc90c080e834a717",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/levels.rs": "839eec483b745eef8cfdf8ac2502160e46517e1dbd62534b69e612d2828b7ba7",
+    "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+    "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+    "crates/horizon-client-lib/Cargo.toml": "e6a27acdaa9f4304a40ff4b0569802c16a6956ab3686bf5d1ae72500686855a4",
+    "crates/horizon-client/Cargo.toml": "ba40bccbc902225a00e215ebe2b1cdde272a38ebc9a132fe77a9d3608bec5636",
+    "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+    "crates/horizon-client/src/lib.rs": "3899ca984b7853a9c3f5e852f4eb24670be60dd2a24ab357c4ce46c6444fafcc"
+  },
+  "existing_artifact_sha256": {
+    "pluto-lib/docs/synchronous-contact-native-refactor.md": "61bbe7b3201068151cd5d2ef78b9b71799b1f2e5605379aa7b55be81b431efbf",
+    "pluto-lib/docs/contact-borrow-phase-map.md": "c0378efc5ff5c828bae3b6803bc02a9880880ec6ed6f75e625c2d593a484dc02",
+    "pluto-lib/docs/contact-borrow-phase-map.json": "57a9ae9a0ee38f2d1b88a3900951bc6aa98ac710b244050bb98be4addf5c044d",
+    "pluto-lib/docs/guest-continuation-observation.md": "dc7b5e4a3361900215b9977e24280ab258e474f4a258c64a058ee88de489ea2a",
+    "pluto-lib/docs/contact-effect-attachment.md": "1059ed5d4cababef4d978f58f5b4b7c444c581022fda85f33b48b04bdbf3930f",
+    "pluto-lib/experiments/effect-instance-proposal/contact-refactor-plan.json": "5665b10855ff9b111a25b652402a7e4c1b2f1bcb84a9d502b924d3a056e21bb3",
+    "pluto-lib/experiments/effect-instance-proposal/game_borrow_positive.rs": "2199396795b3c26b94f618bbb243b00ed980705c45dce7028d807158a9518b1e",
+    "pluto-lib/experiments/effect-instance-proposal/game_borrow_negative.rs": "5033febfe81224d4582f59a41bf470a35c19e5452c201d4314461b400032d01f",
+    "pluto-lib/experiments/effect-instance-proposal/game-borrow-v15-expectations.json": "49d792d6d0b6cb115fa068a50b6718ea979638b99ccede03d9d9b616788f7cdd",
+    "pluto-lib/experiments/effect-instance-proposal/guest_continuation_observer.rs": "a76266a425b020093dfc24627fc62492b4a20f6550cb8d883a8cc2af404ce79e",
+    "pluto-lib/experiments/effect-instance-proposal/consume-stack-source-evidence.json": "e3fe0fbfeebf43dce9442468cde8438931f88cce59d8587f273edc16e2c66daa"
+  },
+  "minimal_candidate": {
+    "scope": "one server guest player in the existing guest_server_tick owner turn",
+    "suspension": "accepted Inside, after visited insertion and original static dispatch, before native per-block tail",
+    "lower_crate": "horizon-client-lib owns motion traversal; any cross-crate opaque frame interface must be explicit, private fields are not actor authority",
+    "upper_crate": "horizon-client owns Game; private driver releases every MotionWorld/resource borrow before a real Game operation",
+    "not_implemented": [
+      "cross-crate frame interface",
+      "owner-preserving operation closure",
+      "continuation invalidation policy",
+      "actual native instance curative attachment"
+    ],
+    "not_selected": [
+      "post-tick event queue",
+      "new public mutable actor capability",
+      "pointer or numeric-ID side table",
+      "list-only effect insertion",
+      "guessed abort/restart/resample rule",
+      "mob adaptation"
+    ],
+    "initial_positive_fixture": "genuine loaded living unmounted Ready server guest, no outer guest turn; fixture setup selection only"
+  },
+  "continuation_obligations": [
+    {
+      "id": "actor_owner",
+      "requirement": "The real current guest turn, body and admissible Ready lifecycle survive the operation; identical numeric ID, position and epoch are insufficient."
+    },
+    {
+      "id": "sampled_world",
+      "requirement": "Define whether captured hit states and later live collision/context reads remain valid. The native snapshot assumes no block mutation below the sweep; unchanged actor alone is insufficient."
+    },
+    {
+      "id": "resource_owner",
+      "requirement": "The state namespace, registry, shapes, collision and health resources retain the required owners/semantics; do not retain borrowed names across whole-Game mutation."
+    },
+    {
+      "id": "pending_tail",
+      "requirement": "A pending native action is consumed exactly once, with native errors and outer ignored results preserved; no implicit retry/rollback."
+    },
+    {
+      "id": "outer_tick",
+      "requirement": "Captured rules, movement, flags and later effect/pose/travel phases remain valid. Stopping only the inner sweep after a mutation does not specify the outer caller."
+    },
+    {
+      "id": "instance_lifetime",
+      "requirement": "Per-instance curatives copy/update/hidden/save/cure semantics must be implemented natively before TConstruct protected fluid effects can activate."
+    }
+  ],
+  "gates": [
+    {
+      "id": "G1_actual_game_borrow",
+      "depends_on": [],
+      "status": "prepared_unexecuted",
+      "pass_claim": "Existing exact positive real-Game probe accepted and designated negative E0499 rejected by CI-owned runner.",
+      "does_not_prove": "No native contact frame, actor persistence, runtime or cure proof."
+    },
+    {
+      "id": "G2_cross_crate_frame",
+      "depends_on": [
+        "G1_actual_game_borrow"
+      ],
+      "status": "blocked_design",
+      "pass_claim": "Exact no-op frame overlay type-checks real client-lib motion plus gameplay Game with an explicit minimal crate boundary.",
+      "does_not_prove": "A public opaque data frame is not a lifetime/continuation authority token."
+    },
+    {
+      "id": "G3_noop_native_equivalence",
+      "depends_on": [
+        "G2_cross_crate_frame"
+      ],
+      "status": "blocked_missing_fixture",
+      "pass_claim": "Original and candidate no-op paths agree on the bounded contact/native-tail traces and selected final state for every declared case.",
+      "does_not_prove": "No effectful transition, production asset coverage or arbitrary Game equivalence."
+    },
+    {
+      "id": "G4_operation_continuation",
+      "depends_on": [
+        "G3_noop_native_equivalence"
+      ],
+      "status": "blocked_design",
+      "pass_claim": "One explicitly restricted native operation has a closed audited source/installed-plan boundary and tested owner/world/resource preconditions; all unsupported transitions excluded before activation.",
+      "does_not_prove": "An observed unchanged body is not universal authority. No guessed continuation after side effects."
+    },
+    {
+      "id": "G5_immediate_native_effect",
+      "depends_on": [
+        "G4_operation_continuation"
+      ],
+      "status": "blocked_missing_fixture",
+      "pass_claim": "Real complete Game effect operation is observed between original dispatch and pending native tail, in the same guest turn, for the declared operation only.",
+      "does_not_prove": "No TConstruct cached-height equivalence or native curative-instance attachment."
+    },
+    {
+      "id": "G6_tconstruct_contract",
+      "depends_on": [
+        "G5_immediate_native_effect"
+      ],
+      "status": "blocked_design",
+      "pass_claim": "Source fluid-height phase plus owned instance update/copy/hidden/save/LAN/cure contracts are proven before the guest-only consumer can activate.",
+      "does_not_prove": "No local player, mob, item/projectile or complete fluid feature parity."
+    }
+  ],
+  "cases": [
+    {
+      "id": "B01",
+      "gate": "G1_actual_game_borrow",
+      "setup": "Exact unchanged game_borrow_positive.rs and negative.rs; fresh approved CI baseline.",
+      "oracle": "Positive host-lib compile success; negative exactly expected E0499 primary call/span with only the narrowly permitted rustc summary.",
+      "failure_or_limit": "An environment error or unrelated Rust diagnostic is not expected rejection; no runtime claim.",
+      "status": "not_run"
+    },
+    {
+      "id": "F01",
+      "gate": "G2_cross_crate_frame",
+      "setup": "No-op motion frame interface in real lower crate and private Game driver in real upper crate.",
+      "oracle": "Both real crates compile; private frame fields/owned contact data; no cloned native types, reverse dependency or Game callback captured by static hook.",
+      "failure_or_limit": "Existing sequential borrow probe alone does not compile the new frame. Visibility must be established, not assumed pub(crate).",
+      "status": "not_run"
+    },
+    {
+      "id": "N01",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Genuine loaded guest, no movement record; stationary custom ordinary block; original static hook is trace-only.",
+      "oracle": "Same one-time history handling, accepted Inside order, native tail count and final selected actor fields.",
+      "failure_or_limit": "Fixture native setup must succeed; no synthetic Game substitute.",
+      "status": "not_run"
+    },
+    {
+      "id": "N02",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Multiple movement records with shared positions, signed axis order, nonzero original delta and a final current-position discrepancy.",
+      "oracle": "Same appended segment, axis sequence, visited suppression, per-movement iteration budget and endpoint fallback.",
+      "failure_or_limit": "A sorted set of positions is not an order oracle.",
+      "status": "not_run"
+    },
+    {
+      "id": "N03",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Actual long sweep and zero/short sweep near existing boundary values.",
+      "oracle": "Exact original iterations+1 charges, 16 budget, endpoint one-iteration fallback and accepted contact trace.",
+      "failure_or_limit": "Do not substitute a new hard cap or drop hits to satisfy trace storage limits.",
+      "status": "not_run"
+    },
+    {
+      "id": "N04",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Air/cave_air/void_air, missing state, end portal/tripwire plus real powder-snow and layered-cauldron collision shapes.",
+      "oracle": "Original skipped-state and per-hit shape/context query order, then identical accepted contacts.",
+      "failure_or_limit": "Real loader shapes required; mere ordinary custom-block fixture does not cover these exceptions.",
+      "status": "not_run"
+    },
+    {
+      "id": "N05",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Multiple powder-snow sweep-step groups plus magma/cactus/lit campfire/honey; server damage_only path.",
+      "oracle": "Same StepOn/native actions, entered groups, dead/freeze checks, no EnterBlock from damage_only branch, same tail effects.",
+      "failure_or_limit": "Do not merge group freeze into each suspended contact or enable client slowing.",
+      "status": "not_run"
+    },
+    {
+      "id": "N06",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Actual deterministic native failure before Inside, in shape resolution, and in a native tail; fault mechanism recorded separately if test instrumentation is required.",
+      "oracle": "Exact native error point/visited prefix, skipped inner freezing tail and still-executed outer let-ignored phases match original.",
+      "failure_or_limit": "Unavailable error fixture is blocked, not proof. Injected fault proves only the recorded error-control path.",
+      "status": "not_run"
+    },
+    {
+      "id": "N07",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Wither rose plus custom trace block in one sweep, no new effectful operation.",
+      "oracle": "Rose remains queued and handled after motion/environment/pose; no-op extension does not accelerate existing vanilla behavior.",
+      "failure_or_limit": "Original delayed rose is not the oracle for new immediate TConstruct effect timing.",
+      "status": "not_run"
+    },
+    {
+      "id": "N08",
+      "gate": "G3_noop_native_equivalence",
+      "setup": "Spectator/dead and out-of-scope remote/replay/local passenger, mob, item/projectile paths.",
+      "oracle": "No new effectful owner operation; compare unchanged original events only for the selected paths that the fixture actually executes.",
+      "failure_or_limit": "Same contact entity ID or TLS dimension cannot admit an out-of-scope owner. Unbuilt paths remain not_run.",
+      "status": "not_run"
+    },
+    {
+      "id": "A01",
+      "gate": "G4_operation_continuation",
+      "setup": "Real detached-host guest entry; explicit Ready role and existing roster/body; all preconditions read through real owning code.",
+      "oracle": "Native turn identity and absence/error outcomes retained; no fallback fabricated EntityRef when Game.lan is absent.",
+      "failure_or_limit": "Observation DTO or equality of IDs/epochs/position is not continuation authority.",
+      "status": "not_run"
+    },
+    {
+      "id": "A02",
+      "gate": "G4_operation_continuation",
+      "setup": "Candidate restricted built-in effect operation, closed actual applied-source/complete-plan call graph.",
+      "oracle": "Complete add/merge/status/absorption/native callback sequencing preserved; no permitted call can invalidate the selected owner/world/resource contract.",
+      "failure_or_limit": "Builtin ID avoiding mod_effect_added branch is insufficient; status/attributes/cache/health and other Mixins still require closure review. Not established here.",
+      "status": "not_run"
+    },
+    {
+      "id": "A03",
+      "gate": "G4_operation_continuation",
+      "setup": "Adversarial same-level out-and-back teleport, same-ID body replacement, cross-level movement, removal/respawn or nested guest operation.",
+      "oracle": "Current activation remains blocked unless the operation is excluded before any side effect, or an explicit native owner continuation contract is independently supplied and tested.",
+      "failure_or_limit": "Do not silently continue, abort the rest of the tick, restart, resample or call the second teleport rollback.",
+      "status": "not_run"
+    },
+    {
+      "id": "A04",
+      "gate": "G4_operation_continuation",
+      "setup": "Callback changes a later hit block/shape or reloads resources while body ID and position stay unchanged.",
+      "oracle": "Separate world-read/resource contract must reject unsupported capability before activation; future specified snapshot/live reads tested at their actual native phase.",
+      "failure_or_limit": "Body equality cannot validate captured state namespace or later collision context. No default stale or live reread policy selected.",
+      "status": "not_run"
+    },
+    {
+      "id": "A05",
+      "gate": "G4_operation_continuation",
+      "setup": "Native wrapper normal return and normal Err; real teleport-note callbacks; separate disposable panic process if supported.",
+      "oracle": "Observations include leave_guest and entire notification flush, with explicit supported exits.",
+      "failure_or_limit": "Do not catch panic and reuse potentially un-restored Game; fixture outcome does not create a general cleanup guarantee.",
+      "status": "not_run"
+    },
+    {
+      "id": "I01",
+      "gate": "G5_immediate_native_effect",
+      "setup": "Admitted single guest and one specified built-in native effect with actual add_player_effect, bounded real-resource contact.",
+      "oracle": "Ordered markers: original accepted Inside dispatch, effect call begin, complete native effect call end/status observation, pending native tail, next contact; exactly once.",
+      "failure_or_limit": "Cannot use deferred queue, direct effects.list mutation or trace-only fake effect as positive proof.",
+      "status": "not_run"
+    },
+    {
+      "id": "I02",
+      "gate": "G5_immediate_native_effect",
+      "setup": "Existing same-effect cases: new, scalar refresh, stronger shorter, weaker longer hidden, and unchanged add result.",
+      "oracle": "Compare full actual native insertion against control call outside frame; preserve status update even when add returns false, hidden chain, changes count and later native tick order.",
+      "failure_or_limit": "Construct effects through native canonical IDs; generic constructor does not strip namespace. No curative parity yet.",
+      "status": "not_run"
+    },
+    {
+      "id": "T01",
+      "gate": "G6_tconstruct_contract",
+      "setup": "Explicit source fluid-height phase including adjusted body bounds, boat and unloaded cells.",
+      "oracle": "Compare source-authorized snapshot timing to actual loaded View measurements and native caller ordering; reject unknown/unloaded, not dry.",
+      "failure_or_limit": "A later numerically equal measurement is not cached-height equivalence; source policy decision remains consumer-owned.",
+      "status": "not_run"
+    },
+    {
+      "id": "T02",
+      "gate": "G6_tconstruct_contract",
+      "setup": "Owned actual native per-instance extension with external constructors repaired in an approved separate proposal.",
+      "oracle": "Copies, ordinary update versus details copy, hidden transfer and original PartialEq semantics preserve each policy as specified.",
+      "failure_or_limit": "Existing planner E_STATE rejection and excerpt tests do not establish native attachment.",
+      "status": "not_run"
+    },
+    {
+      "id": "T03",
+      "gate": "G6_tconstruct_contract",
+      "setup": "Proposed new native save/local/LAN conversions plus old absent metadata, malformed/unknown/version/limit inputs.",
+      "oracle": "Explicit selected authoritative endpoint, transactional decode, unknown/default preservation and actual hidden-chain round trips.",
+      "failure_or_limit": "Native NBT normalization precludes claiming arbitrary byte preservation; no protocol ownership guessed.",
+      "status": "not_run"
+    },
+    {
+      "id": "T04",
+      "gate": "G6_tconstruct_contract",
+      "setup": "Actual consumed-stack ClearAllEffects branch with ordinary and protected instances of the same effect ID.",
+      "oracle": "Pass actual consumed snapshot, filter removal in native order, preserve targeted RemoveEffects/death/expiry paths and callbacks.",
+      "failure_or_limit": "Unapplied stack plumbing keeps blanket clear today; clear-and-readd compensation or effect-ID maps fail the contract.",
+      "status": "not_run"
+    }
+  ],
+  "execution_evidence": {
+    "native_compile": "not_run",
+    "frame_overlay": "not_written",
+    "native_runtime": "not_run",
+    "production_resource_bundle": "not_verified",
+    "source_plan_checks": {
+      "status": "passed",
+      "count": 9,
+      "passed": 9,
+      "failed": 0,
+      "elapsed_seconds": 0.019,
+      "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c checkout> python -B pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py",
+      "native_execution": false,
+      "final_confirmation_elapsed_seconds": 0.014
+    }
+  },
+  "result_protocol": {
+    "allowed_case_status": [
+      "passed",
+      "failed",
+      "blocked_missing_fixture",
+      "not_run"
+    ],
+    "missing_resources": "fail or blocked_missing_fixture, never return/skip counted as pass",
+    "trace_overflow": "fail fixture; never truncate and compare prefixes",
+    "native_output": "exact case IDs/counts, original/candidate hashes, compiler and complete package/plan identities, resource/setup hashes, full trace/result hashes, source/lock/generated-file seals",
+    "comparisons": "selected native contact/tail/actor observations only, not whole-Game or full TConstruct parity",
+    "disk_floor_bytes": 10871635968,
+    "no_implicit_launch": true
+  },
+  "artifact_sha256": {
+    "pluto-lib/docs/immediate-contact-validation-plan.md": "c60c7ded07d0ede1c0449ebbbd394a1e632b98dff78c02bb0ee97515798cf43f",
+    "pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py": "de8e59db7cd7fbd075ca907487d37085646f3bbe7f37ef55ecbafc2fee4652f6"
+  }
+}
