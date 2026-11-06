@@ -1,0 +1,117 @@
+{
+  "status": "prepared_not_executed",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_sha256": {
+    "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+    "crates/horizon-client/src/creative.rs": "29eedabcb03e331e0f00094ed63dd1ad2acc42921cba7e9032ece37d965e466d",
+    "crates/horizon-client/src/item_tooltip.rs": "8baf7a5810b038c7fbdab3686a3591492574ad4b07256e027ae3262457767501",
+    "crates/horizon-client/src/game/stations.rs": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+    "crates/horizon-client/src/mod_content.rs": "8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93",
+    "crates/horizon-items/src/items.rs": "ac65c572d00bea03ddd37899c6c40b5091b435a44fa0b5deab4fd3677248bc49",
+    "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "crates/horizon-items/src/item_nbt.rs": "53caf47c6945d6cdf8661146e7cd38e2b78bafbc53acce04cd4f14bca54426dc",
+    "crates/horizon-items/src/content_namespaces.rs": "8903c2e723fce92ee5c6132d6dde035e374992259078df618d78b1d4844979b6",
+    "crates/horizon-mods/src/content.rs": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409",
+    "crates/horizon-client-core/src/lang.rs": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+    "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67",
+    "crates/horizon-client-core/src/component.rs": "27840c386411a0efc0124fce742603fc34e8c0801dd79cfc9eeb75699698e734"
+  },
+  "adapters": {
+    "language": {
+      "path": "pluto-lib/mixins/pluto_native_creative/language.rs",
+      "sha256": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d",
+      "source_commit": "5c25d310698cfd465523a83d5b8b146d73319cad",
+      "source_commit_kind": "published_composed_source"
+    },
+    "author": {
+      "path": "pluto-lib/mixins/pluto_native_creative/language-text.rs",
+      "sha256": "df29858aca7c400bd2e891978fcebc680a506ab79258eda6ec3c5e2f0e8456f9",
+      "source_commit": "a630d1ab65984aa29c9bdadeeddf320f44d2b9d1"
+    },
+    "example": {
+      "path": "pluto-lib/examples/language_text.rs",
+      "sha256": "268f7e1691e2f1ece6a77ad8cccace84f6ffc91efe0e144c1b4368ded2513025",
+      "source_commit": "a630d1ab65984aa29c9bdadeeddf320f44d2b9d1"
+    }
+  },
+  "fixture_sha256": "cdda6e8370609e9be4463b17d8e563451e9775f39a422564a4d9e07d943e95db",
+  "source_only_routes": [
+    {
+      "source": "crates/horizon-client/src/game/stations.rs",
+      "start": "    fn stack_hover_name(",
+      "end": "    /// `ItemStack.getTooltipLines`. A `nested` stack",
+      "sha256": "5ef391df7c0e482922c086e868903392a8a33bb82a1c1759d8a7446b1a3cb401",
+      "status": "source_only_not_compiled_in_fixture"
+    },
+    {
+      "source": "crates/horizon-client/src/mod_content.rs",
+      "start": "    fn items(&self, map: &mut J, components: bool)",
+      "end": "    /// One JSON table, rewritten.",
+      "sha256": "70c710bf405866baffd1af9ec768b4ea4c2154ca4b21ce8d0432d0f5896f718b",
+      "status": "source_only_not_compiled_in_fixture"
+    }
+  ],
+  "expected_tests": 22,
+  "new_item_tests": 8,
+  "unchanged_adapter_tests": 14,
+  "metadata_run": false,
+  "rust_run": false,
+  "native_plan_run": false,
+  "game_run": false,
+  "initial_source_guard_attempt": {
+    "result": "4 passed, 2 errors; native never started",
+    "cause": "Source-record creation stopped on a nonunique Game comment end marker; two source guards then reported missing inputs JSON. Unique exact comment boundary corrected before immutable publication."
+  },
+  "python_source_guards": {
+    "passed": 6,
+    "rust_or_metadata_executed": false
+  },
+  "source_review": {
+    "reviewer": "storage peer",
+    "correction": "RGB style input changed to native u32 RGB 0x123456 before any Rust execution; no RGBA shift is performed by Text::with_color.",
+    "remaining_review": "Storage and Guide found no additional serious signature/preservation issue; source-only, no Rust or metadata execution."
+  },
+  "result_groups": [
+    {
+      "expected": 8,
+      "names": [
+        "item_display_tests::standard_keys_use_current_then_english_fallback",
+        "item_display_tests::standard_paths_preserve_slashes_and_implicit_namespace",
+        "item_display_tests::item_name_is_resolved_again_without_mutating_the_component",
+        "item_display_tests::custom_name_wins_and_preserves_explicit_italic",
+        "item_display_tests::native_codec_keeps_translate_arguments_and_style",
+        "item_display_tests::missing_key_and_explicit_fallback_are_native",
+        "item_display_tests::styled_name_defers_unadorned_stack_to_current_default",
+        "item_display_tests::construction_does_not_fabricate_an_item_name_patch"
+      ],
+      "prefix": "item_display_tests::"
+    },
+    {
+      "expected": 6,
+      "names": [
+        "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+        "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+        "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+        "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+        "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+        "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+      ],
+      "prefix": "pluto_language_text::tests::"
+    },
+    {
+      "expected": 8,
+      "names": [
+        "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+        "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+        "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+        "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+        "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+        "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+        "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+        "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery"
+      ],
+      "prefix": "pluto_language::tests::"
+    }
+  ],
+  "execution_strategy": "Compile once; execute full unfiltered 22 tests once, require exact names/0 ignored/0 filtered, then partition results into item8/Key6/internal8 receipts."
+}
