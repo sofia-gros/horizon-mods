@@ -1,0 +1,74 @@
+{
+  "status": "read_only_source_audit_no_runtime_proof",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mod_source": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+  "scope": "Item/menu/recipe display keys and formatting only; language lifecycle and parser have separate owners.",
+  "official_sha256": {
+    "crates/horizon-client/src/creative.rs": "29eedabcb03e331e0f00094ed63dd1ad2acc42921cba7e9032ece37d965e466d",
+    "crates/horizon-client/src/game/stations.rs": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+    "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+    "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67",
+    "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "crates/horizon-mods/src/content.rs": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
+  },
+  "catalog_keys": 3628,
+  "prefix_counts": {
+    "item.tconstruct.": 459,
+    "block.tconstruct.": 555,
+    "gui.tconstruct.": 80,
+    "container.tconstruct.": 0,
+    "itemGroup.": 7
+  },
+  "percent_d_keys": [
+    "item.tconstruct.cast.cost",
+    "fluid_effect.tconstruct.mob_effect.add",
+    "fluid_effect.tconstruct.mob_effect.set",
+    "fluid_effect.tconstruct.restore_hunger",
+    "fluid_effect.tconstruct.fire.add",
+    "fluid_effect.tconstruct.fire.set",
+    "fluid_effect.tconstruct.freeze.add",
+    "fluid_effect.tconstruct.freeze.set",
+    "gui.tconstruct.error.not_enough_durability"
+  ],
+  "remote_title_lookup_paths": [
+    "tconstruct/mixins/tconstruct/source-crafting-client-data.rs",
+    "tconstruct/mixins/tconstruct/source-crafting-client-slot.rs",
+    "tconstruct/mixins/tconstruct/source-crafting-side-draw.rs",
+    "tconstruct/mixins/tconstruct/source-crafting-station.rs",
+    "tconstruct/mixins/tconstruct/source-double-client-click.rs",
+    "tconstruct/mixins/tconstruct/source-double-client-slot.rs",
+    "tconstruct/mixins/tconstruct/source-smeltery-ui.rs",
+    "tconstruct/mixins/tconstruct/source-tinker-chest-ui.rs",
+    "tconstruct/mixins/tconstruct/source-workstation-outside.rs",
+    "tconstruct/mixins/tconstruct/station-pointer.rs",
+    "tconstruct/mixins/tconstruct/station-ui.rs"
+  ],
+  "remote_title_lookup_lines": [
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-crafting-client-data.rs:3:    if game.remote_menu_title().map(|title|title.plain()).as_deref()==Some(\"TConstruct Crafting Station\") && data.container==game.remote_menu_id() && data.id==-1 {",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-crafting-client-data.rs:10:    if game.remote_menu_title().map(|title|title.plain()).as_deref()!=Some(\"TConstruct Crafting Station\") || data.container!=game.remote_menu_id() || !matches!(data.id,30110|30111|30112) {return;}",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-crafting-client-slot.rs:2:    if game.remote_menu_title().map(|title|title.plain()).as_deref()!=Some(\"TConstruct Crafting Station\") || game.remote_menu_id()!=container || !(46..94).contains(&slot) {return std::ops::ControlFlow::Continue(());}",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-crafting-side-draw.rs:2:    if crate::game::tconstruct_crafting_station::position(game).is_some() || game.remote_menu_title().map(|t|t.plain()).as_deref()==Some(\"TConstruct Crafting Station\") {",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-crafting-station.rs:83:    if game.remote_menu_title().map(|title|title.plain()).as_deref() != Some(\"TConstruct Crafting Station\") { return None; }",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-double-client-click.rs:3:    if game.remote_menu_title().map(|title| title.plain()).as_deref() != Some(\"TConstruct Part Builder Double\") { return Continue(()); }",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-double-client-slot.rs:3:    if game.remote_menu_title().map(|title| title.plain()).as_deref() != Some(\"TConstruct Part Builder Double\") || game.remote_menu_id() != container { return Continue(()); }",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-smeltery-ui.rs:5:        return game.remote_menu_title().map(|title| title.plain()).as_deref().is_some_and(|title| matches!(title, \"TConstruct Smeltery\" | \"TConstruct Foundry\"));",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-smeltery-ui.rs:11:    if game.remote.is_some() { return game.remote_menu_title().map(|title| title.plain()).as_deref() == Some(\"TConstruct Foundry\"); }",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-tinker-chest-ui.rs:7:        return match game.remote_menu_title().map(|title|title.plain()).as_deref() {",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/source-workstation-outside.rs:4:    let craft=crate::game::tconstruct_crafting_station::position(game).is_some() || game.remote_menu_title().map(|t|t.plain()).as_deref()==Some(\"TConstruct Crafting Station\");",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/station-pointer.rs:3:    let crafting=crate::game::tconstruct_crafting_station::position(game).is_some() || game.remote_menu_title().map(|t|t.plain()).as_deref()==Some(\"TConstruct Crafting Station\");",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/station-ui.rs:4:        return game.remote_menu_title().is_some_and(|title| title.plain() == \"TConstruct Modifier Worktable\");",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/station-ui.rs:11:        return match game.remote_menu_title().map(|t| t.plain()).as_deref() {",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/station-ui.rs:28:        return match game.remote_menu_title().map(|title| title.plain()).as_deref() {",
+    "69c6b72b0b79b64317483bede6a2b2a689d5b83a:tconstruct/mixins/tconstruct/station-ui.rs:181:        return game.remote_menu_title().map(|title| title.plain()).as_deref() == Some(\"TConstruct Melter\");"
+  ],
+  "observed_missing_keys": [
+    "container.tconstruct.smeltery",
+    "container.tconstruct.foundry"
+  ],
+  "existing_corresponding_keys": [
+    "gui.tconstruct.smeltery",
+    "gui.tconstruct.foundry"
+  ],
+  "implementation_changed": false,
+  "tests_run": false
+}
