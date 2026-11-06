@@ -1,0 +1,32 @@
+{
+  "schema": "pluto_coverage_validation_v1",
+  "scope": "read-only inventory and document checks only",
+  "coverage_sha256": "dc7af8884dd2c7a3e21c9ca268f2876a15dbf4028441e2f9094c89e7d40e949a",
+  "checks": {
+    "fixed_snapshot_input_hash": "PASS",
+    "five_immutable_domain_input_hashes": "PASS",
+    "265_unique_complete_primary_rows": "PASS",
+    "265_head_and_reported_base_pairs": "PASS",
+    "265_own_delta_bases_and_diff_digests": "PASS",
+    "guide_944_single_primary_row": "PASS",
+    "guide_boolean_omission_normalized_from_pinned_ancestry_evidence": "PASS",
+    "identical_regeneration": "PASS",
+    "changed_input_rejected_before_normalization": "PASS",
+    "python_syntax": "PASS"
+  },
+  "independent_review": {
+    "reviewer_domain": "storage coordinator",
+    "reported_checks": [
+      "265 unique IDs and exact head/base pairs match fixed snapshot",
+      "Storage70 exact set matches its independent ledger",
+      "Foundation944 appears once",
+      "263 available local MOD commit DAG checks agree with the ten nonancestor-base rows"
+    ],
+    "correction": "22 Guide rows omitted an explicit ancestry boolean. The aggregator now requires equality to the verified own-delta base plus known ancestry evidence and preserves the evidence field; remote944/945 ancestry is not mislabeled local.",
+    "final_result": "PASS: corrected coverage SHA dc7af8884dd2c7a3e21c9ca268f2876a15dbf4028441e2f9094c89e7d40e949a rechecked against 263 local DAG ancestry booleans; README scope separation reviewed; no serious remaining finding."
+  },
+  "native_tests_run": 0,
+  "ci_dispatched": false,
+  "pr_state_changes": false,
+  "runtime_source_changes": false
+}
