@@ -121,3 +121,48 @@ No cache or source deletion is requested by this plan. Only separately approved,
 fully preserved completed test executables may be considered for recovery.
 No fork, upstream edit, Actions dispatch, native compilation, Cargo metadata or
 new stage was accessed or performed during this investigation.
+
+## Remaining concrete consumer boundary, source review follow-up
+
+The public display address is deliberately too small to decide whether a
+material-bearing recipe is valid. The old `display_stacks` consumer checks the
+complete shaped recipe: width/height/cell count, actual item IDs, custom marker
+map and child shape, result count and its Material component, and the exact
+generated recipe ID. Those checks stay in TConstruct. The existing generic
+`Ingredient` trait exposes ordered IDs, custom data and child facts, but the
+matching API's semantic `TemplateFacts` is not a full-stack construction or
+commit capability. Do not reconstruct native stacks from it merely to eliminate
+a host-qualified import.
+
+The bounded migration candidate is therefore a thin consumer-specific native
+adapter: keep its full Recipe validation and full ItemStack construction, borrow
+that policy context synchronously, and delegate only ordered Entry.stacks
+replacement through the shared `stage` capability. A new global display event
+is not necessary for this first caller and has not been implemented. If one is
+introduced later, it needs its own single registry owner, explicit native
+context/stack transfer contract, provider ordering and same-entry conflict
+policy; the current explicit batch API does not establish those semantics.
+
+Concrete acceptance cases for that later consumer migration are:
+
+- Keep malformed/nonmatching recipe skipping. Adding an unsupported unrelated
+  Furnace entry must not reject every valid crafting decoration in the book.
+- Keep every display of a matching recipe. Multiple entries sharing a recipe ID
+  must remain separately addressed by index; do not deduplicate them by ID.
+- Keep full material-bearing native stacks and the compact requirement order,
+  including shaped holes. No semantic DTO reconstruction or source-key parsing
+  moves into PlutoLib.
+- Use the fresh owned build scope even while display IDs are still `-1`;
+  `set_display_ids` runs afterward. An equal address from another build is not
+  a persistent token.
+- Pair the presentation migration with the already separate startup definition
+  veto so the old placement-removal behavior is not lost. The builder itself
+  never grants/refuses placement or changes the craftable filter.
+- Reapply after `forget_book`/rebuild, without clearing the just-decorated model.
+  Refreshing a live view/ghost is a separate Game lifecycle task, not implied by
+  returning an owned Book.
+
+These are source-derived requirements, not passed tests. The old consumer hook
+and all production paths remain unchanged. The pure authoring CI can establish
+builder compatibility and example type correctness, but not any of these
+native/context/lifecycle cases.

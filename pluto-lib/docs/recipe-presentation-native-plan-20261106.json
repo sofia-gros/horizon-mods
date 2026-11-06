@@ -18,5 +18,13 @@
   "normal_floor_bytes": 10871635968,
   "launch_headroom_estimate_bytes": 25165824,
   "estimate_is_measured_upper_bound": false,
-  "blocking_reason": "Known fresh API plus comparable native executable exceed current headroom even before scratch space; no execution grant."
+  "blocking_reason": "Known fresh API plus comparable native executable exceed current headroom even before scratch space; no execution grant.",
+  "follow_up_consumer_requirements": [
+    "Keep complete Recipe validation and full native ItemStack construction in consumer.",
+    "Skip invalid/unrelated recipes without suppressing valid crafting decorations.",
+    "Address duplicate recipe IDs by per-book entry index without deduplication.",
+    "Respect build-before-display-ID assignment; no lifetime token.",
+    "Preserve separate placement veto and repeated model construction.",
+    "Any future automatic provider event needs explicit context and conflict semantics."
+  ]
 }
