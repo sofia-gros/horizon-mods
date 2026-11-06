@@ -138,3 +138,12 @@ The native NBT module's own 12 tests were filtered and are not part of that coun
 [The recorded evidence](legacy-validation.json) preserves exact inputs, commands,
 logs and the continuous disk-floor result. See [the local/LAN and contact design](../../docs/legacy-save-contact-migration.md)
 for the source-pinned owner/snapshot/continuation gates that remain unfinished.
+
+## Synchronous native contact refactor design (not implemented)
+
+[The proposed native frame split](../../docs/synchronous-contact-native-refactor.md)
+identifies one initial guest-player path and the distinct mob owner/continuation
+blockers. `contact_sources.py` pins 13 official files; `test_contact_order.py`
+checks ten source-order/representation groups. These checks pass but do not
+execute Game, validate a new borrow implementation, or authorize contact writes.
+No abstract authority API or mock Game implementation is added.

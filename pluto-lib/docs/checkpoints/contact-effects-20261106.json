@@ -43,5 +43,12 @@
     "rust_tests_passed": 7,
     "source_commit": "edc6440be3ec3306ccf5f4ca4c720f870573efb0",
     "native_nbt_tests_filtered_not_run": 12
+  },
+  "contact_refactor_design": {
+    "status": "Unapplied design only; no new authority API or native owner implementation",
+    "source_order_checks_passed": 10,
+    "official_files_pinned": 13,
+    "native_execution": false,
+    "design": "../synchronous-contact-native-refactor.md"
   }
 }
