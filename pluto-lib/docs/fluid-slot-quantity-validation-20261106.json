@@ -1,0 +1,75 @@
+{
+  "source_cutoff": "cf7a8657b88016bac467856c61493e4323dc6cd2",
+  "remote_source_checkpoint": "240da4b37f3567dec02a08fb6557b69753ad034d",
+  "remote_parent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "remote_source_tree": "5d381643eb24e60f79829247a88bac35738a7c63",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "scope": "Whole actual fluid-container module with real native ItemStack/NBT, potion catalog/support modules and one real inventory API crate. Only incoming movement quantities are delegated to plan_between; no live menu/Game/save/LAN proof.",
+  "result": "passed",
+  "rust_tests_passed": 144,
+  "rust_tests_failed": 0,
+  "new_named_tests_passed": 5,
+  "existing_module_tests_repeated": 139,
+  "source_guards_passed": 6,
+  "new_differential_comparisons": {
+    "click_result_full_values_callback_trace": 19440,
+    "quick_input_result_full_values_callback_trace": 3240,
+    "empty_cursor_extraction": 540,
+    "matrix_total": 23220,
+    "separate_opaque_receiver_cases": 2
+  },
+  "additional_boundaries": [
+    "All15 sampled admission families reject zero count before fluid callbacks, under both color settings.",
+    "Eight successful samples exercise each distinct accepted parser family.",
+    "Missing/empty input does not call fluid admission."
+  ],
+  "actual_module_prefix_sha256": "333c9d3c702aae317416cb237156a0cf6ebf0f89a8363936087719ad09d37fe3",
+  "native_semantics_recreated_or_mocked": false,
+  "immutable_old_oracle": {
+    "source_commit": "e2e791455381723948c4f8b166bb8d5fb3c4409a",
+    "source_path": "tconstruct/mixins/tconstruct/source-fluid-container.rs",
+    "source_sha256": "3c28f5386fbdd2a7b7f024addfbfb3eb80248b704840e989f36ef7f5fee1c4f5",
+    "oracle_sha256": "a7d7cd2ebb0b2170eca5139a7fe43f5663390b46d739584ff6f8afeb04d591fa",
+    "functions": {
+      "click_with_color": {
+        "old_sha256": "f9d393fc9c8f0068561302c584c3347f6086d5f51c1d73ece468670fd25a80a8",
+        "adopted_sha256": "8039348619433cf1c95b56a26fbc910fead29d3e79c03802f8fbe04dff0b8ade"
+      },
+      "quick_input_with_color": {
+        "old_sha256": "5011de573eba7b1224a769ab510c3cd9fa928360896edf7aa4f804bbb241b92a",
+        "adopted_sha256": "611924f8ab03b66c1b9559546189c2be837c893724ded56768c8f5f7b4260c9a"
+      }
+    },
+    "preserved_extraction_prefix_sha256": "636508612135861e76e83f636ccb1a81bb5b1d055c29918f7bedd5014bbdaa71",
+    "callers": {
+      "tconstruct/mixins/tconstruct/source-smeltery-click.rs": "862301e8edcf5d0407a78281c571da5313ddb45654011c1c375de2bf42867627",
+      "tconstruct/mixins/tconstruct/source-smeltery-guest-guard.rs": "3816023800abff2ed2fd1f82da215ea55bb6c250e80e379e3dc04ed17349271e"
+    }
+  },
+  "full_tracked_source_files_unchanged": 6608,
+  "full_source_seal_sha256": "52c48e882a73e58bac1b34e4e378dfbea14336e7e1c9f340b57b01c18e9c5fce",
+  "log_path": "/tmp/pluto-fluid-slot-quantity-20261106.log",
+  "log_sha256": "23fa0a7bce241783451a8837832b1b07495ce297c34f376faf9ff8295ab510b4",
+  "runner_sha256": "47d8e5688c93d4705973666e6797da2ae2be53d981cd29be5304d92b643ee366",
+  "strict_official_path_and_lock_identity_verified_before_and_after": true,
+  "official_tracked_source_clean": true,
+  "native_profile": {
+    "jobs": 2,
+    "debug": 0,
+    "incremental": false
+  },
+  "disk_guard_bytes": 10871635968,
+  "disk_guard_stopped": false,
+  "initial_free_bytes": 10884370432,
+  "minimum_free_bytes": 10875768832,
+  "free_bytes_after": 10875768832,
+  "not_verified": [
+    "Full native package after this consumer-only follow-up",
+    "Complete TConstruct bundle",
+    "Live native menu lifecycle",
+    "Game actor or slot authority",
+    "Persistence save/reload",
+    "LAN synchronization"
+  ]
+}

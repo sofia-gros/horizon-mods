@@ -1,6 +1,6 @@
 # Quantity planning for temporary fluid-container slots
 
-Status: source prepared; native differential tests are **not yet run**.
+Status: **144 native tests passed at `cf7a8657`**, including all five new cases.
 This is a separate consumer-only follow-up, not part of the frozen v15 proof.
 
 The existing local and guest Smeltery menu paths use
@@ -27,7 +27,7 @@ tool capacity requires count 1; can, potion and lantern parsers reject count 0;
 the ordinary fallback requires count greater than 0. This matters because the
 shared planner refuses a zero source. The source guards pin every parser and
 all other code by restoring the two old helpers and hashing the complete
-original source. The planned native cases also exercise each successful family
+original source. The native cases also exercise each successful family
 and its zero-count rejection. Existing zero-count destinations remain eligible
 under the old policy; they are not normalized or rejected by a stricter adapter.
 
@@ -41,7 +41,7 @@ No native ItemStack, NBT, potion catalog, fluid parser or machine state is mocke
 or recreated. The actual native support modules and one shared inventory API
 crate are used with clean official host path/lock checks.
 
-Five named tests are prepared:
+Five new named tests passed:
 
 - 19,440 click comparisons and 3,240 quick-input comparisons across item families,
   zero/high counts, capacities, incompatible values, malformed components,
@@ -54,7 +54,14 @@ Five named tests are prepared:
 - Two opaque-wire receiving-value comparisons, preserving the existing native
   equality behavior rather than claiming a stronger lossless boundary.
 
-Six Python source/dependency guards pass, including adversarial policy/parser
-changes. Rust source parsing passes; no native execution is claimed by this
-checkpoint. Full TConstruct, menu lifecycle, save/reload and LAN behavior remain
-outside this focused quantity-only proof.
+Six Python source/dependency guards passed, including adversarial policy/parser
+changes. The actual fixture passed 144 tests: five new named tests and 139
+existing support/module tests. The 23,220 matrix comparisons and two separate
+opaque-receiver comparisons passed with no retry. The exact production prefix,
+all 6,608 tracked MOD source hashes, and official path/lock identities were
+verified before and after execution. No native semantics were mocked.
+
+The continuous 10 GiB + 128 MiB guard held, with minimum 10,875,768,832 bytes
+free. The [exact-cutoff receipt](fluid-slot-quantity-validation-20261106.json)
+records provenance and exclusions. Full TConstruct, menu lifecycle, save/reload
+and LAN behavior remain outside this focused quantity-only proof.
