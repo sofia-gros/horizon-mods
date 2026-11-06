@@ -1,0 +1,490 @@
+{
+  "schema": 1,
+  "status": "source_audit_only_timeout_cause_not_determined",
+  "old": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "latest": {
+    "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "inputs": {
+    "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+    "common": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+    "common_archive_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+    "common_members": 147,
+    "latest_candidate": "db54310784abe58ca51ac6991278e5b573e8f7ae",
+    "candidate_delta": "Only the two manifest horizon_revision lines; original archived sources and old guards unchanged."
+  },
+  "timeout": {
+    "run_id": 42201486827,
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42201486827",
+    "elapsed_seconds": 180.231,
+    "plan_stdout_bytes": 0,
+    "observed_internal_phase": null,
+    "diagnostic_code": null,
+    "guards_reached": false,
+    "source": "Coordinator terminal report; this audit did not execute or instrument the planner."
+  },
+  "counts": {
+    "main": {
+      "modules": 248,
+      "injections": 290,
+      "states": 108,
+      "bridges": 3,
+      "crates": 1
+    },
+    "common": {
+      "modules": 69,
+      "injections": 34,
+      "states": 3,
+      "bridges": 0,
+      "crates": 2
+    },
+    "total_modules": 317,
+    "total_injections": 324,
+    "total_states": 111,
+    "module_destination_files": 35
+  },
+  "state_coverage": {
+    "target": "horizon_client_render::chunk_map::ChunkMap",
+    "constructor": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+    "selector": "Self",
+    "require": 1,
+    "state_rs_unchanged_sha256": "ae74844a3c88e2001be7d65f3ffc7cf2fb8c74baf0ebac71a37b997f2d9d1c9a",
+    "sites_rs_unchanged_sha256": "904882060279e25ae236bdb5e2795237aa91df5b651b82ac5557ac4981e68be7",
+    "scope": "If each state passes its earlier checks, its coverage proof independently traverses all indexed functions; an earlier diagnostic may stop planning first."
+  },
+  "destinations": [
+    {
+      "path": "crates/horizon-client-render/src/chunk_map.rs",
+      "modules": 3,
+      "old_blob": "484bd96756d5d21493e879a10abd2146c793d5b4",
+      "new_blob": "484bd96756d5d21493e879a10abd2146c793d5b4",
+      "new_size": 13867,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/chunk_map.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher.rs",
+      "modules": 9,
+      "old_blob": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "new_blob": "19aee9ac3f38a9e6d6083d37f627a6eb5cdacd25",
+      "new_size": 89342,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/mesher.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "modules": 1,
+      "old_blob": "70031ad164890c6be1978e0c52f28d9ee52fea5b",
+      "new_blob": "46c0c168f739bc4bd64fd944b9b98c1974ebf731",
+      "new_size": 190929,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/streaming.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/advancements.rs",
+      "modules": 1,
+      "old_blob": "e121ecddaabe057ef22e0220908fbabec9e7a52e",
+      "new_blob": "e121ecddaabe057ef22e0220908fbabec9e7a52e",
+      "new_size": 115011,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/advancements.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "modules": 70,
+      "old_blob": "4e06fc618f62d580a32eda9a007859f8ccc3e6ec",
+      "new_blob": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+      "new_size": 5563,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/client_lib.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/crafting.rs",
+      "modules": 4,
+      "old_blob": "a4a6104011e7a4cc788eba147df005006b2658a3",
+      "new_blob": "c8b1262357a7a5fe3065eb04362e7f6b2d266801",
+      "new_size": 107065,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/crafting.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/entry.rs",
+      "modules": 8,
+      "old_blob": "5b4a8de77759eb74a69a97a7bca0b8eab991174e",
+      "new_blob": "67fd902a192f541bf65e1e84b98060d7eb699174",
+      "new_size": 9005,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/entry.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "modules": 155,
+      "old_blob": "197086eaa48ddb975ffd665abd60b369e0a18de9",
+      "new_blob": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "new_size": 1031429,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/armor_stands.rs",
+      "modules": 1,
+      "old_blob": "3add7b40dd2083145002da085cb0bae093932b7d",
+      "new_blob": "1cb33b3d6cbfb30381f4cc226d3b09d6bf6e7894",
+      "new_size": 77322,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/armor_stands.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "modules": 8,
+      "old_blob": "24b38c17cb10b0f93a58365ca6fb9944e8c8c41e",
+      "new_blob": "24b38c17cb10b0f93a58365ca6fb9944e8c8c41e",
+      "new_size": 62409,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/books.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/functions.rs",
+      "modules": 3,
+      "old_blob": "090a22409f97fd28fb12a482ba4b98ce2daf71f2",
+      "new_blob": "fa9ba79c92800c82c6f813d9fca48d32a22e6654",
+      "new_size": 45655,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/functions.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "modules": 2,
+      "old_blob": "1729b2ad2a8a282eeba5b928a622fcaf75aebad0",
+      "new_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "new_size": 270381,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/lan_actions.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_crafting.rs",
+      "modules": 2,
+      "old_blob": "8db2ec972f94d00e970e6e971e6347d543143a1d",
+      "new_blob": "8db2ec972f94d00e970e6e971e6347d543143a1d",
+      "new_size": 30472,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/lan_crafting.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_stations.rs",
+      "modules": 1,
+      "old_blob": "7404aee6d9198be7977eb72cf561674689cf7c87",
+      "new_blob": "e5693ffbec0126818baf18144cbb5c7a61b6db94",
+      "new_size": 35374,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/lan_stations.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/machines.rs",
+      "modules": 1,
+      "old_blob": "4d115f03d50b072c8a4a16ef287ab36cc9dd8c31",
+      "new_blob": "3fac89b966b31f6aeb86c72c46bc13f10c9f95e9",
+      "new_size": 67889,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/machines.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "modules": 1,
+      "old_blob": "77e7f4d994f87b6bf2ed3c286220197e17bbbb80",
+      "new_blob": "77e7f4d994f87b6bf2ed3c286220197e17bbbb80",
+      "new_size": 13356,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/native_lifecycle.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/perspective.rs",
+      "modules": 1,
+      "old_blob": "860d1cd23275140ca977ffdaa799f67b20c50240",
+      "new_blob": "caf1f61afe45957f080b1fd9e6b9ef6f860ff927",
+      "new_size": 72786,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/perspective.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "modules": 3,
+      "old_blob": "369028554541413e0457c1ddf95e4294cef9f6cc",
+      "new_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+      "new_size": 100019,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/potions.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/recipe_book.rs",
+      "modules": 3,
+      "old_blob": "379dfe362c1e4988b108089b88a81325c7710472",
+      "new_blob": "379dfe362c1e4988b108089b88a81325c7710472",
+      "new_size": 62959,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/recipe_book.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "modules": 2,
+      "old_blob": "b7c7eb200a09c4ea46e4be599bbead8367b021a7",
+      "new_blob": "9b8b274fad4e5d00972e3ad52f3e0ecf857b7fcd",
+      "new_size": 533300,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/remote.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/spill.rs",
+      "modules": 1,
+      "old_blob": "baf24bc4dd463fc3bb2626ad17c9051a94c15e4f",
+      "new_blob": "baf24bc4dd463fc3bb2626ad17c9051a94c15e4f",
+      "new_size": 33542,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/spill.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/health.rs",
+      "modules": 3,
+      "old_blob": "93df3a0c637c2b0298d79738d1feaeeefba7abb9",
+      "new_blob": "5d3d9e896e6d94265e88b53e27109f52abc76645",
+      "new_size": 68312,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/health.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/lan/chunks.rs",
+      "modules": 1,
+      "old_blob": "6740f934d93f3d0b13b4d898c67c105336d626ce",
+      "new_blob": "6740f934d93f3d0b13b4d898c67c105336d626ce",
+      "new_size": 91623,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/lan/chunks.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/lan/hub.rs",
+      "modules": 2,
+      "old_blob": "9be69215146a5831f649711086bb08da1b06dce3",
+      "new_blob": "eeb6797c79720adf52d4fe3399b07680bd4f6542",
+      "new_size": 235077,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/lan/hub.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/recipe_book.rs",
+      "modules": 3,
+      "old_blob": "e0347eda9a71e64ddf020fab7618097bc7702a9e",
+      "new_blob": "e0347eda9a71e64ddf020fab7618097bc7702a9e",
+      "new_size": 56121,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/recipe_book.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-client/src/stations.rs",
+      "modules": 1,
+      "old_blob": "bd0c9f8591610a75bef048462cdab09d8aa5f4bf",
+      "new_blob": "bd0c9f8591610a75bef048462cdab09d8aa5f4bf",
+      "new_size": 39445,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/stations.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-items/src/item_data.rs",
+      "modules": 1,
+      "old_blob": "e438bbe234b29385f3353a291c778935c7e22055",
+      "new_blob": "2cf7d71c79725c62755d768136b43e115efa3353",
+      "new_size": 76150,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/item_data.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-items/src/items.rs",
+      "modules": 6,
+      "old_blob": "c8e5babb9b1e6b2bb06f9e2ace1f31833e2c0f98",
+      "new_blob": "39219405ec00bfb54e24d37fe276cca26f78256d",
+      "new_size": 127617,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/items.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/combat_rules.rs",
+      "modules": 2,
+      "old_blob": "4d8aa424f7f604785d8de75396cd1037f6a39bdf",
+      "new_blob": "4d8aa424f7f604785d8de75396cd1037f6a39bdf",
+      "new_size": 1719,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/combat_rules.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/damage_source.rs",
+      "modules": 1,
+      "old_blob": "ca0937e2fdfe72681e722f8785fa3d5ad674f1f9",
+      "new_blob": "ca0937e2fdfe72681e722f8785fa3d5ad674f1f9",
+      "new_size": 10112,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/damage_source.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/level/mod.rs",
+      "modules": 1,
+      "old_blob": "962bf31b8a9eaddcb8015f28a1c9cdcfd04b1224",
+      "new_blob": "e783b88575d2e7fd71f7108e305bc5751136835b",
+      "new_size": 50697,
+      "same": false,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/level/mod.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/loot.rs",
+      "modules": 3,
+      "old_blob": "9409f72ddb8a88be7b8eee5372e9660fb53655cd",
+      "new_blob": "9409f72ddb8a88be7b8eee5372e9660fb53655cd",
+      "new_size": 99181,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/loot.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/worldgen/live.rs",
+      "modules": 1,
+      "old_blob": "d4a499fcb3a613d96e50dba02e0301d9377647ec",
+      "new_blob": "d4a499fcb3a613d96e50dba02e0301d9377647ec",
+      "new_size": 13713,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/worldgen/live.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/worldgen/structure/start.rs",
+      "modules": 9,
+      "old_blob": "2c23714cafabf8e13a7a0e7d57890652111b6c9f",
+      "new_blob": "2c23714cafabf8e13a7a0e7d57890652111b6c9f",
+      "new_size": 72769,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/worldgen/structure/start.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    },
+    {
+      "path": "crates/horizon-world/src/worldgen/tree.rs",
+      "modules": 3,
+      "old_blob": "7145d41fa54084ed095ebc1c980c8b5dff47fc10",
+      "new_blob": "7145d41fa54084ed095ebc1c980c8b5dff47fc10",
+      "new_size": 29440,
+      "same": true,
+      "latest_source_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/worldgen/tree.rs",
+      "top_level_glob_observation": "none_found_in_bounded_source_inspection",
+      "inspection_not_syn_instrumentation": true
+    }
+  ],
+  "findings": [
+    {
+      "kind": "new_glob_algorithm_static",
+      "summary": "No memo or visited set. Each recursive module lookup scans source_owners. Depth greater than 8 rejects conservatively; same planned file/name rejects. Repeated graph paths may be revisited, but short-circuit rejection can end recursion. No actual caller graph cost measured."
+    },
+    {
+      "kind": "new_glob_entry_not_found",
+      "summary": "No top-level glob import found in the 35 destination files. Nested test-module use super::* does not enter declares(file)'s top-level Item::Use path. This is bounded source inspection, not execution of the official syn visitor."
+    },
+    {
+      "kind": "preexisting_state_repetition",
+      "summary": "Each passing state repeats Sites::in_block and pattern coverage over every indexed function. Sites clones and token-fingerprints expressions, including repeated subtree work. Same ChunkMap target is not memoized across 111 state declarations. state.rs and sites.rs are byte-identical in old and new Mixins."
+    },
+    {
+      "kind": "preexisting_module_repetition",
+      "summary": "Each planned support module repeats destination item checks and fingerprint(tokens(tree)). game.rs is a destination 155 times and is 1031429 bytes at latest cutoff. This does not establish total cost or that the timeout reached modules."
+    }
+  ],
+  "order": [
+    "manifest load (mod ID sort)",
+    "source enumeration and hashing",
+    "native::resolve_hooks",
+    "Index::load: locked offline no-deps metadata then source indexing",
+    "native::plan: bundled crate/data/post-build preparation, not per-instance state::plan",
+    "pluto_native_creative revision check, then 3 states, 69 modules, bridges and 34 injections if earlier checks pass",
+    "tconstruct_native revision check, then 108 states, 248 modules, 3 bridges and 290 injections if earlier checks pass"
+  ],
+  "comparison_limit": "The prior unchanged main+common 21.544-second E_REVISION stops at the main revision gate before its 108 state declarations. It is not a same-workload old/new performance benchmark. The latest two-manifest override admits that additional work but has no internal phase observation.",
+  "validation": {
+    "native_execution": false,
+    "cli_changes": false,
+    "guard_changes": false,
+    "production_changes": false,
+    "compatibility_established": false,
+    "measured_timeout_cause": false
+  },
+  "source_checks": {
+    "manifest_counts_and_111_constructor_declarations": true,
+    "unchanged_destination_git_blobs": 17,
+    "changed_destination_git_blobs": 18,
+    "all_destination_inventory_matches": true,
+    "latest_tree_entries": 5956,
+    "latest_tree_truncated": false
+  }
+}
