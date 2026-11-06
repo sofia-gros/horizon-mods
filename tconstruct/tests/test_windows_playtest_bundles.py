@@ -6,6 +6,7 @@ import stat
 import sys
 import tempfile
 import unittest
+import warnings
 import zipfile
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
@@ -42,7 +43,10 @@ class Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):b.safe_name(name)
     def test_duplicate_case_and_mode_rejected(self):
         for names in [('a','a'),('a','A')]:
-            with self.assertRaises(ValueError):b.members(archive([(x,b'') for x in names]),512)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always')
+                with self.assertRaises(ValueError):b.members(archive([(x,b'') for x in names]),512)
+            self.assertEqual([(w.category,str(w.message)) for w in caught],[(UserWarning, "Duplicate name: 'a'")] if names[0]==names[1] else [])
         out=io.BytesIO()
         with zipfile.ZipFile(out,'w') as z:
             i=zipfile.ZipInfo('link');i.external_attr=(stat.S_IFLNK|0o777)<<16;z.writestr(i,b'target')
