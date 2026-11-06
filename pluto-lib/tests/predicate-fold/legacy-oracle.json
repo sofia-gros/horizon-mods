@@ -1,0 +1,80 @@
+{
+  "source_commit": "91fa95fd31a4ef97ef8f58abec7a532d4b806b88",
+  "source_sha256": {
+    "source-conditions.rs": "028f9d256db1899cfb88a6e36f0a1a8dfd0649187c2c57e345497b64f72df95b",
+    "transaction.rs": "7ac6ccb9a153728f2d7cf18ff75b8256c250f9c59af5a2808bd83d860e16816b",
+    "source-melting-recipes.rs": "d884af7afce4ff73966f009c23c4ea32baad5f42aeef06430c29630465cb78ab"
+  },
+  "frozen_fragments": {
+    "conditions": "            let mut unknown = false;\n            for child in values {\n                match conditional_test(child, registries, config, items, mods) {\n                    Some(result) if (kind == \"forge:and\" && !result) || (kind == \"forge:or\" && result) => return Some(result),\n                    Some(_) => {}, None => unknown = true,\n                }\n            }\n            if unknown { None } else { Some(kind == \"forge:and\") }",
+    "transaction_or": "                let mut unknown = false;\n                for value in values {\n                    match value.matches(registries, config) {\n                        Some(true) => return Some(true),\n                        Some(false) => {},\n                        None => unknown = true,\n                    }\n                }\n                if unknown { None } else { Some(false) }",
+    "transaction_and": "                let mut unknown = false;\n                for value in values {\n                    match value.matches(registries, config) {\n                        Some(false) => return Some(false),\n                        Some(true) => {},\n                        None => unknown = true,\n                    }\n                }\n                if unknown { None } else { Some(true) }",
+    "melting_any": "let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(true) => return Some(true), Some(false) => {}, None => unknown = true } } if unknown { None } else { Some(false) }",
+    "melting_all": "let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(false) => return Some(false), Some(true) => {}, None => unknown = true } } if unknown { None } else { Some(true) }"
+  },
+  "fragment_sha256": {
+    "conditions": "0c2174d38c3c59463b58e1a869b92029f4f904e57a8b240eb51e3765858ba11f",
+    "transaction_or": "2841e035ccae6b39891f42cdd915e54e6000848576821824599888a731e27b28",
+    "transaction_and": "0c9c4ab798a759761aaa08eea787deebddd176be320aa26712ff700a3601597b",
+    "melting_any": "92895a4f74bac59b5536199a25f716f728e711e0d2af7e553639b080ee24ef0e",
+    "melting_all": "3e44652eb0f7627ace1e4cde2bc8fafc03936c26a3cec4c083e723bc5c267b42"
+  },
+  "scope": "Exact original ordered fold bodies; test leaf values stand in for already evaluated recursive leaves. Schema/parser/native gameplay are not modeled.",
+  "fixture_bindings": [
+    {
+      "path": "tconstruct/tests/rust/blazing_barter_integration.rs",
+      "binding": "existing actual-package storage helper"
+    },
+    {
+      "path": "tconstruct/tests/rust/material_casting.rs",
+      "binding": "explicit actual-package reexport"
+    },
+    {
+      "path": "tconstruct/tests/rust/reinforced_casting.rs",
+      "binding": "explicit actual-package reexport"
+    },
+    {
+      "path": "tconstruct/tests/rust/soul_glass_acquisition.rs",
+      "binding": "explicit actual-package reexport"
+    },
+    {
+      "path": "tconstruct/tests/rust/source_seared_reinforcement.rs",
+      "binding": "existing actual-package storage helper"
+    },
+    {
+      "path": "tconstruct/tests/rust/survival_controller_casting.rs",
+      "binding": "explicit actual-package reexport"
+    }
+  ],
+  "strict_station_sha256": "bb6419d9c8ebbfb46f3b4185e87316583c5ed95709d42d9d3473e9d6ed1215cc",
+  "consumer_replacements": {
+    "conditions": "            let results = values.iter().map(|child| conditional_test(child, registries, config, items, mods));\n            if kind == \"forge:and\" {\n                horizon_client::pluto_inventory::predicate_fold::all(results)\n            } else {\n                horizon_client::pluto_inventory::predicate_fold::any(results)\n            }",
+    "transaction_or": "                horizon_client::pluto_inventory::predicate_fold::any(values.iter().map(|value| value.matches(registries, config)))",
+    "transaction_and": "                horizon_client::pluto_inventory::predicate_fold::all(values.iter().map(|value| value.matches(registries, config)))",
+    "melting_any": "horizon_client::pluto_inventory::predicate_fold::any(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container)))",
+    "melting_all": "horizon_client::pluto_inventory::predicate_fold::all(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container)))"
+  },
+  "owned_scopes": {
+    "source-conditions.rs": {
+      "start": "fn conditional_test(",
+      "end": "\npub(super) fn conditional_conditions(",
+      "sha256": "8214364a48f18469acd31e12669cbb668c7b2a3b0c52ebcfcd2af15df38dee87"
+    },
+    "transaction.rs": {
+      "start": "    fn matches(&self, registries: &std::collections::HashMap",
+      "end": "\n/// Evaluate source conditions",
+      "sha256": "e547d00b523d2298cb3b89e18ff77ca231fc3c11c3f8bf4e792c832517b0dff1"
+    },
+    "source-melting-recipes.rs": {
+      "start": "impl Ingredient {",
+      "end": "\n#[derive(Clone, Debug, PartialEq, Eq)]\npub(super) struct FluidSpec",
+      "sha256": "6a159adb29ee5fae557a0a949026afbdc59e2c9a8de3515d1ccb7bb336b9a55b"
+    },
+    "source-station-recipes.rs": {
+      "start": "pub(super) fn repair_ingredient_matches(",
+      "end": "\n#[derive(Clone, Debug, PartialEq)]\npub(super) struct BuildingRecipe",
+      "sha256": "a26e136cad29b8dcecef1d978c794efb3f28ff18e81063cabdf5cce4a252f1b3"
+    }
+  },
+  "full_file_hash_role": "Historical source provenance only; active composition guards compare exact owned decision scopes, not unrelated functions in the same file."
+}

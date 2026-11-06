@@ -62,8 +62,8 @@ impl Ingredient {
         match self {
             Self::Item(id) => Some(id == item),
             Self::Tag(tag) => Some(in_tag(tag, item)),
-            Self::Any(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(true) => return Some(true), Some(false) => {}, None => unknown = true } } if unknown { None } else { Some(false) } },
-            Self::All(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(false) => return Some(false), Some(true) => {}, None => unknown = true } } if unknown { None } else { Some(true) } },
+            Self::Any(choices) => { horizon_client::pluto_inventory::predicate_fold::any(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container))) },
+            Self::All(choices) => { horizon_client::pluto_inventory::predicate_fold::all(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container))) },
             Self::Difference(base, removed) => Some(base.matches_with_container(item, in_tag, no_container)? && !removed.matches_with_container(item, in_tag, no_container)?),
             Self::NoContainer(inner) => Some(inner.matches_with_container(item, in_tag, no_container)? && no_container?),
         }

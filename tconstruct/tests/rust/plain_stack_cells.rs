@@ -210,3 +210,123 @@ fn chest_slot_rejects_invalid_shape_and_malformed_values_without_mutation() {
         assert_eq!(state(&(&cells, &cursor)), before);
     }
 }
+
+#[test]
+fn ordered_insertion_matches_frozen_give_on_positive_inputs() {
+    let mut cases = 0;
+    for limit in [1, 16, 64, u32::MAX] {
+        for count in [1, 2, 16, 65, u32::MAX] {
+            for existing in [1, 16, 64, u32::MAX] {
+                for variant in 0..4 {
+                    for selected in [0, 2, usize::MAX] {
+                        for stackable in [false, true] {
+                            let mut old = vec![Some(stack(existing, variant)), None, Some(stack(1, 2)), None];
+                            let mut new = old.clone(); let offered = stack(count, 2); let mut incoming = Some(offered.clone());
+                            let before = total(&new, &incoming);
+                            let expected = crate::insertion_legacy::source_give_inventory(&mut old, selected, offered, limit, stackable);
+                            let merge: Vec<_> = if stackable { std::iter::once(selected).filter(|i| *i < new.len()).chain((0..new.len()).filter(|i| *i != selected)).collect() } else { vec![] };
+                            let empty: Vec<_> = (0..new.len()).collect();
+                            let changed = cells::insert_ordered(&mut new, &mut incoming, &merge, &empty, limit, same).unwrap();
+                            assert_eq!(changed, incoming.as_ref().map_or(0, |s| s.count) != count);
+                            assert_eq!(state(&(&new, &incoming)), state(&(&old, &expected)));
+                            assert_eq!(total(&new, &incoming), before);
+                            cases += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 1920);
+}
+
+#[test]
+fn ordered_insertion_matches_frozen_quick_move_on_positive_inputs() {
+    let mut cases = 0;
+    for len in [36, 40] {
+        for limit in [1, 16, 64, u32::MAX] {
+            for count in [1, 2, 16, 65, u32::MAX] {
+                for existing in [1, 16, 64, u32::MAX] {
+                    for variant in 0..4 {
+                        for stackable in [false, true] {
+                            let mut old = vec![None; len];
+                            for index in [0, 8, 9, 35] { old[index] = Some(stack(existing, variant)); }
+                            if len > 36 { old[39] = Some(stack(0, 2)); } // Not a selected player cell.
+                            let mut new = old.clone(); let offered = stack(count, 2); let mut incoming = Some(offered.clone());
+                            let before = total(&new, &incoming);
+                            let expected = crate::insertion_legacy::source_quick_move_player(&mut old, offered, limit, stackable);
+                            let order: Vec<_> = (0..9).rev().chain((9..36).rev()).collect();
+                            let merge = if stackable { order.as_slice() } else { &[] };
+                            cells::insert_ordered(&mut new, &mut incoming, merge, &order, limit, same).unwrap();
+                            assert_eq!(state(&(&new, &incoming)), state(&(&old, &expected)));
+                            assert_eq!(total(&new, &incoming), before);
+                            cases += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 1280);
+}
+
+#[test]
+fn ordered_insertion_respects_distinct_orders_duplicates_and_missing_cells() {
+    let mut slots = vec![Some(stack(3, 0)), None, Some(stack(2, 1)), None];
+    let mut incoming = Some(stack(5, 0)); let mut calls = 0;
+    assert_eq!(cells::insert_ordered(&mut slots, &mut incoming, &[99, 0, 0, 2], &[3, 3, 1], 4, |receiving, offered| {
+        calls += 1; assert_eq!(offered.item.as_ref(), "minecraft:stone"); same(receiving, offered)
+    }), Ok(true));
+    assert_eq!(calls, 3);
+    assert_eq!(slots[0].as_ref().unwrap().count, 4);
+    assert_eq!(slots[3].as_ref().unwrap().count, 4);
+    assert!(slots[1].is_none()); assert!(incoming.is_none());
+    let before = state(&slots);
+    assert_eq!(cells::insert_ordered(&mut slots, &mut incoming, &[0], &[1], 4, |_, _| panic!("no input")), Ok(false));
+    assert_eq!(state(&slots), before);
+    incoming = Some(stack(9, 0));
+    assert_eq!(cells::insert_ordered(&mut slots, &mut incoming, &[], &[1], 4, |_, _| panic!("merge disabled")), Ok(true));
+    assert_eq!(incoming.as_ref().unwrap().count, 5);
+}
+
+#[test]
+fn ordered_insertion_rejects_malformed_values_before_mutation_or_policy() {
+    for (mut slots, mut incoming, limit, error) in [
+        (vec![None], Some(stack(0, 0)), 64, cells::CellError::ZeroCount),
+        (vec![Some(stack(0, 0))], Some(stack(1, 0)), 64, cells::CellError::ZeroCount),
+        (vec![None], Some(stack(1, 0)), 0, cells::CellError::ZeroLimit),
+    ] {
+        let before = state(&(&slots, &incoming));
+        assert_eq!(cells::insert_ordered(&mut slots, &mut incoming, &[0], &[0], limit, |_, _| panic!("invalid input")), Err(error));
+        assert_eq!(state(&(&slots, &incoming)), before);
+    }
+    let mut slots = vec![None, Some(stack(0, 0))]; let mut incoming = Some(stack(1, 0));
+    assert_eq!(cells::insert_ordered(&mut slots, &mut incoming, &[], &[0], 64, same), Ok(true));
+    assert_eq!(slots[1].as_ref().unwrap().count, 0);
+}
+
+#[test]
+fn ordered_insertion_preserves_receiving_identity_under_supplied_opaque_policy() {
+    let receiving = stack(1, 2); let mut offered = receiving.clone();
+    let baseline = offered.clone(); offered.data_mut().wire = Wire::new(baseline, Arc::from([9u8]));
+    assert!(same(&receiving, &offered));
+    let mut cells_native = vec![Some(receiving.clone())]; let mut incoming = Some(offered.clone());
+    cells::insert_ordered(&mut cells_native, &mut incoming, &[0], &[], 64, same).unwrap();
+    let mut expected = receiving.clone(); expected.count = 2;
+    assert_eq!(state(&cells_native[0]), state(&Some(expected))); assert!(incoming.is_none());
+    let mut cells_strict = vec![Some(receiving)]; let mut incoming = Some(offered);
+    let before = state(&(&cells_strict, &incoming));
+    assert_eq!(cells::insert_ordered(&mut cells_strict, &mut incoming, &[0], &[], 64, |a, b| same(a, b) && a.data().and_then(|data| data.wire.patch()) == b.data().and_then(|data| data.wire.patch())), Ok(false));
+    assert_eq!(state(&(&cells_strict, &incoming)), before);
+}
+
+#[test]
+fn ordered_insertion_documents_unadopted_zero_count_difference() {
+    let zero = stack(0, 0); let mut old = vec![None];
+    let old_remainder = crate::insertion_legacy::source_give_inventory(&mut old, 0, zero.clone(), 64, true);
+    assert!(old_remainder.is_none()); assert_eq!(old[0].as_ref().unwrap().count, 0);
+    let mut new = vec![None]; let mut incoming = Some(zero);
+    assert_eq!(cells::insert_ordered(&mut new, &mut incoming, &[0], &[0], 64, same), Err(cells::CellError::ZeroCount));
+    assert!(new[0].is_none()); assert_eq!(incoming.as_ref().unwrap().count, 0);
+    // No production wrapper has adopted this API's stricter contract.
+}

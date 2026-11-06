@@ -265,26 +265,10 @@ impl SourceCondition {
                     !tags.get(tag).is_some_and(|values| values.contains(entry)))))
             }
             Self::Or(values) => {
-                let mut unknown = false;
-                for value in values {
-                    match value.matches(registries, config) {
-                        Some(true) => return Some(true),
-                        Some(false) => {},
-                        None => unknown = true,
-                    }
-                }
-                if unknown { None } else { Some(false) }
+                horizon_client::pluto_inventory::predicate_fold::any(values.iter().map(|value| value.matches(registries, config)))
             }
             Self::And(values) => {
-                let mut unknown = false;
-                for value in values {
-                    match value.matches(registries, config) {
-                        Some(false) => return Some(false),
-                        Some(true) => {},
-                        None => unknown = true,
-                    }
-                }
-                if unknown { None } else { Some(true) }
+                horizon_client::pluto_inventory::predicate_fold::all(values.iter().map(|value| value.matches(registries, config)))
             }
             Self::Config(property) if property == "wither_bone_conversion" => Some(false),
             Self::Config(property) => config.get(property).copied(),

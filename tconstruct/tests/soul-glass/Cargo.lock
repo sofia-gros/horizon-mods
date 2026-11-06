@@ -218,6 +218,7 @@ dependencies = [
 name = "tconstruct-soul-glass-tests"
 version = "0.1.0"
 dependencies = [
+ "pluto-inventory-api",
  "serde_json",
  "zip",
 ]
@@ -333,4 +334,11 @@ dependencies = [
  "crc32fast",
  "log",
  "simd-adler32",
+]
+
+[[package]]
+name = "pluto-inventory-api"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]

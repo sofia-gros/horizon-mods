@@ -24,3 +24,7 @@ is published. [Draft #944](https://github.com/sofia-gros/horizon-mods/pull/944) 
 the reviewed v13 snapshot. [The recovery bundle](https://github.com/sofia-gros/horizon-mods/tree/checkpoint/plutolib-original-history-20261106/pluto-lib/history/20261106)
 retains 203 original commits and verified restoration, separate from ordinary PR
 ancestry. Main has not been merged. Only official upstream engine sources were used.
+
+## Later v15 candidate
+
+The [v15 source/planning checkpoint](shared-foundation-v15-candidate-20261106.md) adds ordered insertion and predicate folds. Combined small tests and the complete ordinary-package plan plus twelve guards pass. Its complete host apply/type gate is still pending; the v14 proof above is not transferred to these new bytes.

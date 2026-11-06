@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "status": "source_and_plan_verified_host_type_pending",
+  "source_cutoff": "f5a83539525c26fd2142e26e43789a3dd0107033",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "archive_sha256": "7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386",
+  "counts": {
+    "crate": 2,
+    "module": 66,
+    "injection": 34,
+    "state": 3
+  },
+  "mandatory_plan_guards": 12,
+  "combined_checks": {
+    "python_tests": 215,
+    "fluid_api_tests_invoked": 43,
+    "inventory_api_tests_invoked": 125,
+    "insertion_guard_tests": 8,
+    "predicate_fold_fixture_tests": 4,
+    "predicate_comparisons": 6558,
+    "result": {
+      "source_head": "f5a83539525c26fd2142e26e43789a3dd0107033",
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 10892169216,
+      "seconds": 5.27702636300819,
+      "source_count": 6647,
+      "changed_sources": []
+    }
+  },
+  "plan_and_guards": {
+    "exit_code": 0,
+    "minimum_free_bytes": 10892091392,
+    "disk_guard_stopped": false,
+    "seconds": 23.765308222005842
+  },
+  "artifacts": {
+    "cutoff.json": "900d34258f014d64b0cab86cb3e1d3ab0eafa51a76276aa54f5be4eec40ffe92",
+    "plan.json": "8978646c181c5a074f687423a47c6337204e519f1f11dd30fdacdb84e2192e7f",
+    "plan.log": "4831c78d43da024fd84141e59ee66e5d3004606dcd7cd669c9d66e900beff4b9",
+    "preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+    "result.json": "ae50cdb7691c276e90884bf11fa6cca697db230b457e8b3dc3cced409c3b3df9"
+  },
+  "source_artifacts": {
+    "checks.log": "7fd8e68b2605c4a6af9116df3102553c286aa199318af7fd468128b714122cbe",
+    "result.json": "336d564750eefef91097325b6cf891a48542d8d333d48739868d5557b7cb861e",
+    "source-sha256.json": "9a62493e7abc3c6d5d33122a2f81efbe7d7a29b483890e79a279506aebcf986f"
+  },
+  "scope": [
+    "Additive ordered plain-cell insertion; original insertion consumers remain unchanged.",
+    "Five lazy three-valued predicate fold body delegations across three existing TConstruct consumers.",
+    "Complete ordinary Pluto package official plan and all twelve guards, not full consumer staging."
+  ],
+  "not_proved": [
+    "This cutoff has not been applied or type-checked in the complete official host.",
+    "The predicate tests cover fold result and visitation, not complete parsers or live gameplay.",
+    "Ordered insertion focused native fixture proof remains separately pinned to source 831b92ff; no consumer adoption or live authority claim.",
+    "Renderer CPU/GPU, automatic crafting consumption, native contact effects and guide UI/LAN ownership remain open."
+  ]
+}

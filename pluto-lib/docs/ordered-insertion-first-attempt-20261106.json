@@ -1,0 +1,18 @@
+{
+  "source_cutoff": "4e2e3f96d450c49cdbfdcc1dfae1da7ea7195b32",
+  "remote_source_checkpoint": "39b527f6cbe33f0b9c4e1407cea11041b5a297a1",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "status": "failed_before_test_execution",
+  "error": "Test-only E0615: new opaque-policy case used ItemStack.data as a field instead of data().",
+  "executed_rust_tests": 0,
+  "intended_rust_tests": 39,
+  "positive_new_comparisons_not_executed": 3200,
+  "source_guards_passed": 4,
+  "source_files_reverified_after_failure": 6595,
+  "source_seal_sha256": "8151c853d27207d8300f78987fae02b887d1572e8e09f02de2e5e6d98d01aa52",
+  "log_sha256": "146e67901d751b9af06a1f3733843efb204e18537dcd46f57115afd27d50461c",
+  "log_path": "/tmp/pluto-ordered-insertion-20261106.log",
+  "disk_guard_stopped": false,
+  "minimum_free_bytes": 10917437440,
+  "next_step": "Correct only the test accessor, freeze a new source cutoff, then request a new bounded native fixture slot. No consumer migration."
+}

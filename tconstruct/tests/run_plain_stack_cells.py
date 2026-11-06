@@ -20,6 +20,8 @@ paths = [
     'tconstruct/tests/rust/plain_stack_cells.rs',
     'tconstruct/tests/rust/plain_stack_cells_legacy.rs',
     'tconstruct/tests/rust/plain_stack_cells_legacy.json',
+    'tconstruct/tests/rust/ordered_insertion_legacy.rs',
+    'tconstruct/tests/rust/ordered_insertion_legacy.json',
 ]
 seal = {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in paths}
 with tempfile.TemporaryDirectory(prefix='plain-stack-cells-') as temp:
@@ -40,12 +42,18 @@ path = "lib.rs"
     oracle = json.loads((root / 'tconstruct/tests/rust/plain_stack_cells_legacy.json').read_text())
     if hashlib.sha256((root / 'tconstruct/tests/rust/plain_stack_cells_legacy.rs').read_bytes()).hexdigest() != oracle['oracle_sha256']:
         raise ValueError('Frozen legacy oracle differs from its receipt')
+    insertion_oracle = json.loads((root / 'tconstruct/tests/rust/ordered_insertion_legacy.json').read_text())
+    if hashlib.sha256((root / 'tconstruct/tests/rust/ordered_insertion_legacy.rs').read_bytes()).hexdigest() != insertion_oracle['oracle_sha256']:
+        raise ValueError('Frozen insertion oracle differs from its receipt')
     (work / 'lib.rs').write_text(f'''
 include!({quote(root / 'tconstruct/tests/rust/pluto_storage_fixture.rs')});
 #[path = {quote(root / 'tconstruct/mixins/tconstruct/chest-inventory-api-lib.rs')}]
 mod tconstruct_inventory_api;
 #[path = {quote(root / 'tconstruct/mixins/tconstruct/source-tinker-chests.rs')}]
 mod consumer;
+use consumer as tconstruct_chest_rules;
+#[path = {quote(root / 'tconstruct/tests/rust/ordered_insertion_legacy.rs')}]
+mod insertion_legacy;
 #[path = {quote(root / 'tconstruct/tests/rust/plain_stack_cells_legacy.rs')}]
 mod legacy;
 use pluto_stack_cells as cells;
@@ -64,6 +72,12 @@ mod differential;
         'consumer_wrappers_reject_malformed_inputs_without_changing_values',
         'chest_slot_delegation_preserves_admission_limits_and_empty_cursor_bypass',
         'chest_slot_rejects_invalid_shape_and_malformed_values_without_mutation',
+        'ordered_insertion_matches_frozen_give_on_positive_inputs',
+        'ordered_insertion_matches_frozen_quick_move_on_positive_inputs',
+        'ordered_insertion_respects_distinct_orders_duplicates_and_missing_cells',
+        'ordered_insertion_rejects_malformed_values_before_mutation_or_policy',
+        'ordered_insertion_preserves_receiving_identity_under_supplied_opaque_policy',
+        'ordered_insertion_documents_unadopted_zero_count_difference',
     ]])
     verify_fixture_lock(manifest, host, root)
     if subprocess.check_output(['git', '-C', str(host), 'status', '--porcelain', '--untracked-files=no'], text=True):

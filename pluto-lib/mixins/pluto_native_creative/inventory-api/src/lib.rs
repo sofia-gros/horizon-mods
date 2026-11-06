@@ -349,3 +349,6 @@ pub mod client_payload;
 
 /// Deny-only native crafting admission without output or inventory authority.
 pub mod crafting;
+
+/// Ordered lazy three-valued predicate folds, without schema or leaf policy.
+pub mod predicate_fold;
