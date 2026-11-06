@@ -58,3 +58,11 @@ The missing reusable boundary is a synchronous, officially accepted way to amend
 Use the cases in `evidence.json` to compare the unchanged consumer policy against any proposed adapter. Separate native body preservation and complete composition from tests of the tiny color operation. Test metadata precedence, unmodified unrelated fields, both include_data values and native survival/creative selection. Preserve the original failure receipt and mining36 success; neither proves chest adapter or complete Game behavior.
 
 No Rust, Cargo metadata, new plan, apply, trigger, production manifest or repository-state change was performed for this audit. The only publication is this documentation and its source/evidence ledger.
+
+## Subsequent source check: one final owned LOAD candidate
+
+The exact latest Mixins `plan.rs` and `scopes.rs` clarify the rejection. RETURN rejects an outer `?` because it cannot wrap that early exit; ordinary synchronous closures elsewhere in this body are not by themselves rejected. MODIFY_VARIABLE explicitly allows `?` outside its selected value and leaves that control flow unchanged.
+
+The static visit order of local `stack:0` gives four LOAD matches: `components(&stack)`, the `stack.damage` assignment place, the `stack.extra` assignment place, then the owned `stack` in the final `Some(stack)`. References and fields are counted but marked unsupported places. The field visitor resets `ignore_reads` to false even on this assignment LHS. Only the fourth is a non-place candidate. Thus require=4 / ordinal=3 is a source-derived hypothesis to verify in a small exact official plan, **not an accepted ordinal or authorization to install it**.
+
+Amending only that final owned value would leave the native `? -> None` path alone. The old helper does nothing at all for None, so not invoking it on that path is semantically consistent. On the Some path, all native patch collection and decode already happened. This supports preserving the original color policy without copying the entire native body, recursing into it, adding TLS or inventing a creative gate. Exact tail/function/variable fingerprints, actual selected IR, helper typing and complete composition are still required before relying on this seam. The old policy and all ordinary manifests remain unchanged.
