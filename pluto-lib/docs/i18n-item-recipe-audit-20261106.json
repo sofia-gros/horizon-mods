@@ -70,5 +70,6 @@
     "gui.tconstruct.foundry"
   ],
   "implementation_changed": false,
-  "tests_run": false
+  "tests_run": false,
+  "recipe_search_cache_observation": "Official view hash omits language while search uses current-language tooltips; no explicit recipe invalidation in load_language. UI-transition behavior remains untested, not a confirmed runtime bug."
 }

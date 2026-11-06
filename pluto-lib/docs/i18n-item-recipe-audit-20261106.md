@@ -87,6 +87,17 @@ exists in this catalog. The corresponding existing keys are
 uses English literals. A general resolver alone cannot repair this mismatch;
 consumer correction must be explicit and scoped, not a global guessed alias.
 
+**Recipe search has a separate cache obligation.** In official
+`game/recipe_book.rs:402–440`, the view hash includes inventory, selected slots,
+craft size, known-recipe version, filter, tab, search text and book kind, but no
+language identity. Its `build_view` search reads current-language tooltips.
+`load_language` explicitly forgets Creative items but does not visibly invalidate
+this recipe view. A complete UI transition may invalidate it through another
+path, so this is a source-derived test requirement rather than a confirmed
+runtime failure. Verify that an existing nonempty recipe search refreshes after
+a language change. Retaining a translatable source component also does not by
+itself prove that every already-cached Text span is rebuilt automatically.
+
 ## Two-layer design implications and required evidence
 
 The author layer can expose typed keys, translatable messages and item-display
