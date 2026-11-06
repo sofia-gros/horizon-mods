@@ -40,6 +40,11 @@ class BlockRegistrationTests(unittest.TestCase):
                 declaration = json.loads(path.read_text())
                 self.assertTrue(declaration['template'].startswith('minecraft:'))
                 walk(json.loads((ASSETS / 'blockstates' / f'{name}.json').read_text()))
+                if not declaration.get('item', True):
+                    # World liquids have a block model, but no obtainable block
+                    # item or block drop. Their container is a separate bucket.
+                    self.assertFalse((ASSETS / 'items' / f'{name}.json').exists())
+                    continue
                 item = json.loads((ASSETS / 'items' / f'{name}.json').read_text())
                 walk(item)
                 loot = (CONTENT / 'data/tconstruct/loot_table/blocks' / f'{name}.json').read_text()

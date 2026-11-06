@@ -1,0 +1,69 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "files": {
+    "assets/tconstruct/textures/fluid/molten/ore/iron/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/iron/still.png",
+      "sha256": "458aed593029d9ab1a842f329fa94ee803bedd46edce4379c24122113efdcbe0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/iron/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/iron/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/iron/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/iron/flowing.png",
+      "sha256": "1fa80e55a9f0e271c9ecf90047639f04ff3b8c2a1b6f06c0eb50e6997e037b78"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/iron/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/iron/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/gold/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/gold/still.png",
+      "sha256": "f28885d8246624cf4e0524981dd56fb2b4aa399d4ffe83190eeffd0c3b3f7db7"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/gold/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/gold/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/gold/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/gold/flowing.png",
+      "sha256": "ee1d325106a78dccf9c1ceaa9ac47bf2c218f1c3eca52f58fc8eb52279217d2a"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/gold/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/gold/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/copper/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/copper/still.png",
+      "sha256": "4b67d7538f16f161bfe62a1ade9de0e5ce6bded325c8f33b42d65edd56b07fdf"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/copper/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/copper/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/copper/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/copper/flowing.png",
+      "sha256": "0e8eb4ab536c6c77894d12f81e69442dacb5e7b37a93b19c097ddb13d69597b1"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/copper/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/copper/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/cobalt/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/still.png",
+      "sha256": "abacf305502b7d08eb9490fb1e83611b1a2d4ddcafaf3089c66dda3cffed467f"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/cobalt/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png",
+      "sha256": "11b9d82684c3eeb95077969ac8406dc70cfa5d9123ceca986d1f643e0c5f546f"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/cobalt/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    }
+  }
+}
