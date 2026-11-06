@@ -46,10 +46,57 @@
       ],
       "evidence": "Shared events borrow current actor; component inventory events default off until startup request.",
       "required_work": "Keep success/guest-scope gates and startup activation before native hash gate."
+    },
+    {
+      "id": "book_presentation_vs_placement",
+      "boundary_ids": [
+        "S06",
+        "S08",
+        "S09",
+        "P06"
+      ],
+      "evidence": "Legacy fake-material Book::build RETURN both installs material-bearing Entry.stacks and removes ID-only placements. Official Book::build obtains placements through Recipes::placement; the shared Definition veto covers the latter only when registered before cache construction. Preview::show reads but does not decorate the current entry.",
+      "required_work": "Preserve or prove a presentation-update boundary before removing the legacy book-return hook; keep marker/material eligibility in TConstruct. Test unfiltered/craftable views, ghost/overlay stacks, startup timing and cached-book invalidation.",
+      "classification": "prospective_migration_omission_not_observed_gameplay_bug"
     }
   ],
-  "acceptance_cases_not_run": 8,
+  "acceptance_cases_not_run": 11,
   "runtime_changed": false,
   "tests_executed": false,
-  "original_prs_reclassified": false
+  "original_prs_reclassified": false,
+  "followup_source_checks": [
+    {
+      "head": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-fake-material-book.rs",
+      "sha256": "5f44d35b66f20ec522536f2ba23d0c86301c139c90ba3c05dd73693fbc52e893"
+    },
+    {
+      "head": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/fake-material-book-build.rs",
+      "sha256": "a353bb2a293060dcf7755197d23c8c87188634b60f3d395a4a9333f90df11239"
+    },
+    {
+      "head": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "local_exact_tree_head": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/mixins/pluto_native_creative/recipe-book-preview.rs",
+      "sha256": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964"
+    },
+    {
+      "head": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "pluto-lib/mixins/pluto_native_creative/recipe-placement-definition.rs",
+      "sha256": "f0510835e2b8d0eef8c9f7a689ba09bece3fcc710e457855c2efcb29b0cd2b00"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "head": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/recipe_book.rs",
+      "sha256": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "head": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/recipe_book.rs",
+      "sha256": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6"
+    }
+  ]
 }

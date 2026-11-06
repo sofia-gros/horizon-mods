@@ -40,3 +40,26 @@ The shared [tree adapter](https://github.com/sofia-gros/horizon-mods/blob/897448
 8. Byte-identical reload: current-value equality is not evidence of the same world/index lifetime.
 
 No Rust tests, native plan, host build, Actions operation, production activation or PR-state change was performed for this review. No discarded fork was accessed. These findings refine the existing B01/B02/B03 boundaries; they do not declare Step 2 globally complete.
+
+
+## Follow-up: preserve book presentation as well as placement refusal
+
+This follow-up is a source trace only. It does not change the frozen Java/menu integration, register a provider or run a host.
+
+The original #941 [book return adapter](https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/fake-material-book-build.rs) delegates to [decorate](https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-fake-material-book.rs#L66). That operation has two separate effects:
+
+1. It fills each validated synthetic entry's ingredient alternatives with full material-bearing ItemStack clones, so the visible ghost and overlay identify the required material.
+2. It removes the entry's ID-only placement record, so mixed materials cannot make it appear craftable.
+
+The second effect already has a generic route, **provided the consumer registers its veto before the book is built**. On official 624c, [Book::build](https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/recipe_book.rs#L359) obtains placements through Recipes::placement. Pluto's Definition-phase veto returns None at that boundary. Book::can_craft then returns false for the absent placement, and the native [build_view](https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/recipe_book.rs#L508) uses that result to exclude it only when the craftable filter is enabled. The unfiltered book remains a separate visibility path. Late registration cannot retroactively change an already cached Book; if late registration were ever permitted, explicit invalidation and a rebuild would also be required. This is not a request to permit late registration.
+
+The first effect is **not replaced by Preview::show**. The current [preview adapter](https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/recipe-book-preview.rs) captures and validates the existing entry, then calls native fill_ghost. Its pure ingredient_previews helper resolves an explicitly supplied override list but does not install overrides into native Book entries. Therefore removing the old book-return decoration merely because preview and placement-veto services exist would lose the material-bearing ingredient display. A future consumer port must preserve that verified decoration path or implement and prove an explicit generic presentation-update boundary. TConstruct's marker validation, material selection and recipe eligibility remain consumer policy.
+
+Do not describe this as successful component-sensitive placement, automatic output authority, persistent index ownership or a demonstrated current gameplay bug. It is a concrete missing migration obligation in the legacy consumer. No new public helper has been added just to fill it.
+
+Additional acceptance cases, not executed:
+9. A correctly decorated component-sensitive recipe stays visible in the unfiltered book, has material-bearing ghost/overlay alternatives, and remains absent from the craftable-only view even when item-ID stock is sufficient.
+10. Startup Definition veto precedes Book::build; rebuilding after explicit invalidation preserves unrelated entries and avoids retaining a stale placement cache.
+11. Preview failure does not grant placement, and removing/replacing a recipe cannot reuse a stale selection to display different current entry data.
+
+The source trace also reconfirmed that index display ordering is family policy: fake-material uses sorted append allocation, whereas Travelers fills free gaps and preserves its notification flags. The shared CAS supports explicit allocation policy; migration must not silently normalize these differences.
