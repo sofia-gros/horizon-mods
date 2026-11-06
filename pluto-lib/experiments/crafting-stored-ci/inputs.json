@@ -1,6 +1,6 @@
 {
   "repository": "sofia-gros/horizon-mods",
-  "branch": "integration/tinkers-latest-playtest-20261106",
+  "branch": "checkpoint/plutolib-crafting-stored-ci-20261106",
   "base": "17f44dc36fc2df28547328aa8554286ae965b208",
   "official": {
     "url": "https://github.com/horizon-rust/horizon.git",
@@ -72,9 +72,10 @@
     "pluto-lib/experiments/crafting-stored-fixture/prepare.py": "0ceba4ad4a9e0e9ab5cccb9e7e5ab9e7210a3a1a02ad3778282c85a6efcb69a3",
     "pluto-lib/experiments/crafting-stored-fixture/test_prepare.py": "a73613e08c72b444f06420a8101ad3174a35e11781c3420ed31421eff1ba3abe",
     "pluto-lib/experiments/crafting-stored-fixture/inputs.json": "6e247eef8bdf8fdffb0e5a33a8bbba87f30f70fde0b58eae89991c35d0e0b151",
-    "pluto-lib/experiments/crafting-stored-ci/run.py": "95e35bafc28a70438ff6906a9813d14330ea6889902e7f4aabb0250920788cc6",
-    "pluto-lib/experiments/crafting-stored-ci/test_runner.py": "410e0a6536196e3adce2c99c491125fcf392cd9ff989ec457642b4050067c9fe",
-    "pluto-lib/experiments/crafting-stored-ci/README.md": "d3158c65769e8bd6042787f09f204a443a649e3f16988efac2409bd0e447fc04"
+    "pluto-lib/experiments/crafting-stored-ci/run.py": "03610a8b0ea163cb70b51df7ee92ffd3d19262e06aa814a7497a8d88044bbb1e",
+    "pluto-lib/experiments/crafting-stored-ci/test_runner.py": "98cbfd22b0301545f0692ad6865d6b53c45dcf8db7143e20d14e5288e4e067d1",
+    "pluto-lib/experiments/crafting-stored-ci/README.md": "4ac80123a1ec84876d0a62ada3bd6664f291d806f6188d05cb7866d9919b42df",
+    ".github/workflows/crafting-stored-wip.yml": "bf1144ba4976cdf1746565370144ab4652ec0195bd93bb973664490e9b6dec5b"
   },
   "tests": {
     "api153": [

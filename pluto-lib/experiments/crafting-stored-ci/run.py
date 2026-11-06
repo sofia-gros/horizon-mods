@@ -193,7 +193,8 @@ def assert_git_clean(root):
         raise ValueError('Dirty/untracked/ignored checkout: '+str(root))
 
 REPOSITORY='sofia-gros/horizon-mods'
-BRANCH='integration/tinkers-latest-playtest-20261106'
+BRANCH='checkpoint/plutolib-crafting-stored-ci-20261106'
+WORKFLOW='.github/workflows/crafting-stored-wip.yml'
 SOURCE_BASE='17f44dc36fc2df28547328aa8554286ae965b208'
 OFFICIAL={'url':'https://github.com/horizon-rust/horizon.git','revision':'41f822b659789780f58d32c63ddfb6887ea1b8bf','lock_sha256':'0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'}
 API='pluto-lib/mixins/pluto_native_creative/inventory-api'
@@ -206,7 +207,7 @@ GROUPS=[
 REQUIRED_GATES={'runner','renderer','preparer','official_sources','metadata','native_compile','api_library_compile',*[g['name']+'_'+k for g in GROUPS for k in ['compile','inventory','tests']]}
 
 def validate_inputs(config):
-    if (config['repository'],config['branch'],config['base'])!=(REPOSITORY,BRANCH,SOURCE_BASE):raise ValueError('Wrong repository, integration branch or source base')
+    if (config['repository'],config['branch'],config['base'])!=(REPOSITORY,BRANCH,SOURCE_BASE):raise ValueError('Wrong repository, dedicated branch or source base')
     if config['official']!=OFFICIAL or config['groups']!=GROUPS:raise ValueError('Wrong official target or proof groups')
     meta=json.loads((PREPARER/'inputs.json').read_text())
     expected={API+'/'+n:h for n,h in meta['api_base_sha256'].items()}
@@ -214,6 +215,7 @@ def validate_inputs(config):
     expected.update({'pluto-lib/experiments/crafting-stored-fixture/'+n:h for n,h in meta['helper_sha256'].items()})
     expected['pluto-lib/experiments/crafting-stored-fixture/inputs.json']=sha((PREPARER/'inputs.json').read_bytes())
     for n in ['run.py','test_runner.py','README.md']:expected['pluto-lib/experiments/crafting-stored-ci/'+n]=sha((HERE/n).read_bytes())
+    expected[WORKFLOW]=sha((ROOT/WORKFLOW).read_bytes())
     if config['source_sha256']!=expected:raise ValueError('Frozen input file-set/hashes differ')
     for path,digest in expected.items():
         p=ROOT/path
@@ -231,7 +233,7 @@ def assert_event(config,event,env):
     if (env.get('GITHUB_ACTIONS')!='true' or env.get('GITHUB_REPOSITORY')!=REPOSITORY or
         env.get('GITHUB_EVENT_NAME')!='push' or env.get('GITHUB_REF')!='refs/heads/'+BRANCH or
         event.get('repository',{}).get('private') is not False):
-        raise ValueError('Require public integration push; this controller does not create a workflow/trigger')
+        raise ValueError('Require public exact dedicated branch push')
 
 def output_seal(target):
     result={}

@@ -1,15 +1,20 @@
 # Stored crafting facts controller (source only)
 
 This excluded controller connects the existing real API153 and finite policy16
-preparer to the reviewed bounded Runner. It supplies **no workflow or trigger**.
-Only the coordinator may select it for the integration branch CI. Ordinary
-manifests, the old four hooks, and bootstrap candidate remain unchanged.
+preparer to the reviewed bounded Runner. Its one push-only workflow targets
+**checkpoint/plutolib-crafting-stored-ci-20261106** only. Publishing these files
+on the integration branch does not start this workflow. No trigger ref has been
+created. Only a later coordinator release permits that action. Ordinary manifests,
+the old four hooks, and bootstrap/pair/station candidates remain unchanged.
 
 ## Scope and sequence
 
 - Current source base: integration 17f44dc36fc2df28547328aa8554286ae965b208.
 - Official native input: 41f822b659789780f58d32c63ddfb6887ea1b8bf; its exact lock.
-- Public repository/integration push event and checked-out head must match.
+- Public repository/dedicated push event and checked-out head must match.
+  Main, integration, PR and manual-dispatch events are rejected. The workflow
+  uses the public standard runner, read-only token and no persistent checkout
+  credentials; no other workflow is edited by this five-path source group.
 - Source checks: controller31, preparer21, candidate13. No local native run.
 - Cold official dependency fetch is locked. Subsequent metadata adaptation and
   all compilation are offline. Only the two local workspace packages may be
@@ -63,3 +68,22 @@ come from stderr. This hardening follows the Guide compile-output failure withou
 asserting the unrecovered original stdout's cause.
 
 Compiler witness parsing removes only explicit leading environment assignments, locates one actual rustc executable, and inspects only its following arguments. Homepage URLs ending in .rs and RUSTC environment values are not source/command witnesses. Unknown wrappers or ambiguous commands fail.
+
+## Dedicated publication delta
+
+The prior controller 95e35baf remains frozen at integration 73af9026. This source
+group changes only the branch guard, pins the new workflow in the 52-file input
+closure, extends the existing event/source tests without changing their count,
+and adds that workflow. Runner lifecycle, Cargo JSON/actual-rustc parsers, native
+inputs, all 153/16 test names, original policy bodies and compiler commands are
+unchanged. The integration source cutoff remains provenance 17f44dc3; the actual
+executing head must separately equal GITHUB_SHA and its whole checkout is sealed.
+The dedicated ref must be checked absent before its single authorized creation.
+
+The proposed workflow is not a successful CI run. Source-only checks remain
+31 runner / 21 preparer / 13 candidate; native execution is still UNRUN.
+
+Preparation note: the first local pure run passed 30/31; its previous no-workflow
+assertion correctly rejected the newly authorized workflow. That assertion was
+replaced with exact-one-pinned-workflow and no-trigger-creation checks, not removed.
+This was a source test mismatch, not a Cargo, native, or CI failure.

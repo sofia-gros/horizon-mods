@@ -491,6 +491,17 @@
       "activation": "Excluded only; no ordinary station hook, LAN handler, manifest or registry changes",
       "scope": "Separate mutable native transaction authority after veto, exact old body, one local registration before session publication, no native double execution",
       "actual_plan_or_game_or_transaction_executed": false
+    },
+    {
+      "subject": "Dedicated crafting153/16 verification workflow",
+      "paths": 5,
+      "pure_checks": 31,
+      "dependency_pins": 52,
+      "independent_review": "Guide5path delta; central31pure, validate_inputs and proposed full52 Git blob closure",
+      "trigger": "checkpoint/plutolib-crafting-stored-ci-20261106",
+      "trigger_created": false,
+      "activation": "Only dedicated branch push; integration/main/PR/manual never trigger. No bootstrap/pair/station tests mixed in.",
+      "rust_executed": false
     }
   ],
   "guide_limits": [

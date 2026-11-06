@@ -10,7 +10,7 @@ m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class Checks(unittest.TestCase):
     def test_exact_source_pins_and_complete_input_set(self):
         c=m.read_inputs();m.validate_inputs(c)
-        self.assertEqual(len(c['source_sha256']),51)
+        self.assertEqual(len(c['source_sha256']),52)
         for key,value in [('repository','other/repo'),('branch','other'),('base','0'*40),('source_sha256',{})]:
             changed=m.read_inputs();changed[key]=value
             with self.assertRaises(ValueError):m.validate_inputs(changed)
@@ -32,8 +32,15 @@ class Checks(unittest.TestCase):
         event={'repository':{'private':False}}
         env={'GITHUB_ACTIONS':'true','GITHUB_REPOSITORY':m.REPOSITORY,'GITHUB_EVENT_NAME':'push','GITHUB_REF':'refs/heads/'+m.BRANCH}
         m.assert_event(m.read_inputs(),event,env)
-        for k,v in [('GITHUB_ACTIONS','false'),('GITHUB_REPOSITORY','other/repo'),('GITHUB_EVENT_NAME','workflow_dispatch'),('GITHUB_REF','refs/heads/main')]:
+        for k,v in [('GITHUB_ACTIONS','false'),('GITHUB_REPOSITORY','other/repo'),('GITHUB_EVENT_NAME','workflow_dispatch'),('GITHUB_REF','refs/heads/main'),('GITHUB_REF','refs/heads/integration/tinkers-latest-playtest-20261106')]:
             with self.assertRaises(ValueError):m.assert_event({},event,dict(env,**{k:v}))
+        workflow=(m.ROOT/m.WORKFLOW).read_text()
+        self.assertIn('      - '+m.BRANCH,workflow)
+        self.assertIn('contents: read',workflow)
+        self.assertNotIn('workflow_dispatch',workflow)
+        self.assertNotIn('pull_request:',workflow)
+        self.assertNotIn('integration/tinkers',workflow)
+        self.assertIn('persist-credentials: false',workflow)
         for e in [{},{'repository':{'private':True}}]:
             with self.assertRaises(ValueError):m.assert_event({},e,env)
 
@@ -164,8 +171,8 @@ class Checks(unittest.TestCase):
         self.assertIn('assert_full_seal(workspace,fixture_seal)',s)
         self.assertIn("binary.read_bytes())!=digest",s)
 
-    def test_no_workflow_or_trigger_is_created(self):
-        self.assertFalse(any(n.startswith('.github/') for n in m.read_inputs()['source_sha256']))
+    def test_only_pinned_workflow_and_no_trigger_creation(self):
+        self.assertEqual([n for n in m.read_inputs()['source_sha256'] if n.startswith('.github/')],[m.WORKFLOW])
         s=(HERE/'run.py').read_text()
         self.assertNotIn('workflow_dispatch',s)
         for text in ['api153','finite16','bootstrap','production activation']:self.assertIn(text,s)
