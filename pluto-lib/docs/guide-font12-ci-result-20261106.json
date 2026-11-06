@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "scope": "Bounded actual official Font/Text CPU-atlas consumer-query fixture. Not installed consumer, Game, UI, GPU, LAN or lifetime proof.",
+  "verified_at_utc": "2026-11-06T06:02:02Z",
+  "repository": "sofia-gros/horizon-mods",
+  "ci_head": "49a2401eb3957e0766c8e68adbc45d69882aa793",
+  "ci_tree": "01cfb56403cdb3bdee96ad5ea47f8ae0b3a03437",
+  "fixture_source": "59c0651b324e5cd1f4445cf9c15e8bb0b4a086a9",
+  "fixture_publication": "c9bc56eeea60a6caf88de0b8b1055cc33a8155e0",
+  "production_query_source": "e713a99adc36a0070f63dc7692f8a032bb0d9424",
+  "run_id": 42171288439,
+  "job_id": 127739734476,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42171288439",
+  "job_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42171288439/job/127739734476",
+  "run_conclusion": "success",
+  "job_conclusion": "success",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "inputs_url": "https://github.com/sofia-gros/horizon-mods/blob/49a2401eb3957e0766c8e68adbc45d69882aa793/pluto-lib/experiments/guide-font-ci/inputs.json",
+  "pure_source_tests": {
+    "passed": 8,
+    "failed": 0
+  },
+  "native_tests": {
+    "passed": 12,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered_out": 11,
+    "cases": [
+      {
+        "name": "consumer_tests::actual_cpu_font_patch_order_matches_split_then_selected_hit",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::actual_full_cpu_font_region_preserves_native_missing_glyph_fallback",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::cover_or_missing_page_never_converts_or_queries_font",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::document_and_work_budgets_retain_original_content",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::full_document_cross_page_links_use_shared_queries",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::invalid_and_out_of_range_targets_are_not_deleted",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::legacy_unicode_styles_and_zero_advances_keep_native_order",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::negative_native_metric_keeps_signed_advance_semantics",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::nonfinite_native_metric_keeps_original_arithmetic_without_replay",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::query_geometry_errors_use_native_fallback",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::rejected_actions_and_native_styles_retain_exact_fallback",
+        "status": "passed"
+      },
+      {
+        "name": "consumer_tests::unsupported_other_page_falls_back_without_renumbering",
+        "status": "passed"
+      }
+    ]
+  },
+  "actual_compiler_invocations": [
+    {
+      "crate": "horizon_client_core",
+      "observed": true
+    },
+    {
+      "crate": "horizon_client_render",
+      "observed": true
+    },
+    {
+      "crate": "pluto_guide_text_tests",
+      "observed": true
+    }
+  ],
+  "phases": [
+    "apt-update 0 seconds 8.422",
+    "apt-install 0 seconds 9.625",
+    "toolchain-install 0 seconds 8.845",
+    "source-guards 0 seconds 0.202",
+    "official-init 0 seconds 0.202",
+    "official-remote 0 seconds 0.202",
+    "official-fetch 0 seconds 4.813",
+    "official-checkout 0 seconds 0.603",
+    "official-locked-fetch 0 seconds 6.218",
+    "prepare 0 seconds 1.612",
+    "compile 0 seconds 261.522",
+    "verify-after-compile 0 seconds 0.603",
+    "font12 0 seconds 0.804",
+    "verify-after-tests 0 seconds 0.603"
+  ],
+  "final_receipt": {
+    "floor_bytes": 10871635968,
+    "head": "49a2401eb3957e0766c8e68adbc45d69882aa793",
+    "minimum_free_bytes": 88776589312,
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_seal_sha256": "3fd9eb59fd89d315f9db87792b584e7f727b9565b000b5814c8b289da83310a1",
+    "passed": true,
+    "scope": "actual Font/Text synthetic CPU atlas only; no Game, Mixins apply, GPU, UI or installed consumer proof",
+    "source_seal_sha256": "1e2e6df304b4670a5c4cc2159d885e9cea1d8571df3c17da7caa30c530f11cd4"
+  },
+  "superseded_runs": [
+    {
+      "id": 42170896245,
+      "head": "06aee1054307b2b2344928b7757b7dc9f1dde901",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42170896245",
+      "created_at": "2026-11-06T05:51:40Z",
+      "updated_at": "2026-11-06T05:56:39Z"
+    },
+    {
+      "id": 42170703950,
+      "head": "3a0186eea3a7312f8d4d16c08f4ffedcdfb44c8e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42170703950",
+      "created_at": "2026-11-06T05:49:44Z",
+      "updated_at": "2026-11-06T05:52:34Z"
+    }
+  ],
+  "evidence_limit": "Decoded complete job log inspected via GitHub read-only job-log API. This receipt summarizes named results and source-seal evidence; it does not package the full log.",
+  "not_proved": [
+    "Full TConstruct manifest plan/apply/typecheck",
+    "Live visible 17-row HUD drawing or GPU upload",
+    "Performance of full-document conversion",
+    "Screen/window/retained-book ownership or delayed reply authority",
+    "LAN transport and response-hook compatibility",
+    "Independent #945 navigation integration"
+  ],
+  "unchanged_behavior": "No LAN path disabled or changed. Native strict-rejection fallback remains. No Mixins application or native host patch was performed by this fixture."
+}

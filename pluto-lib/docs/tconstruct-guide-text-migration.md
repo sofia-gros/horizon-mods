@@ -73,7 +73,8 @@ prepared fixture coverage, original PNG bytes/intended full-region assertions,
 and atomic fresh asset-root creation before any native loading. A peer read-only review found no serious issue in
 the corrected sequence; it ran no build or test.
 
-Twelve actual official Font/Text cases are prepared but **not yet run**. Ten use
+All twelve actual official Font/Text cases **passed** in the dedicated CI run
+`42171288439` at exact head `49a2401e` on 2026-11-06. Ten use
 original `space` provider data and compare shared/fallback results with the frozen
 native traversal: cross-page links, Unicode/legacy styles, empty/zero advances,
 unsupported actions/styles, invalid links, document/amplification limits, invalid
@@ -83,7 +84,7 @@ selected-row queries and subsequent missing-glyph behavior with normal versus
 one-glyph atlas capacity. Expected patch counts, retained first glyph and missing
 second glyph/advance are asserted independently, so equal results alone cannot
 accidentally pass without reaching the full-region branch. They do not construct a window or GPU. Successful CPU
-patch comparisons would still not prove real HUD drawing/upload/lifetime/LAN.
+patch comparisons do not prove real HUD drawing/upload/lifetime/LAN.
 
 Only under the coordinator's bounded native grant:
 
@@ -97,16 +98,17 @@ python3 tconstruct/tests/guide-text-migration/prepare.py \
 ```
 
 Preparation reuses exact official source/lock/path guards and records helper/API
-bytes. It does not patch the host. No native planner, metadata, apply, compile or
-fixture execution was run for this candidate. Prior Pluto package proofs do not
-become consumer proofs. Screen lifetime and LAN response authority remain unproved.
+bytes. It does not patch the host. The dedicated CI ran real official dependency
+metadata, compilation and the twelve-case fixture; it did not run the full native
+consumer planner/apply/type gate. Prior Pluto package proofs do not become consumer
+proofs. Screen lifetime and LAN response authority remain unproved.
 
 This branch does not incorporate #945 navigation. Its old turn-page and response
 composition blockers remain visible and no guard is weakened. Reconcile #945 by
 its own navigation delta, not an older full tree. No feature or existing PR state
 is changed by publication of this WIP checkpoint; it is not a main-ready branch.
 
-## Execution preparation review
+## Historical local execution preparation review
 
 The source review tightened the CPU fixture's intended-branch assertions and
 validated the original PNG signature, chunk CRCs, dimensions and every decompressed
@@ -125,8 +127,9 @@ verify source/lock/fixture identities after terminal status. Record all twelve
 named results, ignored/filtered counts and logs separately from the eight pure
 checks. `/tmp` capacity and workspace capacity are separate budgets. Do not delete
 or change a previous sealed fixture, native stage or shared artifact to force a
-pass. Current ~5 MiB headroom is not evidence that metadata/linking can safely fit;
-no native job is authorized or has run for this source revision.
+pass. At that local review, approximately 5 MiB headroom did not show that
+metadata/linking could safely fit; local native execution was not authorized. The
+subsequent isolated CI proof below does not grant local execution.
 
 The `RawLines` value is a snapshot of split native lines, not a font/screen handle.
 The caller must choose when to re-split after content, font or layout changes.
@@ -159,12 +162,46 @@ atomically creates that root with `create_dir` before writing or loading anythin
 An existing directory or symlink fails closed and is not overwritten or removed.
 The existing cover/missing-page test also checks `AlreadyExists` and unchanged
 asset bytes on a second creation attempt. There are still twelve native cases;
-none has run. The added pure source guard passes, bringing that separate count to
-eight. This is a test-only correction, not changed production behavior.
+all twelve subsequently passed in the isolated CI proof below. The added pure
+source guard also passed, bringing that separate count to eight. This is a test-only correction, not changed production behavior.
 
 The prior terminal Font executable was subsequently archived and verified by the
 separate storage recovery procedure; its source, hashes and logs were preserved.
 After the next prioritized API test, available workspace headroom was still only
 about 13 MiB, close to that old executable's size before allowing for new library
-or temporary object output. Native/Cargo/metadata execution remains ungranted.
+or temporary object output. Local native/Cargo/metadata execution remained ungranted.
 The earlier c4ba fixture source must not be substituted for this corrected cutoff.
+
+
+## Dedicated CI result, exact frozen inputs
+
+The [accepted CI run](https://github.com/sofia-gros/horizon-mods/actions/runs/42171288439)
+completed successfully at `49a2401eb3957e0766c8e68adbc45d69882aa793`, tree
+`01cfb56403cdb3bdee96ad5ea47f8ae0b3a03437`. It used the unchanged corrected
+fixture source `59c0651b` and official Horizon `624c4f62`, with the exact official
+Cargo.lock and Rust 1.95.0. Earlier `3a0186ee` and `06aee105` runs were cancelled
+and are not successful evidence.
+
+- Eight source regressions passed.
+- Twelve named native cases passed, with zero failed or ignored and eleven other
+  compiled tests filtered out. Those eleven were not executed by this run.
+- The cold, locked dependency fetch preceded offline preparation. The log records
+  actual `rustc` invocations for `horizon_client_core`, `horizon_client_render` and
+  `pluto_guide_text_tests`; native compilation took 261.522 seconds.
+- Exact source/API/lock checks passed after compilation and after tests. Generated
+  native OUT_DIR inputs were also unchanged across execution.
+- The final receipt recorded 88,776,589,312 minimum free bytes against the
+  10 GiB +128 MiB floor. The guarded hosted runner did not consume the constrained
+  local native build budget.
+
+The [machine-readable result](guide-font12-ci-result-20261106.json) preserves the
+exact head, all twelve names, phase exits, final receipt, source-seal hashes and
+superseded-run distinction. This documentation update changes no tested runtime
+or fixture input.
+
+This is positive proof of the split/selected-logical-hit delegation and fallback
+against actual native Font/Text, including original synthetic CPU glyph patches
+and full-region missing-glyph fallback. It is not full consumer installation,
+visible 17-line drawing, GPU upload, performance, screen lifetime or LAN response
+proof. Existing #945 and LAN composition work remains separate. The consumer WIP
+must not be called main-ready solely on this fixture result.

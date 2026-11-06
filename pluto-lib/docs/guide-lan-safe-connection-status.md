@@ -98,10 +98,12 @@ switched off while the replacement remains unproved.
 
 A dedicated, exact-WIP-branch push-trigger CI route has been approved for the
 corrected twelve-case Font/Text/CPU-atlas fixture, with read-only repository
-permissions and fixed official source/lock inputs. The CI owner is preparing it;
-this document does not claim it has run. Its cold runner must fetch the official
-locked dependency set before offline fixture preparation, enforce the disk floor,
-verify exact source/API identities and record every named result. It does not
+permissions and fixed official source/lock inputs. The accepted run at exact `49a2401e` completed successfully: all twelve native
+cases and eight source regressions passed. See the
+[bounded result](guide-font12-ci-result-20261106.json) and
+[run](https://github.com/sofia-gros/horizon-mods/actions/runs/42171288439). Its cold runner fetched the official locked dependency set before offline
+fixture preparation, enforced the disk floor, verified exact source/API identities
+and recorded every named result. It does not
 require a Game, full asset tree, renderer/window or Mixins application.
 
 That route addresses the current local-capacity blocker only for the named Font
