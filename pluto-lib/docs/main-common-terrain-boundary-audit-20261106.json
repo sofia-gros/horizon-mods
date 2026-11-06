@@ -1,0 +1,356 @@
+{
+  "active_mesher_modules": [
+    {
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "id": "storage-render-info-mesher",
+      "name": "tconstruct_storage_render_info",
+      "source": "source-render-info.rs"
+    },
+    {
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "id": "connected-texture",
+      "name": "tconstruct_connected_texture",
+      "source": "connected-texture.rs"
+    },
+    {
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "id": "chest-tint-math",
+      "name": "tconstruct_chest_tint_math",
+      "source": "source-chest-tint-math.rs"
+    },
+    {
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "id": "source-slime-colormap",
+      "name": "tconstruct_slime_colormap",
+      "source": "source-slime-colormap.rs",
+      "visibility": "pub(crate)"
+    }
+  ],
+  "checks_passed": [
+    "four active support modules, zero active mesher injections",
+    "three disabled face injections; slime tint helper not registered in either manifest",
+    "old main compatibility pins retained, not normalized",
+    "packager does not import the external disabled manifest",
+    "exact common archive, one manifest, 34/69/3/2 counts and five terrain source bytes",
+    "seven official guard source hashes match; no regeneration/compiler invoked",
+    "synthetic guard control dictionary accepted (NOT an actual plan)",
+    "four additional module declarations alone do not violate this guard policy",
+    "each of the three disabled face injection candidates is rejected by this guard policy"
+  ],
+  "common_archive_counts": {
+    "crate": 2,
+    "injection": 34,
+    "module": 69,
+    "state": 3
+  },
+  "common_bundle_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "common_source": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "disabled_face_injections": [
+    {
+      "bindings": [
+        {
+          "name": "mesher",
+          "ty": "&Mesher<'_>",
+          "value": "self"
+        },
+        {
+          "name": "pad",
+          "ty": "&Padded",
+          "value": "pad"
+        },
+        {
+          "name": "tints",
+          "ty": "&mut Tints<'_>",
+          "value": "tints"
+        },
+        {
+          "name": "out",
+          "ty": "&mut SectionMesh",
+          "value": "out"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32; 3]",
+          "value": "pos"
+        },
+        {
+          "name": "origin",
+          "ty": "[f32; 3]",
+          "value": "origin"
+        },
+        {
+          "name": "face",
+          "ty": "&BakedFace",
+          "value": "face"
+        },
+        {
+          "name": "ao",
+          "ty": "bool",
+          "value": "ao"
+        },
+        {
+          "name": "state",
+          "ty": "&Info",
+          "value": "state"
+        }
+      ],
+      "cancellable": true,
+      "helper": "storage-mesh-face.rs",
+      "id": "storage-mesh-face",
+      "kind": "HEAD",
+      "target": "horizon_client_render::mesher::Mesher<'_>::face"
+    },
+    {
+      "bindings": [
+        {
+          "name": "mesher",
+          "ty": "&Mesher<'_>",
+          "value": "self"
+        },
+        {
+          "name": "pad",
+          "ty": "&Padded",
+          "value": "pad"
+        },
+        {
+          "name": "tints",
+          "ty": "&mut Tints<'_>",
+          "value": "tints"
+        },
+        {
+          "name": "out",
+          "ty": "&mut SectionMesh",
+          "value": "out"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32; 3]",
+          "value": "pos"
+        },
+        {
+          "name": "origin",
+          "ty": "[f32; 3]",
+          "value": "origin"
+        },
+        {
+          "name": "face",
+          "ty": "&BakedFace",
+          "value": "face"
+        },
+        {
+          "name": "ao",
+          "ty": "bool",
+          "value": "ao"
+        },
+        {
+          "name": "state",
+          "ty": "&Info",
+          "value": "state"
+        }
+      ],
+      "cancellable": true,
+      "helper": "connected-mesh-face.rs",
+      "id": "connected-mesh-face",
+      "kind": "HEAD",
+      "target": "horizon_client_render::mesher::Mesher<'_>::face"
+    },
+    {
+      "bindings": [
+        {
+          "name": "value",
+          "ty": "()",
+          "value": "$value"
+        },
+        {
+          "name": "out",
+          "ty": "&mut SectionMesh",
+          "value": "&mut *out"
+        },
+        {
+          "name": "tints",
+          "ty": "&mut Tints<'_>",
+          "value": "&mut *tints"
+        },
+        {
+          "name": "pos",
+          "ty": "[i32;3]",
+          "value": "pos"
+        },
+        {
+          "name": "face",
+          "ty": "&BakedFace",
+          "value": "face"
+        }
+      ],
+      "helper": "source-chest-tint.rs",
+      "id": "tinkers-chest-world-tint",
+      "kind": "RETURN",
+      "target": "horizon_client_render::mesher::Mesher<'_>::face"
+    }
+  ],
+  "input_sha256": {
+    "common:pluto-lib/mixins/pluto_native_creative/terrain-binding-host.rs": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4",
+    "common:pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "common:pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "common:pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "common:pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "common:pluto-lib/tools/check_terrain_binding_plan.py": "30e38d0cd0c22badd2457812bb78a1fccd67f05b6ca5c09ec35dba9282abbe27",
+    "common:pluto-lib/tools/check_terrain_cell_plan.py": "49a7ac329087f8d4e4cf0df7927dd16afad4f668678fb1603be188b747a97ed6",
+    "common:pluto-lib/tools/terrain-binding-source.json": "63dc9a768b8d369a47e6f18761a1771a1b394db7e1dddb4a42a8024fdc3f6c19",
+    "common:pluto-lib/tools/terrain-cell-source.json": "af3cfc65f4d73467880ebd3af0e431af0a2e4e75a953fbabb6a25c247e12f04e",
+    "main:tconstruct/compatibility.json": "594b454aa55cb21d4ff0536d0d55578854829274d556f1d98caeaae7f49a95ba",
+    "main:tconstruct/disabled-injections.toml": "2cf6cc246b1365a74b7333eca60616c8bf0d1ffffc55f93885830059005fe86f",
+    "main:tconstruct/mixins/tconstruct/connected-mesh-face.rs": "d4a4730b25f65f9afea844a8a8b50a26918f64bd4dfec7dc7815ff766f92955f",
+    "main:tconstruct/mixins/tconstruct/connected-pane-face.rs": "41b46aca2a04a4eef66fdea6e970116ecfc91e2b3a90630c99c9d76b4913e59c",
+    "main:tconstruct/mixins/tconstruct/connected-texture.rs": "12c8d2293d21a1290aff5a421efba8e63f17b930f7ca223ca875e71528ed4d5f",
+    "main:tconstruct/mixins/tconstruct/horizon-mixin.toml": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+    "main:tconstruct/mixins/tconstruct/source-chest-tint-math.rs": "d4ff08facf143dc5b487c8862eb06712cafbbc5dbb2e12f37b8316518558491b",
+    "main:tconstruct/mixins/tconstruct/source-chest-tint.rs": "d911724f8c7dacf107ca14d6eef2ad04a819a3df8ba8f427c83a2019d5c33e38",
+    "main:tconstruct/mixins/tconstruct/source-render-info.rs": "e5190689f0fd3d46b8370c526efa72ae4f1a8c67e8a13d6102664c97285e15da",
+    "main:tconstruct/mixins/tconstruct/source-slime-colormap-face.rs": "1f987404cae965679120fde55d08e1fe969acaf3211dc39dbe4059c1d799e142",
+    "main:tconstruct/mixins/tconstruct/source-slime-colormap-load.rs": "e083f8cb0bb6c3e2ce94b1f724d436fe50acf31181ba94a1210542196b7310ee",
+    "main:tconstruct/mixins/tconstruct/source-slime-colormap.rs": "a869fbc2b0d1aec3e9f7235e2a87940c5b52beebdbe3e6c56646df1a393285fa",
+    "main:tconstruct/mixins/tconstruct/storage-atlas-extra.rs": "b6b4b2877c87598b8c3e2b6d0f88a3e2111258248b95729a363b489bc1f28dcb",
+    "main:tconstruct/mixins/tconstruct/storage-mesh-face.rs": "d99c606f3480686647710308fd1de79b2caea112b91823ef71c2a8e41c90f5b5",
+    "main:tconstruct/mixins/tconstruct/storage-region.rs": "c799214e263d4f337b4544898e3e47d6c2c2762c4411785b352f5d8b98d33d6c",
+    "main:tconstruct/mixins/tconstruct/storage-render-init.rs": "96b35f025dfebd90e83c6101af0075b5451acb63bca9cc12acbe8a8e93a4de0c",
+    "main:tconstruct/tools/package_hnmod.py": "acaa42b7208136724ede1b7cc6bd3f3a248361ac35d45ebecf12c8f2ba88d6d7",
+    "official:crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+    "official:crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+    "official:crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+    "official:crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+    "official:crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+    "official:crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+    "official:crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+    "official:crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+    "official:crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "official:crates/horizon-world/src/block_render.rs": "658ebef7c3f8e559d5c2b84d2388474c1dc36fb774186116b69cec4580ddeb02"
+  },
+  "limits": [
+    "Synthetic dictionaries establish only the exact Python guard behavior, not target resolution.",
+    "No production, manifest, compatibility pin, existing guard or consumer source was changed.",
+    "Other complete-plan guards and actual host compatibility may reject the composition earlier."
+  ],
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "main_pins": {
+    "horizon_repository": "https://github.com/horizon-rust/horizon.git",
+    "horizon_revision": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+    "mixins_repository": "https://github.com/horizon-rust/horizon-mixins.git",
+    "mixins_revision": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+    "tconstruct_repository": "https://github.com/SlimeKnights/TinkersConstruct.git",
+    "tconstruct_revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2"
+  },
+  "not_run": [
+    "combined native planner",
+    "Mixins apply",
+    "Rust or Cargo",
+    "game/GPU",
+    "new timing"
+  ],
+  "official": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "related_active_injections": [
+    {
+      "bindings": [
+        {
+          "name": "sprites",
+          "ty": "&mut Sprites",
+          "value": "&mut *self"
+        },
+        {
+          "name": "root",
+          "ty": "&Path",
+          "value": "root"
+        },
+        {
+          "name": "name",
+          "ty": "&str",
+          "value": "name"
+        }
+      ],
+      "cancellable": true,
+      "helper": "storage-atlas-extra.rs",
+      "id": "storage-atlas",
+      "kind": "HEAD",
+      "target": "horizon_client_render::sprites::Sprites::insert"
+    },
+    {
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "&mut *self"
+        }
+      ],
+      "helper": "storage-render-init.rs",
+      "id": "storage-render-init",
+      "kind": "HEAD",
+      "target": "horizon_client::game::Game<'_>::prepare_lod"
+    },
+    {
+      "bindings": [
+        {
+          "name": "world",
+          "ty": "&World",
+          "value": "world"
+        },
+        {
+          "name": "x",
+          "ty": "i32",
+          "value": "x"
+        },
+        {
+          "name": "z",
+          "ty": "i32",
+          "value": "z"
+        }
+      ],
+      "cancellable": true,
+      "helper": "storage-region.rs",
+      "id": "storage-region",
+      "kind": "HEAD",
+      "target": "horizon_client_render::streaming::Streaming::region"
+    },
+    {
+      "bindings": [
+        {
+          "name": "a",
+          "ty": "State",
+          "value": "a"
+        },
+        {
+          "name": "b",
+          "ty": "State",
+          "value": "b"
+        },
+        {
+          "name": "direction",
+          "ty": "Direction",
+          "value": "direction"
+        }
+      ],
+      "cancellable": true,
+      "helper": "connected-pane-face.rs",
+      "id": "connected-pane-face",
+      "kind": "HEAD",
+      "target": "horizon_world::block_render::FaceVisibility::skips"
+    },
+    {
+      "bindings": [
+        {
+          "name": "root",
+          "ty": "&std::path::Path",
+          "value": "root"
+        }
+      ],
+      "helper": "source-slime-colormap-load.rs",
+      "id": "source-slime-colormap-load",
+      "kind": "HEAD",
+      "target": "horizon_client_render::assets::RenderAssets::load_with"
+    }
+  ],
+  "schema": 1,
+  "status": "source and synthetic Python guard-policy audit only"
+}
