@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "status": "source_audit_only",
+  "old": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "new": {
+    "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "horizon_files": [
+    {
+      "path": "Cargo.lock",
+      "old_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+      "new_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+      "new_bytes": 135677,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/Cargo.lock"
+    },
+    {
+      "path": "Cargo.toml",
+      "old_sha256": "b4455978698b49acff6ef58a17fb299c53af48dca149766110ad701bba0dbd4e",
+      "new_sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640",
+      "new_bytes": 3546,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/Cargo.toml"
+    },
+    {
+      "path": "crates/horizon-assets/src/bake.rs",
+      "old_sha256": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+      "new_sha256": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+      "new_bytes": 24154,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-assets/src/bake.rs"
+    },
+    {
+      "path": "crates/horizon-assets/src/model.rs",
+      "old_sha256": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+      "new_sha256": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+      "new_bytes": 18879,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-assets/src/model.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/mods.rs",
+      "old_sha256": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+      "new_sha256": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+      "new_bytes": 39343,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/mods.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "old_sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+      "new_sha256": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
+      "new_bytes": 28416,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/packs.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "old_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "new_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "new_bytes": 1031429,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/assets.rs",
+      "old_sha256": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+      "new_sha256": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+      "new_bytes": 21279,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/assets.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/biome.rs",
+      "old_sha256": "2e0cf502a1bf272feb8da4df84844af9a1401757ffa3d97ce52e0ffc10d185a9",
+      "new_sha256": "d36df86ba6336d7a1696a0ea1bff5e3d2929631d25b798f3f14594a00944b257",
+      "new_bytes": 27179,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/biome.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/fusion.rs",
+      "old_sha256": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+      "new_sha256": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+      "new_bytes": 26743,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/fusion.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher/fluid.rs",
+      "old_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+      "new_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+      "new_bytes": 19833,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/mesher/fluid.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/mesher.rs",
+      "old_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+      "new_sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+      "new_bytes": 89342,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/mesher.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/model_library.rs",
+      "old_sha256": "d7420c865341fb34573eda10286d2d91ea6bf430bbc7277f9cb57d38792f5363",
+      "new_sha256": "d7420c865341fb34573eda10286d2d91ea6bf430bbc7277f9cb57d38792f5363",
+      "new_bytes": 12334,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/model_library.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/models/catalog.rs",
+      "old_sha256": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+      "new_sha256": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+      "new_bytes": 24987,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/models/catalog.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/models.rs",
+      "old_sha256": "1abd9a2f5053f7a60c0914e7776e89f4674e986cd58a58eddbb8b965f1a799d9",
+      "new_sha256": "68f3cd54f3c7946b74470d75d68893bbaf9c8e2675b5202124ae61f61f0ceaee",
+      "new_bytes": 7594,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/models.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/sprites.rs",
+      "old_sha256": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+      "new_sha256": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+      "new_bytes": 61256,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/sprites.rs"
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "old_sha256": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+      "new_sha256": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
+      "new_bytes": 190929,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client-render/src/streaming.rs"
+    },
+    {
+      "path": "crates/horizon-core/src/version.rs",
+      "old_sha256": "7a6cd0ca8f69b22d70ffc63e16e0b2872f3b128b25deb6604aa493d5ca2177ef",
+      "new_sha256": "7a6cd0ca8f69b22d70ffc63e16e0b2872f3b128b25deb6604aa493d5ca2177ef",
+      "new_bytes": 1141,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-core/src/version.rs"
+    },
+    {
+      "path": "crates/horizon-items/src/blocks.rs",
+      "old_sha256": "6e52e9e10b6f7ba7d60280bafea09993db217c45becdae9e7d812101c0bbe2bf",
+      "new_sha256": "1fea9a8a9f235b9da0d72893cea86b7d5ca5380284f1193710a489992b9df540",
+      "new_bytes": 21665,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-items/src/blocks.rs"
+    },
+    {
+      "path": "crates/horizon-optifine/src/fusion/layout.rs",
+      "old_sha256": "a2e5799662a4feb380f4853dfe829d3a5debd16cafae7ded3203396e296f52f7",
+      "new_sha256": "a2e5799662a4feb380f4853dfe829d3a5debd16cafae7ded3203396e296f52f7",
+      "new_bytes": 14883,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-optifine/src/fusion/layout.rs"
+    },
+    {
+      "path": "crates/horizon-optifine/src/fusion/texture.rs",
+      "old_sha256": "5142aefe7c4df1efbc974ca27d1d876b2ad2c4ff56e9a5b8a58c0e226cc996f0",
+      "new_sha256": "5142aefe7c4df1efbc974ca27d1d876b2ad2c4ff56e9a5b8a58c0e226cc996f0",
+      "new_bytes": 13948,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-optifine/src/fusion/texture.rs"
+    },
+    {
+      "path": "crates/horizon-world/src/block_render.rs",
+      "old_sha256": "658ebef7c3f8e559d5c2b84d2388474c1dc36fb774186116b69cec4580ddeb02",
+      "new_sha256": "658ebef7c3f8e559d5c2b84d2388474c1dc36fb774186116b69cec4580ddeb02",
+      "new_bytes": 9461,
+      "same": true,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/block_render.rs"
+    },
+    {
+      "path": "crates/horizon-world/src/json_file.rs",
+      "old_sha256": null,
+      "new_sha256": "132e2eec97a53d49322fd7cc0069d7c6b8e09af6c632698ac2243f87c9cf8cf6",
+      "new_bytes": 2440,
+      "same": false,
+      "new_url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-world/src/json_file.rs"
+    }
+  ],
+  "mixins_files": [
+    {
+      "path": "crates/horizon-mixins-cli/tests/cases/boundary.rs",
+      "old_sha256": "4cf4b953de430ef40d5a8325e608c69259eb1ada1433721a8297e5feb3d6d6ce",
+      "new_sha256": "f584aae84c1c3434d3c5370353af177c377854d490fbc2a66f2771c518de5144",
+      "new_bytes": 24833,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-cli/tests/cases/boundary.rs"
+    },
+    {
+      "path": "crates/horizon-mixins-cli/tests/integration.rs",
+      "old_sha256": "022656728a44e433f3110f56958d7306f4a088d98eb5424f82484392b645f3a5",
+      "new_sha256": "5c326db1f78411af370a143b5306a26c348aef38c9384dfb17cf7da59ff06942",
+      "new_bytes": 29416,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-cli/tests/integration.rs"
+    },
+    {
+      "path": "crates/horizon-mixins-core/src/index.rs",
+      "old_sha256": "a7ba25f92a024be8a486b5d756a6128df0f8b53a24689be09a7989cddd21ded9",
+      "new_sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711",
+      "new_bytes": 30231,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/index.rs"
+    },
+    {
+      "path": "crates/horizon-mixins-core/src/modules.rs",
+      "old_sha256": "7e43caf6820aa084cd600b1457731b9b2a52c4a2c2f851d581cecc22d493087d",
+      "new_sha256": "24db6f1dfc9015511388f6631e6bcf8fa691f565c90e198cbba2bdf289810ab4",
+      "new_bytes": 6077,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/modules.rs"
+    },
+    {
+      "path": "crates/horizon-mixins-core/src/plan.rs",
+      "old_sha256": "4e81bcaa3bb65dbdd5c88ad87af1471e1d11cadc24bcb32ee62bcff2f09df26f",
+      "new_sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+      "new_bytes": 60607,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/plan.rs"
+    },
+    {
+      "path": "crates/horizon-mixins-transform/src/lib.rs",
+      "old_sha256": "958a85349ca67323598a261f1920f0fdadbbf67f44548b3abd9df659fb4e23cc",
+      "new_sha256": "b70b3aa2d8e95fabfefa4374bb63d5e87fb959871fd3bb92e5c3317e71d9ced1",
+      "new_bytes": 36853,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-transform/src/lib.rs"
+    },
+    {
+      "path": "docs/boundary-head-and-modules.md",
+      "old_sha256": "e6e77f7e61c96b67a7682373f52f7893473e940ee19725e448e18a8cfa456c44",
+      "new_sha256": "78922e4ab62d85e5b06abda7f462c803963f4a9904b35cfc844121507afb50d5",
+      "new_bytes": 8917,
+      "new_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/docs/boundary-head-and-modules.md"
+    }
+  ],
+  "common_bundle": {
+    "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+    "bytes": 270125,
+    "members": 147,
+    "proof_source": "035273c4805d75111e528c8c26607fa3a8d1d5bf"
+  },
+  "guard_impact": [
+    {
+      "metadata": "terrain-cell-source.json",
+      "metadata_sha256": "af3cfc65f4d73467880ebd3af0e431af0a2e4e75a953fbabb6a25c247e12f04e",
+      "source_pins": {
+        "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+        "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+        "crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+        "crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+        "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+        "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+        "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
+      },
+      "changed_inputs": [
+        "crates/horizon-client-render/src/streaming.rs"
+      ],
+      "old_target": "horizon_client_render::mesher::Mesher<'_>::mesh_reusing",
+      "old_location": {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "node": [
+          76,
+          1
+        ]
+      },
+      "new_plan_resolution": "not_run"
+    },
+    {
+      "metadata": "terrain-binding-source.json",
+      "metadata_sha256": "63dc9a768b8d369a47e6f18761a1771a1b394db7e1dddb4a42a8024fdc3f6c19",
+      "source_pins": {
+        "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+        "crates/horizon-client/src/game/mods.rs": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+        "crates/horizon-client/src/game/packs.rs": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+        "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+        "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+        "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+        "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+        "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+        "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+        "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
+      },
+      "changed_inputs": [
+        "crates/horizon-client/src/game.rs",
+        "crates/horizon-client/src/game/mods.rs",
+        "crates/horizon-client/src/game/packs.rs",
+        "crates/horizon-client-render/src/assets.rs",
+        "crates/horizon-client-render/src/streaming.rs"
+      ],
+      "old_target": "horizon_client::game::PackResources::assemble",
+      "old_location": {
+        "file": "crates/horizon-client/src/game.rs",
+        "node": [
+          386,
+          2
+        ]
+      },
+      "new_plan_resolution": "not_run"
+    }
+  ],
+  "exact_spans": [
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "start": "impl PackResources {",
+      "end": "\n/// A quick craft",
+      "sha256": "db92017bff8481741595c0b687011a92af2b3f3caa3b451e460621925bca63e7"
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "start": "    fn assemble(",
+      "end": "\n}\n/// A quick craft",
+      "sha256": "0021d4f94ee30331c0a3ff8fc3e7d457cf3ffb683d65a0cbce894bfb19fea9b8"
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "start": "            Job::Mesh(x, sy, z, region, seq, settings) => {",
+      "end": "\nimpl Streaming {",
+      "sha256": "3ecb6a830156c37644e9cdc97c724487f0ddc67f247043d66e98cac870de4bc3"
+    }
+  ],
+  "old_proof": {
+    "runtime": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+    "cpu_fixture": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+    "cpu_proof": "2c78ab519fc7411bc3ff83aaa0ce1616f4c0b36f",
+    "profile_source": "b0fc4960124545d3c305b36d9ba51643dc240d41",
+    "profile_executed": false
+  },
+  "validation": {
+    "native_plan": false,
+    "native_apply": false,
+    "rust_typecheck": false,
+    "cpu_execution": false,
+    "gpu": false,
+    "live_game": false,
+    "production_edits": false
+  },
+  "limits": [
+    "Selected-file audit, not the complete Horizon commit range or dependency graph.",
+    "Source equality is not a new compiler, runtime, reload, or performance proof.",
+    "GitHub compare is truncated at 300 files in this range; conclusions use fixed-revision raw files, not the compare file list.",
+    "Old guards and proofs remain immutable; new cutoff requires new plan-derived identities and reviewed guards."
+  ]
+}
