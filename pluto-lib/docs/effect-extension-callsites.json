@@ -1,0 +1,639 @@
+{
+  "status": "UNFINISHED, UNAPPLIED upstream-facing implementation inventory; not a runtime implementation",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_files": {
+    "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "crates/horizon-client/src/game/beacon.rs": "32d2af0aedcd7a2d80393ff9248f81fcd3f0b0ad3ef5de96685bdafd74749348",
+    "crates/horizon-client/src/game/block_entity_anims.rs": "7dcd35f88ee124ded8451ae7e1da70058cbdff39a55e2d136899cbf48bfa8463",
+    "crates/horizon-client/src/save.rs": "5d4cda583f246f987494f90490b10b39fb0641ce9377ae607d6cd75353bf559b",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/lan/playerdata.rs": "6f798f8564e49570d8b2719f3e3e07a39e6e082c9a74cb5a0c262306b2fd9886",
+    "crates/horizon-client/src/game/consume.rs": "6e24f541bc2d6c7a2eccf15d7711950be3eba3ccdfd603dd4e915047306222c6",
+    "crates/horizon-client/src/motion.rs": "32caf71a62f87dda437f650e271922a9e5add6dec7056a67cf0d82471b56a4ae",
+    "crates/horizon-world/src/status_effect.rs": "588bfcf4d93f50be86cb89545bd5c431edbc71771f704ff55cb52906b1964c37",
+    "crates/horizon-world/src/active_effects.rs": "daaf352a69511a7d69fb329997f783b86585e486e0379c84ab0a55641771646c",
+    "crates/horizon-world/src/stored_consume.rs": "621a52c9fba447c393e561f881a16cf1f97d336e3a0ce493725ef51e2db12ffd",
+    "crates/horizon-client/src/entity_nbt.rs": "66bff610205b74f5ce096261d1a0aecdb6c87aca05a705262cff65e33a844e1b"
+  },
+  "anchors": [
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 8,
+      "source": "pub struct EffectInstance {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 20,
+      "source": "pub fn new(id: &'static str, duration: i32, amplifier: i32) -> Self {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 41,
+      "source": "pub fn update(&mut self, take: &Self) -> bool {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 92,
+      "source": "fn downgrade(&mut self) {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 205,
+      "source": "pub fn from_saved(saved: &[(String, i32, i32, bool, bool)]) -> Self {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 218,
+      "source": "pub fn saved(&self) -> Vec<(String, i32, i32, bool, bool)> {"
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 200,
+      "source": "pub fn clear(&mut self) {"
+    },
+    {
+      "file": "crates/horizon-client/src/save.rs",
+      "line": 3661,
+      "source": "pub active_effects: Vec<(String, i32, i32, bool, bool)>,"
+    },
+    {
+      "file": "crates/horizon-client/src/save.rs",
+      "line": 4025,
+      "source": "self.active_effects = match p.get(\"active_effects\") {"
+    },
+    {
+      "file": "crates/horizon-client/src/save.rs",
+      "line": 4058,
+      "source": "pub fn player_tag(&self) -> Tag {"
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 7219,
+      "source": "ConsumeEffect::ClearAllEffects => {"
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 15792,
+      "source": "level.active_effects = self.potions.effects.saved();"
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 446,
+      "source": "std::mem::swap(&mut self.effects, effects);"
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 972,
+      "source": "pub(super) fn tick_mob_effects(&mut self) {"
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 1005,
+      "source": "let mut effects = std::mem::take(&mut self.potions.effects);"
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2059,
+      "source": "pub(super) fn restore_effects(&mut self) {"
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "line": 1350,
+      "source": "fn remote_effect(&mut self, p: &play::UpdateMobEffect) {"
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "line": 1363,
+      "source": "Some(existing) => *existing = e,"
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "line": 494,
+      "source": "self.potions.swap_player(&mut g.effects, &mut play.potions);"
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "line": 1017,
+      "source": "self.potions.swap_player(&mut g.effects, &mut play.potions);"
+    },
+    {
+      "file": "crates/horizon-client/src/lan/playerdata.rs",
+      "line": 141,
+      "source": "guest.effects = crate::effects::PlayerEffects::from_saved(&level.active_effects);"
+    },
+    {
+      "file": "crates/horizon-client/src/lan/playerdata.rs",
+      "line": 408,
+      "source": "level.active_effects = guest.effects.saved();"
+    },
+    {
+      "file": "crates/horizon-client/src/game/consume.rs",
+      "line": 44,
+      "source": "pub(super) fn finish_consuming("
+    },
+    {
+      "file": "crates/horizon-client/src/game/consume.rs",
+      "line": 81,
+      "source": "for effect in &consumable.effects {"
+    },
+    {
+      "file": "crates/horizon-client/src/game/consume.rs",
+      "line": 93,
+      "source": "self.consume_held();"
+    },
+    {
+      "file": "crates/horizon-client/src/motion.rs",
+      "line": 1014,
+      "source": "pub struct MotionWorld<'p, 'w, 'r> {"
+    },
+    {
+      "file": "crates/horizon-client/src/motion.rs",
+      "line": 1711,
+      "source": "fn check_inside_blocks("
+    },
+    {
+      "file": "crates/horizon-client/src/motion.rs",
+      "line": 1817,
+      "source": "if inside && visited.insert(p.pack()) {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 22,
+      "source": "pub struct EffectData<H> {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 29,
+      "source": "pub struct EffectInstance<H>(Rc<RefCell<EffectData<H>>>);"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 30,
+      "source": "impl<H> Clone for EffectInstance<H> {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 81,
+      "source": "pub fn copy_instance(&self) -> Self {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 104,
+      "source": "pub fn update(&self, incoming: &Self) -> bool {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 214,
+      "source": "fn downgrade(&self) -> bool {"
+    },
+    {
+      "file": "crates/horizon-world/src/status_effect.rs",
+      "line": 158,
+      "source": "pub trait TickWorld<H> {"
+    },
+    {
+      "file": "crates/horizon-world/src/active_effects.rs",
+      "line": 7,
+      "source": "pub struct ActiveEffects<H> {"
+    },
+    {
+      "file": "crates/horizon-world/src/active_effects.rs",
+      "line": 22,
+      "source": "pub trait EffectHooks<H: JavaKey + Clone> {"
+    },
+    {
+      "file": "crates/horizon-world/src/active_effects.rs",
+      "line": 85,
+      "source": "pub fn add<W: EffectHooks<H>>("
+    },
+    {
+      "file": "crates/horizon-world/src/stored_consume.rs",
+      "line": 37,
+      "source": "pub effects: &'a mut ActiveEffects<H>,"
+    },
+    {
+      "file": "crates/horizon-world/src/stored_consume.rs",
+      "line": 55,
+      "source": "fn add_effect(&mut self, effect: EffectInstance<H>) -> Result<bool, Self::Error> {"
+    },
+    {
+      "file": "crates/horizon-world/src/stored_consume.rs",
+      "line": 64,
+      "source": "fn remove_all_effects(&mut self) -> Result<bool, Self::Error> {"
+    }
+  ],
+  "constructor_lexical_occurrences": [
+    {
+      "file": "crates/horizon-client/src/game/beacon.rs",
+      "line": 304,
+      "source": "let ambient = |id, amp| EffectInstance {",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/beacon.rs",
+      "line": 306,
+      "source": "..EffectInstance::new(id, duration, amp)",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/block_entity_anims.rs",
+      "line": 673,
+      "source": "let power = EffectInstance {",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/block_entity_anims.rs",
+      "line": 675,
+      "source": "..EffectInstance::new(\"conduit_power\", 260, 0)",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/commands/effects.rs",
+      "line": 68,
+      "source": "let mut instance = EffectInstance::new(effect.id, duration, amplifier);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/consume.rs",
+      "line": 75,
+      "source": "self.add_player_effect(horizon_client::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/creatures.rs",
+      "line": 2886,
+      "source": ".add(horizon_client::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/creatures.rs",
+      "line": 7841,
+      "source": "let mut instance = horizon_client::effects::EffectInstance::new(id, ticks, amplifier);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/perspective.rs",
+      "line": 1504,
+      "source": "effects.add(EffectInstance::new(id, 3600, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potent_sulfur.rs",
+      "line": 220,
+      "source": "let mut nausea = EffectInstance::new(\"nausea\", EFFECT_DURATION_IN_TICKS, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 852,
+      "source": "self.add_player_effect(EffectInstance::new(id, duration, amp));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 1042,
+      "source": "let mut effect = EffectInstance::new(\"water_breathing\", 200, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 1604,
+      "source": "let mut instance = EffectInstance::new(e.id, scaled(*duration), *amp);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 1819,
+      "source": "self.add_player_effect(EffectInstance::new(e.id, d, *amp));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2165,
+      "source": "effects.add(EffectInstance::new(\"darkness\", 60, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2193,
+      "source": "let e = EffectInstance::new(\"darkness\", 260, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2196,
+      "source": "let ending = EffectInstance::new(\"darkness\", 10, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2198,
+      "source": "let infinite = EffectInstance::new(\"darkness\", -1, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2208,
+      "source": "let e = EffectInstance::new(\"nausea\", 600, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2211,
+      "source": "let ending = EffectInstance::new(\"nausea\", 40, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "line": 2213,
+      "source": "let infinite = EffectInstance::new(\"nausea\", -1, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/raids.rs",
+      "line": 398,
+      "source": "return OmenTick::Add(EffectInstance::new(\"raid_omen\", 600, e.amplifier));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/raids.rs",
+      "line": 660,
+      "source": "EffectInstance::new(\"hero_of_the_village\", raid::HERO_DURATION, amplifier);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/raids.rs",
+      "line": 1455,
+      "source": "horizon_client::effects::EffectInstance::new(\"bad_omen\", 120_000, i32::from(amplifier));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "line": 1357,
+      "source": "let mut e = horizon_client::effects::EffectInstance::new(id, p.duration, p.amplifier);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/sculk.rs",
+      "line": 1355,
+      "source": "horizon_client::effects::EffectInstance::new(\"darkness\", warden::DARKNESS_DURATION, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/station_control.rs",
+      "line": 187,
+      "source": ".add(horizon_client::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/totem.rs",
+      "line": 78,
+      "source": "self.add_player_effect(EffectInstance::new(e.id, ticks, amp));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/trial_spawner.rs",
+      "line": 336,
+      "source": "effects.add(horizon_client::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game/trial_spawner.rs",
+      "line": 357,
+      "source": "e.add(EffectInstance::new(\"bad_omen\", 100, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "line": 7206,
+      "source": "let mut instance = horizon_client::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/lan/hub.rs",
+      "line": 5123,
+      "source": ".add(EffectInstance::new(\"speed\", 30 * 20, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/lan/hub.rs",
+      "line": 5138,
+      "source": ".add(EffectInstance::new(\"speed\", 30 * 20, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/motion.rs",
+      "line": 5446,
+      "source": "effects.add(crate::effects::EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client/src/motion.rs",
+      "line": 5452,
+      "source": "effects.add(crate::effects::EffectInstance::new(id, 200, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 8,
+      "source": "pub struct EffectInstance {",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 19,
+      "source": "impl EffectInstance {",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 60,
+      "source": "self.hidden = Some(Box::new(EffectInstance {",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 209,
+      "source": "let mut e = EffectInstance::new(def.id, *duration, *amplifier);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 349,
+      "source": "lasting.push(EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 501,
+      "source": "fx.add(EffectInstance::new(\"speed\", 100, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 504,
+      "source": "fx.add(EffectInstance::new(\"speed\", 200, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 507,
+      "source": "fx.add(EffectInstance::new(\"speed\", 50, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 514,
+      "source": "fx.add(EffectInstance::new(\"bad_omen\", 100, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 515,
+      "source": "fx.add(EffectInstance::new(\"speed\", 50, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 517,
+      "source": "\"bad_omen\" => OmenTick::Add(EffectInstance::new(\"raid_omen\", 600, e.amplifier)),",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 543,
+      "source": "fx.add(EffectInstance::new(",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 563,
+      "source": "fx.add(EffectInstance::new(\"ruby:glow\", 3, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 564,
+      "source": "fx.add(EffectInstance::new(\"ruby:bleed\", -1, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 588,
+      "source": "fx.add(EffectInstance::new(\"raid_omen\", 2, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 604,
+      "source": "fx.add(EffectInstance::new(\"speed\", 9600, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 606,
+      "source": "fx.add(EffectInstance::new(\"speed\", 1800, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 619,
+      "source": "assert!(!fx.add(EffectInstance::new(\"speed\", 100, 0)));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 625,
+      "source": "fx.add(EffectInstance::new(\"regeneration\", 900, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 634,
+      "source": "fx.add(EffectInstance::new(\"poison\", 432, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 653,
+      "source": "fx.add(EffectInstance::new(\"haste\", 100, 1));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 661,
+      "source": "fx.add(EffectInstance::new(\"absorption\", 2400, 0));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/effects.rs",
+      "line": 671,
+      "source": "fx.add(EffectInstance::new(\"absorption\", 2400, 3));",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud.rs",
+      "line": 3320,
+      "source": "let effect = crate::effects::EffectInstance::new(\"gems:glow\", 600, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud.rs",
+      "line": 3342,
+      "source": "let effect = crate::effects::EffectInstance::new(\"gems:none\", 600, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud.rs",
+      "line": 4150,
+      "source": "let effect = EffectInstance::new(\"levitation\", -1, 0);",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/inventory_effects.rs",
+      "line": 197,
+      "source": "EffectInstance::new(\"levitation\", -1, 0),",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/inventory_effects.rs",
+      "line": 198,
+      "source": "EffectInstance::new(\"speed\", 450, 1),",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/inventory_effects.rs",
+      "line": 217,
+      "source": "let effects = [EffectInstance::new(\"levitation\", -1, 0)];",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/inventory_effects.rs",
+      "line": 228,
+      "source": ".map(|i| EffectInstance::new(\"speed\", (i + 1) * 100, 0))",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    },
+    {
+      "file": "crates/horizon-client-render/src/inventory_effects.rs",
+      "line": 242,
+      "source": "let effects = [EffectInstance::new(\"speed\", 72000, 10)];",
+      "note": "Lexical occurrence; includes declarations, tests and multiline constructor starts. Not an AST count."
+    }
+  ],
+  "constructor_occurrence_count": 66,
+  "generic_kernel_gameplay_reference_search": {
+    "roots": [
+      "crates/horizon-client/src",
+      "crates/horizon-client-render/src"
+    ],
+    "pattern": "status_effect::|ActiveEffects<",
+    "matches": [],
+    "limit": "Textual reference search, not complete Rust name-resolution proof. The concrete gameplay owner fields were separately inspected."
+  },
+  "scope": "Player value-instance path and durable save callers. Generic world kernel is an existing alternative with DIFFERENT Clone/equality/hidden semantics, not wired to the inspected gameplay owner. Mob tuples, live contact authority and protocol integration remain unfinished.",
+  "native_execution": false
+}
