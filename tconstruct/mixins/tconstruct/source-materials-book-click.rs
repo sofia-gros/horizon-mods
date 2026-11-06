@@ -33,8 +33,8 @@ fn tconstruct_materials_book_click(game: &mut Game<'_>, size: [u32; 2]) -> std::
         }
         game.book_follow_link(link, count, None);
     }
-    else if (cover || base + 2 < count) && inside(center + if cover { 80.0 } else { 165.0 }, top + 175.0, 18.0, 10.0) { game.turn_page(true); }
-    else if !cover && inside(center - 184.0, top + 175.0, 18.0, 10.0) { game.turn_page(false); }
+    else if (cover || base + 2 < count) && inside(center + if cover { 80.0 } else { 165.0 }, top + 175.0, 18.0, 10.0) { tconstruct_materials_book_navigation::turn(game, true); }
+    else if !cover && inside(center - 184.0, top + 175.0, 18.0, 10.0) { tconstruct_materials_book_navigation::turn(game, false); }
     else if !cover && inside(center - 215.0, top, 18.0, 18.0) {
         *game.world.chunks.__horizon_mixins_tconstruct_materials_book_history_mut() = None;
         if let Some(BookScreen::View { page, .. }) = game.book.as_mut() { *page = 0; }

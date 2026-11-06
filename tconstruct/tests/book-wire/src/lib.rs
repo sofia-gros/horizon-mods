@@ -59,3 +59,10 @@ mod showcase_wire_tests {
         assert!(wire::decode_reply(8, &pages, &bytes).is_none());
     }
 }
+
+// Production input adapters with a modeled Game and real serde_json output.
+// This proves local guide navigation only, not native input or lifetime safety.
+#[cfg(test)]
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+#[cfg(test)]
+#[path = "../../rust/book_keyboard_navigation.rs"] mod book_keyboard_navigation;

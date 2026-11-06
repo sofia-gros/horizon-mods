@@ -1,0 +1,83 @@
+{
+  "source_cutoff": "1c47a378c64082668b4fbeb392dc3371f24f912f",
+  "production_cutoff": "e4fcdee7f1d998683f6e7a4c6f34bab93febd87b",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "pluto_source": "31cf76672d3a7b982aebab86a91a78440afd163e",
+  "pluto_archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+  "selected_scope": {
+    "consumer": "TConstruct navigation overlay only, not whole mod",
+    "consumer_modules": 2,
+    "consumer_injections": 3,
+    "consumer_states": 1,
+    "complete_selected_plan_counts": {
+      "modules": 64,
+      "injections": 36,
+      "states": 4,
+      "crates": 2
+    }
+  },
+  "source_guard_cases": 27,
+  "modeled_production_helpers": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "log": "/tmp/guide-navigation-proof-v2-20261106/helper-tests.log",
+    "note": "Modeled Game/audio, actual production helper source and real serde_json; Font action path intentionally panics if entered"
+  },
+  "official_plan": {
+    "status": "passed",
+    "sha256": "4a76de776c623da5332c54876aa117da9927890830d65cf71cf86ae5fae52978",
+    "log": "/tmp/guide-navigation-isolated-20261106/navigation-plan.log"
+  },
+  "all_mandatory_guards": {
+    "status": "passed",
+    "count": 11,
+    "log": "/tmp/guide-navigation-isolated-20261106/navigation-preflight.log"
+  },
+  "run": {
+    "source": "1c47a378c64082668b4fbeb392dc3371f24f912f",
+    "pluto_source": "31cf76672d3a7b982aebab86a91a78440afd163e",
+    "pluto_archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "floor_bytes": 10871635968,
+    "minimum_free_bytes": 10895065088,
+    "disk_stopped": false,
+    "phases": [
+      {
+        "name": "navigation-plan",
+        "command": "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins plan --workspace /workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon --mods /tmp/guide-navigation-proof-v2-20261106/navigation-mods --out /tmp/guide-navigation-isolated-20261106/navigation-plan.json",
+        "exit_code": 0,
+        "seconds": 25.226,
+        "log": "/tmp/guide-navigation-isolated-20261106/navigation-plan.log"
+      },
+      {
+        "name": "navigation-preflight",
+        "command": "python3 /workspace/scratch/c7b540ff3393/repair-guide-navigation-379/pluto-lib/tools/check_native_plan.py /tmp/guide-navigation-isolated-20261106/navigation-plan.json /workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+        "exit_code": 0,
+        "seconds": 0.201,
+        "log": "/tmp/guide-navigation-isolated-20261106/navigation-preflight.log"
+      }
+    ],
+    "mods_hashes_verified": true,
+    "end_free_bytes": 10895065088,
+    "working_tree_clean": true
+  },
+  "full_consumer_plan": {
+    "status": "interrupted/inconclusive",
+    "terminal_exit": 130,
+    "plan_artifact": false,
+    "receipt": "/tmp/guide-navigation-full-plan-interruption.json",
+    "guard": "not reached; response conflict remains demonstrated separately by source/manifest regression"
+  },
+  "retained_failure": "/tmp/guide-navigation-diagnostic-20261106/helper-tests.log; fixture missing unused Font::advance, corrected by1c47a378",
+  "exclusions": [
+    "No new apply/native typecheck",
+    "No native input/audio execution",
+    "No screen lifetime/identical reopen or delayed response safety proof",
+    "No LAN feature removal or transport activation",
+    "No full consumer integration or main-merge readiness",
+    "No official host writes or fork access"
+  ]
+}
