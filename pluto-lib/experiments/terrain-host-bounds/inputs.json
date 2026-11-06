@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "excluded source comparison only; not installed or compiled",
+  "historical_runtime": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "bounds_source": "f3f0f1e4198b27b5c1c35b611a6316c404a97e70",
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "pluto-lib/experiments/terrain-local-bounds/candidate.rs": "9a09445826308e7e58d6016260dbc868223f5f0ed1541ab343e27c3eabb928f0",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "pluto-lib/experiments/terrain-local-bounds/inputs.json": "71d919fa11b3f4e791956966865da982e7e02bbf7b7bb2631e3f5ff74452045b"
+  },
+  "generated_sha256": "64d9a66d18165ad2afd9c2a6e2cb654e852fe5674bc511b15a9b90250a8a843b",
+  "generated_bytes": 25005,
+  "execution": {
+    "plan": false,
+    "apply": false,
+    "rust": false,
+    "cpu": false,
+    "performance": false,
+    "gpu": false
+  }
+}
