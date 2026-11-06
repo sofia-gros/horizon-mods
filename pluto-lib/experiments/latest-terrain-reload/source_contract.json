@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "status": "excluded_unexecuted_source_candidate",
+  "latest_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "latest_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "historical_runtime": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "historical_cpu_fixture": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+  "latest_sources": {
+    "crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+    "crates/horizon-client/src/game/packs.rs": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
+    "crates/horizon-client/src/game/mods.rs": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+    "crates/horizon-client-render/src/assets.rs": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+    "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3"
+  },
+  "mod_sources": {
+    "pluto-lib/mixins/pluto_native_creative/terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "pluto-lib/mixins/pluto_native_creative/terrain-binding-host.rs": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4",
+    "pluto-lib/mixins/pluto_native_creative/fluid-render-prepare.rs": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6",
+    "pluto-lib/mixins/pluto_native_creative/fluid-render-before-assemble.rs": "80be25bd7c82ff6cfc54aaceedd33cd91237679dee97961b425cc5ff44829c7e",
+    "pluto-lib/mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "pluto-lib/experiments/terrain-material-cpu/fixture.rs": "682ac48e12dfd7367fc19a6fca758293df9c7c7f82872b058c8d7654ef04644c",
+    "pluto-lib/experiments/terrain-material-cpu/prepare.py": "0454ff69e59c6e5d6e8b93b9f6392b5aa5647d76792f966ee6dbe9fa9f914ffc"
+  },
+  "fixture": "pluto-lib/experiments/terrain-material-cpu/fixture.rs",
+  "extension_sha256": "c609e86aa17e1246a21edc2d6d698bc89a0cda44fa7b8c8a339668c26b995bfd",
+  "cases": [
+    "same_assets_new_render_tables_generation_collision",
+    "exact_triple_and_clones_only",
+    "unavailable_candidate_does_not_replace_old_owners",
+    "abandoned_candidate_does_not_keep_resource_values_alive",
+    "stale_registry_requires_new_owners",
+    "same_owner_conflict_retains_original_snapshot"
+  ],
+  "ordered_spans": [
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "start": "pub(super) fn stage_pack(",
+      "end": "pub(super) fn ",
+      "ordered": [
+        "assets.reload(&root)",
+        "let render = Arc::new(render?);",
+        "let pack = PackResources::load(",
+        "assets.clone(),",
+        "render,"
+      ]
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "start": "impl PackResources {",
+      "end": "    fn context_with(",
+      "ordered": [
+        "let tables = Arc::new(MeshTables::new(",
+        "Ok(Self::assemble(",
+        "assets,",
+        "render,",
+        "tables,"
+      ]
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "start": "pub(super) fn apply_staged_pack(",
+      "end": "pub(super) fn stage_pack(",
+      "ordered": [
+        "self.pack = pack;",
+        "let context = self.worker_context();",
+        "self.streaming.reload_resources(&mut self.world, context);"
+      ]
+    },
+    {
+      "path": "crates/horizon-client-render/src/streaming.rs",
+      "start": "pub fn reload_resources(",
+      "end": "pub fn insert_remote(",
+      "ordered": [
+        "*self.shared.context.write().unwrap() = context;",
+        "self.meshing.clear();",
+        "self.compile_started.clear();"
+      ]
+    }
+  ],
+  "execution": {
+    "rust": false,
+    "plan": false,
+    "apply": false,
+    "game_reload": false,
+    "streaming_jobs": false,
+    "gpu": false,
+    "performance": false
+  }
+}
