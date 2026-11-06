@@ -1,0 +1,31 @@
+name: Windows latest launch source checks
+on:
+  push:
+    branches: [checkpoint/windows-latest-source-ci-20261106]
+permissions:
+  contents: read
+concurrency:
+  group: windows-latest-source-only
+  cancel-in-progress: false
+jobs:
+  source:
+    if: github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.ref == 'refs/heads/checkpoint/windows-latest-source-ci-20261106'
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          persist-credentials: false
+      - name: Parse PowerShell and run exact pure checks
+        timeout-minutes: 3
+        shell: pwsh
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.12 tconstruct/experiments/windows-source-ci/run.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

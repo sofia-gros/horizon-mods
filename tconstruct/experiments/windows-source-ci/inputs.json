@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "branch": "checkpoint/windows-latest-source-ci-20261106",
+  "base": "59f3fa23cc5b95fbc8e7bcb42d24e2d5d9771bc9",
+  "status": "prepared; source-only; Windows phases unrun",
+  "source_sha256": {
+    ".github/workflows/windows-source-wip.yml": "3f864264df1e8afcbc91031d315260ac2d568bc7a89a367d8d464b2e6a6ad031",
+    "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
+    "tconstruct/docs/windows-latest-launch.md": "dc3679fe79e62861713443f0efd8ae00071fe0bf5f48de1bb2126e58a6aa309a",
+    "tconstruct/experiments/windows-source-ci/README.md": "53143557a9448f827dfeb02466fe8ee29c5cb47fcaafcab98d28d685792b5d05",
+    "tconstruct/experiments/windows-source-ci/run.py": "5d71cbece603d76113b9ac4e9acf9f3fd618e284880ebf18d6bf6f27a46d3a8e",
+    "tconstruct/experiments/windows-source-ci/test_runner.py": "ce539d623e5ee98cdab44d05e182cc09e328e728d2e0081efc3652d099426e48",
+    "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
+    "tconstruct/experiments/windows-source-ci/winjob.py": "2c3ff616596dde7caae785d12acacc12fdd0d3096538b1b51877066147cd738d",
+    "tconstruct/tests/test_windows_latest_launch.py": "6b63fc98405de3433df43daed2d40b09714c1d663c06415043857cd8fa5d6ee5",
+    "tconstruct/tests/test_windows_playtest_bundles.py": "f10bebd3563cd61bc2da93c718e1ed0a1f6a3b5e53be0115959425e314662aed",
+    "tconstruct/tests/test_windows_pluto_cache.py": "b2c538f2c37a486782cb9c16e900b0f78ce06ba75db04281e1c20837cecfb4c5",
+    "tconstruct/tests/windows-latest-compat-inverse.json": "9d32830cc32dee7869455079ad3194bf2e63e65ef71de7e02f4e09d7c4c7fd09",
+    "tconstruct/tests/windows-latest-entry-inverse.json": "b0c409df288de7bcbdf62ccdb3fa8d24db05dd734a90d58bd15c01345e79c88b",
+    "tconstruct/tests/windows-latest-launch-source.json": "5a8785e78cb34fbb33dee6e44a3d80dbd94dca1a0a14254c6cd15533ea8a9357",
+    "tconstruct/tests/windows-latest-stage-inverse.json": "a93a2470812868fc73a074d2f943fc7fed0f34e0db5cdc86fed0e08cf96cd96e",
+    "tconstruct/tests/windows-pluto-cache-inverse.json": "cab985cf09edbb141fa7d6db342234e13353d590fb5ba37c56d0bd67cb092f06",
+    "tconstruct/tools/play-windows.ps1": "1c4271db22fb2be948c711805224705d5117fed7e5d7fc92ffd5111f17e16411",
+    "tconstruct/tools/play_windows_latest.py": "57e078010937d69a714b1c3d3b03565c03891a8b052a47e82258272c1a215387",
+    "tconstruct/tools/playtest_pluto_inputs.py": "2943fe7ed0e9ff625980ea6ce16b3c2c329dbd68dbfc95329c13c399490dc8b2",
+    "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7",
+    "tconstruct/tools/stage.py": "c2d14a49bfc55caadb8159441e87ee6a21203586bf7a725b4648ecd653166092"
+  },
+  "suites": [
+    {
+      "name": "latest",
+      "path": "tconstruct/tests/test_windows_latest_launch.py",
+      "names": [
+        "test_cache_identity_all_dimensions",
+        "test_compatibility_only_official_two_revision_delta",
+        "test_declared_mods_and_exact_config",
+        "test_default_gameplay_without_nonexistent_mods",
+        "test_disjoint_inputs_output",
+        "test_environment_scrub_and_cli_selected_toolchain",
+        "test_input_tree_content_names_and_mtime",
+        "test_launch_order_no_fallback_or_automatic_fetch",
+        "test_link_parent_and_special_inputs_rejected",
+        "test_local_git_archive_attributes_rejected",
+        "test_official_pins_and_no_legacy_compat",
+        "test_parent_cargo_config_rejected",
+        "test_ps_is_connected_and_has_no_discovery_install",
+        "test_resource_budget_rejects",
+        "test_rust_host_and_release_exact",
+        "test_source_identity_requires_exact_origin_lock_and_clean_tree",
+        "test_stage_exact_two_edit_inverse_and_guard_order",
+        "test_toolchain_seal_precedes_version_execution",
+        "test_unexpected_default_features_rejected",
+        "test_windows_pe_architecture_check"
+      ]
+    },
+    {
+      "name": "historical",
+      "path": "tconstruct/tests/test_windows_pluto_cache.py",
+      "names": [
+        "test_budgets_fail_closed",
+        "test_bundle_source_change_invalidates",
+        "test_changed_file_stat_rejects",
+        "test_file_add_delete_and_rename_invalidate",
+        "test_file_symlink_and_parent_symlink_reject",
+        "test_guard_tools_and_reviewed_sources_invalidate",
+        "test_interpreter_cache_only_is_ignored",
+        "test_missing_root_or_manifest_rejects",
+        "test_repeat_and_same_bytes_new_mtime",
+        "test_script_exact_inverse_keeps_other_behavior",
+        "test_selection_key_recheck_and_ready_order",
+        "test_windows_reparse_and_special_modes_reject"
+      ]
+    },
+    {
+      "name": "bundles",
+      "path": "tconstruct/tests/test_windows_playtest_bundles.py",
+      "names": [
+        "test_budgets_and_bad_header_reject",
+        "test_combined_collision_rejected",
+        "test_duplicate_case_and_mode_rejected",
+        "test_external_bundle_requires_all_files_not_only_identity",
+        "test_fail_closed_packager_without_extracting_partial_files",
+        "test_nested_support_paths_and_budget",
+        "test_prepare_uses_both_packagers_and_cache_exactness",
+        "test_prepared_tc_data_and_archive_drift_reject",
+        "test_two_packages_keep_limits_and_complete_combined_seal",
+        "test_unsafe_windows_and_traversal_paths_rejected",
+        "test_wrong_revision_and_manifest_reject"
+      ]
+    }
+  ],
+  "preparation_tests": 11
+}
