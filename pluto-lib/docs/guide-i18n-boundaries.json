@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "status": "read_only_source_audit_no_runtime_change",
+  "date_utc": "2026-11-06",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "mod_source": "50336c4ec68f5dc643898bde9419c50357e54c32",
+  "sources": [
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "lines": "397–603",
+      "sha256": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+      "finding": "Native loading, selection eligibility, missing-key fallback and scoped lookup"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client-core/src/text.rs",
+      "lines": "238–274,396,454,527",
+      "sha256": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67",
+      "finding": "Eager translated spans versus retained component source"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/creative.rs",
+      "lines": "108–159",
+      "sha256": "29eedabcb03e331e0f00094ed63dd1ad2acc42921cba7e9032ece37d965e466d",
+      "finding": "English Names and current-language display lookup"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/options.rs",
+      "lines": "391–393,465–471",
+      "sha256": "8b50db0d6dccfd1a5e9b0521c2ad28f87798404748b0179c38d4b8cab35d4b24",
+      "finding": "In-game language selection"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/startup_menu.rs",
+      "lines": "92–95,523–530",
+      "sha256": "c8624302953019a1166a20b2ca76d96211c4cacecdad4bf3cf73fa8cc6254cd8",
+      "finding": "Startup selection path"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "lines": "441–453,472–475",
+      "sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+      "finding": "Reload-time selected-code recheck and display cache invalidation"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "lines": "9860–9880",
+      "sha256": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+      "finding": "Retained menu title and updated future component language map"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/books.rs",
+      "lines": "49–99,1207–1223",
+      "sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+      "finding": "Retained pages and draw-time control translation"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/lan/hub.rs",
+      "lines": "3587–3602",
+      "sha256": "4596cb1c2696b8b136fd94363c00c0148f23e4d94e2f047af1e2ce0a4ca1ccf6",
+      "finding": "ClientInformation language and LocaleChanged"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/lan.rs",
+      "lines": "2188–2193",
+      "sha256": "09ee322c6a85a8c3fea44f39757801f1f49490b816367f2d8e0b5f9c3c77c063",
+      "finding": "Guest locale event forwarding"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "lines": "150–224,329–350,390,541–557,689–695,731–752",
+      "sha256": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96",
+      "finding": "Mixed current-language generation, fixed en_us resources, local open and request"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "lines": "1–28",
+      "sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+      "finding": "No guest locale use when host generates literal response pages"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+      "lines": "1–10",
+      "sha256": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+      "finding": "Literal page replacement, no locale field"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+      "lines": "1–64",
+      "sha256": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7",
+      "finding": "English title identity, bounded literal spans and legacy sequence envelope"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+      "lines": "1–12,112,149,203",
+      "sha256": "403881773d69d2b08073293df5085e2b189199bed4c55f7ec5c6e0c0b5c95c41",
+      "finding": "English cover identity and retained literal tooltips"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/builder-info-ui.rs",
+      "lines": "23–45",
+      "sha256": "d6e285b29834d472c91c1087e86ffb0e1bbc15c41377a4f9607af719c87ef7cf",
+      "finding": "Current-language display_get for generated lines"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/station-info-ui.rs",
+      "lines": "11–45",
+      "sha256": "671b335899ef270b013916853efec204a9c2fbd928e72342f539025e4ca3c49d",
+      "finding": "Current-language display_get plus literal notices"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-draw.rs",
+      "lines": "4–13",
+      "sha256": "2f031d7bdd61f76c629296254db4e7a34797eca1b9e76a22dd0b7a9abc1e477b",
+      "finding": "Draw-time labels"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/station-ui.rs",
+      "lines": "1–34,181",
+      "sha256": "577915a100c8a5d0049622e85ff9ed85d5c17a14234e4efabec695375a1d1434",
+      "finding": "Remote English title-based kind/capacity/melter identity"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-ui.rs",
+      "lines": "1–12",
+      "sha256": "5aaed744de205bf2c080fab7888fd27142c1fb52c9375e908c5957c5127a01e4",
+      "finding": "Remote English title-based machine identity"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "commit": "50336c4ec68f5dc643898bde9419c50357e54c32",
+      "path": "tconstruct/mixins/tconstruct/source-crafting-side-draw.rs",
+      "lines": "1–3",
+      "sha256": "29cf5bfb448078b9af02a55aba348805d56a0fb9347b6f2d7660bc94cf1508ab",
+      "finding": "Remote English title-based crafting identity"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/recipe_book.rs",
+      "lines": "400–443,540–555",
+      "sha256": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+      "finding": "Recipe-owned cross-reference: locale omitted from view key, localized tooltip search; actual transition behavior untested"
+    }
+  ],
+  "critical_boundaries": [
+    "Retained Text spans do not automatically retranslate on current Language replacement.",
+    "Local source-book resources and labels are fixed to en_us.",
+    "Guide wire identity and cover sprites depend on English title prefixes.",
+    "LAN request handler ignores the available guest ClientInformation language.",
+    "Remote station kind/capacity and machine selection depend on English menu titles.",
+    "Native JSON loader and assets layout must not be replaced by whole-file data_json_path/highest semantics."
+  ],
+  "existing_lookup_not_complete_screen_proof": [
+    "native book controls",
+    "builder/station display_get labels",
+    "smeltery draw-time labels"
+  ],
+  "not_executed": [
+    "i18n native tests",
+    "authoring parser tests",
+    "actual Game prototype typecheck",
+    "live Client/UI language switch",
+    "GPU/font coverage or bidi visual layout",
+    "LAN locale/response/lifetime tests"
+  ],
+  "unchanged": [
+    "Guide ergonomic API three source files at 50336c4e",
+    "existing LAN request/response hooks",
+    "existing English title identity",
+    "native language state and reload paths"
+  ],
+  "report": "guide-i18n-boundaries.md"
+}
