@@ -28,9 +28,12 @@ free-space floor is sampled throughout each child process; only that child's
 process group is stopped on failure. Polling is a bounded monitor, not a hard
 filesystem quota. No local native build is authorized by this source change.
 
-Before dispatch/publication: six small parser/scope checks passed. The actual
+Before dispatch/publication: seven small parser/scope checks passed. The actual
 Font12 result is **not run** until an exact matching Actions run completes.
 This fixture covers actual Font/Text and an original tiny CPU atlas resource.
 It is not Game compilation, Mixins apply, live input, full book drawing,
 GPU display, gameplay or installed consumer validation. CPU terrain and Game
 borrow checks remain separate, unchanged, unexecuted proof jobs.
+
+Setup apt/rustup subprocesses share the continuous disk/timeout/process-group guard. The job and runner both require the repository to remain public.
+A newer push replaces only an unfinished run in this dedicated Font-only branch concurrency group. The first 3a0186ee run is superseded because setup was outside the guard; it is not the final accepted proof.

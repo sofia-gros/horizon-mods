@@ -7,10 +7,10 @@ permissions:
   contents: read
 concurrency:
   group: guide-font-wip-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   guide-font:
-    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/plutolib-guide-font-ci-20261106' }}
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/plutolib-guide-font-ci-20261106' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     env:
@@ -25,10 +25,5 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 1
-      - name: Install fixed compiler and ordinary native prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
-          rustup toolchain install 1.95.0 --profile minimal
       - name: Run exact Guide Font12 against official native types
         run: python3 pluto-lib/experiments/guide-font-ci/run.py

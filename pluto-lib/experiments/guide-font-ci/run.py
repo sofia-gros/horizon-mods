@@ -90,9 +90,14 @@ def main():
         git(ROOT, 'rev-parse', 'HEAD') != os.environ.get('GITHUB_SHA') or
         git(ROOT, 'status', '--porcelain', '--untracked-files=all')):
         raise ValueError('Require exact clean authorized CI checkout/event')
+    event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+    if event.get('repository', {}).get('private') is not False:
+        raise ValueError('Require public-repository standard-runner scope')
     validate_inputs(config, ROOT)
     original = seal(ROOT, True)
     work = Path(os.environ['RUNNER_TEMP']) / ('guide-font-' + os.environ['GITHUB_SHA'])
+    if min(shutil.disk_usage(p).free for p in [ROOT, work.parent]) < FLOOR:
+        raise RuntimeError('Preflight disk floor before any setup/output')
     work.mkdir()  # Fresh runner-owned path only; never remove arbitrary/stale output.
     target, host, fixture = work/'target', work/'horizon', work/'fixture'
     env = os.environ.copy()
@@ -107,6 +112,9 @@ def main():
     official = before_fixture = generated = None
     success = False
     try:
+        runner.run('apt-update', ['sudo','apt-get','update'], timeout=600)
+        runner.run('apt-install', ['sudo','apt-get','install','-y','--no-install-recommends','libasound2-dev','libudev-dev'], timeout=600)
+        runner.run('toolchain-install', ['rustup','toolchain','install','1.95.0','--profile','minimal'], timeout=600)
         runner.run('source-guards', ['python3', str(ROOT/'tconstruct/tests/guide-text-migration/test_source.py')])
         runner.run('official-init', ['git', 'init', str(host)])
         runner.run('official-remote', ['git', '-C', str(host), 'remote', 'add', 'origin', config['official_url']])

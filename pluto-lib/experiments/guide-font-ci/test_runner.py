@@ -24,10 +24,17 @@ class Checks(unittest.TestCase):
         for token in ["'official-locked-fetch'","'--locked'","'--offline'","'verify-after-compile'","'verify-after-tests'","out_dirs(target) != generated","start_new_session=True","signal.SIGTERM","signal.SIGKILL"]:
             self.assertIn(token,source)
         self.assertLess(source.index("'official-locked-fetch'"),source.index("runner.run('prepare'"))
+    def test_setup_is_inside_continuous_guard(self):
+        source=(HERE/'run.py').read_text()
+        for phase in ['apt-update','apt-install','toolchain-install']:
+            self.assertIn("runner.run('"+phase+"'",source)
+        workflow=(HERE.parents[2]/'.github/workflows/guide-font-wip.yml').read_text()
+        self.assertNotIn('sudo apt-get',workflow)
+        self.assertNotIn('rustup toolchain install',workflow)
     def test_workflow_is_only_exact_branch_readonly_no_cache_artifacts(self):
         workflow=(HERE.parents[2]/'.github/workflows/guide-font-wip.yml').read_text()
         self.assertIn('push:\n    branches:\n      - '+self.c['branch'],workflow)
-        for token in ['contents: read','persist-credentials: false','runs-on: ubuntu-24.04','timeout-minutes: 55']:
+        for token in ['github.event.repository.private == false','contents: read','persist-credentials: false','runs-on: ubuntu-24.04','timeout-minutes: 55']:
             self.assertIn(token,workflow)
         for token in ['workflow_dispatch','pull_request:','contents: write','actions/cache','upload-artifact','secrets.','self-hosted']:
             self.assertNotIn(token,workflow)
