@@ -1,0 +1,81 @@
+{
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "input_commits_and_blobs": [
+    {
+      "kind": "common",
+      "ref": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/tools/check_client_payload_plan.py",
+      "sha": "25c99c1132a866462637d35c07202a697288e627"
+    },
+    {
+      "kind": "common",
+      "ref": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/tools/client-payload-source.json",
+      "sha": "1e061b3e36f0caa428d3da5b1d2f2e3ba3ecd54e"
+    },
+    {
+      "kind": "common",
+      "ref": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+      "sha": "60647f8a36d8f781aa7b048040463123cc8ccded"
+    },
+    {
+      "kind": "common",
+      "ref": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+      "path": "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs",
+      "sha": "7becc786df06ee9ca872ad3b326e964eaafc8c43"
+    },
+    {
+      "kind": "consumer",
+      "ref": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "sha": "0eba97316e722877b9a715dc64c98764ef4e90f4"
+    },
+    {
+      "kind": "consumer",
+      "ref": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+      "sha": "ac9c12dac92c087c291e458a465017a89bee9921"
+    },
+    {
+      "kind": "consumer",
+      "ref": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "sha": "13f06d5c1f90f74b6d88855772f005cbff6c74f2"
+    },
+    {
+      "kind": "consumer",
+      "ref": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+      "sha": "ff9bf4569f93c9314e94201665cf66c5ac7b997a"
+    }
+  ],
+  "input_sha256": {
+    "pluto-lib/tools/check_client_payload_plan.py": "45a728bb134c17bdbb4cccb7713fa4622951f241f0559338eb26e22a9170e1ee",
+    "pluto-lib/tools/client-payload-source.json": "1b7388674e8787b3e087662f2355c1c1ce859a9fe6b8b1c757ece377d1a0f538",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "b5a97de3e1940038af77903d7bc9c6036309fbca1bed8be9c0e5bd89d6318df4",
+    "pluto-lib/mixins/pluto_native_creative/client-payload-observed.rs": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+    "tconstruct/mixins/tconstruct/source-materials-book-response.rs": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647",
+    "tconstruct/mixins/tconstruct/source-materials-book-request.rs": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+    "tconstruct/mixins/tconstruct/source-materials-book-wire.rs": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e"
+  },
+  "bc_intake_commit": "73f9ea2c67a89ab38bace6249e5e1746a19cac98",
+  "bc_merged_manifest_sha256": "9e7a9e283a8596093ec13cfcab99156ef04e818c8ea9a9ccf65dded6f4e77d5d",
+  "candidate_sha256": {
+    "after-native-packet.rs": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
+    "bootstrap.rs": "887ff2e37e240c974f56f7b8c0126c3483650a1c0528ccbaf99fa29e363b01ed",
+    "consumer.rs": "ab2fc0bd977e644c71f98743a2e3d39a94333fcf867e781617b7a062985ccead",
+    "native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055"
+  },
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/books.rs": "2b522a5b424deba493e166550d5f3646b59b9284fcae1e4013037d9d68c145a9",
+    "crates/horizon-client/src/game/native_hooks.rs": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833",
+    "crates/horizon-client/src/game/remote.rs": "346d48f3372d4cfe135982d5f40a7306d79b7f9cbc80a3a8c306648adfdf06c2"
+  },
+  "actual_rust_tests": 6,
+  "actual_rust_tests_run": false,
+  "activation": false,
+  "limit": "Source-only private compatibility proposal. Ordinary guards remain unchanged; full41f plan/guard/type/transport/UI proof pending."
+}
