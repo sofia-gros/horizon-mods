@@ -1,0 +1,11 @@
+{
+  "exit_code": 0,
+  "guard_stopped": false,
+  "minimum_free_bytes": 10882883584,
+  "timed_out": false,
+  "elapsed_seconds": 26.650592513993615,
+  "command": [
+    "python",
+    ".work/java-menu-foundation-proof-20261106/run_package_plan.py"
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "status": "combined_focused_checks_pass_complete_native_gate_pending",
+  "status": "combined_focused_and_official_plan_pass_apply_type_pending",
   "base": "8715b1232c0fca133fe012f35830e2108e653d59",
   "java_local": "544419e72f65abe20180a24f4d82ee69886620f4",
   "menu_local": "7420531890068474c189424b44f2da9a6e2f60b1",
@@ -52,7 +52,7 @@
     "java": "pass",
     "menu": "pass"
   },
-  "complete_native_gate": "not_run",
+  "complete_native_gate": "plan_and_guards_passed_apply_and_typecheck_not_run",
   "java_consumer": {
     "passed": 8,
     "failed": 0,
@@ -71,5 +71,13 @@
     "minimum_free_bytes": 10885468160,
     "receipt": "proofs/java-menu-api-20261106/menu-receipt.json"
   },
-  "focused_rust_total": 144
+  "focused_rust_total": 144,
+  "package_plan": {
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "archive_sha256": "5adf8885829c7665a01f477099cb0e0125362e1bc12cf20d1536726e999b09ce",
+    "guards_passed": 12,
+    "plan_sha256": "caa249909e9ecb47ba3c9ea0bb7695e18aad9e62beaee802cb5b75927475cff8",
+    "receipt": "proofs/java-menu-api-20261106/package-plan-receipt.json"
+  }
 }

@@ -55,3 +55,12 @@ The same frozen69c6 source also passed **11 menu consumer tests, 0 failed, 0 ign
 The separate locked/offline run finished in0.60 seconds. Minimum free space was10,885,468,160 bytes, with no guard stop or timeout. The193-source/API/lock seal remained unchanged and no compiler process remained. [Menu receipt](proofs/java-menu-api-20261106/menu-receipt.json) and [log](proofs/java-menu-api-20261106/menu-result.log) retain the exact result.
 
 The grouped focused result is **125 API +8 Java +11 menu =144 Rust tests passed**, plus the earlier24 Python source/package checks and deterministic archive identity. These are different scopes and remain individually recorded. **The complete official native plan/apply/type gate is still pending for this combined tree.** No live JVM, game, LAN, automatic-crafting connection, material-display injection or old-PR change is claimed.
+
+
+### Exact package acceptance and composition preflight
+
+The reproducible69c6 archive5adf8885 passed the official624c/e8 **read-only plan and all12 mandatory guard groups**. The full dispatcher and all12 individual guard CLIs returned0. The actual plan contains2 bundled crates,66 native modules,34 hooks and3 states; all30 real inventory API source-file hashes, including Java/menu, match the package plan.
+
+The run took26.65 seconds, with minimum free space10,882,883,584 bytes and no disk stop or timeout. Official5,008 input files,193 frozen materialized sources,132 guard-related source files and141 extracted archive members remained unchanged. The exact plan is1,048,868 bytes with SHA256 caa249909e9ecb47ba3c9ea0bb7695e18aad9e62beaee802cb5b75927475cff8. [Package receipt](proofs/java-menu-api-20261106/package-plan-receipt.json), [guard log](proofs/java-menu-api-20261106/package-plan-result.log) and the preserved local proof harness distinguish every phase.
+
+This closes **package acceptance and reviewed composition only**. No apply, host Cargo check, new host stage or gameplay was run for this combined tree. The earlier v15 host type proof does not silently become a69c6 host type proof. Java/menu's grouped focused Rust tests remain144 passed; no automatic crafting or material-display source is mixed into this cutoff.

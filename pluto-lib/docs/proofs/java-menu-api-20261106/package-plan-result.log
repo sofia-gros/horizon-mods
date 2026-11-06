@@ -1,0 +1,39 @@
+Command: ['/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/cli-target/release/horizon-mixins', 'plan', '--workspace', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon', '--mods', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/packaged/mixins', '--out', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json']
+{
+  "bridges": 0,
+  "crates": 2,
+  "data": 0,
+  "injections": 34,
+  "modules": 66,
+  "plan": "/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json",
+  "post_build": 0,
+  "seconds": 22.883611706,
+  "states": 3,
+  "status": "ok"
+}
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_native_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Complete Pluto native plan, ordering and reviewed host adapters verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_protection_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json']
+Protection ordering verified for the supplied complete plan.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_advancement_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Copied advancement boundaries, exact source and complete-plan exclusivity verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_damage_equipment_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Damage equipment source, adapter hunks and combined hook ordering verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_client_payload_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Client payload source and native observer ordering verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_recipe_placement_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Recipe placement veto ownership, native fingerprints and helper source verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_current_book_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Current-book source and native turn composition verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_wire_snapshot_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Native Wire source, borrowed reader and additive comparator verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_crafting_match_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Crafting-match veto ownership, native fingerprint and helper source verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_terrain_binding_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Terrain binding preparation source, owners and exclusive assembly phase verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_cloud_insertion_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Cloud insertion native inputs, package bytes, placement and exclusive boundaries verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_station_ingredient_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Station-ingredient parser ownership, native fingerprint and helper source verified.
+Command: ['python', '/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_terrain_cell_plan.py', '/workspace/scratch/c7b540ff3393/.work/java-menu-foundation-proof-20261106/package-plan.json', '/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon']
+Terrain cell official body, cull/emission filter and exclusive plan verified.
