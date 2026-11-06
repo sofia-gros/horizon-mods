@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "base_script_sha256": "e994d1037525c2a2d39c0b3b2d85f97153a298e0feb2841cd56ef0e2e286fff4",
+  "candidate_script_sha256": "01098957ac134364eb7585f9a09b1409146fd7f207767fd5f54b51971e4355be",
+  "edits": [
+    [
+      "try {\n    foreach ($name",
+      "function Pluto-Input-Digest([string]$Bundle) {\n    $digest = @(& py -3 (Join-Path $Repo 'tools\\playtest_pluto_inputs.py') --pluto-bundle $Bundle --pluto-root (Join-Path (Split-Path -Parent $Repo) 'pluto-lib'))\n    if ($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[0-9a-f]{64}$') { throw 'Pluto input fingerprint failed; no cached build was accepted.' }\n    return [string]$digest[0]\n}\ntry {\n    foreach ($name"
+    ],
+    [
+      "    # Key the generated build by actual input bytes,",
+      "    # Select and fingerprint the actual installed bundle before any cache lookup.\n    $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'\n    $PlutoDigest = Pluto-Input-Digest $PlutoBundle\n    # Key the generated build by actual input bytes,"
+    ],
+    [
+      "$lines = @($resources, $mixinsRevision,",
+      "$lines = @($resources, $mixinsRevision, $PlutoDigest,"
+    ],
+    [
+      "            $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'\n",
+      ""
+    ],
+    [
+      "            Set-Content -LiteralPath $ready -Value $head",
+      "            if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed during the build; the build was not marked ready.' }\n            Set-Content -LiteralPath $ready -Value $head"
+    ],
+    [
+      "    $GameDir = Join-Path $HomeDir",
+      "    if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed before launch; no game was started.' }\n    $GameDir = Join-Path $HomeDir"
+    ]
+  ]
+}
