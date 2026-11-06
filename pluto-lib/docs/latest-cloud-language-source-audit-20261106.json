@@ -1,0 +1,1252 @@
+{
+  "status": "read-only source audit; no runtime or guard change",
+  "official": {
+    "old_guard": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "latest": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "common_source": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+  "common_archive_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+  "guard": {
+    "path": "pluto-lib/tools/check_cloud_insertion_plan.py",
+    "sha256": "47b7f1577470c00d1335133933a191046c9cc2a32c710cbb0748e64191853746",
+    "metadata_path": "pluto-lib/tools/cloud-insertion-boundaries.json",
+    "metadata_sha256": "480ffb9eaa859b9a023b4f98fa4ab3da30790dc74867b1318cc81423b06bb807",
+    "current_result": "10 of 17 reviewed full-file pins differ; unchanged old guard will reject. Not an observed applied-host failure."
+  },
+  "method": {
+    "latest_tree_entries": 5964,
+    "latest_tree_truncated": false,
+    "latest_changed_files": "Fetched all 10 changed raw files via official immutable content API; recalculated Git blob SHA1 on exact UTF-8 bytes, no trimming/formatting. All match tree IDs and sizes.",
+    "old_files": "Read exact old official Git objects only after origin verification; every old SHA256 matches the existing guard metadata.",
+    "same_files": "Seven unchanged latest tree blob IDs match old verified raw bytes.",
+    "spans": "Unique named function/type/impl starts to their same-indent closing brace; exact selected source bytes/hashes and line numbers recorded. Not a Rust parser, host type check or complete transitive-call audit.",
+    "limitations": [
+      "No Cargo, metadata, Mixins plan/apply, Rust execution, build, Game/UI or Windows test.",
+      "Old successes remain tied to their exact old hosts; source identity does not transfer runtime proof.",
+      "No guard values, node/fingerprint identity, manifest, runtime code or policy was changed."
+    ]
+  },
+  "counts": {
+    "official_pins": 17,
+    "changed_pins": 10,
+    "spans": 41,
+    "identical_spans": 40,
+    "game_fields": 15,
+    "same_game_fields": 15
+  },
+  "files": [
+    {
+      "path": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "guard_sha256": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+      "guard_blob": "77e7f4d994f87b6bf2ed3c286220197e17bbbb80",
+      "latest_blob": "77e7f4d994f87b6bf2ed3c286220197e17bbbb80",
+      "identical": true,
+      "latest_size": 13356,
+      "latest_sha256": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/native_lifecycle.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_lifecycle.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "guard_sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "guard_blob": "488625055753dfe9ae714fbd0ab854e37040fa0e",
+      "latest_blob": "488625055753dfe9ae714fbd0ab854e37040fa0e",
+      "identical": true,
+      "latest_size": 20171,
+      "latest_sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/native_entity_refs.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_entity_refs.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_level_refs.rs",
+      "guard_sha256": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+      "guard_blob": "be33b4b4314ec3974ce45af0942287ee8c6e2bdc",
+      "latest_blob": "be33b4b4314ec3974ce45af0942287ee8c6e2bdc",
+      "identical": true,
+      "latest_size": 4247,
+      "latest_sha256": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/native_level_refs.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_level_refs.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/mod_api_host.rs",
+      "guard_sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+      "guard_blob": "c34b42fdfc2be8b743ca5eb6458cf4ebbc7abf24",
+      "latest_blob": "c34b42fdfc2be8b743ca5eb6458cf4ebbc7abf24",
+      "identical": true,
+      "latest_size": 9498,
+      "latest_sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/mod_api_host.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/mod_api_host.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands/players.rs",
+      "guard_sha256": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+      "guard_blob": "62f058a4ef2687e79a6864f7ba8587e9c4ccece4",
+      "latest_blob": "62f058a4ef2687e79a6864f7ba8587e9c4ccece4",
+      "identical": true,
+      "latest_size": 9188,
+      "latest_sha256": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/commands/players.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands/players.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "guard_sha256": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+      "guard_blob": "1729b2ad2a8a282eeba5b928a622fcaf75aebad0",
+      "latest_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "identical": false,
+      "latest_size": 270381,
+      "latest_sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "diff_bytes": 17743,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_actions.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_actions.rs",
+      "review": {
+        "changed_area": "Menu loot/open-count fixes, vehicle feedback, interaction changes and tests occur outside unchanged enter_guest/leave_guest.",
+        "protected_boundary_finding": "No change found to actor swap, LAN acting identity assignment, return-state restoration or leave ordering in the two exact complete functions. Do not infer authority when the hub is detached."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_entities.rs",
+      "guard_sha256": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
+      "guard_blob": "b3fec592e948b11cf44062e9d710978efabdb9b4",
+      "latest_blob": "cc0addcffd8bdcc80fd1ee43bd3179279a8617c7",
+      "identical": false,
+      "latest_size": 40526,
+      "latest_sha256": "d0186d3b27e24ffff154d5f072368cc392ffdbdd1e8b6fe29f29e616c1568222",
+      "diff_bytes": 2207,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/lan_entities.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_entities.rs",
+      "review": {
+        "changed_area": "Native network State adds idle/bare; rider-order projection changes; UUID assignment skips bare states.",
+        "protected_boundary_finding": "take_entity_id and lan_assign_ids are byte-identical. The insertion commit still prechecks range/reserves capacity before native ID increment and vector push; no rollback promise after commit."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "guard_sha256": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
+      "guard_blob": "56a99045bc8f786fde42879fa042a436130640e7",
+      "latest_blob": "56b2f5f10b51b5d07a373d613fe2a6184cc1b644",
+      "identical": false,
+      "latest_size": 39728,
+      "latest_sha256": "2e98e4ed3b0f289fc6f042fd8ad29fa3b3b96486e6599b719f55e2be6c602230",
+      "diff_bytes": 8211,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/mod_api.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs",
+      "review": {
+        "changed_area": "Trait-mod enable/disable flags and dispatch filtering were added, plus public re-exports.",
+        "protected_boundary_finding": "NativeAuthority, NativeWorldEpoch/EntityRef/LevelRef implementations and fields are unchanged. Global mod-on state does not confer actor authority; the library must not silently bypass native dispatch selection."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "guard_sha256": "415bda393e631faa8e125bd115b63ad911467efce723bae5e76b71b4461902bd",
+      "guard_blob": "13dfec74e83c5efc50b3a89eed55b6462e4a60aa",
+      "latest_blob": "0ccf3e5eb02d8fe03fe300988c1d74a2832e3498",
+      "identical": false,
+      "latest_size": 190411,
+      "latest_sha256": "9015feebb6bb93fec6c26812d433d5a6e93b5d435f82917fd0034cc208f4a28f",
+      "diff_bytes": 11626,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/commands.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands.rs",
+      "review": {
+        "changed_area": "Command feedback changed to unbroadcast; double-chest loot handling and regression tests were added.",
+        "protected_boundary_finding": "Target, level_entity, target_level and target_position are byte-identical. command_guest is in a separate wholly unchanged file, and remains a roster lookup only when Game.lan is present."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "guard_sha256": "c185c500e00a28bd3ab33af90df04ad1c1b2ff964c481de49b2e91bf99624a36",
+      "guard_blob": "d14ebc3014512bd0b6a51bf7c731933d6af1d404",
+      "latest_blob": "e875a3dfeddca7c3390d60738e60bbbb1ec1c499",
+      "identical": false,
+      "latest_size": 57194,
+      "latest_sha256": "652f308b15c2c32ac0d4354a568869d629d67e03329c6238586f3ac398a40197",
+      "diff_bytes": 3994,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/integrated.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/integrated.rs",
+      "review": {
+        "changed_area": "Legacy-combat flags, an asynchronous post API and settings synchronization were added.",
+        "protected_boundary_finding": "run_integrated, run_integrated_inner, integrated_open and stop_integrated are byte-identical. Ready still follows successful integrated_open and precedes the harness/tick loop; no new async post authority is adopted."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "guard_sha256": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+      "guard_blob": "49ef236112d0990c34ff96264ac54f59fd9cb898",
+      "latest_blob": "aab5daf74f947831d10b0fa748a6119e8196861c",
+      "identical": false,
+      "latest_size": 110946,
+      "latest_sha256": "ad09af8fe7318f82ddaec8603b440905596166a7c84d9497299f3ac70d790665",
+      "diff_bytes": 12886,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/dedicated.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dedicated.rs",
+      "review": {
+        "changed_area": "Server combat/compression/older-client configuration, held-player chunk loading and tick profiling changed.",
+        "protected_boundary_finding": "run_dedicated_inner changed, but its save_game/log_saved_levels/entity-range/world_ready segment is unchanged and precedes the tick loop. run_dedicated, stop_after_crash and stop_dedicated are identical. Held-player loading is not placement authority; existing placed/Ready checks stay."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "guard_sha256": "1543d9cb792a7d2227c3b54f1767bf657fb438723b3871df632b4021ab293a3b",
+      "guard_blob": "a4222fcaf5cb882d4d9e3fd645d945d29a13211f",
+      "latest_blob": "e898fed03062609ed9bf08df22a8e934f6228bfb",
+      "identical": false,
+      "latest_size": 226308,
+      "latest_sha256": "fe106da1a95376f4ef262978d91f74a3a6f41f1829bcbe16dfd9b6e3b41959d1",
+      "diff_bytes": 39962,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/dragon.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs",
+      "review": {
+        "changed_area": "Dragon flight, part damage/knockback, creation defaults, persistent handling and tests changed.",
+        "protected_boundary_finding": "Breath, FightWho/FightPlayer, fight_players/as_fight_player and tick_breath are identical. No copied dragon behavior is substituted. Existing native behavior outside these selected spans remains native and is not certified by this audit."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "guard_sha256": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+      "guard_blob": "369028554541413e0457c1ddf95e4294cef9f6cc",
+      "latest_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+      "identical": false,
+      "latest_size": 100019,
+      "latest_sha256": "635fda59a1ba10db646caf82669362678e12b4c5a16159067c404cd1c11795d7",
+      "diff_bytes": 2137,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/potions.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs",
+      "review": {
+        "changed_area": "Drinking now awards used/consume_item before the drink event; thrown instant-harm handling for Endermen changed.",
+        "protected_boundary_finding": "CloudSettings/PotionCloud layouts, tick_potion_cloud(s), potion_owner and breath_affect_mob are identical. The factory keeps the same explicit owner/guest and fresh bookkeeping. This does not restore synchronous fluid contact effects."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "guard_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "guard_blob": "197086eaa48ddb975ffd665abd60b369e0a18de9",
+      "latest_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "identical": false,
+      "latest_size": 1032243,
+      "latest_sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "diff_bytes": 137092,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game.rs",
+      "review": {
+        "changed_area": "Numerous gameplay/UI/options/render fields and bodies changed, including screen blur and menu focus.",
+        "protected_boundary_finding": "All 15 Game field declarations directly used by insertion/owner checks remain exact. No Game constructor is copied by the adapter. Actual latest Game composition/type check remains mandatory; whole-game equivalence is not claimed."
+      }
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "guard_sha256": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+      "guard_blob": "4e06fc618f62d580a32eda9a007859f8ccc3e6ec",
+      "latest_blob": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+      "identical": false,
+      "latest_size": 5563,
+      "latest_sha256": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
+      "diff_bytes": 2943,
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/client_lib.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/client_lib.rs",
+      "review": {
+        "changed_area": "Adds legacy_combat/mod_registry modules and mod browser/pad/input re-exports.",
+        "protected_boundary_finding": "Existing lang/text owner re-exports remain unchanged; installed cloud, potion, language and Key module names are not native additions. Actual latest insertion/public module identity must come from the complete plan, not old node IDs."
+      }
+    },
+    {
+      "path": "crates/horizon-client-render/src/world.rs",
+      "guard_sha256": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+      "guard_blob": "64320776e43920fe441611737950b3b72109908b",
+      "latest_blob": "64320776e43920fe441611737950b3b72109908b",
+      "identical": true,
+      "latest_size": 27285,
+      "latest_sha256": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client-render/src/world.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client-render/src/world.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    },
+    {
+      "path": "crates/horizon-client-core/src/potions.rs",
+      "guard_sha256": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+      "guard_blob": "832d1fc0174693ef3b9db956153cd87bb73bd913",
+      "latest_blob": "832d1fc0174693ef3b9db956153cd87bb73bd913",
+      "identical": true,
+      "latest_size": 13499,
+      "latest_sha256": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+      "old_url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client-core/src/potions.rs",
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client-core/src/potions.rs",
+      "review": {
+        "protected_boundary_finding": "Entire file has identical Git blob and matches the old exact SHA256."
+      }
+    }
+  ],
+  "spans": [
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "item": "enter_guest",
+      "kind": "fn",
+      "old_line": 391,
+      "latest_line": 391,
+      "identical": true,
+      "old_sha256": "8b04fd637decce7e0a2d719032f2bd156cdc7cc4b8b2656bd25a948ea0eafe3e",
+      "latest_sha256": "8b04fd637decce7e0a2d719032f2bd156cdc7cc4b8b2656bd25a948ea0eafe3e",
+      "old_bytes": 15495,
+      "latest_bytes": 15495,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_actions.rs#L391"
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "item": "leave_guest",
+      "kind": "fn",
+      "old_line": 723,
+      "latest_line": 723,
+      "identical": true,
+      "old_sha256": "56d232af976a981b73647fa3ef2d174ef12a79ec1fbffa78d3e9d9b07d5fe5d5",
+      "latest_sha256": "56d232af976a981b73647fa3ef2d174ef12a79ec1fbffa78d3e9d9b07d5fe5d5",
+      "old_bytes": 20255,
+      "latest_bytes": 20255,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_actions.rs#L723"
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_entities.rs",
+      "item": "take_entity_id",
+      "kind": "fn",
+      "old_line": 26,
+      "latest_line": 26,
+      "identical": true,
+      "old_sha256": "7466277e3a223a9e7c6b67ed332bcd4adaa164bd6965e0b4a4945e4966c669c7",
+      "latest_sha256": "7466277e3a223a9e7c6b67ed332bcd4adaa164bd6965e0b4a4945e4966c669c7",
+      "old_bytes": 115,
+      "latest_bytes": 115,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_entities.rs#L26"
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_entities.rs",
+      "item": "lan_assign_ids",
+      "kind": "fn",
+      "old_line": 522,
+      "latest_line": 538,
+      "identical": true,
+      "old_sha256": "cfbbdd1ff98ca194297b34898967be706ca8fd95e100cf599faaa4e99892cc67",
+      "latest_sha256": "cfbbdd1ff98ca194297b34898967be706ca8fd95e100cf599faaa4e99892cc67",
+      "old_bytes": 1923,
+      "latest_bytes": 1923,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/lan_entities.rs#L538"
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "item": "Target",
+      "kind": "enum",
+      "old_line": 43,
+      "latest_line": 43,
+      "identical": true,
+      "old_sha256": "a7ea2803d116dedb209b969ce7b0c62117e1c3981836ed7f2803547af44860ed",
+      "latest_sha256": "a7ea2803d116dedb209b969ce7b0c62117e1c3981836ed7f2803547af44860ed",
+      "old_bytes": 1396,
+      "latest_bytes": 1396,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands.rs#L43"
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "item": "level_entity",
+      "kind": "fn",
+      "old_line": 948,
+      "latest_line": 948,
+      "identical": true,
+      "old_sha256": "69082c8ceb35d46a79f6d2689e2a2725b06254c4b444de6941040f649e88e6d1",
+      "latest_sha256": "69082c8ceb35d46a79f6d2689e2a2725b06254c4b444de6941040f649e88e6d1",
+      "old_bytes": 803,
+      "latest_bytes": 803,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands.rs#L948"
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "item": "target_level",
+      "kind": "fn",
+      "old_line": 484,
+      "latest_line": 484,
+      "identical": true,
+      "old_sha256": "1684fbd3e724f73efe65cd402c4301d5adb1bcf8e51e6e1073d1314712d6a1c3",
+      "latest_sha256": "1684fbd3e724f73efe65cd402c4301d5adb1bcf8e51e6e1073d1314712d6a1c3",
+      "old_bytes": 332,
+      "latest_bytes": 332,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands.rs#L484"
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "item": "target_position",
+      "kind": "fn",
+      "old_line": 493,
+      "latest_line": 493,
+      "identical": true,
+      "old_sha256": "481d96a708155c8ec43abb3ff77093c064941a2e902f9aa83e3170a9ca588d07",
+      "latest_sha256": "481d96a708155c8ec43abb3ff77093c064941a2e902f9aa83e3170a9ca588d07",
+      "old_bytes": 4092,
+      "latest_bytes": 4092,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands.rs#L493"
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "item": "run_integrated",
+      "kind": "fn",
+      "old_line": 643,
+      "latest_line": 657,
+      "identical": true,
+      "old_sha256": "66d1e1f2c03931ca52c32fc22cd036bf7e2e7f2fd9a9d68390542514d35f3ce9",
+      "latest_sha256": "66d1e1f2c03931ca52c32fc22cd036bf7e2e7f2fd9a9d68390542514d35f3ce9",
+      "old_bytes": 469,
+      "latest_bytes": 469,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/integrated.rs#L657"
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "item": "run_integrated_inner",
+      "kind": "fn",
+      "old_line": 659,
+      "latest_line": 673,
+      "identical": true,
+      "old_sha256": "e2b28ffa37491c1c40a477e1c4afbaabf13da895d33eced6a227657a0f47f28b",
+      "latest_sha256": "e2b28ffa37491c1c40a477e1c4afbaabf13da895d33eced6a227657a0f47f28b",
+      "old_bytes": 3161,
+      "latest_bytes": 3161,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/integrated.rs#L673"
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "item": "integrated_open",
+      "kind": "fn",
+      "old_line": 751,
+      "latest_line": 765,
+      "identical": true,
+      "old_sha256": "622fbfda72a02b3cd3e955532979e8f1e6e8f57159f578a1d241a6dbb5bc26f0",
+      "latest_sha256": "622fbfda72a02b3cd3e955532979e8f1e6e8f57159f578a1d241a6dbb5bc26f0",
+      "old_bytes": 5147,
+      "latest_bytes": 5147,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/integrated.rs#L765"
+    },
+    {
+      "path": "crates/horizon-client/src/game/integrated.rs",
+      "item": "stop_integrated",
+      "kind": "fn",
+      "old_line": 869,
+      "latest_line": 883,
+      "identical": true,
+      "old_sha256": "8d5c77341c3588b1d10ce316aebf3460001c3abfe54b9fb431f7bac0ef4c164a",
+      "latest_sha256": "8d5c77341c3588b1d10ce316aebf3460001c3abfe54b9fb431f7bac0ef4c164a",
+      "old_bytes": 1818,
+      "latest_bytes": 1818,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/integrated.rs#L883"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "item": "run_dedicated",
+      "kind": "fn",
+      "old_line": 829,
+      "latest_line": 883,
+      "identical": true,
+      "old_sha256": "df70d29bc515b4e7d7bfb81d362ab5bbbfc8c225c984dc71ba533214fe760c3b",
+      "latest_sha256": "df70d29bc515b4e7d7bfb81d362ab5bbbfc8c225c984dc71ba533214fe760c3b",
+      "old_bytes": 356,
+      "latest_bytes": 356,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dedicated.rs#L883"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "item": "run_dedicated_inner",
+      "kind": "fn",
+      "old_line": 839,
+      "latest_line": 893,
+      "identical": false,
+      "old_sha256": "74d3dc98a9de76434acb00cee7b8039a8a79e0575b1787f7995b706f1d6a083d",
+      "latest_sha256": "19c5d4b249aea3531b8fc2144dc0a58f2b289b18142448cb8e00cdbf9c1209bc",
+      "old_bytes": 22354,
+      "latest_bytes": 23401,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dedicated.rs#L893"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "item": "stop_dedicated",
+      "kind": "fn",
+      "old_line": 2223,
+      "latest_line": 2343,
+      "identical": true,
+      "old_sha256": "7243be8c13dbbcefcda6c63f253ec9c83f4d46dabb18db15558d64b8c1d9df45",
+      "latest_sha256": "7243be8c13dbbcefcda6c63f253ec9c83f4d46dabb18db15558d64b8c1d9df45",
+      "old_bytes": 1513,
+      "latest_bytes": 1513,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dedicated.rs#L2343"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dedicated.rs",
+      "item": "stop_after_crash",
+      "kind": "fn",
+      "old_line": 2194,
+      "latest_line": 2314,
+      "identical": true,
+      "old_sha256": "c76088b7242e359e04d8e56a2408a20edfdf0414ff1ba39000798ca6065253fd",
+      "latest_sha256": "c76088b7242e359e04d8e56a2408a20edfdf0414ff1ba39000798ca6065253fd",
+      "old_bytes": 1098,
+      "latest_bytes": 1098,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dedicated.rs#L2314"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "Breath",
+      "kind": "struct",
+      "old_line": 3034,
+      "latest_line": 3254,
+      "identical": true,
+      "old_sha256": "6028b23bf7cdbe24f932783789ca3f662c8bee1168bfbd81864417833dba00e9",
+      "latest_sha256": "6028b23bf7cdbe24f932783789ca3f662c8bee1168bfbd81864417833dba00e9",
+      "old_bytes": 521,
+      "latest_bytes": 521,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L3254"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "FightWho",
+      "kind": "enum",
+      "old_line": 407,
+      "latest_line": 410,
+      "identical": true,
+      "old_sha256": "e2b9b84ba087e3bc81608c53b064444741a2bc35ec660d70518a451fd7cbccc2",
+      "latest_sha256": "e2b9b84ba087e3bc81608c53b064444741a2bc35ec660d70518a451fd7cbccc2",
+      "old_bytes": 55,
+      "latest_bytes": 55,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L410"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "FightPlayer",
+      "kind": "struct",
+      "old_line": 413,
+      "latest_line": 416,
+      "identical": true,
+      "old_sha256": "b5724963aedd6e2908856ecdcae9ddab4fcf2fbbff8f4ac3e8406980f7a7bf4f",
+      "latest_sha256": "b5724963aedd6e2908856ecdcae9ddab4fcf2fbbff8f4ac3e8406980f7a7bf4f",
+      "old_bytes": 193,
+      "latest_bytes": 193,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L416"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "fight_players",
+      "kind": "fn",
+      "old_line": 1032,
+      "latest_line": 1116,
+      "identical": true,
+      "old_sha256": "df04abe5be0a2ac2ddb5473589a3fe2ca531685364b5fab57511559f6edbc8d0",
+      "latest_sha256": "df04abe5be0a2ac2ddb5473589a3fe2ca531685364b5fab57511559f6edbc8d0",
+      "old_bytes": 1010,
+      "latest_bytes": 1010,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L1116"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "as_fight_player",
+      "kind": "fn",
+      "old_line": 1061,
+      "latest_line": 1145,
+      "identical": true,
+      "old_sha256": "e245c13ef06513ddc39d48b12714f8eeaadd0bb37e39cdbc4891d0b60ce4a096",
+      "latest_sha256": "e245c13ef06513ddc39d48b12714f8eeaadd0bb37e39cdbc4891d0b60ce4a096",
+      "old_bytes": 418,
+      "latest_bytes": 418,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L1145"
+    },
+    {
+      "path": "crates/horizon-client/src/game/dragon.rs",
+      "item": "tick_breath",
+      "kind": "fn",
+      "old_line": 2754,
+      "latest_line": 2974,
+      "identical": true,
+      "old_sha256": "db891e7857d60f07b96f8d67f241d2be8f18910d05a8d98efb67759f937f4c1a",
+      "latest_sha256": "db891e7857d60f07b96f8d67f241d2be8f18910d05a8d98efb67759f937f4c1a",
+      "old_bytes": 4017,
+      "latest_bytes": 4017,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/dragon.rs#L2974"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "CloudSettings",
+      "kind": "struct",
+      "old_line": 33,
+      "latest_line": 33,
+      "identical": true,
+      "old_sha256": "cf393a138acd50e8861213f9d585d96f09d166d4bb9114ca1b7c8eeb931eb5b3",
+      "latest_sha256": "cf393a138acd50e8861213f9d585d96f09d166d4bb9114ca1b7c8eeb931eb5b3",
+      "old_bytes": 216,
+      "latest_bytes": 216,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L33"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "PotionCloud",
+      "kind": "struct",
+      "old_line": 116,
+      "latest_line": 116,
+      "identical": true,
+      "old_sha256": "b7bda8e279d4d40e17ff2e61ade0ef68b99b4f52581977be049acbbc43ee9e8a",
+      "latest_sha256": "b7bda8e279d4d40e17ff2e61ade0ef68b99b4f52581977be049acbbc43ee9e8a",
+      "old_bytes": 1092,
+      "latest_bytes": 1092,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L116"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "tick_potion_cloud",
+      "kind": "fn",
+      "old_line": 1442,
+      "latest_line": 1446,
+      "identical": true,
+      "old_sha256": "bbac48c09e257126154158eb50e5715c5b873b870716daf0d41bc1afa939aba9",
+      "latest_sha256": "bbac48c09e257126154158eb50e5715c5b873b870716daf0d41bc1afa939aba9",
+      "old_bytes": 3503,
+      "latest_bytes": 3503,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L1446"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "tick_potion_clouds",
+      "kind": "fn",
+      "old_line": 1426,
+      "latest_line": 1430,
+      "identical": true,
+      "old_sha256": "e7789f923db36b34c5819d93631036c89b22ee06c203c5cee814695b64901ed3",
+      "latest_sha256": "e7789f923db36b34c5819d93631036c89b22ee06c203c5cee814695b64901ed3",
+      "old_bytes": 502,
+      "latest_bytes": 502,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L1430"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "potion_owner",
+      "kind": "fn",
+      "old_line": 1829,
+      "latest_line": 1833,
+      "identical": true,
+      "old_sha256": "be2ae6b6e2ea43b926b15c1dd9e9b4f7d8f60b7382e96e866b70524fe2557662",
+      "latest_sha256": "be2ae6b6e2ea43b926b15c1dd9e9b4f7d8f60b7382e96e866b70524fe2557662",
+      "old_bytes": 585,
+      "latest_bytes": 585,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L1833"
+    },
+    {
+      "path": "crates/horizon-client/src/game/potions.rs",
+      "item": "breath_affect_mob",
+      "kind": "fn",
+      "old_line": 217,
+      "latest_line": 217,
+      "identical": true,
+      "old_sha256": "ec4a2bd7a6da7df9429c3b10ba0bf0d19925e632e8f4b54199ccea292109c6e4",
+      "latest_sha256": "ec4a2bd7a6da7df9429c3b10ba0bf0d19925e632e8f4b54199ccea292109c6e4",
+      "old_bytes": 500,
+      "latest_bytes": 500,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/potions.rs#L217"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "item": "native_entity_target",
+      "kind": "fn",
+      "old_line": 16,
+      "latest_line": 16,
+      "identical": true,
+      "old_sha256": "dbfc764832f921184868322304e775392e948aa605cf2ac517778ef0ebc1d677",
+      "latest_sha256": "dbfc764832f921184868322304e775392e948aa605cf2ac517778ef0ebc1d677",
+      "old_bytes": 1244,
+      "latest_bytes": 1244,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_entity_refs.rs#L16"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "item": "native_entity_level",
+      "kind": "fn",
+      "old_line": 149,
+      "latest_line": 149,
+      "identical": true,
+      "old_sha256": "6157ca8ba5443dd468523cceaf1070824128fc6bfc6db09eec182f2a3a9a37e5",
+      "latest_sha256": "6157ca8ba5443dd468523cceaf1070824128fc6bfc6db09eec182f2a3a9a37e5",
+      "old_bytes": 342,
+      "latest_bytes": 342,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_entity_refs.rs#L149"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "item": "native_level",
+      "kind": "fn",
+      "old_line": 76,
+      "latest_line": 76,
+      "identical": true,
+      "old_sha256": "2efd2fd8914af02911c1ac68abc39485431ef6e7c81e736a0866ae9d80bf094c",
+      "latest_sha256": "2efd2fd8914af02911c1ac68abc39485431ef6e7c81e736a0866ae9d80bf094c",
+      "old_bytes": 385,
+      "latest_bytes": 385,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_entity_refs.rs#L76"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_level_refs.rs",
+      "item": "native_level_world",
+      "kind": "fn",
+      "old_line": 12,
+      "latest_line": 12,
+      "identical": true,
+      "old_sha256": "ff676d9164ac18e3317f988545b376073dcb465786195931fb22386b612deace",
+      "latest_sha256": "ff676d9164ac18e3317f988545b376073dcb465786195931fb22386b612deace",
+      "old_bytes": 484,
+      "latest_bytes": 484,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_level_refs.rs#L12"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_level_refs.rs",
+      "item": "native_level_height",
+      "kind": "fn",
+      "old_line": 84,
+      "latest_line": 84,
+      "identical": true,
+      "old_sha256": "ec32ecc96f0acb0cc3f16043c449e9ce919248289380594a0fab41194d5fa38e",
+      "latest_sha256": "ec32ecc96f0acb0cc3f16043c449e9ce919248289380594a0fab41194d5fa38e",
+      "old_bytes": 185,
+      "latest_bytes": 185,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/native_level_refs.rs#L84"
+    },
+    {
+      "path": "crates/horizon-client/src/game/mod_api_host.rs",
+      "item": "native_authoritative",
+      "kind": "fn",
+      "old_line": 90,
+      "latest_line": 90,
+      "identical": true,
+      "old_sha256": "cd577894b456899af48f1d83ac488dfbb6a9694a387adaaba41066be30d9fdad",
+      "latest_sha256": "cd577894b456899af48f1d83ac488dfbb6a9694a387adaaba41066be30d9fdad",
+      "old_bytes": 129,
+      "latest_bytes": 129,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/mod_api_host.rs#L90"
+    },
+    {
+      "path": "crates/horizon-client/src/game/commands/players.rs",
+      "item": "command_guest",
+      "kind": "fn",
+      "old_line": 31,
+      "latest_line": 31,
+      "identical": true,
+      "old_sha256": "f79ee701b4252b8f16a0bb06bc9c5d88789aa9bc0c6f4a266c131be5a838653f",
+      "latest_sha256": "f79ee701b4252b8f16a0bb06bc9c5d88789aa9bc0c6f4a266c131be5a838653f",
+      "old_bytes": 128,
+      "latest_bytes": 128,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/game/commands/players.rs#L31"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "EntityRef",
+      "kind": "struct",
+      "old_line": 464,
+      "latest_line": 473,
+      "identical": true,
+      "old_sha256": "805558b17919353e31dc35d51dc000692282ed4b0fcce19d26baec11f103da6c",
+      "latest_sha256": "805558b17919353e31dc35d51dc000692282ed4b0fcce19d26baec11f103da6c",
+      "old_bytes": 67,
+      "latest_bytes": 67,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L473"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "LevelRef",
+      "kind": "struct",
+      "old_line": 518,
+      "latest_line": 527,
+      "identical": true,
+      "old_sha256": "5f3b06d3b66c0c1e4d5279c03c03609b289a9ca027bfe78a8542ee349ad3fc69",
+      "latest_sha256": "5f3b06d3b66c0c1e4d5279c03c03609b289a9ca027bfe78a8542ee349ad3fc69",
+      "old_bytes": 82,
+      "latest_bytes": 82,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L527"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "NativeWorldEpoch",
+      "kind": "impl",
+      "old_line": 445,
+      "latest_line": 454,
+      "identical": true,
+      "old_sha256": "7647625d0a7c2b04f97ff51526b701d6f363128ff3fcec14f6cec399db3280fa",
+      "latest_sha256": "7647625d0a7c2b04f97ff51526b701d6f363128ff3fcec14f6cec399db3280fa",
+      "old_bytes": 220,
+      "latest_bytes": 220,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L454"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "EntityRef",
+      "kind": "impl",
+      "old_line": 469,
+      "latest_line": 478,
+      "identical": true,
+      "old_sha256": "9971a259028f5c0b22c16396607b084c6fdcfb71c2787a23442a2764ee22c79e",
+      "latest_sha256": "9971a259028f5c0b22c16396607b084c6fdcfb71c2787a23442a2764ee22c79e",
+      "old_bytes": 397,
+      "latest_bytes": 397,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L478"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "LevelRef",
+      "kind": "impl",
+      "old_line": 523,
+      "latest_line": 532,
+      "identical": true,
+      "old_sha256": "b95ed25936c2661eda52c350be1243a534620c5aa061ed00cdcf15d277751c08",
+      "latest_sha256": "b95ed25936c2661eda52c350be1243a534620c5aa061ed00cdcf15d277751c08",
+      "old_bytes": 442,
+      "latest_bytes": 442,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L532"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_api.rs",
+      "item": "NativeAuthority",
+      "kind": "enum",
+      "old_line": 434,
+      "latest_line": 443,
+      "identical": true,
+      "old_sha256": "edd79a515de06e3190db170d5e0f6a02e35c8c85b9fb5e3fbfd6d9e5ca24032e",
+      "latest_sha256": "edd79a515de06e3190db170d5e0f6a02e35c8c85b9fb5e3fbfd6d9e5ca24032e",
+      "old_bytes": 114,
+      "latest_bytes": 114,
+      "latest_url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_api.rs#L443"
+    }
+  ],
+  "game_fields": [
+    {
+      "field": "world",
+      "old": "    world: World,\n",
+      "latest": "    world: World,\n",
+      "identical": true
+    },
+    {
+      "field": "dim",
+      "old": "    dim: Dim,\n",
+      "latest": "    dim: Dim,\n",
+      "identical": true
+    },
+    {
+      "field": "levels",
+      "old": "    levels: levels::Levels,\n",
+      "latest": "    levels: levels::Levels,\n",
+      "identical": true
+    },
+    {
+      "field": "remote",
+      "old": "    remote: Option<remote::Remote>,\n",
+      "latest": "    remote: Option<remote::Remote>,\n",
+      "identical": true
+    },
+    {
+      "field": "player",
+      "old": "    player: Option<PlayerMotion>,\n",
+      "latest": "    player: Option<PlayerMotion>,\n",
+      "identical": true
+    },
+    {
+      "field": "mobs",
+      "old": "    mobs: horizon_client::join_seq::JoinList<Mob>,\n",
+      "latest": "    mobs: horizon_client::join_seq::JoinList<Mob>,\n",
+      "identical": true
+    },
+    {
+      "field": "native_lifecycle",
+      "old": "    native_lifecycle: native_lifecycle::NativeLifecycle,\n",
+      "latest": "    native_lifecycle: native_lifecycle::NativeLifecycle,\n",
+      "identical": true
+    },
+    {
+      "field": "next_entity",
+      "old": "    next_entity: u32,\n",
+      "latest": "    next_entity: u32,\n",
+      "identical": true
+    },
+    {
+      "field": "breath_clouds",
+      "old": "    breath_clouds: Vec<dragon::Breath>,\n",
+      "latest": "    breath_clouds: Vec<dragon::Breath>,\n",
+      "identical": true
+    },
+    {
+      "field": "lan",
+      "old": "    lan: Option<lan::LanHost>,\n",
+      "latest": "    lan: Option<lan::LanHost>,\n",
+      "identical": true
+    },
+    {
+      "field": "lan_acting",
+      "old": "    lan_acting: Option<u32>,\n",
+      "latest": "    lan_acting: Option<u32>,\n",
+      "identical": true
+    },
+    {
+      "field": "lan_acting_uuid",
+      "old": "    lan_acting_uuid: Option<u128>,\n",
+      "latest": "    lan_acting_uuid: Option<u128>,\n",
+      "identical": true
+    },
+    {
+      "field": "lan_acting_entity",
+      "old": "    lan_acting_entity: Option<u32>,\n",
+      "latest": "    lan_acting_entity: Option<u32>,\n",
+      "identical": true
+    },
+    {
+      "field": "serving",
+      "old": "    serving: Option<integrated::Serving>,\n",
+      "latest": "    serving: Option<integrated::Serving>,\n",
+      "identical": true
+    },
+    {
+      "field": "options",
+      "old": "    options: Options,\n",
+      "latest": "    options: Options,\n",
+      "identical": true
+    }
+  ],
+  "unchanged_packaged_cloud_modules": [
+    {
+      "module_id": "pluto_native_creative-cloud-descriptor",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_cloud",
+      "visibility": "pub",
+      "source_file": "cloud-descriptor.rs",
+      "source_sha256": "4ef35cd998317a3f47fc2376d026e24e850d8331da4354987dc34791800c1a22"
+    },
+    {
+      "module_id": "pluto_native_creative-potion-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_potions",
+      "visibility": "pub",
+      "source_file": "potion-facts.rs",
+      "source_sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f"
+    },
+    {
+      "module_id": "pluto_native_creative-cloud-factory",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "pluto_cloud_factory",
+      "visibility": "pub(crate)",
+      "source_file": "cloud-factory.rs",
+      "source_sha256": "5e9e0a365a8595e69b92bd1315552f044d59fe7962e509594a478f4f7694f45d"
+    },
+    {
+      "module_id": "pluto_native_creative-lifecycle-readiness",
+      "file": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "name": "pluto_lifecycle_readiness",
+      "visibility": "pub(crate)",
+      "source_file": "lifecycle-readiness.rs",
+      "source_sha256": "d55de930fa4c9e9dd9eb293e5b919b2d8f57f76d879a57130bc0473dd59d5819"
+    },
+    {
+      "module_id": "pluto_native_creative-cloud-insertion",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_cloud_insertion",
+      "visibility": "pub(crate)",
+      "source_file": "cloud-insertion.rs",
+      "source_sha256": "374dd81a2483345319a029657b46adf8501c4de0036830b15f76708077a27033"
+    }
+  ],
+  "language_and_fluid_41f": {
+    "eight_critical_inputs": [
+      {
+        "path": "Cargo.lock",
+        "sha": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/Cargo.lock",
+        "f4dc_local_git_blob": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+        "identical": true,
+        "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "bytes": 135677
+      },
+      {
+        "path": "Cargo.toml",
+        "sha": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/Cargo.toml",
+        "f4dc_local_git_blob": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+        "identical": true,
+        "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640",
+        "bytes": 3546
+      },
+      {
+        "path": "crates/horizon-client-lib/Cargo.toml",
+        "sha": "c4543b069c9e114bf0c2de653694d853048ac62d",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client-lib/Cargo.toml",
+        "f4dc_local_git_blob": "c4543b069c9e114bf0c2de653694d853048ac62d",
+        "identical": true,
+        "sha256": "40dc61e95122f5318a63d83a6564d23ca9ed47cf938b457fa53153bfc533c9fc",
+        "bytes": 9914
+      },
+      {
+        "path": "crates/horizon-client-core/src/lang.rs",
+        "sha": "85a564816868ee69d39261651dd391cdd0ffd04d",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client-core/src/lang.rs",
+        "f4dc_local_git_blob": "85a564816868ee69d39261651dd391cdd0ffd04d",
+        "identical": true,
+        "sha256": "743734901c1fd5e0c3c2822ea0207d46c4ac04ad7768b6d93f3b0e235e72f417",
+        "bytes": 45102
+      },
+      {
+        "path": "crates/horizon-client-render/src/packs.rs",
+        "sha": "9a7d30115585e2f55546b6ea20fbf424caae1344",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client-render/src/packs.rs",
+        "f4dc_local_git_blob": "9a7d30115585e2f55546b6ea20fbf424caae1344",
+        "identical": true,
+        "sha256": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783",
+        "bytes": 74098
+      },
+      {
+        "path": "crates/horizon-mods/src/content.rs",
+        "sha": "9859be7e8a975e687b07679c76a3937ffa42938c",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-mods/src/content.rs",
+        "f4dc_local_git_blob": "9859be7e8a975e687b07679c76a3937ffa42938c",
+        "identical": true,
+        "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409",
+        "bytes": 90635
+      },
+      {
+        "path": "crates/horizon-client/src/client_lib.rs",
+        "sha": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/client_lib.rs",
+        "f4dc_local_git_blob": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+        "identical": true,
+        "sha256": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
+        "bytes": 5563
+      },
+      {
+        "path": "crates/horizon-client/src/mod_content.rs",
+        "sha": "b68f8cee6234f0cb0d272f216f42792dfc26c3e3",
+        "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-client/src/mod_content.rs",
+        "f4dc_local_git_blob": "b68f8cee6234f0cb0d272f216f42792dfc26c3e3",
+        "identical": true,
+        "sha256": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c",
+        "bytes": 117777
+      }
+    ],
+    "prior33": [
+      {
+        "path": "crates/horizon-client-core/src/lang.rs",
+        "f4dc_blob": "85a564816868ee69d39261651dd391cdd0ffd04d",
+        "latest_blob": "85a564816868ee69d39261651dd391cdd0ffd04d",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client-core/src/text.rs",
+        "f4dc_blob": "094f7b2e5e151e1d52aebdfb32a69b44d738628a",
+        "latest_blob": "094f7b2e5e151e1d52aebdfb32a69b44d738628a",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client-render/src/assets.rs",
+        "f4dc_blob": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+        "latest_blob": "05f0eae33e841c89d4da633bb16b1b9834297f18",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client-render/src/mesher/fluid.rs",
+        "f4dc_blob": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+        "latest_blob": "aaefd1d50ea893e5ab1f37acdb5b7df807cd20ce",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client-render/src/packs.rs",
+        "f4dc_blob": "9a7d30115585e2f55546b6ea20fbf424caae1344",
+        "latest_blob": "9a7d30115585e2f55546b6ea20fbf424caae1344",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client-render/src/packs/cache.rs",
+        "f4dc_blob": "e042589cf5a841af2906926481c9a8ef84aa952c",
+        "latest_blob": "e042589cf5a841af2906926481c9a8ef84aa952c",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/entities/fluids.rs",
+        "f4dc_blob": "3c049d5f647ffae08999aa7606b7def164605af6",
+        "latest_blob": "3c049d5f647ffae08999aa7606b7def164605af6",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/consume.rs",
+        "f4dc_blob": "3aa7e403c0377696b566ae056c4aafe023840cf1",
+        "latest_blob": "3aa7e403c0377696b566ae056c4aafe023840cf1",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/machines/native_fluids.rs",
+        "f4dc_blob": "6b0d056cd1225ec937031e75accda1bfb9dec024",
+        "latest_blob": "6b0d056cd1225ec937031e75accda1bfb9dec024",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/mods.rs",
+        "f4dc_blob": "75925d940913bb124b4ef94ff13009205b35aedd",
+        "latest_blob": "75925d940913bb124b4ef94ff13009205b35aedd",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/native_hooks.rs",
+        "f4dc_blob": "c33bf2d3f91ec010c11b041ff0f899e70e2b4522",
+        "latest_blob": "3ac4cfe8772b62c5735c628c1065a9be3f777800",
+        "identical": false
+      },
+      {
+        "path": "crates/horizon-client/src/game/native_item_fluids.rs",
+        "f4dc_blob": "4be8b73b845c12d098d283b30872684d24d5d872",
+        "latest_blob": "4be8b73b845c12d098d283b30872684d24d5d872",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/native_motion.rs",
+        "f4dc_blob": "84f234e7a9434f782cb354804d0ebf00bfebb4d6",
+        "latest_blob": "84f234e7a9434f782cb354804d0ebf00bfebb4d6",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/options.rs",
+        "f4dc_blob": "985ef180241372c56636b5785a9cff9a0c0e6acd",
+        "latest_blob": "985ef180241372c56636b5785a9cff9a0c0e6acd",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/packs.rs",
+        "f4dc_blob": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+        "latest_blob": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/potions.rs",
+        "f4dc_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+        "latest_blob": "956f140467bbd141d9703d50ff0b429710a6bc4e",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/game/remote.rs",
+        "f4dc_blob": "9b8b274fad4e5d00972e3ad52f3e0ecf857b7fcd",
+        "latest_blob": "adef7e6c240adacc6178d8bffffcdde7fdc62bc7",
+        "identical": false
+      },
+      {
+        "path": "crates/horizon-client/src/game/startup_menu.rs",
+        "f4dc_blob": "c8aa4a6721d502bf8a911d0aee9d1a900aa82f7b",
+        "latest_blob": "c8aa4a6721d502bf8a911d0aee9d1a900aa82f7b",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/mod_content.rs",
+        "f4dc_blob": "b68f8cee6234f0cb0d272f216f42792dfc26c3e3",
+        "latest_blob": "b68f8cee6234f0cb0d272f216f42792dfc26c3e3",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/mod_content_biomes.rs",
+        "f4dc_blob": "bf0649f6c6a03d1fb4b4fdd29dcda1dc330565e7",
+        "latest_blob": "bf0649f6c6a03d1fb4b4fdd29dcda1dc330565e7",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/motion.rs",
+        "f4dc_blob": "64a7f0a7695a1fc68fe423988592b51395ef666c",
+        "latest_blob": "64a7f0a7695a1fc68fe423988592b51395ef666c",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-client/src/motion/fluids.rs",
+        "f4dc_blob": "253c325fa1d52fe9b7eca2974104af9ed25d8b97",
+        "latest_blob": "253c325fa1d52fe9b7eca2974104af9ed25d8b97",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-core/src/prepared_files.rs",
+        "f4dc_blob": "2f9e8721845b3b68430a0665596ab3dc81c5109d",
+        "latest_blob": "2f9e8721845b3b68430a0665596ab3dc81c5109d",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/entity_fluid.rs",
+        "f4dc_blob": "a4c64e357070dcf09f8aa52abf8f91da38444932",
+        "latest_blob": "a4c64e357070dcf09f8aa52abf8f91da38444932",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/entity_fluid_tick.rs",
+        "f4dc_blob": "22e6fd4d26ce3c67acab376b993aa8104b43f6fb",
+        "latest_blob": "22e6fd4d26ce3c67acab376b993aa8104b43f6fb",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/fluid.rs",
+        "f4dc_blob": "ab03d6a52926cf2a982a9d0bcc76ed2f661fa333",
+        "latest_blob": "ab03d6a52926cf2a982a9d0bcc76ed2f661fa333",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/fluid_box.rs",
+        "f4dc_blob": "5632b652988680dba02ee25632fba22571765608",
+        "latest_blob": "5632b652988680dba02ee25632fba22571765608",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/fluid_flow.rs",
+        "f4dc_blob": "272a51dae2831a85d29f6d16b44ad5fe5b05adc7",
+        "latest_blob": "272a51dae2831a85d29f6d16b44ad5fe5b05adc7",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/fluid_occupancy.rs",
+        "f4dc_blob": "4432eca3b3337aed1935ce4a2918eeaf14adff45",
+        "latest_blob": "4432eca3b3337aed1935ce4a2918eeaf14adff45",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/fluid_shape.rs",
+        "f4dc_blob": "7df0a3b2d513ef48346dd2b85c27a49a380e8256",
+        "latest_blob": "7df0a3b2d513ef48346dd2b85c27a49a380e8256",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/level/fluids.rs",
+        "f4dc_blob": "98980f7ed7cfc3847aedbf671130a6865a635e5d",
+        "latest_blob": "98980f7ed7cfc3847aedbf671130a6865a635e5d",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/living_fluid.rs",
+        "f4dc_blob": "44cf7be241407268cb415292ac9b1cb7fbaa2924",
+        "latest_blob": "44cf7be241407268cb415292ac9b1cb7fbaa2924",
+        "identical": true
+      },
+      {
+        "path": "crates/horizon-world/src/registry_fluid.rs",
+        "f4dc_blob": "a122a89785f3eca5bda93436de020bbd0a914b1c",
+        "latest_blob": "a122a89785f3eca5bda93436de020bbd0a914b1c",
+        "identical": true
+      }
+    ],
+    "changes": "Only native_hooks.rs screen background/blur/tile additions and remote.rs skin publication optimization changed among the prior33 since f4dc. No fluid hook body change appears in the complete f4dc...41f compare; no mutable contact authority follows."
+  },
+  "minimal_adaptation_proposal": [
+    "Keep all five current cloud helper module bodies and consumer activation status unchanged; no production Rust delta is justified by the reviewed direct boundaries.",
+    "Prepare a separate 41f guard-metadata candidate only after freezing this source review; keep all 17 file pins and exact packaged module hashes, private placements, protected-state files and target-prefix exclusivity. Do not weaken to function-only hashes or delete the old rejection evidence.",
+    "Obtain the actual 41f/5a64 complete installed plan. Validate module owners/visibility/bytes and all conflicting injections/states/constructors against latest input hashes; do not synthesize old node/fingerprint IDs.",
+    "Run the guarded latest full apply and actual host lib+bin type gate before declaring port compatibility.",
+    "Run the existing four lifecycle/insertion rejection tests and two native construction tests in a real applied host harness when granted; retain explicit ownership/epoch/missing roster/remote/Ready, ID overflow and request attribution cases. Actual publication and guest/world runtime coverage remains separate.",
+    "For Windows11x64 gameplay, additionally complete the ordinary latest TConstruct composition/build and launch/resource checks. Pure helper14, Pack8, this audit and root probe do not establish playable TConstruct."
+  ]
+}
