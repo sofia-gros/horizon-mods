@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "status": "passed_for_exact_pure_api_composition",
+  "scope": "Same-crate inventory re-exports, old/new type compatibility and external typed storage examples. No native inventory commit or persistence.",
+  "source_cutoffs": {
+    "public_entry": "9954c098696945157022c0a29644ced334ef7874",
+    "legacy_example": "0e54bcb24571545f3bdde5bac7d1807fe60cbbd7",
+    "first_ci": "2ee73a700647a5a73142cd20fea065b44c8de598",
+    "final_ci": "7094f48e01dc17de65e0c0aa27eae418f07ec847"
+  },
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/inventory.rs": "beccd7c7cf82b5974bd84e1c58f8c0b5a29c2ea2085ce0f9ff88d33daea35d87",
+    "pluto-lib/examples/inventory/stage_proposals.rs": "76ba215f7594a949df262deb699790eae73c6c946051f43d85d0816911c51ae4",
+    "pluto-lib/examples/inventory/stage_proposals_public.rs": "068bac3893c040959c805c0c1bdb0e6868cf33cc4ed1608b4267834bbb2938ab"
+  },
+  "compatibility_cases": [
+    "inventory::tests::pair_reexport_keeps_logical_indexes_and_zero_request_behavior",
+    "inventory::tests::plan_move_reexport_keeps_results_errors_and_callback_order",
+    "inventory::tests::root_and_public_entry_types_are_interchangeable",
+    "inventory::tests::staging_reexport_keeps_independent_copies_order_and_rejection"
+  ],
+  "runs": [
+    {
+      "id": 42176619324,
+      "job_id": 127756443147,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42176619324",
+      "head": "2ee73a700647a5a73142cd20fea065b44c8de598",
+      "passed": true,
+      "error": null,
+      "inventory_test_count": 143,
+      "public_api_test_count": 58,
+      "guide_example_tests": 1,
+      "fluid_example_tests": 1,
+      "checked_bins": [
+        "storage",
+        "recipe_presentation",
+        "recipe_matching"
+      ],
+      "storage_bins": [
+        {
+          "name": "storage",
+          "type_checked": true,
+          "actual_build": true,
+          "exit_code": 0,
+          "assertions": 6
+        }
+      ],
+      "source_seal_sha256": "4f1abc476c17f6f4310930a1fd7fef54251af9c9dd61acac8f28e38d2a073393",
+      "generated_output_seal_sha256": "71dda8d1390d35810db62d2ce76f9ff22d063b77b7d7c0d3d96197b7b558ca85",
+      "minimum_free_bytes": 91284918272,
+      "limit": "This first run does not contain the new inventory entry or public-import example."
+    },
+    {
+      "id": 42177564770,
+      "job_id": 127759434877,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42177564770",
+      "head": "7094f48e01dc17de65e0c0aa27eae418f07ec847",
+      "passed": true,
+      "error": null,
+      "inventory_test_count": 147,
+      "public_api_test_count": 58,
+      "guide_example_tests": 1,
+      "fluid_example_tests": 1,
+      "checked_bins": [
+        "storage",
+        "recipe_presentation",
+        "recipe_matching",
+        "storage_public"
+      ],
+      "storage_bins": [
+        {
+          "name": "storage",
+          "type_checked": true,
+          "actual_build": true,
+          "exit_code": 0,
+          "assertions": 6
+        },
+        {
+          "name": "storage_public",
+          "type_checked": true,
+          "actual_build": true,
+          "exit_code": 0,
+          "assertions": 6
+        }
+      ],
+      "source_seal_sha256": "a38f16aea5491d8d8f1e6af5485e3d352085a7e1a980373e36dd9e02e7915e03",
+      "generated_output_seal_sha256": "71dda8d1390d35810db62d2ce76f9ff22d063b77b7d7c0d3d96197b7b558ca85",
+      "minimum_free_bytes": 91293237248
+    }
+  ],
+  "evidence_checks": [
+    "Completed run heads and successful job logs independently read.",
+    "All four required inventory compatibility test names passed within the complete 147-case library suite; zero ignored or filtered cases.",
+    "Both legacy and public examples type-checked and built with an observed actual rustc invocation, then executed separately with exit zero.",
+    "Both examples require Some(move) and successful proposals before their six assertions; no empty successful path.",
+    "Consumer Cargo metadata has exactly the two real API path packages and its own package; no substitute API or copied registry.",
+    "Full source/file-set/manifest/lock seals checked before and after execution; generated OUT_DIR seal unchanged at execution gates.",
+    "Only the public import differs between storage examples. Their frozen source bytes are unchanged."
+  ],
+  "counts_note": "The four compatibility cases are included in 147, not additional to it. The examples' six assertions each are ordinary executed assertions, not extra Cargo test cases.",
+  "dependency_reference": {
+    "repository": "horizon-rust/horizon",
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "usage": "Exact official Cargo.lock registry identities only; no official host compilation in this pure-API CI."
+  },
+  "limits": [
+    "No new native package apply/build, live Game, actual ItemStack storage, save/reload, notification, actor/world/slot authority, or LAN behavior is established.",
+    "No consumer migration or original PR repair is claimed.",
+    "The separate outer-tank 160-case native fixture remains unexecuted.",
+    "Introduction-time pending comments in the immutable example sources are superseded by these exact CI results; the examples were not edited after execution."
+  ]
+}

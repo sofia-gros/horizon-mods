@@ -84,15 +84,25 @@ The [legacy-import example](../examples/inventory/stage_proposals.rs) is retaine
 unchanged. The public-entry example changes only that import, leaving its
 consumer policy, six assertions and required-success checks identical.
 
-**Validation status:** the additive entry and its public example have not yet
-been compiled or executed. Four new crate tests cover old/new type identity,
-planner results and callback order, logical indexes, and detached staging.
-Those tests are unrun; the earlier API and legacy-example proofs do not cover
-this addition. Four Python source guards pass for the re-export-only surface,
-unchanged implementations, example imports and crate-source packaging; these
-are not Rust type checks. A future check must use the actual Cargo crate, not a copied
-implementation, declaration stub or disabled module set. Legacy-example CI is
-a separate, currently pending gate against its frozen source.
+**Validation status:** the public entry and both examples passed the exact
+[pure-API follow-up CI](https://github.com/sofia-gros/horizon-mods/actions/runs/42177564770)
+at `7094f48e01dc17de65e0c0aa27eae418f07ec847`. Four compatibility tests cover
+old/new type identity, planner results and callback order, logical indexes,
+and detached staging. They are included in the actual inventory crate's
+147 passing library tests, not four additional tests.
+
+An external consumer depended on both complete real API crates. Both storage
+examples were type-checked, built with observed rustc invocations and executed
+separately with exit zero, reaching six assertions each. No copied API, stub or
+disabled module set was used. Full source, file-set, manifest, lock and generated
+input seals stayed unchanged. Four Python source guards also pass, separately
+from Rust verification. See the [exact storage evidence](inventory-public-entry-validation-20261106.json).
+
+The earlier `2ee73a7` CI covered the legacy example against a 143-test inventory
+API, not this public entry. The frozen example headers record their pending
+status at introduction; these later results supersede that status without
+changing their executed source. This is pure-crate verification, not a native
+package apply, live inventory commit, save/reload or notification test.
 
 ## Keep the boundaries separate
 
