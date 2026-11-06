@@ -1,12 +1,13 @@
 // Minecraft 1.20.1 SimpleJsonResourceReloadListener uses a Java HashMap for
 // successfully parsed JSON recipes. RecipeManager retains that iteration
-// order for each type. Not connected to gameplay yet.
+// order for each type. The builder/station lookup retains this source policy;
+// this helper does not replace official Horizon recipe registration order.
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum OrderError { InvalidId, TreeBin }
 
 fn string_hash(s: &str) -> u32 {
-    s.encode_utf16().fold(0u32, |hash, c| hash.wrapping_mul(31).wrapping_add(u32::from(c)))
+    horizon_client::pluto_inventory::java_hashmap::utf16_hash(s.encode_utf16())
 }
 fn components(id: &str) -> Result<(&str, &str), OrderError> {
     let (namespace, path) = id.split_once(':').ok_or(OrderError::InvalidId)?;
@@ -16,20 +17,8 @@ fn components(id: &str) -> Result<(&str, &str), OrderError> {
 fn hash(id: &str) -> Result<u32, OrderError> {
     let (namespace, path) = components(id)?;
     let value = string_hash(namespace).wrapping_mul(31).wrapping_add(string_hash(path));
-    Ok(value ^ (value >> 16))
+    Ok(value)
 }
-fn resize(buckets: &mut Vec<Vec<(u32, String)>>) {
-    let old_capacity = buckets.len();
-    let mut next = vec![Vec::new(); old_capacity * 2];
-    for (index, bucket) in std::mem::take(buckets).into_iter().enumerate() {
-        for entry in bucket {
-            let target = if entry.0 & old_capacity as u32 == 0 { index } else { index + old_capacity };
-            next[target].push(entry);
-        }
-    }
-    *buckets = next;
-}
-
 /// Input must contain *all* successfully parsed recipe IDs, including Forge
 /// `_` metadata. Missing vanilla/Forge/mod files would change table capacity
 /// and therefore the result. Tree bins are deliberately rejected until their
@@ -40,21 +29,10 @@ pub(super) fn java_recipe_order(ids: &[String]) -> Result<Vec<String>, OrderErro
     for id in ids { let (namespace, path) = components(id)?; ordered.push((path.to_owned(), namespace.to_owned(), id.clone())); }
     ordered.sort();
     ordered.dedup_by(|a, b| a.2 == b.2);
-    let mut buckets = vec![Vec::<(u32, String)>::new(); 16];
-    let mut size = 0usize;
-    for (_, _, id) in ordered {
-        let h = hash(&id)?;
-        let slot = h as usize & (buckets.len() - 1);
-        let treeify = buckets[slot].len() >= 8;
-        buckets[slot].push((h, id));
-        size += 1;
-        if treeify {
-            if buckets.len() >= 64 { return Err(OrderError::TreeBin); }
-            resize(&mut buckets);
-        }
-        if size > buckets.len() * 3 / 4 { resize(&mut buckets); }
-    }
-    Ok(buckets.into_iter().flatten().map(|(_, id)| id).collect())
+    let hashes = ordered.iter().map(|(_, _, id)| hash(id)).collect::<Result<Vec<_>, _>>()?;
+    let order = horizon_client::pluto_inventory::java_hashmap::linked_iteration_order(&hashes)
+        .map_err(|_| OrderError::TreeBin)?;
+    Ok(order.into_iter().map(|index| ordered[index].2.clone()).collect())
 }
 
 #[cfg(test)]

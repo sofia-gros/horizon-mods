@@ -1,0 +1,9 @@
+{
+  "base": "4f3140014c588c4665ca5f7108b9fac449e8c7f3",
+  "legacy_path": "tconstruct/mixins/tconstruct/recipe-order.rs",
+  "legacy_sha256": "931aba855339672355d5bd9a98d5f0d534cb8c043f6083b05fd4eaa0df5f183b",
+  "native_activation": false,
+  "java_oracle_sha256": "0f9c5db7e15fb0b66b173bba90a051ce9b7b8244b2cbd165b4cb7b0a784a34fa",
+  "official_target": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_crafting_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4"
+}

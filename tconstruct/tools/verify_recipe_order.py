@@ -51,10 +51,8 @@ def main():
     if process.wait() != 0: raise RuntimeError('git archive failed')
     ids = list(recipes)
     with tempfile.TemporaryDirectory(prefix='recipe-order-') as temp:
-        binary = Path(temp) / 'recipe-order'
-        subprocess.run(['rustc', str(ROOT / 'tests/rust/recipe_order_dump.rs'), '-o', str(binary)], check=True)
         subprocess.run(['javac', '-d', temp, str(ROOT / 'tests/reference/RecipeOrderOracle.java')], check=True)
-        rust = subprocess.check_output([str(binary)], input='\n'.join(ids) + '\n', text=True)
+        rust = subprocess.check_output(['cargo', 'run', '--quiet', '--locked', '--offline', '--manifest-path', str(ROOT / 'tests/recipe-order/Cargo.toml'), '--bin', 'recipe-order'], input='\n'.join(ids) + '\n', text=True)
         java = subprocess.check_output(['java', '-cp', temp, 'RecipeOrderOracle', *ids], text=True)
     if rust != java: raise RuntimeError('Rust order differs from the Java oracle')
     print(f'PASS: {len(ids)} recipe IDs; order SHA-256 {hashlib.sha256(rust.encode()).hexdigest()}')

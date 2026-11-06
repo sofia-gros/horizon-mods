@@ -1,0 +1,14 @@
+{
+  "status": "source_checkpoint_rust_unverified",
+  "source_base": "4f3140014c588c4665ca5f7108b9fac449e8c7f3",
+  "official_source_review_target": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "python_source_guards": {
+    "passed": 6,
+    "adversarial_policy_mutations_rejected": 4
+  },
+  "rust_fixture": "not_run",
+  "full_pinned_java_comparison": "not_run",
+  "native_package_validation": "not_run",
+  "gameplay": "not_run",
+  "production_automatic_hooks_added": false
+}
