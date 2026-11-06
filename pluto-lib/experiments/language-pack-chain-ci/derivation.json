@@ -1,0 +1,173 @@
+{
+  "base": "ce495a88afe32b6322703ad778263a90b2bb98a9",
+  "literal_replacements": {
+    "run.py": [
+      {
+        "before": "language-overlay",
+        "after": "language-pack-chain",
+        "occurrences": 4
+      },
+      {
+        "before": "language_overlay",
+        "after": "language_pack_chain",
+        "occurrences": 1
+      },
+      {
+        "before": "Exact official mod_content::build baseline; no merge repair, Game or UI claim.",
+        "after": "Exact official pack to Mod language baseline; no priority repair or Game authority claim.",
+        "occurrences": 1
+      },
+      {
+        "before": "BASE='783deeb11bbe63e72bbaefc1954439c3219d4f9a'",
+        "after": "BASE='970e8160d4720b5ad32492d1453720b8238eec16'",
+        "occurrences": 1
+      },
+      {
+        "before": "len(expected)!=8 or len(set(expected))!=8",
+        "after": "len(expected)!=6 or len(set(expected))!=6",
+        "occurrences": 1
+      },
+      {
+        "before": "!=[8]",
+        "after": "!=[6]",
+        "occurrences": 1
+      },
+      {
+        "before": "complete eight-case overlay baseline group",
+        "after": "complete six-case pack chain baseline group",
+        "occurrences": 1
+      },
+      {
+        "before": "['horizon_client_core','horizon_mods','horizon_client_lib']",
+        "after": "['horizon_client_core','horizon_mods','horizon_client_lib','horizon_client_render']",
+        "occurrences": 2
+      },
+      {
+        "before": "['pluto-language-pack-chain-fixture','horizon-client-core','horizon-mods','horizon-client-lib']",
+        "after": "['pluto-language-pack-chain-fixture','horizon-client-core','horizon-mods','horizon-client-lib','horizon-client-render']",
+        "occurrences": 1
+      },
+      {
+        "before": "'native8',cmd+['--','--test-threads=1'],8,expected",
+        "after": "'native6',cmd+['--','--test-threads=1'],6,expected",
+        "occurrences": 1
+      },
+      {
+        "before": "actual public mod_content::build and PathBuf ResourceSource; owned minimal fixture roots; no Game admission, priority repair or live UI",
+        "after": "actual public packs and mod_content::build with PathBuf ResourceSource; owned minimal fixture roots; no Game authority, priority repair or live UI",
+        "occurrences": 1
+      },
+      {
+        "before": "Actual official mod_content::build, Package/Content and native Language on eight owned minimal baseline cases. Existing whole-file Mod overlay only. No installed Game admission, selected/server pack merge or filters, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+        "after": "Actual official packs::folder/enabled/server_pack/build_overlay to mod_content::build and Language on six owned baseline cases. Existing selected/server order, filters and whole-file Mod overlay. No installed Game admission, Game pack selection authority, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+        "occurrences": 1
+      },
+      {
+        "before": "## Native language overlay baseline contracts",
+        "after": "## Native pack to Mod language baseline contracts",
+        "occurrences": 1
+      }
+    ],
+    "prepare.py": [
+      {
+        "before": "language-overlay",
+        "after": "language-pack-chain",
+        "occurrences": 2
+      },
+      {
+        "before": "exact actual public mod_content::build/Language baseline fixture",
+        "after": "exact actual public packs/mod_content::build/Language baseline fixture",
+        "occurrences": 1
+      },
+      {
+        "before": "['horizon-mods','horizon-client-core','horizon-client-lib']",
+        "after": "['horizon-mods','horizon-client-core','horizon-client-lib','horizon-client-render']",
+        "occurrences": 2
+      }
+    ],
+    "test_runner.py": [
+      {
+        "before": "language-overlay",
+        "after": "language-pack-chain",
+        "occurrences": 15
+      },
+      {
+        "before": "language_overlay",
+        "after": "language_pack_chain",
+        "occurrences": 2
+      },
+      {
+        "before": "'expected':8",
+        "after": "'expected':6",
+        "occurrences": 1
+      },
+      {
+        "before": "len(names),8",
+        "after": "len(names),6",
+        "occurrences": 1
+      },
+      {
+        "before": "len(set(names)),8",
+        "after": "len(set(names)),6",
+        "occurrences": 1
+      },
+      {
+        "before": "source.count('#[test]'),8",
+        "after": "source.count('#[test]'),6",
+        "occurrences": 1
+      },
+      {
+        "before": "['horizon_client_core','horizon_mods','horizon_client_lib']",
+        "after": "['horizon_client_core','horizon_mods','horizon_client_lib','horizon_client_render']",
+        "occurrences": 1
+      },
+      {
+        "before": "['horizon-mods','horizon-client-core','horizon-client-lib']",
+        "after": "['horizon-mods','horizon-client-core','horizon-client-lib','horizon-client-render']",
+        "occurrences": 1
+      },
+      {
+        "before": "local('horizon-client-lib',host/'crates/horizon-client-lib')",
+        "after": "local('horizon-client-lib',host/'crates/horizon-client-lib'),local('horizon-client-render',host/'crates/horizon-client-render')",
+        "occurrences": 1
+      },
+      {
+        "before": "package('horizon-client-lib')",
+        "after": "package('horizon-client-lib')+package('horizon-client-render')",
+        "occurrences": 1
+      },
+      {
+        "before": "01ccfa4f115f06aed312931f1057adc958aac5de",
+        "after": "970e8160d4720b5ad32492d1453720b8238eec16",
+        "occurrences": 1
+      },
+      {
+        "before": "c['python_tests'],6",
+        "after": "c['python_tests'],7",
+        "occurrences": 1
+      },
+      {
+        "before": "c['cutoffs']['successful_package_runner'],'8b17fba9610c3e60a873c822f2fa04f93d5c94e4'",
+        "after": "c['cutoffs']['successful_overlay_runner'],'ce495a88afe32b6322703ad778263a90b2bb98a9'",
+        "occurrences": 1
+      },
+      {
+        "before": "selected/server pack merge or filters",
+        "after": "Game pack selection authority",
+        "occurrences": 2
+      }
+    ]
+  },
+  "workflow_replacements": [
+    {
+      "before": "language-overlay",
+      "after": "language-pack-chain",
+      "occurrences": 5
+    },
+    {
+      "before": "language overlay",
+      "after": "language pack chain",
+      "occurrences": 2
+    }
+  ]
+}
