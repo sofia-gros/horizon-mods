@@ -1,0 +1,51 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-language-repair-helper-ci-20261106",
+  "source": "489f63c54861225874efe99f11dbb0399fe8e1c7",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+  },
+  "runner_tests": 16,
+  "tests": [
+    "pluto_language_overlay::tests::adds_only_lower_keys_and_keeps_mod_conflicts",
+    "pluto_language_overlay::tests::unchanged_key_set_requests_original_higher_bytes",
+    "pluto_language_overlay::tests::empty_higher_retains_lower_keys_by_explicit_policy",
+    "pluto_language_overlay::tests::duplicates_in_either_layer_are_not_eligible",
+    "pluto_language_overlay::tests::unsupported_and_partial_documents_remain_ineligible",
+    "pluto_language_overlay::tests::unicode_and_placeholders_are_values_not_format_programs",
+    "pluto_language_overlay::tests::exact_input_byte_limit_is_enforced",
+    "pluto_language_overlay::tests::parser_and_union_entry_limits_are_enforced",
+    "pluto_language_overlay::tests::encoded_writer_never_grows_past_limit",
+    "pluto_language_overlay::tests::path_scope_rejects_other_resources_and_traversal",
+    "pluto_language_overlay::tests::missing_lower_and_ineligible_higher_keep_exact_borrow",
+    "pluto_language_overlay::tests::native_prepared_lower_is_read_only_and_mod_wins",
+    "pluto_language_overlay::tests::invalid_or_large_lower_preserves_original_higher",
+    "pluto_language_overlay::tests::lower_directory_is_not_opened_as_a_file"
+  ],
+  "source_sha256": {
+    ".github/workflows/language-repair-helper-wip.yml": "47f51d1d6a0c4759cb4e40963b4117b1954da5ad1c45c0cc878feb24ea1d5be1",
+    "pluto-lib/experiments/language-overlay-placement/Cargo.toml.in": "69e9c0377d69070646e096513189691e6efe69644ab69656d5dbd33c562d9ec9",
+    "pluto-lib/experiments/language-overlay-placement/README.md": "68c73dae1a986cf9a452a0e1a8ec57c5c25b4bae19ccd2b4be63e2de207f7c8c",
+    "pluto-lib/experiments/language-overlay-placement/fixture.rs": "38b493e51d5a49741608a3c8ff8fbc695366a9ef66b57febe405bb07086652d0",
+    "pluto-lib/experiments/language-overlay-placement/horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693",
+    "pluto-lib/experiments/language-overlay-placement/inputs.json": "f58ee59690be39f60bbc231f3c3c950aa0777796af6d39392f5c17a712fd97b0",
+    "pluto-lib/experiments/language-overlay-placement/prepare.py": "28404c81b622d7f1085380f01d6fd5380e55b227c3f0fc9c1e975113945b6b8e",
+    "pluto-lib/experiments/language-overlay-placement/source-validation.json": "59687c33a29fbba8754b298938eb3658f83c35eb6a83c0df9e0cd9232fc65214",
+    "pluto-lib/experiments/language-overlay-placement/stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e",
+    "pluto-lib/experiments/language-overlay-placement/test_source.py": "6bd8562ae0e6436c8ba0783fc91f7879c8961e9715a0e3abca5332de64b047b0",
+    "pluto-lib/experiments/language-overlay-placement/write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4",
+    "pluto-lib/experiments/language-overlay-repair/README.md": "25921902c3e912e6d7f38f45571cddf7403956a46b8fc46cd3ebbd36353312f8",
+    "pluto-lib/experiments/language-overlay-repair/inputs.json": "61d7b1ed8d3bd558a565eefdb855a38ee0cd0a45a3f58f62bbff7d0f61a5bd1d",
+    "pluto-lib/experiments/language-overlay-repair/merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+    "pluto-lib/experiments/language-overlay-repair/source-validation.json": "2a46f06d2654169934303cf279276f3f63f83824ffb9cbc9a3967005ce37b563",
+    "pluto-lib/experiments/language-overlay-repair/source.py": "012e65e0fe70e2c757663b760d1ef2a9b2118c54b1a16d87b04bda37e24be4c3",
+    "pluto-lib/experiments/language-overlay-repair/test_source.py": "6470b733cb3b298656cfd2fbeae7b0e1bd427f6a61495388c2e4b1bed377758b",
+    "pluto-lib/experiments/language-pack-chain-latest-ci/run.py": "23d359b2252769936cb1727dfa43a81a07f6d5e4ceae9154f396083c699c3ce4",
+    "pluto-lib/experiments/language-repair-helper-ci/README.md": "e0144b758acc05332d347d5acd2750afe81147cbe203c82c1d2054c025e52873",
+    "pluto-lib/experiments/language-repair-helper-ci/prepare.py": "f6905ed25aef9ec13ececd2e05b3e6331f3aa6804726e5382b47f60e4cf70347",
+    "pluto-lib/experiments/language-repair-helper-ci/run.py": "c25cbfbb337348cad376578f9c1ba07042c4fe8c4b0fed15c88bb0b5b0ef8778",
+    "pluto-lib/experiments/language-repair-helper-ci/test_runner.py": "5c23b105c15fe8a80819914926d09450144e679fe93eba1d62060f30dc05f9cc"
+  }
+}
