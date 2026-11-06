@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "status": "excluded source-only candidate; Rust and actual native type tests unrun",
+  "base_ci_head": "751999eaab8d7cd3e61312c698b134157feb7bfb",
+  "base_result": "a469b75c5f3d1a8f6f4a399903b27b99591d9fe6",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_sha256": {
+    "pluto-lib/experiments/guide-owned-opening/owned.rs": "81b6f4db5309f5cfe63d78e53ef268b928da41967d1034eba58ee8a3c29f3eb7",
+    "pluto-lib/experiments/guide-owned-opening/fixture.rs": "50803000cf238cea8d48ac925f4b52551af954c64d51650bb615418e90af54e5",
+    "pluto-lib/experiments/guide-owned-opening/book-view.rs": "578a90247018edcef1578cd5481df6c5eaa8894ae8f1f0b153ad9120ac70f978",
+    "pluto-lib/experiments/guide-owned-opening/check_source.py": "b0c1891c5cc314ae8afb9bed136a110b5bb71eec86a2c9236869649561c39820",
+    "pluto-lib/experiments/guide-owned-opening/README.md": "d3c1bd91bfd8049fcaccfd185a8f09a27e5bb2d9210cd165878aa5caf3468ce1",
+    "pluto-lib/experiments/guide-response-phase/native-patch/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+    "pluto-lib/experiments/guide-response-phase/native-patch/generate.py": "971d2e32683e0ad5016e3c8d7fac9a7ff97fb68862715a580aa14695f7c42f97",
+    "pluto-lib/experiments/guide-response-phase/native-patch/generation.json": "389a2050b280673643abd9f13d980a1536cf82953ab2e8e8af44c43f02fa262a",
+    "pluto-lib/experiments/guide-response-phase/native-patch/official-sources.json": "d4910639819e3d016aae8bc344e76c4bf1fdfea7e87a943f85102fdf9e834d39",
+    "pluto-lib/experiments/guide-response-phase/native-patch/prototype.patch": "fe77790980cf115f674ec593ea4efce9f9a8c11bcbcefd3f21af0781f0be0628",
+    "pluto-lib/experiments/guide-response-phase/native-patch/test_patch.py": "30d672c71174f7a18861afda6de88a2980df9b7c4a84015eb7439075f071e07c",
+    "pluto-lib/experiments/guide-response-phase/native-patch/HORIZON-LICENSE.txt": "b4b374ae9d0f2d8f7be35c6783e41327431da3b5662605da9ba31493630621df"
+  },
+  "ownership_tests": [
+    "identical_owned_reopen_revokes_old_owner",
+    "native_close_and_identical_restore_cannot_claim_old_owner",
+    "owner_from_other_slot_cannot_use_matching_contents",
+    "page_revision_rejects_old_observation_but_preserves_owner",
+    "attachment_reset_revokes_owner_without_removing_contents",
+    "dropping_prepared_guard_does_not_mutate_storage",
+    "exhausted_install_returns_exact_candidate_and_preserves_old_state",
+    "revision_exhaustion_rejects_before_any_change",
+    "old_value_drops_only_after_committed_state_is_observable",
+    "destructor_panic_after_commit_does_not_restore_old_storage"
+  ],
+  "original_storage_tests": 7,
+  "expected_total_inventory": 17,
+  "expected_ownership_passed": 10,
+  "expected_filtered": 7,
+  "rust_tests_unrun": true,
+  "native_type_candidate_unrun": true,
+  "native_open_evidence": {
+    "official_path": "crates/horizon-client/src/game/books.rs",
+    "official_source_sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "consumer_commit": "3190ed715fc1cd3b7a5031de4a317e0e88bfb1a1",
+    "consumer_path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+    "consumer_source_sha256": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+    "claim": "read-only source evidence only; no native opening adapter"
+  }
+}
