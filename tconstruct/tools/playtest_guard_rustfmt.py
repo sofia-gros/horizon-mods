@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import tarfile
 
-from playtest_pluto_inputs import directory, plain, signature
+from playtest_pluto_inputs import directory, plain, read_signature, require_opened_file
 
 URL = 'https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz'
 ARCHIVE_SHA256 = '488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa'
@@ -36,11 +36,11 @@ def bounded_file(path, limit):
     with path.open('rb') as stream:
         import os
         opened = os.fstat(stream.fileno()); plain(opened)
-        if signature(opened) != signature(before): raise ValueError('Formatter input changed before read')
+        require_opened_file(path, before, opened)
         raw = stream.read(limit + 1)
         after = os.fstat(stream.fileno()); plain(after)
     final = path.lstat(); plain(final)
-    if len(raw) != before.st_size or signature(after) != signature(before) or signature(final) != signature(before):
+    if len(raw) != before.st_size or read_signature(after) != read_signature(opened) or read_signature(final) != read_signature(before):
         raise ValueError('Formatter input changed during read')
     return raw
 

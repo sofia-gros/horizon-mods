@@ -1,0 +1,69 @@
+{
+  "head": "38e1b11df5191197e3f6129959d8c84fd4b666aa",
+  "run": 42253259752,
+  "job": 128013622320,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42253259752",
+  "terminal": "failure",
+  "completed_at": "2026-11-06T16:32:33Z",
+  "retrieved_job_log": {
+    "bytes": 22860,
+    "sha256": "ac7443421c23732830ee66d5e8b32ef2cfb06e3b483f9426d98de3bac4412565",
+    "published": false
+  },
+  "pure": {
+    "failed": 0,
+    "names": [
+      "test_actual_invocation_is_one_fixed_formatter",
+      "test_archive_mismatch_before_tar",
+      "test_assignment_failure_kills_barrier_only",
+      "test_assignment_precedes_worker_release",
+      "test_exact_four_official_sources",
+      "test_expected_sequential_invocation_counts",
+      "test_formatter_version_is_not_inferred",
+      "test_layout_and_three_process_limit",
+      "test_log_limit_before_read",
+      "test_low_space_never_starts",
+      "test_no_cargo_apply_or_game_entry",
+      "test_plan_is_exact_historical_bytes",
+      "test_preflight_rejects_nonwindows_without_network",
+      "test_runtime_and_guard_sources_remain_pinned",
+      "test_shared_phase_is_exact_successful_source",
+      "test_strict_named_count_and_no_skips",
+      "test_success_terminates_and_checks_own_job",
+      "test_three_process_job_exact_inverse",
+      "test_timeout_terminates_same_job",
+      "test_unknown_download_never_opens"
+    ],
+    "passed": 20,
+    "skipped": 0,
+    "tests": 20
+  },
+  "phases": [
+    {
+      "name": "pure",
+      "exit": 0,
+      "job_empty": true,
+      "seconds": 1.1099999999999994,
+      "log_bytes": 2128,
+      "log_sha256": "528ef345fcf42ed6cf47d7f7eff74c0ec9207f31e23e7c0810cb3d08a81e251d"
+    },
+    {
+      "name": "prepare",
+      "exit": 1,
+      "job_empty": true,
+      "seconds": 0.9059999999999917,
+      "log_bytes": 1277,
+      "log_sha256": "617296e01b27b813610af8106beb0cb5745533a6d461dff04e3b1e29c3393c43"
+    }
+  ],
+  "error": "RuntimeError: prepare failed",
+  "rejection": "ValueError: Formatter input changed before read",
+  "location": "playtest_guard_rustfmt.bounded_file(executable): cross lstat/fstat signature comparison",
+  "source_verified": true,
+  "formatter_version_observed": false,
+  "formatter_regenerations": 0,
+  "latest_composition_verified": false,
+  "apply_executed": false,
+  "game_build_executed": false,
+  "scope": "Windows input admission failure before actual rustfmt execution. No automatic retry. Archive/layout checks precede the reached frame but no completed preparation receipt exists."
+}

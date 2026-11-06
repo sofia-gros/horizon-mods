@@ -40,7 +40,7 @@
     },
     {
       "subject": "Windows execution validation",
-      "reason": "Historical5e14 Windows source43 tests/parser passed only. New explicit rustfmt archive admission, absolute guard routing and child Python UTF-8 are source-integrated but unexecuted on Windows. Regeneration, allguards, apply/build/link/startup pending."
+      "reason": "First Windows1.99.1 preparation run42253259752 failed before formatter execution at cross-API file stat comparison. Reviewed Windows-extension mode projection is source-integrated; 12 pure tests pass. Actual retry, regeneration, allguards/apply/build/link/startup pending."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -318,6 +318,20 @@
       "guard_admission_verified": false,
       "native_type_verified": false,
       "record": "pluto-lib/experiments/crafting-ordinary-intake/receipt.json"
+    },
+    "windows_formatter_first": {
+      "source": "38e1b11df5191197e3f6129959d8c84fd4b666aa",
+      "proof": "571b10f86d99666e6f8b247b951418a4ab166d39",
+      "run": 42253259752,
+      "job": 128013622320,
+      "completed_at": "2026-11-06T16:32:33Z",
+      "result": "failure",
+      "pure_passed": 20,
+      "formatter_executions": 0,
+      "source_verified": true,
+      "owned_jobs_empty": true,
+      "correction": "3adea9919061e3546b85a4c6668af8fa1547c3c8",
+      "record": "tconstruct/docs/windows-formatter-first-result-20261106.json"
     }
   },
   "safety": {
@@ -659,6 +673,15 @@
       "pending_observation_rejects": true,
       "runtime_or_manifest_changed": false,
       "actual_plan_or_game_or_lan": false
+    },
+    {
+      "subject": "Windows path/handle stat compatibility",
+      "source": "3adea9919061e3546b85a4c6668af8fa1547c3c8",
+      "paths": 6,
+      "pure_checks": 12,
+      "independent_review": "World CPython3.12 source and three-file inverse; central12tests and current input blob equality.",
+      "scope": "Windows four executable suffix mode projection only for cross-API comparison; original cache signature and exact same-API fields remain.",
+      "windows_retry_executed": false
     }
   ],
   "guide_limits": [

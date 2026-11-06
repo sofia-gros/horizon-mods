@@ -126,3 +126,10 @@ The two library-owned constructors share one cached stored-then-pair registratio
 The strict payload guard now checks the sole noncancellable RETURN, noncancelling callers and the exact private update module. Eleven synthetic tests passed centrally; its packaged-bundle test has not run in this intake. The original guard conditions are preserved with exact inverse evidence.
 
 Candidate observation and the official `poll_remote` fingerprint remain null, so the guard deliberately rejects until a fresh complete plan and the separate official Index observation are reviewed. This change does not edit runtime Rust or manifests and is not a Game, LAN or build success.
+
+
+## Windows formatter preparation correction
+
+The first Windows 1.99.1 formatter attempt stopped before executing rustfmt: all 20 pure tests passed, but path-stat and handle-stat modes differed during executable admission. The failure remains recorded. CPython adds filename execute bits for four Windows extensions only on path stat.
+
+The reviewed correction handles only that cross-API difference in three file-reading paths. Same-API modes and all other identity fields remain exact. Twelve source/model tests and independent review passed. The actual Windows retry, formatter regeneration, current composition, native link and game startup are still unverified.
