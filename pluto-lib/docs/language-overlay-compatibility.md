@@ -106,3 +106,26 @@ The real client-library dependency makes eventual compilation a separate native
 gate. Options/CURRENT mutation, cache installation, live reload and actual UI
 remain outside this fixture. Guide retains ownership of those caller/lifetime
 questions; no second locale owner or priority repair is introduced here.
+
+## Locale transitions still owned by the official caller
+
+At the same exact 624c source, `game/options.rs:391-393,465-471` dispatches
+Language to Game::load_language: load from options.resources, install through
+the native owner, refresh remote-language state, rewrap chat, then forget cached
+creative item names. `game/startup_menu.rs:523-529` is a different path: load
+from menu.root and save menu settings. The source hashes for both callers and
+remote.rs are now pinned in the baseline ledger; none is changed or executed.
+
+`game/packs.rs:441-449` reads the current selected code again before installing
+a staged reload. If the selection changed during preparation, it reloads the new
+root using that current code instead of installing the stale selection. A reload
+with the same code can still change strings, so a code-equality check is not a
+translation-generation or retained-screen invalidation contract.
+
+A new wrapper around lang::set alone would not execute all those owner-specific
+settings, remote and UI steps. The existing Key.resolve uses the single native
+current language each time; an already-resolved Text remains a span snapshot.
+No new locale setter, independent generation counter, event or retained Guide
+refresh is added here. A later UI proof must enter the actual appropriate caller
+and preserve its load/install/refresh order, including the stale-reload selection
+case. Neither Package8 nor this unrun overlay baseline is that proof.

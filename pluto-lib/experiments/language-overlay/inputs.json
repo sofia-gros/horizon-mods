@@ -52,6 +52,18 @@
     {
       "path": "crates/horizon-client-render/src/packs.rs",
       "sha256": "c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed"
+    },
+    {
+      "path": "crates/horizon-client/src/game/options.rs",
+      "sha256": "8b50db0d6dccfd1a5e9b0521c2ad28f87798404748b0179c38d4b8cab35d4b24"
+    },
+    {
+      "path": "crates/horizon-client/src/game/startup_menu.rs",
+      "sha256": "c8624302953019a1166a20b2ca76d96211c4cacecdad4bf3cf73fa8cc6254cd8"
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "sha256": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71"
     }
   ],
   "fixture_inputs": {

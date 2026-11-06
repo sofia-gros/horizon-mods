@@ -2,7 +2,7 @@
   "status": "source guards passed; native fixture uncompiled and unrun",
   "python": {
     "passed": 6,
-    "seconds": 0.085,
+    "seconds": 0.099,
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 pluto-lib/experiments/language-overlay/test_source.py --host <approved official 624c checkout>"
   },
   "native_tests": {
@@ -11,13 +11,14 @@
   },
   "history": [
     "Initial input-ledger preparation used the wrong nested biomes path and stopped before producing inputs.json; the subsequent guard invocation could not load that missing ledger.",
-    "The explicit native #[path = \"mod_content_biomes.rs\"] attribute was read, the ledger was corrected to that real path, and all six source guards then passed. No native execution or source change occurred."
+    "The explicit native #[path = \"mod_content_biomes.rs\"] attribute was read, the ledger was corrected to that real path, and all six source guards then passed. No native execution or source change occurred.",
+    "Added exact Options/startup-menu/remote caller hashes and source-only locale-transition documentation; all six source guards reran successfully. Fixture Rust bytes stayed unchanged."
   ],
   "files": {
     "test_source.py": "144698720692fdf363eb96ac4e250cfe3e3fa3d87bcd14f3ff8234073c05286c",
     "fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
     "Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
     "README.md": "d7660d91c48641e7bc040fcfdbd0f744242befaba84fc149c2e907af5f1885b7",
-    "inputs.json": "11d82e803bff1b7764910101e1c56e70c3a9b37d2b7bfcf16eab25146cf5ac5e"
+    "inputs.json": "ff5e580806d378628e38db0d378f3d7ec942b493612b19dbe89b91a0c7c8d316"
   }
 }
