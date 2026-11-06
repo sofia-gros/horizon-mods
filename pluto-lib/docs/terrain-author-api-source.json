@@ -1,0 +1,13 @@
+{
+  "base_runtime": "a432ce4561ae1c81448b37a5b19e71126d8c4e72",
+  "prerequisite": "Explicit u32 tint correction from60054; no other runtime modification",
+  "before_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "horizon-mixin.toml": "f7f11ce44573a04b4a6050eacf318423f22aaf593205d292dcb3b0f1b291ce6b"
+  },
+  "native_tests": "prepared, unexecuted",
+  "gpu": "unverified"
+}

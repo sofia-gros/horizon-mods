@@ -244,3 +244,80 @@ pub fn minimum_block_light(world_light: u8, minimum: u8) -> Result<u32, DrawErro
     let packed = (world_light & 0xf0) | (world_light & 15).max(minimum);
     Ok(horizon_client::block_entity_render::vertex_light(packed))
 }
+
+// BEGIN ADDITIVE TERRAIN AUTHOR FACADE
+/// Mod-facing entry points for prepared terrain cells. The implementation and
+/// registry remain in the renderer; these aliases and methods add no state.
+///
+/// Register during the mod's explicit client startup, before the first mesh.
+/// This is not an automatic initialization event or a content/physics registry.
+pub mod terrain {
+    use horizon_client::mesher::pluto_terrain_cells as implementation;
+    pub use horizon_client::mesher::pluto_terrain_bindings::{Appearance, Binding};
+    pub use horizon_client::mesher::pluto_terrain_cell_geometry::{
+        build, build_oriented, Batch, Cell, Error as GeometryError, Face, Heights,
+        Quad, Surface, TopDiagonal, Vertex, VerticalAnchor,
+    };
+    pub use horizon_client::mesher::pluto_terrain_cells::{
+        CellContext, MaterialContext, MaterialProvider, MaterialSlot, Neighborhood,
+        PaintedBatch, Provider, RegisterError, MAX_GROUP_BYTES, MAX_PROVIDERS,
+    };
+
+    /// One short entry to the existing startup-only renderer registry.
+    /// Copies share the same registry; dropping this value unregisters nothing.
+    pub const CELLS: CellRenderers = CellRenderers { _private: () };
+
+    #[derive(Clone, Copy, Debug)]
+    pub struct CellRenderers {
+        _private: (),
+    }
+    impl CellRenderers {
+        /// Register one pure material-aware renderer for a prepared group with
+        /// explicit appearance data. Default/no-appearance groups use geometry.
+        /// Missing preparation, incompatible native metadata or invalid output
+        /// still falls back to native rendering. Registration is not draw proof.
+        pub fn register(self, group: &str, renderer: MaterialProvider) -> Result<(), RegisterError> {
+            implementation::register_materials(&[(group, renderer)])
+        }
+        /// Atomically register material-aware groups in the same bounded map.
+        /// A duplicate, invalid group, full or frozen map publishes no member.
+        pub fn register_all(self, entries: &[(&str, MaterialProvider)]) -> Result<(), RegisterError> {
+            implementation::register_materials(entries)
+        }
+        /// Preserve the legacy geometry-only mode explicitly. It cannot claim
+        /// cells with explicit appearance data; use register for those cells.
+        pub fn register_geometry(self, group: &str, renderer: Provider) -> Result<(), RegisterError> {
+            implementation::register(group, renderer)
+        }
+        /// The original geometry-only batch API, without a new registry or limit.
+        pub fn register_geometry_all(self, entries: &[(&str, Provider)]) -> Result<(), RegisterError> {
+            implementation::register_all(entries)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        fn native_material(_: &MaterialContext<'_>) -> Option<PaintedBatch> { None }
+        fn native_geometry(_: &CellContext<'_>) -> Option<Batch> { None }
+        #[test]
+        fn facade_types_are_the_implementation_types() {
+            let material: implementation::MaterialProvider = native_material;
+            let geometry: implementation::Provider = native_geometry;
+            let _: MaterialProvider = material;
+            let _: Provider = geometry;
+            let _: fn(&Cell, VerticalAnchor) -> Result<Batch, GeometryError> = build_oriented;
+            assert_eq!(std::mem::size_of_val(&CELLS), 0);
+        }
+        #[test]
+        fn invalid_registration_retains_existing_validation_without_publishing() {
+            // Invalid selectors are rejected before locking/freezing, so this
+            // test neither changes global registration nor requires an empty map.
+            assert_eq!(CELLS.register("", native_material), Err(RegisterError::InvalidGroup));
+            assert_eq!(CELLS.register_all(&[("", native_material)]), Err(RegisterError::InvalidGroup));
+            assert_eq!(CELLS.register_geometry("", native_geometry), Err(RegisterError::InvalidGroup));
+            assert_eq!(CELLS.register_geometry_all(&[("", native_geometry)]), Err(RegisterError::InvalidGroup));
+        }
+    }
+}
+// END ADDITIVE TERRAIN AUTHOR FACADE
