@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "status": "source_only_rust_not_run",
+  "runtime_local_commit": "4c8158921100901700a45ebf47434989e4a2605b",
+  "runtime_published_commit": "4fee3bee7dc5d151bd31bd977316329a17f3564a",
+  "scope": "Exact production std-only helpers. No native Text/Font/Game, installed consumer, packets or LAN execution.",
+  "source_sha256": {
+    "tconstruct/mixins/tconstruct/source-materials-book-identity.rs": "041c225e40afdf1fe34e37ead32f89aabd8f56e97c5b62363e26722b5fbc45e8",
+    "tconstruct/mixins/tconstruct/source-materials-book-index.rs": "24189c1870efd5504ce6ba268abcdf197489c59ff624fb6c15b26bb2b474d1f2",
+    "tconstruct/tests/guide-identity-proof/fixture.rs": "961dd14fd6eeef3aaec36853f42ecf154af3cf7327e80a33ad69a1171a1e4e78"
+  },
+  "total_test_inventory": [
+    "identity::tests::source_item_root_and_title_pairs_are_unchanged",
+    "identity::tests::six_legacy_titles_and_body_suffixes_match_the_old_branches",
+    "identity::tests::near_titles_do_not_normalize_case_space_or_newlines",
+    "identity::tests::unknown_and_translated_titles_preserve_the_asymmetric_fallback",
+    "identity::tests::item_ids_are_exact_and_not_translated_titles_or_prefixes",
+    "index::modifier_anchor_tests::equal_titles_keep_distinct_source_destinations",
+    "index::modifier_anchor_tests::first_successful_chunk_wins_without_title_aliases",
+    "index::modifier_anchor_tests::unknown_or_differently_spelled_paths_do_not_acquire_offsets",
+    "index::modifier_anchor_tests::notice_shift_preserves_relative_offsets_and_missing_entries",
+    "index::modifier_anchor_tests::overflowing_notice_shift_is_atomic",
+    "index::tests::gadgetry_exploration_excludes_unimplemented_sources",
+    "index::tests::mighty_smeltery_only_exposes_selected_source_pages",
+    "index::tests::mighty_materials_only_include_nondistant_tier_three",
+    "index::tests::mighty_advice_needs_all_notice_labels",
+    "index::tests::mighty_advice_excludes_dynamic_groups_and_tank_page",
+    "index::tests::puny_melee_whitestone_exception_is_narrow_and_tier_bound",
+    "index::tests::empty_puny_material_chapter_is_omitted_without_changing_basic_book",
+    "index::tests::book_tiers_keep_puny_ranged_separate_from_basic_materials",
+    "index::tests::puny_armor_uses_source_order_and_leaves_unknowns_last",
+    "index::tests::index_labels_keep_names_and_bound_long_descriptions",
+    "index::tests::chapter_and_page_links_account_for_multiple_index_pages"
+  ],
+  "groups": [
+    {
+      "id": "book_identity5",
+      "prefix": "identity::tests::",
+      "count": 5,
+      "filtered": 16,
+      "names": [
+        "identity::tests::source_item_root_and_title_pairs_are_unchanged",
+        "identity::tests::six_legacy_titles_and_body_suffixes_match_the_old_branches",
+        "identity::tests::near_titles_do_not_normalize_case_space_or_newlines",
+        "identity::tests::unknown_and_translated_titles_preserve_the_asymmetric_fallback",
+        "identity::tests::item_ids_are_exact_and_not_translated_titles_or_prefixes"
+      ]
+    },
+    {
+      "id": "modifier_anchors5",
+      "prefix": "index::modifier_anchor_tests::",
+      "count": 5,
+      "filtered": 16,
+      "names": [
+        "index::modifier_anchor_tests::equal_titles_keep_distinct_source_destinations",
+        "index::modifier_anchor_tests::first_successful_chunk_wins_without_title_aliases",
+        "index::modifier_anchor_tests::unknown_or_differently_spelled_paths_do_not_acquire_offsets",
+        "index::modifier_anchor_tests::notice_shift_preserves_relative_offsets_and_missing_entries",
+        "index::modifier_anchor_tests::overflowing_notice_shift_is_atomic"
+      ]
+    }
+  ],
+  "compile": {
+    "edition": "2021",
+    "crate_name": "guide_identity_tests",
+    "fixture": "tconstruct/tests/guide-identity-proof/fixture.rs",
+    "cargo": false,
+    "debug_info": 0
+  }
+}
