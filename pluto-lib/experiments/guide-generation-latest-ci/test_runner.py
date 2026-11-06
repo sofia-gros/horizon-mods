@@ -26,6 +26,21 @@ def results(names):
 class Checks(unittest.TestCase):
     def test_frozen_controller_and_actual_inputs(self):
         value,p=m.config();self.assertEqual(value['base'],m.BASE);self.assertEqual(len(p['api_sha256']),29)
+
+    def test_workspace_diagnostic_is_bounded_and_does_not_admit(self):
+        metadata={'packages':[{'id':'api','name':'pluto-inventory-api','manifest_path':'/fixture/inventory-api/Cargo.toml'}],
+                  'workspace_members':['api'],'workspace_default_members':['api'],'workspace_root':'/fixture'}
+        before=copy.deepcopy(metadata);detail=m.workspace_diagnostic(metadata)
+        self.assertEqual(detail['members'][0],{'id':'api','name':'pluto-inventory-api','manifest_path':'/fixture/inventory-api/Cargo.toml'})
+        self.assertFalse(detail['truncated']);self.assertEqual(metadata,before)
+        with self.assertRaises(ValueError):m.prep.verify_workspace(Path('/fixture'),metadata)
+        metadata['workspace_members']=['x'*1000]*100;metadata['workspace_root']='y'*1000
+        detail=m.workspace_diagnostic(metadata)
+        self.assertTrue(detail['truncated']);self.assertEqual(detail['member_count'],100)
+        self.assertEqual(len(detail['members']),8);self.assertLess(len(json.dumps(detail)),8000)
+        source=(HERE/'run.py').read_text()
+        self.assertLess(source.index("print('WORKSPACE_METADATA'"),source.index('prep.verify(fixture,metadata)'))
+
     def test_public_exact_push_gate(self):
         env={'GITHUB_ACTIONS':'true','GITHUB_REPOSITORY':m.REPOSITORY,'GITHUB_EVENT_NAME':'push','GITHUB_REF':'refs/heads/'+m.BRANCH,'GITHUB_SHA':'head'}
         event={'repository':{'private':False,'full_name':m.REPOSITORY}}
@@ -73,13 +88,13 @@ class Checks(unittest.TestCase):
         self.assertNotIn('CARGO_PKG_HOMEPAGE',output.getvalue())
     def test_verbose_suite_obeys_inherited_parent_parser(self):
         names=unittest.defaultTestLoader.getTestCaseNames(Checks)
-        names.remove('test_verbose_suite_obeys_inherited_parent_parser');self.assertEqual(len(names),19)
+        names.remove('test_verbose_suite_obeys_inherited_parent_parser');self.assertEqual(len(names),20)
         output=io.StringIO()
         with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
             result=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite(Checks(n) for n in names))
-        self.assertTrue(result.wasSuccessful(),output.getvalue());self.assertEqual(result.testsRun,19)
+        self.assertTrue(result.wasSuccessful(),output.getvalue());self.assertEqual(result.testsRun,20)
         self.assertNotIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
-        m.old.python_pass(output.getvalue(),19)
+        m.old.python_pass(output.getvalue(),20)
     def test_actual_single_test_artifact(self):
         meta=graph();row=artifact_row(meta)
         self.assertEqual(m.artifact(json.dumps(row),meta,Path('/target')),Path('/target/debug/deps/test-binary'))

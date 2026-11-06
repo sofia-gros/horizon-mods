@@ -49,3 +49,25 @@ parent depth did not exist. It was moved into the intended repository-shaped
 source directory, without changing runtime code. Fourteen pure structural tests
 then passed. A final source/hash test is also included for the actual frozen
 Mod input and complete API set; that is source evidence, not native execution.
+
+## Explicit single-root workspace correction
+
+The first actual run at `a4ebdab1` prepared the fixture and completed offline
+metadata, but rejected workspace membership before Rust compilation. The raw
+member set is unavailable; the false result is preserved separately. The
+[Cargo workspace contract](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-members-and-exclude-fields)
+automatically includes in-tree path dependencies unless excluded. The generated
+manifest now explicitly excludes `inventory-api` from workspace membership and
+sets `default-members = ["."]`. It remains the exact same path dependency, with
+unchanged features, manifest bytes, lock-identity restrictions and source copies.
+The root package remains the only test package. No extra workspace member is
+accepted to bypass the old rejection.
+
+Metadata must now report exactly the fixture ID as its sole member and default
+member, with the exact fixture workspace root. Unknown, duplicate, missing, API
+or redirected members/defaults/roots are rejected. Three additional pure tests
+bring this preparer to eighteen checks; they model metadata, not actual Cargo
+resolution. The corrected generated manifest awaits a separately reviewed run.
+The controller prints bounded member/default-member IDs, names, manifest paths
+and root before admission, with counts/truncation flags. That diagnostic does not
+change the full strict checks or the complete metadata byte/hash receipt.

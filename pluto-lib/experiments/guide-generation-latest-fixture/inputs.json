@@ -97,8 +97,8 @@
   "expected_inventory": 21,
   "expected_filtered": 15,
   "preparer_sha256": {
-    "prepare.py": "640c4a86ffeee3365502a5bde7e18973553383143a4c9d10a8cc4e87a6949767",
-    "test_prepare.py": "bc4572f263a441a03ef8a6cd928c78853e94d155ed2fb100e7180ee53c46e8b5",
-    "README.md": "81b236b54ce17bbd53ab27be8c96efa33e6f459aeb2ca141337a50730cd328cb"
+    "prepare.py": "823da1b6d7bcc3d1345f0f9454cddb4f95e8425cde23f04167c70038db841ba2",
+    "test_prepare.py": "c974e5d02fd70388c1e7c7715d462bfb8522405235f3a3b152c9bb2475d47f84",
+    "README.md": "7bf0b783c4d5bf6dc8b80b009b90d745bbf9a2b993211e8d4ff5d742b867c64e"
   }
 }

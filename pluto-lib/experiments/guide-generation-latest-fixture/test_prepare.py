@@ -1,4 +1,5 @@
 """Pure source/wiring checks. No native checkout, metadata or Rust execution."""
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -52,6 +53,8 @@ class Checks(unittest.TestCase):
             p=Path(d);(p/'Cargo.toml').write_text('[patch.crates-io]\n'+''.join(n+'={path="third_party/'+n+'"}\n' for n in ['wgpu-hal','naga','libmimalloc-sys']))
             v=tomllib.loads(m.manifest(p))
             self.assertEqual(set(v['patch']['crates-io']),{'wgpu-hal','naga','libmimalloc-sys'})
+            self.assertEqual(v['workspace'],{'exclude':['inventory-api'],'default-members':['.']})
+            self.assertEqual(v['dependencies']['pluto-inventory-api'],{'path':'inventory-api'})
             self.assertEqual(v['dependencies']['horizon-client-render']['default-features'],False)
             self.assertEqual(v['dependencies']['horizon-client-core']['path'],str(p/'crates/horizon-client-core'))
     def test_manifest_rejects_unreviewed_or_escaping_patch(self):
@@ -91,6 +94,30 @@ class Checks(unittest.TestCase):
         self.assertEqual(v['source_publication'],'d1941c7702cf9ce45c4f245962e83148c8a26806')
         self.assertEqual(v['prior_font12'],'49a2401eb3957e0766c8e68adbc45d69882aa793')
         self.assertIn('No workflow/runner', (HERE/'README.md').read_text())
+
+
+    @staticmethod
+    def workspace():
+        return {'packages':[{'name':'pluto-guide-generation-tests','id':'fixture'},
+                            {'name':'pluto-inventory-api','id':'api'}],
+                'workspace_members':['fixture'],'workspace_default_members':['fixture'],
+                'workspace_root':'/fixture'}
+    def test_exact_root_member_keeps_api_as_dependency(self):
+        metadata=self.workspace();before=copy.deepcopy(metadata)
+        m.verify_workspace(Path('/fixture'),metadata)
+        self.assertEqual(metadata,before)
+    def test_extra_duplicate_missing_or_api_member_rejects(self):
+        for members in [[],['api'],['fixture','api'],['fixture','foreign'],['fixture','fixture']]:
+            metadata=self.workspace();metadata['workspace_members']=members
+            with self.assertRaises(ValueError):m.verify_workspace(Path('/fixture'),metadata)
+        metadata=self.workspace();metadata['packages'].append(dict(metadata['packages'][0]))
+        with self.assertRaises(ValueError):m.verify_workspace(Path('/fixture'),metadata)
+    def test_default_member_and_root_must_match_fixture(self):
+        for defaults in [[],['api'],['fixture','api'],['fixture','fixture']]:
+            metadata=self.workspace();metadata['workspace_default_members']=defaults
+            with self.assertRaises(ValueError):m.verify_workspace(Path('/fixture'),metadata)
+        metadata=self.workspace();metadata['workspace_root']='/other'
+        with self.assertRaises(ValueError):m.verify_workspace(Path('/fixture'),metadata)
 
     def test_frozen_current_source_inputs_and_full_api_set(self):
         value=json.loads((HERE/'inputs.json').read_text())

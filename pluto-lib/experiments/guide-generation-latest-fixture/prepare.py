@@ -45,7 +45,7 @@ def manifest(host):
     native = tomllib.loads(read(host,'Cargo.toml').decode())
     patches = native['patch']['crates-io']
     require(set(patches)=={'wgpu-hal','naga','libmimalloc-sys'}, 'official patch set changed')
-    result = '[package]\nname="pluto-guide-generation-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[lib]\npath="lib.rs"\n[dependencies]\npluto-inventory-api={path="inventory-api"}\n'
+    result = '[package]\nname="pluto-guide-generation-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\nexclude=["inventory-api"]\ndefault-members=["."]\n[lib]\npath="lib.rs"\n[dependencies]\npluto-inventory-api={path="inventory-api"}\n'
     for name in ['horizon-client-core','horizon-client-render']:
         result += name+'={path='+json.dumps(str(host/'crates'/name))+',default-features=false}\n'
     result += '[patch.crates-io]\n'
@@ -110,6 +110,14 @@ def identity(package):
     return tuple(package.get(k) for k in ['name','version','source','checksum'])
 
 
+def verify_workspace(output, metadata):
+    # Exclusion keeps the copied API a dependency, not another test member.
+    own=[p['id'] for p in metadata['packages'] if p['name']=='pluto-guide-generation-tests']
+    require(len(own)==1 and metadata['workspace_members']==own,'wrong fixture workspace')
+    require(metadata['workspace_default_members']==own,'wrong fixture default members')
+    require(Path(metadata['workspace_root']).resolve()==output.resolve(),'wrong fixture workspace root')
+
+
 def verify(output, metadata):
     value=config();evidence=json.loads(read(output,'fixture-sources.json'))
     host=Path(evidence['official_root']);check_official_inputs(host,value)
@@ -141,8 +149,7 @@ def verify(output, metadata):
             require(path.is_relative_to(host.resolve()),'external local dependency')
     require(found==set(local),'missing actual fixture/API')
     require(len(set(package_ids))==len(package_ids),'duplicate metadata package')
-    own=[p['id'] for p in metadata['packages'] if p['name']=='pluto-guide-generation-tests']
-    require(metadata['workspace_members']==own and len(own)==1,'wrong fixture workspace')
+    verify_workspace(output, metadata)
     for name in ['horizon-client-core','horizon-client-render']:
         candidates=[p for p in metadata['packages'] if p['name']==name]
         require(len(candidates)==1 and candidates[0]['source'] is None and Path(candidates[0]['manifest_path']).resolve()==host/'crates'/name/'Cargo.toml','wrong actual native dependency')

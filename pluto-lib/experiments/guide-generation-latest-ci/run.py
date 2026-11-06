@@ -17,8 +17,8 @@ PREP='pluto-lib/experiments/guide-generation-latest-fixture'
 UTILITY=['pluto-lib/experiments/guide-storage-ci/run.py','tconstruct/tests/guide-identity-ci/run.py']
 NATIVE=['horizon-client-core','horizon-client-render']
 NAME='pluto-guide-generation-tests'
-RUNNER_TESTS=20
-REQUIRED={'runner','preparer15','source6','toolchain','official','metadata','compile','inventory21','generation6'}
+RUNNER_TESTS=21
+REQUIRED={'runner','preparer18','source6','toolchain','official','metadata','compile','inventory21','generation6'}
 
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,path)
@@ -42,6 +42,29 @@ def config():
     if (len(p['inventory_names']),len(set(p['inventory_names'])),len(p['generation_names']),len(set(p['generation_names'])))!=(21,21,6,6):raise ValueError('Wrong fixture inventory')
     if set(p['generation_names'])!={n for n in p['inventory_names'] if n.startswith('consumer_tests::generation_tests::')}:raise ValueError('Wrong bounded generation filter')
     return value,p
+
+def workspace_diagnostic(metadata):
+    # Bounded public ownership facts only. Full metadata stdout already has a
+    # byte/hash receipt; truncation here never affects strict admission.
+    members=metadata.get('workspace_members',[])
+    defaults=metadata.get('workspace_default_members',[])
+    known={p.get('id'):p for p in metadata.get('packages',[])}
+    def rows(ids):
+        result=[]
+        for ident in ids[:8]:
+            package=known.get(ident,{})
+            result.append({key:str(value)[:240] for key,value in {
+                'id':ident,'name':package.get('name'),
+                'manifest_path':package.get('manifest_path')}.items()})
+        return result
+    return {'workspace_root':str(metadata.get('workspace_root'))[:240],
+            'member_count':len(members),'default_member_count':len(defaults),
+            'members':rows(members),'default_members':rows(defaults),
+            'truncated':len(members)>8 or len(defaults)>8 or
+                any(len(str(value))>240 for ids in [members,defaults] for ident in ids[:8]
+                    for value in [ident,known.get(ident,{}).get('name'),known.get(ident,{}).get('manifest_path')]) or
+                len(str(metadata.get('workspace_root')))>240}
+
 
 def event(env,event,head):
     if (env.get('GITHUB_ACTIONS')!='true' or env.get('GITHUB_REPOSITORY')!=REPOSITORY or
@@ -134,7 +157,7 @@ def execute(report):
     host=work/'official';fixture=work/'fixture';target=work/'target'
     host_before=None;fixture_before=None;generated=None;binary=None;compiled=None;metadata=None;g=report['gates']
     try:
-        for gate,path,count in [('runner',HERE/'test_runner.py',RUNNER_TESTS),('preparer15',ROOT/PREP/'test_prepare.py',15),('source6',ROOT/'tconstruct/tests/guide-generation-query/test_source.py',6)]:
+        for gate,path,count in [('runner',HERE/'test_runner.py',RUNNER_TESTS),('preparer18',ROOT/PREP/'test_prepare.py',18),('source6',ROOT/'tconstruct/tests/guide-generation-query/test_source.py',6)]:
             old.python_pass(runner.run(gate,[sys.executable,str(path),'-v']),count);g[gate]={'passed':True,'tests':count}
         runner.run('apt-update',['sudo','apt-get','update'],timeout=600)
         runner.run('apt-install',['sudo','apt-get','install','-y','libasound2-dev','libudev-dev'],timeout=600)
@@ -153,7 +176,9 @@ def execute(report):
         runner.run('locked-fetch',['cargo','fetch','--locked','--manifest-path',str(host/'Cargo.toml')],cwd=host,timeout=900)
         runner.run('prepare',[sys.executable,str(HERE/'run.py'),'--prepare',str(host),str(fixture)])
         raw=runner.run('fixture-metadata',['cargo','metadata','--offline','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,separate_stdout=True)
-        metadata=json.loads(raw);prep.verify(fixture,metadata)
+        metadata=json.loads(raw)
+        print('WORKSPACE_METADATA',json.dumps(workspace_diagnostic(metadata),sort_keys=True),flush=True)
+        prep.verify(fixture,metadata)
         locked=runner.run('locked-metadata',['cargo','metadata','--locked','--offline','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,separate_stdout=True)
         if json.loads(locked)!=metadata:raise ValueError('Resolved metadata changed')
         fixture_before=seal(fixture);g['metadata']={'sha256':sha(raw.encode()),'packages':len(metadata['packages']),'lock_sha256':sha((fixture/'Cargo.lock').read_bytes())}

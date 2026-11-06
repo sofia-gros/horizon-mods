@@ -8,14 +8,14 @@
     "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
   },
   "source_sha256": {
-    "pluto-lib/experiments/guide-generation-latest-ci/run.py": "573636b8b6a7bbc7a71462b5894574a6109865ff420fe0d7a533a1284128ec25",
-    "pluto-lib/experiments/guide-generation-latest-ci/test_runner.py": "4755c744c781bb4a321ce1fc5caf6a68e261218927d819dddc191f8ed1e661b6",
-    "pluto-lib/experiments/guide-generation-latest-ci/README.md": "db4fe3e87cb253e1217071d085e4993fec87427016dcf151ac158f2ebaec2fec",
+    "pluto-lib/experiments/guide-generation-latest-ci/run.py": "23c4312c866d6bd2f42cfe8388c188f4fbda87dffd6b5e8f71aa88f68caa10df",
+    "pluto-lib/experiments/guide-generation-latest-ci/test_runner.py": "c2b0ceb174da5549e272ed5f0be2b69ce1ddd804ed0fe624faec25944f60dac2",
+    "pluto-lib/experiments/guide-generation-latest-ci/README.md": "3cb69eaa3cb809f9e1286acc77ff7d4275acb3f5ca06201ce231b293ae4ca202",
     ".github/workflows/guide-generation-latest-wip.yml": "54aa55799cbd4c1bc70a80410c59253993eddaaf6e634fd199e667d29c375523",
-    "pluto-lib/experiments/guide-generation-latest-fixture/prepare.py": "640c4a86ffeee3365502a5bde7e18973553383143a4c9d10a8cc4e87a6949767",
-    "pluto-lib/experiments/guide-generation-latest-fixture/test_prepare.py": "bc4572f263a441a03ef8a6cd928c78853e94d155ed2fb100e7180ee53c46e8b5",
-    "pluto-lib/experiments/guide-generation-latest-fixture/inputs.json": "9d7ab5a44c5334fcd911fc5c5256edce046e42678f931b0d057739ac330cf059",
-    "pluto-lib/experiments/guide-generation-latest-fixture/README.md": "81b236b54ce17bbd53ab27be8c96efa33e6f459aeb2ca141337a50730cd328cb",
+    "pluto-lib/experiments/guide-generation-latest-fixture/prepare.py": "823da1b6d7bcc3d1345f0f9454cddb4f95e8425cde23f04167c70038db841ba2",
+    "pluto-lib/experiments/guide-generation-latest-fixture/test_prepare.py": "c974e5d02fd70388c1e7c7715d462bfb8522405235f3a3b152c9bb2475d47f84",
+    "pluto-lib/experiments/guide-generation-latest-fixture/inputs.json": "4ce6d10eb82ee9b872d9cea582e5efcbae0730ac57719ee551cc1a059796b813",
+    "pluto-lib/experiments/guide-generation-latest-fixture/README.md": "7bf0b783c4d5bf6dc8b80b009b90d745bbf9a2b993211e8d4ff5d742b867c64e",
     "pluto-lib/experiments/guide-storage-ci/run.py": "2aee646d16d89985a36ac19ceaad3df1b03f75ff1eda2def79e6aa524e2662c0",
     "tconstruct/tests/guide-identity-ci/run.py": "db2d4c0fc8fb50459af61048778299531a78af9ddacbe90eeae8e2e5f2a3e27b"
   }
