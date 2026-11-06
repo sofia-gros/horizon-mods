@@ -482,6 +482,15 @@
       "actual_complete_plan": false,
       "actual_game_tests_unrun": 9,
       "type_or_build": false
+    },
+    {
+      "subject": "Local station transaction delegation proposal",
+      "paths": 9,
+      "pure_checks": 13,
+      "independent_review": "Guide read-only and central13pure checks",
+      "activation": "Excluded only; no ordinary station hook, LAN handler, manifest or registry changes",
+      "scope": "Separate mutable native transaction authority after veto, exact old body, one local registration before session publication, no native double execution",
+      "actual_plan_or_game_or_transaction_executed": false
     }
   ],
   "guide_limits": [

@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "base": "17f44dc36fc2df28547328aa8554286ae965b208",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "actual_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "official_recipe_book_sha256": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+  "target": {
+    "target": "horizon_client::game::recipe_book::Game<'_>::place_recipe",
+    "node": [
+      16,
+      45
+    ],
+    "function_fingerprint": "89ef9141412aa60155e3adebf0c255e27dcd2a0e2c93ffb407cdc81871d92452"
+  },
+  "session_accessor_occurrences": [
+    {
+      "group": "modules",
+      "id": "source-crafting-station",
+      "line": 28,
+      "text": "    game.world.chunks.__horizon_mixins_tconstruct_native_crafting_sessions_mut().insert(key);"
+    },
+    {
+      "group": "modules",
+      "id": "source-crafting-station",
+      "line": 124,
+      "text": "    game.world.chunks.__horizon_mixins_tconstruct_native_crafting_sessions_mut().remove(&pos);"
+    }
+  ],
+  "runtime_installed": false,
+  "old_hook_removed": false,
+  "native_executed": false,
+  "oracle_sha256": {
+    "station.rs": "856254d2095de426d3c84fa52c7de6c2aafc533756cb96b0e09db275f45902c0",
+    "old-transaction.rs": "5bd672d074ab4f29c43aec1c56b84abac3d1e62591bd6a1dcd9781bd80bc0857",
+    "old-click.rs": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f",
+    "placement-veto.rs": "38256a9d22c1c581022dad691260ce74713fd76e3eb0d76e44f0affe9045982b",
+    "lan-handler.rs": "5439df326488a62e4c4121f3611a61ad72b87aab03e581ce6a68a2e0ad23028f",
+    "official/place_recipe": "ac9f02007345b5c48c82e66e6977ce201f79408079ed73796e9145b26efb9fb7"
+  },
+  "candidate_sha256": {
+    "native-transaction.rs": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2",
+    "single-head.rs": "8e9f6f8046ec8269c268082ebd91340ed6dfee48c164e2e18cc85e7c365546ac",
+    "consumer-prefix.rs": "f7345b81ca9aecbed603bf82a759548c09a3e562838ad30cde4c4e6952d74637"
+  }
+}

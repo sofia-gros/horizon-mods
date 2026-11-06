@@ -1,0 +1,61 @@
+{
+  "files": {
+    "source-crafting-station.rs": {
+      "sha256": "5ec29ae1512bd8b487697e08a9f464c451a772ee01e2547b3955e9c8c4b4a2e7",
+      "bytes": 6919
+    },
+    "station-transaction-consumer.rs": {
+      "sha256": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9",
+      "bytes": 4261
+    },
+    "recipe-transaction.rs": {
+      "sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2",
+      "bytes": 3082
+    },
+    "recipe-placement-click.rs": {
+      "sha256": "8e9f6f8046ec8269c268082ebd91340ed6dfee48c164e2e18cc85e7c365546ac",
+      "bytes": 258
+    }
+  },
+  "station_inverse_exact": true,
+  "legacy_transaction_body_exact": true,
+  "ordinary_manifest_changed": false,
+  "old_hook_removed": false,
+  "native_executed": false,
+  "official_whole_and_body_verified": true,
+  "pure_checks_passed": 13,
+  "source_files": {
+    "README.md": {
+      "sha256": "5327d57ef086b1122f6b7f574cbf75f1a3d1726da26d6eff4a8bd46dfafe5865",
+      "bytes": 6620
+    },
+    "compose.py": {
+      "sha256": "c8a7cc41df9f835afe453d479cdaa373d74342952dcfed34f9900d2939a70863",
+      "bytes": 2455
+    },
+    "consumer-prefix.rs": {
+      "sha256": "f7345b81ca9aecbed603bf82a759548c09a3e562838ad30cde4c4e6952d74637",
+      "bytes": 1061
+    },
+    "inputs.json": {
+      "sha256": "55b2b230d3d8d7b1ce1f6f96e15ed26b24735547e64d8db435d3214195dcc9ba",
+      "bytes": 2031
+    },
+    "native-transaction.rs": {
+      "sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2",
+      "bytes": 3082
+    },
+    "oracles.json": {
+      "sha256": "f7276939f71434fc09f8aa428749a629ec5d4815924c8c44b40cfe194756d79e",
+      "bytes": 20511
+    },
+    "single-head.rs": {
+      "sha256": "8e9f6f8046ec8269c268082ebd91340ed6dfee48c164e2e18cc85e7c365546ac",
+      "bytes": 258
+    },
+    "test_source.py": {
+      "sha256": "7c471effcd3253524d9ba0edad4e07a44c5dd8be7ff3d381e954bf7e6d24a975",
+      "bytes": 6067
+    }
+  }
+}
