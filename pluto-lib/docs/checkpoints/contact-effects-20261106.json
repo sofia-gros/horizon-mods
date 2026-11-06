@@ -66,5 +66,12 @@
     "compile_executed": false,
     "runtime_executed": false,
     "design": "../guest-game-borrow-v15.md"
+  },
+  "guest_continuation_observation": {
+    "status": "Unapplied observation helper prepared; no authority decision or native execution",
+    "source_guards_passed": 10,
+    "compile_executed": false,
+    "runtime_executed": false,
+    "design": "../guest-continuation-observation.md"
   }
 }

@@ -163,3 +163,11 @@ The separate-copy runner and exact applied-v15 additions are described in
 [guest-game-borrow-v15.md](../../docs/guest-game-borrow-v15.md). Ten source/parser
 guards pass. No stage copy or Cargo invocation has occurred; a later serial
 grant is required. Pristine and applied Game source evidence remain distinct.
+
+## Guest continuation observation preparation
+
+[guest-continuation-observation.md](../../docs/guest-continuation-observation.md)
+records native post-closure notification/reentry and normal-return-only swap
+restoration. The separate real-Game helper remains unapplied and uncompiled,
+outside the frozen borrow runner. Ten source guards pass; there is no contact
+continuation predicate or runtime authority result.

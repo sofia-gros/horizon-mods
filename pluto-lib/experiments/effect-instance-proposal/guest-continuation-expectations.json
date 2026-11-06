@@ -1,0 +1,14 @@
+{
+  "status": "UNAPPLIED and UNEXECUTED actual-Game observation helper; not in borrow probe runner",
+  "source_guards_passed": 10,
+  "official_sources_pinned": 21,
+  "applied_v15_readiness_sha256": "62cac276dfacf04560da74e1d232f1ac56f8ec14d9df51d736abf46f83385ace",
+  "compile_executed": false,
+  "runtime_executed": false,
+  "continuation_authority_implemented": false,
+  "artifact_sha256": {
+    "guest_continuation_observer.rs": "a76266a425b020093dfc24627fc62492b4a20f6550cb8d883a8cc2af404ce79e",
+    "test_guest_continuation_source.py": "c8108b38c5f4dcec6e7d032b78ece4d30474eda6a0ba66d2a19019d9d867d16f"
+  },
+  "source_guard_correction": "Assignment guard was narrowed to distinguish == comparisons from = assignments after the new post-move equality checks; latest 10 tests passed."
+}
