@@ -719,3 +719,11 @@ file = "crates/horizon-client/src/crafting.rs"
 name = "pluto_products"
 source = "crafting-products.rs"
 visibility = "pub"
+
+# No hook or state: caller explicitly stages an owned book value.
+[[module]]
+id = "recipe-book-presentation"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "pluto_presentation"
+source = "recipe-book-presentation.rs"
+visibility = "pub"

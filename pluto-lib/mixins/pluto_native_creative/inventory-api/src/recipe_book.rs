@@ -22,3 +22,6 @@ pub mod handoff;
 pub mod index;
 
 pub mod placement;
+
+/// Explicit ingredient alternatives on a detached book model.
+pub mod presentation;
