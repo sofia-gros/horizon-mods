@@ -15,14 +15,16 @@ TARGETS = tuple(e["path"] for e in ENTRIES if e["path"] != INDEX)
 TITLES = {e["path"]: e["title"] for e in ENTRIES}
 
 
-def assemble(outputs, notices=()):
+def assemble(outputs, notices=(), source_titles=None):
     """Model completed source chunks; no splitting or title normalization.
 
     A tuple is (exact relative data path, sequence of first-span text facts).
     A None fact denotes a generated page without a first span. Empty chunks do
-    not acquire an anchor. Only these six reviewed source paths are indexed.
+    not acquire an anchor. A nonempty source title must equal the first generated
+    span. Only these six reviewed source paths are indexed.
     A later notice prepend shifts offsets, rather than masquerading as a source.
     """
+    source_titles = TITLES if source_titles is None else source_titles
     outputs = tuple(outputs)
     if len(outputs) > PIN["limits"]["entries"]:
         raise ValueError("fixture entries")
@@ -33,7 +35,8 @@ def assemble(outputs, notices=()):
         chunk = tuple(chunk)
         if len(pages) + len(chunk) + len(notices) > PIN["limits"]["pages"]:
             raise ValueError("fixture pages")
-        if chunk and path in TITLES:
+        title = source_titles.get(path)
+        if chunk and path in TITLES and title and chunk[0] == title:
             anchors.setdefault(path, len(pages))
         pages.extend(chunk)
     return tuple(notices) + tuple(pages), {
@@ -64,13 +67,13 @@ def legacy(heading, modifier_label, pages, source_titles, first_page):
     return index, tuple(links)
 
 
-def proposed(chapter_key, anchors, source_titles, first_page):
+def proposed(chapter_key, anchors, source_titles, first_page, modifier_label="Modifiers"):
     """Candidate identity rule only. This is not installed in source_pages.
 
     Preserve source-title admission/labels; do not infer page identity from them.
     The native integration must keep checked integer conversion/addition.
     """
-    if chapter_key != "modifiers" or source_titles.get(INDEX) is None:
+    if chapter_key != "modifiers" or modifier_label is None or not source_titles.get(INDEX):
         return None
     index = anchors.get(INDEX)
     if index is None:
@@ -78,7 +81,7 @@ def proposed(chapter_key, anchors, source_titles, first_page):
     links = []
     for path in TARGETS:
         title, offset = source_titles.get(path), anchors.get(path)
-        if title is not None and offset is not None:
+        if title and offset is not None:
             links.append((title, first_page + offset))
     return index, tuple(links)
 
@@ -93,9 +96,9 @@ class ModifierAnchorOracle(unittest.TestCase):
     def test_exact_source_pin_and_six_entry_resource_shape(self):
         bodies = {}
         for source in PIN["source_hashes"]:
-            path = ROOT / source["path"]
-            # Sparse tracked content is read from the immutable MOD object only.
-            body = path.read_bytes() if path.exists() else subprocess.check_output(
+            # This is the old oracle, not an assertion that candidate source is
+            # unchanged. Separate inverse guards verify the candidate boundary.
+            body = subprocess.check_output(
                 ["git", "show", PIN["source_commit"] + ":" + source["path"]], cwd=ROOT)
             self.assertEqual(hashlib.sha256(body).hexdigest(), source["sha256"], source["path"])
             bodies[source["path"]] = body
@@ -126,7 +129,7 @@ class ModifierAnchorOracle(unittest.TestCase):
     def test_duplicate_display_titles_are_intentional_different_destinations(self):
         titles = dict(TITLES)
         titles[TARGETS[0]] = titles[TARGETS[1]] = "Same translated title"
-        pages, anchors = assemble(outputs(titles=titles))
+        pages, anchors = assemble(outputs(titles=titles), source_titles=titles)
         old = legacy("Modifiers", "Modifiers", pages, titles, 7)
         new = proposed("modifiers", anchors, titles, 7)
         self.assertEqual([p for _, p in old[1]][:2], [8, 8])
@@ -135,7 +138,7 @@ class ModifierAnchorOracle(unittest.TestCase):
     def test_same_title_as_index_does_not_select_the_index_as_a_target(self):
         titles = dict(TITLES)
         titles[TARGETS[0]] = titles[INDEX]
-        pages, anchors = assemble(outputs(titles=titles))
+        pages, anchors = assemble(outputs(titles=titles), source_titles=titles)
         self.assertEqual(legacy("Modifiers", "Modifiers", pages, titles, 7)[1][0][1], 7)
         self.assertEqual(proposed("modifiers", anchors, titles, 7)[1][0][1], 8)
 
@@ -146,6 +149,7 @@ class ModifierAnchorOracle(unittest.TestCase):
         self.assertIsNone(legacy("Translated heading", "Modifiers", pages, TITLES, 7))
         self.assertIsNotNone(proposed("modifiers", anchors, TITLES, 7))
         self.assertIsNone(proposed("Modifiers", anchors, TITLES, 7))
+        self.assertIsNone(proposed("modifiers", anchors, TITLES, 7, modifier_label=None))
 
     def test_duplicate_data_path_keeps_first_successful_generated_chunk(self):
         chunks = [(TARGETS[0], ())] + outputs() + [(TARGETS[0], ("later",) * 3)]
@@ -195,9 +199,17 @@ class ModifierAnchorOracle(unittest.TestCase):
         chunks[1] = (TARGETS[0], (None,))
         chunks.insert(1, ("other/traits.json", (TITLES[TARGETS[0]],)))
         pages, anchors = assemble(chunks)
-        self.assertEqual(anchors[TARGETS[0]], 2)
+        self.assertNotIn(TARGETS[0], anchors)
         self.assertEqual(legacy("Modifiers", "Modifiers", pages, TITLES, 7)[1][0][1], 8)
-        self.assertEqual(proposed("modifiers", anchors, TITLES, 7)[1][0][1], 9)
+        self.assertEqual(len(proposed("modifiers", anchors, TITLES, 7)[1]), 4)
+
+    def test_empty_source_title_is_not_a_linkable_anchor(self):
+        titles = dict(TITLES)
+        titles[TARGETS[0]] = ""
+        pages, anchors = assemble(outputs(titles=titles), source_titles=titles)
+        self.assertNotIn(TARGETS[0], anchors)
+        self.assertEqual(len(legacy("Modifiers", "Modifiers", pages, titles, 7)[1]), 5)
+        self.assertEqual(len(proposed("modifiers", anchors, titles, 7)[1]), 4)
 
     def test_oracle_is_bounded_and_not_a_runtime_page_limit(self):
         with self.assertRaises(ValueError):

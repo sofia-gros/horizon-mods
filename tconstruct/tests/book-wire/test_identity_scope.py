@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import unittest
+from test_modifier_anchor_runtime_scope import SCOPE as ANCHOR_SCOPE, restore as restore_anchors
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -15,7 +16,11 @@ class IdentityScope(unittest.TestCase):
         self.assertEqual(len(oracle["records"]), 5)
         for record in oracle["records"]:
             with self.subTest(path=record["path"]):
-                current = (ROOT / record["path"]).read_text()
+                # First reverse the separately hash-guarded follow-up, then this
+                # original BookId edit. Both complete source boundaries remain
+                # checked instead of treating later changes as original bytes.
+                followup = next((r for r in ANCHOR_SCOPE["records"] if r["path"] == record["path"]), None)
+                current = restore_anchors(followup) if followup else (ROOT / record["path"]).read_text()
                 self.assertEqual(current.count(record["new"]), 1)
                 restored = current.replace(record["new"], record["old"])
                 self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(), record["before_sha256"])

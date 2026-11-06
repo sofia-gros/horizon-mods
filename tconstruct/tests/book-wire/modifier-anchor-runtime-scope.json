@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "baseline": "20080e461f4fb81046e9f338693803864b3b0761",
+  "status": "source_candidate_native_unrun",
+  "records": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "before_sha256": "2a03b919083d1e9059db6effec9cc133a768a0781ebafcfad39f43e0b4e8b747",
+      "after_sha256": "9f2184d1aebff88970bbd0183283f3142a8f75fd73dd96ad87f38b9c6ce0fc59",
+      "edits": [
+        {
+          "old": "    let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();",
+          "new": "    let mut chapters: Vec<(&str, String, Vec<Text>, Option<super::tconstruct_materials_book_index::ModifierAnchors>)> = Vec::new();",
+          "count": 1
+        },
+        {
+          "old": "chapters.push((heading.to_owned(), chapter_pages)); }",
+          "new": "chapters.push((key, heading.to_owned(), chapter_pages, None)); }",
+          "count": 2
+        },
+        {
+          "old": "        let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };\n        let mut chapter_pages = Vec::new();",
+          "new": "        let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };\n        let mut chapter_pages = Vec::new();\n        let mut modifier_anchors = (key == \"modifiers\").then(super::tconstruct_materials_book_index::ModifierAnchors::default);",
+          "count": 1
+        },
+        {
+          "old": "            let title = value.get(\"title\").and_then(|x| x.as_str()).unwrap_or(\"\");",
+          "new": "            let entry_start = chapter_pages.len();\n            let title = value.get(\"title\").and_then(|x| x.as_str()).unwrap_or(\"\");",
+          "count": 1
+        },
+        {
+          "old": "            if text.is_empty() { continue; }\n            let parts = remaining.unwrap_or_else(|| split_styled(game, &Text::literal(&text), 182.0, if title.is_empty() { 17 } else { 15 }));\n            for part in parts {\n                if title.is_empty() { chapter_pages.push(part); }\n                else {\n                    let mut page = Text::styled(title, horizon_client::text::Style {\n                        insertion: Some(\"tconstruct:book-title\".into()), underlined: Some(true), ..Default::default()\n                    });\n                    page.push(\"\\n\\n\");\n                    page.push(part);\n                    chapter_pages.push(page);\n                }\n            }",
+          "new": "            if !text.is_empty() {\n                let parts = remaining.unwrap_or_else(|| split_styled(game, &Text::literal(&text), 182.0, if title.is_empty() { 17 } else { 15 }));\n                for part in parts {\n                    if title.is_empty() { chapter_pages.push(part); }\n                    else {\n                        let mut page = Text::styled(title, horizon_client::text::Style {\n                            insertion: Some(\"tconstruct:book-title\".into()), underlined: Some(true), ..Default::default()\n                        });\n                        page.push(\"\\n\\n\");\n                        page.push(part);\n                        chapter_pages.push(page);\n                    }\n                }\n            }\n            if let Some(anchors) = modifier_anchors.as_mut() {\n                anchors.record(relative, entry_start, title, chapter_pages.get(entry_start)\n                    .and_then(|page| page.spans.first()).map(|span| span.text.as_str()));\n            }",
+          "count": 1
+        },
+        {
+          "old": "                    chapter_pages.splice(0..0, notices);",
+          "new": "                    let before_notices = chapter_pages.len();\n                    chapter_pages.splice(0..0, notices);\n                    if let Some(anchors) = modifier_anchors.as_mut() {\n                        anchors.prepend(chapter_pages.len().checked_sub(before_notices)?)?;\n                    }",
+          "count": 1
+        },
+        {
+          "old": "            chapters.push((heading.to_owned(), chapter_pages));",
+          "new": "            chapters.push((key, heading.to_owned(), chapter_pages, modifier_anchors));",
+          "count": 1
+        },
+        {
+          "old": "    let sizes: Vec<_> = chapters.iter().map(|(_, pages)| pages.len()).collect();",
+          "new": "    let sizes: Vec<_> = chapters.iter().map(|(_, _, pages, _)| pages.len()).collect();",
+          "count": 1
+        },
+        {
+          "old": "    for (index, (heading, mut chapter)) in chapters.into_iter().enumerate() {",
+          "new": "    for (index, (key, heading, mut chapter, modifier_anchors)) in chapters.into_iter().enumerate() {",
+          "count": 1
+        },
+        {
+          "old": "        // shift later links, and use source titles rather than invented labels.\n        if labels.get(\"modifiers\").is_some_and(|label| *label == heading) {",
+          "new": "        // shift later links. Titles remain labels; exact source paths identify destinations.\n        if let Some(anchors) = modifier_anchors.filter(|_| key == \"modifiers\" && labels.contains_key(\"modifiers\")) {",
+          "count": 1
+        },
+        {
+          "old": "            let index_page = chapter.iter().position(|page| page.spans.first().is_some_and(|span| Some(span.text.as_str()) == index_title));",
+          "new": "            let index_page = index_title.filter(|title| !title.is_empty()).and_then(|_| anchors.offset(\"modifiers/index.json\"));",
+          "count": 1
+        },
+        {
+          "old": "                let Some(title) = source.as_ref().and_then(|v| v.get(\"title\")).and_then(|v| v.as_str()) else { continue; };\n                let Some(offset) = chapter.iter().position(|page| page.spans.first().is_some_and(|span| span.text == title)) else { continue; };",
+          "new": "                let Some(title) = source.as_ref().and_then(|v| v.get(\"title\")).and_then(|v| v.as_str()).filter(|title| !title.is_empty()) else { continue; };\n                let Some(offset) = anchors.offset(&format!(\"modifiers/{name}.json\")) else { continue; };",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+      "before_sha256": "b334f6c9ebf166c1e27d691912d21b3f92500cfa7b7b46e7704b04770931504d",
+      "after_sha256": "24189c1870efd5504ce6ba268abcdf197489c59ff624fb6c15b26bb2b474d1f2",
+      "edits": [
+        {
+          "old": "#[cfg(test)]\nmod tests {",
+          "new": "// Only the fixed modifier overview entries need source-path link lookup. This\n// invocation-local map is not a screen identity, persisted anchor or LAN token.\n#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]\npub(super) struct ModifierAnchors([Option<usize>; 6]);\n\nimpl ModifierAnchors {\n    fn slot(path: &str) -> Option<usize> {\n        match path {\n            \"modifiers/index.json\" => Some(0),\n            \"modifiers/traits.json\" => Some(1),\n            \"modifiers/upgrades.json\" => Some(2),\n            \"modifiers/slotless.json\" => Some(3),\n            \"modifiers/abilities.json\" => Some(4),\n            \"modifiers/defense.json\" => Some(5),\n            _ => None,\n        }\n    }\n\n    // Admit only a real, titled first page of this generated source chunk.\n    // Missing/empty/mismatched first spans cannot borrow another entry's title.\n    pub(super) fn record(&mut self, path: &str, offset: usize, title: &str, first: Option<&str>) {\n        if title.is_empty() || first != Some(title) { return; }\n        if let Some(slot) = Self::slot(path) {\n            self.0[slot].get_or_insert(offset);\n        }\n    }\n\n    pub(super) fn offset(&self, path: &str) -> Option<usize> {\n        self.0[Self::slot(path)?]\n    }\n\n    // Commit the shift only if every offset fits, retaining the old map on error.\n    pub(super) fn prepend(&mut self, count: usize) -> Option<()> {\n        let mut shifted = self.0;\n        for offset in shifted.iter_mut().flatten() {\n            *offset = offset.checked_add(count)?;\n        }\n        self.0 = shifted;\n        Some(())\n    }\n}\n\n#[cfg(test)]\nmod modifier_anchor_tests {\n    use super::ModifierAnchors;\n\n    #[test]\n    fn equal_titles_keep_distinct_source_destinations() {\n        let mut anchors = ModifierAnchors::default();\n        anchors.record(\"modifiers/traits.json\", 2, \"Same\", Some(\"Same\"));\n        anchors.record(\"modifiers/upgrades.json\", 5, \"Same\", Some(\"Same\"));\n        assert_eq!(anchors.offset(\"modifiers/traits.json\"), Some(2));\n        assert_eq!(anchors.offset(\"modifiers/upgrades.json\"), Some(5));\n    }\n\n    #[test]\n    fn first_successful_chunk_wins_without_title_aliases() {\n        let mut anchors = ModifierAnchors::default();\n        anchors.record(\"modifiers/traits.json\", 1, \"Traits\", None);\n        anchors.record(\"modifiers/traits.json\", 2, \"Traits\", Some(\"Other\"));\n        anchors.record(\"modifiers/traits.json\", 3, \"\", Some(\"\"));\n        anchors.record(\"modifiers/traits.json\", 4, \"Traits\", Some(\"Traits\"));\n        anchors.record(\"modifiers/traits.json\", 8, \"Traits\", Some(\"Traits\"));\n        assert_eq!(anchors.offset(\"modifiers/traits.json\"), Some(4));\n    }\n\n    #[test]\n    fn unknown_or_differently_spelled_paths_do_not_acquire_offsets() {\n        let mut anchors = ModifierAnchors::default();\n        for path in [\"traits.json\", \"other/traits.json\", \"modifiers/Traits.json\", \"modifiers/../traits.json\", \"modifiers/traits.json/\"] {\n            anchors.record(path, 1, \"Traits\", Some(\"Traits\"));\n            assert_eq!(anchors.offset(path), None);\n        }\n        assert_eq!(anchors, ModifierAnchors::default());\n    }\n\n    #[test]\n    fn notice_shift_preserves_relative_offsets_and_missing_entries() {\n        let mut anchors = ModifierAnchors::default();\n        anchors.record(\"modifiers/index.json\", 0, \"Index\", Some(\"Index\"));\n        anchors.record(\"modifiers/traits.json\", 4, \"Traits\", Some(\"Traits\"));\n        assert_eq!(anchors.prepend(3), Some(()));\n        assert_eq!(anchors.offset(\"modifiers/index.json\"), Some(3));\n        assert_eq!(anchors.offset(\"modifiers/traits.json\"), Some(7));\n        assert_eq!(anchors.offset(\"modifiers/upgrades.json\"), None);\n    }\n\n    #[test]\n    fn overflowing_notice_shift_is_atomic() {\n        let mut anchors = ModifierAnchors::default();\n        anchors.record(\"modifiers/index.json\", 1, \"Index\", Some(\"Index\"));\n        anchors.record(\"modifiers/defense.json\", usize::MAX, \"Defense\", Some(\"Defense\"));\n        let before = anchors;\n        assert_eq!(anchors.prepend(1), None);\n        assert_eq!(anchors, before);\n        assert_eq!(anchors.prepend(0), Some(()));\n        assert_eq!(anchors, before);\n    }\n}\n\n#[cfg(test)]\nmod tests {",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

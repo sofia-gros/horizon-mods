@@ -339,7 +339,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
     let colors = read(path, "assets/tconstruct/book/source-colors.json").and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok()).unwrap_or_default();
     let material_context = material_book_context(game);
-    let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
+    let mut chapters: Vec<(&str, String, Vec<Text>, Option<super::tconstruct_materials_book_index::ModifierAnchors>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
         // Gadgetry exposes only bounded, explicitly qualified exploration guidance.
@@ -384,7 +384,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                         let value = read(path, &source).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
                         chapter_pages.extend(tool_pages(game, &title, id, value.as_ref()));
                     }
-                    if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
+                    if !chapter_pages.is_empty() { chapters.push((key, heading.to_owned(), chapter_pages, None)); }
                 }
                 continue;
             }
@@ -501,13 +501,14 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                         }
                     }
                 }
-                if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
+                if !chapter_pages.is_empty() { chapters.push((key, heading.to_owned(), chapter_pages, None)); }
             }
             continue;
         }
         let Some(section) = read(path, &format!("{root}{data}")) else { continue; };
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
+        let mut modifier_anchors = (key == "modifiers").then(super::tconstruct_materials_book_index::ModifierAnchors::default);
         for page in section.as_array()? {
             if gadgetry_exploration && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::gadgetry_exploration_page) { continue; }
             if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2" | "scorched_tanks")) { continue; }
@@ -549,6 +550,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
             let Some(raw) = read(path, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
+            let entry_start = chapter_pages.len();
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let mut graphic = value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
@@ -626,18 +628,23 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     insertion: Some(format!("tconstruct:book:{}", graphic)), underlined: Some(true), ..Default::default()
                 }));
             }
-            if text.is_empty() { continue; }
-            let parts = remaining.unwrap_or_else(|| split_styled(game, &Text::literal(&text), 182.0, if title.is_empty() { 17 } else { 15 }));
-            for part in parts {
-                if title.is_empty() { chapter_pages.push(part); }
-                else {
-                    let mut page = Text::styled(title, horizon_client::text::Style {
-                        insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default()
-                    });
-                    page.push("\n\n");
-                    page.push(part);
-                    chapter_pages.push(page);
+            if !text.is_empty() {
+                let parts = remaining.unwrap_or_else(|| split_styled(game, &Text::literal(&text), 182.0, if title.is_empty() { 17 } else { 15 }));
+                for part in parts {
+                    if title.is_empty() { chapter_pages.push(part); }
+                    else {
+                        let mut page = Text::styled(title, horizon_client::text::Style {
+                            insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default()
+                        });
+                        page.push("\n\n");
+                        page.push(part);
+                        chapter_pages.push(page);
+                    }
                 }
+            }
+            if let Some(anchors) = modifier_anchors.as_mut() {
+                anchors.record(relative, entry_start, title, chapter_pages.get(entry_start)
+                    .and_then(|page| page.spans.first()).map(|span| span.text.as_str()));
             }
         }
         if !chapter_pages.is_empty() {
@@ -650,20 +657,24 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                         notice.push(part);
                         notice
                     });
+                    let before_notices = chapter_pages.len();
                     chapter_pages.splice(0..0, notices);
+                    if let Some(anchors) = modifier_anchors.as_mut() {
+                        anchors.prepend(chapter_pages.len().checked_sub(before_notices)?)?;
+                    }
                 }
             }
-            chapters.push((heading.to_owned(), chapter_pages));
+            chapters.push((key, heading.to_owned(), chapter_pages, modifier_anchors));
         }
     }
     if chapters.is_empty() { return None; }
     // The host's existing book click handler understands ChangePage links.
-    let sizes: Vec<_> = chapters.iter().map(|(_, pages)| pages.len()).collect();
+    let sizes: Vec<_> = chapters.iter().map(|(_, _, pages, _)| pages.len()).collect();
     let (_, locations) = super::tconstruct_materials_book_index::layout(&sizes)?;
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
     let mut contents = Text::styled(format!("{book_title}\n\n"), horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
-    for (index, (heading, mut chapter)) in chapters.into_iter().enumerate() {
+    for (index, (key, heading, mut chapter, modifier_anchors)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
             contents = Text::literal(format!("{book_title}\n\n"));
@@ -677,18 +688,18 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let first_page = i32::try_from(first_page).ok()?;
         // Mantle's modifiers index links its source entries from the introductory
         // page. Resolve destinations after pagination so wrapped entries do not
-        // shift later links, and use source titles rather than invented labels.
-        if labels.get("modifiers").is_some_and(|label| *label == heading) {
+        // shift later links. Titles remain labels; exact source paths identify destinations.
+        if let Some(anchors) = modifier_anchors.filter(|_| key == "modifiers" && labels.contains_key("modifiers")) {
             let source_index = read(path, &format!("{root}en_us/modifiers/index.json"))
                 .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
             let index_title = source_index.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str());
-            let index_page = chapter.iter().position(|page| page.spans.first().is_some_and(|span| Some(span.text.as_str()) == index_title));
+            let index_page = index_title.filter(|title| !title.is_empty()).and_then(|_| anchors.offset("modifiers/index.json"));
             let mut links = Vec::new();
             for name in ["traits", "upgrades", "slotless", "abilities", "defense"] {
                 let source = read(path, &format!("{root}en_us/modifiers/{name}.json"))
                     .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
-                let Some(title) = source.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str()) else { continue; };
-                let Some(offset) = chapter.iter().position(|page| page.spans.first().is_some_and(|span| span.text == title)) else { continue; };
+                let Some(title) = source.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str()).filter(|title| !title.is_empty()) else { continue; };
+                let Some(offset) = anchors.offset(&format!("modifiers/{name}.json")) else { continue; };
                 let destination = first_page.checked_add(i32::try_from(offset).ok()?)?;
                 links.push((title.to_owned(), destination));
             }

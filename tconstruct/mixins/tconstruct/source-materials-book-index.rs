@@ -87,6 +87,106 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
     Some((indexes, chapters))
 }
 
+// Only the fixed modifier overview entries need source-path link lookup. This
+// invocation-local map is not a screen identity, persisted anchor or LAN token.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ModifierAnchors([Option<usize>; 6]);
+
+impl ModifierAnchors {
+    fn slot(path: &str) -> Option<usize> {
+        match path {
+            "modifiers/index.json" => Some(0),
+            "modifiers/traits.json" => Some(1),
+            "modifiers/upgrades.json" => Some(2),
+            "modifiers/slotless.json" => Some(3),
+            "modifiers/abilities.json" => Some(4),
+            "modifiers/defense.json" => Some(5),
+            _ => None,
+        }
+    }
+
+    // Admit only a real, titled first page of this generated source chunk.
+    // Missing/empty/mismatched first spans cannot borrow another entry's title.
+    pub(super) fn record(&mut self, path: &str, offset: usize, title: &str, first: Option<&str>) {
+        if title.is_empty() || first != Some(title) { return; }
+        if let Some(slot) = Self::slot(path) {
+            self.0[slot].get_or_insert(offset);
+        }
+    }
+
+    pub(super) fn offset(&self, path: &str) -> Option<usize> {
+        self.0[Self::slot(path)?]
+    }
+
+    // Commit the shift only if every offset fits, retaining the old map on error.
+    pub(super) fn prepend(&mut self, count: usize) -> Option<()> {
+        let mut shifted = self.0;
+        for offset in shifted.iter_mut().flatten() {
+            *offset = offset.checked_add(count)?;
+        }
+        self.0 = shifted;
+        Some(())
+    }
+}
+
+#[cfg(test)]
+mod modifier_anchor_tests {
+    use super::ModifierAnchors;
+
+    #[test]
+    fn equal_titles_keep_distinct_source_destinations() {
+        let mut anchors = ModifierAnchors::default();
+        anchors.record("modifiers/traits.json", 2, "Same", Some("Same"));
+        anchors.record("modifiers/upgrades.json", 5, "Same", Some("Same"));
+        assert_eq!(anchors.offset("modifiers/traits.json"), Some(2));
+        assert_eq!(anchors.offset("modifiers/upgrades.json"), Some(5));
+    }
+
+    #[test]
+    fn first_successful_chunk_wins_without_title_aliases() {
+        let mut anchors = ModifierAnchors::default();
+        anchors.record("modifiers/traits.json", 1, "Traits", None);
+        anchors.record("modifiers/traits.json", 2, "Traits", Some("Other"));
+        anchors.record("modifiers/traits.json", 3, "", Some(""));
+        anchors.record("modifiers/traits.json", 4, "Traits", Some("Traits"));
+        anchors.record("modifiers/traits.json", 8, "Traits", Some("Traits"));
+        assert_eq!(anchors.offset("modifiers/traits.json"), Some(4));
+    }
+
+    #[test]
+    fn unknown_or_differently_spelled_paths_do_not_acquire_offsets() {
+        let mut anchors = ModifierAnchors::default();
+        for path in ["traits.json", "other/traits.json", "modifiers/Traits.json", "modifiers/../traits.json", "modifiers/traits.json/"] {
+            anchors.record(path, 1, "Traits", Some("Traits"));
+            assert_eq!(anchors.offset(path), None);
+        }
+        assert_eq!(anchors, ModifierAnchors::default());
+    }
+
+    #[test]
+    fn notice_shift_preserves_relative_offsets_and_missing_entries() {
+        let mut anchors = ModifierAnchors::default();
+        anchors.record("modifiers/index.json", 0, "Index", Some("Index"));
+        anchors.record("modifiers/traits.json", 4, "Traits", Some("Traits"));
+        assert_eq!(anchors.prepend(3), Some(()));
+        assert_eq!(anchors.offset("modifiers/index.json"), Some(3));
+        assert_eq!(anchors.offset("modifiers/traits.json"), Some(7));
+        assert_eq!(anchors.offset("modifiers/upgrades.json"), None);
+    }
+
+    #[test]
+    fn overflowing_notice_shift_is_atomic() {
+        let mut anchors = ModifierAnchors::default();
+        anchors.record("modifiers/index.json", 1, "Index", Some("Index"));
+        anchors.record("modifiers/defense.json", usize::MAX, "Defense", Some("Defense"));
+        let before = anchors;
+        assert_eq!(anchors.prepend(1), None);
+        assert_eq!(anchors, before);
+        assert_eq!(anchors.prepend(0), Some(()));
+        assert_eq!(anchors, before);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{gadgetry_exploration_page, label, layout, mighty_advice_page, mighty_smeltery_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
