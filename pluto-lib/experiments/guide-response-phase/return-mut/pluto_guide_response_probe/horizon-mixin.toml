@@ -1,0 +1,18 @@
+# Excluded no-op constraint probe, not an installed service.
+[mod]
+id = "pluto_guide_response_probe"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id = "post-observer-borrow"
+target = "horizon_client::game::native_hooks::Game<'_>::native_client_packet"
+kind = "RETURN"
+helper = "probe.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "packet", ty = "&ClientboundPlayPacket", value = "packet" },
+]

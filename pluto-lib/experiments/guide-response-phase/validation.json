@@ -1,0 +1,110 @@
+{
+  "source": "647760f1e565569fc72e01d54d2d02c8b199d72f",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_hashes_verified": true,
+  "floor_bytes": 10871635968,
+  "minimum_free_bytes": 10897149952,
+  "disk_stopped": false,
+  "scope": "Two standalone no-op official plans; no apply/type check or installed behavior change.",
+  "phases": [
+    {
+      "name": "return-mut",
+      "exit_code": 0,
+      "timeout": false,
+      "seconds": 8.612,
+      "plan_written": true
+    },
+    {
+      "name": "after-call",
+      "exit_code": 1,
+      "timeout": false,
+      "seconds": 6.607,
+      "plan_written": false
+    }
+  ],
+  "accepted_injection": {
+    "mod_id": "pluto_guide_response_probe",
+    "mod_version": "0.1.0",
+    "injection_id": "post-observer-borrow",
+    "priority": 100,
+    "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+    "file": "crates/horizon-client/src/game/native_hooks.rs",
+    "node": [
+      40,
+      339
+    ],
+    "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
+    "kind": "RETURN",
+    "cancellable": false,
+    "argument": null,
+    "constant_site": null,
+    "contract": {
+      "output": "()",
+      "value": "()",
+      "operation": null
+    },
+    "call_site": null,
+    "site_fingerprint": null,
+    "selector": null,
+    "ordinal": null,
+    "require": null,
+    "helper_source": "fn inspect_post_observer(value: (), game: &mut Game<'_>, packet: &ClientboundPlayPacket) {\n    let _ = (game, packet);\n    value\n}\n",
+    "bindings": [
+      {
+        "name": "value",
+        "ty": "()",
+        "value": "$value"
+      },
+      {
+        "name": "game",
+        "ty": "&mut Game<'_>",
+        "value": "&mut *self"
+      },
+      {
+        "name": "packet",
+        "ty": "&ClientboundPlayPacket",
+        "value": "packet"
+      }
+    ]
+  },
+  "rejection": {
+    "code": "E_UNSUPPORTED_CONTROL_FLOW",
+    "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+    "file": "crates/horizon-client/src/game/remote.rs",
+    "mod_id": "pluto_guide_response_probe",
+    "injection_id": "caller-post-observer",
+    "target": "horizon_client::game::remote::Game<'_>::handle_packet",
+    "selector": "self.native_client_packet(&packet)"
+  },
+  "artifacts": {
+    "result.json": {
+      "bytes": 1642,
+      "sha256": "36739d55962039b7a54c6119a6d4d764115ffc7ed8d7f6db4be329b628e876ca"
+    },
+    "return-mut-plan.json": {
+      "bytes": 608250,
+      "sha256": "ab08e99123111704e06176d09da0bfba038153d429e5e43fae99c4e25bb3722b"
+    },
+    "return-mut.log": {
+      "bytes": 235,
+      "sha256": "63547bab09d2fffcb1fef49e24b2351166b433822cdf7b5d7b056c870246b8d7"
+    },
+    "after-call.log": {
+      "bytes": 401,
+      "sha256": "5748696566205ab4569a3825caaa8cba8820b7af34c317b25483f2a6244f5663"
+    }
+  },
+  "unrun": [
+    "Applied transformed host",
+    "Native borrow/type proof for a mutable service",
+    "Real Client UI/lifetime/network",
+    "Full TConstruct composition"
+  ],
+  "source_tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 pluto-lib/experiments/guide-response-phase/test_contract.py",
+    "passed": 7,
+    "failed": 0,
+    "coverage": "Source and metadata contracts, in-memory package exclusion, JSON-shape size models; not Rust codec/native UI execution."
+  }
+}

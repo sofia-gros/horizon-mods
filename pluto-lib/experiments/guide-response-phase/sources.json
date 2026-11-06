@@ -1,0 +1,28 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "base": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+  "official_sources": {
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf"
+  },
+  "mixins_sources": {
+    "crates/horizon-mixins-core/src/plan.rs": "4e81bcaa3bb65dbdd5c88ad87af1471e1d11cadc24bcb32ee62bcff2f09df26f",
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+    "crates/horizon-mixins-core/src/manifest.rs": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+  },
+  "probe_sources": {
+    "after-call/pluto_guide_response_probe/horizon-mixin.toml": "c3af788eb07318181727f85806c5e2e3ae0efe7e86111418f37446459e57ac3c",
+    "after-call/pluto_guide_response_probe/probe.rs": "e12e3d5717fd9b98cffe90ba64bf91ff0d9a34cf88b5e298a8ecfd2e43dd8cc3",
+    "return-mut/pluto_guide_response_probe/horizon-mixin.toml": "475da4ba8511c6a7c5e8918e2ce43d3bce298a7e6516714a0cc1af7168b76dfd",
+    "return-mut/pluto_guide_response_probe/probe.rs": "ba8be180d0f4bad026b764494efa78564028dddfe96df4100fb189f2c710e4c2"
+  },
+  "status": "Both isolated official plans completed; RETURN binding accepted, caller AFTER_CALL rejected. See validation.json.",
+  "limits": [
+    "No library guard change",
+    "No registry/state/activation",
+    "No mutation, cancellation, native callback invocation or packet copy",
+    "Planner acceptance alone would not prove borrowing/type correctness, order composition or screen lifetime"
+  ]
+}

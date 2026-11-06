@@ -1,0 +1,21 @@
+# Excluded no-op constraint probe, not an installed service.
+[mod]
+id = "pluto_guide_response_probe"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id = "caller-post-observer"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "AFTER_CALL"
+selector = "self.native_client_packet(&packet)"
+ordinal = 0
+require = 1
+result = "()"
+helper = "probe.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "packet", ty = "&C", value = "&packet" },
+]
