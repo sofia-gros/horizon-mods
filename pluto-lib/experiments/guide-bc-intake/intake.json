@@ -1,0 +1,272 @@
+{
+  "navigation": {
+    "commit": "d4d798fbbdc9dbbe0f81adb0e4074c798737e5ad",
+    "files": [
+      {
+        "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "18fb0e8d6c67efd30858634113e93a19c886c87a",
+        "size": 189437,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/18fb0e8d6c67efd30858634113e93a19c886c87a"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "9aa39dc706c5412e1483ae827f74d2b616ed2d8a",
+        "size": 2783,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/9aa39dc706c5412e1483ae827f74d2b616ed2d8a"
+      }
+    ]
+  },
+  "consumer": {
+    "commit": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+    "files": [
+      {
+        "path": "pluto-lib/docs/tconstruct-guide-text-migration.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "92ef6e677ee2b3dcdb2b125dab7bde1e99ed18c3",
+        "size": 13113,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/92ef6e677ee2b3dcdb2b125dab7bde1e99ed18c3"
+      },
+      {
+        "path": "tconstruct/docs/guide-book-identity-refactor.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "09bdb7d98ddf664724ca710fdf7b094ea7073be2",
+        "size": 3098,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/09bdb7d98ddf664724ca710fdf7b094ea7073be2"
+      },
+      {
+        "path": "tconstruct/docs/guide-modifier-anchor-design.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "22538d51f14cc65df4eea02872651745b01bf6ab",
+        "size": 7794,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/22538d51f14cc65df4eea02872651745b01bf6ab"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "850eb910277e169daa1669949c2542c21444858c",
+        "size": 189505,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/850eb910277e169daa1669949c2542c21444858c"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-click.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6d80646a9c16a330eb46f02c3a8c4b2409eed6c2",
+        "size": 2524,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/6d80646a9c16a330eb46f02c3a8c4b2409eed6c2"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "71e840b62fe5f2c4b58e77554a5378442dddee64",
+        "size": 22167,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/71e840b62fe5f2c4b58e77554a5378442dddee64"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-identity.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "821c2de33a1dd9f23a7f773b87e68fb4c4843ba1",
+        "size": 7804,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/821c2de33a1dd9f23a7f773b87e68fb4c4843ba1"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2fbe9323f16384eff72175d9396136e4a8425f5f",
+        "size": 13561,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/2fbe9323f16384eff72175d9396136e4a8425f5f"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-text.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8b618a9c7b913521141a4f2629b3eacc7c0b2eb7",
+        "size": 2619,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/8b618a9c7b913521141a4f2629b3eacc7c0b2eb7"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ff9bf4569f93c9314e94201665cf66c5ac7b997a",
+        "size": 9575,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/ff9bf4569f93c9314e94201665cf66c5ac7b997a"
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0eba97316e722877b9a715dc64c98764ef4e90f4",
+        "size": 57848,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/0eba97316e722877b9a715dc64c98764ef4e90f4"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/.gitignore",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b83d22266ac8aa2f8df2edef68082c789727841d",
+        "size": 9,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/b83d22266ac8aa2f8df2edef68082c789727841d"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/Cargo.lock",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "120e36697b37116a7686b4540fffc668b359e490",
+        "size": 2644,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/120e36697b37116a7686b4540fffc668b359e490"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/Cargo.toml",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c0996073d384ff9845934a3f23a2e72a9500d07a",
+        "size": 101,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/c0996073d384ff9845934a3f23a2e72a9500d07a"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/identity-refactor-oracle.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0f2277df8f930633bd88b6e652e4ad236849b2e2",
+        "size": 4923,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/0f2277df8f930633bd88b6e652e4ad236849b2e2"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/modifier-anchor-oracle.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "729df51dd6392e7a54d3e34ebfe84e3579b4d122",
+        "size": 7141,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/729df51dd6392e7a54d3e34ebfe84e3579b4d122"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/modifier-anchor-runtime-scope.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5d6fb6eb7f40a5e6a986acdf2e252d0584e11424",
+        "size": 10931,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/5d6fb6eb7f40a5e6a986acdf2e252d0584e11424"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/src/lib.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "da67558da635c8264993d4bd5ed64fd51ccaf4e0",
+        "size": 4582,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/da67558da635c8264993d4bd5ed64fd51ccaf4e0"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/test_identity_scope.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "1ef9049236908e5fd46e7c9e8cc99ac85ed90267",
+        "size": 3203,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/1ef9049236908e5fd46e7c9e8cc99ac85ed90267"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/test_modifier_anchor_oracle.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e800b5f1234903371ecf681dd4b416a1a99f880c",
+        "size": 10954,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/e800b5f1234903371ecf681dd4b416a1a99f880c"
+      },
+      {
+        "path": "tconstruct/tests/book-wire/test_modifier_anchor_runtime_scope.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "03a716f2a8b406614bb03ccbc569cad24bb13637",
+        "size": 4903,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/03a716f2a8b406614bb03ccbc569cad24bb13637"
+      },
+      {
+        "path": "tconstruct/tests/guide-identity-proof/README.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b684c00911b0d6a041217704ee96118cfa0ee2ed",
+        "size": 2439,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/b684c00911b0d6a041217704ee96118cfa0ee2ed"
+      },
+      {
+        "path": "tconstruct/tests/guide-identity-proof/fixture.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f5686c95a3a612f0cd70a3a331f27ac62d30a021",
+        "size": 326,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/f5686c95a3a612f0cd70a3a331f27ac62d30a021"
+      },
+      {
+        "path": "tconstruct/tests/guide-identity-proof/inputs.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7f04da28ab6b32731a2e89c1c2945c4a1b066d72",
+        "size": 3821,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/7f04da28ab6b32731a2e89c1c2945c4a1b066d72"
+      },
+      {
+        "path": "tconstruct/tests/guide-text-migration/native.rs",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8ff4438e9c1d52013fe5f9f7e0fd2c4e4bd66c14",
+        "size": 9935,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/8ff4438e9c1d52013fe5f9f7e0fd2c4e4bd66c14"
+      },
+      {
+        "path": "tconstruct/tests/guide-text-migration/prepare.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7abd74a155b0dcc4073e66d5fc828c6a51815a05",
+        "size": 3742,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/7abd74a155b0dcc4073e66d5fc828c6a51815a05"
+      },
+      {
+        "path": "tconstruct/tests/guide-text-migration/test_source.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "654a991acdeda377b5a7632e9b7b29894e39eaa3",
+        "size": 6912,
+        "url": "https://api.github.com/repos/sofia-gros/horizon-mods/git/blobs/654a991acdeda377b5a7632e9b7b29894e39eaa3"
+      }
+    ]
+  },
+  "merged_files": {
+    "horizon-mixin.toml": {
+      "sha256": "9e7a9e283a8596093ec13cfcab99156ef04e818c8ea9a9ccf65dded6f4e77d5d",
+      "git_blob": "57a47cfc3f1f1c9a8e5ae16caabbb9ae39a07bed",
+      "bytes": 189787
+    },
+    "source-materials-book-click.rs": {
+      "sha256": "ee0733f12c708a321198c32dad7c2d74d731b74e99b35b6340cf71ac28d0fc71",
+      "git_blob": "e3e5df0a06b254e31feeacb023d57edc4fdec156",
+      "bytes": 2592
+    }
+  },
+  "source_tests": {
+    "passed": 8,
+    "log_sha256": "07dbeff78dc5acc9fc2538ddc03a9bab765da7eb29e251939edf0d257e678836"
+  },
+  "inverse": "Both complete navigation originals reconstruct by removing only the new query/two modules. Both complete consumer originals reconstruct by replacing only the preserved navigation tail/module+control section with their original turn behavior.",
+  "native_executed": false,
+  "dependencies": [
+    "Common035273 owns all shared Pluto paths, including raw/lazy guide layout. Do not overwrite them.",
+    "Copy six non-click runtime blobs from exact d9f8. Keep PR945 navigation, control, key and cover runtime unchanged."
+  ],
+  "limits": [
+    "Not runtime composition, native type, Font41f, UI or LAN proof.",
+    "Unchanged legacy response HEAD still conflicts with the payload observer guard. A separate bridge is required.",
+    "41f draw_book adds native transparent background dispatch. The unchanged TConstruct custom draw still uses its own fill and bypasses that new native path.",
+    "Legacy source-oracle scripts pin their original candidate; do not silently rewrite them to claim historical tests passed on this composition."
+  ]
+}
