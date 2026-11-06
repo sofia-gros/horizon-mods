@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "status": "source-only exact official read; no new planner execution",
+  "sources": [
+    {
+      "repo": "horizon",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "path": "Cargo.lock",
+      "blob": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "size": 135677,
+      "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+      "same_as_prior_bytes": false
+    },
+    {
+      "repo": "horizon",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "path": "Cargo.toml",
+      "blob": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+      "size": 3546,
+      "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640",
+      "same_as_prior_bytes": false
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "Cargo.lock",
+      "blob": "87fe6ccf1cb8741f120d2b59cb975c3a2f18b166",
+      "size": 16158,
+      "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "Cargo.toml",
+      "blob": "3754849ef70b7f8212f53d0c6dd6d155fd225878",
+      "size": 983,
+      "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-cli/Cargo.toml",
+      "blob": "c03dbe9a1e06601feb3359885aeac60dad4d7968",
+      "size": 466,
+      "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-cli/src/main.rs",
+      "blob": "ac813ca8f1d00284e2da7c5ecde921bb8324d17b",
+      "size": 6582,
+      "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/index.rs",
+      "blob": "3b59c63651a39226e31e851f376a4bb7e12087b9",
+      "size": 30231,
+      "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711",
+      "same_as_prior_bytes": false
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/manifest.rs",
+      "blob": "c0b5b57c5ae55f151cb8736a664d07a589520cfb",
+      "size": 19011,
+      "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+      "blob": "3c16a71cd6084d3d70ea158a9a91be5b563cf7b2",
+      "size": 1896,
+      "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068",
+      "same_as_prior_bytes": true
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/plan.rs",
+      "blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+      "size": 60607,
+      "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+      "same_as_prior_bytes": false
+    },
+    {
+      "repo": "horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/native.rs",
+      "blob": "c81b6c90a894b4f81ae7708e31e7bf2dfa3ea629",
+      "size": 32971,
+      "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85",
+      "same_as_prior_bytes": true
+    }
+  ],
+  "manifest_changes": [
+    {
+      "path": "tconstruct_native/horizon-mixin.toml",
+      "prior": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+      "before_sha256": "12bca61e376746756ed52c2785750a27d144dc7379f48088b7ffcff249185865",
+      "after_sha256": "5fc01ef8d392bb0b38c6f7d1ee8bca5ba115ca57e8cd0193c104a495c2c9cfe6",
+      "bytes": 189162,
+      "before_line": "horizon_revision = \"0c7b5b61a5e746d621afffba919b12aeccf9c0fa\"",
+      "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\""
+    },
+    {
+      "path": "pluto_native_creative/horizon-mixin.toml",
+      "prior": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "before_sha256": "f63dbc76fefa30c84d4ae8dbce844dd9fdb0465de48f2912a4d0dd2bcd91da91",
+      "after_sha256": "19887c15e3a8a9a2b9ac2e5f6c8042004f46a0ad53628cb7fa142be5fe829110",
+      "bytes": 29905,
+      "before_line": "horizon_revision = \"624c4f6265c02296fbe8a80f029dd0d987fb94c0\"",
+      "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\""
+    }
+  ],
+  "prior_baseline": {
+    "source": "7389a163d0f3564a405332e7e2868c6b67ee96a0",
+    "proof": "08bf25d97c1295e83e6685ec3b1c9be86db41fd9",
+    "plan_exit": 1,
+    "code": "E_REVISION"
+  },
+  "notes": [
+    "CLI options, package/bin name, diagnostic schema, Mixins Cargo.lock and metadata offline/locked/no-deps argv match prior e8 bytes.",
+    "Index::load now canonicalizes root; crate self-alias lookup was added. The complete latest planner is used rather than substituted prior code.",
+    "Horizon root adds horizon-mod-deps; latest lock differs. No old host/runtime proof is transferred.",
+    "Only two candidate manifest horizon_revision values are changed. Raw archive headers retain old Horizon/Mixins identity; actual tool is separately pinned.",
+    "Full Git tree response was untruncated for each official revision; selected blobs were independently verified using Git blob SHA."
+  ]
+}
