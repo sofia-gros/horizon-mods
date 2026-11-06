@@ -33,3 +33,24 @@ in that group and cannot launch in a standalone nonleader context. No local
 native execution, cache reuse/upload, permissions change, billing change,
 production activation, Game/UI or pack-priority repair result is authorized by
 this source-only checkpoint.
+
+
+## First attempt and parser-only correction
+
+Run 42214234395 at `3c105dbb` failed after the locked cold `--no-run`
+compile phase exited 0. The witness parser rejected serde before any of the
+fourteen tests ran. Final receipt is passed=false, verified=true; generated
+OUT_DIR was not yet sealed. Raw compiler-phase bytes were not retained in the
+bounded console, so the exact offending argv is unknown.
+
+The former parser incorrectly treated every verbose token ending in `.rs` as
+a source, including legal Cargo environment prefixes. Serde v1.0.229 declares
+`homepage = "https://serde.rs"` in its public manifest. This is a concrete
+parser defect and a plausible cause, not a recovered offending invocation.
+The correction strips only leading shell variable assignments, requires one
+actual rustc executable token, and checks source arguments after that token.
+No dependency/source-path match, test flag, complete witness set or final seal
+is relaxed. A failure now emits only bounded crate/path/shape plus argv hash,
+not all environment values. Three new pure regressions cover `.rs` values,
+`RUSTC=/.../rustc`, duplicate executables and bounded mismatch diagnostics.
+Helper, fixture, lock policy, workflow and fourteen Rust tests are unchanged.

@@ -51,6 +51,25 @@ class RunnerTests(unittest.TestCase):
         meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta)
         for changed in ['',log+'\n'+log,log.replace('/fixture/fixture.rs','/other.rs'),log.replace(' --test',''),log+'\nRunning `rustc --crate-name horizon_world /x.rs`']:
             with self.assertRaises(ValueError):m.compilers(changed,meta,Path('/fixture'))
+    def test_public_environment_rs_suffix_is_not_a_source(self):
+        meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta)
+        env="CARGO_PKG_HOMEPAGE=https://serde.rs CARGO_PKG_DESCRIPTION='Words ending .rs' "
+        changed=log.replace('Running `','Running `'+env)
+        self.assertEqual(len(m.compilers(changed,meta,Path('/fixture'))),3)
+    def test_environment_rustc_path_is_not_executable(self):
+        meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta)
+        changed=log.replace('Running `','Running `RUSTC=/toolchain/bin/rustc ')
+        self.assertEqual(len(m.compilers(changed,meta,Path('/fixture'))),3)
+        self.assertIsNone(m.compiler_arguments('Running `RUSTC=/toolchain/bin/rustc /target/build-script`'))
+        with self.assertRaises(ValueError):m.compiler_arguments('Running `RUSTC=/toolchain/bin/rustc /other --crate-name serde src/lib.rs`')
+    def test_duplicate_executable_and_bounded_mismatch_witness(self):
+        with self.assertRaises(ValueError):m.compiler_arguments('Running `rustc /other/rustc --crate-name serde src/lib.rs`')
+        meta,_=graph(Path('/official'),Path('/fixture'));log=compiler_log(meta).replace('/fixture/fixture.rs','/'+('x'*1000)+'.rs')
+        import contextlib,io
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaises(ValueError):m.compilers(log,meta,Path('/fixture'))
+        self.assertLess(len(output.getvalue()),1000);self.assertIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
+        self.assertNotIn('CARGO_PKG_HOMEPAGE',output.getvalue())
     def test_exact_complete_fourteen_names(self):
         names=m.config()['tests'];log='\n'.join('test '+n+' ... ok' for n in names)+'\ntest result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;\n'
         self.assertEqual(set(m.base.validate_suite(log,14,names)),set(names))

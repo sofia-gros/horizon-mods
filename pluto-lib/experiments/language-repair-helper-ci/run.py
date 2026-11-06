@@ -31,6 +31,21 @@ def validate(value):
 def event_allowed(event,env):
     return (env.get('GITHUB_ACTIONS')=='true' and env.get('GITHUB_REPOSITORY')==REPOSITORY and
       env.get('GITHUB_EVENT_NAME')=='push' and env.get('GITHUB_REF')=='refs/heads/'+BRANCH and event.get('repository',{}).get('private') is False)
+def compiler_arguments(line):
+    # Cargo verbose prepends shell-style environment assignments. They are not
+    # compiler inputs, even when a public value ends with .rs or /rustc.
+    tokens=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
+    at=0
+    while at<len(tokens) and re.match(r'^[A-Za-z_][A-Za-z0-9_]*=',tokens[at]):at+=1
+    command=tokens[at:]
+    if not command:return None
+    if Path(command[0]).name!='rustc':
+        if '--crate-name' in command:raise ValueError('Unexpected non-rustc compiler command')
+        return None
+    if sum(Path(token).name=='rustc' for token in command)!=1:
+        raise ValueError('Ambiguous rustc executable tokens')
+    return command[1:]
+
 def compilers(log,metadata,fixture):
     expected={}
     for name in ['serde','serde_json',prepare.NAME]:
@@ -42,13 +57,18 @@ def compilers(log,metadata,fixture):
     result=[]
     for line in log.splitlines():
         if 'Running `' not in line or 'rustc' not in line:continue
-        args=shlex.split(line.split('Running `',1)[1].rsplit('`',1)[0])
-        if '--crate-name' not in args:continue
+        args=compiler_arguments(line)
+        if args is None or '--crate-name' not in args:continue
+        if args.count('--crate-name')!=1 or args.index('--crate-name')+1==len(args):
+            raise ValueError('Malformed compiler crate-name argument')
         name=args[args.index('--crate-name')+1]
         if name.startswith('horizon_'):raise ValueError('Unexpected host compilation in helper-only proof')
         if name not in expected:continue
         paths=[(fixture/arg).resolve() for arg in args if arg.endswith('.rs')]
         if paths!=[expected[name]] or ('--test' in args)!=(name==prepare.NAME.replace('-','_')):
+            detail={'crate':name,'source_count':len(paths),'observed_sources':[str(p)[:240] for p in paths[:4]],
+                    'expected_source':str(expected[name])[:240],'test':'--test' in args,'invocation_sha256':base.sha(line.encode())}
+            print('COMPILER_SOURCE_MISMATCH',json.dumps(detail,sort_keys=True),flush=True)
             raise ValueError('Wrong actual compiler source/profile: '+name)
         result.append({'crate':name,'source':str(paths[0]),'test':'--test' in args,'invocation_sha256':base.sha(line.encode())})
     if len(result)!=3 or {r['crate'] for r in result}!=set(expected):raise ValueError('Missing/duplicate actual compiler witnesses')

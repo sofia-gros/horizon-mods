@@ -1,0 +1,118 @@
+{
+  "run_id": 42214234395,
+  "job_id": 127880155376,
+  "attempt": 1,
+  "head": "3c105dbbe0853b5c716516957f684de83d705e30",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42214234395",
+  "conclusion": "failure",
+  "console_bytes": 23248,
+  "console_sha256": "c7af3489348396dd0fd56ad9acec447594fe47b3bdd9f86246dede95aaaf7ae5",
+  "final_receipt": {
+    "error": "ValueError: Wrong actual compiler source/profile: serde; ValueError: Missing required gates",
+    "fixture_seal_sha256": "61f5505613152664b53763c725c640c636240c3e5d347cf74e0fd75b6dc46fa3",
+    "gates": {
+      "metadata": {
+        "lock_sha256": "89aebbf2b06d7a5b7565993f52ec73c63b8eb83fe9d84a7f0f447080d9126500",
+        "metadata_sha256": "4e3e040533f08e1119e60a6bf7e3997f772fd9d80edc195c712c0f23ddc85a16",
+        "packages": [
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18/Cargo.toml",
+            "name": "itoa",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.18"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3/Cargo.toml",
+            "name": "memchr",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "2.8.3"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture/Cargo.toml",
+            "name": "pluto-language-repair-helper-fixture",
+            "source": null,
+            "version": "0.0.0"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/Cargo.toml",
+            "name": "proc-macro2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.107"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/Cargo.toml",
+            "name": "quote",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.47"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/Cargo.toml",
+            "name": "serde",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229/Cargo.toml",
+            "name": "serde_core",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/Cargo.toml",
+            "name": "serde_derive",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/Cargo.toml",
+            "name": "serde_json",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.151"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/syn-3.0.6/Cargo.toml",
+            "name": "syn",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "3.0.6"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26/Cargo.toml",
+            "name": "unicode-ident",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.26"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23/Cargo.toml",
+            "name": "zmij",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.23"
+          }
+        ],
+        "passed": true
+      },
+      "placement12": {
+        "passed": true,
+        "scope": "source/synthetic inspection, not accepted native plan",
+        "tests": 12
+      },
+      "runner": {
+        "passed": true,
+        "tests": 16
+      },
+      "source13": {
+        "passed": true,
+        "scope": "source/synthetic inspection, not accepted native plan",
+        "tests": 13
+      }
+    },
+    "generated_seal_sha256": null,
+    "head": "3c105dbbe0853b5c716516957f684de83d705e30",
+    "minimum_free_bytes": 90046660608,
+    "official_seal_sha256": "ee372649f3f989ddcf0a7321e9d3c311fb049cbae9ae845e56dca69c52cc654e",
+    "passed": false,
+    "scope": "Exact frozen merge helper14 against actual official-locked serde/std only. No host writer/stamp, Mixins placement/apply, actual build/cache, pack-priority repair, Game or UI proof.",
+    "source_seal_sha256": "2e171ad9a38252acce5e4da4ae694a60807f65ddfd2262eb787e026f4389ea09",
+    "verified": true
+  },
+  "scope": "Helper test binary compiled, but compiler witness parser rejected serde before any Rust test ran. No native writer/stamp/type/cache/Game proof. Raw compile phase is ephemeral and was not recovered; its advertised hash is not proof of individual compiler argv."
+}

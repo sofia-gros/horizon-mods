@@ -1,0 +1,196 @@
+﻿2026-11-06T11:59:21.7911244Z Current runner version: '2.338.2'
+2026-11-06T11:59:21.7933578Z ##[group]Runner Image Provisioner
+2026-11-06T11:59:21.7934349Z Hosted Compute Agent
+2026-11-06T11:59:21.7934979Z Version: 20261028.624
+2026-11-06T11:59:21.7935538Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-06T11:59:21.7936492Z Build Date: 2026-10-28T21:51:42Z
+2026-11-06T11:59:21.7937149Z Worker ID: {21ee3554-7a7b-45be-a4cf-871d925fe17d}
+2026-11-06T11:59:21.7937770Z Region: westus2
+2026-11-06T11:59:21.7938238Z Cloud: Azure
+2026-11-06T11:59:21.7938802Z ##[endgroup]
+2026-11-06T11:59:21.7940025Z ##[group]Operating System
+2026-11-06T11:59:21.7940600Z Ubuntu
+2026-11-06T11:59:21.7941076Z 24.04.5
+2026-11-06T11:59:21.7941640Z LTS
+2026-11-06T11:59:21.7942140Z ##[endgroup]
+2026-11-06T11:59:21.7942615Z ##[group]Runner Image
+2026-11-06T11:59:21.7943148Z Image: ubuntu-24.04
+2026-11-06T11:59:21.7943657Z Version: 20261101.360.1
+2026-11-06T11:59:21.7944798Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-06T11:59:21.7946368Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-06T11:59:21.7947206Z ##[endgroup]
+2026-11-06T11:59:21.7948192Z ##[group]GITHUB_TOKEN Permissions
+2026-11-06T11:59:21.7949886Z Contents: read
+2026-11-06T11:59:21.7950422Z Metadata: read
+2026-11-06T11:59:21.7950912Z ##[endgroup]
+2026-11-06T11:59:21.7953196Z Secret source: Actions
+2026-11-06T11:59:21.7954065Z Cache mode: write
+2026-11-06T11:59:21.7954747Z Prepare workflow directory
+2026-11-06T11:59:21.8277310Z Prepare all required actions
+2026-11-06T11:59:21.8319755Z Getting action download info
+2026-11-06T11:59:22.1354544Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-11-06T11:59:22.6057450Z Complete job name: language-repair-helper
+2026-11-06T11:59:22.6830916Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-11-06T11:59:22.6831747Z with:
+2026-11-06T11:59:22.6832176Z   ref: 3c105dbbe0853b5c716516957f684de83d705e30
+2026-11-06T11:59:22.6832691Z   persist-credentials: false
+2026-11-06T11:59:22.6833114Z   fetch-depth: 1
+2026-11-06T11:59:22.6833518Z   repository: sofia-gros/horizon-mods
+2026-11-06T11:59:22.6836840Z   token: ***
+2026-11-06T11:59:22.6837211Z   ssh-strict: true
+2026-11-06T11:59:22.6837591Z   ssh-user: git
+2026-11-06T11:59:22.6837951Z   clean: true
+2026-11-06T11:59:22.6838334Z   sparse-checkout-cone-mode: true
+2026-11-06T11:59:22.6838770Z   fetch-tags: false
+2026-11-06T11:59:22.6839148Z   show-progress: true
+2026-11-06T11:59:22.6839528Z   lfs: false
+2026-11-06T11:59:22.6839879Z   submodules: false
+2026-11-06T11:59:22.6840260Z   set-safe-directory: true
+2026-11-06T11:59:22.6840807Z env:
+2026-11-06T11:59:22.6841169Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T11:59:22.6841595Z   CARGO_BUILD_JOBS: 1
+2026-11-06T11:59:22.6842029Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-06T11:59:22.6842455Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-06T11:59:22.6842881Z   CARGO_INCREMENTAL: 0
+2026-11-06T11:59:22.6843255Z ##[endgroup]
+2026-11-06T11:59:24.7861942Z Syncing repository: sofia-gros/horizon-mods
+2026-11-06T11:59:24.7864682Z ##[group]Getting Git version info
+2026-11-06T11:59:24.7865973Z Working directory is '/home/runner/work/horizon-mods/horizon-mods'
+2026-11-06T11:59:24.7867712Z [command]/usr/bin/git version
+2026-11-06T11:59:25.0608047Z git version 2.56.0
+2026-11-06T11:59:25.0624286Z ##[endgroup]
+2026-11-06T11:59:25.0637618Z Temporarily overriding HOME='/home/runner/work/_temp/bca12442-143b-4f05-a899-429f78116f5e' before making global git config changes
+2026-11-06T11:59:25.0639806Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T11:59:25.0642630Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T11:59:25.0871394Z Deleting the contents of '/home/runner/work/horizon-mods/horizon-mods'
+2026-11-06T11:59:25.0875014Z ##[group]Initializing the repository
+2026-11-06T11:59:25.0879950Z [command]/usr/bin/git init /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T11:59:25.1443921Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-06T11:59:25.1445561Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-06T11:59:25.1447080Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-06T11:59:25.1448243Z hint: call:
+2026-11-06T11:59:25.1448809Z hint:
+2026-11-06T11:59:25.1449569Z hint: 	git config --global init.defaultBranch <name>
+2026-11-06T11:59:25.1450467Z hint:
+2026-11-06T11:59:25.1451328Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-06T11:59:25.1452829Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-06T11:59:25.1454205Z hint:
+2026-11-06T11:59:25.1455008Z hint: 	git branch -m <name>
+2026-11-06T11:59:25.1455992Z hint:
+2026-11-06T11:59:25.1457153Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-06T11:59:25.1548106Z Initialized empty Git repository in /home/runner/work/horizon-mods/horizon-mods/.git/
+2026-11-06T11:59:25.1558606Z [command]/usr/bin/git remote add origin https://github.com/sofia-gros/horizon-mods
+2026-11-06T11:59:25.1825774Z ##[endgroup]
+2026-11-06T11:59:25.1828012Z ##[group]Disabling automatic garbage collection
+2026-11-06T11:59:25.1829719Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-06T11:59:25.1870674Z ##[endgroup]
+2026-11-06T11:59:25.1872620Z ##[group]Setting up auth
+2026-11-06T11:59:25.1877883Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T11:59:25.1923915Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T11:59:25.4367775Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T11:59:25.4411666Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T11:59:25.4635229Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-06T11:59:25.4684979Z ##[endgroup]
+2026-11-06T11:59:25.4686537Z ##[group]Fetching the repository
+2026-11-06T11:59:25.4696133Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 3c105dbbe0853b5c716516957f684de83d705e30
+2026-11-06T11:59:27.0537616Z From https://github.com/sofia-gros/horizon-mods
+2026-11-06T11:59:27.0538808Z  * branch            3c105dbbe0853b5c716516957f684de83d705e30 -> FETCH_HEAD
+2026-11-06T11:59:27.0541759Z ##[endgroup]
+2026-11-06T11:59:27.0542438Z ##[group]Determining the checkout info
+2026-11-06T11:59:27.0543915Z ##[endgroup]
+2026-11-06T11:59:27.0549603Z [command]/usr/bin/git sparse-checkout disable
+2026-11-06T11:59:27.0791271Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-06T11:59:27.0832343Z ##[group]Checking out the ref
+2026-11-06T11:59:27.0837083Z [command]/usr/bin/git checkout --progress --force 3c105dbbe0853b5c716516957f684de83d705e30
+2026-11-06T11:59:27.4289939Z Note: switching to '3c105dbbe0853b5c716516957f684de83d705e30'.
+2026-11-06T11:59:27.4290361Z 
+2026-11-06T11:59:27.4290540Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-06T11:59:27.4290983Z changes and commit them, and you can discard any commits you make in this
+2026-11-06T11:59:27.4291359Z state without impacting any branches by switching back to a branch.
+2026-11-06T11:59:27.4291605Z 
+2026-11-06T11:59:27.4291798Z If you want to create a new branch to retain commits you create, you may
+2026-11-06T11:59:27.4292284Z do so (now or later) by using -c with the switch command. Example:
+2026-11-06T11:59:27.4292489Z 
+2026-11-06T11:59:27.4292830Z   git switch -c <new-branch-name>
+2026-11-06T11:59:27.4292980Z 
+2026-11-06T11:59:27.4293066Z Or undo this operation with:
+2026-11-06T11:59:27.4293201Z 
+2026-11-06T11:59:27.4293272Z   git switch -
+2026-11-06T11:59:27.4293445Z 
+2026-11-06T11:59:27.4293624Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-06T11:59:27.4293878Z 
+2026-11-06T11:59:27.4294086Z HEAD is now at 3c105db Prepare isolated official-locked language repair helper14 CI (unrun)
+2026-11-06T11:59:27.4348840Z ##[endgroup]
+2026-11-06T11:59:27.4445353Z [command]/usr/bin/git log -1 --format=%H
+2026-11-06T11:59:27.4480192Z 3c105dbbe0853b5c716516957f684de83d705e30
+2026-11-06T11:59:27.4488574Z ##[group]Removing auth
+2026-11-06T11:59:27.4492103Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T11:59:27.4530425Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T11:59:27.4753066Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T11:59:27.4787385Z http.https://github.com/.extraheader
+2026-11-06T11:59:27.4795162Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-06T11:59:27.4834848Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T11:59:27.5050177Z ##[endgroup]
+2026-11-06T11:59:27.5340495Z ##[group]Run python3 pluto-lib/experiments/language-repair-helper-ci/run.py
+2026-11-06T11:59:27.5341102Z [36;1mpython3 pluto-lib/experiments/language-repair-helper-ci/run.py[0m
+2026-11-06T11:59:27.5362236Z shell: /usr/bin/bash -e {0}
+2026-11-06T11:59:27.5362474Z env:
+2026-11-06T11:59:27.5362664Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T11:59:27.5362869Z   CARGO_BUILD_JOBS: 1
+2026-11-06T11:59:27.5363098Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-06T11:59:27.5363296Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-06T11:59:27.5363491Z   CARGO_INCREMENTAL: 0
+2026-11-06T11:59:27.5363668Z ##[endgroup]
+2026-11-06T11:59:28.2944612Z PHASE runner-checks ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-repair-helper-ci/test_runner.py", "-v"]
+2026-11-06T11:59:28.6961164Z RAW_LOG {"phase": "runner-checks", "bytes": 1999, "sha256": "dba883728e5d1bc1363134805fdacae9fd17014c57ecff5a86c4f9d47074d43b", "exit": 0}
+2026-11-06T11:59:28.6962627Z TERMINAL runner-checks 0 seconds 0.402
+2026-11-06T11:59:28.6967836Z PHASE toolchain ["rustup", "toolchain", "install", "1.95.0", "--profile", "minimal"]
+2026-11-06T11:59:36.7812435Z RAW_LOG {"phase": "toolchain", "bytes": 257, "sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22", "exit": 0}
+2026-11-06T11:59:36.7813910Z TERMINAL toolchain 0 seconds 8.085
+2026-11-06T11:59:36.7817043Z PHASE official-init ["git", "init", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official"]
+2026-11-06T11:59:36.9829444Z RAW_LOG {"phase": "official-init", "bytes": 725, "sha256": "562b3017bd624f4ea648b5852a2592523e05dca81e0ebba089d3169beac5be3c", "exit": 0}
+2026-11-06T11:59:36.9831097Z TERMINAL official-init 0 seconds 0.201
+2026-11-06T11:59:36.9834274Z PHASE official-origin ["git", "-C", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "remote", "add", "origin", "https://github.com/horizon-rust/horizon.git"]
+2026-11-06T11:59:37.1846434Z RAW_LOG {"phase": "official-origin", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "exit": 0}
+2026-11-06T11:59:37.1847784Z TERMINAL official-origin 0 seconds 0.201
+2026-11-06T11:59:37.1851022Z PHASE official-fetch ["git", "-C", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "fetch", "--depth", "1", "origin", "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"]
+2026-11-06T11:59:42.1966946Z RAW_LOG {"phase": "official-fetch", "bytes": 121, "sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a", "exit": 0}
+2026-11-06T11:59:42.1968606Z TERMINAL official-fetch 0 seconds 5.012
+2026-11-06T11:59:42.1971626Z PHASE official-checkout ["git", "-C", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "checkout", "--detach", "FETCH_HEAD"]
+2026-11-06T11:59:42.7993920Z RAW_LOG {"phase": "official-checkout", "bytes": 84, "sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b", "exit": 0}
+2026-11-06T11:59:42.7994630Z TERMINAL official-checkout 0 seconds 0.602
+2026-11-06T11:59:43.5570229Z PHASE source13 ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-overlay-repair/test_source.py", "-v"]
+2026-11-06T11:59:43.7580069Z RAW_LOG {"phase": "source13", "bytes": 1903, "sha256": "50d08f11a72a8dce04628e7ee9cd3872c5d7a8dc35795dacf51a68396356e81f", "exit": 0}
+2026-11-06T11:59:43.7581938Z TERMINAL source13 0 seconds 0.201
+2026-11-06T11:59:43.7585311Z PHASE placement12 ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-overlay-placement/test_source.py", "-v"]
+2026-11-06T11:59:44.1601287Z RAW_LOG {"phase": "placement12", "bytes": 1673, "sha256": "e044c498a14ea29c6029ea9a4a85ff27f037baceeae0709f678201b1ce685a07", "exit": 0}
+2026-11-06T11:59:44.1603423Z TERMINAL placement12 0 seconds 0.402
+2026-11-06T11:59:44.1607922Z PHASE official-locked-fetch ["cargo", "fetch", "--locked", "--manifest-path", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official/Cargo.toml"]
+2026-11-06T11:59:49.3733760Z RAW_LOG {"phase": "official-locked-fetch", "bytes": 16703, "sha256": "22c94fdda82a17ed49d060a0f0a7abad90384b26f9526af2e015ec855137ec94", "exit": 0}
+2026-11-06T11:59:49.3735634Z TERMINAL official-locked-fetch 0 seconds 5.213
+2026-11-06T11:59:49.3740409Z PHASE prepare ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-repair-helper-ci/prepare.py", "--official", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "--output", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture"]
+2026-11-06T11:59:49.5751252Z RAW_LOG {"phase": "prepare", "bytes": 58, "sha256": "84c5ed6fdc0e3d647178a2b59cc4b0b4af1f9cf68b628ef87b57ad554d7c8ff6", "exit": 0}
+2026-11-06T11:59:49.5752969Z TERMINAL prepare 0 seconds 0.201
+2026-11-06T11:59:49.5757405Z PHASE metadata ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-repair-helper-ci/prepare.py", "--official", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "--output", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture", "--resolve"]
+2026-11-06T11:59:49.7767064Z RAW_LOG {"phase": "metadata", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "exit": 0}
+2026-11-06T11:59:49.7769192Z TERMINAL metadata 0 seconds 0.201
+2026-11-06T11:59:49.7774060Z PHASE verify-before ["/usr/bin/python3", "/home/runner/work/horizon-mods/horizon-mods/pluto-lib/experiments/language-repair-helper-ci/prepare.py", "--official", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/official", "--output", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture", "--verify"]
+2026-11-06T11:59:49.9785190Z RAW_LOG {"phase": "verify-before", "bytes": 31, "sha256": "f31babea2e91c56f30bc94518628466c1eaa6b48e12a362134c345b042e6f982", "exit": 0}
+2026-11-06T11:59:49.9786848Z TERMINAL verify-before 0 seconds 0.201
+2026-11-06T11:59:49.9798878Z PHASE helper-compile ["cargo", "test", "--lib", "--locked", "--offline", "--manifest-path", "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture/Cargo.toml", "-vv", "--no-run"]
+2026-11-06T11:59:57.5983922Z RAW_LOG {"phase": "helper-compile", "bytes": 62909, "sha256": "22299442ebd83d9b61799de0465f00ee3192a8c30b37330b86a2256424924615", "exit": 0}
+2026-11-06T11:59:57.5985494Z TERMINAL helper-compile 0 seconds 7.619
+2026-11-06T11:59:58.7577874Z FINAL_RECEIPT {"error": "ValueError: Wrong actual compiler source/profile: serde; ValueError: Missing required gates", "fixture_seal_sha256": "61f5505613152664b53763c725c640c636240c3e5d347cf74e0fd75b6dc46fa3", "gates": {"metadata": {"lock_sha256": "89aebbf2b06d7a5b7565993f52ec73c63b8eb83fe9d84a7f0f447080d9126500", "metadata_sha256": "4e3e040533f08e1119e60a6bf7e3997f772fd9d80edc195c712c0f23ddc85a16", "packages": [{"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18/Cargo.toml", "name": "itoa", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.18"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3/Cargo.toml", "name": "memchr", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "2.8.3"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/fixture/Cargo.toml", "name": "pluto-language-repair-helper-fixture", "source": null, "version": "0.0.0"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/Cargo.toml", "name": "proc-macro2", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.107"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/Cargo.toml", "name": "quote", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.47"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/Cargo.toml", "name": "serde", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.229"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229/Cargo.toml", "name": "serde_core", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.229"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/Cargo.toml", "name": "serde_derive", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.229"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/Cargo.toml", "name": "serde_json", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.151"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/syn-3.0.6/Cargo.toml", "name": "syn", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "3.0.6"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26/Cargo.toml", "name": "unicode-ident", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.26"}, {"manifest_path": "/home/runner/work/_temp/language-repair-helper-3c105dbbe0853b5c716516957f684de83d705e30/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23/Cargo.toml", "name": "zmij", "source": "registry+https://github.com/rust-lang/crates.io-index", "version": "1.0.23"}], "passed": true}, "placement12": {"passed": true, "scope": "source/synthetic inspection, not accepted native plan", "tests": 12}, "runner": {"passed": true, "tests": 16}, "source13": {"passed": true, "scope": "source/synthetic inspection, not accepted native plan", "tests": 13}}, "generated_seal_sha256": null, "head": "3c105dbbe0853b5c716516957f684de83d705e30", "minimum_free_bytes": 90046660608, "official_seal_sha256": "ee372649f3f989ddcf0a7321e9d3c311fb049cbae9ae845e56dca69c52cc654e", "passed": false, "scope": "Exact frozen merge helper14 against actual official-locked serde/std only. No host writer/stamp, Mixins placement/apply, actual build/cache, pack-priority repair, Game or UI proof.", "source_seal_sha256": "2e171ad9a38252acce5e4da4ae694a60807f65ddfd2262eb787e026f4389ea09", "verified": true}
+2026-11-06T11:59:58.7673975Z ##[error]Process completed with exit code 1.
+2026-11-06T11:59:58.8745521Z Post job cleanup.
+2026-11-06T11:59:58.9510255Z [command]/usr/bin/git version
+2026-11-06T11:59:58.9552706Z git version 2.56.0
+2026-11-06T11:59:58.9589583Z Temporarily overriding HOME='/home/runner/work/_temp/b6c8958b-7eed-4293-ac74-603ec5683a28' before making global git config changes
+2026-11-06T11:59:58.9590354Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T11:59:58.9595133Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/horizon-mods/horizon-mods
+2026-11-06T11:59:59.0134839Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T11:59:59.0207589Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T11:59:59.0449587Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T11:59:59.0491061Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T11:59:59.0982016Z Cleaning up orphan processes
+2026-11-06T11:59:59.1319188Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
