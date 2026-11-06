@@ -1,0 +1,74 @@
+{
+  "status": "BLOCKED: actual borrowed host does not reach existing item/cloud consumer",
+  "source_only": true,
+  "actual_plan": null,
+  "host_type_check": null,
+  "new_runtime_api": false,
+  "attached_candidate": "70a589b21b1b202b44debb8b5aa848c83daf9207",
+  "files": [
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game.rs",
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "bytes": 1032243
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "git_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "bytes": 270381
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game/commands/players.rs",
+      "sha256": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+      "git_blob": "62f058a4ef2687e79a6864f7ba8587e9c4ccece4",
+      "bytes": 9188
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game/native_entity_refs.rs",
+      "sha256": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+      "git_blob": "488625055753dfe9ae714fbd0ab854e37040fa0e",
+      "bytes": 20171
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game/commands.rs",
+      "sha256": "9015feebb6bb93fec6c26812d433d5a6e93b5d435f82917fd0034cc208f4a28f",
+      "git_blob": "0ccf3e5eb02d8fe03fe300988c1d74a2832e3498",
+      "bytes": 190411
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "path": "crates/horizon-client/src/game/sculk.rs",
+      "sha256": "a9ca7d499f73378bfe54504a1099b5994f288e1cae89875f24c32dd3b221cebc",
+      "git_blob": "923e5c1ba662d272fe74e9724d8373a06e0b9d21",
+      "bytes": 94617
+    },
+    {
+      "repository": "horizon-rust/horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/plan.rs",
+      "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+      "git_blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+      "bytes": 60607
+    },
+    {
+      "repository": "horizon-rust/horizon-mixins",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "path": "crates/horizon-mixins-core/src/helpers.rs",
+      "sha256": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+      "git_blob": "55a93720ff0c8e2068e1eed24aa82a6c6761e45a",
+      "bytes": 19151
+    }
+  ]
+}
