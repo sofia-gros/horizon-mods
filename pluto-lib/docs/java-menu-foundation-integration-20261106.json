@@ -1,5 +1,5 @@
 {
-  "status": "combined_api_unit_pass_consumer_and_native_pending",
+  "status": "combined_api_and_java_pass_menu_and_native_pending",
   "base": "8715b1232c0fca133fe012f35830e2108e653d59",
   "java_local": "544419e72f65abe20180a24f4d82ee69886620f4",
   "menu_local": "7420531890068474c189424b44f2da9a6e2f60b1",
@@ -48,6 +48,18 @@
     "minimum_free_bytes": 10882441216,
     "receipt": "proofs/java-menu-api-20261106/receipt.json"
   },
-  "consumer_fixture_retests": "not_run",
-  "complete_native_gate": "not_run"
+  "consumer_fixture_retests": {
+    "java": "pass",
+    "menu": "not_run"
+  },
+  "complete_native_gate": "not_run",
+  "java_consumer": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "api_library_compilations": 1,
+    "consumer_test_compilations": 1,
+    "minimum_free_bytes": 10886770688,
+    "receipt": "proofs/java-menu-api-20261106/java-receipt.json"
+  }
 }

@@ -1,0 +1,18 @@
+   Compiling pluto-inventory-api v0.1.0 (/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/mixins/pluto_native_creative/inventory-api)
+   Compiling pluto-java-hashmap-tests v0.1.0 (/workspace/scratch/c7b540ff3393/.work/pluto-menu-words-379/pluto-lib/tests/java-hashmap)
+    Finished `test` profile [unoptimized] target(s) in 1.80s
+     Running unittests src/lib.rs (.work/official-advancement-recovery/host-target/debug/deps/pluto_java_hashmap_tests-2b6ca2cfb872c022)
+
+running 8 tests
+test consumer::tests::rejects_java_tree_bins_instead_of_claiming_an_order ... ok
+test legacy::tests::matches_java_hashmap_after_resize ... ok
+test legacy::tests::rejects_java_tree_bins_instead_of_claiming_an_order ... ok
+test consumer::tests::matches_java_hashmap_after_resize ... ok
+test tests::java_utf16_hash_uses_wrapping_units_without_normalization ... ok
+test tests::raw_hash_spread_linked_collisions_and_resizes_are_explicit ... ok
+test tests::invalid_ids_unicode_and_collision_families_match_legacy ... ok
+test tests::original_recipe_policy_and_hash_resize_order_are_preserved ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+

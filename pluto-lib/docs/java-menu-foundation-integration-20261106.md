@@ -39,3 +39,10 @@ The locked/offline, jobs=1, debug=0, incremental=0 run finished in 3.40 seconds.
 [Exact proof receipt](proofs/java-menu-api-20261106/receipt.json) and [test log](proofs/java-menu-api-20261106/api-unit-result.log) retain the actual argv, hashes and local proof harness. Those harness files record this workspace-specific run; they are not installed mod modules or a replacement CI runner.
 
 **Still pending on this combined tree:** the two consumer differential fixtures, and the separate complete official native plan/apply/type gate. The previous 24 Python checks and reproducible archive proof remain distinct. No Actions operation, game session, new material-display API or automatic crafting activation is included.
+
+
+### Java consumer differential gate
+
+On the same frozen combined source69c6, the real Java compatibility consumer and its frozen legacy oracle passed all **8 tests, 0 failed, 0 ignored**. The existing 1,311 differential cases retain ID-policy, UTF-16, spread, linked collision and resize coverage; TreeBin remains explicitly unsupported. This is comparison with the frozen Rust oracle, not a new JVM run.
+
+The bounded run observed exactly one API library compilation and one Java test-harness compilation, with no other compilation. It finished in 2.60 seconds; minimum free space was 10,886,770,688 bytes. The 193-source/API/lock seal remained unchanged and no compiler process remained. [Java receipt](proofs/java-menu-api-20261106/java-receipt.json) and [log](proofs/java-menu-api-20261106/java-result.log) preserve this separate terminal result. Menu consumer and the full official native gate remain pending.
