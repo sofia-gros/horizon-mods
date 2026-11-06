@@ -28,6 +28,17 @@ class SourceChecks(unittest.TestCase):
         self.assertEqual(set(actual),set(config['std_tests']))
         self.assertIn('pluto_terrain_bindings::revision_view_tests::stale_before_inspection_is_explicitly_unavailable',actual)
         self.assertIn('pluto_terrain_bindings::appearance_tests::legacy_empty_and_single_appearance_validate',actual)
+    def test_all_source_inventories_and_filters_are_exact(self):
+        config=m.read_inputs();m.validate_test_inventory(config)
+        import copy
+        bad=copy.deepcopy(config);bad['fluid_filter']='fluid::tests::'
+        with self.assertRaises(ValueError):m.validate_test_inventory(bad)
+        bad=copy.deepcopy(config)
+        bad['fluid_tests']=[n.replace('::revision_tests::','::tests::') for n in bad['fluid_tests']]
+        with self.assertRaises(ValueError):m.validate_test_inventory(bad)
+        bad=copy.deepcopy(config);bad['native_filter']='unknown::'
+        with self.assertRaises(ValueError):m.validate_test_inventory(bad)
+        self.assertLess((HERE/'run.py').read_text().index('    validate_test_inventory(config)'),(HERE/'run.py').read_text().index("runner.run('apt-update'"))
     def test_missing_skipped_duplicate_or_zero_fails(self):
         names=['example::one','example::two']
         good='test example::one ... ok\ntest example::two ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.1s\n'

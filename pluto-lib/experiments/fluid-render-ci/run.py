@@ -89,6 +89,28 @@ def validate_tests(log, names, filtered=None):
         raise ValueError('Result/count mismatch or skipped tests')
     if filtered is not None and summaries[0][4] != str(filtered): raise ValueError('Unexpected filtered test count')
 
+def source_test_names(source, outer):
+    # A fail-closed check for this frozen source shape, not a general Rust parser.
+    names=[]
+    for found in re.finditer(r'^mod (\w+) \{\n(.*?)^\}',source,re.M|re.S):
+        for name in re.findall(r'^    #\[test\]\n    fn (\w+)\(',found[2],re.M):
+            names.append(outer+'::'+found[1]+'::'+name)
+    if len(names)!=len(re.findall(r'^    #\[test\]$',source,re.M)):
+        raise ValueError('Unsupported frozen test-module source shape')
+    return names
+
+def validate_test_inventory(config):
+    native=ROOT/'pluto-lib/mixins/pluto_native_creative'
+    groups=[('std_tests',[(outer,native/path) for outer,path in config['std_modules'].items()],30,None),
+            ('fluid_tests',[('fluid',native/'api/src/fluid.rs')],21,config['fluid_filter']),
+            ('native_tests',[('mesher::pluto_terrain_cell_host',native/'terrain-cell-host.rs')],2,config['native_filter'])]
+    for field,files,count,test_filter in groups:
+        actual=[name for outer,path in files for name in source_test_names(path.read_text(),outer)]
+        if len(actual)!=count or len(set(config[field]))!=count or set(actual)!=set(config[field]):
+            raise ValueError('Frozen source test inventory mismatch: '+field)
+        if test_filter is not None and any(test_filter not in name for name in actual):
+            raise ValueError('Filter omits a required test: '+field)
+
 def native_rustc(log, names):
     for name in names:
         if not any('Running `' in line and 'rustc' in line and '--crate-name '+name+' ' in line for line in log.splitlines()):
@@ -142,6 +164,7 @@ def main():
         raise ValueError('Require clean exact authorized public CI branch')
     for path,digest in config['source_sha256'].items():
         if sha((ROOT/path).read_bytes())!=digest:raise ValueError('Frozen input mismatch: '+path)
+    validate_test_inventory(config)
     before_mod=seal(ROOT,True)
     work=Path(os.environ['RUNNER_TEMP'])/('fluid-render-'+os.environ['GITHUB_SHA'])
     env=os.environ.copy()
@@ -189,7 +212,7 @@ def main():
         if identities(api/'Cargo.lock')-identities(official/'Cargo.lock')-{('pluto-api','0.1.0',None,None)}:raise ValueError('API lock escapes official package identities')
         api_seal=seal(api);snapshots[str(api)]=api_seal
         runner.run('api-fetch',['cargo','fetch','--locked','--manifest-path',str(api/'Cargo.toml')])
-        result=runner.run('fluid21',['cargo','test','--offline','--locked','--manifest-path',str(api/'Cargo.toml'),'--target-dir',str(work/'api-target'),'--lib','fluid::tests::','--','--test-threads=1'])
+        result=runner.run('fluid21',['cargo','test','--offline','--locked','--manifest-path',str(api/'Cargo.toml'),'--target-dir',str(work/'api-target'),'--lib',config['fluid_filter'],'--','--test-threads=1'])
         validate_tests(result,config['fluid_tests']);assert_seal(api,api_seal);gates['fluid21']='passed'
         runner.run('mixins-build',['cargo','build','--release','--locked','-p','horizon-mixins-cli','--target-dir',str(work/'mixins-target')],cwd=mixins)
         cli=work/'mixins-target/release/horizon-mixins';bundle=work/'plutolib.hnmod';mods=work/'package'
@@ -211,7 +234,7 @@ def main():
         testcmd=['cargo','test','--offline','--locked','--manifest-path',str(stage/'Cargo.toml'),'-p','horizon-client-render','--no-default-features','--lib']
         built=runner.run('native-material-compile',testcmd+['--no-run','-vv'],cwd=stage);native_rustc(built,['horizon_client_render'])
         generated=out_dirs(work/'host-target')
-        result=runner.run('native-material2',testcmd+['mesher::pluto_terrain_cell_host::material_contract_tests::','--','--test-threads=1'],cwd=stage)
+        result=runner.run('native-material2',testcmd+[config['native_filter'],'--','--test-threads=1'],cwd=stage)
         validate_tests(result,config['native_tests']);gates['native_material2']='passed'
     finally:
         assert_seal(ROOT,before_mod,True)

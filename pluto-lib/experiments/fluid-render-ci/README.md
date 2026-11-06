@@ -53,7 +53,7 @@ loader resolution, full-section fallback/cache replay, meshing equivalence,
 CPU performance, upward simulation/contact, live gameplay or GPU display.
 No TConstruct consumer is activated. Those claims need later dedicated evidence.
 
-Source preparation currently has 11 small runner/scope/parser tests passing.
+Source preparation currently has 12 small runner/scope/parser tests passing.
 Completed and unreached native gates are recorded separately below.
 
 ## Preserved initial failure
@@ -63,3 +63,7 @@ Run 42172857479 at 1b60c96a passed source 19, then std compilation failed with E
 ## Preserved second failure
 
 Run 42173321338 at 60054f8b passed source 19 and compiled/executed all 30 std tests (30 passed, zero failed/ignored). The CI exact-name check then rejected five expected names because they incorrectly used the tests module instead of revision_view_tests/appearance_tests. API, plan, guards, apply, host type and native material gates were not reached. Minimum free space was 91,166,392,320 bytes. The next retry corrects only those qualified names and adds a source-module regression; runtime bytes and archive are unchanged. The failed final gate is not presented as a complete run success.
+
+## Preserved third failure
+
+Run 42174045690 at 2b458c72 passed source 19 and std 30. The API command selected only fluid::tests::, so 10 original tests passed but 11 revision/render cases were filtered out. The exact-21 assertion correctly rejected this partial result. The next retry selects fluid::, corrects nested expected names, and checks all three exact source inventories plus filter coverage before setup. No runtime changes are included. Plan/apply/type/native-material remain unreached. Minimum free space was 90,912,833,536 bytes.

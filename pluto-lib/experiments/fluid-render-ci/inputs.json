@@ -63,17 +63,17 @@
     "fluid::tests::captured_snapshots_do_not_change_with_later_registration",
     "fluid::tests::concurrent_snapshot_reader_never_observes_part_of_a_batch",
     "fluid::tests::validates_ids_bounds_and_generated_levels",
-    "fluid::tests::successful_addition_invalidates_only_previous_revision_and_keeps_old_values",
-    "fluid::tests::idempotent_empty_and_failed_batches_keep_the_same_valid_revision",
-    "fluid::tests::legacy_registration_keeps_its_single_texture_default",
-    "fluid::tests::custom_display_and_definition_publish_under_one_revision",
-    "fluid::tests::legacy_repeat_does_not_erase_custom_display_or_invalidate",
-    "fluid::tests::conflicting_batch_rolls_back_both_maps_and_keeps_revision",
-    "fluid::tests::conflicting_batch_internal_styles_leave_empty_registry",
-    "fluid::tests::retained_render_values_survive_new_registration_with_stale_token",
-    "fluid::tests::long_legacy_texture_and_explicit_default_have_one_validation_contract",
-    "fluid::tests::invalid_rgb_and_texture_identity_are_rejected",
-    "fluid::tests::render_content_is_additive_and_default_bytes_remain_semantically_exact"
+    "fluid::revision_tests::successful_addition_invalidates_only_previous_revision_and_keeps_old_values",
+    "fluid::revision_tests::idempotent_empty_and_failed_batches_keep_the_same_valid_revision",
+    "fluid::render_registration_tests::legacy_registration_keeps_its_single_texture_default",
+    "fluid::render_registration_tests::custom_display_and_definition_publish_under_one_revision",
+    "fluid::render_registration_tests::legacy_repeat_does_not_erase_custom_display_or_invalidate",
+    "fluid::render_registration_tests::conflicting_batch_rolls_back_both_maps_and_keeps_revision",
+    "fluid::render_registration_tests::conflicting_batch_internal_styles_leave_empty_registry",
+    "fluid::render_registration_tests::retained_render_values_survive_new_registration_with_stale_token",
+    "fluid::render_registration_tests::long_legacy_texture_and_explicit_default_have_one_validation_contract",
+    "fluid::render_registration_tests::invalid_rgb_and_texture_identity_are_rejected",
+    "fluid::render_registration_tests::render_content_is_additive_and_default_bytes_remain_semantically_exact"
   ],
   "native_tests": [
     "mesher::pluto_terrain_cell_host::material_contract_tests::prepared_texture_metadata_can_differ_without_changing_native_attributes",
@@ -94,5 +94,7 @@
       "after_sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
       "reason": "Run42172857479 actual std compile E0277: make tint closure shift/masks/divisor explicitly u32; arithmetic unchanged"
     }
-  ]
+  ],
+  "fluid_filter": "fluid::",
+  "native_filter": "mesher::pluto_terrain_cell_host::material_contract_tests::"
 }

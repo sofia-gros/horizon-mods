@@ -1,0 +1,28 @@
+{
+  "run_id": 42174045690,
+  "job_id": 127748279460,
+  "head": "2b458c7280ec51a28ce81a906bd1da3a298a0441",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42174045690",
+  "status": "failure",
+  "passed": {
+    "source_tests": 19,
+    "std_tests": 30
+  },
+  "observed_partial_fluid_tests": {
+    "passed": 10,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 42
+  },
+  "failed_gate": "API21 exact-name/count assertion",
+  "error": "Filter fluid::tests:: omitted revision_tests(2) and render_registration_tests(9); expected paths also incorrectly used tests",
+  "not_reached": [
+    "official plan",
+    "complete plan12guards",
+    "official apply",
+    "host lib/bin type",
+    "native material2"
+  ],
+  "minimum_free_bytes": 90912833536,
+  "correction": "Select fluid:: and correct all exact qualified names; fail-closed complete source inventory/filter validation before setup; no runtime changes"
+}
