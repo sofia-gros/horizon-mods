@@ -1,0 +1,14 @@
+{
+  "base_sha256": "e1f237953240a694997122e1f04b0a2135b4b7b617b636051d67d3750664f8af",
+  "candidate_sha256": "e431bc36a06f30a4bb872d14280e38fccaa94ffc1dfbf7088143b56e5dd97c76",
+  "edits": [
+    [
+      "p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')",
+      "p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')\np.add_argument('--cli-target-dir', type=Path, help='explicit isolated Mixins compiler output directory')"
+    ],
+    [
+      "cli_target = root.parent / 'target/mixins-cli-build'",
+      "cli_target = a.cli_target_dir.resolve() if a.cli_target_dir else root.parent / 'target/mixins-cli-build'"
+    ]
+  ]
+}

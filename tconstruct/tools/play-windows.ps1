@@ -1,110 +1,35 @@
-# Native Mixins playtest. All generated files and saves live in a separate folder.
+# Explicit latest source playtest. No checkout, install, download or automatic asset search.
+param(
+    [string]$HorizonSource,
+    [string]$MixinsSource,
+    [string]$PlutoBundle,
+    [string]$Resources,
+    [string]$Toolchain,
+    [string]$PlaytestHome = (Join-Path $env:LOCALAPPDATA 'TConstruct-Horizon-Playtest')
+)
 $ErrorActionPreference = 'Stop'
-$Repo = Split-Path -Parent $PSScriptRoot
-$HomeDir = Join-Path $env:LOCALAPPDATA 'TConstruct-Horizon-Playtest'
-function Run([string]$Command, [string[]]$Arguments) {
-    & $Command @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Command failed with exit code $LASTEXITCODE" }
-}
 function Pick-Folder([string]$Title) {
     Add-Type -AssemblyName System.Windows.Forms
     $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
     $dialog.Description = $Title
-    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required folder was not selected.' }
-    return $dialog.SelectedPath
-}
-function Checkout-Pinned([string]$Path, [string]$Url, [string]$Revision) {
-    if (-not (Test-Path -LiteralPath $Path)) {
-        Run git @('clone', '--no-checkout', $Url, $Path)
-        Run git @('-C', $Path, 'checkout', '--detach', $Revision)
-    }
-    $actual = (& git -C $Path rev-parse HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0 -or $actual -ne $Revision) { throw "Pinned source checkout is incomplete or differs: $Path. Preserve any edits and fix this checkout before retrying." }
-}
-function Pluto-Input-Digest([string]$Bundle) {
-    $digest = @(& py -3 (Join-Path $Repo 'tools\playtest_pluto_inputs.py') --pluto-bundle $Bundle --pluto-root (Join-Path (Split-Path -Parent $Repo) 'pluto-lib'))
-    if ($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[0-9a-f]{64}$') { throw 'Pluto input fingerprint failed; no cached build was accepted.' }
-    return [string]$digest[0]
+    try {
+        if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required explicit folder was not selected.' }
+        return $dialog.SelectedPath
+    } finally { $dialog.Dispose() }
 }
 try {
-    foreach ($name in @('git', 'cargo', 'py')) {
-        if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "$name is missing. Install Git, Python 3.12 and Rust stable MSVC with Visual Studio C++ Build Tools, then try again. Nothing was installed automatically." }
-    }
-    Run py @('-3', '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)')
-    $compat = Get-Content -LiteralPath (Join-Path $Repo 'compatibility.json') -Raw | ConvertFrom-Json
-    $settingsPath = Join-Path $HomeDir 'launcher-settings.json'
-    $settings = $null
-    if (Test-Path -LiteralPath $settingsPath -PathType Leaf) { $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json }
-    $candidates = @(
-        (Join-Path $env:APPDATA 'horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3'),
-        (Join-Path $env:LOCALAPPDATA 'horizon-client\26.3'),
-        'A:\Project\horizon\.local\horizon-client\26.3',
-        (Join-Path (Split-Path -Parent (Split-Path -Parent $Repo)) 'horizon\.local\horizon-client\26.3')
-    )
-    if ($settings -and $settings.resources) { $candidates = @($settings.resources) + $candidates }
-    $candidates += @(Get-ChildItem -Path (Join-Path $env:APPDATA 'horizon-launcher\versions\*\.local\horizon-client\26.3') -Directory -ErrorAction SilentlyContinue | ForEach-Object FullName)
-    $resources = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'horizon-resources.json') -PathType Leaf } | Select-Object -First 1
-    if (-not $resources) { $resources = Pick-Folder 'Select your prepared Horizon 26.3 resource folder' }
-    if (-not (Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json') -PathType Leaf)) { throw 'The selected folder is not a prepared Horizon 26.3 resource folder. Prepare it with Horizon Launcher first.' }
-    $mixinsRevision = $compat.mixins_revision
-    if (-not ($mixinsRevision -match '^[0-9a-f]{40}$')) { throw 'compatibility.json does not contain a valid pinned Mixins revision.' }
-    Write-Host "Horizon Mixins revision: $mixinsRevision"
-    # Select and fingerprint the actual installed bundle before any cache lookup.
-    $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'
-    $PlutoDigest = Pluto-Input-Digest $PlutoBundle
-    # Key the generated build by actual input bytes, so a ZIP download and local
-    # modifications work without writing to or resetting the user's checkout.
-    $inputs = foreach ($dir in @('mixins', 'content', 'assets', 'tools', 'third_party')) {
-        Get-ChildItem -LiteralPath (Join-Path $Repo $dir) -Recurse -File |
-            Where-Object { $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc' }
-    }
-    $sharedCreative = Join-Path (Split-Path -Parent $Repo) 'pluto-lib\pluto_lib\creative.py'
-    $lines = @($resources, $mixinsRevision, $PlutoDigest, (Get-FileHash -LiteralPath $sharedCreative -Algorithm SHA256).Hash) + @($inputs | Sort-Object FullName | ForEach-Object {
-        $_.FullName.Substring($Repo.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
-    }) + @((Get-FileHash -LiteralPath (Join-Path $Repo 'compatibility.json') -Algorithm SHA256).Hash)
-    $hasher = [System.Security.Cryptography.SHA256]::Create()
-    try { $head = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))))).Replace('-', '').ToLowerInvariant() }
-    finally { $hasher.Dispose() }
-    New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
-    if (-not (Test-Path -LiteralPath $settingsPath)) { @{ resources = $resources } | ConvertTo-Json | Set-Content -LiteralPath $settingsPath -Encoding UTF8 }
-    $sources = Join-Path $HomeDir 'sources'
-    New-Item -ItemType Directory -Force -Path $sources | Out-Null
-    $horizon = Join-Path $sources ('horizon-' + $compat.horizon_revision)
-    $mixins = Join-Path $sources ('mixins-' + $mixinsRevision)
-    Checkout-Pinned $horizon $compat.horizon_repository $compat.horizon_revision
-    Checkout-Pinned $mixins $compat.mixins_repository $mixinsRevision
-    $build = Join-Path $HomeDir ('builds\' + $head)
-    $ready = Join-Path $build '.ready'
-    $game = Join-Path $build 'horizon-client.exe'
-    $gameResources = Join-Path $build 'resources'
-    if (-not (Test-Path -LiteralPath $ready)) {
-        if (Test-Path -LiteralPath $build) { throw "An incomplete previous build exists at $build. It was left untouched; remove only this generated build folder after checking it, then retry." }
-        New-Item -ItemType Directory -Force -Path $build | Out-Null
-        Push-Location $Repo
-        try {
-            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--pluto-bundle', $PlutoBundle, '--output-dir', $build)
-            $cargoTarget = Join-Path $HomeDir 'cargo-cache'
-            Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
-            Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game
-            $overlay = Join-Path $build 'item-resources'
-            Run py @('-3', 'tools/resources.py', $resources, $overlay)
-            Run $game @('--tconstruct-prepare', $overlay, (Join-Path $Repo 'content'), $gameResources)
-            Run py @('-3', 'tools/prepare_horizon_source_data.py', $resources, (Join-Path $gameResources 'minecraft-original-pack'))
-            Run py @('-3', 'tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
-            if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed during the build; the build was not marked ready.' }
-            Set-Content -LiteralPath $ready -Value $head
-        } finally { Pop-Location }
-    }
-    if (-not (Test-Path -LiteralPath $game -PathType Leaf) -or -not (Test-Path -LiteralPath (Join-Path $gameResources 'horizon-resources.json') -PathType Leaf)) { throw 'Cached build is incomplete. It was left untouched.' }
-    if ((Pluto-Input-Digest $PlutoBundle) -ne $PlutoDigest) { throw 'Pluto inputs changed before launch; no game was started.' }
-    $GameDir = Join-Path $HomeDir 'game'
-    New-Item -ItemType Directory -Force -Path $GameDir | Out-Null
-    $env:HORIZON_HOME = $GameDir
-    Write-Host "Starting isolated world TConstruct-Playtest. Saves: $GameDir\saves"
-    Push-Location $GameDir
-    try { Run $game @('--resources', $gameResources, '--world', 'TConstruct-Playtest', '--seed', '42', '--creative') } finally { Pop-Location }
+    if (-not (Get-Command py -ErrorAction SilentlyContinue)) { throw 'Python 3.12 or newer is required. Nothing was installed automatically.' }
+    & py -3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'
+    if ($LASTEXITCODE -ne 0) { throw 'Python 3.12 or newer is required.' }
+    if (-not $HorizonSource) { $HorizonSource = Pick-Folder 'Select clean official Horizon 41f822b source checkout (no fork)' }
+    if (-not $MixinsSource) { $MixinsSource = Pick-Folder 'Select clean official Horizon Mixins 5a64af93 source checkout' }
+    if (-not $PlutoBundle) { $PlutoBundle = Pick-Folder 'Select reviewed latest PlutoLib unified bundle directory' }
+    if (-not $Resources) { $Resources = Pick-Folder 'Select explicitly prepared official Horizon 26.3 resources (not saves)' }
+    if (-not $Toolchain) { $Toolchain = Pick-Folder 'Select official launcher Rust 1.99.1 Windows GNU toolchain root containing bin and mingw64' }
+    & py -3 (Join-Path $PSScriptRoot 'play_windows_latest.py') --horizon $HorizonSource --mixins $MixinsSource --pluto-bundle $PlutoBundle --resources $Resources --toolchain $Toolchain --home $PlaytestHome
+    if ($LASTEXITCODE -ne 0) { throw "Latest guarded playtest stopped with exit code $LASTEXITCODE. No fallback build or guard bypass was used." }
 } catch {
-    Write-Host "`nCould not start the Mixins playtest: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'Existing saves and original resources were not changed. See docs/windows-playtest.md for prerequisites and troubleshooting.'
+    Write-Host ("Could not start latest playtest: " + $_.Exception.Message) -ForegroundColor Red
+    Write-Host 'See docs/windows-latest-launch.md. This source route is not yet Windows/GPU verified.'
     exit 1
 }

@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Explicit, offline Windows GNU playtest. No installer, clone, fetch or deletion.
+
+The complete native plan must pass the repository's unchanged guards before apply.
+This source candidate is not evidence of Windows compilation or game startup.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import re
+import struct
+import stat
+import subprocess
+import sys
+import tomllib
+
+from playtest_pluto_inputs import directory, plain, signature, fingerprint
+
+HORIZON = '41f822b659789780f58d32c63ddfb6887ea1b8bf'
+MIXINS = '5a64af938ec86b00d53d16a408aabc0038fb3e57'
+HORIZON_LOCK = '0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'
+MIXINS_LOCK = '35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca'
+VERSION = '1.99.1'
+TARGET = 'x86_64-pc-windows-gnu'
+MODS_FEATURE = 'horizon-client/mods'
+PROFILE = 'fast'
+STAGE_SHA = 'e431bc36a06f30a4bb872d14280e38fccaa94ffc1dfbf7088143b56e5dd97c76'
+# These are read budgets, not claims about maximum compiler/resource disk growth.
+MAX_FILES = 100000
+MAX_TOTAL = 64 * 1024**3
+SCRUB = {'RUSTUP_TOOLCHAIN', 'RUSTC_WRAPPER', 'RUSTC_WORKSPACE_WRAPPER',
+         'RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTDOCFLAGS',
+         'CARGO_ENCODED_RUSTDOCFLAGS', 'CARGO_INCREMENTAL',
+         'RUSTC', 'RUSTDOC', 'CC', 'CXX', 'AR', 'RANLIB', 'WINDRES',
+         'CFLAGS', 'CXXFLAGS', 'LDFLAGS', 'HORIZON_MOD_INJECTIONS'}
+
+
+def sha(data): return hashlib.sha256(data).hexdigest()
+def canonical(value): return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+def read(path):
+    info = path.lstat(); plain(info)
+    return path.read_bytes()
+
+
+def run(argv, *, cwd, env, capture=False):
+    # Admission supplies only reviewed binaries. No shell, no external script expansion.
+    result = subprocess.run([str(x) for x in argv], cwd=cwd, env=env, check=True,
+                            stdout=subprocess.PIPE if capture else None,
+                            text=capture, encoding='utf-8' if capture else None)
+    return result.stdout.strip() if capture else None
+
+
+def file_hash(path, before):
+    # Rust's LLVM DLL and prepared resource files can exceed Pluto's 64 MiB limit.
+    if before.st_size > 2 * 1024**3: raise ValueError('Input file exceeds 2 GiB read budget')
+    result = hashlib.sha256(); count = 0
+    with path.open('rb') as stream:
+        opened = os.fstat(stream.fileno()); plain(opened)
+        if signature(opened) != signature(before): raise ValueError('Input changed before read')
+        while chunk := stream.read(1024*1024):
+            count += len(chunk)
+            if count > 2 * 1024**3: raise ValueError('Input file grew past read budget')
+            result.update(chunk)
+        if signature(os.fstat(stream.fileno())) != signature(before): raise ValueError('Input changed during read')
+    after = path.lstat(); plain(after)
+    if signature(after) != signature(before) or count != before.st_size: raise ValueError('Input changed after read')
+    return result.hexdigest(), count
+
+
+def tree_digest(root, *, skip=frozenset()):
+    root = directory(root); rows = []; total = 0
+    def walk(current):
+        nonlocal total
+        for path in sorted(current.iterdir(), key=lambda x: x.name):
+            info = path.lstat(); plain(info)
+            if path.name in skip: continue
+            if path.is_dir(): walk(path)
+            else:
+                digest, size = file_hash(path, info)
+                rows.append([path.relative_to(root).as_posix(), digest, size]); total += size
+                if len(rows) > MAX_FILES or total > MAX_TOTAL:
+                    raise ValueError('Input tree exceeds bounded read budget')
+    walk(root)
+    return sha(canonical(rows))
+
+
+def no_parent_configs(path):
+    for parent in (path, *path.parents):
+        for name in ('config', 'config.toml'):
+            if (parent/'.cargo'/name).exists():
+                raise ValueError('Unexpected inherited Cargo config: '+str(parent/'.cargo'/name))
+
+
+def disjoint(paths):
+    values = [(name, Path(value).resolve()) for name, value in paths]
+    for i, (left, a) in enumerate(values):
+        for right, b in values[i+1:]:
+            if a == b or a in b.parents or b in a.parents:
+                raise ValueError('Input/output paths overlap: '+left+' / '+right)
+
+
+def validate_compat(value):
+    expected = {'horizon_repository': 'https://github.com/horizon-rust/horizon.git',
+                'mixins_repository': 'https://github.com/horizon-rust/horizon-mixins.git',
+                'horizon_revision': HORIZON, 'mixins_revision': MIXINS}
+    for key, want in expected.items():
+        if value.get(key) != want:
+            raise ValueError('Latest guarded playtest requires compatibility.json '+key+' = '+want+
+                             '; this launcher does not rewrite revisions or bypass guards.')
+
+
+def source_identity(path, repo, revision, lock, git, env):
+    path = directory(path)
+    def get(*args): return run([git, '-C', path, *args], cwd=path, env=env, capture=True)
+    if get('rev-parse', 'HEAD') != revision: raise ValueError('Wrong official source HEAD: '+repo)
+    if get('remote', 'get-url', 'origin').removesuffix('.git') != 'https://github.com/horizon-rust/'+repo:
+        raise ValueError('Only the exact official HTTPS origin is admitted: '+repo)
+    if get('status', '--porcelain', '--untracked-files=all', '--ignored=matching'):
+        raise ValueError('Official checkout contains edits, untracked or ignored inputs: '+repo)
+    if sha(read(path/'Cargo.lock')) != lock: raise ValueError('Official Cargo.lock differs: '+repo)
+    # stage.py exports these committed trees rather than compiling dirty checkout bytes.
+    return {'head': revision, 'tree': get('rev-parse', 'HEAD^{tree}'), 'lock': lock,
+            'files': tree_digest(path, skip=frozenset({'.git'}))}
+
+
+def build_environment(original, toolchain, home):
+    env = {k: v for k, v in original.items() if k.upper() not in SCRUB and
+           not k.upper().startswith(('CARGO_BUILD_', 'CARGO_TARGET_', 'CARGO_PROFILE_',
+                                     'CC_', 'CXX_', 'AR_', 'RANLIB_', 'CFLAGS_', 'CXXFLAGS_', 'HORIZON_'))}
+    env.update(PATH=str(toolchain/'bin')+os.pathsep+str(toolchain/'mingw64/bin')+os.pathsep+original.get('PATH',''),
+               RUSTC=str(toolchain/'bin/rustc.exe'), RUSTDOC=str(toolchain/'bin/rustdoc.exe'),
+               CARGO_HOME=str(home/'cargo-home-latest-gnu'), CARGO_NET_OFFLINE='true',
+               CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
+               TMP=str(home/'tmp-latest-gnu'), TEMP=str(home/'tmp-latest-gnu'),
+               TMPDIR=str(home/'tmp-latest-gnu'), PYTHONDONTWRITEBYTECODE='1',
+               CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=str(toolchain/'mingw64/bin/gcc.exe'),
+               CC=str(toolchain/'mingw64/bin/gcc.exe'), CXX=str(toolchain/'mingw64/bin/g++.exe'),
+               AR=str(toolchain/'mingw64/bin/ar.exe'), RANLIB=str(toolchain/'mingw64/bin/ranlib.exe'),
+               WINDRES=str(toolchain/'mingw64/bin/windres.exe'))
+    return env
+
+
+def validate_rust(text):
+    values = dict(line.split(': ', 1) for line in text.splitlines() if ': ' in line)
+    if values.get('release') != VERSION or values.get('host') != TARGET:
+        raise ValueError('Select official launcher Rust '+VERSION+' / '+TARGET+' toolchain; MSVC or another release is not this build contract.')
+
+
+def feature_contract(stage):
+    features = tomllib.loads(read(stage/'crates/horizon-client/Cargo.toml').decode()).get('features',{})
+    if features.get('default') != ['audio','controllers']:
+        raise ValueError('Unexpected default gameplay feature contract')
+    return {'defaults':['audio','controllers'], 'extra':[MODS_FEATURE] if 'mods' in features else []}
+
+
+def compile_args(cargo, stage, target):
+    # Default audio/controllers remain enabled. This is the client, not the headless engine.
+    args = [str(cargo), 'build', '--locked', '--offline', '--manifest-path', str(stage/'Cargo.toml'),
+            '-p', 'horizon-client', '--bin', 'horizon-client', '--profile', PROFILE,
+            '--target', TARGET, '--target-dir', str(target)]
+    extras = feature_contract(stage)['extra']
+    if extras: args += ['--features', ','.join(extras)]
+    if (stage/'.cargo/config.toml').is_file(): args += ['--config', str(stage/'.cargo/config.toml')]
+    return args
+
+
+def ready_identity(inputs): return sha(canonical({'schema': 1, 'inputs': inputs}))
+
+
+def pe_x64(path):
+    with path.open('rb') as f:
+        if f.read(2) != b'MZ': raise ValueError('Not a Windows executable')
+        f.seek(0x3c); offset = f.read(4)
+        if len(offset) != 4: raise ValueError('Truncated PE header')
+        f.seek(struct.unpack('<I', offset)[0]); header = f.read(6)
+    if header != b'PE\0\0\x64\x86': raise ValueError('Built executable is not Windows x64 PE')
+
+
+def execute(args):
+    if os.name != 'nt' or platform.machine().upper() not in ('AMD64', 'X86_64'):
+        raise ValueError('This launch route requires Windows 11 x64. Nothing was installed or compiled.')
+    repo = directory(Path(__file__).parents[1]); pluto = directory(repo.parent/'pluto-lib')
+    validate_compat(json.loads(read(repo/'compatibility.json')))
+    horizon, mixins, bundle, resources, toolchain = map(directory,
+        (args.horizon, args.mixins, args.pluto_bundle, args.resources, args.toolchain))
+    home = Path(os.path.abspath(args.home))
+    # All explicitly selected inputs must remain outside generated outputs and saves.
+    disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent)])
+    if home == bundle or home in bundle.parents or bundle in home.parents: raise ValueError('Bundle/output overlap')
+    directory(home.parent); no_parent_configs(home)
+    for path in (horizon, mixins): no_parent_configs(path.parent)
+    for path in ('bin/rustc.exe','bin/cargo.exe','bin/rustdoc.exe','mingw64/bin/gcc.exe',
+                 'mingw64/bin/g++.exe','mingw64/bin/ar.exe','mingw64/bin/ranlib.exe','mingw64/bin/windres.exe'):
+        if not (toolchain/path).is_file(): raise ValueError('Missing official launcher toolchain component: '+path+'; prepare it explicitly, no automatic installer is used.')
+    if not (resources/'horizon-resources.json').is_file(): raise ValueError('Select explicitly prepared official Horizon 26.3 resources, not a source checkout or saves folder.')
+    cargo_home = home/'cargo-home-latest-gnu'
+    for name in ('config','config.toml'):
+        if (cargo_home/name).exists(): raise ValueError('Unexpected isolated Cargo config: '+str(cargo_home/name))
+    env = build_environment(os.environ, toolchain, home)
+    for path in (home, cargo_home, home/'tmp-latest-gnu'):
+        path.mkdir(parents=True, exist_ok=True); directory(path)
+    # CWD at the volume root prevents home/repository Cargo config discovery.
+    cwd = Path(home.anchor); no_parent_configs(cwd)
+    rust = run([toolchain/'bin/rustc.exe', '-vV'], cwd=cwd, env=env, capture=True); validate_rust(rust)
+    cargo = run([toolchain/'bin/cargo.exe', '-vV'], cwd=cwd, env=env, capture=True)
+    if not cargo.startswith('cargo '+VERSION+' '): raise ValueError('Cargo version differs from selected Rust toolchain')
+    gcc = run([toolchain/'mingw64/bin/gcc.exe', '-dumpmachine'], cwd=cwd, env=env, capture=True)
+    gcc_version = run([toolchain/'mingw64/bin/gcc.exe', '-dumpfullversion'], cwd=cwd, env=env, capture=True)
+    if gcc != 'x86_64-w64-mingw32' or gcc_version != '16.2.0': raise ValueError('Expected official launcher WinLibs GCC 16.2.0 x64. No installer was run.')
+    import shutil
+    git = shutil.which('git', path=env['PATH'])
+    if not git: raise ValueError('Git is required; it was not installed automatically')
+    selected = tomllib.loads(read(bundle/'horizon-mixin.toml').decode())
+    if selected.get('mod',{}).get('id') != 'pluto_native_creative' or selected.get('compatibility',{}).get('horizon_revision') != HORIZON:
+        raise ValueError('Select a reviewed unified Pluto bundle for the exact latest Horizon revision')
+    stage_bytes = read(repo/'tools/stage.py')
+    if sha(stage_bytes) != STAGE_SHA: raise ValueError('Guarded stage source differs from reviewed launch contract')
+    stage_text = stage_bytes.decode()
+    markers = ["'plan', '--workspace'", "pluto-lib/tools/check_native_plan.py", "'apply', '--workspace'"]
+    positions = [stage_text.find(x) for x in markers]
+    if min(positions)<0 or positions != sorted(positions): raise ValueError('Guarded stage plan/check/apply sequence is missing')
+    def snapshot():
+        return {'official_horizon': source_identity(horizon,'horizon',HORIZON,HORIZON_LOCK,git,env),
+                'official_mixins': source_identity(mixins,'horizon-mixins',MIXINS,MIXINS_LOCK,git,env),
+                'tconstruct': {name:tree_digest(repo/name,skip=frozenset({'__pycache__'})) for name in ('mixins','content','assets','tools','third_party')},
+                'compatibility':sha(read(repo/'compatibility.json')), 'pluto':fingerprint(bundle,pluto),
+                'resources':{'path':str(resources),'files':tree_digest(resources)},
+                'toolchain':{'path':str(toolchain),'files':tree_digest(toolchain),'rust':rust,'cargo':cargo,'gcc':gcc,'gcc_version':gcc_version},
+                'target':TARGET,'profile':PROFILE,'default_features':True,'features':feature_contract(horizon),
+                'stage_sha256':sha(read(repo/'tools/stage.py'))}
+    initial = snapshot(); key = ready_identity(initial)
+    build = home/'builds-latest-gnu'/key; ready = build/'.ready.json'
+    game = build/'horizon-client.exe'; game_resources = build/'resources'
+    def outputs(): return {'game':sha(read(game)), 'resources':tree_digest(game_resources)}
+    if build.exists(): directory(build)
+    if not ready.exists():
+        if build.exists(): raise ValueError('Incomplete generated build preserved at '+str(build)+'; inspect it before choosing a new output home. No cleanup is automatic.')
+        build.mkdir(parents=True); no_parent_configs(build)
+        stage = build/'stage'
+        run([sys.executable, repo/'tools/stage.py','--horizon',horizon,'--mixins',mixins,
+             '--mixins-revision',MIXINS,'--pluto-bundle',bundle,'--output-dir',stage,
+             '--cli-target-dir',home/'mixins-cli-latest-gnu'],cwd=cwd,env=env)
+        # stage.py owns the mandatory complete-plan guard and stops before apply on rejection.
+        if feature_contract(stage/'modded') != initial['features']: raise ValueError('Applied gameplay features differ from admitted source contract')
+        run(compile_args(toolchain/'bin/cargo.exe',stage/'modded',home/'cargo-target-latest-gnu'),cwd=cwd,env=env)
+        compiled = home/'cargo-target-latest-gnu'/TARGET/PROFILE/'horizon-client.exe'
+        pe_x64(compiled); shutil.copyfile(compiled,game)
+        overlay = build/'item-resources'
+        run([sys.executable,repo/'tools/resources.py',resources,overlay],cwd=cwd,env=env)
+        run([game,'--tconstruct-prepare',overlay,repo/'content',game_resources],cwd=cwd,env=env)
+        run([sys.executable,repo/'tools/prepare_horizon_source_data.py',resources,game_resources/'minecraft-original-pack'],cwd=cwd,env=env)
+        run([sys.executable,repo/'tools/prepare_bundled_forge.py',game_resources/'forge-original-pack'],cwd=cwd,env=env)
+        if snapshot()!=initial: raise ValueError('Inputs changed; no ready marker was written')
+        ready.write_text(json.dumps({'schema':1,'key':key,'inputs':initial,'outputs':outputs()},sort_keys=True,indent=2)+'\n',encoding='utf-8')
+    directory(build); directory(game_resources)
+    receipt = json.loads(read(ready))
+    if receipt.get('key')!=key or receipt.get('inputs')!=initial or receipt.get('outputs')!=outputs():
+        raise ValueError('Cached input/output identity mismatch; nothing was launched or deleted')
+    if snapshot()!=initial: raise ValueError('Inputs changed before startup')
+    pe_x64(game)
+    game_dir = home/('game-latest-'+HORIZON[:12]); game_dir.mkdir(exist_ok=True)
+    directory(game_dir); env['HORIZON_HOME']=str(game_dir)
+    print('Starting isolated latest world. Saves: '+str(game_dir/'saves'),flush=True)
+    run([game,'--resources',game_resources,'--world','TConstruct-Playtest','--seed','42','--creative'],cwd=game_dir,env=env)
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    for name in ('horizon','mixins','pluto-bundle','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    try: execute(p.parse_args())
+    except (OSError,ValueError,subprocess.CalledProcessError) as exc:
+        p.exit(1,'Latest playtest stopped: '+str(exc)+'\nNo automatic cleanup, source fetch, installation or guard bypass was attempted. Existing worlds were not selected.\n')
+
+if __name__=='__main__': main()

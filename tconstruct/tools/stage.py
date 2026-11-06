@@ -13,6 +13,7 @@ p.add_argument('--mixins-revision', help='full Mixins commit SHA; defaults to th
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
+p.add_argument('--cli-target-dir', type=Path, help='explicit isolated Mixins compiler output directory')
 a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
 if head != compat['horizon_revision']:
@@ -96,7 +97,7 @@ extract_git_tar(proc.stdout, source)
 if proc.wait():
     raise SystemExit('Mixins git archive failed')
 (output / 'mixins-revision.txt').write_text(revision + '\n')
-cli_target = root.parent / 'target/mixins-cli-build'
+cli_target = a.cli_target_dir.resolve() if a.cli_target_dir else root.parent / 'target/mixins-cli-build'
 subprocess.run(['cargo', 'build', '--release', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
 cli = cli_target / 'release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
 with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
@@ -110,3 +111,4 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     subprocess.run([str(cli), 'plan', '--workspace', str(original), '--mods', str(combined), '--out', str(plan)], check=True)
     subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)
+
