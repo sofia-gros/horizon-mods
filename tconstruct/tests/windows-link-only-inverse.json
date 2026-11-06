@@ -1,0 +1,77 @@
+{
+  "base": "3da8fe527e286dd433e076771b0e75351503ce78",
+  "files": {
+    "tools/play-windows.ps1": {
+      "after_sha256": "9defc8c8e9cc9b6e78859bec8e53ce64c68604b554c1af092a7da88454e9897a",
+      "before_sha256": "f456a1ff45bd770a3d2dbeb4c3b38405e71a01b3a497602a70a09f2b4f6a018b",
+      "edits": [
+        [
+          "    [string]$RustfmtArchive,",
+          "    [string]$RustfmtArchive,\n    [switch]$BuildOnly,"
+        ],
+        [
+          "    if (-not $Resources) { $Resources = Pick-Folder 'Select explicitly prepared official Horizon 26.3 resources (not saves)' }",
+          "    $ResourceArguments = @()\n    if ($BuildOnly) {\n        if ($Resources) { throw 'BuildOnly does not accept Resources. Omit that argument; no game will be started.' }\n        $ResourceArguments = @('--build-only')\n    } else {\n        if (-not $Resources) { $Resources = Pick-Folder 'Select explicitly prepared official Horizon 26.3 resources (not saves)' }\n        $ResourceArguments = @('--resources', $Resources)\n    }"
+        ],
+        [
+          "--mixins $MixinsSource --resources $Resources --toolchain",
+          "--mixins $MixinsSource --toolchain"
+        ],
+        [
+          "--home $PlaytestHome @BundleArguments",
+          "--home $PlaytestHome @BundleArguments @ResourceArguments"
+        ]
+      ]
+    },
+    "tools/play_windows_latest.py": {
+      "after_sha256": "14628c8de8e10a3925db97589be6eceee1eee300682f5dac95ddb6a0b017e861",
+      "before_sha256": "b8777ba3f762249bbc331da5c3866a82511099f5e76ac156386269904d70db1c",
+      "edits": [
+        [
+          "def execute(args):",
+          "def link_mode(build_only, resources):\n    if build_only and resources is not None:\n        raise ValueError('Build-only mode does not accept resources; omit --resources. No game will be started.')\n    if not build_only and resources is None:\n        raise ValueError('Game startup requires explicitly prepared --resources; use --build-only for link verification only.')\n    return 'link-only' if build_only else 'playtest'\n\n\ndef execute(args):"
+        ],
+        [
+          "    horizon, mixins, resources, toolchain = map(directory,\n        (args.horizon, args.mixins, args.resources, args.toolchain))",
+          "    mode = link_mode(args.build_only, args.resources)\n    horizon, mixins, toolchain = map(directory, (args.horizon, args.mixins, args.toolchain))\n    resources = directory(args.resources) if args.resources is not None else None"
+        ],
+        [
+          "disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent),('rustfmt archive',rustfmt_archive)])",
+          "disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('toolchain',toolchain),('repo',repo.parent),('rustfmt archive',rustfmt_archive)]\n             + ([('resources',resources)] if resources is not None else []))"
+        ],
+        [
+          "    if not (resources/'horizon-resources.json').is_file():",
+          "    if resources is not None and not (resources/'horizon-resources.json').is_file():"
+        ],
+        [
+          "                'resources':{'path':str(resources),'files':tree_digest(resources)},",
+          "                'mode':mode,\n                'resources':({'path':str(resources),'files':tree_digest(resources)} if resources is not None else None),"
+        ],
+        [
+          "    build = home/'builds-latest-gnu'/key; ready = build/'.ready.json'",
+          "    build = home/'builds-latest-gnu'/key; ready = build/('.linked.json' if args.build_only else '.ready.json')"
+        ],
+        [
+          "    def outputs(): return {'game':sha(read(game)), 'resources':tree_digest(game_resources)}",
+          "    def outputs():\n        value = {'game':sha(read(game))}\n        if not args.build_only: value['resources'] = tree_digest(game_resources)\n        return value"
+        ],
+        [
+          "        overlay = build/'item-resources'\n        run([sys.executable,repo/'tools/resources.py',resources,overlay],cwd=cwd,env=env)\n        run([game,'--tconstruct-prepare',overlay,repo/'content',game_resources],cwd=cwd,env=env)\n        run([sys.executable,repo/'tools/prepare_horizon_source_data.py',resources,game_resources/'minecraft-original-pack'],cwd=cwd,env=env)\n        run([sys.executable,repo/'tools/prepare_bundled_forge.py',game_resources/'forge-original-pack'],cwd=cwd,env=env)",
+          "        if not args.build_only:\n            overlay = build/'item-resources'\n            run([sys.executable,repo/'tools/resources.py',resources,overlay],cwd=cwd,env=env)\n            run([game,'--tconstruct-prepare',overlay,repo/'content',game_resources],cwd=cwd,env=env)\n            run([sys.executable,repo/'tools/prepare_horizon_source_data.py',resources,game_resources/'minecraft-original-pack'],cwd=cwd,env=env)\n            run([sys.executable,repo/'tools/prepare_bundled_forge.py',game_resources/'forge-original-pack'],cwd=cwd,env=env)"
+        ],
+        [
+          "    directory(build); directory(game_resources)",
+          "    directory(build)\n    if not args.build_only: directory(game_resources)"
+        ],
+        [
+          "    pe_x64(game)\n    game_dir =",
+          "    pe_x64(game)\n    if args.build_only:\n        print(json.dumps({'scope':'guarded-windows-link-only','game_started':False,\n                          'resources_prepared':False,'receipt':str(ready),\n                          'executable':str(game),'sha256':sha(read(game))},sort_keys=True),flush=True)\n        return\n    game_dir ="
+        ],
+        [
+          "    for name in ('horizon','mixins','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)",
+          "    for name in ('horizon','mixins','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)\n    p.add_argument('--resources',type=Path,help='required for startup; omit with --build-only')\n    p.add_argument('--build-only',action='store_true',help='same guarded stage and GNU link, without assets, resource preparation or game startup')"
+        ]
+      ]
+    }
+  }
+}
