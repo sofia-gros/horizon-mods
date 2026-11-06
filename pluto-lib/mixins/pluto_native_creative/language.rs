@@ -1,7 +1,8 @@
 // Internal official-language adapter. No locale owner, dictionary or reload hook.
 // Input sources are already admitted and ordered by the host/caller. This does
 // not undo content-root flattening, pack filters or namespace ordering.
-use horizon_client_core::{lang, text::Text};
+use horizon_client_core::lang;
+pub use crate::pluto_language_text::{Key, key, Text};
 
 /// Load a detached native value, without installing it or changing selection.
 /// All parsing, en_us fallback, namespace/source order and deprecated-key rules

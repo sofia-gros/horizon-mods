@@ -115,3 +115,26 @@ Still required before claiming real asset distribution/display:
 
 No TConstruct policy, contact authority, save data, effect lifetime, official source
 checkout or existing production locale settings is changed here.
+
+## Composed author facade source follow-up
+
+The `language-text.rs`, author example, guide and three scope tests are the exact
+files from Guide source `76228074d2dda0d090efafd81fd8545342c15c53` (published
+`a630d1ab`). The native manifest now declares `pluto_language_text` beside
+`pluto_language`. The internal adapter re-exports the same `Key`, `key`, and native
+`Text` from that module. Its only body-level change is replacing the previous
+private Text import with this public same-type re-export; an inverse SHA guard
+reconstructs exact original adapter `f587b3e7...`. No lookup or formatting body is
+changed. This is the one production source for the author-facing API, not a
+separate test-only resolver or facade.
+
+The composed source checks passed: five adapter/manifest/inverse guards, three
+Key scope guards, and the unchanged eleven TOML preparation tests. Native tests
+and the author example remain uncompiled. The input ledger lists the exact eight
+internal test names and six Key test names separately. The optional core-only
+preparer now includes both actual modules, but will not be run redundantly: the
+next dedicated CI is to use the Recipe-owned actual core+items fixture, reporting
+internal 8 / Key 6 / item display 8 as separate results, plus the original author
+example compilation. That fixture is not an installed full client-lib or Game
+build. Manifest placement, complete installed composition, retained Guide/LAN
+pages, actual pack overlays and live UI remain separate validation gates.

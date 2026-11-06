@@ -4,7 +4,8 @@
   "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
   "module_inputs": {
-    "pluto-lib/mixins/pluto_native_creative/language.rs": "f587b3e7dab7da1374778b84cbd75fbe39f4b8ca664c1157e198b5c53eb2972a"
+    "pluto-lib/mixins/pluto_native_creative/language.rs": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d",
+    "pluto-lib/mixins/pluto_native_creative/language-text.rs": "df29858aca7c400bd2e891978fcebc680a506ab79258eda6ec3c5e2f0e8456f9"
   },
   "official_inputs": {
     "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
@@ -12,11 +13,32 @@
     "crates/horizon-client-core/src/lang.rs": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
     "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67"
   },
-  "expected_actual_module_tests": 8,
   "no_native_or_metadata_execution": true,
   "isolated_manifest_evidence": {
     "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
-    "sha256": "08076802a41cfb83480b063e95d67bd4badca088ec02d131d18af1c249524068",
-    "note": "One module in this source commit; combined package manifest is checked separately, not required to be byte-identical for the detached actual-core fixture."
-  }
+    "sha256": "c7ac856f1f7b74ab07b5568c48d6e219b2df1e8c6baab50c446bfb4f2014cfc0",
+    "note": "Two explicit client-lib modules; combined whole-host validation is separate."
+  },
+  "expected_groups": {
+    "pluto_language": [
+      "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+      "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+      "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+      "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+      "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+      "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+      "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+      "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery"
+    ],
+    "pluto_language_text": [
+      "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+      "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+      "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+      "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+      "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+      "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+    ]
+  },
+  "expected_core_only_total": 14,
+  "execution_plan": "Native CI should run the single Recipe-owned actual core+items fixture with separate internal8/Key6/item8 gates, not this redundant core-only fixture."
 }

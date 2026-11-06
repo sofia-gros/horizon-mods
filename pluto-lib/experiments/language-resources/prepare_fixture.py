@@ -45,7 +45,10 @@ edition = "2021"
 [dependencies]
 horizon-client-core = {{ path = {json.dumps(str(host/'crates/horizon-client-core'))} }}
 '''
-    library='pub use horizon_client_core::{lang, text};\n'+f'#[path = {json.dumps(str(source))}]\npub mod pluto_language;\n'
+    key=ROOT/'pluto-lib/mixins/pluto_native_creative/language-text.rs'
+    library=('pub use horizon_client_core::{lang, text};\n'
+             +f'#[path = {json.dumps(str(source))}]\npub mod pluto_language;\n'
+             +f'#[path = {json.dumps(str(key))}]\npub mod pluto_language_text;\n')
     return {'Cargo.toml':manifest.encode(),'src/lib.rs':library.encode()}
 
 
@@ -79,7 +82,7 @@ def main():
     out.mkdir(parents=True);(out/'src').mkdir()
     for path,data in files.items(): (out/path).write_bytes(data)
     (out/'Cargo.lock').write_bytes((host/'Cargo.lock').read_bytes())
-    print('Prepared only; metadata resolution and all 8 native cases remain unrun.')
+    print('Prepared only; metadata resolution and all 14 native cases remain unrun.')
 
 
 if __name__=='__main__': main()

@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 import tomllib
 import unittest
@@ -22,6 +23,18 @@ class LanguageSource(unittest.TestCase):
         for entry in parsed.get('inject',[])+parsed.get('state',[]):
             self.assertNotIn('pluto_language',str(entry))
             self.assertNotIn('language.rs',str(entry))
+
+    def test_composition_changes_only_native_text_import_and_exact_key_reexport(self):
+        source=MODULE.read_text()
+        self.assertEqual(source.count('pub use crate::pluto_language_text::{Key, key, Text};'),1)
+        original=source.replace('use horizon_client_core::lang;\npub use crate::pluto_language_text::{Key, key, Text};',
+                                'use horizon_client_core::{lang, text::Text};')
+        self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
+                         'f587b3e7dab7da1374778b84cbd75fbe39f4b8ca664c1157e198b5c53eb2972a')
+        parsed=tomllib.loads(MANIFEST.read_text())
+        expected={'id':'language-text','file':'crates/horizon-client/src/client_lib.rs',
+                  'name':'pluto_language_text','source':'language-text.rs','visibility':'pub'}
+        self.assertEqual([m for m in parsed['module'] if m.get('id')=='language-text' or m.get('name')=='pluto_language_text' or m.get('source')=='language-text.rs'],[expected])
 
     def test_current_owner_and_native_parsing_are_delegated(self):
         body=MODULE.read_text().split('#[cfg(test)]')[0]
