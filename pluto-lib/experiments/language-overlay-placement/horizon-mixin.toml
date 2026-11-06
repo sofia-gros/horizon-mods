@@ -1,0 +1,36 @@
+[mod]
+id = "pluto_language_repair_probe"
+version = "0.0.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"
+
+[[module]]
+id = "bounded-merge"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "pluto_language_overlay"
+source = "merge.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "eligible-language-write"
+target = "horizon_client_lib::mod_content::Overlay<'_>::write"
+kind = "HEAD"
+cancellable = true
+helper = "write-head.rs"
+bindings = [
+  { name = "overlay", ty = "&Overlay<'_>", value = "self" },
+  { name = "rel", ty = "&str", value = "rel" },
+  { name = "bytes", ty = "&[u8]", value = "bytes" },
+]
+
+[[injection]]
+id = "language-policy-stamp"
+target = "horizon_client_lib::mod_content::stamp"
+kind = "MODIFY_VARIABLE"
+variable = { name = "parts", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "stamp-store.rs"
+bindings = [{ name = "parts", ty = "Vec<String>", value = "$value" }]

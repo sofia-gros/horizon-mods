@@ -1,0 +1,103 @@
+{
+  "parent": "3b1277a0a260dafb8a9022ad0ed1e8d3192d9c69",
+  "source_sha256": "2fe98334a3ac55d83979809a2e3d49b0b0d283316d33d117fbfb90fd77d0f71c",
+  "changes": [
+    {
+      "label": "doc",
+      "before": "Latest mining formal-entry probe only; no apply, type proof or complete composition.",
+      "after": "Language writer/stamp placement only; no apply, type, cache or Game proof.",
+      "count": 1
+    },
+    {
+      "label": "module-labels",
+      "before": "observer=load('mining_plan_observer'",
+      "after": "observer=load('language_plan_observer'",
+      "count": 1
+    },
+    {
+      "label": "prepare-label",
+      "before": "probe=load('mining_probe_prepare'",
+      "after": "probe=load('language_probe_prepare'",
+      "count": 1
+    },
+    {
+      "label": "branch",
+      "before": "checkpoint/plutolib-latest-mining-probe-ci-20261106",
+      "after": "checkpoint/plutolib-language-placement-ci-20261106",
+      "count": 1
+    },
+    {
+      "label": "source",
+      "before": "SOURCE='b78ee288d7627e1be1c046db73541fab1d40c249'",
+      "after": "SOURCE='489f63c54861225874efe99f11dbb0399fe8e1c7'",
+      "count": 1
+    },
+    {
+      "label": "test-count",
+      "before": "RUNNER_TESTS=27",
+      "after": "RUNNER_TESTS=18",
+      "count": 1
+    },
+    {
+      "label": "prefix",
+      "before": "PREFIX='pluto-lib/experiments/latest-mining-probe-ci/'",
+      "after": "PREFIX='pluto-lib/experiments/language-placement-ci/'",
+      "count": 1
+    },
+    {
+      "label": "inputs",
+      "before": "INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','observe_plan.py','README.md']}\nINPUT_PATHS|={'.github/workflows/latest-mining-probe-wip.yml','pluto-lib/experiments/latest-main-common-ci/inputs.json'}\nINPUT_PATHS|={'pluto-lib/experiments/latest-mining-context/'+p for p in ['candidate.py','inputs.json','README.md','oracles.json','mining-context.rs','source-mining-context-native.rs','test_candidate.py','review/recipe-evidence.json','review/recipe-review.md']}",
+      "after": "INPUT_PATHS={PREFIX+p for p in ['run.py','prepare.py','test_runner.py','observe_plan.py','README.md','derivation.json']}\nINPUT_PATHS|={'.github/workflows/language-placement-wip.yml','pluto-lib/experiments/latest-main-common-ci/inputs.json','pluto-lib/experiments/latest-mining-probe-ci/run.py','pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py'}\nINPUT_PATHS|={'pluto-lib/experiments/language-overlay-repair/'+p for p in ['merge.rs','source.py','inputs.json','test_source.py','README.md','source-validation.json']}\nINPUT_PATHS|={'pluto-lib/experiments/language-overlay-placement/'+p for p in ['horizon-mixin.toml','write-head.rs','stamp-store.rs','prepare.py','test_source.py','inputs.json','Cargo.toml.in','fixture.rs','README.md','source-validation.json']}",
+      "count": 1
+    },
+    {
+      "label": "work",
+      "before": "('latest-mining-probe-'+os.environ['GITHUB_SHA'])",
+      "after": "('language-placement-'+os.environ['GITHUB_SHA'])",
+      "count": 1
+    },
+    {
+      "label": "defer-source-checks-until-official",
+      "before": "        candidate_output=runner.run('candidate-source-checks',[sys.executable,str(HERE.parent/'latest-mining-context/test_candidate.py'),'-v'])\n        common.validate_python_checks(candidate_output,16);report['gates']['candidate_sources']={'passed':True,'tests':16,'candidate_source':SOURCE}\n",
+      "after": "",
+      "count": 1
+    },
+    {
+      "label": "verify-language-sources",
+      "before": "        report['gates']['fixed_checkouts']['candidate_official_sources']=probe.candidate.verify_official(official)",
+      "after": "        report['gates']['fixed_checkouts']['candidate_official_sources']=probe.verify_native_sources(official)\n        env['PLUTO_SELECTED_SOURCE']=str(official)\n        for label,folder,count in [('repair',probe.placement.REPAIR,13),('placement',probe.placement.HERE,12)]:\n            output=runner.run(label+'-source-checks',[sys.executable,str(folder/'test_source.py'),'-v'])\n            common.validate_python_checks(output,count)\n        report['gates']['candidate_sources']={'passed':True,'repair_python':13,'placement_python':12,'candidate_source':SOURCE,'native_plan_verified':False}",
+      "count": 1
+    },
+    {
+      "label": "probe-output",
+      "before": "mods=work/'mining-probe'",
+      "after": "mods=work/'language-placement-probe'",
+      "count": 1
+    },
+    {
+      "label": "prepare",
+      "before": "evidence=probe.write_probe(mods)",
+      "after": "evidence=probe.write_probe(mods,official)",
+      "count": 1
+    },
+    {
+      "label": "inspect",
+      "before": "report['formal_binding']=probe.verify_plan(plan)",
+      "after": "report['formal_binding']=probe.verify_plan(plan,official)",
+      "count": 1
+    },
+    {
+      "label": "scope",
+      "before": "Exact candidate native sources, one internal module and one HEAD only. Formal target/owner/binding probe, not full646 compatibility or type proof. CLI cold-build only; no apply/Game/consumer build; one600-second plan.",
+      "after": "Exact shared helper module plus cancellable Overlay::write HEAD and stamp parts STORE only. Placement acceptance is not type/build/cache proof. CLI cold-build only; no apply/Game/consumer build; one600-second plan.",
+      "count": 1
+    },
+    {
+      "label": "summary",
+      "before": "## Latest mining formal-entry probe",
+      "after": "## Language writer/stamp placement probe",
+      "count": 1
+    }
+  ],
+  "scope": "exact controller literal derivation; source preparation, not inherited execution evidence"
+}

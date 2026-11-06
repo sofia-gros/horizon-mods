@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "status": "excluded source candidate; no native execution or activation",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "official_url": "https://github.com/horizon-rust/horizon.git",
+  "baseline_head": "dfd09ee78c98ce6603571c749a4b070f631d7068",
+  "baseline_run": 42206862972,
+  "baseline_closure": "4c610584cc6148655782f45c04a9e7deebd4002e",
+  "official_sources": {
+    "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+    "crates/horizon-client-lib/Cargo.toml": "40dc61e95122f5318a63d83a6564d23ca9ed47cf938b457fa53153bfc533c9fc",
+    "crates/horizon-client/src/client_lib.rs": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
+    "crates/horizon-client/src/mod_content.rs": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c",
+    "crates/horizon-client-core/src/lang.rs": "743734901c1fd5e0c3c2822ea0207d46c4ac04ad7768b6d93f3b0e235e72f417",
+    "crates/horizon-client-render/src/packs.rs": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783",
+    "crates/horizon-mods/src/content.rs": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
+  },
+  "helper_sha256": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+  "prepared_tests": [
+    "adds_only_lower_keys_and_keeps_mod_conflicts",
+    "unchanged_key_set_requests_original_higher_bytes",
+    "empty_higher_retains_lower_keys_by_explicit_policy",
+    "duplicates_in_either_layer_are_not_eligible",
+    "unsupported_and_partial_documents_remain_ineligible",
+    "unicode_and_placeholders_are_values_not_format_programs",
+    "exact_input_byte_limit_is_enforced",
+    "parser_and_union_entry_limits_are_enforced",
+    "encoded_writer_never_grows_past_limit",
+    "path_scope_rejects_other_resources_and_traversal",
+    "missing_lower_and_ineligible_higher_keep_exact_borrow",
+    "native_prepared_lower_is_read_only_and_mod_wins",
+    "invalid_or_large_lower_preserves_original_higher",
+    "lower_directory_is_not_opened_as_a_file"
+  ],
+  "admission_contract": {
+    "path": "crates/horizon-mods/src/content.rs",
+    "start": "    fn check(&mut self, manifest: &Manifest, declared: &[String]) -> Result<(), String> {",
+    "end": "            if !own && top == \"data\"",
+    "sha256": "10d23d3a237a513c71aae05e8eb9ee607b111b9b45170d098922ef5471ee31cb",
+    "assumption": "Content returned by native admission and not subsequently mutated; build does not revalidate arbitrary hand-constructed or modified Content"
+  }
+}

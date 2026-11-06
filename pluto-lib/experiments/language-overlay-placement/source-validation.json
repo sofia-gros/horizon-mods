@@ -1,0 +1,29 @@
+{
+  "status": "source checks only; no native execution",
+  "at": "2026-11-06T11:31:53.423645+00:00",
+  "python": {
+    "passed": 12,
+    "failed_final": 0,
+    "initial_attempt": "shallow tmp draft import IndexError before tests; corrected repository-root fallback"
+  },
+  "runtime": {
+    "planner": false,
+    "apply": false,
+    "type_check": false,
+    "helper14": false,
+    "actual_build_cache": false,
+    "game_ui": false
+  },
+  "sources": {
+    "Cargo.toml.in": "69e9c0377d69070646e096513189691e6efe69644ab69656d5dbd33c562d9ec9",
+    "README.md": "68c73dae1a986cf9a452a0e1a8ec57c5c25b4bae19ccd2b4be63e2de207f7c8c",
+    "fixture.rs": "38b493e51d5a49741608a3c8ff8fbc695366a9ef66b57febe405bb07086652d0",
+    "horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693",
+    "inputs.json": "f58ee59690be39f60bbc231f3c3c950aa0777796af6d39392f5c17a712fd97b0",
+    "prepare.py": "28404c81b622d7f1085380f01d6fd5380e55b227c3f0fc9c1e975113945b6b8e",
+    "stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e",
+    "test_source.py": "6bd8562ae0e6436c8ba0783fc91f7879c8961e9715a0e3abca5332de64b047b0",
+    "write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4"
+  },
+  "independent_review": "Guide source-only review: no concrete serious type/borrow/error-order blocker; actual planner/helper14 unexecuted"
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "source-only; no official CLI/planner execution",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-language-placement-ci-20261106",
+  "candidate_source": "489f63c54861225874efe99f11dbb0399fe8e1c7",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "ir_contract_source_sha256": {
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661",
+    "crates/horizon-mixins-core/src/source.rs": "b4fef8f78684bba421b5223e07e2c7806ce11c3e4e90b56ce166a751c4587637"
+  },
+  "source_sha256": {
+    ".github/workflows/language-placement-wip.yml": "78bf02ac9bfb96d2d21b69f2a96fc7710d344d02322cbe9a410f321a6c83dd9a",
+    "pluto-lib/experiments/language-overlay-placement/Cargo.toml.in": "69e9c0377d69070646e096513189691e6efe69644ab69656d5dbd33c562d9ec9",
+    "pluto-lib/experiments/language-overlay-placement/README.md": "68c73dae1a986cf9a452a0e1a8ec57c5c25b4bae19ccd2b4be63e2de207f7c8c",
+    "pluto-lib/experiments/language-overlay-placement/fixture.rs": "38b493e51d5a49741608a3c8ff8fbc695366a9ef66b57febe405bb07086652d0",
+    "pluto-lib/experiments/language-overlay-placement/horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693",
+    "pluto-lib/experiments/language-overlay-placement/inputs.json": "f58ee59690be39f60bbc231f3c3c950aa0777796af6d39392f5c17a712fd97b0",
+    "pluto-lib/experiments/language-overlay-placement/prepare.py": "28404c81b622d7f1085380f01d6fd5380e55b227c3f0fc9c1e975113945b6b8e",
+    "pluto-lib/experiments/language-overlay-placement/source-validation.json": "59687c33a29fbba8754b298938eb3658f83c35eb6a83c0df9e0cd9232fc65214",
+    "pluto-lib/experiments/language-overlay-placement/stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e",
+    "pluto-lib/experiments/language-overlay-placement/test_source.py": "6bd8562ae0e6436c8ba0783fc91f7879c8961e9715a0e3abca5332de64b047b0",
+    "pluto-lib/experiments/language-overlay-placement/write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4",
+    "pluto-lib/experiments/language-overlay-repair/README.md": "25921902c3e912e6d7f38f45571cddf7403956a46b8fc46cd3ebbd36353312f8",
+    "pluto-lib/experiments/language-overlay-repair/inputs.json": "61d7b1ed8d3bd558a565eefdb855a38ee0cd0a45a3f58f62bbff7d0f61a5bd1d",
+    "pluto-lib/experiments/language-overlay-repair/merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+    "pluto-lib/experiments/language-overlay-repair/source-validation.json": "2a46f06d2654169934303cf279276f3f63f83824ffb9cbc9a3967005ce37b563",
+    "pluto-lib/experiments/language-overlay-repair/source.py": "012e65e0fe70e2c757663b760d1ef2a9b2118c54b1a16d87b04bda37e24be4c3",
+    "pluto-lib/experiments/language-overlay-repair/test_source.py": "6470b733cb3b298656cfd2fbeae7b0e1bd427f6a61495388c2e4b1bed377758b",
+    "pluto-lib/experiments/language-placement-ci/README.md": "227c6cb142a9ff0d86b25093db8e809aa757faed74b4fd6806834cd71ab1bf64",
+    "pluto-lib/experiments/language-placement-ci/derivation.json": "da2ec036595023918dc4ab7d17a85265c11e96f5aaf78f14414e7298426b87c3",
+    "pluto-lib/experiments/language-placement-ci/observe_plan.py": "cb9080c1896d0480621760c0cd15cf3fe3d9e300c3ae16d658eca5d3c75d8d63",
+    "pluto-lib/experiments/language-placement-ci/prepare.py": "b37c9a11b0c6d14bba9d830b12de03c6506de2d5e9e36b81d97a478e0990fcbb",
+    "pluto-lib/experiments/language-placement-ci/run.py": "18f536a58843680f5421e53786a34bb20dc1e8003a17651dde09c1a525207c8f",
+    "pluto-lib/experiments/language-placement-ci/test_runner.py": "dd01c80ce44edd10ed54e5e68696b54d93f4049f465304ffa884ea093c7b2871",
+    "pluto-lib/experiments/latest-main-common-ci/inputs.json": "da0c13315d70e6307d98f13929ec11197ad5ec5727c2eda1d72d20e740d62089",
+    "pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py": "a95d3974653887d66c5302b9499006c45aee0ae9f3ef54ba6305888e0bf8c7cd",
+    "pluto-lib/experiments/latest-mining-probe-ci/run.py": "2fe98334a3ac55d83979809a2e3d49b0b0d283316d33d117fbfb90fd77d0f71c"
+  },
+  "probe_payload_sha256": {
+    "pluto_language_repair_probe/horizon-mixin.toml": "b84b3630ac82700002d0112f4984b4bf595096c83bf54e4cb5d27709b2014693",
+    "pluto_language_repair_probe/merge.rs": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+    "pluto_language_repair_probe/stamp-store.rs": "58d13a3a23ff1ceaeff52194ee59a899082572264f0b57e0d3455c2cc306bf3e",
+    "pluto_language_repair_probe/write-head.rs": "a7767645afda361b6a495ed96e3a4087df6dcf1f261c25885763595238bdfbd4"
+  }
+}
