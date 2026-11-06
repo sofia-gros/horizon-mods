@@ -111,4 +111,3 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     subprocess.run([str(cli), 'plan', '--workspace', str(original), '--mods', str(combined), '--out', str(plan)], check=True)
     subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)
-

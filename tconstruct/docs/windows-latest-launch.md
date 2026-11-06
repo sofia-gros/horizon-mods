@@ -67,3 +67,5 @@ A fresh temporary packaging attempt is cleaned after completion/failure; only fi
 ## Strict pure-output follow-up
 
 The intentional duplicate ZIP negative case now captures and checks exactly one `UserWarning` with `Duplicate name: 'a'`; case-only collisions require no warning. Unexpected warnings are not globally suppressed. All actual verbose, merged stdout/stderr outputs from the20 latest,12 historical and11 bundle suites pass the planned strict named-output validator. Seven controller/parser regressions passed on Linux; PowerShell parsing and Windows Job Object execution are still unrun. No launcher or bundle runtime code changed in this follow-up.
+
+The integration review found one extra terminal LF in the earlier local stage baseline reconstruction. The candidate now removes that single extra byte, and its two-edit inverse returns the actual e128/bff3 Git source,7058 bytes/SHA256 `61f70d88077297d6d827c6d7866cabb7b4983101386ec7233c766e3e36e3d200`. The launch STAGE_SHA and inverse receipt follow this correction; planner/guard/apply ordering and behavior are unchanged.
