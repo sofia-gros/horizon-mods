@@ -1,0 +1,36 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/guide-reply-value-ci-20261106",
+  "base": "b5bd8131ca371af3ceaeee471741f6449856ca02",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "lock_git_blob": "c36265b38ba51ab546d73a58a7af8e263bc69572"
+  },
+  "source_sha256": {
+    "pluto-lib/experiments/guide-storage-ci/run.py": "2aee646d16d89985a36ac19ceaad3df1b03f75ff1eda2def79e6aa524e2662c0",
+    "tconstruct/tests/guide-identity-ci/run.py": "db2d4c0fc8fb50459af61048778299531a78af9ddacbe90eeae8e2e5f2a3e27b",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare.py": "baa93e1d44aa097e3a1c9a93ce62a01a4ebd44ff4f2725002f1235a39a7699a6",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/test_prepare.py": "4e65488c4cf68a946937bc9e7924a092b4975753096083ce0e2bd9255f52edde",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/prepare-inputs.json": "58b1a8dc70a870a0adfaf59884215a30b6f03f4689a29c5d88afb02652ea3583",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/README.md": "903d9884bdfaa0146ec3974d55055ec6cd71ce8efe680f18c485b2549346ae4f",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/render_wire.py": "077fad84e0261670e70235ce707c4e3b105e7a7b10c3c64d327b623689757b79",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/regression_tests.rs": "8e268d99320492939bc1b64dc51fa647f4fea4832e19ffef72179b6f4e0ea453",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/wire-inputs.json": "efee6133ca863599e217bdd9571b27726314f5c92fced8859d7dda125bc7a8ca",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/test_wire_source.py": "40e059335ed32160337f314e0df7c5c37ed2742f330f668941e7983d69e2d5d9",
+    "pluto-lib/experiments/guide-legacy-response-bridge/wire-fixture/source-extraction.json": "608ffe3f8717d205b8a30d0754d42869d29d268ce177333aaa6e051bd020615f",
+    "pluto-lib/experiments/guide-legacy-response-bridge/native-bridge.rs": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
+    "pluto-lib/experiments/guide-legacy-response-bridge/consumer.rs": "99503c77430923d91c79afe8476a2f019b8ee2e53a4fb2a90c9aaf75c138bb1e",
+    "pluto-lib/experiments/guide-reply-value-ci/run.py": "86fc0faa6b5701c46f24b4d2b694c182c3298350b3f878ff128cde445fe1a9ea",
+    "pluto-lib/experiments/guide-reply-value-ci/test_runner.py": "b5efe77bed209f794ed3dacb418ccdfa18deb01dd68364d517b6f363fe4bcffb",
+    "pluto-lib/experiments/guide-reply-value-ci/README.md": "e2919b3215b0d803cea24e31671072289989e53331d79faaef46d65f7d772874",
+    ".github/workflows/guide-reply-value-wip.yml": "fc72f073ae88b60b01f96896364b30ab6fd6ae9093133be62ecd248db3acc647"
+  },
+  "pure_source_validation": {
+    "runner_tests": 24,
+    "preparer_tests": 20,
+    "extraction_tests": 6,
+    "native_executed": false,
+    "initial_attempt": "24-test runner suite rejected a documentation phrase split by a newline; its nested suite reported the same assertion. Test-only whitespace normalization fixes that assertion; no runtime or fixture changes."
+  }
+}
