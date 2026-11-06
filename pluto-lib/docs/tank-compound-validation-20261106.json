@@ -1,0 +1,365 @@
+{
+  "schema": 1,
+  "kind": "bounded real native tank compound differential proof",
+  "source_commit": "9ab6be063b832debd898f834343a07b9b1aa7064",
+  "source_tree": "95170de6e94aadad26af98d9dd031d4404eadedd",
+  "base_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins_baseline": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "mixins_execution": false,
+  "tests": {
+    "rust_passed": 146,
+    "new_required": 5,
+    "repeated_imported": 141,
+    "failed": 0,
+    "ignored": 0,
+    "new_source_guards_passed": 5,
+    "new_differential_matrices": {
+      "smeltery": 308,
+      "casting": 216,
+      "retained_wire": 10
+    }
+  },
+  "source_files": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/Cargo.toml": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "size": 123
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "size": 8232
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/events.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "size": 2938
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/predicates.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "size": 11676
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/projection.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "size": 6783
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/advancements/tags.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "size": 6447
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/armor_wear.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "size": 8189
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/blocking.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "size": 9508
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/client_payload.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "bb21ff3ba1dcc2db508d43c1d4ace10359e823d3399e3132de6fe9f1316d7af2",
+      "size": 10357
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "54719eccbe76e40be9b7386ab9973f9756dba7096acf6362f8b380698e1fe05f",
+      "size": 121
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/ingredients.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "size": 11746
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+      "size": 10131
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/products.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+      "size": 13362
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/equipment.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "size": 2475
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/current_book.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "0725b9ab38bbf431033139e8d47a72f276abd0a39c812a0ad492296f242ef760",
+      "size": 4987
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/document.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "5540cffa93542600cdad7f0800c29a93045a0aeaf1dcf185b18b026333f3fd12",
+      "size": 13498
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/mod.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "549832c342d3f4e3db6bbdc058c71936381f5dd626b174543094729b2fe72e5c",
+      "size": 371
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+      "size": 10726
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "35fc03c3fcca9d266614b41e8aab34dbb0f3294100882e70fee835e4b4c383ff",
+      "size": 13303
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+      "size": 1900
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "size": 2441
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/protection.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "size": 11218
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "f9bb1c09b86dd57dc4e39de32cb3bcc99a6842f003159acbd30178916179d8e1",
+      "size": 937
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/handoff.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "0bb631eb80bd5a2a2f22979668eb6dd6f8695653d1d06b81ffd6f5c08f45e65d",
+      "size": 10619
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/index.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "b38293600d3650f2da9102e0932006c517b90ae980675f8f36b3846f581d6fbd",
+      "size": 16246
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/placement.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "size": 9388
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "size": 3337
+    },
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "size": 4401
+    },
+    "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+      "size": 5014
+    },
+    "pluto-lib/mixins/pluto_native_creative/potion-facts.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f",
+      "size": 2314
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-cells.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "47015d67867a5ef2e90bc9481cfbdd36ebc1d8b8540d446b2a87044cd573d1d6",
+      "size": 8452
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "892b6b2d6cf9b56b1c795bf19cbbdcd8a2a3ce4a6fd14ecd4cb1b587e9219d2d",
+      "size": 5606
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-storage.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76",
+      "size": 5591
+    },
+    "tconstruct/compatibility.json": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "bd06550790e9c44b474b54d22fdf1f175a439790e3d4c3eae348e5d00504d560",
+      "size": 434
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-container.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "3c28f5386fbdd2a7b7f024addfbfb3eb80248b704840e989f36ef7f5fee1c4f5",
+      "size": 159140
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-display.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "fce8229c4ecb5cc67886197603079da0af5c20455ca69371df4e02d9c9c1b8dd",
+      "size": 7547
+    },
+    "tconstruct/mixins/tconstruct/source-melter-state.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "7ce5e95f52dd514dc0fa88d9622736e05338d5cc98db7bc611683ae9f25f4f57",
+      "size": 64843
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-fuel.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "bb7922dc006fae5ac203b302c4f9b7693fb35c4225f0b0f9630a5468cbec5df3",
+      "size": 15995
+    },
+    "tconstruct/tests/fixture_pluto_dependency.py": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "89fc688e7c272e524286477a5c360d7ade827141b7af318127e1c85de4f585e0",
+      "size": 3192
+    },
+    "tconstruct/tests/rust/pluto_potion_fixture.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "735273735a94c497ed4aa542fc79ae03ede29cd1419b322a11e82c1a6cfce4c4",
+      "size": 262
+    },
+    "tconstruct/tests/rust/pluto_storage_fixture.rs": {
+      "source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "sha256": "8a06fd165c62ed55aea5838492ae75f1e6c9c9a8a1118f624c2302377dc8d695",
+      "size": 548
+    },
+    "pluto-lib/docs/tank-compound-adoption-20261106.md": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "d648a5ed04fe7623183240428a4e73f595c6a2d8fcd296b68836d407a157d18d",
+      "size": 3910
+    },
+    "tconstruct/mixins/tconstruct/source-casting-tank.rs": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "6afa4bc1a93039bd24c1db43ca93889a5fcedba64178f85dc4c90b90ac56a25b",
+      "size": 5539
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-tank.rs": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "edd3b613b63a60f5992012e37623b1208d9287ba73d34556b4b8e1a5ed27cffb",
+      "size": 15850
+    },
+    "tconstruct/tests/run_tank_compound.py": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "3013970b681405874988274e0ebc58b2da34e40fa9e0475f1b0ebb82d353e153",
+      "size": 5044
+    },
+    "tconstruct/tests/rust/tank_compound.rs": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "05ebac387d00cdc5a2174fe533a494ea92bb8e3acca77430edc79270809b4ce7",
+      "size": 10079
+    },
+    "tconstruct/tests/rust/tank_compound_casting_tank_legacy.rs": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "28fe305087af260f2b67d8a4ad431d1c111d5ed5faddfb2e014d49e280c6c45b",
+      "size": 1697
+    },
+    "tconstruct/tests/rust/tank_compound_legacy.json": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "02e9a58e49b3257e63ae9edc8c67c1054c7b3f8904d4ee74edbe205b3e14f236",
+      "size": 1585
+    },
+    "tconstruct/tests/rust/tank_compound_smeltery_tank_legacy.rs": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "a353ff6d0ec3d6576be5568c817eaa3112d6e5d5ab9c32956414ea6cb816f946",
+      "size": 2002
+    },
+    "tconstruct/tests/test_tank_compound.py": {
+      "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+      "sha256": "d1b9fda7b8b3b98633dcec870c872792dcba632342d14c06bbcce33b25ffc8e3",
+      "size": 4541
+    }
+  },
+  "actual_module_prefix_sha256": {
+    "smeltery_tank": "edd3b613b63a60f5992012e37623b1208d9287ba73d34556b4b8e1a5ed27cffb",
+    "casting_tank": "6afa4bc1a93039bd24c1db43ca93889a5fcedba64178f85dc4c90b90ac56a25b"
+  },
+  "execution": {
+    "remote_cutoff": "9ab6be063b832debd898f834343a07b9b1aa7064",
+    "source_file_count": 50,
+    "actual_api_path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/mixins/pluto_native_creative/inventory-api",
+    "api_source_sha256": {
+      "Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "src/blocking.rs": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "src/advancements.rs": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "src/equipment.rs": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "src/lib.rs": "35fc03c3fcca9d266614b41e8aab34dbb0f3294100882e70fee835e4b4c383ff",
+      "src/crafting.rs": "54719eccbe76e40be9b7386ab9973f9756dba7096acf6362f8b380698e1fe05f",
+      "src/recipe_book.rs": "f9bb1c09b86dd57dc4e39de32cb3bcc99a6842f003159acbd30178916179d8e1",
+      "src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "src/predicate_fold.rs": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+      "src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "src/client_payload.rs": "bb21ff3ba1dcc2db508d43c1d4ace10359e823d3399e3132de6fe9f1316d7af2",
+      "src/armor_wear.rs": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "src/protection.rs": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "src/recipe_book/index.rs": "b38293600d3650f2da9102e0932006c517b90ae980675f8f36b3846f581d6fbd",
+      "src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "src/recipe_book/handoff.rs": "0bb631eb80bd5a2a2f22979668eb6dd6f8695653d1d06b81ffd6f5c08f45e65d",
+      "src/recipe_book/placement.rs": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "src/advancements/tags.rs": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "src/advancements/events.rs": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+      "src/guide/mod.rs": "549832c342d3f4e3db6bbdc058c71936381f5dd626b174543094729b2fe72e5c",
+      "src/guide/document.rs": "5540cffa93542600cdad7f0800c29a93045a0aeaf1dcf185b18b026333f3fd12",
+      "src/guide/current_book.rs": "0725b9ab38bbf431033139e8d47a72f276abd0a39c812a0ad492296f242ef760",
+      "src/crafting/products.rs": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+      "src/crafting/ingredients.rs": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104"
+    },
+    "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+    "source_postcheck": true,
+    "exit_code": 0,
+    "disk_stopped": false,
+    "minimum_free_bytes": 10871758848,
+    "initial_free_bytes": 10885910528,
+    "final_free_bytes": 10871758848,
+    "elapsed_seconds": 5.669404745101929,
+    "command": "source /workspace/scratch/c7b540ff3393/.devtools/env.sh\nexport CARGO_TARGET_DIR=/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target\nexport CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 PYTHONDONTWRITEBYTECODE=1\nexport HORIZON_HOST=/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105\npython /tmp/tank-compound-proof-20261106/source/tconstruct/tests/run_tank_compound.py\n"
+  },
+  "evidence_sha256": {
+    "cutoff.json": "dd4d3dbef51b13688729359b6d85f8f6429b18ee7ffcd43ae39b4f655667bc03",
+    "result.json": "7ab56dd35a3f54f33a58b50b7fd0667d06be85da911663cf8ae3b3307dfb339f",
+    "native.log": "3208734a19555773694b6096cf2e047ca2f04e9cdf2d5c37594a181cbea7db00",
+    "api-path.json": "f9932790a9be148e416f2f386b2cc194c5f3c167a14f74ac3aa17292047efd87",
+    "cargo-metadata.json": "4acfb89ada19f46311a8cd4bbac1798d0e6303b7e1f39f64e0521e2b783ff24d"
+  },
+  "preservation": {
+    "status": "completed",
+    "removed_only": "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/tank_compound_fixture-d8e0efe8c29312bf",
+    "archive": "/workspace/scratch/c7b540ff3393/.work/official-cleanup-evidence-20261105/tank-compound-completed-executable.tar.gz",
+    "archive_bytes": 1931866,
+    "archive_sha256": "a23ca9a7fe1a0f8d1581a31db0ac3a514c5df0163d46f4a71d851c66fbc6de72",
+    "all_payloads_verified": 8,
+    "original_sha256": "8cb0a84c2f5347f39a580e2f18978a32f6d3e07a757638e017f253d955e64a91",
+    "initial_free_bytes": 10871304192,
+    "minimum_free_bytes": 10869366784,
+    "final_free_bytes": 10877120512,
+    "recovery_floor_bytes": 10804527104,
+    "normal_native_floor_bytes": 10871635968,
+    "initial_idle": {
+      "native_processes": 0,
+      "active_handles_or_mappings": 0,
+      "unreadable_processes": 0
+    },
+    "final_idle": {
+      "native_processes": 0,
+      "active_handles_or_mappings": 0,
+      "unreadable_processes": 0
+    },
+    "source_cutoff": "9ab6be063b832debd898f834343a07b9b1aa7064"
+  },
+  "cleanup_receipt_sha256": "042d5ddad875b9caf8e5aa4ae7369fe5a796182015ef8ca1776b766f27932d21",
+  "cache_lesson": "Same source/path/lock package identity did not ensure a fresh artifact: serde_json dependency fingerprint differed. Future runs must inspect artifact/feature dependencies or reserve recompilation headroom; do not assume Fresh from metadata.",
+  "limits": [
+    "No whole TConstruct or original PR compatibility claim.",
+    "No actor/world/physical-slot authority, mutation ordering, durable save, live network delivery or renderer proof.",
+    "Equality is native Tag/map semantics, not identity of unparsed serialized NBT bytes.",
+    "Outer Smeltery clone allocation occurs later; OOM timing is not claimed equivalent.",
+    "Full original methods retained as immutable oracles; only their declarations renamed for test coexistence.",
+    "Normal native guard unchanged; lower floor was authorized for this exact preservation operation only."
+  ]
+}
