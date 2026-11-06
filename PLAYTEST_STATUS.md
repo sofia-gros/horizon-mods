@@ -119,3 +119,10 @@ Sixteen ordinary files now connect the stored matching policies, legacy pure Ove
 All 13 source/inverse tests pass and all 14 existing inputs match the current integration tree. Independent review found no concrete source blocker. Stored API 153 and finite native 16 tests had already passed, but this does not establish constructor registration, pure-pair tests, station transactions or full Game types.
 
 The two library-owned constructors share one cached stored-then-pair registration result. A later failure does not roll back the first registration; it prevents returning a new Recipes value. Constructor identities and strict full-composition guard acceptance must come from the fresh actual plan. Main remains unchanged, with no build or launch success claimed.
+
+
+## Payload guard awaits actual observations
+
+The strict payload guard now checks the sole noncancellable RETURN, noncancelling callers and the exact private update module. Eleven synthetic tests passed centrally; its packaged-bundle test has not run in this intake. The original guard conditions are preserved with exact inverse evidence.
+
+Candidate observation and the official `poll_remote` fingerprint remain null, so the guard deliberately rejects until a fresh complete plan and the separate official Index observation are reviewed. This change does not edit runtime Rust or manifests and is not a Game, LAN or build success.

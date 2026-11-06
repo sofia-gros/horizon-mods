@@ -6,6 +6,7 @@ No transform, source copy or native packet handling is performed here.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,18 @@ def metadata():
 
 
 def check(plan, meta):
+    observation = meta.get("candidate_observation")
+    if (not isinstance(observation, dict)
+        or observation.get("horizon_revision") != meta.get("horizon_revision")
+        or any(not isinstance(observation.get(key), str) or re.fullmatch("[0-9a-f]{64}", observation[key]) is None
+               for key in ("plan_sha256", "index_result_sha256"))
+        or not isinstance(observation.get("evidence_commit"), str)
+        or re.fullmatch("[0-9a-f]{40}", observation["evidence_commit"]) is None):
+        raise ValueError("payload candidate has no reviewed actual plan/Index observation")
+    if (set(meta["caller_fingerprints"]) != set(meta["callers"])
+        or any(not isinstance(fp, str) or re.fullmatch("[0-9a-f]{64}", fp) is None
+               for fp in meta["caller_fingerprints"].values())):
+        raise ValueError("payload caller fingerprint is unobserved")
     hooks = plan.get("injections", [])
     # Compare resolved node/fingerprint too: alternate textual target spellings
     # must not evade composition checks for the same official function.
@@ -39,6 +52,26 @@ def check(plan, meta):
     raw = helper.read_bytes()
     if hashlib.sha256(raw).hexdigest() != meta["helper_sha256"] or hook["helper_source"] != raw.decode():
         raise ValueError("plan/helper differs from reviewed observer")
+    # The private updater is part of this reviewed RETURN, never a second
+    # packet hook. Match the exact module ID or placement so aliases and a
+    # foreign collision cannot hide another implementation at this path.
+    update = meta["internal_updates"]
+    canonical_ids = {update["module_id"], "pluto_native_creative-" + update["module_id"]}
+    modules = [m for m in plan.get("modules", [])
+        if m.get("module_id") in canonical_ids
+        or (m.get("file") == update["file"] and m.get("name") == update["name"])]
+    if len(modules) != 1:
+        raise ValueError("payload update requires exactly its reviewed private module")
+    module = modules[0]
+    if (module.get("mod_id") != "pluto_native_creative"
+        or module.get("module_id") not in canonical_ids
+        or module.get("file") != update["file"] or module.get("name") != update["name"]
+        or module.get("visibility", "pub(crate)") != update["visibility"]):
+        raise ValueError("payload update module owner or placement changed")
+    update_raw = (ROOT / "mixins/pluto_native_creative" / update["source"]).read_bytes()
+    if (hashlib.sha256(update_raw).hexdigest() != update["sha256"]
+        or module.get("source") != update_raw.decode()):
+        raise ValueError("payload update module differs from reviewed source")
     for hook in hooks:
         if (hook["target"] in meta["callers"] or
             hook.get("function_fingerprint") in meta["caller_fingerprints"].values()) and (

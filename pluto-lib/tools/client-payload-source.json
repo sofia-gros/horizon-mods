@@ -1,15 +1,16 @@
 {
-  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
-  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
   "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
   "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
   "injection_id": "client-payload-observed",
   "helper": "client-payload-observed.rs",
-  "helper_sha256": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+  "helper_sha256": "8788530e7478f2f472a9bee14a8ec21ab29e4f435a036db505bd542b17bcda7b",
   "source_sha256": {
-    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
-    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
-    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd"
+    "crates/horizon-client/src/game/native_hooks.rs": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833",
+    "crates/horizon-client/src/game/remote.rs": "346d48f3372d4cfe135982d5f40a7306d79b7f9cbc80a3a8c306648adfdf06c2",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd",
+    "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e"
   },
   "callers": [
     "horizon_client::game::remote::Game<'_>::handle_packet",
@@ -23,8 +24,8 @@
     },
     {
       "name": "game",
-      "ty": "&Game<'_>",
-      "value": "&*self"
+      "ty": "&mut Game<'_>",
+      "value": "&mut *self"
     },
     {
       "name": "packet",
@@ -32,16 +33,25 @@
       "value": "packet"
     }
   ],
-  "coverage": "Only CustomPayload packets that reach this play-phase observer, after native dispatch, before handle_packet processing. Protocol-thread and configuration traffic remain excluded.",
+  "coverage": "Candidate only: native_client_packet body then sole RETURN snapshot/read-only observe/trusted current-View update, BEFORE remaining handle_packet body. No durable identity, actor authority or UI/LAN proof. poll_remote fingerprint and candidate observation remain missing.",
   "location": {
     "file": "crates/horizon-client/src/game/native_hooks.rs",
     "node": [
       40,
-      339
+      349
     ]
   },
   "caller_fingerprints": {
-    "horizon_client::game::remote::Game<'_>::handle_packet": "17b740523a4ed99467cbfcdd62a3f7632f0a8e957c890b07f31bf7c809e6cd5c",
-    "horizon_client::game::remote::Game<'_>::poll_remote": "794701f78c243580476c95e5c619e97b9615ad758189aa878f4df89770268844"
+    "horizon_client::game::remote::Game<'_>::handle_packet": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+    "horizon_client::game::remote::Game<'_>::poll_remote": null
+  },
+  "candidate_observation": null,
+  "internal_updates": {
+    "module_id": "client-payload-updates",
+    "file": "crates/horizon-client/src/game.rs",
+    "name": "pluto_client_payload_updates",
+    "source": "client-payload-updates.rs",
+    "sha256": "086c6a71b3bc6ecc356055a8272d0bd72d9fb12bd31b8f60346d779e076aa055",
+    "visibility": "pub(crate)"
   }
 }

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Development source integration includes cloud, payload, crafting and local station delegation. Fresh complete plan, reviewed guard observations, apply, host types and Windows build remain required.",
+  "stage": "Development source integration includes cloud, payload, crafting and local station delegation. Strict cloud and payload guards deliberately reject pending actual observations. Fresh complete plan, apply, host types and Windows build remain required.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -28,7 +28,7 @@
   "pending": [
     {
       "subject": "Guide LAN response",
-      "reason": "Source migration of all3 cancellable callers is integrated. Native Text response10 values already passed separately. Strict payloadguard/private module metadata, actualpollfingerprint, freshplan, Game typing/registration/observer/UI/LAN remain unverified. Observerresumption is explicit."
+      "reason": "All three caller migrations and the strict private-module payload guard are integrated. Observation and poll_remote fingerprint remain null and fail closed. Fresh complete plan plus official Index observation, then all guards, Game types and LAN execution are still required."
     },
     {
       "subject": "Crafting composition",
@@ -647,6 +647,18 @@
       "constructor_ir_observed": false,
       "full_guards_passed": false,
       "actual_host_or_gameplay": false
+    },
+    {
+      "subject": "Strict private payload update guard",
+      "source": "dde74d60732a998348b367a202b2defd0292b032",
+      "ordinary_paths": 3,
+      "proof_paths": 5,
+      "synthetic_checks": 11,
+      "packaging_test_executed": false,
+      "independent_review": "Rendering exact three pins and full original guard inverse; central eleven synthetic tests and unchanged current input blobs.",
+      "pending_observation_rejects": true,
+      "runtime_or_manifest_changed": false,
+      "actual_plan_or_game_or_lan": false
     }
   ],
   "guide_limits": [
