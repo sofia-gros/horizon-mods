@@ -1,6 +1,6 @@
 # Outer-tank memory guard: real-root distinction
 
-Status: **source-only guard preparation, not native execution permission**. The entry point still runs the diagnostic-only stop. No call to `execute_native_prepared` exists. The frozen 160 Rust cases have not run; no cgroup, systemd unit, mount, limit, or local cache was changed.
+Status at source checkpoint `527bd9cca2facb399072dcb7a15ed7a7f54656f3`: **source-only guard preparation, not native execution permission**. That checkpoint retained the diagnostic-only stop and no call to `execute_native_prepared`. A later source-only switch proposal is described in the CI README; it has not run. The frozen 160 Rust cases have not run; no cgroup, systemd unit, mount, limit, or local cache was changed.
 
 ## Why namespace roots are different
 

@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "status": "source preparation only; CI unrun",
+  "status": "source-only guarded-native proposal; not published to trigger branch or executed",
   "repository": "sofia-gros/horizon-mods",
-  "branch": "checkpoint/plutolib-outer-tank-ci-20261106",
+  "branch": "checkpoint/plutolib-outer-tank-native-ci-20261106",
   "source_revision": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
   "source_tree": "0e80347d4573f47984753cd02f78514a5352243f",
   "source_url": "https://github.com/sofia-gros/horizon-mods.git",
@@ -275,5 +275,5 @@
     "runtime::outer_tank_tests::drain_complete_route_matches_saved_and_published_results"
   ],
   "scope": "Actual pinned items/core/world and frozen complete methods. Drain uses the existing mock Game/world. No live authority, durability, installed Mod or full original PR claim.",
-  "execution_mode": "memory-diagnostic-only"
+  "execution_mode": "guarded-native"
 }

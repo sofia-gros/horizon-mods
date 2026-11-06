@@ -250,15 +250,54 @@ class Tests(unittest.TestCase):
             self.assertIn('not determined',got['admission'])
             self.assertNotIn('unlimited',json.dumps(got))
 
-    def test_diagnostic_mode_exits_before_setup_or_native_path(self):
+    def test_legacy_diagnostic_mode_exits_and_native_call_has_one_guarded_owner(self):
         report={}
+        diagnostic={**m.read_inputs(),'execution_mode':'memory-diagnostic-only'}
         with mock.patch.object(m,'memory_observation',return_value={'unverified':True}),mock.patch.object(m,'Runner',side_effect=AssertionError('setup must not start')),mock.patch.object(m.subprocess,'Popen',side_effect=AssertionError('native must not start')),contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaisesRegex(RuntimeError,'cannot start setup or compilation'):
-                m.diagnostic_only(report,m.read_inputs())
+                m.diagnostic_only(report,diagnostic)
         self.assertFalse(report['setup_started']);self.assertFalse(report['native_started'])
         tree=ast.parse((HERE/'run.py').read_text())
         calls=[n.func.id for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)]
-        self.assertNotIn('execute_native_prepared',calls)
+        self.assertEqual(calls.count('execute_native_prepared'),1)
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='guarded_native')
+        owned=[n.func.id for n in ast.walk(fn) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)]
+        self.assertEqual(owned.count('execute_native_prepared'),1)
+        code=ast.get_source_segment((HERE/'run.py').read_text(),fn)
+        self.assertLess(code.index('check_memory('),code.index('execute_native_prepared('))
         with self.assertRaises(ValueError):m.diagnostic_only({}, {'execution_mode':'native'})
+
+    def test_admission_failure_cannot_reach_setup_and_wrong_mode_has_no_fallback(self):
+        config=m.read_inputs();report={}
+        with mock.patch.object(m,'check_memory',side_effect=ValueError('unobservable')),mock.patch.object(m,'execute_native_prepared') as native:
+            with self.assertRaises(ValueError):m.guarded_native(report,config)
+            native.assert_not_called()
+        self.assertFalse(report['setup_started']);self.assertFalse(report['native_started'])
+        with mock.patch.object(m,'check_memory') as memory,mock.patch.object(m,'execute_native_prepared') as native:
+            for key,value in [('execution_mode','memory-diagnostic-only'),('branch','unapproved')]:
+                with self.assertRaises(ValueError):m.guarded_native({}, {**config,key:value})
+            memory.assert_not_called();native.assert_not_called()
+        with mock.patch.object(m,'check_memory',return_value=8*1024**3),mock.patch.object(m,'execute_native_prepared') as native:
+            m.guarded_native(report,config);native.assert_called_once_with(report,config)
+        self.assertFalse(report['memory_admission']['hard_limit_applied'])
+
+    def test_source_repositories_and_pins_reject_changes_before_setup(self):
+        config=m.read_inputs();m.validate_source_config(config)
+        for key in ['repository','source_url','source_revision','source_tree']:
+            with self.assertRaises(ValueError):m.validate_source_config({**config,key:'unapproved'})
+        for key in ['url','revision','lock_sha256']:
+            with self.assertRaises(ValueError):m.validate_source_config({**config,'official':{**config['official'],key:'unapproved'}})
+        code=(HERE/'run.py').read_text();entry=code[code.index('def execute(report):'):code.index('def execute_native_prepared(')]
+        self.assertLess(entry.index('validate_source_config('),entry.index('guarded_native('))
+        self.assertIn("set(report['gates'])!=REQUIRED_GATES",code)
+
+    def test_complete_checkout_seal_preserves_links_and_rejects_ignored_additions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'a').write_text('a');(root/'link').symlink_to('a')
+            before=m.seal(root,True);m.assert_seal(root,before,True)
+            (root/'.cache').mkdir();(root/'.cache/value').write_text('new')
+            with self.assertRaises(ValueError):m.assert_seal(root,before,True)
+            (root/'.cache/value').unlink();(root/'.cache').rmdir();(root/'link').unlink();(root/'link').symlink_to('elsewhere')
+            with self.assertRaises(ValueError):m.assert_seal(root,before,True)
 
 if __name__=='__main__':unittest.main()

@@ -1,14 +1,17 @@
-# Outer-tank diagnostic-only CI preparation
+# Guarded outer-tank CI source proposal
 
-**The first CI is diagnostic-only. No setup, toolchain installation, additional
-Git fetch, Cargo, compilation or tests are reachable from its entry point.
-It deliberately produces a false receipt after read-only memory observations.
-No CI publication or native execution has occurred yet.** The existing 160-case fixture remains unexecuted. Its
-prior 146-case predecessor and pure author-API CI are separate proofs.
+**Source-only next cutoff. Not published to its trigger branch or executed.**
+The new fixed branch is `checkpoint/plutolib-outer-tank-native-ci-20261106`.
+Its entry path checks the exact repository/pins and real-root memory admission
+before setup; every command retains the same continuous guard. There is no
+fallback on unknown topology. It does not create a cgroup or apply a hard cap.
 
-This dedicated public branch is intended to close the local disk-budget blocker
-without borrowing its cache or changing any source under test. Publication and
-execution await independent review and the coordinator's remote slot.
+The earlier [diagnostic run](https://github.com/sofia-gros/horizon-mods/actions/runs/42183008828)
+at `9db4f9a2` intentionally stopped before setup. The separate `527bd9cc`
+root-guard source checkpoint remained diagnostic-only. Neither ran native tests.
+The 160-case suite remains unexecuted; its earlier 146-case predecessor and
+pure author-API CI are separate proofs. Native trigger publication and execution
+still require independent final review and the coordinator's remote slot.
 
 ## Exact inputs and scope
 
@@ -93,29 +96,26 @@ stopped; CI still must fetch and verify the actual remote tree. See
 `preparation.json`. These checks do not turn the expected 160 Rust tests into
 executed tests.
 
-A read-only `MEMORY_PREFLIGHT` record now captures bounded host-memory values,
-self cgroup membership, visible cgroup2 mount root/point and each visible
-ancestor's memory/controller/events/type fields. Missing facts remain explicit
-errors. This is diagnostic evidence, not a guard exception: a true hierarchy
-root may lack memory.max/current, but hidden/delegated ancestors cannot be
-assumed unlimited. The first CI attempt must stop before native setup
-with a false receipt and these observations. The initial diagnostic checkpoint contained no root exception. The prepared
-source-only guard below still needs separate review before native admission.
+## Root evidence and the next prepared admission
 
-The native driver below this entry point is retained draft source only; it has
-no call site and cannot be selected by CLI/config/environment. A readable
-delegated cgroup root can hide stricter ancestors even when its visible
-memory.max says max, so the old visible-limit loop is not sufficient approval.
-Actual topology observations and a separately reviewed new cutoff are required
-before enabling any native path. Expected 160-case instructions above describe
-that later proposed proof, not this diagnostic execution.
+The [root analysis](../../docs/outer-tank-memory-root-20261106.md) records why
+Linux's actual-parent file rule distinguishes the true root from a namespaced
+non-root. The `527bd9cc` checkpoint passed 26 pure Python tests while retaining
+the diagnostic-only entry. The historical diagnostic observation lacks some
+new device/overmount checks and cannot be reused as a successful admission.
 
-## Prepared real-root guard, still diagnostic-only
+This next proposal has 29 pure Python checks: the same root regressions plus
+pre-setup admission failure/no fallback, exact official/MOD source allowlists,
+and whole-checkout ignored-file/link seals. Only one call owns the native driver,
+after the memory check; the new mode and branch are fixed. The legacy diagnostic
+helper still always stops and is not an execution fallback. Setup/native flags
+remain false until their respective first operation. Missing required gates
+also reject at final receipt assembly.
 
-The [source-only root analysis](../../docs/outer-tank-memory-root-20261106.md)
-binds the narrow missing-root-files exception to Linux's actual-parent file
-creation rule. Its 26 pure Python regressions pass, including namespace roots,
-permission failures, mount/device masking, symlinks and ancestor limits. It
-does not enable the native draft or apply any cgroup/systemd setting. The
-earlier diagnostic observation is not retroactively sufficient for its new
-mount/device checks. A separate reviewed execution decision is still required.
+The source and official checkouts are sealed over every non-Git file and link,
+including ignored/untracked additions, not just tracked bytes. Actual fixture
+files remain regular-only and their complete old oracles are unchanged.
+No Rust, Cargo metadata, cgroup/systemd write or local native job was run for
+this proposal. Initial publication must be to a non-trigger source checkpoint;
+CI admission is still a separate decision, not a claim that hard memory limits
+have been installed.

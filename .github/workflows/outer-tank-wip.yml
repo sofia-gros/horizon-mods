@@ -1,8 +1,8 @@
-name: WIP outer tank memory diagnostics only
+name: WIP guarded outer tank native contracts
 on:
   push:
     branches:
-      - checkpoint/plutolib-outer-tank-ci-20261106
+      - checkpoint/plutolib-outer-tank-native-ci-20261106
 permissions:
   contents: read
 concurrency:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   outer-tank:
-    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/plutolib-outer-tank-ci-20261106' }}
+    if: ${{ github.repository == 'sofia-gros/horizon-mods' && github.event.repository.private == false && github.event_name == 'push' && github.ref == 'refs/heads/checkpoint/plutolib-outer-tank-native-ci-20261106' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -25,5 +25,5 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 1
-      - name: Observe memory topology without setup or compilation
+      - name: Validate memory topology before exact native fixture
         run: python3 pluto-lib/experiments/outer-tank-ci/run.py

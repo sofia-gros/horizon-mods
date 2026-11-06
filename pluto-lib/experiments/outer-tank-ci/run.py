@@ -32,9 +32,19 @@ def read_inputs(): return json.loads((HERE / 'inputs.json').read_text())
 def git(root, *args):
     return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
 def seal(root, tracked=False):
-    paths = ([root / p for p in git(root, 'ls-files').splitlines()] if tracked else
-             [p for p in root.rglob('*') if p.is_file() and '.git' not in p.relative_to(root).parts])
-    return {str(p.relative_to(root)): sha(p.read_bytes()) for p in sorted(paths)}
+    # Include ignored/untracked files. Preserve official tracked documentation
+    # symlinks as link targets rather than following them outside the tree.
+    import stat
+    result={}
+    for path in sorted(root.rglob('*')):
+        relative=path.relative_to(root)
+        if '.git' in relative.parts:continue
+        mode=path.lstat().st_mode
+        if stat.S_ISDIR(mode):continue
+        if stat.S_ISREG(mode):result[str(relative)]={'kind':'file','sha256':sha(path.read_bytes())}
+        elif stat.S_ISLNK(mode):result[str(relative)]={'kind':'symlink','target':os.readlink(path)}
+        else:raise ValueError('Special source node: '+str(path))
+    return result
 def assert_seal(root, expected, tracked=False):
     if seal(root, tracked) != expected: raise ValueError('Source/lock/file-set drift: ' + str(root))
 def out_dirs(target):
@@ -345,6 +355,31 @@ def verify_lock(host, fixture):
     allowed = identities(host/'Cargo.lock') | {('pluto-inventory-api','0.1.0',None,None),('outer-tank-patch-fixture','0.1.0',None,None)}
     if identities(fixture/'Cargo.lock')-allowed: raise ValueError('Nonofficial dependency identity in fixture lock')
 
+REQUIRED_GATES={'source_guards','exact_preparation','official_dependencies','outer_tank'}
+NATIVE_BRANCH='checkpoint/plutolib-outer-tank-native-ci-20261106'
+
+def guarded_native(report, config):
+    """Separate reviewed-mode proposal; never fall back when admission fails."""
+    report.update(execution_mode='guarded-native',setup_started=False,native_started=False)
+    if config.get('execution_mode')!='guarded-native' or config['branch']!=NATIVE_BRANCH:
+        raise ValueError('Unsupported outer-tank execution mode or branch')
+    available=check_memory(reserve=2*1024**3)
+    report['memory_admission']={'passed':True,'profile':'verified-real-root-and-every-ancestor',
+                                'available_bytes':available,'reserve_bytes':2*1024**3,
+                                'hard_limit_applied':False}
+    execute_native_prepared(report,config)
+
+def validate_source_config(config):
+    official={'url':'https://github.com/horizon-rust/horizon.git',
+              'revision':'624c4f6265c02296fbe8a80f029dd0d987fb94c0',
+              'lock_sha256':'463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31'}
+    if (config['repository']!='sofia-gros/horizon-mods' or
+        config['source_url']!='https://github.com/sofia-gros/horizon-mods.git' or
+        config['source_revision']!='794a0c526ca0a96d0ca9c9ff40010611b5968a89' or
+        config['source_tree']!='0e80347d4573f47984753cd02f78514a5352243f' or
+        config['official']!=official):
+        raise ValueError('Unexpected frozen MOD or official source')
+
 def diagnostic_only(report, config):
     if config.get('execution_mode')!='memory-diagnostic-only':
         raise ValueError('This checkpoint permits only read-only memory diagnostics')
@@ -357,23 +392,17 @@ def diagnostic_only(report, config):
 
 def execute(report):
     config=read_inputs()
+    validate_source_config(config)
     event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
     if (os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('GITHUB_REPOSITORY')!=config['repository'] or
         os.environ.get('GITHUB_EVENT_NAME')!='push' or os.environ.get('GITHUB_REF')!='refs/heads/'+config['branch'] or
         event.get('repository',{}).get('private') is not False or
-        git(ROOT,'rev-parse','HEAD')!=os.environ.get('GITHUB_SHA') or git(ROOT,'status','--porcelain','--untracked-files=all')):
+        git(ROOT,'rev-parse','HEAD')!=os.environ.get('GITHUB_SHA') or git(ROOT,'status','--porcelain','--untracked-files=all','--ignored=matching')):
         raise ValueError('Require clean exact authorized public CI branch')
-    if config['source_url']!='https://github.com/sofia-gros/horizon-mods.git' or config['official']['url']!='https://github.com/horizon-rust/horizon.git':
-        raise ValueError('Unexpected source repository')
-    diagnostic_only(report,config)
+    guarded_native(report,config)
 
 def execute_native_prepared(report,config):
-    """UNREACHABLE from this checkpoint's entry point; unexecuted preparation.
-
-    This draft is retained for a later independently reviewed cutoff, not a
-    flag, environment variable or command-line escape from diagnostic-only.
-    Visible cgroup limits alone cannot prove hidden ancestor constraints.
-    """
+    """Prepared native driver, called only after strict real-root admission."""
     original=seal(ROOT,True)
     work=Path(os.environ['RUNNER_TEMP'])/('outer-tank-'+os.environ['GITHUB_SHA'])
     env=os.environ.copy()
@@ -383,12 +412,13 @@ def execute_native_prepared(report,config):
                CARGO_TERM_COLOR='never',TMPDIR=str(work/'tmp'),PYTHONDONTWRITEBYTECODE='1')
     runner=Runner(work,env)
     runner.guard(reserve=4*1024**3)
+    report['setup_started']=True
     work.mkdir();Path(env['CARGO_HOME']).mkdir();Path(env['TMPDIR']).mkdir()
     gates={};snapshots={};host=None;official_before=None;error=None;verified=False;generated=None
     try:
         checks=runner.run('runner-checks',[sys.executable,str(HERE/'test_runner.py'),'-v'])
-        if re.findall(r'^Ran (\d+) tests in .+$',checks,re.M)!=['26'] or re.findall(r'^OK$',checks,re.M)!=['OK']:
-            raise ValueError('Expected twenty-six unskipped runner checks')
+        if re.findall(r'^Ran (\d+) tests in .+$',checks,re.M)!=['29'] or re.findall(r'^OK$',checks,re.M)!=['OK']:
+            raise ValueError('Expected twenty-nine unskipped runner checks')
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal'],timeout=600)
         roots=[]
         for name,url,revision in [('frozen-mod',config['source_url'],config['source_revision']),('official',config['official']['url'],config['official']['revision'])]:
@@ -447,6 +477,7 @@ def execute_native_prepared(report,config):
         phase=work/'compiler-phase';phase.write_text('compile')
         env.update(RUSTC_WRAPPER=str(HERE/'rustc_gate.py'),OUTER_TANK_COMPILER_PHASE=str(phase),OUTER_TANK_COMPILER_LOG=str(work/'rustc-invocations.jsonl'))
         command=['cargo','test','--lib','--locked','--offline','--manifest-path',str(fixture/'Cargo.toml'),'-vv']
+        report['native_started']=True
         built=runner.run('actual-compile',command+['--no-run'],cwd=fixture,timeout=1200)
         for crate in ['horizon_core','horizon_world','horizon_client_core','horizon_items','pluto_inventory_api']:
             actual_compile(built,crate)
@@ -460,18 +491,18 @@ def execute_native_prepared(report,config):
         calls=[json.loads(line) for line in (work/'rustc-invocations.jsonl').read_text().splitlines()]
         if any(row['decision']=='denied' for row in calls):raise ValueError('Compiler invocation denied')
         gates['outer_tank']={'passed':True,'tests':len(names),'names':names,'new_required_tests':config['required_tests'],'inherited_tests':156}
-        if set(gates)!={'source_guards','exact_preparation','official_dependencies','outer_tank'}:raise ValueError('Missing gate')
+        if set(gates)!=REQUIRED_GATES:raise ValueError('Missing gate')
     except BaseException as exc:
         error=type(exc).__name__+': '+str(exc)
     finally:
         try:
             assert_seal(ROOT,original,True)
-            if git(ROOT,'status','--porcelain','--untracked-files=all'):raise ValueError('Dirty/untracked checkout after proof')
+            if git(ROOT,'status','--porcelain','--untracked-files=all','--ignored=matching'):raise ValueError('Dirty/untracked checkout after proof')
             for path,before in snapshots.items():
                 if regular_seal(Path(path))!=before:raise ValueError('Copied source/file-set drift after execution')
             if official_before is not None:
                 assert_seal(host,official_before,True)
-                if git(host,'status','--porcelain','--untracked-files=all'):raise ValueError('Dirty/untracked official source')
+                if git(host,'status','--porcelain','--untracked-files=all','--ignored=matching'):raise ValueError('Dirty/untracked official source')
             if generated is not None and out_dirs(work/'target')!=generated:raise ValueError('Generated inputs changed after compile')
             runner.guard();verified=True
         except BaseException as exc:
@@ -487,7 +518,9 @@ def execute_native_prepared(report,config):
 
 def main():
     report={'head':os.environ.get('GITHUB_SHA'),'passed':False,'verified':False,'error':None,'gates':{}}
-    try:execute(report)
+    try:
+        execute(report)
+        if report['error'] is None and set(report['gates'])!=REQUIRED_GATES:raise ValueError('Missing required final gate')
     except BaseException as exc:
         report['error']=(report['error']+'; ' if report['error'] else '')+type(exc).__name__+': '+str(exc)
     report['passed']=report['error'] is None and report['verified']
