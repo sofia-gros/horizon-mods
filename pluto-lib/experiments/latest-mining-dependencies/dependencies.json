@@ -1,0 +1,363 @@
+{
+  "status": "read-only dependency audit; no additional native execution",
+  "mod_revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "candidate_revision": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "official_revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "main_manifest_sha256": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+  "modules": [
+    {
+      "dependency_scope": "material-traits transitive support",
+      "manifest": {
+        "id": "host-transactions",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_tx",
+        "source": "transaction.rs"
+      },
+      "source_sha256": "7ac6ccb9a153728f2d7cf18ff75b8256c250f9c59af5a2808bd83d860e16816b",
+      "source_bytes": 198348
+    },
+    {
+      "dependency_scope": "material-traits transitive support",
+      "manifest": {
+        "id": "host-source-world-type",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_world",
+        "source": "source-world-type-game.rs"
+      },
+      "source_sha256": "aa0c53a7b722322efbcc56e802db11470e4c6d4fc436b18d90a7cf0498be86d5",
+      "source_bytes": 45
+    },
+    {
+      "dependency_scope": "material-traits transitive support",
+      "manifest": {
+        "id": "host-source-station-recipes",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_station_recipes",
+        "source": "source-station-recipes.rs"
+      },
+      "source_sha256": "bb6419d9c8ebbfb46f3b4185e87316583c5ed95709d42d9d3473e9d6ed1215cc",
+      "source_bytes": 19816
+    },
+    {
+      "dependency_scope": "material-traits transitive support",
+      "manifest": {
+        "id": "host-source-station-stats",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_station_stats",
+        "source": "source-station-stats.rs"
+      },
+      "source_sha256": "fa0040fd48c6836282bf6eb1bde3391246eb766ab6b6fcc316500275010691cf",
+      "source_bytes": 21246
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "host-source-material-traits",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_material_traits",
+        "source": "source-material-traits.rs"
+      },
+      "source_sha256": "714e9793c8b8583cb071ee9e0b20e77ae8d333e603715fe365456cb5df7b0f2b",
+      "source_bytes": 9429
+    },
+    {
+      "dependency_scope": "material-traits transitive support",
+      "manifest": {
+        "id": "host-source-material-trait-select",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_material_trait_select",
+        "source": "source-material-trait-select.rs"
+      },
+      "source_sha256": "5f8aa7ff1b6174a3cd60d2f28001a08bf644595cdbafc19c647148a83aa0d0a7",
+      "source_bytes": 3583
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "game-source-mining-math",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_mining_math",
+        "source": "source-mining-math.rs"
+      },
+      "source_sha256": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+      "source_bytes": 10477
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "game-source-mining-rules",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_mining_rules",
+        "source": "source-mining-rules.rs"
+      },
+      "source_sha256": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+      "source_bytes": 21886
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "game-tool-api",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_tool_api",
+        "source": "game-tool-api.rs"
+      },
+      "source_sha256": "2089fc12e947165e65596ca8f114f3434a368558686d0951b403351d0b35d143",
+      "source_bytes": 116
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "source-dwarven",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_dwarven",
+        "source": "source-pure-rules.rs"
+      },
+      "source_sha256": "694fd7c3f40a4613023d4ad459ecb85b52df4cc8334dd438e97db69a969e7ec6",
+      "source_bytes": 26909
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "game-source-mining-context",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_mining_context",
+        "source": "source-mining-context-shared.rs"
+      },
+      "source_sha256": "22a8cf9b0e2671be1ee3f4bae292d43cd3f4f59bf8be2d174c3a755c1bf70193",
+      "source_bytes": 4399
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "host-haste-wire",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_haste_wire",
+        "source": "source-haste-wire.rs"
+      },
+      "source_sha256": "28d75e2c8796c06c26b2acc3c67c89bc532c7c93e202507a69ef1e49577c7a84",
+      "source_bytes": 4661
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "host-haste-source",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_source_haste_source",
+        "source": "source-pure-rules.rs"
+      },
+      "source_sha256": "694fd7c3f40a4613023d4ad459ecb85b52df4cc8334dd438e97db69a969e7ec6",
+      "source_bytes": 26909
+    },
+    {
+      "dependency_scope": "direct and scalar support",
+      "manifest": {
+        "id": "modifier-resource-snapshot-module",
+        "file": "crates/horizon-client/src/game.rs",
+        "name": "tconstruct_modifier_snapshot",
+        "source": "modifier-snapshot.rs"
+      },
+      "source_sha256": "6b27a1c2accc7bc5c25e3866e154f3dcc15741e5d79f103dbc2c35b2943e12ae",
+      "source_bytes": 32879
+    }
+  ],
+  "states": [
+    {
+      "id": "material-snapshot",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    },
+    {
+      "id": "resolved-item-tags",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    },
+    {
+      "id": "recipe-snapshot",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<std::collections::BTreeMap<String,Vec<u8>>>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    },
+    {
+      "id": "haste-wire-client",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<(horizon_items::items::ItemStack,i32)>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    },
+    {
+      "id": "broad-wire-client",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<std::collections::HashSet<String>>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    },
+    {
+      "id": "modifier-resource-snapshot",
+      "target": "horizon_client_render::chunk_map::ChunkMap",
+      "ty": "Option<Result<(std::collections::BTreeMap<String,Vec<Vec<u8>>>,std::collections::BTreeMap<String,Vec<Vec<u8>>>),String>>",
+      "initial": "::core::default::Default::default()",
+      "constructor": [
+        {
+          "target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default",
+          "selector": "Self",
+          "require": 1
+        }
+      ]
+    }
+  ],
+  "packaging_note": "MOD packager rewrites __horizon_mixins_tconstruct_ accessor prefix to __horizon_mixins_tconstruct_native_. These hashes refer to original source, not rewritten archive members.",
+  "common_archive": {
+    "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+    "members": 147,
+    "tool_rule_members": {
+      "mixins/pluto_native_creative/pluto_tool_rules/drops.rs": "b722fac2733170b697ad8aade0bc6ced5fbfd2f73cbac2de39f2e56602dba5e1",
+      "mixins/pluto_native_creative/pluto_tool_rules/rules.rs": "9aa2c2d0643c7079baacdcc8da6af8e77b6d8aff659d05b481e71981f3f165b3",
+      "mixins/pluto_native_creative/pluto_tool_rules/speed.rs": "08a7fd39745e83f7aecafb9a670f23275dd313fa0ebb7b7e48da8b33a69f7f93"
+    },
+    "manifest_entries": {
+      "module": [
+        {
+          "id": "pluto_tool_rules-api",
+          "file": "crates/horizon-items/src/items.rs",
+          "name": "pluto_tool_rules",
+          "source": "pluto_tool_rules/rules.rs",
+          "visibility": "pub"
+        }
+      ],
+      "injection": [
+        {
+          "id": "pluto_tool_rules-speed",
+          "target": "horizon_items::items::Items::mining_speed",
+          "kind": "RETURN",
+          "helper": "pluto_tool_rules/speed.rs",
+          "bindings": [
+            {
+              "name": "value",
+              "ty": "f32",
+              "value": "$value"
+            },
+            {
+              "name": "items",
+              "ty": "&Items",
+              "value": "self"
+            },
+            {
+              "name": "held",
+              "ty": "Option<&ItemStack>",
+              "value": "held"
+            },
+            {
+              "name": "block",
+              "ty": "&str",
+              "value": "block"
+            }
+          ],
+          "priority": 100
+        },
+        {
+          "id": "pluto_tool_rules-drops",
+          "target": "horizon_items::items::Items::correct_for_drops",
+          "kind": "RETURN",
+          "helper": "pluto_tool_rules/drops.rs",
+          "bindings": [
+            {
+              "name": "value",
+              "ty": "bool",
+              "value": "$value"
+            },
+            {
+              "name": "items",
+              "ty": "&Items",
+              "value": "self"
+            },
+            {
+              "name": "held",
+              "ty": "Option<&ItemStack>",
+              "value": "held"
+            },
+            {
+              "name": "block",
+              "ty": "&str",
+              "value": "block"
+            }
+          ],
+          "priority": 100
+        }
+      ]
+    }
+  },
+  "official_sources": {
+    "crates/horizon-client/src/game.rs": {
+      "bytes": 1031429,
+      "sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c"
+    },
+    "crates/horizon-client/src/game/hand.rs": {
+      "bytes": 41866,
+      "sha256": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f"
+    },
+    "crates/horizon-client/src/game/native_hooks.rs": {
+      "bytes": 507210,
+      "sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190"
+    },
+    "crates/horizon-client/src/game/lan_actions.rs": {
+      "bytes": 270381,
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c"
+    }
+  },
+  "proofs": {
+    "scalar36": {
+      "head": "6dc08fc3946596ac21a228901b74f9e71d27df96",
+      "run": 42213696048,
+      "closure": "278fe1643461e1dd84ddecd01079278547ab09ef",
+      "passed": true,
+      "not_proved": [
+        "new Game adapter typing",
+        "unchanged full shared actor policy typing",
+        "full actor/guest path behavior",
+        "complete package composition"
+      ]
+    },
+    "small_plan": {
+      "head_prefix": "3b127",
+      "run": 42212479103,
+      "reported_by": "implementation owner Storage",
+      "scope": "formal HEAD bindings and one private Pluto module only; not actor/type/full646 proof"
+    },
+    "full646": "not run at audit cutoff"
+  }
+}
