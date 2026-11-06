@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "scope": "Preservation of two completed, reproducible dedicated test executables only",
+  "source_implementation": "feeedb14a863c48cc1940e7014768cd3af4bbdda",
+  "operations": [
+    {
+      "executable": "tank_compound_fixture-d8e0efe8c29312bf",
+      "source_cutoff": "9ab6be063b832debd898f834343a07b9b1aa7064",
+      "original_sha256": "8cb0a84c2f5347f39a580e2f18978a32f6d3e07a757638e017f253d955e64a91",
+      "original_bytes": 7779264,
+      "archive": "tank-compound-completed-executable.tar.gz",
+      "archive_bytes": 1931866,
+      "archive_sha256": "a23ca9a7fe1a0f8d1581a31db0ac3a514c5df0163d46f4a71d851c66fbc6de72",
+      "receipt": "tank-compound-completed-executable-cleanup-20261106.json",
+      "receipt_sha256": "042d5ddad875b9caf8e5aa4ae7369fe5a796182015ef8ca1776b766f27932d21",
+      "payload_count": 8,
+      "initial_free_bytes": 10871304192,
+      "minimum_free_bytes": 10869366784,
+      "free_before_receipt": 10877120512,
+      "initial_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      }
+    },
+    {
+      "executable": "pluto_inventory_api-f8501f15562fe302",
+      "source_cutoff": "4244c26773476c8a4e6b23188e828da28105248a",
+      "original_sha256": "a0def3cf4abd1cd7e391e0ad08c9d43580d702b3d25f3746fe03ee57e914941e",
+      "original_bytes": 2965968,
+      "archive": "old-v5-inventory-api-executable-20261106.tar.gz",
+      "archive_bytes": 844994,
+      "archive_sha256": "1cbbf79f0a1d97c3cd768d4a0d6e83354abe88ffbb6236ba81aae0b6c924f2f2",
+      "receipt": "old-v5-inventory-api-executable-cleanup-20261106.json",
+      "receipt_sha256": "2620d28aca2c3aa9cdba1e0488374dbb8746a82afe432b105399711bf03a1a55",
+      "payload_count": 8,
+      "initial_free_bytes": 10876768256,
+      "minimum_free_bytes": 10875920384,
+      "free_before_receipt": 10878885888,
+      "initial_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      }
+    }
+  ],
+  "attributes_verified": [
+    "regular file type; no symlinks or hardlinks",
+    "exact complete byte hash and size",
+    "permission bits",
+    "uid and gid",
+    "mtime at nanosecond precision",
+    "empty xattrs verified"
+  ],
+  "excluded_attributes": [
+    "access time",
+    "change time"
+  ],
+  "procedure": [
+    "Verify exact source/proof log, candidate hashes and terminal execution.",
+    "Check no native process, executable mapping or open file handle.",
+    "Build complete compressed archive and read every payload back.",
+    "Before each persistent write, check capacity against the approved floor and planned write size.",
+    "Persist archive, fsync archive and containing directory, and independently read all payloads and attributes again.",
+    "Recheck original hashes and non-use before removing only the named executable working copy.",
+    "Keep dep-info, fingerprints, source, test logs, current cache and unknown artifacts intact."
+  ],
+  "capacity": {
+    "user_floor_bytes": 10737418240,
+    "native_working_floor_bytes": 10871635968,
+    "preservation_only_minimum_authorized_bytes": 10804527104,
+    "last_observed_after_second_receipt": 10878877696,
+    "normal_native_threshold_unchanged": true
+  },
+  "protected_unknown_executable": "pluto_inventory_api-6d08871139ab16a9: exact terminal provenance not established; left untouched",
+  "limits": [
+    "No new native build was authorized by this preservation work.",
+    "Archives retain complete executable bytes for restoration; restoring a binary is not a fresh compatibility test.",
+    "No library cache, registry dependency, source, unpublished work, existing PR state or Horizon fork was modified or accessed."
+  ]
+}
