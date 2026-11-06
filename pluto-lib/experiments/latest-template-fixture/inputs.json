@@ -1,0 +1,39 @@
+{
+  "status": "source_prepared_actual_preparation_metadata_rust_unrun",
+  "test_source": "fe5f2d4159e9e70b2819b826e5dfe2951b5cb896",
+  "official": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "official_lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+  "original_group_sha256": {
+    "README.md": "d04e05124793dfe00286b9e89ad562d8d4f05f417e87de03f908c274ba19b482",
+    "fixture-literals.patch": "6ce18cddcff7c517222afdcebcfb8060f70a40a5ac2d20cd52226cc25fe53d28",
+    "fixture-records.json": "682fb76e6180de0958a60b55db95c5ef3b2c563eab32f2edb621e4a0c887e493",
+    "inputs.json": "e7ffca827b76c12e799aef1296dd14b6525c1cccf44e09d0c8f2b8474857cad0",
+    "official-audit.json": "7cc00c65c269ea0251dad122ca49596eae129c53b3a25cb2d8f1ce6c9a5c7181",
+    "template_tests.rs": "c887cef350080f698f033bcaf87b3daca08da0ceaaf763a57b360a659879be2b",
+    "test_source.py": "a3171f0954e7cf744c7e78d60df8400aada80400185a4a7b980aab55a9756c99"
+  },
+  "helper_sha256": {
+    "README.md": "9567f55c8dc6552798bb7b2b9c9713da98385fa74f91cd23ba6ff89e92b8cc32",
+    "prepare.py": "3f1b8c1b173384a57e2e20615673a20ea213df35b2ef94d7e4f21872738f4e56",
+    "test_prepare.py": "fec59c6594ce048353307fea86fd31fcd3e10f12bfc2d8f08a96fbcea7e4371a"
+  },
+  "native_sha256": {
+    "crates/horizon-items/src/items.rs": "9259af2f27a631ab21f1c62a67cec231e5410b32e1bdd4e4eb11656fe82db393",
+    "crates/horizon-items/src/item_data.rs": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402",
+    "crates/horizon-client/src/crafting.rs": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c"
+  },
+  "native_template": {
+    "path": "crates/horizon-client/src/crafting.rs",
+    "start": "#[derive(Clone, Debug)]\npub struct Template",
+    "end": "#[derive(Clone, Debug)]\npub enum Recipe",
+    "sha256": "b0ed768128b746c5880ea7bf454d1512f6737d8247703cf77893ce030587166d"
+  },
+  "expected_tests": [
+    "absent_and_empty_patch_remain_distinct_raw_templates",
+    "explicit_zero_is_not_recoverable_from_created_stack",
+    "explicit_removal_replaces_inherited_value_without_mutating_input",
+    "native_clone_keeps_raw_patch_and_same_over_result",
+    "none_is_compatible_only_with_the_old_synthetic_create_oracle",
+    "transient_map_postprocess_stays_outside_saved_components"
+  ]
+}
