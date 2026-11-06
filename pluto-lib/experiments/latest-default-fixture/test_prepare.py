@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('latest_default_prepare', HERE / 'prepare.py')
@@ -121,5 +122,32 @@ class PreparerChecks(unittest.TestCase):
         with patch.object(m, 'run', side_effect=fake):
             with self.assertRaisesRegex(ValueError, 'ignored'): m.clean_official(Path('/official'))
         self.assertIn(['git', '-C', '/official', 'status', '--porcelain', '--untracked-files=all', '--ignored=matching'], calls)
+
+    def controlled(self):
+        return patch.dict(m.os.environ, {'PLUTO_FIXTURE_CONTROLLER': 'latest-item-contracts-v1'})
+
+    def test_uncontrolled_process_launch_fails_before_spawn(self):
+        with patch.dict(m.os.environ, {}, clear=True), patch.object(m.subprocess, 'Popen') as spawn:
+            with self.assertRaisesRegex(ValueError, 'controller'): m.run(['never-executed'])
+            spawn.assert_not_called()
+        with self.controlled(), patch.object(m.os, 'getpid', return_value=7), patch.object(m.os, 'getpgrp', return_value=8), patch.object(m.subprocess, 'Popen') as spawn:
+            with self.assertRaisesRegex(ValueError, 'controller'): m.run(['never-executed'])
+            spawn.assert_not_called()
+
+    def test_inner_process_inherits_outer_group(self):
+        process = mock.Mock(returncode=0); process.communicate.return_value=('value', ''); process.poll.return_value=0
+        with self.controlled(), patch.object(m.os, 'getpid', return_value=7), patch.object(m.os, 'getpgrp', return_value=7), patch.object(m.subprocess, 'Popen', return_value=process) as spawn, patch.object(m.os, 'killpg') as group:
+            self.assertEqual(m.run(['never-executed']), 'value')
+        self.assertIs(spawn.call_args.kwargs['start_new_session'], False)
+        process.communicate.assert_called_once_with(timeout=60)
+        process.wait.assert_called_once_with(timeout=2)
+        process.kill.assert_not_called(); group.assert_not_called()
+
+    def test_inner_timeout_kills_only_direct_child_and_returns_failure(self):
+        process = mock.Mock(returncode=None); process.poll.return_value=None
+        process.communicate.side_effect=m.subprocess.TimeoutExpired(['never-executed'],60)
+        with self.controlled(), patch.object(m.os, 'getpid', return_value=7), patch.object(m.os, 'getpgrp', return_value=7), patch.object(m.subprocess, 'Popen', return_value=process), patch.object(m.os, 'killpg') as group:
+            with self.assertRaises(m.subprocess.TimeoutExpired): m.run(['never-executed'])
+        process.kill.assert_called_once_with(); process.wait.assert_called_once_with(timeout=2); group.assert_not_called()
 
 if __name__ == '__main__': unittest.main()

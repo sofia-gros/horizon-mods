@@ -29,7 +29,10 @@ Cargo compilation must use `--locked --offline` and an outer runner with actual
 compiler evidence, full six-name inventory, one sealed-binary execution, output
 seals, filesystem floors and bounded process-group teardown. This preparer does
 not itself grant or perform that CI step. Git/metadata calls have a 60-second
-bound and unconditional own-group cleanup. Generated output must be outside both
+bound and inherit the outer controller PGID. The helper refuses to launch them
+unless the dedicated controller marker is present and this process is its PGID
+leader. Internal timeout kills/reaps only the direct child; outer unconditional
+group teardown also covers descendants if the preparer is killed. Generated output must be outside both
 Mod and official source, and new; extra output files or links fail verification.
 
 The pure Python checks test guards only. They do not prove native types or Rust

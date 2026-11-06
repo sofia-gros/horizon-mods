@@ -176,8 +176,8 @@ BRANCH='checkpoint/plutolib-latest-item-contracts-ci-20261106'
 SOURCE_BASE='5195770a0b3c79a972cdc8e2f81a5e5d2aa202e1'
 OFFICIAL={'url':'https://github.com/horizon-rust/horizon.git','revision':'f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd','lock_sha256':'0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f'}
 GROUPS=[
- {'name':'template6','preparer':'latest-template-fixture','source':'latest-template/template_tests.rs','crate':'pluto_latest_template_tests','prefix':'tests::','count':6,'python':17},
- {'name':'default4','preparer':'latest-default-fixture','source':'item-name-default-lifetime/catalog_tests.rs','crate':'pluto_latest_default_lifetime_tests','prefix':'','count':4,'python':15},
+ {'name':'template6','preparer':'latest-template-fixture','source':'latest-template/template_tests.rs','crate':'pluto_latest_template_tests','prefix':'tests::','count':6,'python':20},
+ {'name':'default4','preparer':'latest-default-fixture','source':'item-name-default-lifetime/catalog_tests.rs','crate':'pluto_latest_default_lifetime_tests','prefix':'','count':4,'python':18},
 ]
 FROZEN_FILES={
  'latest-template':['README.md','fixture-literals.patch','fixture-records.json','inputs.json','official-audit.json','template_tests.rs','test_source.py'],
@@ -267,7 +267,7 @@ def execute(report):
         env.pop(key,None)
     env.update(RUSTUP_TOOLCHAIN='1.95.0',CARGO_HOME=str(work/'cargo-home'),CARGO_TARGET_DIR=str(work/'target'),
         CARGO_BUILD_JOBS='1',CARGO_PROFILE_DEV_DEBUG='0',CARGO_PROFILE_TEST_DEBUG='0',CARGO_PROFILE_TEST_OPT_LEVEL='0',
-        CARGO_INCREMENTAL='0',CARGO_TERM_COLOR='never',TMPDIR=str(work/'tmp'),PYTHONDONTWRITEBYTECODE='1')
+        PLUTO_FIXTURE_CONTROLLER='latest-item-contracts-v1',CARGO_INCREMENTAL='0',CARGO_TERM_COLOR='never',TMPDIR=str(work/'tmp'),PYTHONDONTWRITEBYTECODE='1')
     runner=Runner(work,env,report);runner.guard(reserve=2*1024**3)
     work.mkdir();Path(env['CARGO_HOME']).mkdir();Path(env['TMPDIR']).mkdir()
     gates=report['gates'];official=work/'official';native_seal=None;fixtures={};binary_seals={};generated=None

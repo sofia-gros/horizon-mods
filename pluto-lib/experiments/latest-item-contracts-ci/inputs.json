@@ -7,7 +7,7 @@
     "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
     "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
   },
-  "runner_tests": 23,
+  "runner_tests": 24,
   "source_sha256": {
     "pluto-lib/experiments/latest-template/README.md": "d04e05124793dfe00286b9e89ad562d8d4f05f417e87de03f908c274ba19b482",
     "pluto-lib/experiments/latest-template/fixture-literals.patch": "6ce18cddcff7c517222afdcebcfb8060f70a40a5ac2d20cd52226cc25fe53d28",
@@ -16,21 +16,21 @@
     "pluto-lib/experiments/latest-template/official-audit.json": "7cc00c65c269ea0251dad122ca49596eae129c53b3a25cb2d8f1ce6c9a5c7181",
     "pluto-lib/experiments/latest-template/template_tests.rs": "c887cef350080f698f033bcaf87b3daca08da0ceaaf763a57b360a659879be2b",
     "pluto-lib/experiments/latest-template/test_source.py": "a3171f0954e7cf744c7e78d60df8400aada80400185a4a7b980aab55a9756c99",
-    "pluto-lib/experiments/latest-template-fixture/README.md": "9567f55c8dc6552798bb7b2b9c9713da98385fa74f91cd23ba6ff89e92b8cc32",
-    "pluto-lib/experiments/latest-template-fixture/inputs.json": "813358237cf36df4bc29603f49efc2964cee7948b644367f946fc1e179a84cd6",
-    "pluto-lib/experiments/latest-template-fixture/prepare.py": "3f1b8c1b173384a57e2e20615673a20ea213df35b2ef94d7e4f21872738f4e56",
-    "pluto-lib/experiments/latest-template-fixture/test_prepare.py": "fec59c6594ce048353307fea86fd31fcd3e10f12bfc2d8f08a96fbcea7e4371a",
+    "pluto-lib/experiments/latest-template-fixture/README.md": "9f20b4346640ac2c224fcf6b32723461da9925af9d8ce4bb1c27906ba20fe902",
+    "pluto-lib/experiments/latest-template-fixture/inputs.json": "d6d2bcc19df831e8cea6ce34425693bda7127f8c4ab965dac12eeab0f41693bf",
+    "pluto-lib/experiments/latest-template-fixture/prepare.py": "79ac14a49bcc7846f5ef89f93271244c82ad15e4867060fa4d0c401387aa1ce1",
+    "pluto-lib/experiments/latest-template-fixture/test_prepare.py": "2f99b8b04718e890757263319d4009c4543e351ce3141297309318a423c6661d",
     "pluto-lib/experiments/item-name-default-lifetime/README.md": "6220ce4c3749a90c94dad026ce6258abaa98e24736b18721f6d769e27127d78c",
     "pluto-lib/experiments/item-name-default-lifetime/catalog_tests.rs": "864db7e085caea9ac6ef7a5105e88746d3c2ab867cddfa411bad44d83287c123",
     "pluto-lib/experiments/item-name-default-lifetime/inputs.json": "c117cfa83cf2d1b96ea86138307b580df1293eb4be33226a31ad884d5436e404",
     "pluto-lib/experiments/item-name-default-lifetime/test_source.py": "0736780559dfd598f17e0fb9e632ac146369c69dc55bfb3a27241c5b05eb1226",
-    "pluto-lib/experiments/latest-default-fixture/README.md": "e2c028d0747645b7cf3f10c877fa3572ea9fc8d954cd5e74280de366f39d7782",
-    "pluto-lib/experiments/latest-default-fixture/inputs.json": "1ae7c3a57c1176a6d7e73e457cca7532f7dec5f3201b56c93c24fdab27a54c85",
-    "pluto-lib/experiments/latest-default-fixture/prepare.py": "9648881cfdf490d1cfb85be6b3a937a02e346a9558921ffc5651697be046416c",
-    "pluto-lib/experiments/latest-default-fixture/test_prepare.py": "d481eafbf3e33e6d984f3bb249fef1c600e9d6ab00be9ba6d309a50477719626",
-    "pluto-lib/experiments/latest-item-contracts-ci/README.md": "27e9fc715e6f9b72992b14e4eda103b0495211ca21b1e99bb678111e8b3dccfe",
-    "pluto-lib/experiments/latest-item-contracts-ci/run.py": "b2b2b2e6e02e2972fa1fec9d9d6fa02249025e4675e95dd659d5e57e6c3f7123",
-    "pluto-lib/experiments/latest-item-contracts-ci/test_runner.py": "9b56aa43f1e688efd843845f66f08c5f64bed654f1d93fd8c96b5876363aff5b",
+    "pluto-lib/experiments/latest-default-fixture/README.md": "97d2db8bd7b7a0eee150865be5cf648bcbe1f5f9d36970e1e73f2f5bd0878fea",
+    "pluto-lib/experiments/latest-default-fixture/inputs.json": "cf62b257280b32e08b91b1591fbc50adb258c8c162a7b8da7bfb2c3619cd3bd8",
+    "pluto-lib/experiments/latest-default-fixture/prepare.py": "a7eae4ac296858c8959e1b06a14c8f14d5338896bccfc83af8c4f8f95f44d6ba",
+    "pluto-lib/experiments/latest-default-fixture/test_prepare.py": "145bb90484b051232b3feea9aaf7bd3ab11522ad74adb6d61bcf2dff97911cb7",
+    "pluto-lib/experiments/latest-item-contracts-ci/README.md": "9bf8cd6bc8fefe7e241441ffd0b1bf54ef77e739d37f6ebf93bd6dc41ff154bc",
+    "pluto-lib/experiments/latest-item-contracts-ci/run.py": "11a152a6f49c3354ebf8b7847dcbb5f7f22ad01512ae78f105d9aede07c2ee2c",
+    "pluto-lib/experiments/latest-item-contracts-ci/test_runner.py": "b0dfe2df95dc539feedcb38829b96a0ffe029dda5289da54a4bd97f06a5e9eb9",
     ".github/workflows/latest-item-contracts-wip.yml": "ac789d837d897eed6fcb1bcebd01bd228b5e3d9a423bd369fc72f9b6175dffce"
   },
   "groups": [
@@ -41,7 +41,7 @@
       "crate": "pluto_latest_template_tests",
       "prefix": "tests::",
       "count": 6,
-      "python": 17
+      "python": 20
     },
     {
       "name": "default4",
@@ -50,7 +50,7 @@
       "crate": "pluto_latest_default_lifetime_tests",
       "prefix": "",
       "count": 4,
-      "python": 15
+      "python": 18
     }
   ],
   "tests": {

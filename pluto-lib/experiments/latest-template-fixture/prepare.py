@@ -27,29 +27,25 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 def run(args, cwd=None):
-    # Even metadata has a bounded process group. Compilation is never invoked.
+    # This helper is executed as the leader of an outer Runner-owned PGID.
+    # Never create a nested session: even SIGKILL of this preparer must leave
+    # metadata/Git descendants inside the outer group's bounded teardown.
+    if (os.environ.get('PLUTO_FIXTURE_CONTROLLER') != 'latest-item-contracts-v1'
+            or os.getpgrp() != os.getpid()):
+        raise ValueError('Require the dedicated outer fixture controller PGID')
     process = subprocess.Popen(args, cwd=cwd, text=True, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, start_new_session=True)
+                               stderr=subprocess.PIPE, start_new_session=False)
     try:
         out, err = process.communicate(timeout=60)
         if process.returncode:
             raise ValueError(f'Command failed ({process.returncode}): {args!r}\n{err[-4000:]}')
         return out
     finally:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        # Direct child only. Its descendants stay in our inherited PGID and
+        # are always killed/reaped by the outer Runner when this helper exits.
+        if process.poll() is None:
+            process.kill()
         process.wait(timeout=2)
-        deadline = time.monotonic() + 1
-        while True:
-            try:
-                os.killpg(process.pid, 0)
-            except ProcessLookupError:
-                break
-            if time.monotonic() >= deadline:
-                raise ValueError('Own metadata/Git process group remains after bounded teardown')
-            time.sleep(0.02)
 
 def tree(root, exclude_git=False):
     """Regular bytes/modes, directories/kinds and links; no link traversal."""

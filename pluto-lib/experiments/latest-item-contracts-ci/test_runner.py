@@ -195,4 +195,15 @@ class Checks(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as out:m.print_compact_log('x'*50000,True)
         self.assertLess(len(out.getvalue()),17000)
 
+    def test_preparer_subprocess_cannot_escape_outer_group(self):
+        s=(HERE/'run.py').read_text()
+        self.assertIn("PLUTO_FIXTURE_CONTROLLER='latest-item-contracts-v1'",s)
+        for directory in ['latest-template-fixture','latest-default-fixture']:
+            source=(m.BASE/directory/'prepare.py').read_text()
+            self.assertIn('start_new_session=False',source)
+            self.assertNotIn('start_new_session=True',source)
+            self.assertNotIn('os.killpg(',source)
+            self.assertIn('os.getpgrp() != os.getpid()',source)
+            self.assertIn('process.kill()',source);self.assertIn('process.wait(timeout=2)',source)
+
 if __name__=='__main__':unittest.main()

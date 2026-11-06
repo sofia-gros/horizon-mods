@@ -11,9 +11,9 @@
     "test_source.py": "0736780559dfd598f17e0fb9e632ac146369c69dc55bfb3a27241c5b05eb1226"
   },
   "helper_sha256": {
-    "README.md": "e2c028d0747645b7cf3f10c877fa3572ea9fc8d954cd5e74280de366f39d7782",
-    "prepare.py": "9648881cfdf490d1cfb85be6b3a937a02e346a9558921ffc5651697be046416c",
-    "test_prepare.py": "d481eafbf3e33e6d984f3bb249fef1c600e9d6ab00be9ba6d309a50477719626"
+    "README.md": "97d2db8bd7b7a0eee150865be5cf648bcbe1f5f9d36970e1e73f2f5bd0878fea",
+    "prepare.py": "a7eae4ac296858c8959e1b06a14c8f14d5338896bccfc83af8c4f8f95f44d6ba",
+    "test_prepare.py": "145bb90484b051232b3feea9aaf7bd3ab11522ad74adb6d61bcf2dff97911cb7"
   },
   "native_sha256": {
     "crates/horizon-world/src/item_defaults.rs": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",

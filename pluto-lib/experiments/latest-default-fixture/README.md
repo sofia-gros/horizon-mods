@@ -20,7 +20,11 @@ Generated files are confined to a new external fixture directory. A separately
 authorized offline metadata step adapts only the copied lock and verifies all
 resolved package identities against the official lock, with unique exact paths
 for core, client-core, items and world. This does not compile or fetch anything.
-Each metadata/Git process has a 60-second bound and own-group cleanup.
+Metadata/Git inherit the outer controller PGID and have a 60-second bound.
+The helper refuses to launch them without the dedicated controller marker and
+its own PGID-leader identity. Internal timeout kills/reaps the direct child; the
+outer controller always kills the whole inherited group, even if this helper
+is killed before its own finally block can run.
 
 A later combined CI may share a cold dependency graph with Template6, but must
 retain this fixture's separate actual harness compiler witness, four-name binary

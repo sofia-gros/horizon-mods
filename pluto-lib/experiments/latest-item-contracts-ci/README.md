@@ -39,8 +39,11 @@ followed by a source seal. Directories' permission bits are not sealed. Generate
 OUT_DIR links are refused, and both executable byte hashes are checked before and
 after execution. Offline metadata may adapt only the copied fixture locks to the
 real-host graph; all final compilation is locked/offline. Cold dependency fetch
-uses the pinned official lock before offline mode. All child groups have bounded
-teardown; all writable filesystems keep 10 GiB + 128 MiB free and a 2 GiB startup
+uses the pinned official lock before offline mode. Both preparers require the dedicated controller marker and own PGID-leader
+identity; metadata/Git inherit that outer group rather than creating a detached
+session. Internal timeout kills/reaps the direct child and fails, while outer
+teardown always removes remaining descendants, including when the preparer is
+SIGKILLed. All outer child groups have bounded teardown; all writable filesystems keep 10 GiB + 128 MiB free and a 2 GiB startup
 reserve. Failures do not auto-retry or enable production hooks.
 
 All raw logs are inspected locally on the runner, while the console prints only
@@ -53,3 +56,10 @@ immutable latest loot.rs hash input had not yet been fetched; three guard checks
 therefore errored on missing inputs.json. Fetching that official source completed
 the input ledger without changing Rust oracles. The final 15 preparer guards pass.
 No real Cargo/metadata/native operation occurred during that preparation failure.
+
+Independent review of the initial 8cd4 controller found a nested-session escape
+risk in both preparers. This source-only correction removes those nested PGIDs
+and adds three negative/lifecycle checks per preparer plus a controller wiring
+guard. Rust6/4 bodies and production runtime remain unchanged. No run was started
+with the earlier runner. Final counts are 24 runner, 20 Template preparer and
+18 default preparer Python guards; these remain separate from native test results.
