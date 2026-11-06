@@ -1,0 +1,226 @@
+{
+  "status": "source-only; eight Rust cases uncompiled and unrun",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "official_url": "https://github.com/horizon-rust/horizon.git",
+  "prior_overlay_success": {
+    "head": "ce495a88afe32b6322703ad778263a90b2bb98a9",
+    "run": 42195249104,
+    "closure": "4102a43c3e448374bb2c874cccf440cc2fc2cf6a"
+  },
+  "execution": {
+    "run_now": false,
+    "requires_separate_review_and_ci_grant": true,
+    "root_local_patches_required": [
+      "wgpu-hal",
+      "naga",
+      "libmimalloc-sys"
+    ]
+  },
+  "official_inputs": [
+    {
+      "path": "Cargo.lock",
+      "blob_sha": "c36265b38ba51ab546d73a58a7af8e263bc69572",
+      "size": 135677,
+      "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    {
+      "path": "crates/horizon-client-lib/Cargo.toml",
+      "blob_sha": "c4543b069c9e114bf0c2de653694d853048ac62d",
+      "size": 9914,
+      "sha256": "40dc61e95122f5318a63d83a6564d23ca9ed47cf938b457fa53153bfc533c9fc"
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "blob_sha": "2e9dd65c147c05f8fde40fbfb7f59e31f492b47e",
+      "size": 5563,
+      "sha256": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content.rs",
+      "blob_sha": "b68f8cee6234f0cb0d272f216f42792dfc26c3e3",
+      "size": 117777,
+      "sha256": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content_biomes.rs",
+      "blob_sha": "bf0649f6c6a03d1fb4b4fdd29dcda1dc330565e7",
+      "size": 23445,
+      "sha256": "fb616f86eda457d5582e0e39a3bb8175ae92a914f6a2b8279364e138209ed295"
+    },
+    {
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "blob_sha": "85a564816868ee69d39261651dd391cdd0ffd04d",
+      "size": 45102,
+      "sha256": "743734901c1fd5e0c3c2822ea0207d46c4ac04ad7768b6d93f3b0e235e72f417"
+    },
+    {
+      "path": "crates/horizon-mods/src/lib.rs",
+      "blob_sha": "8e9475973f9fa1a258244ab8db6635111af2ecd6",
+      "size": 415,
+      "sha256": "729233bfb444ec833a1eb8bb487856c687aa7c5ed3b8bbe4ed2de71624695840"
+    },
+    {
+      "path": "crates/horizon-mods/src/manifest.rs",
+      "blob_sha": "a3bca6f1bdb40c1b99fcbb26bb3093126008af1e",
+      "size": 22638,
+      "sha256": "b4cf560d11c589ae65f17578867d6f4d97223f8ce4661d5eff433b8296f5930a"
+    },
+    {
+      "path": "crates/horizon-mods/src/content.rs",
+      "blob_sha": "9859be7e8a975e687b07679c76a3937ffa42938c",
+      "size": 90635,
+      "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "blob_sha": "e6a3e7f370aeb1a016687b81c34fac05ad455e12",
+      "size": 28416,
+      "sha256": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs.rs",
+      "blob_sha": "9a7d30115585e2f55546b6ea20fbf424caae1344",
+      "size": 74098,
+      "sha256": "e13ff1e4a7fb69f2e7a4bae07e8c56bf48d53d0dea58d353c4ac6b238f95e783"
+    },
+    {
+      "path": "crates/horizon-client/src/game/options.rs",
+      "blob_sha": "985ef180241372c56636b5785a9cff9a0c0e6acd",
+      "size": 33084,
+      "sha256": "f7f6c66b6003fec0bde23616243644de084ac8746e68d1323d2b8f8fbaf9a128"
+    },
+    {
+      "path": "crates/horizon-client/src/game/startup_menu.rs",
+      "blob_sha": "c8aa4a6721d502bf8a911d0aee9d1a900aa82f7b",
+      "size": 60982,
+      "sha256": "d062fe774931ef734bf87e79f6c094cfd286ba051a66846dcbc43005d948299e"
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "blob_sha": "9b8b274fad4e5d00972e3ad52f3e0ecf857b7fcd",
+      "size": 533300,
+      "sha256": "443901d338aaf2ec69e5968b8276c8751a50616303a7c72a55951e6464cde5c5"
+    },
+    {
+      "path": "Cargo.toml",
+      "blob_sha": "dd772ba36f98ddcc84695b6e46c3e843c2b6da76",
+      "size": 3546,
+      "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"
+    },
+    {
+      "path": "third_party/wgpu-hal/Cargo.toml",
+      "blob_sha": "fac5bca542d177109d37709acbba520334e9a066",
+      "size": 11841,
+      "sha256": "c9af359e3b22c03be3ef7e3240944682755f0d3c248071cb21f75b4893dabec2"
+    },
+    {
+      "path": "third_party/naga/Cargo.toml",
+      "blob_sha": "23346620c4df69305b6572c1478942eb6bc870de",
+      "size": 4383,
+      "sha256": "00f66d135eba8611772149f2d2eb2714c7df275d97eeded495db1793d7ebe1a4"
+    },
+    {
+      "path": "third_party/libmimalloc-sys/Cargo.toml",
+      "blob_sha": "db1d6f65d11e5466c6ef9c0d87784c682b7f16ff",
+      "size": 1818,
+      "sha256": "bb61afd11805969f3236b82ce45779b700d29fc4cb01a5ab27ccdf535454c523"
+    },
+    {
+      "path": "crates/horizon-client-render/Cargo.toml",
+      "blob_sha": "3ffa1d9a0f5c724b819c19492c7f69ba46276d00",
+      "size": 3946,
+      "sha256": "ec3361aa69c7a5385092201ece06979a89b429fa1a619a2a5e306396e800d0af"
+    },
+    {
+      "path": "crates/horizon-client-render/src/lib.rs",
+      "blob_sha": "d716aa6aa5cc072e3428c5ec1ccc0f4877327986",
+      "size": 3732,
+      "sha256": "f592ffa6772313c66ea5ceeccc5e03cbb0c3da37629c0ec4f4600b7496c0fe25"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs/cache.rs",
+      "blob_sha": "e042589cf5a841af2906926481c9a8ef84aa952c",
+      "size": 45917,
+      "sha256": "0df3ed83d3203beac80ccec039ad731e68b0b66369bfab9fc03ae25b8af46c16"
+    },
+    {
+      "path": "crates/horizon-client-render/src/zip.rs",
+      "blob_sha": "6b742c748588abf89927395a90deaf2bc6a42c7c",
+      "size": 27736,
+      "sha256": "1785411d3c6dfeef5963e7c6c9c404f9439ee0f7c744a0706a63e5950d9c1133"
+    },
+    {
+      "path": "crates/horizon-client-core/Cargo.toml",
+      "blob_sha": "8809a5216455ace851044f69a633e8adaabbc576",
+      "size": 460,
+      "sha256": "37de7590de671be779cb55db7dcf998646ae0b0bcc55531f517d69eb8971d180"
+    },
+    {
+      "path": "crates/horizon-mods/Cargo.toml",
+      "blob_sha": "0c003cc7ebfecc8efebaa7391fee8e90d3e788c4",
+      "size": 1166,
+      "sha256": "57e03f255286396977f889aa8fe90ca43694be1178c411e64e24f5093d10baf0"
+    }
+  ],
+  "fixture_inputs": {
+    "fixture.rs": "84fad0b0c45d478e57030f086699673893552bd8585e151e18e0b382abed26bb",
+    "Cargo.toml.in": "c3a2fa499a221141d474c0906c87712061f38619dfe872e71f87c95f94fcff4e"
+  },
+  "unchanged_prior_inputs": {
+    "pluto-lib/experiments/language-overlay/fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
+    "pluto-lib/experiments/language-overlay/Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
+    "pluto-lib/experiments/language-overlay/inputs.json": "1d6398a785de7d82fd84f74c58156599fabcebeb7a2ceb2b80d7d4eb078f08a6",
+    "pluto-lib/experiments/language-overlay-ci/run.py": "f00b3dbac827c16a7c1bd4f4ea8c5e1d8f8583a6e7705a6cbbe1e8e51f6217da",
+    "pluto-lib/experiments/language-overlay-ci/prepare.py": "1d1fec58f9353005773dda4d1735dc81d5360d607d84b2a3ddc49b46679de923",
+    "pluto-lib/experiments/language-overlay-ci/inputs.json": "ceabe69cae25bbcca01c1f3725a52f90e0489ca193c3e03f505fcaadb5dd71b0",
+    ".github/workflows/language-overlay-wip.yml": "c4fb74356ac91be12f8d9f5adc539c0710d51c8dd4f2e2c2305e0412dbf5026e",
+    "pluto-lib/experiments/language-pack-chain/Cargo.toml.in": "2eee3012db6451684f15df4ba6562d97865845ef88a4ca49d843c98b602876c5",
+    "pluto-lib/experiments/language-pack-chain/README.md": "67261d1c07c046d7bc2caeb53eb5f8aaf6e1a90719eaee6cacabcc69b0be47d6",
+    "pluto-lib/experiments/language-pack-chain/fixture.rs": "1fa3ebd629b09c89a053c5906f17a5e79aabc64a31b8d1363c2bffd61ea4b833",
+    "pluto-lib/experiments/language-pack-chain/inputs.json": "42ebe819e1a1c665a39c698447e08ef7b20b64b9342e8eca5fb2da95636107a9",
+    "pluto-lib/experiments/language-pack-chain/source-validation.json": "13d2203eba13734d9a6703bd045edaf3fb4fc210c8bf4f184e650d49367a680d",
+    "pluto-lib/experiments/language-pack-chain/test_source.py": "46fa936d80c2957c02051029e2b87dc8b6ee7f4896cb74a49efe943486fb5209",
+    "pluto-lib/experiments/language-pack-chain-ci/README.md": "0dce13dd8457374dd36cb0032bca0dbb1588baa48b0ab23c8b15be15775cab58",
+    "pluto-lib/experiments/language-pack-chain-ci/derivation.json": "aacf1a828f114c5b3997acd77cce23dca8ccad62ae697479df82633496302ad2",
+    "pluto-lib/experiments/language-pack-chain-ci/inputs.json": "14570039dba3533e2feef55ce7d3788322e8c71cf8290240d8d6b830b3a854a1",
+    "pluto-lib/experiments/language-pack-chain-ci/prepare.py": "4bbc9cae8a7f7b47b0ff73ccf74bcaed549bc8dd3c6b172b2595486409745ac1",
+    "pluto-lib/experiments/language-pack-chain-ci/run.py": "02e275394eae9f8d64a48c7dec000505bbfe726677db9f6b2fb88bbda2a78176",
+    "pluto-lib/experiments/language-pack-chain-ci/test_runner.py": "29c0cd3b94c1e9aaed6deb7d9a61a4fa35c57b4b7e5e05ada6b829e35ba137cd",
+    ".github/workflows/language-pack-chain-wip.yml": "0df9a0f6f2cfd67d45117ebb81d796bccd3ffef5e3c80daec85cf82bc09ea9b4"
+  },
+  "zip_identity": {
+    "name": "zip",
+    "version": "9.1.3",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "checksum": "1156b39d142a34b999c2310a50455e0cb3760bf7efad0122f796d813bee26ccb"
+  },
+  "expected_test_names": [
+    "tests::selected_order_merges_keys_before_mod_whole_file_replacement",
+    "tests::supplied_server_pack_is_above_selected_packs_but_below_mod_file",
+    "tests::filter_removes_lower_layers_but_allows_its_own_file_then_mod",
+    "tests::filter_without_replacement_stays_absent_until_explicit_mod_file",
+    "tests::invalid_pack_layer_is_skipped_but_invalid_mod_file_replaces",
+    "tests::unchanged_pack_cache_and_selected_locale_survive_mod_english_overlay",
+    "tests::lenient_comment_layer_merges_before_mod_whole_file_replacement",
+    "tests::public_reader_scalar_conversion_is_not_strict_pack_value_rewriting"
+  ],
+  "excluded": [
+    "priority repair or key-retention policy",
+    "Game pack/server-selection authority",
+    "Options locale and startup/reload installation",
+    "live UI/retained Guide/LAN refresh",
+    "native content-cache policy version/transition",
+    "production resource coverage",
+    "permission modes/timestamps",
+    "native compilation or test execution at this checkpoint"
+  ],
+  "source_validation_scope": "selected bytes only, not a complete clean checkout",
+  "prior_pack6": {
+    "source_head": "55e4d1d0ef3b4021472223a9e196260d771a5327",
+    "state": "prepared and reviewed for624c, unexecuted, trigger held"
+  },
+  "new_cases": [
+    "native public lenient comments survive actual pack merge before Mod replacement",
+    "public scalar conversion differs from strict pack JSON type retention"
+  ]
+}

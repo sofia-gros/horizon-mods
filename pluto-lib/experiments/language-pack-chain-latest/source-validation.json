@@ -1,0 +1,24 @@
+{
+  "status": "source-only PASS; Rust typing and all eight native cases unrun",
+  "date": "2026-11-06",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python pluto-lib/experiments/language-pack-chain-latest/test_source.py --source-root <exact selected official source export>",
+  "source_tests": {
+    "passed": 10,
+    "failed": 0,
+    "elapsed_seconds": 0.03
+  },
+  "native_tests_executed": 0,
+  "cargo_metadata_invocations": 0,
+  "ci_triggers_created": 0,
+  "source_input_mode": "24 immutable official Git blobs, not a full checkout or graph proof",
+  "unchanged_prior_inputs": 20,
+  "review": "Independent source-only review requested; not native execution",
+  "hashes": {
+    "fixture.rs": "84fad0b0c45d478e57030f086699673893552bd8585e151e18e0b382abed26bb",
+    "Cargo.toml.in": "c3a2fa499a221141d474c0906c87712061f38619dfe872e71f87c95f94fcff4e",
+    "inputs.json": "a98bade19ff791c408d8f207c6621e814129deafa255ffe9042d183133db0cd1",
+    "test_source.py": "b5b16236023145822f80d8efc9917c7b19c9158aae6d8313f6af7419d1e2d68f",
+    "README.md": "ef15b1cfc266f2c909cc2e7e70bc7bcd8f879639c1a29c3839b5e2316fd4a96d"
+  }
+}

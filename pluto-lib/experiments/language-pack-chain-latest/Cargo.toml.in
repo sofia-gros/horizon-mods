@@ -1,0 +1,14 @@
+# Uncompiled external fixture. The preparer must inherit exact official patches.
+[workspace]
+[package]
+name = "pluto-language-pack-chain-latest-fixture"
+version = "0.0.0"
+edition = "2021"
+[dependencies]
+horizon-client-lib = { path = "@OFFICIAL@/crates/horizon-client-lib", default-features = false }
+horizon-client-core = { path = "@OFFICIAL@/crates/horizon-client-core" }
+horizon-client-render = { path = "@OFFICIAL@/crates/horizon-client-render", default-features = false }
+horizon-mods = { path = "@OFFICIAL@/crates/horizon-mods", default-features = false }
+zip = { version = "=9.1.3", default-features = false, features = ["deflate"] }
+[lib]
+path = "fixture.rs"
