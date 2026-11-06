@@ -28,14 +28,14 @@
   },
   "candidate_helper_sha256": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
   "source_sha256": {
-    "README.md": "05b453ec5dd454eca494fe6cf88b9debd9710f4f44cfbcd94b06e49fdcad43e3",
-    "candidate.py": "b771888e1b5a476eea333a2e3ff003d024d47d7c6aa30447a0adfce54f25c6e0",
+    "README.md": "0a4072a1548dc443954f9aa81e426bc0fa780b04847d92343ac741533079d2ba",
+    "candidate.py": "65585f31849d48c6d00efa0abc4e55ec3c93e131c5a31133487dee03c75a73ca",
     "mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
     "oracles.json": "709da5be03f0af3ef03dc8ecae4ea028d3c13285a98ed242053e095747620baf",
     "review/recipe-evidence.json": "86dc8c455b6ff9f1921944e0c4e3371e74d1b496573bdce1320cc09522bbaac6",
     "review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
     "source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
-    "test_candidate.py": "18207c9451daeb8a9e5d80232a9c34bae50415d2c90964ef20027cb5da1ce50a"
+    "test_candidate.py": "0f62c08206ab4b0a1bc957154b07f78f531b44aae162b12cae9e8d2b28e6a829"
   },
   "verification": {
     "pure_python_tests": 16,
@@ -52,5 +52,6 @@
     "pluto_native_creative/horizon-mixin.toml",
     "pluto_native_creative/mining-context.rs"
   ],
-  "candidate_members": 646
+  "candidate_members": 646,
+  "source_base": "6c0a3f64aec3a3c8f2a7798ea3e2da37cae9309f"
 }

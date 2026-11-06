@@ -76,8 +76,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(a['module'],b['module'][:-1])
         for k in a.keys()-{'module'}:self.assertEqual(a[k],b[k])
         new=b['module'][-1]
-        self.assertEqual(new,{'id':'mining-context-facts','file':'crates/horizon-client/src/game.rs','name':'pluto_mining_context','source':'mining-context.rs'})
-        self.assertNotIn('visibility',new)
+        self.assertEqual(new,{'id':'mining-context-facts','file':'crates/horizon-client/src/game.rs','name':'pluto_mining_context','source':'mining-context.rs','visibility':'pub(crate)'})
+        self.assertEqual(new['visibility'],'pub(crate)')
         self.assertEqual(after[:-len(m.COMMON_NEW_BLOCK)],before)
     def test_14_common_wrong_and_duplicate_inputs_rejected(self):
         b=m.common_revision_only_manifest()

@@ -17,6 +17,7 @@ id = "mining-context-facts"
 file = "crates/horizon-client/src/game.rs"
 name = "pluto_mining_context"
 source = "mining-context.rs"
+visibility = "pub(crate)"
 '''
 
 OLD_IDS=('source-host-mining-context','source-client-mining-context')
