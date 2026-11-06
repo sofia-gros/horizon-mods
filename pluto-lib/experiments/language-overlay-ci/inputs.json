@@ -29,18 +29,19 @@
     }
   ],
   "python_tests": 6,
-  "runner_tests": 24,
+  "runner_tests": 26,
   "inputs_sha256": {
     ".github/workflows/language-overlay-wip.yml": "c4fb74356ac91be12f8d9f5adc539c0710d51c8dd4f2e2c2305e0412dbf5026e",
     "pluto-lib/experiments/language-overlay/Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
     "pluto-lib/experiments/language-overlay/README.md": "d7660d91c48641e7bc040fcfdbd0f744242befaba84fc149c2e907af5f1885b7",
     "pluto-lib/experiments/language-overlay/fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
-    "pluto-lib/experiments/language-overlay/inputs.json": "ff5e580806d378628e38db0d378f3d7ec942b493612b19dbe89b91a0c7c8d316",
+    "pluto-lib/experiments/language-overlay/inputs.json": "1d6398a785de7d82fd84f74c58156599fabcebeb7a2ceb2b80d7d4eb078f08a6",
     "pluto-lib/experiments/language-overlay/source-validation.json": "7c89cbcf11b8eee02961cc2b8e59182d21a3e3a8c8d46d3f5e795a006847ecc7",
     "pluto-lib/experiments/language-overlay/test_source.py": "144698720692fdf363eb96ac4e250cfe3e3fa3d87bcd14f3ff8234073c05286c",
-    "pluto-lib/experiments/language-overlay-ci/README.md": "6afcae4c4f864cf96cdf1dd38c58ff88a596d7564e77aca48c2a7ee6c7a574f9",
-    "pluto-lib/experiments/language-overlay-ci/prepare.py": "08160c5f2ae28dd2a49bb4358c501795869bfdbd4a90758acb573230e030a7e7",
+    "pluto-lib/experiments/language-overlay-ci/README.md": "f8fc6ac074507a7669baf65180dc24e5ef3406f8324ef5614022d088b559752c",
+    "pluto-lib/experiments/language-overlay-ci/prepare.py": "1d1fec58f9353005773dda4d1735dc81d5360d607d84b2a3ddc49b46679de923",
     "pluto-lib/experiments/language-overlay-ci/run.py": "f00b3dbac827c16a7c1bd4f4ea8c5e1d8f8583a6e7705a6cbbe1e8e51f6217da",
-    "pluto-lib/experiments/language-overlay-ci/test_runner.py": "90fd27c00fe0dc6cc4ab2b83e7727bbbc9c866666f760d697a083157d4991fa6"
+    "pluto-lib/experiments/language-overlay-ci/test_runner.py": "50b4b85cb679c90741559db3a2a89605bf1197e79930501d9e2cfde8f1eea2cd",
+    "pluto-lib/experiments/language-overlay-ci/first-attempt.json": "ccba8353202439e838d96017b5a970c5525a35a25bfbc5048b3e1f66e03df417"
   }
 }

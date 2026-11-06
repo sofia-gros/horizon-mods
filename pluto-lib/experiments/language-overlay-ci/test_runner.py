@@ -4,6 +4,14 @@ from types import SimpleNamespace
 from unittest import mock
 HERE=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('language_overlay_ci',HERE/'run.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+def seed_patch_manifests(host,preparer):
+ host.mkdir()
+ entries=[]
+ for name,path in preparer.PATCH_PATHS.items():
+  at=host/path;at.mkdir(parents=True);(at/'Cargo.toml').write_text('[package]\nname = '+json.dumps(name)+'\nversion = "0.0.0"\n')
+  entries.append(name+' = { path = '+json.dumps(path)+' }')
+ (host/'Cargo.toml').write_text('[patch.crates-io]\n'+'\n'.join(entries)+'\n')
+
 class Tests(unittest.TestCase):
  def test_all_inputs_are_exact(self):
   for p,h in m.read_inputs()['inputs_sha256'].items():self.assertEqual(m.sha((m.ROOT/p).read_bytes()),h,p)
@@ -100,6 +108,7 @@ class Tests(unittest.TestCase):
   spec=importlib.util.spec_from_file_location('package_prepare',HERE/'prepare.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
   with tempfile.TemporaryDirectory(prefix='language-overlay-ci-test-') as d:
    root=Path(d).resolve();host=root/'official';out=root/'fixture'
+   seed_patch_manifests(host,p)
    local=lambda name,path:{'name':name,'source':None,'manifest_path':str(path/'Cargo.toml')}
    good={'packages':[local(p.NAME,out),local('horizon-mods',host/'crates/horizon-mods'),local('horizon-client-core',host/'crates/horizon-client-core'),local('horizon-client-lib',host/'crates/horizon-client-lib')]}
    p.verify_metadata(good,out,host)
@@ -164,4 +173,35 @@ class OverlayCI(unittest.TestCase):
    self.assertIn(v,s)
   for v in ['horizon-mixins','apt-install','--no-default-features']:
    self.assertNotIn(v,s)
+class OfficialPatchTests(unittest.TestCase):
+ def preparer(self):
+  spec=importlib.util.spec_from_file_location('overlay_patch_prepare',HERE/'prepare.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p);return p
+ def test_only_exact_official_patch_declarations_are_accepted(self):
+  p=self.preparer()
+  with tempfile.TemporaryDirectory(prefix='language-overlay-ci-patch-') as d:
+   host=Path(d).resolve()/'official';seed_patch_manifests(host,p)
+   expected=p.official_patch_paths(host);self.assertEqual(set(expected),set(p.PATCH_PATHS))
+   original=(host/'Cargo.toml').read_text()
+   for changed in [original.replace('third_party/naga','elsewhere/naga'),original+'extra = { path = "third_party/extra" }\n',original.replace('naga = { path = "third_party/naga" }','naga = { version = "30.0.1" }')]:
+    (host/'Cargo.toml').write_text(changed)
+    with self.assertRaises(ValueError):p.official_patch_paths(host)
+   (host/'Cargo.toml').write_text(original)
+   target=expected['naga'];target.write_text('[package]\nname = "other"\n')
+   with self.assertRaises(ValueError):p.official_patch_paths(host)
+ def test_generated_patch_paths_are_exact_and_not_registry_substitutes(self):
+  p=self.preparer()
+  with tempfile.TemporaryDirectory(prefix='language-overlay-ci-patch-') as d:
+   host=Path(d).resolve()/'official';seed_patch_manifests(host,p)
+   import tomllib
+   result=tomllib.loads(p.generated(host)['Cargo.toml'].decode())
+   self.assertEqual(result['patch']['crates-io'],{name:{'path':str(host/rel)} for name,rel in p.PATCH_PATHS.items()})
+   fixture=Path(d).resolve()/'fixture'
+   local=lambda name,manifest:{'name':name,'source':None,'manifest_path':str(manifest)}
+   rows=[local(p.NAME,fixture/'Cargo.toml')]+[local(n,host/'crates'/n/'Cargo.toml') for n in ['horizon-mods','horizon-client-core','horizon-client-lib']]+[local(n,host/rel/'Cargo.toml') for n,rel in p.PATCH_PATHS.items()]
+   p.verify_metadata({'packages':rows},fixture,host)
+   for index in [-1,-2,-3]:
+    bad=[dict(row) for row in rows];bad[index]['manifest_path']=str(host/'crates'/bad[index]['name']/'Cargo.toml')
+    with self.assertRaises(ValueError):p.verify_metadata({'packages':bad},fixture,host)
+    bad=[dict(row) for row in rows];bad[index]['source']='registry+https://github.com/rust-lang/crates.io-index'
+    with self.assertRaises(ValueError):p.verify_metadata({'packages':bad},fixture,host)
 if __name__=='__main__':unittest.main()

@@ -14,6 +14,7 @@ SOURCE=ROOT/'pluto-lib/experiments/language-overlay'
 NAME='pluto-language-overlay-fixture'
 VERSION='0.0.0'
 OFFICIAL='https://github.com/horizon-rust/horizon.git'
+PATCH_PATHS={'wgpu-hal':'third_party/wgpu-hal','naga':'third_party/naga','libmimalloc-sys':'third_party/libmimalloc-sys'}
 
 
 def sha(data):return hashlib.sha256(data).hexdigest()
@@ -31,14 +32,28 @@ def inputs(host):
             raise ValueError('Official source mismatch: '+entry['path'])
     for path,digest in config['fixture_inputs'].items():
         if sha((SOURCE/path).read_bytes())!=digest:raise ValueError('Fixture input mismatch: '+path)
+    official_patch_paths(host)
     return config
+
+def official_patch_paths(host):
+    actual=tomllib.loads((host/'Cargo.toml').read_text()).get('patch',{}).get('crates-io',{})
+    expected={name:{'path':path} for name,path in PATCH_PATHS.items()}
+    if actual!=expected:raise ValueError('Official patch declarations changed')
+    paths={name:(host/path/'Cargo.toml').resolve() for name,path in PATCH_PATHS.items()}
+    for name,path in paths.items():
+        if path!=host/PATCH_PATHS[name]/'Cargo.toml':raise ValueError('Official patch path redirected')
+        package=tomllib.loads(path.read_text())['package']
+        if package['name']!=name:raise ValueError('Wrong official patched package name')
+    return paths
 
 def generated(host):
     # JSON escaping is valid for TOML basic string contents; do not interpolate
     # arbitrary unescaped filesystem strings into the dependency table.
     escaped=json.dumps(str(host),ensure_ascii=False)[1:-1]
     template=(SOURCE/'Cargo.toml.in').read_text()
-    return {'Cargo.toml':template.replace('@OFFICIAL@',escaped).encode(),
+    patches=official_patch_paths(host)
+    patch_text='\n[patch.crates-io]\n'+''.join(name+' = { path = '+json.dumps(str(path.parent),ensure_ascii=False)+' }\n' for name,path in sorted(patches.items()))
+    return {'Cargo.toml':(template.replace('@OFFICIAL@',escaped)+patch_text).encode(),
             'fixture.rs':(SOURCE/'fixture.rs').read_bytes()}
 
 def identity(p):return tuple(p.get(k) for k in ['name','version','source','checksum'])
@@ -55,6 +70,10 @@ def verify_lock(out,host):
             raise ValueError('Expected one actual official package: '+name)
 
 def verify_metadata(metadata,out,host):
+    patches=official_patch_paths(host)
+    for package in metadata['packages']:
+        if package['name'] in patches and package.get('source') is not None:
+            raise ValueError('Registry substitute for official local patch: '+package['name'])
     locals_=[p for p in metadata['packages'] if p.get('source') is None]
     if len({p['name'] for p in locals_})!=len(locals_):raise ValueError('Duplicate local package name')
     fixture=[p for p in locals_ if p['name']==NAME]
@@ -63,8 +82,8 @@ def verify_metadata(metadata,out,host):
     for p in locals_:
         if p['name']==NAME:continue
         path=Path(p['manifest_path']).resolve()
-        expected=(host/'crates'/p['name']/'Cargo.toml').resolve()
-        if not path.is_relative_to(host/'crates') or path!=expected:
+        expected=patches.get(p['name'],(host/'crates'/p['name']/'Cargo.toml').resolve())
+        if path!=expected or not (path.is_relative_to(host/'crates') or p['name'] in patches):
             raise ValueError('Substituted local dependency: '+p['name'])
     for name in ['horizon-mods','horizon-client-core','horizon-client-lib']:
         if sum(p['name']==name for p in locals_)!=1:raise ValueError('Missing actual official package: '+name)

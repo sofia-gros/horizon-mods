@@ -1,7 +1,8 @@
 # WIP actual Mod language-overlay baseline CI
 
-This is a separately queued, **not yet dispatched or natively executed** controller.
-Its eight Rust cases remain uncompiled and unrun. It does not modify the existing
+The first run failed before native compilation at offline dependency resolution.
+Its eight Rust cases remain uncompiled and unrun. The corrected source below is
+not yet retried. It does not modify the existing
 Package8, i18n22 or installed-language host evidence or their trigger branches.
 
 ## What will be exercised
@@ -29,12 +30,18 @@ Repository/branch/source-base, official URL/revision and official lock are fixed
 before any fetch. The actual official Horizon `624c4f62` checkout must remain
 clean including ignored/untracked files. The official lock is seeded, fetched
 locked, then resolved offline permitting only official package identities and
-one local fixture. Metadata requires the real local official manifest paths.
+one local fixture. The generated fixture explicitly inherits only the official
+root's three exact local crates.io patches: `naga`, `wgpu-hal` and
+`libmimalloc-sys`. Their root declarations and manifest bytes are source-pinned;
+redirected paths, extra/version-based patches and substituted package names are
+rejected. No registry replacement or additional online fetch is allowed. Metadata
+requires the real local official manifest paths, including those three precise
+`third_party` owners.
 The actual client-lib dependency has default features disabled in the frozen
 fixture manifest; it still brings the full native host library graph. This is
 not the smaller core/mods-only Package8 compilation.
 
-Required gates: 24 runner regressions, six exact-source guards, lock/metadata,
+Required gates: 26 runner regressions, six exact-source guards, lock/metadata,
 actual cold compiler witnesses for client-core/mods/client-lib and the fixture
 `--test`, and all eight exact tests once with zero ignored/filtered cases. The
 source suite's historical `run_now=false` describes its preparation checkpoint,
@@ -61,12 +68,28 @@ No cache, artifacts, secrets, persisted credentials, private runner, deployment,
 new permissions or fork source. Local native execution is not a fallback.
 Source/Python checks and independent review must finish before trigger creation.
 
+## First attempt and bounded correction
+
+[Run 42191906292](https://github.com/sofia-gros/horizon-mods/actions/runs/42191906292)
+at exact `14902fcc18a86d819fe48f0b9c4d687a3452d823` passed runner24 and source6,
+then offline metadata failed with missing crates.io `naga`. The complete compact
+receipt is preserved in `first-attempt.json`: `passed=false`, `verified=true`,
+native compilation/tests not started. `verified` means final source preservation,
+not a successful dependency or behavior gate.
+
+Official `624c4f62` root `Cargo.toml:69-76` supplies three local patches that an
+external fixture workspace does not inherit automatically. The fix changes only
+fixture preparation and its exact dependency guards. The Rust fixture, original
+manifest template, official lock, runtime source, workflow and controller remain
+unchanged. The generated external workspace now repeats those exact official
+patch paths rather than resolving replacement packages online. Two new Python
+regressions cover accepted exact declarations and rejected substitutions. Existing
+whole-graph lock identities, actual-path checks and final seals stay mandatory.
+
 ## Prepared source validation
 
-Runner regressions: 24/24 PASS (0.020 s), including the CI's strict Python-output
-parser. Fixture source guards: 6/6 PASS (0.131 s), against the pinned official
-checkout. The first Python run passed all tests but two new witness prints
-interleaved with unittest status lines; those regression calls now capture their
-own stdout, and the entire suite plus its strict log parser were rerun. No Rust,
-Cargo, metadata, planner/apply, checkout copy or native host work ran locally.
-Independent review and the coordinator's serial CI release remain required.
+The corrected 26 runner regressions PASS (0.031 s) and six source guards PASS
+(0.111 s), separately from Rust, with the same strict Python-output parser. No local Rust, Cargo,
+metadata, planner/apply, checkout copy or native host work is authorized here.
+Independent review, source freeze and a new serial CI grant are required before
+retry; the first failed trigger remains unchanged until that grant.

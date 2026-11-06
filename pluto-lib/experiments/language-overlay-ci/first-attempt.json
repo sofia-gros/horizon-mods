@@ -1,0 +1,38 @@
+{
+  "run_id": 42191906292,
+  "job_id": 127805714434,
+  "head": "14902fcc18a86d819fe48f0b9c4d687a3452d823",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42191906292",
+  "result": "failure_before_native_compilation",
+  "observed_error": "error: no matching package named `naga` found; location searched: crates.io index; required by horizon-client-lib",
+  "cause": "External fixture workspace does not inherit official root [patch.crates-io]; no registry substitution or online fallback allowed.",
+  "native_tests_executed": 0,
+  "receipt": {
+    "cutoffs": {
+      "fixture": "01ccfa4f115f06aed312931f1057adc958aac5de",
+      "locale_source_followup": "783deeb11bbe63e72bbaefc1954439c3219d4f9a",
+      "successful_package_runner": "8b17fba9610c3e60a873c822f2fa04f93d5c94e4"
+    },
+    "error": "RuntimeError: metadata-resolve exited 1",
+    "fixture_seal_sha256": null,
+    "floor_bytes": 10871635968,
+    "gates": {
+      "runner": {
+        "passed": true,
+        "tests": 24
+      },
+      "source": {
+        "passed": true,
+        "tests": 6
+      }
+    },
+    "generated_output_seal_sha256": null,
+    "head": "14902fcc18a86d819fe48f0b9c4d687a3452d823",
+    "minimum_free_bytes": 90232545280,
+    "official_seal_sha256": "e1f94b0f68a4088615408abe8fec63488bbfd1faba041899240a6b99dd4ac385",
+    "passed": false,
+    "scope": "Actual official mod_content::build, Package/Content and native Language on eight owned minimal baseline cases. Existing whole-file Mod overlay only. No installed Game admission, selected/server pack merge or filters, priority repair, Options/live UI, rendering, LAN or runtime TOML claim.",
+    "source_seal_sha256": "ca8f25faf2854b1f1d040f2d32e200ee2094135f1af3d6c1f335617aec9a0a6b",
+    "verified": true
+  }
+}
