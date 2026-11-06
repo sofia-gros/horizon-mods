@@ -98,17 +98,21 @@ and removes its subscriber. It does not send a packet or construct a Game/window
 - No native hook, package source guard, registration order or existing LAN feature
   changes. The old TConstruct response hook conflict remains unresolved.
 
-The actual Font12 proof at fixture `59c0651b` stays immutable and does not validate
-this new API cutoff. These convenience changes need their own Rust/example tests;
-they do not imply new installed/native/UI/LAN proof. See
+The actual Font12 proof at fixture `59c0651b` stays immutable and is separate from
+the API proof below. Neither proof implies new installed/native/UI/LAN coverage. See
 [the remaining LAN/lifetime boundaries](guide-lan-safe-connection-status.md) and
 [the original observation contract](client-payload-observation.md).
 
-## Validation at this source checkpoint
+## Validation of the public API source
 
 Five source regressions pass, including exact inverse reconstruction of the old
-registry/dispatch and Document implementation. Six added Rust unit tests and one
-standalone example test are written but have not run yet. They cover cross-API
+registry/dispatch and Document implementation. At exact CI head
+`2ee73a700647a5a73142cd20fea065b44c8de598`, [run 42176619324](https://github.com/sofia-gros/horizon-mods/actions/runs/42176619324)
+passed all six added Rust unit tests inside the 143-test inventory suite. The
+actual `guide_observer` example compiled and its one named test passed separately.
+The final source, lock, file-set and generated-output seals matched. Guide input
+was the unchanged published `39499dc85ab4489b251a0cf0216bb37299f667ae`.
+The Guide tests cover cross-API
 registration/removal, validation precedence, shared lexical order and borrowed
 bytes, reentrant registration, preserved document validation and inactive request
 state. These are API contracts, not native observer or live GUI behavior.
