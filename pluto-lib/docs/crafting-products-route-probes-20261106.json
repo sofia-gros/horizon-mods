@@ -1,0 +1,96 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff",
+  "probe_source_commit": "1e4174bb1778eb992fb49eec05673eb9a6ea9f76",
+  "execution_source_commit": "12245b4a62d5982a3b736795b60500f83efd9b71",
+  "evidence_root": ".work/official-advancement-recovery/crafting-products-routes",
+  "cases": [
+    {
+      "case": "menu-state",
+      "outcome": "rejected_before_transformation",
+      "exit_code": 1,
+      "elapsed_seconds": 6.8197326860099565,
+      "minimum_free_bytes": 10895003648,
+      "diagnostic": {
+        "code": "E_UNSUPPORTED_CONTROL_FLOW",
+        "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+        "file": "pluto-lib/tests/probes/crafting-products-routes/menu-state/probe/horizon-mixin.toml"
+      },
+      "probe_files": {
+        "pluto-lib/tests/probes/crafting-products-routes/menu-state/probe/horizon-mixin.toml": "bc4d78cf3da40c361b2464c9c378dfff95281384c62925fe83b1e3990dd1dd82"
+      },
+      "log_sha256": "040b889183b19df64f0b9c7abd7fb66d585bf83e142e6b096b9a347101d31772",
+      "runner_result_sha256": "f1be19ba248249687ffd6d22c666bd55a393edd14b50ba7a377459addf4b32a4",
+      "plan_written": false
+    },
+    {
+      "case": "local-result-call",
+      "outcome": "rejected_before_transformation",
+      "exit_code": 1,
+      "elapsed_seconds": 6.407345257000998,
+      "minimum_free_bytes": 10894987264,
+      "diagnostic": {
+        "code": "E_UNSUPPORTED_CONTROL_FLOW",
+        "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+        "file": "crates/horizon-client/src/game.rs",
+        "mod_id": "pluto_products_route_probe",
+        "injection_id": "local-result-call",
+        "target": "horizon_client::game::Game<'_>::click_inventory",
+        "selector": "craft_recipe"
+      },
+      "probe_files": {
+        "pluto-lib/tests/probes/crafting-products-routes/local-result-call/probe/probe.rs": "1704e82e510cce058848a25783ec258b32e0ee5927d723b3ae080d7672bde48f",
+        "pluto-lib/tests/probes/crafting-products-routes/local-result-call/probe/horizon-mixin.toml": "26e98ff8c58a64f1f6a2ed8558d79f8d7789f2c1db909abbf269741b39ec205c"
+      },
+      "log_sha256": "20bfa2b0701376f810dacd44102085b1319ff6ca95c04ce2982d4a786b1d5ffd",
+      "runner_result_sha256": "c4be8958c9bd2f62bc88bc03669116e245f20aa891c1767a87ceb706891eb39e",
+      "plan_written": false
+    },
+    {
+      "case": "crafter-result-capture",
+      "outcome": "rejected_before_transformation",
+      "exit_code": 1,
+      "elapsed_seconds": 6.408944883994991,
+      "minimum_free_bytes": 10894979072,
+      "diagnostic": {
+        "code": "E_UNSUPPORTED_CONTROL_FLOW",
+        "message": "closures, async, try/?, unsafe and const blocks are unsupported injection contexts",
+        "file": "crates/horizon-client/src/game/machines/crafter.rs",
+        "mod_id": "pluto_products_route_probe",
+        "injection_id": "crafter-result-capture",
+        "target": "horizon_client::game::machines::crafter::Game<'_>::crafter_dispense",
+        "selector": "Menu::map_crafted"
+      },
+      "probe_files": {
+        "pluto-lib/tests/probes/crafting-products-routes/crafter-result-capture/probe/probe.rs": "e53cb556fb37a956b6ec346a9e1c085c5a069f065b4320bbda612e32c9fe2edb",
+        "pluto-lib/tests/probes/crafting-products-routes/crafter-result-capture/probe/horizon-mixin.toml": "9133ec1fdbba320dd90d00e3cab43c8bbc494639f3d5124208ce5d4c212399af"
+      },
+      "log_sha256": "aafdd9970b46a23e48e087bea22c499f63a108a32fc72ab8614102f675cf5a62",
+      "runner_result_sha256": "453660a1259095dc653ef4505464d4ae0c484b338b1dd4f9af6f6d967f6c6598",
+      "plan_written": false
+    }
+  ],
+  "accepted_plans": 0,
+  "rejected_candidates": 3,
+  "guard_stopped": false,
+  "minimum_free_bytes": 10894979072,
+  "apply_run": false,
+  "cargo_build_run": false,
+  "cargo_metadata_read_by_planner": true,
+  "production_hooks_installed": false,
+  "automatic_transaction_proven": false,
+  "crafter_local_capture_resolution_reached": false,
+  "initial_environment_errors": {
+    "count": 3,
+    "code": "E_METADATA",
+    "reason": "Initial launcher omitted the existing toolchain env.sh; cargo metadata executable was not on PATH. No source feasibility conclusion was drawn. The unchanged probes were rerun after sourcing the existing environment.",
+    "retained_names": "each case/initial-environment-error.{json,log}"
+  },
+  "limitations": [
+    "Only the three exact probe candidates are rejected; this is not proof that every possible mod-only route is impossible.",
+    "The Crafter probe stops at whole-body safety before resolving its destructured result local.",
+    "No apply, native type check, runtime crafting, network, rollback or consumer activation was performed by these probes.",
+    "The separately verified v14 ordinary library includes explicit pair staging, not automatic pair consumption."
+  ]
+}

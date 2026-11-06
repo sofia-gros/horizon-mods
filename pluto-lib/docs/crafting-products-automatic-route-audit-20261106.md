@@ -1,8 +1,7 @@
-# Automatic product-pair routing audit (unfinished, source-only)
+# Automatic product-pair routing audit (automatic integration blocked)
 
 Target: official Horizon `624c4f6265c02296fbe8a80f029dd0d987fb94c0` and
-Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`. No upstream/fork edits or
-access, no installed automatic hooks, no changes to the staged-pair runtime or
+Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`. No upstream edits or fork access, no installed automatic hooks, no changes to the staged-pair runtime or
 the matching/placement vetoes. The source audit passes 22 pinned assertions;
 that is source-order evidence, not gameplay or transaction validation.
 
@@ -102,19 +101,52 @@ offhand and can return a leftover; it is not a pure allocation check. The legacy
 slot-200 shift fallback checks that leftover before consuming inputs. This
 audit has not proved that fallback reachable when the ordinary QuickMove route
 is handled by Menu, so it does not claim a live duplication bug. A new adapter
-must stage allocation honestly rather than copy that call as an atomic test. Standard map postprocessing, output allocation,
+must stage allocation honestly rather than copy that call as an atomic test.
+Standard map postprocessing, output allocation,
 remaining-item merge/drop rules and native event order must remain explicit.
 
-## Next evidence gates
+## Actual official planner results
 
-Read-only actual-source planner probes are proposed for Menu's owned-state
-constructor, the local click_inventory craft call, and Crafter's result local.
-The latter is bound by `let Some((recipe, mut result))`, while official Mixins
-local-capture documentation rejects destructured bindings; verify the actual
-error rather than assuming a workaround. Any successful plan is structural
-only, not an ownership or consumption proof. Runtime and combined-package
-validation must follow a bounded accepted design before production activation.
+Three uninstalled, no-op feasibility probes ran against the pristine official
+export using the exact pinned Mixins binary. All three were rejected by the
+whole-body safety pass with `E_UNSUPPORTED_CONTROL_FLOW`:
 
-The companion JSON contains exact official file/function hashes and source
-assertions. `tools/audit_crafting_product_routes.py` requires the clean pinned
-official checkout and can reproduce them without changing external state.
+- `Menu::new`: adding an inert private receipt state and its explicit `Self`
+  constructor is rejected. The native constructor contains closures.
+- `Game::click_inventory`: an interior `BEFORE_CALL` at `craft_recipe` is
+  rejected. This cannot currently be treated as an accepted local pair boundary.
+- `Game::crafter_dispense`: an interior `BEFORE_CALL` at `Menu::map_crafted`
+  is rejected. The later local-capture resolution was not reached; the separate
+  source rule rejecting destructured locals is not an observed diagnostic here.
+
+Each terminal plan exit was 1, not a disk stop. No plan artifact was written,
+no apply or compile followed, and no automatic hook was installed. Minimum free
+space was 10,894,979,072 bytes, above the continuous 10 GiB +128 MiB floor.
+The first launcher attempt omitted the existing toolchain environment, so all
+three initially stopped at `E_METADATA` before source planning. Those logs are
+retained separately; unchanged probe sources were rerun with the environment
+loaded, producing the source-level rejections above. These setup failures are
+not counted as unsupported native targets.
+
+`crafting-products-route-probes-20261106.json` records exact source, binary,
+manifest and log hashes, diagnostics and interpretation. The inert probes live
+under `tests/probes/crafting-products-routes/` and are excluded from normal
+PlutoLib/TConstruct packages. The source audit JSON remains reproducible by
+`tools/audit_crafting_product_routes.py` without changing external state.
+
+## Remaining boundary and evidence gates
+
+The explicit pair-staging library is independently native-type-checked in the
+complete v14 package. It remains useful to an explicit synchronous caller, but
+its returned value is not authority to change a live grid or publish items.
+Automatic integration remains blocked for the three exact candidates above;
+this is not proof that every possible mod-only design is impossible.
+
+A different route must first demonstrate one authority-owned operation carrying
+the same pair through output allocation, input consumption, remainders and
+native events. A broad cancellable HEAD adapter copying a whole native operation
+would be a new implementation, not a proven workaround; it requires complete
+preservation of all four authority families, remote prediction, native special
+recipes, cancellation, quick-move retries and other mods' composition. Do not
+silently replace rejected interior hooks with that larger scope. No such adapter
+is enabled here, and no fork or official source modification is proposed.

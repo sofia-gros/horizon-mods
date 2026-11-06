@@ -12,3 +12,12 @@ transaction-safety claim follows from a plan result.
 The field is an inert Option<u64>; both helpers are no-ops. These are structural
 questions, not implementations of the staged-pair transaction. See the dated
 route-audit report for the source assumptions and unresolved authority paths.
+
+## Recorded outcome on the pinned official target
+
+All three exact probes were rejected by `E_UNSUPPORTED_CONTROL_FLOW` during
+whole-body safety checking. No plan/apply artifact or automatic hook resulted.
+For the Crafter case, local capture resolution was not reached. These are
+negative feasibility results for these exact candidates, not a universal claim
+about all mod-only designs. See the dated route-probes JSON for exact input/log
+hashes and the separately retained initial environment-setup errors.
