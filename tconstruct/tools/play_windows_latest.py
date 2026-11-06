@@ -18,6 +18,7 @@ import sys
 import tomllib
 
 from playtest_pluto_inputs import directory, plain, signature, fingerprint
+import prepare_playtest_bundles as bundles
 
 HORIZON = '41f822b659789780f58d32c63ddfb6887ea1b8bf'
 MIXINS = '5a64af938ec86b00d53d16a408aabc0038fb3e57'
@@ -191,12 +192,13 @@ def execute(args):
         raise ValueError('This launch route requires Windows 11 x64. Nothing was installed or compiled.')
     repo = directory(Path(__file__).parents[1]); pluto = directory(repo.parent/'pluto-lib')
     validate_compat(json.loads(read(repo/'compatibility.json')))
-    horizon, mixins, bundle, resources, toolchain = map(directory,
-        (args.horizon, args.mixins, args.pluto_bundle, args.resources, args.toolchain))
+    horizon, mixins, resources, toolchain = map(directory,
+        (args.horizon, args.mixins, args.resources, args.toolchain))
+    external_bundle = directory(args.pluto_bundle) if args.pluto_bundle else None
     home = Path(os.path.abspath(args.home))
     # All explicitly selected inputs must remain outside generated outputs and saves.
     disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent)])
-    if home == bundle or home in bundle.parents or bundle in home.parents: raise ValueError('Bundle/output overlap')
+    if external_bundle is not None and (home == external_bundle or home in external_bundle.parents or external_bundle in home.parents): raise ValueError('Bundle/output overlap')
     directory(home.parent); no_parent_configs(home)
     for path in (horizon, mixins): no_parent_configs(path.parent)
     for path in ('bin/rustc.exe','bin/cargo.exe','bin/rustdoc.exe','mingw64/bin/gcc.exe',
@@ -223,19 +225,26 @@ def execute(args):
     import shutil
     git = shutil.which('git', path=env['PATH'])
     if not git: raise ValueError('Git is required; it was not installed automatically')
-    selected = tomllib.loads(read(bundle/'horizon-mixin.toml').decode())
-    if selected.get('mod',{}).get('id') != 'pluto_native_creative' or selected.get('compatibility',{}).get('horizon_revision') != HORIZON:
-        raise ValueError('Select a reviewed unified Pluto bundle for the exact latest Horizon revision')
     stage_bytes = read(repo/'tools/stage.py')
     if sha(stage_bytes) != STAGE_SHA: raise ValueError('Guarded stage source differs from reviewed launch contract')
     stage_text = stage_bytes.decode()
     markers = ["'plan', '--workspace'", "pluto-lib/tools/check_native_plan.py", "'apply', '--workspace'"]
     positions = [stage_text.find(x) for x in markers]
     if min(positions)<0 or positions != sorted(positions): raise ValueError('Guarded stage plan/check/apply sequence is missing')
+    def package_sources():
+        return {'tconstruct':{name:tree_digest(repo/name,skip=frozenset({'__pycache__'})) for name in ('mixins','content','assets','tools','third_party','docs')},
+                'pluto':{name:tree_digest(pluto/name,skip=frozenset({'__pycache__'})) for name in ('mixins','tools','pluto_lib')},
+                'native_header':sha(read(pluto/'horizon-native.json')),
+                'compatibility':sha(read(repo/'compatibility.json'))}
+    source_before = package_sources()
+    tc_mods,bundle,package_receipt = bundles.prepare(repo.parent,home,run,sys.executable,cwd,env,external_bundle)
+    if package_sources()!=source_before: raise ValueError('Same-checkout package sources changed during preparation')
     def snapshot():
+        if package_sources()!=source_before: raise ValueError('Package sources changed after generation')
+        bundles.verify_prepared(tc_mods,bundle,package_receipt)
         return {'official_horizon': source_identity(horizon,'horizon',HORIZON,HORIZON_LOCK,git,env),
                 'official_mixins': source_identity(mixins,'horizon-mixins',MIXINS,MIXINS_LOCK,git,env),
-                'tconstruct': {name:tree_digest(repo/name,skip=frozenset({'__pycache__'})) for name in ('mixins','content','assets','tools','third_party')},
+                'package_sources':package_sources(), 'packages':package_receipt,
                 'compatibility':sha(read(repo/'compatibility.json')), 'pluto':fingerprint(bundle,pluto),
                 'resources':{'path':str(resources),'files':tree_digest(resources)},
                 'toolchain':{'path':str(toolchain),'files':tree_digest(toolchain),'rust':rust,'cargo':cargo,'gcc':gcc,'gcc_version':gcc_version},
@@ -251,7 +260,7 @@ def execute(args):
         build.mkdir(parents=True); no_parent_configs(build)
         stage = build/'stage'
         run([sys.executable, repo/'tools/stage.py','--horizon',horizon,'--mixins',mixins,
-             '--mixins-revision',MIXINS,'--pluto-bundle',bundle,'--output-dir',stage,
+             '--mixins-revision',MIXINS,'--mods',tc_mods,'--pluto-bundle',bundle,'--output-dir',stage,
              '--cli-target-dir',home/'mixins-cli-latest-gnu'],cwd=cwd,env=env)
         # stage.py owns the mandatory complete-plan guard and stops before apply on rejection.
         if feature_contract(stage/'modded') != initial['features']: raise ValueError('Applied gameplay features differ from admitted source contract')
@@ -279,9 +288,10 @@ def execute(args):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ('horizon','mixins','pluto-bundle','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    for name in ('horizon','mixins','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--pluto-bundle',type=Path,help='optional external bundle, accepted only if byte-identical to same-checkout generated Pluto')
     try: execute(p.parse_args())
     except (OSError,ValueError,subprocess.CalledProcessError) as exc:
-        p.exit(1,'Latest playtest stopped: '+str(exc)+'\nNo automatic cleanup, source fetch, installation or guard bypass was attempted. Normal/legacy worlds were not selected; an already started isolated playtest may have written its own world.\n')
+        p.exit(1,'Latest playtest stopped: '+str(exc)+'\nNo existing build cleanup, source fetch, installation or guard bypass was attempted. Normal/legacy worlds were not selected; an already started isolated playtest may have written its own world.\n')
 
 if __name__=='__main__': main()

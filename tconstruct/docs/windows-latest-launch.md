@@ -1,6 +1,6 @@
 # Latest guarded Windows launch candidate
 
-Source-only follow-up to `60e42cfc21f130e79670ffe1c591fc74a1ef23e1`, based on integration `e128d61478971e247b1e3e2e09516cf99652f9fc`. The PowerShell entry is wired to a Python controller; it is not merely an admission design. No PowerShell interpreter, Windows host, Cargo build, source fetch, toolchain installation or game startup was available/run in this validation environment. Twenty latest pure Python/source checks passed; twelve historical cache checks also passed against the exact reconstructed 60e42 entry, not against the replaced entry as if behavior were unchanged. This is not a playable-release claim.
+Source-only follow-up to `9fc10b9a4872643ff52b30502c28a95aa4613323`, based on integration `e128d61478971e247b1e3e2e09516cf99652f9fc`. The PowerShell entry is wired to a Python controller; it is not merely an admission design. No PowerShell interpreter, Windows host, Cargo build, source fetch, toolchain installation or game startup was available/run in this validation environment. Twenty latest pure Python/source checks and eleven synthetic package checks passed; twelve historical cache checks also passed against the exact reconstructed 60e42 entry, not against the replaced entry as if behavior were unchanged. This is not a playable-release claim.
 
 ## Fixed client contract
 
@@ -14,7 +14,7 @@ This follow-up also changes only the two revision values in compatibility.json t
 
 ## Explicit preparation, without an automatic installer
 
-`play-windows.ps1` accepts `-HorizonSource`, `-MixinsSource`, `-PlutoBundle`, `-Resources`, `-Toolchain`, and optional `-PlaytestHome`. Missing input folders are requested explicitly; no drive, adjacent checkout, previous launcher setting or wildcard resource discovery is performed. Choose only your official prepared Horizon26.3 resource folder, not a source checkout, modded resource folder or saves directory. No discarded fork path is accessed.
+`play-windows.ps1` accepts `-HorizonSource`, `-MixinsSource`, `-Resources`, `-Toolchain`, optional `-PlaytestHome`, and an optional compatibility `-PlutoBundle`. Pluto is normally generated from this same checkout, not selected externally. Other missing input folders are requested explicitly; no drive, adjacent checkout, previous launcher setting or wildcard resource discovery is performed. Choose only your official prepared Horizon26.3 resource folder, not a source checkout, modded resource folder or saves directory. No discarded fork path is accessed.
 
 On an approved Windows machine/CI, preparation can use the normal official sources:
 
@@ -29,7 +29,7 @@ No preparation commands above were executed for this checkpoint. We do not claim
 
 ## Inputs, cache and isolation
 
-The generated cache identity contains both official source trees/commits and locks, actual TConstruct inputs, selected Pluto bundle plus reviewed guard/native/helper files, full selected resource contents, actual selected toolchain contents and reported versions, target/profile/default/optional features, and exact guarded-stage bytes. It is independent of mtime. Input trees reject links/reparse/special entries and ordinary concurrent modification; they are assumed quiescent, not protected against malicious filesystem races. File read budgets are 100,000 files/64GiB total per tree/2GiB per file. Pluto retains its separate 60e42 bounds. Large genuine inputs may reject rather than silently omit files.
+The generated cache identity contains both official source trees/commits and locks, actual TConstruct inputs, both complete same-checkout native packages, generated member seals and reviewed guard/native/helper files, full selected resource contents, actual selected toolchain contents and reported versions, target/profile/default/optional features, and exact guarded-stage bytes. It is independent of mtime. Input trees reject links/reparse/special entries and ordinary concurrent modification; they are assumed quiescent, not protected against malicious filesystem races. File read budgets are 100,000 files/64GiB total per tree/2GiB per file. Pluto retains its separate 60e42 bounds. Large genuine inputs may reject rather than silently omit files.
 
 All compiler executables are selected from the explicit toolchain. PATH and RUSTC propagate through Python into stage.py's own Mixins Cargo build; Cargo/rustc wrappers and inherited build/target/profile flags are scrubbed. Isolated Cargo home, compiler outputs and temporary paths are under PlaytestHome. Parent Cargo configs and isolated-home config files are rejected. Official workspace config is retained explicitly. Source checkouts are not edited; stage.py exports committed Git trees. The asset and toolchain directories are not modified.
 
@@ -46,3 +46,20 @@ Actual latest complete-plan/guard admission, Windows GNU build and DLL/runtime c
 The selected absolute Cargo executable is now set in CARGO as well as PATH, because Mixins Index::load reads CARGO directly. All inherited GIT_* redirects are removed; process-local global/system configs and external attributes are disabled, replacement objects are disabled, and local info/attributes rejects. This neither edits Git configuration nor changes permissions. The complete selected toolchain tree is link/reparse-checked before the first version subprocess and checked again afterwards. Error wording now distinguishes preserved normal/legacy saves from writes an already started isolated playtest may have made.
 
 One intermediate pure run stopped on a missing newly planned inverse JSON fixture (17 successful tests, one FileNotFoundError); after writing that fixture, the full18 passed, then20 passed after adding exact-source/attribute regressions. No runtime failure was hidden and no Windows process ran.
+
+## Same-checkout complete native packages
+
+The controller now runs both existing packagers verbatim, rather than installing a raw component directory:
+
+- `python tconstruct/tools/package_hnmod.py --output <fresh>/tconstruct.hnmod`
+- `python pluto-lib/tools/package_native.py <fresh>/plutolib.hnmod`
+
+Use a real Git checkout of the combined integration branch: TConstruct's packager uses Git's tracked-file inventory. A ZIP snapshot without that inventory is not silently treated as a complete package. The controller does not create a repository, fetch a fork, rewrite component/header revisions or invent missing files. Inconsistent latest header/components must fail in the normal packager until the integration owner corrects the source declarations.
+
+Each resulting native archive is independently limited to512 regular mode0644 unique members and64MiB unpacked data, with an additional64MiB compressed read budget. Windows-unsafe paths, traversal, links, encrypted entries and case collisions reject. TConstruct's support ZIP is validated separately at10,000 members/64MiB; its allowed content/assets/third_party/docs/tools and Pluto helper roots remain inert resource-preparation data, not an automatically installed content mod. Header/inner native manifest id, version and Horizon revision must agree.
+
+The receipt records archive SHA/bytes, full member-name/hash maps, headers and nested support facts. Its combined seal strips only `mixins/`, excludes only the two outer headers, and rejects collisions. The combined file count is NOT passed off as a single native archive under the512-entry cap. TConstruct's actual packaged bundle parent is passed to `stage.py --mods`; the complete unified Pluto bundle is passed to `--pluto-bundle`. The old raw22KB component manifest is not equivalent to the generated unified manifest.
+
+The optional external Pluto path is accepted only if every relative member and byte equals the package just generated from this checkout. Matching mod id/revision is insufficient. New callers need no external Pluto folder. Prepared archives and both extracted member maps are rechecked at every input snapshot, including ready/startup boundaries. Actual Mod/package sources are sealed before/after packaging and remain fixed through build/startup. A changed source or generated member fails rather than changing the receipt in place.
+
+A fresh temporary packaging attempt is cleaned after completion/failure; only files created for that attempt are removed. Content-addressed complete package outputs are retained, and failed build folders, user source, assets and worlds are not removed automatically. Eleven synthetic tests exercise budgets, Windows/path/mode rejection, headers, nested support, combined collisions, exact external matching, repeat preparation and TC/archive drift. They stub the two packager processes. No actual integration package was generated or native planner/build run for these tests; the actual packager/complete-plan receipt remains the separately coordinated gate.
