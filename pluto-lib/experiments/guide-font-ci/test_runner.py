@@ -1,6 +1,9 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest import mock
+import tempfile
+from types import SimpleNamespace
 HERE=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('guide_ci',HERE/'run.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -31,6 +34,28 @@ class Checks(unittest.TestCase):
         workflow=(HERE.parents[2]/'.github/workflows/guide-font-wip.yml').read_text()
         self.assertNotIn('sudo apt-get',workflow)
         self.assertNotIn('rustup toolchain install',workflow)
+    def test_setup_headroom_and_child_shutdown_are_bounded(self):
+        source=(HERE/'run.py').read_text()
+        self.assertIn('runner.guard(reserve=2 * 1024**3)',source)
+        self.assertIn('time.monotonic() + 1.0',source)
+        self.assertIn('proc.wait(timeout=2)',source)
+        self.assertNotIn('proc.wait(timeout=10)',source)
+        self.assertIn("env['CARGO_HOME'], Path('/')",source)
+        self.assertIn("env.get('RUSTUP_HOME', str(Path.home()/'.rustup'))",source)
+        self.assertIn('existing_parent(p)',source)
+    def test_missing_rustup_path_uses_existing_parent(self):
+        with tempfile.TemporaryDirectory(prefix='guide-ci-guard-') as root:
+            self.assertEqual(m.existing_parent(Path(root)/'missing'/'rustup'),Path(root).resolve())
+    def test_root_and_rustup_separate_mounts_can_stop_guard(self):
+        for limited in ['/','/rustup-separate']:
+            seen=[]
+            def usage(path):
+                seen.append(str(path))
+                return SimpleNamespace(free=m.FLOOR-1 if str(path)==limited else m.FLOOR+3*1024**3)
+            with mock.patch.object(m,'ROOT',Path('/checkout')), mock.patch.object(m,'existing_parent',side_effect=Path), mock.patch.object(m.shutil,'disk_usage',side_effect=usage):
+                runner=m.Runner(Path('/work'),{'CARGO_HOME':'/cargo','RUSTUP_HOME':'/rustup-separate'})
+                with self.assertRaises(RuntimeError):runner.guard()
+            self.assertEqual(set(seen),{'/checkout','/work','/cargo','/','/rustup-separate'})
     def test_workflow_is_only_exact_branch_readonly_no_cache_artifacts(self):
         workflow=(HERE.parents[2]/'.github/workflows/guide-font-wip.yml').read_text()
         self.assertIn('push:\n    branches:\n      - '+self.c['branch'],workflow)

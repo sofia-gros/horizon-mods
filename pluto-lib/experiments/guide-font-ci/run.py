@@ -15,6 +15,18 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 FLOOR = 10 * 1024**3 + 128 * 1024**2
 
+def existing_parent(path):
+    path = Path(path).expanduser().resolve()
+    while not path.exists():
+        if path.parent == path: raise ValueError('No existing output filesystem: ' + str(path))
+        path = path.parent
+    return path
+
+def write_filesystems(work, env):
+    # apt writes /; rustup may use a different mount from workspace and Cargo.
+    return [existing_parent(p) for p in [ROOT, work, env['CARGO_HOME'], Path('/'),
+            env.get('RUSTUP_HOME', str(Path.home()/'.rustup'))]]
+
 def sha(data): return hashlib.sha256(data).hexdigest()
 def read_inputs(): return json.loads((HERE / 'inputs.json').read_text())
 def git(root, *args):
@@ -52,10 +64,10 @@ class Runner:
     def __init__(self, work, env):
         self.work, self.env = work, env
         self.minimum_free = None
-    def guard(self):
-        free = min(shutil.disk_usage(p).free for p in [ROOT, self.work, Path(self.env['CARGO_HOME'])])
+    def guard(self, reserve=0):
+        free = min(shutil.disk_usage(p).free for p in write_filesystems(self.work, self.env))
         self.minimum_free = free if self.minimum_free is None else min(self.minimum_free, free)
-        if free < FLOOR: raise RuntimeError('Disk floor reached; own process group stopped')
+        if free < FLOOR + reserve: raise RuntimeError('Disk floor reached; own process group stopped')
     def run(self, name, command, cwd=None, timeout=2400):
         self.guard()
         path = self.work / (name + '.log')
@@ -68,14 +80,18 @@ class Runner:
                     self.guard()
                     if time.monotonic() - started > timeout: raise TimeoutError(name)
                     time.sleep(0.2)
-            except BaseException:
-                try: os.killpg(proc.pid, signal.SIGTERM)
-                except ProcessLookupError: pass
-                try: proc.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(proc.pid, signal.SIGKILL); proc.wait()
-                raise
             finally:
+                # Never leave a child behind merely because the direct leader exited.
+                # TERM has one bounded second; KILL and reap are bounded separately.
+                if proc.poll() is None:
+                    try: os.killpg(proc.pid, signal.SIGTERM)
+                    except ProcessLookupError: pass
+                    deadline = time.monotonic() + 1.0
+                    while proc.poll() is None and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                try: os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError: pass
+                proc.wait(timeout=2)
                 print(path.read_text(errors='replace'), end='', flush=True)
         self.guard()
         print('TERMINAL', name, proc.returncode, 'seconds', round(time.monotonic()-started, 3), flush=True)
@@ -96,7 +112,7 @@ def main():
     validate_inputs(config, ROOT)
     original = seal(ROOT, True)
     work = Path(os.environ['RUNNER_TEMP']) / ('guide-font-' + os.environ['GITHUB_SHA'])
-    if min(shutil.disk_usage(p).free for p in [ROOT, work.parent]) < FLOOR:
+    if min(shutil.disk_usage(p).free for p in write_filesystems(work, {**os.environ, 'CARGO_HOME':str(work/'cargo-home')})) < FLOOR:
         raise RuntimeError('Preflight disk floor before any setup/output')
     work.mkdir()  # Fresh runner-owned path only; never remove arbitrary/stale output.
     target, host, fixture = work/'target', work/'horizon', work/'fixture'
@@ -112,6 +128,8 @@ def main():
     official = before_fixture = generated = None
     success = False
     try:
+        # Fail closed before fixed setup if its cold installation lacks headroom.
+        runner.guard(reserve=2 * 1024**3)
         runner.run('apt-update', ['sudo','apt-get','update'], timeout=600)
         runner.run('apt-install', ['sudo','apt-get','install','-y','--no-install-recommends','libasound2-dev','libudev-dev'], timeout=600)
         runner.run('toolchain-install', ['rustup','toolchain','install','1.95.0','--profile','minimal'], timeout=600)
