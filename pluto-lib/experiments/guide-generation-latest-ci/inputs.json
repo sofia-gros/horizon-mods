@@ -1,0 +1,22 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/guide-generation-latest-ci-20261106",
+  "base": "a11121ab76d4a783244d13c131261019d5b2a8c8",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+  },
+  "source_sha256": {
+    "pluto-lib/experiments/guide-generation-latest-ci/run.py": "75a18921a698a05d9b6839a97fdb61b5c1b4738a34a6a8a631013cca785417f4",
+    "pluto-lib/experiments/guide-generation-latest-ci/test_runner.py": "66c6e593efd22d2cca1c5a3483ffb8291e9b88b914bcd6ef2597e52681d0b34b",
+    "pluto-lib/experiments/guide-generation-latest-ci/README.md": "de14abdedfd0cd9ee19c5769dad2a77af3d51c25a04d3b06cfaf177bc73f8ba8",
+    ".github/workflows/guide-generation-latest-wip.yml": "54aa55799cbd4c1bc70a80410c59253993eddaaf6e634fd199e667d29c375523",
+    "pluto-lib/experiments/guide-generation-latest-fixture/prepare.py": "640c4a86ffeee3365502a5bde7e18973553383143a4c9d10a8cc4e87a6949767",
+    "pluto-lib/experiments/guide-generation-latest-fixture/test_prepare.py": "bc4572f263a441a03ef8a6cd928c78853e94d155ed2fb100e7180ee53c46e8b5",
+    "pluto-lib/experiments/guide-generation-latest-fixture/inputs.json": "9d7ab5a44c5334fcd911fc5c5256edce046e42678f931b0d057739ac330cf059",
+    "pluto-lib/experiments/guide-generation-latest-fixture/README.md": "81b236b54ce17bbd53ab27be8c96efa33e6f459aeb2ca141337a50730cd328cb",
+    "pluto-lib/experiments/guide-storage-ci/run.py": "2aee646d16d89985a36ac19ceaad3df1b03f75ff1eda2def79e6aa524e2662c0",
+    "tconstruct/tests/guide-identity-ci/run.py": "db2d4c0fc8fb50459af61048778299531a78af9ddacbe90eeae8e2e5f2a3e27b"
+  }
+}
