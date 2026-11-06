@@ -1,0 +1,337 @@
+{
+  "schema": 1,
+  "status": "source-only plan; export/index/packager/metadata/planner NOT EXECUTED",
+  "main": {
+    "sha": "08afa992d5091e03360f3473ea93fd17aa793987",
+    "tree": "0c766bc524fc42580c5c7cd04ab71374a4eaf481",
+    "observed_ref_utc": "2026-11-06T09:05:28Z",
+    "observation_source": "coordinator read-only GitHub main ref",
+    "manifest_counts": {
+      "crate": 1,
+      "module": 248,
+      "injection": 290,
+      "state": 108
+    },
+    "compatibility": {
+      "horizon_repository": "https://github.com/horizon-rust/horizon.git",
+      "horizon_revision": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+      "mixins_repository": "https://github.com/horizon-rust/horizon-mixins.git",
+      "tconstruct_repository": "https://github.com/SlimeKnights/TinkersConstruct.git",
+      "tconstruct_revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+      "mixins_revision": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a"
+    }
+  },
+  "common": {
+    "runtime": "035273c4805d75111e528c8c26607fa3a8d1d5bf",
+    "workflow": "0468d4b1ad48f2b3e9b674a00a30925e8de37bdf",
+    "verified_closure": "ae8d4f6bbcc56087e9b6276e8e0265d3b61d5ee6",
+    "independent_result": "6adba8b079addfddadddea63c5cc72e32f2f4e7c",
+    "bundle_sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+    "bundle_bytes": 270125,
+    "members": 147,
+    "uncompressed_bytes": 775503,
+    "manifest_counts": {
+      "crate": 2,
+      "module": 69,
+      "injection": 34,
+      "state": 3
+    }
+  },
+  "input_closure": {
+    "prefixes": [
+      "tconstruct/content/",
+      "tconstruct/assets/",
+      "tconstruct/third_party/",
+      "tconstruct/docs/",
+      "tconstruct/tools/",
+      "pluto-lib/pluto_lib/",
+      "tconstruct/mixins/tconstruct/"
+    ],
+    "additional": [
+      "tconstruct/compatibility.json"
+    ],
+    "files": 5435,
+    "file_bytes": 44391808,
+    "modes": [
+      "100644"
+    ],
+    "canonical_manifest_sha256": "bfd3cb30ceb9d6ebb05703ab75bc7ba1395407d694ae7d2a5a708a51b705ca47",
+    "canonical_format": "git ls-tree -rlz order; objects path/mode/type/oid/size; json.dumps(sort_keys=True,separators=(comma,colon)) UTF-8",
+    "full_main_files": 6241,
+    "full_main_bytes": 56704540,
+    "packager_path": "tconstruct/tools/package_hnmod.py",
+    "packager_blob": "eac458e407880dd1a6a4c2be94138bf4610ea1be",
+    "packager_sha256": "acaa42b7208136724ede1b7cc6bd3f3a248361ac35d45ebecf12c8f2ba88d6d7",
+    "creative_blob": "dfddd5e8ccc295bc0401ce3e8f8e1ab4c905f5a0",
+    "filter_order_caution": "tracked() checks every support path before docs/tools content filtering; filtered-output-only export is invalid"
+  },
+  "official": {
+    "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "export_path": "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+    "export_files": 5008,
+    "export_seal_sha256": "a883c4c3bd7c184b38216cbceb15e339e4332479c962b25edee80ec1a42694f0",
+    "materialized_git_symlinks": [
+      {
+        "path": "CLAUDE.md",
+        "git_link_blob": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+        "target": "AGENTS.md",
+        "export": "regular-file byte materialization"
+      }
+    ],
+    "horizon_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+    "cli_path": "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+    "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff"
+  },
+  "source_preflight": {
+    "known_pin_conflict": true,
+    "main_horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+    "common_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "main_mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+    "common_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "literal_shared_targets": [
+      {
+        "target": "horizon_client::game::Game<'_>::hurt_armor",
+        "main": [
+          {
+            "id": "armor-wear-start",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-armor-wear-observation-replacement",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client::game::Game<'_>::use_tool",
+        "main": [
+          {
+            "id": "material-bow-use",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-slurping-use",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-tasty-use",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-world-fluid-use",
+            "kind": "HEAD"
+          },
+          {
+            "id": "pluto_items_b2-use",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client::game::native_hooks::GameLevel<'_>::native_tick_block",
+        "main": [
+          {
+            "id": "source-slime-leaves-tick",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-world-fluid-tick",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape",
+        "main": [
+          {
+            "id": "source-copper-gauge-update",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-slime-leaves-update",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-slime-vine-update",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-world-fluid-neighbor",
+            "kind": "RETURN"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client::game::recipe_book::Game<'_>::place_recipe",
+        "main": [
+          {
+            "id": "crafting-station-recipe-placement-guard",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-recipe-placement-click",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client_lib::crafting::Recipes::assemble_if_matches",
+        "main": [
+          {
+            "id": "anvil-material-recipe",
+            "kind": "HEAD"
+          },
+          {
+            "id": "survival-melter-no-container",
+            "kind": "HEAD"
+          },
+          {
+            "id": "overslime-crafting-assemble",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-crafting-match-veto",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+        "main": [
+          {
+            "id": "part-selection-chunk-clear",
+            "kind": "HEAD"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_native_creative-landing-state-clear",
+            "kind": "HEAD"
+          },
+          {
+            "id": "pluto_native_creative-advancement-tags-clear",
+            "kind": "HEAD"
+          },
+          {
+            "id": "pluto_native_creative-saved-book-clear",
+            "kind": "HEAD"
+          }
+        ]
+      },
+      {
+        "target": "horizon_items::items::Items::correct_for_drops",
+        "main": [
+          {
+            "id": "broken-harvest",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-material-harvest-tier",
+            "kind": "RETURN"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_tool_rules-drops",
+            "kind": "RETURN"
+          }
+        ]
+      },
+      {
+        "target": "horizon_items::items::Items::mining_speed",
+        "main": [
+          {
+            "id": "broken-speed",
+            "kind": "HEAD"
+          },
+          {
+            "id": "source-material-mining-speed",
+            "kind": "RETURN"
+          }
+        ],
+        "common": [
+          {
+            "id": "pluto_tool_rules-speed",
+            "kind": "RETURN"
+          }
+        ]
+      }
+    ],
+    "duplicate_module_file_name": [],
+    "not_runtime_or_resolved_plan": true,
+    "diagnostic_order": "official resolve_hooks, Index::load (metadata), native::plan precede revision checks; retain actual first error, do not assume E_REVISION",
+    "future_exclusive_guard_candidates": [
+      "crafting-station-recipe-placement-guard",
+      "anvil-material-recipe",
+      "survival-melter-no-container",
+      "overslime-crafting-assemble"
+    ],
+    "mixins_pin_limit": "The bundle header Mixins pin is recorded; the raw-source planner is not evidence that a loader accepted that header."
+  },
+  "execution_proposal": {
+    "work": "/tmp/pluto-main-common-baseline-run-20261106",
+    "git_dir": "/workspace/scratch/c7b540ff3393/horizon-mods/.git",
+    "new_index": "/tmp/pluto-main-common-baseline-run-20261106/main.index",
+    "new_work_tree": "/tmp/pluto-main-common-baseline-run-20261106/main-source",
+    "normal_overlay_floor": 10871635968,
+    "tmpfs_reserve": 2147483648,
+    "max_new_tmpfs_allocation": 201326592,
+    "budget_mib": {
+      "export_with_filesystem_rounding_and_dirs": 72,
+      "isolated_index_and_temporary_index": 4,
+      "two_complete_hnmod_files": 20,
+      "combined_exact_mixin_payloads": 24,
+      "plan_file": 32,
+      "logs_metadata_receipts_and_seals": 8,
+      "reserve": 32
+    },
+    "metadata_wrapper_sha256": "d8fc18424eb7781cbddd53946a1919cfd7edf72b0b5e900dd814392b285f4c53",
+    "metadata_wrapper_original_sha256": "56b20eb7cc4bab610ab4b125acb63d275f9f8d6a42eac3b90bb8fb86ab341e7b",
+    "wrapper_only_change": "new dedicated metadata argv log; exact official argument allowlist unchanged",
+    "cargo_home": "fresh private /tmp work/cargo-home; no registry or existing cache copied or linked",
+    "cargo_behavior": "Only exact offline locked no-deps metadata allowed. If fresh CARGO_HOME is insufficient, retain E_METADATA and stop; no cache fallback, online resolution or build. This condition is not yet executed.",
+    "rustc": "Allowlist only --version and -vV. Every other argv exits97; no compilation or rustup setup.",
+    "native_scope": "No apply/check/build/test; no existing checkout/index/ref/current cache edits; package preparation and one official plan only after separate grant",
+    "seal_requirements": [
+      "current main ref/index/shared Git state before and after",
+      "selected source blob/mode/file-set",
+      "isolated index exact main entries",
+      "TConstruct exact packager-produced artifact; no pin edits",
+      "whole successful common archive and all payload bytes",
+      "pristine official export, lock, CLI and metadata wrapper",
+      "separate unchanged native package header pins",
+      "all generated outputs confined to new work directory"
+    ],
+    "stop_conditions": [
+      "no execution grant",
+      "source/pin/CLI/index/ref/seal mismatch",
+      "any extra Cargo/rustc invocation",
+      "overlay below normal floor or tmpfs reserve below2GiB",
+      "new work allocation over192MiB or bounded output exceeded",
+      "first command failure; preserve exact stdout/stderr/error before reporting",
+      "any need for permission/system settings/network/registry/cache change",
+      "unexpected plan success still stops; no apply or automatic next phase"
+    ],
+    "rustc_wrapper_sha256": "79ec90f80e065deca1b3a2d30ef7dbd1b82ea11af1aa0009a8653c314f575c4e",
+    "materialization": "Stream exact selected Git blobs using cat-file --batch; verify each object id/mode/path, no archive attributes or working-tree source substitution.",
+    "controller_status": "Draft contract and wrappers only. No execution controller, export/index/packager/metadata/planner has run. Final review and separate execution grant required."
+  },
+  "limits": [
+    "No compatibility result yet. Known pin conflict is static evidence, not a measured first planner diagnostic.",
+    "Manifest target overlap is a later candidate, not proof of a conflict after resolution.",
+    "No original PR/main modifications, no automatic rebasing/repinning, no Horizon fork access."
+  ]
+}
