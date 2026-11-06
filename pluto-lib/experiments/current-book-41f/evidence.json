@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "integration_source": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "actual_run": 42231588813,
+  "actual_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "actual_rejection": "current-book adapter rejected: plan does not use reviewed current-book source: crates/horizon-client/src/game/books.rs",
+  "metadata_path": "pluto-lib/tools/current-book-source.json",
+  "before_sha256": "d081cb20ab130c9e83dec156540352b8212e356e2df4a7c9a404742ae5712c2e",
+  "after_sha256": "fdf816e5e36f31900798943f8a225eafddb8f486a53de014c293d37070a755d5",
+  "before_git_blob": "37ed678093d0f8b6d415f3c5a92fbacb016f3edd",
+  "after_git_blob": "3818495a0565b4b37b69301e5bb6965cad38184e",
+  "old_book_sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+  "book_inverse_scope": "    pub(super) fn draw_book(&self, batch: &mut HudBatch) {",
+  "book_draw_edits": [
+    [
+      "        let (w, h) = (batch.width, batch.height);",
+      "        let w = batch.width;"
+    ],
+    [
+      "        batch.fill(atlas, 0.0, 0.0, w, h, rgba(16, 16, 16, 160));",
+      "        self.render_transparent_background(\"book\", batch);"
+    ]
+  ],
+  "unchanged_turn_page_sha256": "3527e94a56ad8a230b81e36b9883e1ee72f2bab331ea3d608af71b7464bfe134",
+  "unchanged_turn_page_bytes": 1649,
+  "official_sources": {
+    "crates/horizon-client/src/game/books.rs": {
+      "sha256": "2b522a5b424deba493e166550d5f3646b59b9284fcae1e4013037d9d68c145a9",
+      "git_blob": "3f67345a0faf08c593f2999f25a7df70ca7e108b",
+      "bytes": 62381
+    },
+    "crates/horizon-client/src/game.rs": {
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "bytes": 1032243
+    },
+    "crates/horizon-client/src/game/remote.rs": {
+      "sha256": "346d48f3372d4cfe135982d5f40a7306d79b7f9cbc80a3a8c306648adfdf06c2",
+      "git_blob": "adef7e6c240adacc6178d8bffffcdde7fdc62bc7",
+      "bytes": 536633
+    },
+    "crates/horizon-client/src/game/execution_role.rs": {
+      "sha256": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd",
+      "git_blob": "e8892dd471d2a0a0021441c9a8f5641a8e4e4fbd",
+      "bytes": 865
+    }
+  },
+  "helper_sha256": "ecc1847d15830381acf8e8fea4bb8e4790bbb006e5ba24b267bd7561af96cff9",
+  "guard_sha256": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+  "runtime_changed": false,
+  "guard_algorithm_changed": false,
+  "actual_full_guard_rerun": false,
+  "native_execution": false,
+  "payload_node_observed": false,
+  "limit": "Source hash/revision adaptation only. Actual guard passed its module placement/bytes and no-turn-hook checks before this first whole-file input refusal. Raw actual plan unavailable; no payload node inferred. No apply/type/UI/audio/LAN proof.",
+  "pure_validation": {
+    "tests": 8,
+    "log_sha256": "d40235c85a58d03ff224294e0883c298760253ce4c44ccee2bdccece1b9b0d2b",
+    "log_bytes": 1128,
+    "scope": "Source reads, metadata inverse and synthetic unchanged guard only; no native/rustfmt/planner."
+  }
+}
