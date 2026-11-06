@@ -1,0 +1,815 @@
+{
+  "schema": 1,
+  "kind": "read_only_storage_reorganization_input",
+  "created_date": "2026-11-06",
+  "production_edits": false,
+  "pr_edits": false,
+  "new_native_runs": false,
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "base_local": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "base_remote": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "base_tree": "267be30ceab0c59e8763a1e2de4db0f4fff83cf5",
+  "baseline_scope": "Completed ordinary Pluto package plan/apply/host-lib+bin check at runtime f5a83539; not full TConstruct gameplay/save/LAN. Slot/fluid source follow-ups are independent records.",
+  "classification_is_not_pr_reorganization": true,
+  "groups": [
+    "pure-proposals",
+    "native-representation",
+    "plain-inventory-values",
+    "consumer-followups",
+    "consumer-authority-policy"
+  ],
+  "rows": [
+    {
+      "id": "move-planning",
+      "proposed_group": "pure-proposals",
+      "shared_contract": "Borrowed logical source/destination, count/acceptance/limit/equality callbacks; no mutation.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Chute/casting/Cannon hopper planning and Chest insertion reuse planner; exact later Chest quantity change is a separate follow-up.",
+      "keep_in_consumer": "Physical layout, acceptance, per-slot limit, candidate order, callback and commit.",
+      "evidence": [
+        "planner",
+        "hopper",
+        "chests_base",
+        "v15_proof"
+      ],
+      "next_gate": "Preserve policy and prove each migrated caller separately; not a universal menu transaction.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "candidate-and-stale-guards",
+      "proposed_group": "pure-proposals",
+      "shared_contract": "Ordered select/continue/abort; present snapshot equality; encode/decode guard with caller-supplied identity.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Hopper callbacks use candidate selection plus live inventory and raw-record checks.",
+      "keep_in_consumer": "Missing chunks/blocks, raw storage identity, native callback effects and rollback.",
+      "evidence": [
+        "planner",
+        "hopper"
+      ],
+      "next_gate": "Full live caller composition remains outside value-helper proof.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "saved-item-codec",
+      "proposed_group": "native-representation",
+      "shared_contract": "Actual host NBT roundtrip eligibility and native Tag canonical decode; reject zero count and recursive retained wire for saving.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Casting, Heater, Cannon, Casting Tank, Smeltery serializer and canonical checks delegate.",
+      "keep_in_consumer": "Raw-slot empty/legacy forms, aliases, fields, count splitting, existing-record canonicality and recipe progress.",
+      "evidence": [
+        "codec",
+        "fuel",
+        "casting_identity",
+        "melter_state",
+        "smeltery_state"
+      ],
+      "next_gate": "Do not substitute canonical Tag equality or save eligibility for a live snapshot/transport guarantee.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "observable-snapshot",
+      "proposed_group": "native-representation",
+      "shared_contract": "Count/components plus recursive retained/usable wire bytes and runtime BundleSelected.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Hopper and held Melter guards use observable comparator.",
+      "keep_in_consumer": "Actor/world/physical-slot scope and authoritative phase.",
+      "evidence": [
+        "codec",
+        "hopper",
+        "machine_use"
+      ],
+      "next_gate": "Private decoded Wire baseline remains excluded; no arbitrary live write authority.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "private-retained-baseline",
+      "proposed_group": "native-representation",
+      "shared_contract": "Read-only exact baseline graph comparison, native item_data child read seam, completed-pair memoization only.",
+      "library_state": "Additive implementation; applied-items 8-case proof and package gate recorded.",
+      "consumer_state": "No automatic comparator replacement or consumer adoption.",
+      "keep_in_consumer": "Consumer acceptance decision, lifecycle and write authorization remain separate.",
+      "evidence": [
+        "private_snapshot",
+        "identity_proof",
+        "equipment_audit"
+      ],
+      "next_gate": "Any adoption needs its own scope/behavior proof; pointer equality is not value equality.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "owned-compound-patching",
+      "proposed_group": "native-representation",
+      "shared_contract": "Clone untouched JavaString/NBT values; ordered set/delete, last update wins; noncompound refusal.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Tank/Faucet/Melter/Casting/Smeltery owned fields use shared patching.",
+      "keep_in_consumer": "Exact owned-key lists, aliases, unknown fields, optional/empty policy and nested schema.",
+      "evidence": [
+        "nbt",
+        "faucet",
+        "melter_state",
+        "smeltery_state"
+      ],
+      "next_gate": "No inferred recursive merge, persistence, notification or atomic multi-record commit.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "partition-staging",
+      "proposed_group": "pure-proposals",
+      "shared_contract": "One independent proposal copy per key; input-order edits; sorted-key successful proposals; failure drops proposals.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "write_many stages chunk metadata before caller-owned publication.",
+      "keep_in_consumer": "set_metadata whitelist/ID policy, exclusive World publication, dirty marking and lifecycle.",
+      "evidence": [
+        "staging",
+        "store"
+      ],
+      "next_gate": "Callbacks must not mutate live aliases; external effects cannot be rolled back by dropping copies.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "plain-cell-operations",
+      "proposed_group": "plain-inventory-values",
+      "shared_contract": "pickup/take/collect_ordered over explicitly borrowed cells, supplied equality and limits.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Chest/player wrappers delegate; dynamic admission and existing callers retained.",
+      "keep_in_consumer": "Zero-count/zero-limit fail-closed correction is explicit in original cell migration; physical mappings, visibility, Part admission, native menu hooks remain local.",
+      "evidence": [
+        "cells",
+        "chests_base"
+      ],
+      "next_gate": "Keep original correction separate from the later exact-parity insert_slot follow-up.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "ordered-insertion",
+      "proposed_group": "plain-inventory-values",
+      "shared_contract": "Independent merge/empty orders with caller equality and limits, quantities from plan_between.",
+      "library_state": "Additive API implemented, 39-test focused proof, included in v15.",
+      "consumer_state": "source_give_inventory and source_quick_move_player have not been replaced with this API.",
+      "keep_in_consumer": "Old give can insert Some(count=0) and return None; API rejects zero before mutation. Builder pattern gates, short-input indexing and result side/player order are distinct.",
+      "evidence": [
+        "cells",
+        "builder",
+        "ordered_proof",
+        "v15_proof"
+      ],
+      "next_gate": "Not a drop-in migration. No normalization or another arithmetic API proposed from this audit.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "display-projection",
+      "proposed_group": "plain-inventory-values",
+      "shared_contract": "Explicit mapping/order, duplicated indexes, empty/padding cloning; read only.",
+      "library_state": "Implemented and packaged in v15.",
+      "consumer_state": "Chest main/side and Smeltery page projections delegate.",
+      "keep_in_consumer": "54-slot transport, 32/48 real cells, scrolling, reserved fluid cells, inbound mapping and stale-page/no-wire gates.",
+      "evidence": [
+        "projection",
+        "chests_base",
+        "smeltery_page",
+        "projection_proof"
+      ],
+      "next_gate": "No transport authority or current-state/write guarantee follows from projected values.",
+      "feature_categories": [
+        1,
+        6,
+        8
+      ],
+      "cross_group_note": "Read-only value projection is shared; guide/UI/LAN lifecycle/transport is not claimed implemented."
+    },
+    {
+      "id": "slot-quantity-followup",
+      "proposed_group": "consumer-followups",
+      "shared_contract": "Existing insert_slot now calls plan_between on two snapshots instead of whole-inventory temporary snapshot.",
+      "library_state": "No new API.",
+      "consumer_state": "Verified independently and published; not part of the frozen v15 proof baseline.",
+      "keep_in_consumer": "Whole-inventory first_equal, Part admission, physical index, mutation/remainder order and all malformed behavior retained.",
+      "evidence": [
+        "slot_followup",
+        "slot_proof"
+      ],
+      "next_gate": "Select as coherent storage consumer follow-up; 42 tests/9019 new comparisons do not prove full TConstruct or live LAN.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "fluid-quantity-followup",
+      "proposed_group": "consumer-followups",
+      "shared_contract": "Existing click/quick-input incoming quantity delegates to plan_between.",
+      "library_state": "No new API.",
+      "consumer_state": "Verified independently and published; not part of the frozen v15 proof baseline.",
+      "keep_in_consumer": "Empty-cursor branch unchanged; known_fluid evaluation order/count, output gate, exact equality, nonswap policy,1/16/64 limits and mutation order retained.",
+      "evidence": [
+        "fluid_followup",
+        "fluid_proof"
+      ],
+      "next_gate": "Select separately from prior slot follow-up; 144 executions include139 existing tests, with23220 new differential cases; no live Game/save/LAN claim.",
+      "feature_categories": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "machine-publication",
+      "proposed_group": "consumer-authority-policy",
+      "shared_contract": "No shared commit service established; representation/staging helpers already cover mechanical preparation.",
+      "library_state": "Shared write/durable-save/sync/rollback API is NOT implemented.",
+      "consumer_state": "TConstruct owns metadata -> live slots -> comparator/container notifications -> held/inventory publication.",
+      "keep_in_consumer": "Schema whitelist, casting vs Cannon raw identities, creative handling, native neighbor/spill effects, client write_snapshot replacement semantics.",
+      "evidence": [
+        "store",
+        "machine_runtime",
+        "machine_audit",
+        "casting_identity"
+      ],
+      "next_gate": "Need actual native exchange/phase/actor assertions before changing sequence. write/write_many only modify in-memory saved sources and dirty flags, not fsync/durable storage.",
+      "feature_categories": [
+        6
+      ]
+    },
+    {
+      "id": "equipment-wear-authority",
+      "proposed_group": "consumer-authority-policy",
+      "shared_contract": "Value/read facts are available, but no physical-slot/actor/world invocation write capability exists.",
+      "library_state": "Generic mutation boundary is NOT established.",
+      "consumer_state": "Active retained-tool paths keep TConstruct durability_loss bypass policy; dormant armor end/record remains disabled.",
+      "keep_in_consumer": "Break retention, overslime/modifier causes, RNG, native damage hook/advancement choices, feedback and commit order.",
+      "evidence": [
+        "equipment_audit",
+        "ranged_audit",
+        "wear_probe"
+      ],
+      "next_gate": "WRAP target plan rejected unsupported control flow; native_item_damaged RETURN diagnostic only planned successfully, not installed/applied/runtime verified. Neither establishes mutation authority.",
+      "feature_categories": [
+        1,
+        4,
+        5
+      ],
+      "cross_group_note": "Storage audit identifies authority constraints only; tools/combat and armor owners retain migration responsibility."
+    }
+  ],
+  "sources": {
+    "planner": {
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "35fc03c3fcca9d266614b41e8aab34dbb0f3294100882e70fee835e4b4c383ff",
+      "anchors": [
+        {
+          "text": "pub fn plan_move",
+          "first_line": 42
+        },
+        {
+          "text": "pub fn plan_between",
+          "first_line": 87
+        },
+        {
+          "text": "pub fn select_candidate",
+          "first_line": 105
+        },
+        {
+          "text": "pub fn snapshot_matches",
+          "first_line": 125
+        },
+        {
+          "text": "pub fn encode_lossless",
+          "first_line": 136
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs"
+    },
+    "staging": {
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "anchors": [
+        {
+          "text": "pub fn stage_updates",
+          "first_line": 16
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs"
+    },
+    "projection": {
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "anchors": [
+        {
+          "text": "pub fn project_slots",
+          "first_line": 14
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs"
+    },
+    "codec": {
+      "path": "pluto-lib/mixins/pluto_native_creative/stack-storage.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76",
+      "anchors": [
+        {
+          "text": "pub fn encode_item_lossless",
+          "first_line": 45
+        },
+        {
+          "text": "pub fn decode_item_canonical",
+          "first_line": 64
+        },
+        {
+          "text": "pub fn contains_retained_wire",
+          "first_line": 22
+        },
+        {
+          "text": "pub fn same_item_snapshot",
+          "first_line": 81
+        },
+        {
+          "text": "pub fn inventory_snapshot_matches",
+          "first_line": 107
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/stack-storage.rs"
+    },
+    "private_snapshot": {
+      "path": "pluto-lib/mixins/pluto_native_creative/stack-snapshot.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "9d79c08588a3d243a2904d42b12204f1b55053e52c53d5143b9ea20d551f3bf6",
+      "anchors": [
+        {
+          "text": "pub fn same_item_with_retained_baselines",
+          "first_line": 18
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/stack-snapshot.rs"
+    },
+    "nbt": {
+      "path": "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+      "anchors": [
+        {
+          "text": "pub fn patch_compound",
+          "first_line": 12
+        },
+        {
+          "text": "pub fn patch_owned_fields",
+          "first_line": 32
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/nbt-storage.rs"
+    },
+    "cells": {
+      "path": "pluto-lib/mixins/pluto_native_creative/stack-cells.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "47015d67867a5ef2e90bc9481cfbdd36ebc1d8b8540d446b2a87044cd573d1d6",
+      "anchors": [
+        {
+          "text": "pub fn pickup",
+          "first_line": 37
+        },
+        {
+          "text": "pub fn take",
+          "first_line": 89
+        },
+        {
+          "text": "pub fn collect_ordered",
+          "first_line": 110
+        },
+        {
+          "text": "pub fn insert_ordered",
+          "first_line": 157
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/stack-cells.rs"
+    },
+    "chests_base": {
+      "path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "9a9c8179cfdd78e63cb628de301a0e1a6ae30b6a0e61c9bd0d9805371bd387c1",
+      "anchors": [
+        {
+          "text": "pub(super) fn insert_slot",
+          "first_line": 26
+        },
+        {
+          "text": "pub(super) fn pickup_slot",
+          "first_line": 106
+        },
+        {
+          "text": "pub(super) fn swap_slot",
+          "first_line": 208
+        },
+        {
+          "text": "pub(super) fn project_side",
+          "first_line": 255
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-tinker-chests.rs"
+    },
+    "builder": {
+      "path": "tconstruct/mixins/tconstruct/transaction.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "c1a74508e61b42bcf62fc1379527cd1e7af994236d83d57a3cf098e7ad1410ce",
+      "anchors": [
+        {
+          "text": "pub(super) fn source_give_inventory",
+          "first_line": 1437
+        },
+        {
+          "text": "pub(super) fn source_quick_move_to_builder",
+          "first_line": 1469
+        },
+        {
+          "text": "pub(super) fn source_quick_move_player",
+          "first_line": 1498
+        },
+        {
+          "text": "fn source_quick_take_part_plan_inner",
+          "first_line": 1543
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/transaction.rs"
+    },
+    "hopper": {
+      "path": "tconstruct/mixins/tconstruct/source-chute-hopper.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "e3e1c842cf0c8242721aa2f8e570a1444d0371e189d240142a6a27bd0dbdb00e",
+      "anchors": [
+        {
+          "text": "inventory_snapshot_matches",
+          "first_line": 34
+        },
+        {
+          "text": "select_candidate",
+          "first_line": 250
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-chute-hopper.rs"
+    },
+    "store": {
+      "path": "tconstruct/mixins/tconstruct/source-melter-store.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "205d7073ffa6296cc131eee4ba1d80f677ba9c3627c1f107f05edddccdc7a346",
+      "anchors": [
+        {
+          "text": "pub(super) fn write(world",
+          "first_line": 92
+        },
+        {
+          "text": "pub(super) fn write_snapshot",
+          "first_line": 102
+        },
+        {
+          "text": "pub(super) fn write_many",
+          "first_line": 192
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-melter-store.rs"
+    },
+    "machine_runtime": {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "995d5cf4d8c028411426ddfe1d84b8ae1b47385dfe6a2b48feab6f77fc884801",
+      "anchors": [
+        {
+          "text": "fn save_casting_tank",
+          "first_line": 302
+        },
+        {
+          "text": "fn save_cannon",
+          "first_line": 402
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-machine-runtime.rs"
+    },
+    "casting_identity": {
+      "path": "tconstruct/mixins/tconstruct/source-casting-tank.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "966c005fb42c3636d98e37bd0130254ee3633c14d9298360d78a2cba2b1a6b63",
+      "anchors": [
+        {
+          "text": "pub(super) fn lossless",
+          "first_line": 46
+        },
+        {
+          "text": "same_item_same_components",
+          "first_line": 63
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-casting-tank.rs"
+    },
+    "machine_use": {
+      "path": "tconstruct/mixins/tconstruct/source-machine-use.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "23e6204498197b9e9a88ab8ca696a2e891e0c8b50cfd70581ab50576147aba2a",
+      "anchors": [
+        {
+          "text": "same_item_snapshot",
+          "first_line": 51
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-machine-use.rs"
+    },
+    "smeltery_page": {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-page.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "3caa1c2bfbc208e2845b58476ac0abe27eb5ce01ba779662bf8f8e33784debf3",
+      "anchors": [
+        {
+          "text": "pub(super) fn project_with_containers",
+          "first_line": 13
+        },
+        {
+          "text": "pub(super) fn commit_with_containers",
+          "first_line": 27
+        },
+        {
+          "text": "pub(super) fn no_retained_wire",
+          "first_line": 44
+        },
+        {
+          "text": "pub(super) fn prepare_single_insert",
+          "first_line": 54
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-smeltery-page.rs"
+    },
+    "smeltery_state": {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-state.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "0de9770b2eaab4e2d91a968b84d9d64fa88c21a8a0245a4b2f72e6b8140a32a4",
+      "anchors": [
+        {
+          "text": "patch_compound",
+          "first_line": 107
+        },
+        {
+          "text": "encode_item_lossless",
+          "first_line": 127
+        },
+        {
+          "text": "decode_item_canonical",
+          "first_line": 128
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-smeltery-state.rs"
+    },
+    "melter_state": {
+      "path": "tconstruct/mixins/tconstruct/source-melter-state.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "7ce5e95f52dd514dc0fa88d9622736e05338d5cc98db7bc611683ae9f25f4f57",
+      "anchors": [
+        {
+          "text": "patch_owned_fields",
+          "first_line": 47
+        },
+        {
+          "text": "encode_item_lossless",
+          "first_line": 579
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-melter-state.rs"
+    },
+    "fuel": {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-fuel.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "bb7922dc006fae5ac203b302c4f9b7693fb35c4225f0b0f9630a5468cbec5df3",
+      "anchors": [
+        {
+          "text": "pub(super) fn heater_stack_save_safe",
+          "first_line": 148
+        },
+        {
+          "text": "pub(super) fn plan_heater_fuel",
+          "first_line": 155
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-smeltery-fuel.rs"
+    },
+    "faucet": {
+      "path": "tconstruct/mixins/tconstruct/source-faucet-tank.rs",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "8e746da08458afa4d602e1747f81c1182fbc3d8da6c271c8706e18e2ff38622d",
+      "anchors": [
+        {
+          "text": "patch_owned_fields",
+          "first_line": 14
+        },
+        {
+          "text": "patch_compound",
+          "first_line": 20
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-faucet-tank.rs"
+    },
+    "v15_proof": {
+      "path": "pluto-lib/docs/shared-foundation-v15-candidate-20261106.json",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "1a47695eda9f09ede5af3d3b5717f03a264adc0d29265b9d80541c6535bc0ef1",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/shared-foundation-v15-candidate-20261106.json"
+    },
+    "identity_proof": {
+      "path": "pluto-lib/docs/item-private-baseline-validation-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "e7a09c647fee339ef43e07fea2184f20fcd1a82a7b9cd3be38513283440e5d6b",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/item-private-baseline-validation-20261105.md"
+    },
+    "machine_audit": {
+      "path": "pluto-lib/docs/machine-commit-phase-audit-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "b0217663656fb8fcff23afb401e597b8e167233f2908c55d8386b8a1d5195a30",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/machine-commit-phase-audit-20261105.md"
+    },
+    "equipment_audit": {
+      "path": "pluto-lib/docs/equipment-authority-audit-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "ff9ac7cecfa91082e1559f169ab76d43edf40cd4f3ae42b56124565ff2947b27",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/equipment-authority-audit-20261105.md"
+    },
+    "ranged_audit": {
+      "path": "pluto-lib/docs/ranged-wear-phase-audit-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "4b284f3c09b984ff1e6a280f1ddb5184c0d07cbc4141f0584960aa828086da11",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/ranged-wear-phase-audit-20261105.md"
+    },
+    "wear_probe": {
+      "path": "pluto-lib/docs/native-wear-phase-plan-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "685524c0429db82e1dc91fd6de631d301c33794eaf33cd2df10385860002191f",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/native-wear-phase-plan-20261105.md"
+    },
+    "projection_proof": {
+      "path": "pluto-lib/docs/inventory-projection-validation-20261105.md",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "e74c93aa71fe8d334270475af84a7454861397ba1d34224e041dec6eac0e5812",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/inventory-projection-validation-20261105.md"
+    },
+    "ordered_proof": {
+      "path": "pluto-lib/docs/ordered-insertion-validation-20261106.json",
+      "local_revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_revision": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "sha256": "3b4f1d57e606234c4863fbee3843e0a3df99565f1fb303be0e10890d4a8550cb",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/docs/ordered-insertion-validation-20261106.json"
+    },
+    "slot_followup": {
+      "path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
+      "local_revision": "c80896060abd1bed623bb73de881c455c840398c",
+      "published_revision": "375fa4aef1e70f17e5d79d2e5bbf94bbcb87192f",
+      "sha256": "15cb8788df59ec91d596508e82dac52535c4e651c2b23d9780635e436017e514",
+      "anchors": [
+        {
+          "text": "pub(super) fn insert_slot",
+          "first_line": 26
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/375fa4aef1e70f17e5d79d2e5bbf94bbcb87192f/tconstruct/mixins/tconstruct/source-tinker-chests.rs"
+    },
+    "slot_proof": {
+      "path": "pluto-lib/docs/slot-insertion-validation-20261106.json",
+      "local_revision": "e2e791455381723948c4f8b166bb8d5fb3c4409a",
+      "published_revision": "375fa4aef1e70f17e5d79d2e5bbf94bbcb87192f",
+      "sha256": "d0088c927628261ae6ecee3df6aa86ad7553e820cee5716fda98cd2595dbba1d",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/375fa4aef1e70f17e5d79d2e5bbf94bbcb87192f/pluto-lib/docs/slot-insertion-validation-20261106.json"
+    },
+    "fluid_followup": {
+      "path": "tconstruct/mixins/tconstruct/source-fluid-container.rs",
+      "local_revision": "cf7a8657b88016bac467856c61493e4323dc6cd2",
+      "published_revision": "b0e911b5a294c430a471e168f86c7ca0ed7152f4",
+      "sha256": "333c9d3c702aae317416cb237156a0cf6ebf0f89a8363936087719ad09d37fe3",
+      "anchors": [
+        {
+          "text": "fn click_with_color",
+          "first_line": 442
+        },
+        {
+          "text": "fn quick_input_with_color",
+          "first_line": 482
+        }
+      ],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/b0e911b5a294c430a471e168f86c7ca0ed7152f4/tconstruct/mixins/tconstruct/source-fluid-container.rs"
+    },
+    "fluid_proof": {
+      "path": "pluto-lib/docs/fluid-slot-quantity-validation-20261106.json",
+      "local_revision": "232728a84237ce29434302169ba5b0328a8719f7",
+      "published_revision": "b0e911b5a294c430a471e168f86c7ca0ed7152f4",
+      "sha256": "e71e5d207f634564dbf1ad34a8d003b1394be95b031ee006d3d14395e4494af8",
+      "anchors": [],
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/b0e911b5a294c430a471e168f86c7ca0ed7152f4/pluto-lib/docs/fluid-slot-quantity-validation-20261106.json"
+    }
+  },
+  "excluded": [
+    "No discarded Horizon fork accessed.",
+    "No blanket private-baseline adoption, new registry or commit abstraction.",
+    "No total unique test count obtained by summing repeated fixture/module executions.",
+    "No PR, manifest, production source or behavior changed by this audit.",
+    "Resource/recipe/effect definitions remain with their owners; their stack policy is not silently moved into storage."
+  ],
+  "official_source_checks": [
+    {
+      "path": "crates/horizon-client/src/game/machines.rs",
+      "sha256": "9b91aa816f4d64445a52152f3c29aae17e2df85fa81d27fe8c73b9ecb53a62dd",
+      "anchor": "pub(super) fn container_changed",
+      "line": 565,
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/machines.rs",
+      "matches_official_committed_bytes": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/enchant_effects.rs",
+      "sha256": "587a4ed7b87acbb418a083848647225036660cec28da495e484e3a4d2550f592",
+      "anchor": "pub(super) fn wear",
+      "line": 90,
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/enchant_effects.rs",
+      "matches_official_committed_bytes": true
+    },
+    {
+      "path": "crates/horizon-client/src/game/spill.rs",
+      "sha256": "564e97992c98fe69b7a591431baba9f6915edf645420e31fa7f3d5ef57dee5b6",
+      "anchor": "pub(super) fn flush_spill",
+      "line": 733,
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/spill.rs",
+      "matches_official_committed_bytes": true
+    }
+  ],
+  "provisional_feature_categories": {
+    "approval": "Provisional coordinator taxonomy; final parent/user approval pending. This report does not reorganize PRs.",
+    "categories": {
+      "1": "Pluto foundation",
+      "2": "items/material/data",
+      "3": "recipe/station/advancement",
+      "4": "tools/combat",
+      "5": "armor/movement",
+      "6": "machines/storage",
+      "7": "world-fluid/render",
+      "8": "guide/UI/LAN"
+    },
+    "primary_scope": [
+      1,
+      6
+    ],
+    "interpretation": "proposed_group labels inside rows are contract layers within these feature categories, not extra PR categories."
+  }
+}
