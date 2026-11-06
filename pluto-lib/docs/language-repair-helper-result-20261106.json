@@ -1,0 +1,352 @@
+{
+  "run_id": 42217851276,
+  "job_id": 127892232905,
+  "head": "1dc4c6dab50c002a77fb1e8874c8576a66dc09ca",
+  "console_bytes": 28695,
+  "console_sha256": "41dbc464d7959501f0471540bbd0439e1147692ebed71786375c2b27a21703fb",
+  "final_receipt": {
+    "error": null,
+    "fixture_seal_sha256": "6e46b92c46742f491fdd3da7648aa3e8ce2d774974ba8b1df052109abd9db229",
+    "gates": {
+      "actual_helper_compile": {
+        "native_host": false,
+        "passed": true,
+        "witnesses": [
+          {
+            "crate": "serde_json",
+            "invocation_sha256": "c7dcd6e76eda59f0961d46d4d0b3dfd58fdda01257b5fc0656206a2318ef0809",
+            "source": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/lib.rs",
+            "test": false
+          },
+          {
+            "crate": "serde",
+            "invocation_sha256": "4481a2a5646898179bde56182aa2525027c76d556cd66148fa6292b39a2ec0d1",
+            "source": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs",
+            "test": false
+          },
+          {
+            "crate": "pluto_language_repair_helper_fixture",
+            "invocation_sha256": "366f6d7a2410cf7854da7a3107c595f216435a18c69cdc64d7e1cee3ee1a09d9",
+            "source": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/fixture/fixture.rs",
+            "test": true
+          }
+        ]
+      },
+      "helper14": {
+        "filtered": 0,
+        "ignored": 0,
+        "names": [
+          "pluto_language_overlay::tests::adds_only_lower_keys_and_keeps_mod_conflicts",
+          "pluto_language_overlay::tests::duplicates_in_either_layer_are_not_eligible",
+          "pluto_language_overlay::tests::empty_higher_retains_lower_keys_by_explicit_policy",
+          "pluto_language_overlay::tests::encoded_writer_never_grows_past_limit",
+          "pluto_language_overlay::tests::exact_input_byte_limit_is_enforced",
+          "pluto_language_overlay::tests::invalid_or_large_lower_preserves_original_higher",
+          "pluto_language_overlay::tests::lower_directory_is_not_opened_as_a_file",
+          "pluto_language_overlay::tests::missing_lower_and_ineligible_higher_keep_exact_borrow",
+          "pluto_language_overlay::tests::native_prepared_lower_is_read_only_and_mod_wins",
+          "pluto_language_overlay::tests::parser_and_union_entry_limits_are_enforced",
+          "pluto_language_overlay::tests::path_scope_rejects_other_resources_and_traversal",
+          "pluto_language_overlay::tests::unchanged_key_set_requests_original_higher_bytes",
+          "pluto_language_overlay::tests::unicode_and_placeholders_are_values_not_format_programs",
+          "pluto_language_overlay::tests::unsupported_and_partial_documents_remain_ineligible"
+        ],
+        "passed": true,
+        "tests": 14
+      },
+      "metadata": {
+        "lock_sha256": "89aebbf2b06d7a5b7565993f52ec73c63b8eb83fe9d84a7f0f447080d9126500",
+        "metadata_sha256": "476325aadbc43590de8de34f5ab768bc3d703dd13df64cc20458020a3262b746",
+        "packages": [
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18/Cargo.toml",
+            "name": "itoa",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.18"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3/Cargo.toml",
+            "name": "memchr",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "2.8.3"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/fixture/Cargo.toml",
+            "name": "pluto-language-repair-helper-fixture",
+            "source": null,
+            "version": "0.0.0"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/Cargo.toml",
+            "name": "proc-macro2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.107"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/Cargo.toml",
+            "name": "quote",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.47"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/Cargo.toml",
+            "name": "serde",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229/Cargo.toml",
+            "name": "serde_core",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/Cargo.toml",
+            "name": "serde_derive",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.229"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/Cargo.toml",
+            "name": "serde_json",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.151"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/syn-3.0.6/Cargo.toml",
+            "name": "syn",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "3.0.6"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26/Cargo.toml",
+            "name": "unicode-ident",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.26"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/language-repair-helper-1dc4c6dab50c002a77fb1e8874c8576a66dc09ca/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23/Cargo.toml",
+            "name": "zmij",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "1.0.23"
+          }
+        ],
+        "passed": true
+      },
+      "placement12": {
+        "passed": true,
+        "scope": "source/synthetic inspection, not accepted native plan",
+        "tests": 12
+      },
+      "runner": {
+        "passed": true,
+        "tests": 20
+      },
+      "source13": {
+        "passed": true,
+        "scope": "source/synthetic inspection, not accepted native plan",
+        "tests": 13
+      }
+    },
+    "generated_seal_sha256": "fbfd55611f9b57bf59ee19647588408190ed1af007a4898ac2799f476378546e",
+    "head": "1dc4c6dab50c002a77fb1e8874c8576a66dc09ca",
+    "minimum_free_bytes": 90046554112,
+    "official_seal_sha256": "ee372649f3f989ddcf0a7321e9d3c311fb049cbae9ae845e56dca69c52cc654e",
+    "passed": true,
+    "scope": "Exact frozen merge helper14 against actual official-locked serde/std only. No host writer/stamp, Mixins placement/apply, actual build/cache, pack-priority repair, Game or UI proof.",
+    "source_seal_sha256": "4e88f52b45a67cd942caf7fa833e6b37a612bccfd34d7cb9bcc09eeefa0e5f77",
+    "verified": true
+  },
+  "raw_log_receipts": [
+    {
+      "phase": "runner-checks",
+      "bytes": 2515,
+      "sha256": "92ba9083df64e534be6ecc0dc48867912588d2381c5362ecdc5a37b517dc4577",
+      "exit": 0
+    },
+    {
+      "phase": "toolchain",
+      "bytes": 257,
+      "sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+      "exit": 0
+    },
+    {
+      "phase": "official-init",
+      "bytes": 725,
+      "sha256": "9d9c54f1ebc099e041857c9b64147d1ac0320e21ce100a1aba9978f06517cb25",
+      "exit": 0
+    },
+    {
+      "phase": "official-origin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "official-fetch",
+      "bytes": 121,
+      "sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+      "exit": 0
+    },
+    {
+      "phase": "official-checkout",
+      "bytes": 84,
+      "sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+      "exit": 0
+    },
+    {
+      "phase": "source13",
+      "bytes": 1903,
+      "sha256": "05b5c17452800d8c12037b7137a2ac8bbbf0d38a02a9f535cb96c6cc86435dcd",
+      "exit": 0
+    },
+    {
+      "phase": "placement12",
+      "bytes": 1673,
+      "sha256": "cc6289ee980feb1c6e5da9a7ff9076aed08897a8e38a234fa33f3354f81934d9",
+      "exit": 0
+    },
+    {
+      "phase": "official-locked-fetch",
+      "bytes": 16703,
+      "sha256": "19521d7dd32859c05fa467dff76f89e06f14cedb0fedb10565cde80e24550c9c",
+      "exit": 0
+    },
+    {
+      "phase": "prepare",
+      "bytes": 58,
+      "sha256": "84c5ed6fdc0e3d647178a2b59cc4b0b4af1f9cf68b628ef87b57ad554d7c8ff6",
+      "exit": 0
+    },
+    {
+      "phase": "metadata",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "phase": "verify-before",
+      "bytes": 31,
+      "sha256": "f31babea2e91c56f30bc94518628466c1eaa6b48e12a362134c345b042e6f982",
+      "exit": 0
+    },
+    {
+      "phase": "helper-compile",
+      "bytes": 62909,
+      "sha256": "54f11da020307711d62a4cfdfcd366f83c8ab3479bf90f8a57dea7f6245b7303",
+      "exit": 0
+    },
+    {
+      "phase": "helper14",
+      "bytes": 3533,
+      "sha256": "a2e47e6987a3a2b7e61cbf82b205293f24f0a3cd00b57851471412fe964179c0",
+      "exit": 0
+    },
+    {
+      "phase": "verify-after",
+      "bytes": 31,
+      "sha256": "f31babea2e91c56f30bc94518628466c1eaa6b48e12a362134c345b042e6f982",
+      "exit": 0
+    }
+  ],
+  "terminal_phases": [
+    {
+      "phase": "runner-checks",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "toolchain",
+      "exit": 0,
+      "seconds": 6.414
+    },
+    {
+      "phase": "official-init",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "official-origin",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "official-fetch",
+      "exit": 0,
+      "seconds": 4.81
+    },
+    {
+      "phase": "official-checkout",
+      "exit": 0,
+      "seconds": 0.602
+    },
+    {
+      "phase": "source13",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "placement12",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "official-locked-fetch",
+      "exit": 0,
+      "seconds": 4.41
+    },
+    {
+      "phase": "prepare",
+      "exit": 0,
+      "seconds": 0.402
+    },
+    {
+      "phase": "metadata",
+      "exit": 0,
+      "seconds": 0.602
+    },
+    {
+      "phase": "verify-before",
+      "exit": 0,
+      "seconds": 0.602
+    },
+    {
+      "phase": "helper-compile",
+      "exit": 0,
+      "seconds": 5.612
+    },
+    {
+      "phase": "helper14",
+      "exit": 0,
+      "seconds": 0.201
+    },
+    {
+      "phase": "verify-after",
+      "exit": 0,
+      "seconds": 0.602
+    }
+  ],
+  "validated_names_record": {
+    "phase": "helper14",
+    "names": [
+      "pluto_language_overlay::tests::adds_only_lower_keys_and_keeps_mod_conflicts",
+      "pluto_language_overlay::tests::duplicates_in_either_layer_are_not_eligible",
+      "pluto_language_overlay::tests::empty_higher_retains_lower_keys_by_explicit_policy",
+      "pluto_language_overlay::tests::encoded_writer_never_grows_past_limit",
+      "pluto_language_overlay::tests::exact_input_byte_limit_is_enforced",
+      "pluto_language_overlay::tests::invalid_or_large_lower_preserves_original_higher",
+      "pluto_language_overlay::tests::lower_directory_is_not_opened_as_a_file",
+      "pluto_language_overlay::tests::missing_lower_and_ineligible_higher_keep_exact_borrow",
+      "pluto_language_overlay::tests::native_prepared_lower_is_read_only_and_mod_wins",
+      "pluto_language_overlay::tests::parser_and_union_entry_limits_are_enforced",
+      "pluto_language_overlay::tests::path_scope_rejects_other_resources_and_traversal",
+      "pluto_language_overlay::tests::unchanged_key_set_requests_original_higher_bytes",
+      "pluto_language_overlay::tests::unicode_and_placeholders_are_values_not_format_programs",
+      "pluto_language_overlay::tests::unsupported_and_partial_documents_remain_ineligible"
+    ],
+    "passed": 14,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "evidence_limit": "Compared actual bounded console records and final receipt. Raw phase bytes were verified inside the frozen runner before reduction, not downloaded or independently re-parsed afterward."
+}
