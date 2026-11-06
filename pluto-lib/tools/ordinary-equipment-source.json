@@ -1,7 +1,7 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "file": "crates/horizon-client/src/game/creatures.rs",
-  "file_sha256": "b5a2e3f52ac802182855251d2b67dec975b228550aaaaf3a0582560dee8ba90b",
+  "file_sha256": "3b4e83cb752575fb47821a37575dc9dd277ceb3630b0fc6a00c2e621c9e54cef",
   "start": "    pub(super) fn hurt_player_from(",
   "end": "    /// `LivingEntity.knockback` on the player:",
   "function_sha256": "79097d236b65f70ebe349b03139fd1187bca2af6a9614e23ad6c4228b104d470",

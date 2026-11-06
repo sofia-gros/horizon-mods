@@ -22,20 +22,20 @@
   "location": {
     "file": "crates/horizon-client/src/game.rs",
     "node": [
-      386,
+      398,
       2
     ]
   },
   "helper": "fluid-render-before-assemble.rs",
   "helper_sha256": "80be25bd7c82ff6cfc54aaceedd33cd91237679dee97961b425cc5ff44829c7e",
   "source_sha256": {
-    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
-    "crates/horizon-client/src/game/mods.rs": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
-    "crates/horizon-client/src/game/packs.rs": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+    "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+    "crates/horizon-client/src/game/mods.rs": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+    "crates/horizon-client/src/game/packs.rs": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32",
     "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
     "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
-    "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
-    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+    "crates/horizon-client-render/src/assets.rs": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+    "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
     "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
     "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
     "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
@@ -61,7 +61,7 @@
       "module_id": "fluid-render-prepare",
       "file": "crates/horizon-client/src/game.rs",
       "name": "pluto_fluid_render_prepare",
-      "fingerprint": "314ce4bc0108b8ac41dc95e98c67a8cb693a985060c1808aa9526274814ebe26",
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
       "source": "fluid-render-prepare.rs",
       "sha256": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6"
     }

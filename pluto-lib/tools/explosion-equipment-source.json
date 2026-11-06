@@ -1,5 +1,5 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "file": "crates/horizon-client/src/game/explosion.rs",
   "file_sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19",
   "start": "    fn explosion_hurt_player(\n",

@@ -1,6 +1,6 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
-  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
   "plan_schema": 6,
   "policy": "exclusive target ownership for conditional full-body replacements",
   "boundaries": [
@@ -17,7 +17,7 @@
         }
       ],
       "injection_id": "advancement-tag-index",
-      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "file_sha256": "792196995f6c07a13fd0e1ee265a51d47923e142e2acb6380c230fde9f7ece5e",
       "helper": "advancement-tag-index.rs",
       "helper_sha256": "30cbcea5ede2cbbb46da65c35630d233cf8aa4bdb7015a240272a3a3e5532379"
     },
@@ -34,7 +34,7 @@
         }
       ],
       "injection_id": "inventory-advancement-components",
-      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "file_sha256": "792196995f6c07a13fd0e1ee265a51d47923e142e2acb6380c230fde9f7ece5e",
       "helper": "inventory-advancements.rs",
       "helper_sha256": "5728349cc5513bf22f7628d9887a84b73482775eccfe30766f6ea388cf1459bc"
     }

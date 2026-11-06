@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "base": "701ea7145ba263d9de813da513f8d9ea0aff5c45",
+  "native_input_base": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "metadata": [
+    {
+      "path": "pluto-lib/tools/advancement-replacements.json",
+      "before_sha256": "5046a97026bb4ac9cc30425c23f819c431f71351443472b4729dc21494e4a31a",
+      "before_blob": "827ac9c62f5af80b8bae4daf2868c28379123a31",
+      "after_sha256": "4cccd5f6c346119705ac59178de944f63f9e51f865ea64e333bad447b354760e",
+      "after_blob": "f832f5c24e01abbefd0a5b9ca7bde9e9357f8320",
+      "edits": [
+        {
+          "target": "horizon_client::game::advancements::Game<'_>::inventory_index",
+          "before_source_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+          "after_source_sha256": "792196995f6c07a13fd0e1ee265a51d47923e142e2acb6380c230fde9f7ece5e"
+        },
+        {
+          "target": "horizon_client::game::advancements::Game<'_>::check_inventory_trigger",
+          "before_source_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+          "after_source_sha256": "792196995f6c07a13fd0e1ee265a51d47923e142e2acb6380c230fde9f7ece5e"
+        }
+      ],
+      "inverse_byte_equal": true
+    },
+    {
+      "path": "pluto-lib/tools/ordinary-equipment-source.json",
+      "before_sha256": "e2a0708f44bb1349294a02d6303ad84702ad528588fb7543dd2efb4079ff41f8",
+      "before_blob": "d5f5fad7e84284c4710167413e88e797c09aeebf",
+      "after_sha256": "2f810035852058a179fe381a33405b7bebb1c1a766921271c15317b13a83931c",
+      "after_blob": "41177df18b584f8a8630203fb47bfc5efae19602",
+      "edits": [
+        {
+          "target": "horizon_client::game::creatures::Game<'_>::hurt_player_from",
+          "before_source_sha256": "b5a2e3f52ac802182855251d2b67dec975b228550aaaaf3a0582560dee8ba90b",
+          "after_source_sha256": "3b4e83cb752575fb47821a37575dc9dd277ceb3630b0fc6a00c2e621c9e54cef"
+        }
+      ],
+      "inverse_byte_equal": true
+    },
+    {
+      "path": "pluto-lib/tools/explosion-equipment-source.json",
+      "before_sha256": "f979f8b0269b8700c974f81312208155a95ff0f6f40bb0ba539c10b9d993d133",
+      "before_blob": "fa595dce7bb9af2401c96bd81c1b5c6d239d6b48",
+      "after_sha256": "30aba5b7c8a04414cd4fbd3e269e491286c38f0e2e1c7494785a366cf8642779",
+      "after_blob": "29a3cc780035b145a39028b31fd40f7e13f2419f",
+      "edits": [
+        {
+          "target": "horizon_client::game::explosion::Game<'_>::explosion_hurt_player",
+          "before_source_sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19",
+          "after_source_sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19"
+        }
+      ],
+      "inverse_byte_equal": true
+    },
+    {
+      "path": "pluto-lib/tools/armor-wear-source.json",
+      "before_sha256": "b1bdc163900455c7d99fd28e7a1756425f018c886933046b7f901b2ad46c9e02",
+      "before_blob": "6132d0c662a0849b11f58ba5460892be3e0436f3",
+      "after_sha256": "3ddb14b3700e6cd90dfadd1f8c6712acfd9c3210b60dd26ae15267b1f6be1ed6",
+      "after_blob": "5c1fc7b79758af5d3a077a26f239a75a3fba6f57",
+      "edits": [
+        {
+          "target": "horizon_client::game::Game<'_>::hurt_armor",
+          "before_source_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+          "after_source_sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e"
+        }
+      ],
+      "inverse_byte_equal": true
+    }
+  ],
+  "native_sources": {
+    "crates/horizon-client/src/game/advancements.rs": {
+      "sha256": "792196995f6c07a13fd0e1ee265a51d47923e142e2acb6380c230fde9f7ece5e",
+      "git_blob": "96a9e3ba7e5be84937534a4a3b49b20f91d37d74",
+      "bytes": 116840
+    },
+    "crates/horizon-client/src/game/creatures.rs": {
+      "sha256": "3b4e83cb752575fb47821a37575dc9dd277ceb3630b0fc6a00c2e621c9e54cef",
+      "git_blob": "1156c0e9aeafdecb9858defe93156bce15fc5444",
+      "bytes": 383916
+    },
+    "crates/horizon-client/src/game/explosion.rs": {
+      "sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19",
+      "git_blob": "3dc60802eabd8a75250dbd82fc1fdf80c39183bf",
+      "bytes": 58573
+    },
+    "crates/horizon-client/src/game.rs": {
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b",
+      "bytes": 1032243
+    }
+  },
+  "unchanged_functions": [
+    {
+      "target": "horizon_client::game::creatures::Game<'_>::hurt_player_from",
+      "sha256": "79097d236b65f70ebe349b03139fd1187bca2af6a9614e23ad6c4228b104d470",
+      "bytes": 7315,
+      "check": "Exact existing start/end extraction and existing function_sha256; unchanged"
+    },
+    {
+      "target": "horizon_client::game::explosion::Game<'_>::explosion_hurt_player",
+      "sha256": "1e2f583fe39cc7984cace0d21cd0fb41f25c27ca6ff463d081afb3a296934f14",
+      "bytes": 5180,
+      "check": "Exact existing start/end extraction and existing function_sha256; unchanged"
+    },
+    {
+      "target": "horizon_client::game::Game<'_>::hurt_armor",
+      "sha256": "cea7aeb6903171ab4677ab986895d0b6034d959522dbebbfee6d0378de8bbcc3",
+      "bytes": 2629,
+      "check": "Exact existing start/end extraction and existing function_sha256; unchanged"
+    },
+    {
+      "target": "fn inventory_index(",
+      "sha256": "0664823624acd51a6973a1dff416c3e07672adf37b265efddff34bb949b3dd16",
+      "bytes": 639,
+      "check": "Unique exact declaration through first same-indent closing line, old/new byte equality; real planner fingerprint also unchanged by completed order guard"
+    },
+    {
+      "target": "pub(super) fn check_inventory_trigger(",
+      "sha256": "53430d734e3ad8a22b89c83608faf8f85ed73ed570234136b85ebd593e69739f",
+      "bytes": 3388,
+      "check": "Unique exact declaration through first same-indent closing line, old/new byte equality; real planner fingerprint also unchanged by completed order guard"
+    }
+  ],
+  "unchanged_helpers": {
+    "advancement-tag-index.rs": {
+      "sha256": "30cbcea5ede2cbbb46da65c35630d233cf8aa4bdb7015a240272a3a3e5532379",
+      "git_blob": "7274387d7199d0eb400a790e6c2dcb81d6803799",
+      "bytes": 3175
+    },
+    "inventory-advancements.rs": {
+      "sha256": "5728349cc5513bf22f7628d9887a84b73482775eccfe30766f6ea388cf1459bc",
+      "git_blob": "396c8dac3ad93241b12685d753f4a19d9de3d5da",
+      "bytes": 5136
+    },
+    "ordinary-equipment-head.rs": {
+      "sha256": "0d7f2eda561c918c04ec13c4bbfbbff25ff4b76d8f0aa92822e7723ef301dcee",
+      "git_blob": "230a3b5f411578ee8aa9efa0a6415ee9841988a4",
+      "bytes": 9663
+    },
+    "explosion-equipment-head.rs": {
+      "sha256": "b9dc0da7e91a428aab767025c78ccc27f9a312d8ea8eda06491c848a2b25858b",
+      "git_blob": "fc0bbb9aa831fc10ddf09d763843a7f06614c281",
+      "bytes": 7969
+    },
+    "armor-wear-observe-head.rs": {
+      "sha256": "5d91f42548e476c94676aa97ad3c4536be5180c02060134a9471a324f5750705",
+      "git_blob": "3b74ca9ee2ecbaf3a921d25ceb752e61fca9d062",
+      "bytes": 4740
+    }
+  },
+  "actual_run": 42231588813,
+  "actual_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "actual_scope": "Both unchanged guards completed check_order before their first verify_source rejection; raw plan was not uploaded and is unavailable. This proves those pre-source order/fingerprint checks ran without rejection, not that later helper/source/build checks passed.",
+  "actual_rejections": {
+    "advancement": "pristine official advancement source drifted: crates/horizon-client/src/game/advancements.rs",
+    "damage": "official source drifted: crates/horizon-client/src/game/creatures.rs"
+  },
+  "runtime_changed": false,
+  "guard_algorithm_changed": false,
+  "full_guard_rerun_passed": false,
+  "apply_or_native_type_executed": false
+}

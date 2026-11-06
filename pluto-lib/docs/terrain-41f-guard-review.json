@@ -1,0 +1,395 @@
+{
+  "schema": 1,
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "source_integration": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "source_tree": "200cb8fcf0f22b16d82866bb67ea402d525489c9",
+  "run_id": 42231588813,
+  "job_id": 127938548202,
+  "run_head": "11794d5f90b274caf46e97b44330b41424ad98de",
+  "receipt_sha256": "90e6a5c7926b189efac79e2e55f8c9541ea8889d2932a333f681550925d32b4f",
+  "witness": {
+    "compatibility": null,
+    "competitors": [],
+    "contract_sha256": "218d465acd047afa80461f455ee59b83914db5a92c2ef030dcc9f31df1000e12",
+    "hooks": [
+      {
+        "bindings": [
+          {
+            "name": "assets",
+            "ty": "&Arc<Assets>",
+            "value": "&assets"
+          },
+          {
+            "name": "render",
+            "ty": "&Arc<RenderAssets>",
+            "value": "&render"
+          },
+          {
+            "name": "tables",
+            "ty": "&Arc<MeshTables>",
+            "value": "&tables"
+          }
+        ],
+        "cancellable": false,
+        "contract": {
+          "operation": null,
+          "output": "()",
+          "value": null
+        },
+        "file": "crates/horizon-client/src/game.rs",
+        "function_fingerprint": "2fcf72bb3cbbd2de3ae8a45bd790cecf35be95f6ed1688791ab729e5acd87488",
+        "injection_id": "pluto_native_creative-fluid-render-before-assemble",
+        "kind": "HEAD",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "node": [
+          398,
+          2
+        ],
+        "payload": {
+          "bytes": 206,
+          "sha256": "80be25bd7c82ff6cfc54aaceedd33cd91237679dee97961b425cc5ff44829c7e"
+        },
+        "priority": 100,
+        "site": {
+          "argument": null,
+          "call_site": null,
+          "constant_site": null,
+          "ordinal": null,
+          "require": null,
+          "selector": null,
+          "site_fingerprint": null
+        },
+        "target": "horizon_client::game::PackResources::assemble"
+      },
+      {
+        "bindings": [
+          {
+            "name": "mesher",
+            "ty": "&mut Mesher<'_>",
+            "value": "self"
+          },
+          {
+            "name": "region",
+            "ty": "&[[Option<&Chunk>; 3]; 3]",
+            "value": "region"
+          },
+          {
+            "name": "sy",
+            "ty": "i32",
+            "value": "sy"
+          },
+          {
+            "name": "out",
+            "ty": "&mut SectionMesh",
+            "value": "&mut out"
+          },
+          {
+            "name": "scratch",
+            "ty": "&mut MeshScratch",
+            "value": "scratch"
+          }
+        ],
+        "cancellable": true,
+        "contract": {
+          "operation": null,
+          "output": ":: core :: ops :: ControlFlow < SectionMesh >",
+          "value": null
+        },
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "function_fingerprint": "9d7573393aca97ab7afc1a96c71c30262cc9d18f45c3e35e3379ae771c97f0ce",
+        "injection_id": "pluto_native_creative-terrain-cell-head",
+        "kind": "HEAD",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "node": [
+          76,
+          1
+        ],
+        "payload": {
+          "bytes": 273,
+          "sha256": "a8bddde88b0daa5a8f0e61632f5918bca4221bfcfc7319a2c39eb0d04e72f09c"
+        },
+        "priority": -2147483648,
+        "site": {
+          "argument": null,
+          "call_site": null,
+          "constant_site": null,
+          "ordinal": null,
+          "require": null,
+          "selector": null,
+          "site_fingerprint": null
+        },
+        "target": "horizon_client_render::mesher::Mesher<'_>::mesh_reusing"
+      }
+    ],
+    "module_node_note": "Schema 6 modules have file/fingerprint, not an AST node field.",
+    "modules": [
+      {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-terrain-binding-host",
+        "name": "pluto_terrain_binding_host",
+        "payload": {
+          "bytes": 10754,
+          "sha256": "9e053ff0e07ce88997eb1e8e951b616a5bf0fb1df1cfec3554975e8b439867f4"
+        },
+        "visibility": "pub"
+      },
+      {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-terrain-bindings",
+        "name": "pluto_terrain_bindings",
+        "payload": {
+          "bytes": 15664,
+          "sha256": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c"
+        },
+        "visibility": "pub"
+      },
+      {
+        "file": "crates/horizon-client/src/game.rs",
+        "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-fluid-render-prepare",
+        "name": "pluto_fluid_render_prepare",
+        "payload": {
+          "bytes": 3954,
+          "sha256": "eb9340cd25247f8e380b32188008b4fc0e06233adbc00aebd242681995832ce6"
+        },
+        "visibility": "pub(crate)"
+      },
+      {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-terrain-cell-geometry",
+        "name": "pluto_terrain_cell_geometry",
+        "payload": {
+          "bytes": 14547,
+          "sha256": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994"
+        },
+        "visibility": "pub"
+      },
+      {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-terrain-cell-providers",
+        "name": "pluto_terrain_cells",
+        "payload": {
+          "bytes": 18162,
+          "sha256": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35"
+        },
+        "visibility": "pub"
+      },
+      {
+        "file": "crates/horizon-client-render/src/mesher.rs",
+        "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+        "mod_id": "pluto_native_creative",
+        "mod_version": "0.1.0",
+        "module_id": "pluto_native_creative-terrain-cell-host",
+        "name": "pluto_terrain_cell_host",
+        "payload": {
+          "bytes": 24269,
+          "sha256": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4"
+        },
+        "visibility": "pub(crate)"
+      }
+    ],
+    "native_executed": false,
+    "plan": {
+      "bytes": 6383021,
+      "hook_count": 322,
+      "input_count": 5214,
+      "module_count": 321,
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+      "schema": 6,
+      "sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+      "transformer": "0.6.0"
+    },
+    "schema": 1,
+    "selected_official_source_sha256": {
+      "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+      "crates/horizon-assets/src/bake.rs": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39",
+      "crates/horizon-assets/src/model.rs": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b",
+      "crates/horizon-client-render/src/assets.rs": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7",
+      "crates/horizon-client-render/src/fusion.rs": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772",
+      "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+      "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+      "crates/horizon-client-render/src/models/catalog.rs": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0",
+      "crates/horizon-client-render/src/sprites.rs": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91",
+      "crates/horizon-client-render/src/streaming.rs": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3",
+      "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "crates/horizon-client/src/game/mods.rs": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8",
+      "crates/horizon-client/src/game/packs.rs": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32"
+    },
+    "status": "observed_only"
+  },
+  "changes": {
+    "binding": [
+      {
+        "path": [
+          "location",
+          "node"
+        ],
+        "before": [
+          386,
+          2
+        ],
+        "after": [
+          398,
+          2
+        ]
+      },
+      {
+        "path": [
+          "modules",
+          2,
+          "fingerprint"
+        ],
+        "before": "314ce4bc0108b8ac41dc95e98c67a8cb693a985060c1808aa9526274814ebe26",
+        "after": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042"
+      },
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client/src/game.rs"
+        ],
+        "before": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+        "after": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e"
+      },
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client/src/game/mods.rs"
+        ],
+        "before": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+        "after": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8"
+      },
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client/src/game/packs.rs"
+        ],
+        "before": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+        "after": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32"
+      },
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client-render/src/assets.rs"
+        ],
+        "before": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+        "after": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7"
+      },
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client-render/src/streaming.rs"
+        ],
+        "before": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+        "after": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3"
+      }
+    ],
+    "cell": [
+      {
+        "path": [
+          "source_sha256",
+          "crates/horizon-client-render/src/streaming.rs"
+        ],
+        "before": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb",
+        "after": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3"
+      }
+    ]
+  },
+  "metadata_sha256": {
+    "binding": {
+      "before": "63dc9a768b8d369a47e6f18761a1771a1b394db7e1dddb4a42a8024fdc3f6c19",
+      "after": "f30d1652126acc72d9aa446dba4a8b6321a99139c1f383581aabf2ad2f747eaa"
+    },
+    "cell": {
+      "before": "af3cfc65f4d73467880ebd3af0e431af0a2e4e75a953fbabb6a25c247e12f04e",
+      "after": "5b3614d5dbb56fd669202236ef9db03eb1a90062d1109ab9eb166647a9743178"
+    }
+  },
+  "unchanged_checkers": {
+    "check_terrain_binding_plan.py": "30e38d0cd0c22badd2457812bb78a1fccd67f05b6ca5c09ec35dba9282abbe27",
+    "check_terrain_cell_plan.py": "49a7ac329087f8d4e4cf0df7927dd16afad4f668678fb1603be188b747a97ed6"
+  },
+  "verified_official_sources": {
+    "Cargo.lock": {
+      "bytes": 135677,
+      "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "crates/horizon-assets/src/bake.rs": {
+      "bytes": 24154,
+      "sha256": "2cb52923dade1c4f39180ccfbdeef0814e8dc96565322baae0974a7b11c55d39"
+    },
+    "crates/horizon-assets/src/model.rs": {
+      "bytes": 18879,
+      "sha256": "698e1faac2a269bc24affd8d046936ae8cb2ca67f286ab1cf76f9e47bd9e752b"
+    },
+    "crates/horizon-client-render/src/assets.rs": {
+      "bytes": 21279,
+      "sha256": "cbc235189ab2c3aeda053125f681dddae9070653d7eb02bb6584bcdc9d3f62f7"
+    },
+    "crates/horizon-client-render/src/fusion.rs": {
+      "bytes": 26743,
+      "sha256": "d1278423bcbac111b27405dd549e2f0fe727d781e5dd92a43d09bd23cbb2e772"
+    },
+    "crates/horizon-client-render/src/mesher.rs": {
+      "bytes": 89342,
+      "sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19"
+    },
+    "crates/horizon-client-render/src/mesher/fluid.rs": {
+      "bytes": 19833,
+      "sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309"
+    },
+    "crates/horizon-client-render/src/models/catalog.rs": {
+      "bytes": 24987,
+      "sha256": "44d0cb8287afb956b1e4adc39b7139589b3e58f8e75060a8bd510308f08a51b0"
+    },
+    "crates/horizon-client-render/src/sprites.rs": {
+      "bytes": 61256,
+      "sha256": "5b865a94a6391094040684a44405a993e915a1e2177cfbdb5d34134cc996db91"
+    },
+    "crates/horizon-client-render/src/streaming.rs": {
+      "bytes": 190929,
+      "sha256": "35c1ccf0a19df13e28af2ca973e294a9bd14195bcc43630d951a79b73f0f05b3"
+    },
+    "crates/horizon-client/src/game.rs": {
+      "bytes": 1032243,
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e"
+    },
+    "crates/horizon-client/src/game/mods.rs": {
+      "bytes": 39343,
+      "sha256": "5bf0911251252b231d0c7b38a5cc7aabdea2b4758ba6ca59febab6588063c3e8"
+    },
+    "crates/horizon-client/src/game/packs.rs": {
+      "bytes": 28416,
+      "sha256": "dff170e9054ede5542cd4325a7a1ef26e8248ce7c15541aefee79f83b5b64f32"
+    }
+  },
+  "PackResources_impl": {
+    "sha256": "db92017bff8481741595c0b687011a92af2b3f3caa3b451e460621925bca63e7",
+    "bytes": 2583,
+    "unchanged_since_f4dc": true
+  },
+  "validation": {
+    "kind": "selected actual witness replay plus pure negative controls; not a complete plan replay",
+    "native": false,
+    "apply": false,
+    "type": false,
+    "GPU": false,
+    "full_updated_guard_execution": false
+  }
+}

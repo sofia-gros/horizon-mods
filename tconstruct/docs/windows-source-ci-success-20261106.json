@@ -1,0 +1,174 @@
+{
+  "conclusion": "success",
+  "console": {
+    "bytes": 18064,
+    "raw_published": false,
+    "sha256": "927f74a47ade27c0cf5aadfe1b2e1f43f0d1f8df752f01aa8abc75b351a59a8c",
+    "source": "Decoded UTF-8 returned by normal fetch_workflow_job_logs; original CRLF and BOM retained. This is not the redirect ZIP bytes."
+  },
+  "final_receipt": {
+    "gates": {
+      "bundles": {
+        "failed": 0,
+        "names": [
+          "test_budgets_and_bad_header_reject",
+          "test_combined_collision_rejected",
+          "test_duplicate_case_and_mode_rejected",
+          "test_external_bundle_requires_all_files_not_only_identity",
+          "test_fail_closed_packager_without_extracting_partial_files",
+          "test_nested_support_paths_and_budget",
+          "test_prepare_uses_both_packagers_and_cache_exactness",
+          "test_prepared_tc_data_and_archive_drift_reject",
+          "test_two_packages_keep_limits_and_complete_combined_seal",
+          "test_unsafe_windows_and_traversal_paths_rejected",
+          "test_wrong_revision_and_manifest_reject"
+        ],
+        "passed": 11,
+        "skipped": 0,
+        "tests": 11
+      },
+      "historical": {
+        "failed": 0,
+        "names": [
+          "test_budgets_fail_closed",
+          "test_bundle_source_change_invalidates",
+          "test_changed_file_stat_rejects",
+          "test_file_add_delete_and_rename_invalidate",
+          "test_file_symlink_and_parent_symlink_reject",
+          "test_guard_tools_and_reviewed_sources_invalidate",
+          "test_interpreter_cache_only_is_ignored",
+          "test_missing_root_or_manifest_rejects",
+          "test_repeat_and_same_bytes_new_mtime",
+          "test_script_exact_inverse_keeps_other_behavior",
+          "test_selection_key_recheck_and_ready_order",
+          "test_windows_reparse_and_special_modes_reject"
+        ],
+        "passed": 12,
+        "skipped": 0,
+        "tests": 12
+      },
+      "latest": {
+        "failed": 0,
+        "names": [
+          "test_cache_identity_all_dimensions",
+          "test_compatibility_only_official_two_revision_delta",
+          "test_declared_mods_and_exact_config",
+          "test_default_gameplay_without_nonexistent_mods",
+          "test_disjoint_inputs_output",
+          "test_environment_scrub_and_cli_selected_toolchain",
+          "test_input_tree_content_names_and_mtime",
+          "test_launch_order_no_fallback_or_automatic_fetch",
+          "test_link_parent_and_special_inputs_rejected",
+          "test_local_git_archive_attributes_rejected",
+          "test_official_pins_and_no_legacy_compat",
+          "test_parent_cargo_config_rejected",
+          "test_ps_is_connected_and_has_no_discovery_install",
+          "test_resource_budget_rejects",
+          "test_rust_host_and_release_exact",
+          "test_source_identity_requires_exact_origin_lock_and_clean_tree",
+          "test_stage_exact_two_edit_inverse_and_guard_order",
+          "test_toolchain_seal_precedes_version_execution",
+          "test_unexpected_default_features_rejected",
+          "test_windows_pe_architecture_check"
+        ],
+        "passed": 20,
+        "skipped": 0,
+        "tests": 20
+      },
+      "powershell": {
+        "executed_entry": false,
+        "parsed": true
+      }
+    },
+    "head": "5e14cf74e14209f312281b582ee44b7cd97406b0",
+    "native_executed": false,
+    "passed": true,
+    "phases": [
+      {
+        "argv": [
+          "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "$tokens=$null; $errors=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile($env:PLUTO_PS_ENTRY,[ref]$tokens,[ref]$errors); if ($errors.Count -ne 0) { $errors | ForEach-Object { Write-Output $_.Message }; exit 1 }; Write-Output 'PS_PARSE_OK'"
+        ],
+        "exit": 0,
+        "job_empty": true,
+        "log_bytes": 13,
+        "log_sha256": "f4b7746ac20c3c783d945d3fdad47cb488a1b097c377a0ea2f7edebf856a6794",
+        "name": "powershell-parse",
+        "process_succeeded": true,
+        "seconds": 2.484000000000009
+      },
+      {
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "D:\\a\\horizon-mods\\horizon-mods\\tconstruct\\tests\\test_windows_latest_launch.py",
+          "-v"
+        ],
+        "exit": 0,
+        "job_empty": true,
+        "log_bytes": 2300,
+        "log_sha256": "62370eb201e522f8dfa47a4c97ba6bdbb1f28d7ec29678189a3be8299444b60a",
+        "name": "latest",
+        "process_succeeded": true,
+        "seconds": 1.3129999999999882
+      },
+      {
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "D:\\a\\horizon-mods\\horizon-mods\\tconstruct\\tests\\test_windows_pluto_cache.py",
+          "-v"
+        ],
+        "exit": 0,
+        "job_empty": true,
+        "log_bytes": 1364,
+        "log_sha256": "9507b18b158237b399148b938bcb58bf061aed5882a7992dd5e1d708b6a2696c",
+        "name": "historical",
+        "process_succeeded": true,
+        "seconds": 0.42099999999999227
+      },
+      {
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "D:\\a\\horizon-mods\\horizon-mods\\tconstruct\\tests\\test_windows_playtest_bundles.py",
+          "-v"
+        ],
+        "exit": 0,
+        "job_empty": true,
+        "log_bytes": 1391,
+        "log_sha256": "9929329e7da2232b79a1580e6aca3d6d16722ee1b1db19be53f7d1698985b5d3",
+        "name": "bundles",
+        "process_succeeded": true,
+        "seconds": 0.4070000000000107
+      }
+    ],
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "schema": 1,
+    "scope": "PowerShell syntax and pure Python only",
+    "source_after_sha256": "40356bc0bb4c134c9ba029bbe685095749019690dd295e30f2f6aa56c0ea242f",
+    "source_before_sha256": "40356bc0bb4c134c9ba029bbe685095749019690dd295e30f2f6aa56c0ea242f",
+    "source_files": 6773,
+    "verified": true
+  },
+  "first_run": {
+    "head": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
+    "outcome": "PowerShell parsed; latest 19/20, implicit CP1252 source decode assertion failed; historical/bundles not reached; false receipt retained.",
+    "run_id": 42230840423
+  },
+  "head": "5e14cf74e14209f312281b582ee44b7cd97406b0",
+  "job_id": 127946186931,
+  "run_id": 42233831944,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42233831944",
+  "runner_image": "windows-2025-vs2026 20261103.298.1",
+  "runner_os": "Windows Server 2025 10.0.26100",
+  "schema": 1,
+  "scope_exclusions": [
+    "No Cargo, Rust compiler, engine, game, native package execution, assets, installer, or GPU operation.",
+    "Historical cache cases execute exact reconstructed source inspections, not the replaced launch entry.",
+    "Package tests use injected packager stubs; actual complete integration packaging is a separate result.",
+    "Not a Windows 11 playtest or runtime compatibility proof.",
+    "No minimum-free byte observation is present in this controller receipt; the configured continuous floor completed without refusal."
+  ]
+}

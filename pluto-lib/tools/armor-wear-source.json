@@ -1,7 +1,7 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "file": "crates/horizon-client/src/game.rs",
-  "file_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+  "file_sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
   "start": "    fn hurt_armor(&mut self, source: horizon_world::damage_source::DamageTypeId, damage: f32) {",
   "end": "    /// Voxel traversal that also stops at fluid source blocks (bucket pick).",
   "function_sha256": "cea7aeb6903171ab4677ab986895d0b6034d959522dbebbfee6d0378de8bbcc3",
