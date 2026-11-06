@@ -1,0 +1,83 @@
+{
+  "source_base": "55e4d1d0ef3b4021472223a9e196260d771a5327",
+  "new_fixture_base": "15397f42c77de41516187a46fc5367e01a59d352",
+  "literal_replacements": {
+    "run.py": [
+      {
+        "before": "language-pack-chain",
+        "after": "language-pack-chain-latest",
+        "occurrences": 4
+      },
+      {
+        "before": "language_pack_chain",
+        "after": "language_pack_chain_latest",
+        "occurrences": 1
+      },
+      {
+        "before": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+        "after": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "occurrences": 1
+      },
+      {
+        "before": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+        "after": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "occurrences": 1
+      },
+      {
+        "before": "970e8160d4720b5ad32492d1453720b8238eec16",
+        "after": "15397f42c77de41516187a46fc5367e01a59d352",
+        "occurrences": 1
+      },
+      {
+        "before": "len(expected)!=6 or len(set(expected))!=6",
+        "after": "len(expected)!=8 or len(set(expected))!=8",
+        "occurrences": 1
+      },
+      {
+        "before": "!=[6]",
+        "after": "!=[8]",
+        "occurrences": 1
+      },
+      {
+        "before": "complete six-case pack chain baseline group",
+        "after": "complete eight-case latest pack chain baseline group",
+        "occurrences": 1
+      },
+      {
+        "before": "m.HOST=Path(sys.argv[2]);",
+        "after": "m.SOURCE=Path(sys.argv[2]);",
+        "occurrences": 1
+      },
+      {
+        "before": "'native6',cmd+['--','--test-threads=1'],6,expected",
+        "after": "'native8',cmd+['--','--test-threads=1'],8,expected",
+        "occurrences": 1
+      },
+      {
+        "before": "Language on six owned baseline cases.",
+        "after": "Language on eight owned latest baseline cases including public read_lang_file and lenient pack fallback.",
+        "occurrences": 1
+      }
+    ],
+    "prepare.py": [
+      {
+        "before": "language-pack-chain",
+        "after": "language-pack-chain-latest",
+        "occurrences": 2
+      }
+    ]
+  },
+  "workflow_replacements": [
+    {
+      "before": "language-pack-chain",
+      "after": "language-pack-chain-latest",
+      "occurrences": 5
+    },
+    {
+      "before": "language pack chain baseline",
+      "after": "latest language pack chain baseline",
+      "occurrences": 2
+    }
+  ],
+  "scope": "Exact named derivation only; old controller/fixture/runtime/priority unchanged; new source unexecuted."
+}
