@@ -31,10 +31,12 @@ class SourceChecks(unittest.TestCase):
     def test_all_source_inventories_and_filters_are_exact(self):
         config=m.read_inputs();m.validate_test_inventory(config)
         import copy
-        bad=copy.deepcopy(config);bad['fluid_filter']='fluid::tests::'
+        bad=copy.deepcopy(config);bad['fluid_groups'][0]['filter']='fluid::'
         with self.assertRaises(ValueError):m.validate_test_inventory(bad)
         bad=copy.deepcopy(config)
         bad['fluid_tests']=[n.replace('::revision_tests::','::tests::') for n in bad['fluid_tests']]
+        with self.assertRaises(ValueError):m.validate_test_inventory(bad)
+        bad=copy.deepcopy(config);bad['fluid_groups'].append(bad['fluid_groups'][0])
         with self.assertRaises(ValueError):m.validate_test_inventory(bad)
         bad=copy.deepcopy(config);bad['native_filter']='unknown::'
         with self.assertRaises(ValueError):m.validate_test_inventory(bad)

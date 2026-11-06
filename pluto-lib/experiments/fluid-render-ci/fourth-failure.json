@@ -1,0 +1,30 @@
+{
+  "run_id": 42174476137,
+  "job_id": 127749649998,
+  "head": "468cc7f7771537941595a99ecae6e935e281a455",
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42174476137",
+  "status": "failure",
+  "passed": {
+    "source_tests": 19,
+    "std_tests": 30
+  },
+  "observed_fluid_subtree_tests": {
+    "passed": 37,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 15,
+    "includes_intended_21": true,
+    "extra_contact_tests": 16
+  },
+  "failed_gate": "API21 exact-name/count assertion",
+  "error": "Broad fluid:: filter included16 contact tests beyond the intended21 in fluid.rs",
+  "not_reached": [
+    "official plan",
+    "complete plan12guards",
+    "official apply",
+    "host lib/bin type",
+    "native material2"
+  ],
+  "minimum_free_bytes": 90913349632,
+  "correction": "Three exact immediate test-module selections10+2+9, each independently name/count checked; no runtime changes"
+}

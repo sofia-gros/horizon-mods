@@ -102,7 +102,7 @@ def source_test_names(source, outer):
 def validate_test_inventory(config):
     native=ROOT/'pluto-lib/mixins/pluto_native_creative'
     groups=[('std_tests',[(outer,native/path) for outer,path in config['std_modules'].items()],30,None),
-            ('fluid_tests',[('fluid',native/'api/src/fluid.rs')],21,config['fluid_filter']),
+            ('fluid_tests',[('fluid',native/'api/src/fluid.rs')],21,None),
             ('native_tests',[('mesher::pluto_terrain_cell_host',native/'terrain-cell-host.rs')],2,config['native_filter'])]
     for field,files,count,test_filter in groups:
         actual=[name for outer,path in files for name in source_test_names(path.read_text(),outer)]
@@ -110,6 +110,14 @@ def validate_test_inventory(config):
             raise ValueError('Frozen source test inventory mismatch: '+field)
         if test_filter is not None and any(test_filter not in name for name in actual):
             raise ValueError('Filter omits a required test: '+field)
+    selected=[]
+    for group in config['fluid_groups']:
+        names=[n for n in config['fluid_tests'] if n.rsplit('::',1)[0]+'::'==group['filter']]
+        if not names or len(names)!=group['count']:
+            raise ValueError('Require exact immediate test-module filter/count')
+        selected.extend(names)
+    if len(selected)!=21 or set(selected)!=set(config['fluid_tests']):
+        raise ValueError('Duplicate or missing fluid test groups')
 
 def native_rustc(log, names):
     for name in names:
@@ -212,8 +220,12 @@ def main():
         if identities(api/'Cargo.lock')-identities(official/'Cargo.lock')-{('pluto-api','0.1.0',None,None)}:raise ValueError('API lock escapes official package identities')
         api_seal=seal(api);snapshots[str(api)]=api_seal
         runner.run('api-fetch',['cargo','fetch','--locked','--manifest-path',str(api/'Cargo.toml')])
-        result=runner.run('fluid21',['cargo','test','--offline','--locked','--manifest-path',str(api/'Cargo.toml'),'--target-dir',str(work/'api-target'),'--lib',config['fluid_filter'],'--','--test-threads=1'])
-        validate_tests(result,config['fluid_tests']);assert_seal(api,api_seal);gates['fluid21']='passed'
+        for number,group in enumerate(config['fluid_groups']):
+            names=[n for n in config['fluid_tests'] if n.rsplit('::',1)[0]+'::'==group['filter']]
+            result=runner.run('fluid-group-'+str(number),['cargo','test','--offline','--locked','--manifest-path',str(api/'Cargo.toml'),'--target-dir',str(work/'api-target'),'--lib',group['filter'],'--','--test-threads=1'])
+            validate_tests(result,names);assert_seal(api,api_seal)
+            gates['fluid_group_'+str(number)]=str(group['count'])+' passed'
+        gates['fluid21']='passed'
         runner.run('mixins-build',['cargo','build','--release','--locked','-p','horizon-mixins-cli','--target-dir',str(work/'mixins-target')],cwd=mixins)
         cli=work/'mixins-target/release/horizon-mixins';bundle=work/'plutolib.hnmod';mods=work/'package'
         runner.run('package',['python3',str(ROOT/'pluto-lib/tools/package_native.py'),str(bundle)])

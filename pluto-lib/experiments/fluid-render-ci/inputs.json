@@ -95,6 +95,19 @@
       "reason": "Run42172857479 actual std compile E0277: make tint closure shift/masks/divisor explicitly u32; arithmetic unchanged"
     }
   ],
-  "fluid_filter": "fluid::",
-  "native_filter": "mesher::pluto_terrain_cell_host::material_contract_tests::"
+  "native_filter": "mesher::pluto_terrain_cell_host::material_contract_tests::",
+  "fluid_groups": [
+    {
+      "filter": "fluid::tests::",
+      "count": 10
+    },
+    {
+      "filter": "fluid::revision_tests::",
+      "count": 2
+    },
+    {
+      "filter": "fluid::render_registration_tests::",
+      "count": 9
+    }
+  ]
 }

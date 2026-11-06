@@ -67,3 +67,7 @@ Run 42173321338 at 60054f8b passed source 19 and compiled/executed all 30 std te
 ## Preserved third failure
 
 Run 42174045690 at 2b458c72 passed source 19 and std 30. The API command selected only fluid::tests::, so 10 original tests passed but 11 revision/render cases were filtered out. The exact-21 assertion correctly rejected this partial result. The next retry selects fluid::, corrects nested expected names, and checks all three exact source inventories plus filter coverage before setup. No runtime changes are included. Plan/apply/type/native-material remain unreached. Minimum free space was 90,912,833,536 bytes.
+
+## Preserved fourth failure
+
+Run 42174476137 at 468cc7f7 passed source 19/std 30, then all 37 tests selected by fluid:: passed, including the intended 21. Its strict expected-set guard rejected the 16 extra contact-module tests. The next retry uses three explicit immediate module runs (base 10, revision 2, render registration 9), checking each exact set before marking API21 passed. Broad or duplicate group filters are rejected before setup. No runtime bytes change and no later official gate is claimed. Minimum free space was 90,913,349,632 bytes.
