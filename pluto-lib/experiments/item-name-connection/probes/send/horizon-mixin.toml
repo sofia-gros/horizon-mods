@@ -1,0 +1,17 @@
+[mod]
+id="pluto_item_name_send_probe"
+version="0.1.0"
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id="recursive-network-entry"
+target="horizon_client_lib::lan::guest::network_stack"
+kind="HEAD"
+cancellable=true
+helper="network.rs"
+bindings=[
+ {name="item_id",ty="&dyn Fn(&str) -> i32",value="item_id"},
+ {name="synced_id",ty="&dyn Fn(&str, &str) -> Option<i32>",value="synced_id"},
+ {name="stack",ty="&Option<ItemStack>",value="s"},
+]

@@ -1,0 +1,30 @@
+[mod]
+id="pluto_item_name_receive_probe"
+version="0.1.0"
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[injection]]
+id="top-level-component-result"
+target="horizon_client_lib::item_sync::from_network"
+kind="MODIFY_EXPRESSION_VALUE"
+selector="components_tag(s, builtin, synced)"
+require=1
+ordinal=0
+helper="components.rs"
+bindings=[
+ {name="value",ty="Option<Tag>",value="$value"},
+ {name="stack",ty="&Stack",value="s"},
+]
+[[injection]]
+id="nested-template-component-result"
+target="horizon_client_lib::item_sync::template_tag"
+kind="MODIFY_EXPRESSION_VALUE"
+selector="components_tag(t, builtin, synced)"
+require=1
+ordinal=0
+helper="components.rs"
+bindings=[
+ {name="value",ty="Option<Tag>",value="$value"},
+ {name="stack",ty="&Stack",value="t"},
+]
