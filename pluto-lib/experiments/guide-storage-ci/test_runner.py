@@ -117,6 +117,9 @@ class Checks(unittest.TestCase):
             with self.assertRaises(RuntimeError):m.base.ensure_group_gone(12,'remaining')
 
     def test_experiment_cannot_write_the_pristine_tree(self):
+        m.independent_roots(Path('/tmp/source'),Path('/tmp/destination'))
+        for a,b in [('/tmp/a','/tmp/a'),('/tmp/a','/tmp/a/child'),('/tmp/a/child','/tmp/a')]:
+            with self.assertRaises(ValueError):m.independent_roots(Path(a),Path(b))
         source=(HERE/'run.py').read_text()
         self.assertIn('shutil.copytree(pristine, experiment)',source)
         self.assertIn('target = experiment/name',source)

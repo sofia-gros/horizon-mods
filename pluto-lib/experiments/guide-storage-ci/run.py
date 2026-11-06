@@ -91,7 +91,13 @@ def python_pass(log, count):
         len(re.findall(r'^test_\S+ .* \.\.\. ok$', log, re.M)) != count or
         re.findall(r'^OK$', log, re.M) != ['OK']): raise ValueError('Missing or skipped Python checks')
 
+def independent_roots(source, destination):
+    a, b = source.resolve(), destination.resolve()
+    if a.is_relative_to(b) or b.is_relative_to(a):
+        raise ValueError('Source and destination must be disjoint roots')
+
 def export(checkout, destination):
+    independent_roots(checkout, destination)
     portable = load('portable_git', ROOT/'tconstruct/tools/portable_archive.py')
     destination.mkdir()
     proc = subprocess.Popen(['git','-C',str(checkout),'archive','--format=tar',HORIZON], stdout=subprocess.PIPE)
@@ -114,6 +120,7 @@ def verify_delta(pristine, experiment, expected):
     return new
 
 def prepare(pristine, experiment):
+    independent_roots(pristine, experiment)
     value = config(); gen = load('retained_storage_generator', PROTOTYPE/'generate.py')
     before = seal(pristine)
     patch, receipt = gen.generate(pristine)
