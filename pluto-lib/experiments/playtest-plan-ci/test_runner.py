@@ -199,7 +199,7 @@ class EvidenceTests(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'identity'):r.evidence.verify_saved(out)
  def test_accepted_plan_must_match_receipt(self):
   with tempfile.TemporaryDirectory() as d:
-   out,m=r.evidence.persist(self.report(),Path(d),lambda n:None);rr=json.loads((out/'receipt.json').read_text());rr['plan_accepted']=True;b=r.evidence.encode(rr);(out/'receipt.json').write_bytes(b);m['files']['receipt.json']={'bytes':len(b),'sha256':p.sha(b)};(out/'manifest.json').write_text(json.dumps(m))
+   out,m=r.evidence.persist(self.report(),Path(d),lambda n:None);rr=json.loads((out/'receipt.json').read_text());rr['plan_accepted']=True;rr['gates']['plan_diagnostic']={'accepted':True};b=r.evidence.encode(rr);(out/'receipt.json').write_bytes(b);m['files']['receipt.json']={'bytes':len(b),'sha256':p.sha(b)};(out/'manifest.json').write_text(json.dumps(m))
    with self.assertRaisesRegex(ValueError,'accepted plan'):r.evidence.verify_saved(out)
 
 if __name__=='__main__':unittest.main()

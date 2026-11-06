@@ -107,6 +107,6 @@ def verify_saved(destination):
     if receipt.get('plan_accepted') is True:
         expected_plan=receipt.get('gates',{}).get('plan_diagnostic',{})
         entry=m['files'].get('plan.json',{})
-        if expected_plan.get('accepted') is not True or (entry.get('bytes'),entry.get('sha256'))!=(expected_plan.get('plan_bytes'),expected_plan.get('plan_sha256')):
+        if not m['plan_present'] or expected_plan.get('accepted') is not True or (entry.get('bytes'),entry.get('sha256'))!=(expected_plan.get('plan_bytes'),expected_plan.get('plan_sha256')):
             raise ValueError('Saved accepted plan differs from receipt')
     return m
