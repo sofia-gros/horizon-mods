@@ -1,0 +1,54 @@
+{
+  "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "oracle_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+    "pluto-lib/mixins/pluto_native_creative/crafting-match.rs": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1",
+    "pluto-lib/mixins/pluto_native_creative/component-view.rs": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297",
+    "pluto-lib/mixins/pluto_native_creative/stack-storage.rs": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76",
+    "pluto-lib/mixins/pluto_native_creative/recipe-placement.rs": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e",
+    "tconstruct/mixins/tconstruct/anvil-material-recipe.rs": "a4f4029c37bf153e42f5714cfe4834ad8d542fc244f53ac221b0013ef3cfd70b",
+    "tconstruct/mixins/tconstruct/survival-melter-recipe.rs": "03a5ac0d50b0bb63af7597710702b022f8404b93f8fe0f66e32a900d390bdcc3",
+    "tconstruct/mixins/tconstruct/survival-empty-tank.rs": "61ac8af3b22eb21e9c0f82feb907ffe3200691f42d7f0e1bd4037ecc60945ece",
+    "official-item-view-fragment": "5b897c5c11cdc46f41818ed2525793bbe8951fe943d4f1b6c09460c841bf4d5f",
+    "official-crafting/ingredient-declarations": "f359441dcb3708d7b3833ba1bfc4080bdd1a338240e315a6e80813c87a1e98b4",
+    "official-crafting/ingredient-of": "4cdad321731b4dbdb25e3b838a0d257db611594777cc3659092c963b7a10b251",
+    "official-crafting/complete-template": "b0ed768128b746c5880ea7bf454d1512f6737d8247703cf77893ce030587166d",
+    "official-crafting/recipe-declarations": "3eeeab8af9dad4b1e11b8128e78f0583bbac77a11fc96e94c407999acaffe5de",
+    "official-crafting/complete-input": "b7764a87c02c63c479d1c5cbd30ab2ca436a376bbe807bc39584b35ac75bada1"
+  },
+  "advancements_whole_sha256": "dfd9380e525ca52f555562da04cc882df2db96cddc3504fae0a63b5d1e5ee404",
+  "candidate_sha256": {
+    "matching.rs": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f",
+    "native-adapter.rs": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83",
+    "consumer.rs": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+    "differential_tests.rs": "1441aa1b685239ca15c1bafb081419ca6ef5ccc094fdc2cd9d6dba8b3bafcc85"
+  },
+  "runtime_installed": false,
+  "native_executed": false,
+  "old_hooks_removed": false,
+  "crafting_whole_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+  "native_section_bounds": {
+    "ingredient-declarations": [
+      "#[derive(Clone, Debug)]\npub struct Ingredient",
+      "impl Ingredient {"
+    ],
+    "ingredient-of": [
+      "    pub fn of(items: Vec<String>) -> Self {",
+      "    pub fn parse(v: &Value, items: &Items) -> Option<Self> {"
+    ],
+    "complete-template": [
+      "#[derive(Clone, Debug)]\npub struct Template",
+      "#[derive(Clone, Debug)]\npub enum Recipe"
+    ],
+    "recipe-declarations": [
+      "#[derive(Clone, Debug)]\npub enum Recipe",
+      "impl Special {\n    /// The recipe-book displays of a learnable"
+    ],
+    "complete-input": [
+      "pub struct Input<'a>",
+      "/// What recipes need to know about an item."
+    ]
+  }
+}

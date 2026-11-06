@@ -1,0 +1,377 @@
+{
+  "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+  "changes": [
+    {
+      "candidate": "matching.rs",
+      "production_path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/crafting/matching.rs",
+      "old_sha256": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104",
+      "new_sha256": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f",
+      "new_path_must_be_absent": false,
+      "reversible_line_edits": [
+        {
+          "old_start": 60,
+          "old_end": 61,
+          "new_start": 60,
+          "new_end": 101,
+          "old": [
+            "struct Registry(RwLock<BTreeMap<&'static str, (Interest, Callback)>>);\n"
+          ],
+          "new": [
+            "/// A finite borrowed view of an already stored value, not an effective patch.\n",
+            "/// Compound/List preserve type and presence; no unbounded clone or iteration is\n",
+            "/// provided. To inspect a nested compound key, query the reader with that path.\n",
+            "#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n",
+            "pub enum StoredValue<'a> {\n",
+            "    End, Byte(i8), Short(i16), Int(i32), Long(i64), Float(u32), Double(u64),\n",
+            "    ByteArray(&'a [u8]), String(&'a [u16]), List, Compound,\n",
+            "    IntArray(&'a [i32]), LongArray(&'a [i64]),\n",
+            "}\n",
+            "impl<'a> StoredValue<'a> {\n",
+            "    pub fn string_units(self) -> Option<&'a [u16]> {\n",
+            "        if let Self::String(units) = self { Some(units) } else { None }\n",
+            "    }\n",
+            "}\n",
+            "/// Reader over the same stacks used for this synchronous matching invocation.\n",
+            "/// An input index refers to the request's cropped cells, retaining holes.\n",
+            "/// Each path step is the native compound get operation. None is absent at that\n",
+            "/// step (including a non-compound parent), never an opaque/unavailable capture.\n",
+            "/// Query a shorter path to distinguish a malformed parent from a missing one.\n",
+            "/// Stored values remain queryable when semantic components are unavailable.\n",
+            "pub trait StoredComponents {\n",
+            "    fn input_other(&self, cell: usize, id: &str, path: &[&str]) -> Option<StoredValue<'_>>;\n",
+            "    fn result_other(&self, id: &str, path: &[&str]) -> Option<StoredValue<'_>>;\n",
+            "}\n",
+            "pub struct StoredRequest<'a> {\n",
+            "    pub matching: &'a Request<'a>,\n",
+            "    pub stored: &'a dyn StoredComponents,\n",
+            "}\n",
+            "pub type StoredCallback = for<'a> fn(&StoredRequest<'a>) -> Decision;\n",
+            "#[derive(Clone, Copy)]\n",
+            "pub struct StoredRegistration {\n",
+            "    pub id: &'static str,\n",
+            "    pub interest: Interest,\n",
+            "    pub callback: StoredCallback,\n",
+            "}\n",
+            "#[derive(Clone, Copy)]\n",
+            "enum Entry {\n",
+            "    Legacy(Callback),\n",
+            "    Stored(StoredCallback),\n",
+            "}\n",
+            "struct Registry(RwLock<BTreeMap<&'static str, (Interest, Entry)>>);\n"
+          ]
+        },
+        {
+          "old_start": 66,
+          "old_end": 67,
+          "new_start": 106,
+          "new_end": 113,
+          "old": [
+            "        if entry.id.is_empty() {\n"
+          ],
+          "new": [
+            "        self.insert(entry.id, entry.interest, Entry::Legacy(entry.callback))\n",
+            "    }\n",
+            "    fn register_stored(&self, entry: StoredRegistration) -> Result<(), RegistrationError> {\n",
+            "        self.insert(entry.id, entry.interest, Entry::Stored(entry.callback))\n",
+            "    }\n",
+            "    fn insert(&self, id: &'static str, interest: Interest, entry: Entry) -> Result<(), RegistrationError> {\n",
+            "        if id.is_empty() {\n"
+          ]
+        },
+        {
+          "old_start": 70,
+          "old_end": 71,
+          "new_start": 116,
+          "new_end": 117,
+          "old": [
+            "        if callbacks.contains_key(entry.id) {\n"
+          ],
+          "new": [
+            "        if callbacks.contains_key(id) {\n"
+          ]
+        },
+        {
+          "old_start": 73,
+          "old_end": 74,
+          "new_start": 119,
+          "new_end": 120,
+          "old": [
+            "        callbacks.insert(entry.id, (entry.interest, entry.callback));\n"
+          ],
+          "new": [
+            "        callbacks.insert(id, (interest, entry));\n"
+          ]
+        },
+        {
+          "old_start": 96,
+          "old_end": 97,
+          "new_start": 142,
+          "new_end": 143,
+          "old": [
+            "pub struct Evaluation(Vec<(&'static str, Callback)>);\n"
+          ],
+          "new": [
+            "pub struct Evaluation(Vec<(&'static str, Entry)>);\n"
+          ]
+        },
+        {
+          "old_start": 101,
+          "old_end": 101,
+          "new_start": 147,
+          "new_end": 149,
+          "old": [],
+          "new": [
+            "    /// Legacy registrations behave unchanged. A selected stored-value\n",
+            "    /// registration is denied without calling it when its capability is absent.\n"
+          ]
+        },
+        {
+          "old_start": 102,
+          "old_end": 102,
+          "new_start": 150,
+          "new_end": 158,
+          "old": [],
+          "new": [
+            "        self.evaluate_inner(request, None)\n",
+            "    }\n",
+            "    /// Supply an exact live reader, never a reader reconstructed from the\n",
+            "    /// semantic ItemSnapshot or an unrelated grid/result.\n",
+            "    pub fn evaluate_with_stored<'a>(&self, request: &'a Request<'a>, stored: &'a dyn StoredComponents) -> Outcome {\n",
+            "        self.evaluate_inner(request, Some(stored))\n",
+            "    }\n",
+            "    fn evaluate_inner<'a>(&self, request: &'a Request<'a>, stored: Option<&'a dyn StoredComponents>) -> Outcome {\n"
+          ]
+        },
+        {
+          "old_start": 103,
+          "old_end": 105,
+          "new_start": 159,
+          "new_end": 167,
+          "old": [
+            "        for &(id, callback) in &self.0 {\n",
+            "            if callback(request) == Decision::Deny && first.is_none() {\n"
+          ],
+          "new": [
+            "        for &(id, entry) in &self.0 {\n",
+            "            let decision = match entry {\n",
+            "                Entry::Legacy(callback) => callback(request),\n",
+            "                Entry::Stored(callback) => stored.map_or(Decision::Deny, |stored| {\n",
+            "                    callback(&StoredRequest { matching: request, stored })\n",
+            "                }),\n",
+            "            };\n",
+            "            if decision == Decision::Deny && first.is_none() {\n"
+          ]
+        },
+        {
+          "old_start": 117,
+          "old_end": 117,
+          "new_start": 179,
+          "new_end": 184,
+          "old": [],
+          "new": [
+            "}\n",
+            "/// Opt in to live stored-value inspection. Shares IDs, order, snapshots and the\n",
+            "/// one registry with legacy registrations. Startup/read-only rules are identical.\n",
+            "pub fn register_stored(entry: StoredRegistration) -> Result<(), RegistrationError> {\n",
+            "    POLICIES.register_stored(entry)\n"
+          ]
+        },
+        {
+          "old_start": 313,
+          "old_end": 313,
+          "new_start": 380,
+          "new_end": 476,
+          "old": [],
+          "new": [
+            "\n",
+            "#[cfg(test)]\n",
+            "mod stored_tests {\n",
+            "    use super::*;\n",
+            "    fn facts() -> RecipeFacts<'static> { RecipeFacts { form: Form::Special, ingredients: None, template: None } }\n",
+            "    fn request<'a>(recipe: &'a RecipeFacts<'a>) -> Request<'a> {\n",
+            "        Request { recipe, input: InputFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None }\n",
+            "    }\n",
+            "    fn yes(_: &RecipeFacts<'_>) -> bool { true }\n",
+            "    fn no(_: &RecipeFacts<'_>) -> bool { false }\n",
+            "    fn pass(_: &Request<'_>) -> Decision { Decision::Pass }\n",
+            "    fn stored_pass(_: &StoredRequest<'_>) -> Decision { Decision::Pass }\n",
+            "    struct Reader;\n",
+            "    impl StoredComponents for Reader {\n",
+            "        fn input_other(&self, cell: usize, id: &str, path: &[&str]) -> Option<StoredValue<'_>> {\n",
+            "            match (cell, id, path) {\n",
+            "                (1, \"example:stored\", []) => Some(StoredValue::Compound),\n",
+            "                (1, \"example:stored\", [\"value\"]) => Some(StoredValue::String(&[0xd800, 0x61])),\n",
+            "                _ => None,\n",
+            "            }\n",
+            "        }\n",
+            "        fn result_other(&self, id: &str, path: &[&str]) -> Option<StoredValue<'_>> {\n",
+            "            (id == \"example:stored\" && path.is_empty()).then_some(StoredValue::Int(0))\n",
+            "        }\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn missing_stored_capability_denies_without_invoking_callback() {\n",
+            "        let r = Registry::new();\n",
+            "        r.register_stored(StoredRegistration { id: \"needs-values\", interest: yes,\n",
+            "            callback: |_| panic!(\"missing capability must not invoke callback\") }).unwrap();\n",
+            "        let facts = facts();\n",
+            "        assert_eq!(r.prepare(&facts).unwrap().evaluate(&request(&facts)), Outcome::Denied { first: \"needs-values\" });\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn both_variants_share_ids_and_do_not_replace() {\n",
+            "        let r = Registry::new();\n",
+            "        r.register(Registration { id: \"same\", interest: yes, callback: pass }).unwrap();\n",
+            "        assert_eq!(r.register_stored(StoredRegistration { id: \"same\", interest: yes, callback: stored_pass }), Err(RegistrationError::DuplicateId));\n",
+            "        assert_eq!(r.register_stored(StoredRegistration { id: \"\", interest: yes, callback: stored_pass }), Err(RegistrationError::EmptyId));\n",
+            "        let r = Registry::new();\n",
+            "        r.register_stored(StoredRegistration { id: \"same\", interest: yes, callback: stored_pass }).unwrap();\n",
+            "        assert_eq!(r.register(Registration { id: \"same\", interest: yes, callback: pass }), Err(RegistrationError::DuplicateId));\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn mixed_variants_use_one_lexical_order_and_deny_wins() {\n",
+            "        use std::sync::Mutex;\n",
+            "        static VISITS: Mutex<Vec<&str>> = Mutex::new(Vec::new());\n",
+            "        let r = Registry::new();\n",
+            "        r.register_stored(StoredRegistration { id: \"z\", interest: yes, callback: |_| { VISITS.lock().unwrap().push(\"z\"); Decision::Pass } }).unwrap();\n",
+            "        r.register(Registration { id: \"a\", interest: yes, callback: |_| { VISITS.lock().unwrap().push(\"a\"); Decision::Deny } }).unwrap();\n",
+            "        r.register_stored(StoredRegistration { id: \"b\", interest: yes, callback: |_| { VISITS.lock().unwrap().push(\"b\"); Decision::Deny } }).unwrap();\n",
+            "        let facts = facts();\n",
+            "        assert_eq!(r.prepare(&facts).unwrap().evaluate_with_stored(&request(&facts), &Reader), Outcome::Denied { first: \"a\" });\n",
+            "        assert_eq!(*VISITS.lock().unwrap(), [\"a\", \"b\", \"z\"]);\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn uninterested_stored_registration_requires_no_reader() {\n",
+            "        let r = Registry::new();\n",
+            "        r.register_stored(StoredRegistration { id: \"unused\", interest: no, callback: |_| panic!(\"uninterested\") }).unwrap();\n",
+            "        assert!(r.prepare(&facts()).is_none());\n",
+            "        r.register(Registration { id: \"legacy\", interest: yes, callback: pass }).unwrap();\n",
+            "        let facts = facts();\n",
+            "        assert_eq!(r.prepare(&facts).unwrap().evaluate(&request(&facts)), Outcome::Native);\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn stored_queries_do_not_confuse_missing_type_zero_or_utf16() {\n",
+            "        fn check(r: &StoredRequest<'_>) -> Decision {\n",
+            "            assert_eq!(r.stored.input_other(0, \"example:stored\", &[]), None);\n",
+            "            assert_eq!(r.stored.input_other(1, \"example:stored\", &[]), Some(StoredValue::Compound));\n",
+            "            assert_eq!(r.stored.input_other(1, \"example:stored\", &[\"value\"]).and_then(StoredValue::string_units), Some(&[0xd800, 0x61][..]));\n",
+            "            assert_eq!(r.stored.result_other(\"example:stored\", &[]), Some(StoredValue::Int(0)));\n",
+            "            assert_eq!(r.stored.result_other(\"example:stored\", &[\"not-a-compound\"]), None);\n",
+            "            Decision::Pass\n",
+            "        }\n",
+            "        let r = Registry::new();\n",
+            "        r.register_stored(StoredRegistration { id: \"read\", interest: yes, callback: check }).unwrap();\n",
+            "        let facts = facts();\n",
+            "        assert_eq!(r.prepare(&facts).unwrap().evaluate_with_stored(&request(&facts), &Reader), Outcome::Native);\n",
+            "    }\n",
+            "    #[test]\n",
+            "    fn stored_interest_and_callback_are_unlocked_and_snapshot_is_stable() {\n",
+            "        static R: Registry = Registry::new();\n",
+            "        fn interest(_: &RecipeFacts<'_>) -> bool {\n",
+            "            let _ = R.register(Registration { id: \"later\", interest: yes, callback: |_| Decision::Deny });\n",
+            "            true\n",
+            "        }\n",
+            "        fn callback(_: &StoredRequest<'_>) -> Decision {\n",
+            "            let _ = R.register_stored(StoredRegistration { id: \"last\", interest: yes, callback: |_| Decision::Deny });\n",
+            "            Decision::Pass\n",
+            "        }\n",
+            "        R.register_stored(StoredRegistration { id: \"first\", interest, callback }).unwrap();\n",
+            "        let facts = facts();\n",
+            "        assert_eq!(R.prepare(&facts).unwrap().evaluate_with_stored(&request(&facts), &Reader), Outcome::Native);\n",
+            "        assert_eq!(R.prepare(&facts).unwrap().evaluate_with_stored(&request(&facts), &Reader), Outcome::Denied { first: \"last\" });\n",
+            "    }\n",
+            "}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "native-adapter.rs",
+      "production_path": "pluto-lib/mixins/pluto_native_creative/crafting-match.rs",
+      "old_sha256": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1",
+      "new_sha256": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83",
+      "new_path_must_be_absent": false,
+      "reversible_line_edits": [
+        {
+          "old_start": 70,
+          "old_end": 73,
+          "new_start": 70,
+          "new_end": 74,
+          "old": [
+            "    let result = template.map(|template| template.create());\n",
+            "    let result = result.as_ref().map(ItemFacts::capture);\n",
+            "    evaluation.evaluate(&Request {\n"
+          ],
+          "new": [
+            "    let result_stack = template.map(|template| template.create());\n",
+            "    let result = result_stack.as_ref().map(ItemFacts::capture);\n",
+            "    let stored = StoredStacks { cells: &input.cells, result: result_stack.as_ref() };\n",
+            "    evaluation.evaluate_with_stored(&Request {\n"
+          ]
+        },
+        {
+          "old_start": 82,
+          "old_end": 83,
+          "new_start": 83,
+          "new_end": 84,
+          "old": [
+            "    })\n"
+          ],
+          "new": [
+            "    }, &stored)\n"
+          ]
+        },
+        {
+          "old_start": 84,
+          "old_end": 84,
+          "new_start": 85,
+          "new_end": 117,
+          "old": [],
+          "new": [
+            "\n",
+            "// Exact borrowed saved-field access; never derives an effective component patch\n",
+            "// and never rejects the reader merely because a stack retains opaque wire.\n",
+            "fn stored_value(value: &horizon_world::nbt::Tag) -> matching::StoredValue<'_> {\n",
+            "    use horizon_world::nbt::Tag as T;\n",
+            "    use matching::StoredValue as V;\n",
+            "    match value {\n",
+            "        T::End => V::End, T::Byte(v) => V::Byte(*v), T::Short(v) => V::Short(*v),\n",
+            "        T::Int(v) => V::Int(*v), T::Long(v) => V::Long(*v), T::Float(v) => V::Float(*v),\n",
+            "        T::Double(v) => V::Double(*v), T::ByteArray(v) => V::ByteArray(v),\n",
+            "        T::String(v) => V::String(&v.0), T::List(_) => V::List,\n",
+            "        T::Compound(_) => V::Compound, T::IntArray(v) => V::IntArray(v),\n",
+            "        T::LongArray(v) => V::LongArray(v),\n",
+            "    }\n",
+            "}\n",
+            "fn stored_path<'a>(stack: &'a crate::items::ItemStack, id: &str, path: &[&str]) -> Option<matching::StoredValue<'a>> {\n",
+            "    let mut value = stack.data()?.other(id)?;\n",
+            "    for key in path { value = value.get(key)?; }\n",
+            "    Some(stored_value(value))\n",
+            "}\n",
+            "struct StoredStacks<'a> {\n",
+            "    cells: &'a [Option<&'a crate::items::ItemStack>],\n",
+            "    result: Option<&'a crate::items::ItemStack>,\n",
+            "}\n",
+            "impl matching::StoredComponents for StoredStacks<'_> {\n",
+            "    fn input_other(&self, cell: usize, id: &str, path: &[&str]) -> Option<matching::StoredValue<'_>> {\n",
+            "        stored_path(self.cells.get(cell).copied().flatten()?, id, path)\n",
+            "    }\n",
+            "    fn result_other(&self, id: &str, path: &[&str]) -> Option<matching::StoredValue<'_>> {\n",
+            "        stored_path(self.result?, id, path)\n",
+            "    }\n",
+            "}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "consumer.rs",
+      "production_path": "tconstruct/mixins/tconstruct/source-crafting-deny-policies.rs",
+      "old_sha256": null,
+      "new_sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+      "new_path_must_be_absent": true,
+      "reversible_line_edits": []
+    }
+  ],
+  "ordinary_manifest_changed": false,
+  "old_hook_removed": false,
+  "inverse_verified": true
+}

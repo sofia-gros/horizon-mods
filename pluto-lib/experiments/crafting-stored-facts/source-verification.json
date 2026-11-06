@@ -1,0 +1,113 @@
+{
+  "status": "source_composed_only",
+  "files": {
+    "lib.rs": {
+      "bytes": 291,
+      "sha256": "ee673b1b284755ecaa9e167e730cdb8971528bd0a3f8479fea4cc3ff613beab7"
+    },
+    "crafting.rs": {
+      "bytes": 15061,
+      "sha256": "275dbe8f1d6ebc89be2b35776726236c5caab5965f516f39b9d2cb2d8abbb92e"
+    },
+    "item-view.rs": {
+      "bytes": 219,
+      "sha256": "5b897c5c11cdc46f41818ed2525793bbe8951fe943d4f1b6c09460c841bf4d5f"
+    },
+    "component-view.rs": {
+      "bytes": 6400,
+      "sha256": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297"
+    },
+    "retained-wire-query.rs": {
+      "bytes": 1258,
+      "sha256": "23b8941e5ab88e8c773e2c6e2eb030deec521148d4543c9c9704a8df1b851fbc"
+    },
+    "empty-tank.rs": {
+      "bytes": 1113,
+      "sha256": "61ac8af3b22eb21e9c0f82feb907ffe3200691f42d7f0e1bd4037ecc60945ece"
+    },
+    "native-adapter.rs": {
+      "bytes": 4286,
+      "sha256": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83"
+    },
+    "consumer.rs": {
+      "bytes": 3494,
+      "sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02"
+    },
+    "differential_tests.rs": {
+      "bytes": 7744,
+      "sha256": "1441aa1b685239ca15c1bafb081419ca6ef5ccc094fdc2cd9d6dba8b3bafcc85"
+    }
+  },
+  "expected_tests": {
+    "differential12": [
+      "crafting::differential_tests::unrelated_shapes_outputs_and_specials_keep_old_continuation",
+      "crafting::differential_tests::station_subtraction_requires_the_exact_shape_and_ingredient_sets",
+      "crafting::differential_tests::missing_or_wrong_expected_material_keeps_the_old_pass",
+      "crafting::differential_tests::exactly_three_matching_materials_include_empty_and_utf16_strings",
+      "crafting::differential_tests::fake_count_is_exactly_three_not_component_count_or_total_slots",
+      "crafting::differential_tests::malformed_or_missing_input_material_denies",
+      "crafting::differential_tests::retained_wire_keeps_stored_queries_available_without_semantic_capture",
+      "crafting::differential_tests::duplicate_stored_components_keep_first_entry_selection",
+      "crafting::differential_tests::tank_presence_including_zero_empty_and_malformed_denies",
+      "crafting::differential_tests::absent_tank_and_malformed_parent_preserve_native_get_semantics",
+      "crafting::differential_tests::tank_policy_does_not_claim_other_inputs_or_outputs",
+      "crafting::differential_tests::raw_template_patch_is_not_substituted_for_native_create"
+    ],
+    "original4": [
+      "pluto_component_view::tests::pluto_component_view_preserves_float_bits_and_utf16",
+      "pluto_component_view::tests::pluto_component_conversion_is_structurally_reversible",
+      "pluto_component_view::tests::pluto_component_view_keeps_known_default_patch_distinct_from_unavailable",
+      "crafting::tconstruct_survival_empty_tank::tests::empty_and_filled_tanks_are_distinguished"
+    ]
+  },
+  "rust_executed": false,
+  "actual_game_proved": false,
+  "startup_proved": false,
+  "python_source_checks": {
+    "passed": 13,
+    "failed": 0
+  },
+  "additional_api_tests_unrun": 6,
+  "files_in_group": {
+    "README.md": {
+      "bytes": 6731,
+      "sha256": "8bca26be35a7b4e394c894b7b6e5c8caa07fb344acb7a8b804322d839fff1546"
+    },
+    "consumer.rs": {
+      "bytes": 3494,
+      "sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02"
+    },
+    "differential_tests.rs": {
+      "bytes": 7744,
+      "sha256": "1441aa1b685239ca15c1bafb081419ca6ef5ccc094fdc2cd9d6dba8b3bafcc85"
+    },
+    "inputs.json": {
+      "bytes": 3312,
+      "sha256": "dd660ba4ec3f8daaf50fd1adc29be04dedbd6a556fcf27996f0151d05757cbca"
+    },
+    "matching.rs": {
+      "bytes": 19014,
+      "sha256": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f"
+    },
+    "native-adapter.rs": {
+      "bytes": 4286,
+      "sha256": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83"
+    },
+    "oracles.json": {
+      "bytes": 44304,
+      "sha256": "0eabe494cfb8b93c1c448dc16378af41df9c4c29cdd75575a44611e9b08daa06"
+    },
+    "render.py": {
+      "bytes": 5688,
+      "sha256": "d26ddd0b07a8e9878cec53fa67b0ff8b3ca618b8b4f8c28b11fa68ecd3a1e673"
+    },
+    "source-delta.json": {
+      "bytes": 19095,
+      "sha256": "ecfd9cc3392fd22635578b54c69de678d4c02bc5d9b3dd1d7ee1db464d170b32"
+    },
+    "test_source.py": {
+      "bytes": 4191,
+      "sha256": "65e175374a1366c1a1847691a57c08756b9ddc6b1f45b0b5669d91ad69824237"
+    }
+  }
+}

@@ -22,7 +22,8 @@
     "Later common035273 ordinary library and consumer source changes",
     "Guide lazy page text/query plus stable BookId/modifier anchors from d9f8, preserving all PR945 navigation injections and control behavior",
     "Mining context moved from two brittle local-speed hooks to the native BreakSpeed HEAD using a Pluto borrowed-facts module; both raw manifests explicitly target 41f. PR945 policies are retained.",
-    "Windows cache now includes selected Pluto bundle and guard-source inputs, with before-ready and before-launch rechecks; Windows execution is not yet verified."
+    "Windows cache now includes selected Pluto bundle and guard-source inputs, with before-ready and before-launch rechecks; Windows execution is not yet verified.",
+    "Three existing outer-tank NBT delegation changes from tested runtime794a, preserving all other current consumer bytes and storage transaction behavior."
   ],
   "pending": [
     {
@@ -54,7 +55,8 @@
     "Item-name removal/default ownership experiments",
     "Locale overlay repair and root-key experiments",
     "Terrain optimization/profile/reload experiments",
-    "Unexecuted Font generation query changes"
+    "Unexecuted Font generation query changes",
+    "Crafting stored-value admission candidate until actual types, registration and complete ownership contracts are verified"
   ],
   "evidence": {
     "latest_prior_full_probe": {
@@ -74,7 +76,9 @@
       "guide_source_merge": "8 pure source checks passed; both original whole files reconstruct exactly",
       "terrain_collector_source": "22 pure checks passed; no complete latest plan collected",
       "mining_source_adaptation": "16 pure source checks and complete selected-source inverse passed; exact ten input Git blobs checked against integration tree",
-      "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution"
+      "windows_cache_source": "12 pure checks and complete old PowerShell source inverse passed; no PowerShell/Windows execution",
+      "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
+      "crafting_candidate_source": "13 pure source checks; API6 and finite native16 tests never run"
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -148,6 +152,27 @@
       "source_checks": 12,
       "script_inverse_verified": true,
       "windows_executed": false
+    },
+    {
+      "subject": "Outer tank compound patch delegation",
+      "source": "b12a8d4b7fd22f76bb04323f3e2650fd6716de8a",
+      "historical_runtime": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
+      "historical_proof": "a09e0d48d9ddba4dd872a6837912f3da2783d539",
+      "historical_official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "production_paths": 2,
+      "hunks": 3,
+      "source_checks": 12,
+      "dependency_unchanged": true,
+      "latest_native_type_verified": false
+    },
+    {
+      "subject": "Crafting stored-value admission candidate",
+      "paths": 11,
+      "source_checks": 13,
+      "rust_executed": false,
+      "activation": "Excluded source only; no runtime file, registration, manifest or old hook changes",
+      "base": "e128d61478971e247b1e3e2e09516cf99652f9fc",
+      "remaining": "Independent source/API review, actual native/API tests, complete constructor bootstrap and separate Overslime/placement authorities"
     }
   ],
   "guide_limits": [

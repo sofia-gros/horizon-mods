@@ -15,6 +15,7 @@ This branch combines the current ordinary source work for review and a future pl
 - Guide lazy page text/query, stable BookId and modifier anchors from d9f8. The overlapping files preserve all PR #945 navigation injections, controls and history handling. Eight source checks and complete inverse reconstruction passed. This is not a new native/Font/UI result.
 - Mining context now uses one native BreakSpeed HEAD plus a Pluto borrowed-facts module. Both raw manifests explicitly target 41f; PR #945 policies remain unchanged. Sixteen pure adaptation checks passed; no latest complete native build is claimed.
 - Pluto bundle and guard inputs now participate in the Windows cache key, with rechecks before marking ready or launching. Twelve pure checks passed; the latest Windows launch contract is still pending.
+- Three existing outer-tank NBT delegation changes are included without reverting PR #945 storage migrations. Twelve source/inverse checks passed. The earlier 160-case proof used official624c and is not a latest Game/build result.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
 
 ## Remaining work
@@ -28,7 +29,7 @@ The cache input fix is included, but the old launch path still needs its latest-
 
 ## Explicitly not enabled
 
-Retained/owned Guide native-storage experiments; item-name/default ownership work; locale merge/root-key repair; terrain optimization/profile/reload experiments; unexecuted Font generation changes. Earlier isolated results are not whole-game proof.
+Retained/owned Guide native-storage experiments; item-name/default ownership work; locale merge/root-key repair; terrain optimization/profile/reload experiments; unexecuted Font generation changes; the new crafting stored-value admission candidate (source-only, not registered or installed). Earlier isolated results are not whole-game proof.
 
 Guide custom drawing still uses its own background fill, bypassing the latest native transparent-background hook. The legacy LAN response conflict is still open. Historical oracle scripts retain their original pins rather than claiming success on this branch.
 

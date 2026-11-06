@@ -1,0 +1,18 @@
+{
+  "published_files": [
+    "intake.py",
+    "intake.json",
+    "adoption.patch",
+    "README.md",
+    "source-validation.json",
+    "inputs.json"
+  ],
+  "schema": 1,
+  "source_sha256": {
+    "README.md": "2f27500746ea81fc44cdce31be4d30e4b02c521f7541f320511b3d49d5ca68be",
+    "adoption.patch": "9e0c8090a0cfe11f3a51efbee5b1413e8f277d8eeb66a4ff6d685c3e3816c0f3",
+    "intake.json": "0c9295150ff310f6f04d9f959429cd76797b4c6e7f36fc6ed403fe234ad8634d",
+    "intake.py": "1e8b421cd3116794e8d0e64b74fc5bc156b587c6652ffd1f4b754c030a03e734",
+    "source-validation.json": "2b83cbbf07a06e32fd559d0da20e75b74491c41b1515ee7ed2f324220f080f8f"
+  }
+}
