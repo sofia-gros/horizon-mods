@@ -117,6 +117,52 @@
       },
       "terminal_tests": 125,
       "identity_note": "The newly compiled 125-test binary, not the earlier v15 executable that used the same basename. Proof byte hashes match the remote receipt."
+    },
+    {
+      "executable": "pluto_java_hashmap_tests-2b6ca2cfb872c022",
+      "source_cutoff": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+      "remote_proof": "287934f03d25841ee7e6cd001316eedfd16efaef",
+      "original_sha256": "2d01c143e2238c4573e6551eddcbca457f4ac14ed407222095b9ef94531cc2ec",
+      "original_bytes": 1431336,
+      "archive": "completed-java-menu-consumer-pluto_java_hashmap_tests-2b6ca2cfb872c022-20261106.tar.gz",
+      "archive_bytes": 523233,
+      "archive_sha256": "824fbe577338e6f636a409540b665cdc570d75979cb0b9fbba7d5f06ad5d463f",
+      "receipt": "java-menu-consumer-executables-cleanup-20261106.json",
+      "receipt_sha256": "6ed9013610e4a13787799d9ff1f38947a34439a70128a07b8138ae82bcf83d90",
+      "payload_count": 9,
+      "initial_free_bytes": 10882461696,
+      "minimum_free_bytes": 10881937408,
+      "free_before_receipt": 10883371008,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 8,
+      "identity_note": "Current combined Java/menu proof binary; exact hash checked independently from earlier similarly named executables."
+    },
+    {
+      "executable": "tconstruct_builder_wire_tests-60344e2d53527a86",
+      "source_cutoff": "69c6b72b0b79b64317483bede6a2b2a689d5b83a",
+      "remote_proof": "287934f03d25841ee7e6cd001316eedfd16efaef",
+      "original_sha256": "47ef92234fca65609ca2b17efd27b76a503a4ed59f1dac85113456098dba0a48",
+      "original_bytes": 1285512,
+      "archive": "completed-java-menu-consumer-tconstruct_builder_wire_tests-60344e2d53527a86-20261106.tar.gz",
+      "archive_bytes": 483160,
+      "archive_sha256": "37e63e216d4b6c5944407b6e2ddb5c0363da4f270e61f6c711fc7f7b9971ccba",
+      "receipt": "java-menu-consumer-executables-cleanup-20261106.json",
+      "receipt_sha256": "6ed9013610e4a13787799d9ff1f38947a34439a70128a07b8138ae82bcf83d90",
+      "payload_count": 9,
+      "initial_free_bytes": 10883371008,
+      "minimum_free_bytes": 10882887680,
+      "free_before_receipt": 10884173824,
+      "final_idle": {
+        "native_processes": 0,
+        "active_handles_or_mappings": 0,
+        "unreadable_processes": 0
+      },
+      "terminal_tests": 11,
+      "identity_note": "Current combined Java/menu proof binary; exact hash checked independently from earlier similarly named executables."
     }
   ],
   "attributes_verified": [
@@ -151,7 +197,10 @@
     "last_two_used_normal_floor_plus_2MiB": true,
     "last_observed_after_api125_receipt": 10888355840,
     "api125_net_recovered_bytes": 3477504,
-    "api125_used_normal_floor_plus_2MiB": true
+    "api125_used_normal_floor_plus_2MiB": true,
+    "last_observed_after_consumer_receipt": 10884169728,
+    "consumer_net_recovered_bytes": 1708032,
+    "consumer_used_normal_floor_plus_2MiB": true
   },
   "limits": [
     "No new native build was authorized by this preservation work.",
