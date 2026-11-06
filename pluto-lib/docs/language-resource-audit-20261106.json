@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "status": "source-only audit; no implementation or native execution",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "mods_local_cutoff": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "mods_remote_equivalent": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+  "sources": [
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "sha256": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client-core/src/lang.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "sha256": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/client_lib.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/mods.rs",
+      "sha256": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/mods.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/packs.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/mod_content.rs",
+      "sha256": "8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/mod_content.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client-render/src/packs.rs",
+      "sha256": "c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client-render/src/packs.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-mods/src/content.rs",
+      "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-mods/src/content.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-mods/src/manifest.rs",
+      "sha256": "b4cf560d11c589ae65f17578867d6f4d97223f8ce4661d5eff433b8296f5930a",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-mods/src/manifest.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-mods/src/index/native.rs",
+      "sha256": "df8a1534ad599cdf7c220e4209bd0051d5e3e455bfd0f801c35e5de0072223f8",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-mods/src/index/native.rs"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "docs/native-mods.md",
+      "sha256": "b49ee716be3f22063c70d4e71769054610a093e677251b9bc2754761d552e693",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/docs/native-mods.md"
+    },
+    {
+      "repository": "horizon-rust/horizon",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "docs/modpacks.md",
+      "sha256": "4a7196c0b9701a94d1be1fe2bf77b8ab1eaab5d3dbeb960224c1231721567054",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/docs/modpacks.md"
+    },
+    {
+      "repository": "horizon-rust/horizon-mixins",
+      "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "path": "docs/crates-data-and-named-hooks.md",
+      "sha256": "fa701ad5635a9549768321fca4cd09cc58789560ba1de6db9d8a9d20c6e26a9b",
+      "url": "https://github.com/horizon-rust/horizon-mixins/blob/e8cd0aa38cffef49cb2e088ef716baa107148c02/docs/crates-data-and-named-hooks.md"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/README.md",
+      "sha256": "81284582ed50f6b0e59d1d602b1e86f4c327c76bc8c56e0e1f4efa404265bb34",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8715b1232c0fca133fe012f35830e2108e653d59/pluto-lib/README.md"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "pluto-lib/docs/native-installation.md",
+      "sha256": "c57be43ecf191a1c0733e1ca98f40d960fad1f041c5d1742995bab77c67e42b3",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8715b1232c0fca133fe012f35830e2108e653d59/pluto-lib/docs/native-installation.md"
+    },
+    {
+      "repository": "sofia-gros/horizon-mods",
+      "revision": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "path": "tconstruct/tools/package_hmod.py",
+      "sha256": "e68d5a63c1b60d5ebfe4f1d859960ef15bdd2c45541ee87ae50c944a9462fdc3",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8715b1232c0fca133fe012f35830e2108e653d59/tconstruct/tools/package_hmod.py"
+    }
+  ],
+  "facts": [
+    {
+      "id": "loader",
+      "location": "lang.rs:425-465",
+      "finding": "One native map: bundled source plus supplied sources, en_us then exact requested code; sorted namespace outer loop then source order. Later namespace can beat a higher-priority source in another namespace. No automatic translation-key prefix or regional fallback."
+    },
+    {
+      "id": "formats",
+      "location": "lang.rs:397-418; packs.rs:880-918",
+      "finding": "Native lookup requests only .json. Direct loader accepts strict string-object JSON or native lenient JSON; number/bool becomes text, first null/array/object stops that file. Pack layer merge parses strict JSON objects before native language load, so comments accepted by direct loader are not guaranteed through pack merge. No .toml language loader."
+    },
+    {
+      "id": "fallback",
+      "location": "lang.rs:451-466,581-605",
+      "finding": "Missing selected entry retains en_us, then get returns key / get_or returns supplied fallback. Missing/invalid sources can contribute nothing. deprecated.json first readable supplied source is applied after merge; removed/renamed keys can remove values. Unknown locale does not rewrite stored code to en_us."
+    },
+    {
+      "id": "availability",
+      "location": "lang.rs:484-522",
+      "finding": "pack.mcmeta language declarations are source-order overwrites. Non-en_us selection requires assets/minecraft/lang/<code>.json in some supplied source; namespace-only locale files do not meet this gate. Direct load can still request an exact code."
+    },
+    {
+      "id": "discovery",
+      "location": "manifest.rs:409-420; game/mods.rs:70-174",
+      "finding": "Sorted .hmod/folders, then explicit dev paths. Must be enabled or dev, registries capability, valid content and unique namespace. Duplicate mod id skipped. A rejected content mod is logged/left out; overlay failure falls back to base. Raw .hnmod is not a content package."
+    },
+    {
+      "id": "ownership",
+      "location": "content.rs:21-48,511-516,527-585,693-733",
+      "finding": "Content paths are bounded plain assets/data within owned namespaces, with limited tag/atlas exceptions. Two content mods owning one namespace conflict. Language keys inside different namespace files still share the one native map."
+    },
+    {
+      "id": "pack-priority",
+      "location": "game/packs.rs:60-70; packs.rs:620-724,880-918",
+      "finding": "Selected packs then server packs on top; filters remove lower files/stacks. Same-path language JSON layers merge keys bottom-up before Language::load sees the flattened root."
+    },
+    {
+      "id": "content-priority",
+      "location": "game/packs.rs:497-516; mod_content.rs:2461-2496",
+      "finding": "Content overlay is built after resource-pack overlay; ordinary mod language files use overlay.write, whole-file replacement, not per-key language merge. A pack translation at the same path may be replaced by the mod file. Do not promise Fabric-style resource-pack override semantics."
+    },
+    {
+      "id": "reload",
+      "location": "game/packs.rs:438-449,475-480,497-516; mod_content.rs:2711-2787",
+      "finding": "Staging builds current content root and loads current locale; apply rechecks chosen code, reloads if changed, sets official language and refreshes remote language. Completion hook fires after successful application, not initial startup or failed stages. Content overlay stamp caches by executable/base inputs and file size/mtime; no automatic language file watcher is shown."
+    },
+    {
+      "id": "packaging",
+      "location": "docs/native-mods.md:650-675; Mixins crates-data-and-named-hooks.md:125-135",
+      "finding": "Bundle data/ stages to native-data/<mod>, not assets. .hnmod source data is compiled in unless a post-build step creates runtime data; neither automatically registers translations. A combined .hmod may carry code plus horizon-mod.toml/assets/data."
+    },
+    {
+      "id": "tconstruct",
+      "location": "tconstruct/tools/package_hmod.py:96-113",
+      "finding": "Existing source imports original lang files only when output path is missing; tracked en_us content wins the whole path. This is consumer packaging policy, not Pluto language registration or tested live display."
+    },
+    {
+      "id": "pluto-boundary",
+      "location": "pluto-lib/README.md and docs/native-installation.md",
+      "finding": "Pluto owns reusable API/internal official adapter, not consumer assets or a new loader. A thin lookup facade can delegate to official lang/Text while consumer assets and keys stay in the consuming mod. No such new facade or bootstrap is implemented by this audit."
+    }
+  ],
+  "verification": {
+    "source_bytes_match_git": true,
+    "cargo_or_native_tests_run": false,
+    "screen_display_verified": false,
+    "packaging_executed": false
+  },
+  "next_validation_cases": [
+    "actual Language load: selected/en_us/key fallback and cross-namespace/source collision",
+    "actual Language available: declared locale with only custom namespace file remains unselectable",
+    "actual pack overlay then actual mod overlay: same lang path is replaced, not merged",
+    "strict pack merge versus direct lenient language loader malformed cases",
+    "actual selected-code change during staging and successful UI re-resolution, coordinated with Guide",
+    "real consuming package on selected official host, no missing-resource skip treated as success"
+  ],
+  "excluded": [
+    "new dictionary/locale registry",
+    "new contact event or authority",
+    "source-only example claimed as live API",
+    "official checkout edits",
+    "discarded Horizon fork",
+    "mod pack ordering change"
+  ]
+}
