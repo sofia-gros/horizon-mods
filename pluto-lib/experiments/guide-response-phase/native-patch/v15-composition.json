@@ -1,0 +1,197 @@
+{
+  "status": "SOURCE ONLY: separate unapplied v15-stage delta; no metadata, host typecheck, package proof or UI execution",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "ordinary_v15_runtime": "f5a83539525c26fd2142e26e43789a3dd0107033",
+  "stage_seal_sha256": "e16a3781aae1dea6d1a627f4bd28641469e16e822dae9704d0507a75a8d02428",
+  "stage_file_count": 5047,
+  "pristine_patch_sha256": "fe77790980cf115f674ec593ea4efce9f9a8c11bcbcefd3f21af0781f0be0628",
+  "pristine_generator_sha256": "971d2e32683e0ad5016e3c8d7fac9a7ff97fb68862715a580aa14695f7c42f97",
+  "helper_sha256": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971",
+  "input_sha256": {
+    "crates/horizon-client/src/game.rs": "e02eef2d2d72b5e01b6ef9efc46de5652f33270966b2fbbb91398035d4cb3fdb",
+    "crates/horizon-client/src/game/agent.rs": "c481b3e230c19e16d78c9c770d5ba5acb4d85fdc38340097db5efbf092a40cbd",
+    "crates/horizon-client/src/game/books.rs": "c18cb55c84f2191c333662bd02e4a34d522f145248b6f146dca0b8a5f8d001af",
+    "crates/horizon-client/src/game/control.rs": "c0c3898bff9e23cbb0831d88f5ca2fdc092de3383384e72f596980e0435b4c44",
+    "crates/horizon-client/src/game/debug_keys.rs": "d0a260b7fd3fd5ecf5875267c8c1f974d71000308bc272bf24018a567a925843",
+    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+    "crates/horizon-client/src/game/dispense_fixture.rs": "71d6fe960ab0f860afd5ae752f5516860ccb129e8eff75546c15e049ea9e94a3",
+    "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/native_hooks.rs": "8ab9ec2019ced787ead853b3e5c4c14913896fe698b48870c27075818285f8d9",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client/src/game/pad.rs": "86b3e007cf2f46c0a750b513977b580d37c64dce7a05db3644e78ebfa51a7b2d",
+    "crates/horizon-client/src/game/pad_menu.rs": "7cf888cede2a0b1e836cc1c24ca5b4481cf3d9a2800c574bad01879579e65d2a",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/saving.rs": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
+    "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
+    "crates/horizon-client/src/game/dialogs.rs": "a1ad3c70eb512740b731ce7b6dddf61ccba71f6dfdbe2fd1b7bae89830e18347"
+  },
+  "output_sha256": {
+    "crates/horizon-client/src/game.rs": "d100fc9c1fe22c8609cf13d48191c2815a1a3726bc9bcb3d12159b2b45bcb86b",
+    "crates/horizon-client/src/game/agent.rs": "c481b3e230c19e16d78c9c770d5ba5acb4d85fdc38340097db5efbf092a40cbd",
+    "crates/horizon-client/src/game/books.rs": "79243e5a4b610d5177d32ad74d7d0e3f85e0f0719f6f2de5dc72d25ae408753b",
+    "crates/horizon-client/src/game/control.rs": "c0c3898bff9e23cbb0831d88f5ca2fdc092de3383384e72f596980e0435b4c44",
+    "crates/horizon-client/src/game/debug_keys.rs": "d0a260b7fd3fd5ecf5875267c8c1f974d71000308bc272bf24018a567a925843",
+    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+    "crates/horizon-client/src/game/dispense_fixture.rs": "71d6fe960ab0f860afd5ae752f5516860ccb129e8eff75546c15e049ea9e94a3",
+    "crates/horizon-client/src/game/ime.rs": "79068b892b2e6c62463ad2ea524d7185216d8f2294061d645d841f372423ec18",
+    "crates/horizon-client/src/game/lan_actions.rs": "e4657d11e63588acfe25207326a55dada14921217ae695262db423f44fdf744d",
+    "crates/horizon-client/src/game/native_hooks.rs": "06199b3abe3d2e9d59dc53417f12b107a591d316499a147ef858cb7c3a23afbc",
+    "crates/horizon-client/src/game/native_machines.rs": "40ce1f2db7b276317cdf07f7b5e90907cb77fc7c58716f218129db71be08b8ae",
+    "crates/horizon-client/src/game/pad.rs": "86b3e007cf2f46c0a750b513977b580d37c64dce7a05db3644e78ebfa51a7b2d",
+    "crates/horizon-client/src/game/pad_menu.rs": "17b53d77e7579877dbcbc3182e1604e676611ac3e8fd67ae25eced43a798548c",
+    "crates/horizon-client/src/game/remote.rs": "0045d28a0cc8dc5e7c9e589a0b8be1796715e28b6f13a1c1d8e0532817413c82",
+    "crates/horizon-client/src/game/remote_chat.rs": "aa31eb37fcf3090c9aa9e7d3b75dc7d741bd84be6a6bffa270a6685d69a1af59",
+    "crates/horizon-client/src/game/saving.rs": "22c5f050d531706c1546156a5b14207f106aafd43c1694be41f0c80c37fea7eb",
+    "crates/horizon-client/src/game/sculk_fixture.rs": "677c8570b854b68d3f0588880d8071a900e8a142f52041372f006813f5059a1b",
+    "crates/horizon-client/src/game/ui_control.rs": "bb9ec00e7a4f69957196e3351e27997d6fbc49db306fa67b0482ad72fedfc698",
+    "crates/horizon-client/src/game/dialogs.rs": "a1ad3c70eb512740b731ce7b6dddf61ccba71f6dfdbe2fd1b7bae89830e18347",
+    "crates/horizon-client/src/game/retained_book.rs": "37a8a4520e3ee4442d915fdc886d57ed4dd4130f1730b423572eec222f106971"
+  },
+  "unchanged_appended_helper_tails": {
+    "crates/horizon-client/src/game.rs": "f1c93874f50cced72f08aec42548132e04cb5d82af5014b9b0512c46be9b8458",
+    "crates/horizon-client/src/game/books.rs": "4b74eb89fd9f6db0d6a8195c8b5840836c9e77fde2465aced90da8f0f91cf024"
+  },
+  "patch_sha256": "5e4b4afaf7ac1b6a0f9d3498cb3089371cff5a68ee2d9f04c5c3f8c4c222ea9b",
+  "rewrites": [
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "before": "mod books;\n",
+      "after": "mod books;\nmod retained_book;\n",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "before": "    book: Option<books::BookScreen>,",
+      "after": "    book: retained_book::RetainedBook<books::BookScreen>,",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "before": "            book: None,",
+      "after": "            book: retained_book::RetainedBook::default(),",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "kind": "actual-player-assignment",
+      "count": 3
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "kind": "actual-remote-take",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "before": "self.book = Some(screen);",
+      "after": "self.book.set(Some(screen));",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "before": "self.book = None;",
+      "after": "self.book.set(None);",
+      "count": 2
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "before": "match &self.book",
+      "after": "match self.book.as_ref()",
+      "count": 3
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "before": "let Some(book) = &self.book",
+      "after": "let Some(book) = self.book.as_ref()",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "before": "matches!(self.book,",
+      "after": "matches!(self.book.as_ref(),",
+      "count": 4
+    },
+    {
+      "file": "crates/horizon-client/src/game/pad_menu.rs",
+      "before": "matches!(self.book,",
+      "after": "matches!(self.book.as_ref(),",
+      "count": 2
+    },
+    {
+      "file": "crates/horizon-client/src/game/ime.rs",
+      "before": "matches!(self.book,",
+      "after": "matches!(self.book.as_ref(),",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "before": "match &self.book",
+      "after": "match self.book.as_ref()",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_machines.rs",
+      "before": "self.book = book;",
+      "after": "self.book.set(book);",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote_chat.rs",
+      "before": "=> self.book = Some(*book),",
+      "after": "=> self.book.set(Some(*book)),",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/lan_actions.rs",
+      "before": "std::mem::replace(&mut self.book, host_book)",
+      "after": "self.book.replace(host_book)",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "before": "self.book = None;",
+      "after": "self.book.set(None);",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "before": "        self.remote = Some(Remote {",
+      "after": "        self.book.invalidate_attachment();\n        self.remote = Some(Remote {",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "kind": "actual-player-assignment",
+      "count": 5
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "kind": "actual-remote-take",
+      "count": 1
+    },
+    {
+      "file": "crates/horizon-client/src/game/saving.rs",
+      "kind": "actual-remote-take",
+      "count": 1
+    }
+  ],
+  "changed_files": [
+    "crates/horizon-client/src/game.rs",
+    "crates/horizon-client/src/game/books.rs",
+    "crates/horizon-client/src/game/ime.rs",
+    "crates/horizon-client/src/game/lan_actions.rs",
+    "crates/horizon-client/src/game/native_hooks.rs",
+    "crates/horizon-client/src/game/native_machines.rs",
+    "crates/horizon-client/src/game/pad_menu.rs",
+    "crates/horizon-client/src/game/remote.rs",
+    "crates/horizon-client/src/game/remote_chat.rs",
+    "crates/horizon-client/src/game/saving.rs",
+    "crates/horizon-client/src/game/retained_book.rs"
+  ],
+  "stage_unchanged_before_after": true,
+  "ordinary_guards_unchanged": true
+}

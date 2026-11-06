@@ -113,6 +113,23 @@ renderer or LAN behavior was executed. The patch remains excluded and unapplied.
 No approved full Client/renderer resource environment has been established.
 The existing ordinary library proof and PR #945 navigation proof remain separate.
 
+## Prepared actual-typecheck and composition gates
+
+[typecheck-plan.md](typecheck-plan.md) separates a pristine official-only
+Game typecheck from a later ordinary-library composition experiment. Both are
+pending metadata, capacity and serial-run approval; no host copy or check has
+run. Pristine and v15 dependency graphs differ, so cache reuse is not assumed.
+
+The optional `stage_composition.py` research tool reads the exact sealed v15
+stage without modifying it. It verifies all 5,047 files before and after,
+preserves complete appended Pluto helper tails, and emits only the excluded
+`v15-composition.patch`/JSON in this MOD experiment. It explicitly handles the
+four single-line matches produced by Mixins formatting; the pristine prototype
+and generator remain unchanged. Six new source-only regressions pass, alongside
+the seven pristine-source and eight package-exclusion regressions. These are
+not actual Rust Game typechecks, native application or lifecycle tests. Neither
+candidate changes the installed guards or existing TConstruct LAN behavior.
+
 ## Attribution
 
 Patch context is from the official Horizon revision named above, copyright
