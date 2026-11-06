@@ -1,0 +1,648 @@
+{
+  "status": "passed_old_official_isolated_candidate_only",
+  "run_id": 42199466869,
+  "job_id": 127830874408,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42199466869",
+  "source": "37f0977a8bc6348b7735bc8818294143501716ab",
+  "previous_failed_run": 42196270581,
+  "conclusion": "success",
+  "verified_console_names": [
+    "codec_tests::bundle_children_use_actual_native_template_codec",
+    "codec_tests::callback_panic_does_not_poison_later_native_conversion",
+    "codec_tests::canonical_root_removal_wins_without_mutating_input",
+    "codec_tests::charged_children_use_actual_native_template_codec",
+    "codec_tests::container_children_preserve_native_raw_container_encoding",
+    "codec_tests::duplicate_and_contradictory_removals_have_one_canonical_name_removal",
+    "codec_tests::editing_native_baseline_selects_a_distinct_canonical_proposal",
+    "codec_tests::explicit_custom_name_remains_independent_from_removed_item_name",
+    "codec_tests::mixed_nested_entries_run_each_native_body_once_in_order",
+    "codec_tests::nested_callback_panic_unwinds_all_entry_scopes",
+    "codec_tests::no_marker_matches_unchanged_native_send",
+    "codec_tests::no_removal_matches_unchanged_native_receive",
+    "codec_tests::none_retains_native_no_callback_behavior",
+    "codec_tests::ordinary_slot_codec_also_carries_explicit_removal",
+    "codec_tests::parallel_native_conversions_keep_entry_state_thread_local",
+    "codec_tests::receive_removal_precedes_native_wire_baseline",
+    "codec_tests::unrelated_custom_data_and_source_patch_are_not_mutated",
+    "codec_tests::usable_raw_patch_and_count_only_echo_keep_original_wire",
+    "guest::pluto_name_entry_gate::tests::concurrent_threads_do_not_share_or_leave_pending_state",
+    "guest::pluto_name_entry_gate::tests::duplicate_arm_never_invokes_second_callback",
+    "guest::pluto_name_entry_gate::tests::immediate_entry_consumes_once_before_body_callbacks",
+    "guest::pluto_name_entry_gate::tests::nested_entries_are_independent_after_parent_consumption",
+    "guest::pluto_name_entry_gate::tests::nested_panic_after_consumption_clears_both_scopes",
+    "guest::pluto_name_entry_gate::tests::panic_before_consumption_clears_pending_state",
+    "guest::pluto_name_entry_gate::tests::return_without_entry_clears_pending_state",
+    "guest::pluto_name_entry_gate::tests::unarmed_entry_has_no_bypass",
+    "pluto_name_removal::tests::explicit_removal_wins_and_repeated_removals_are_idempotent",
+    "pluto_name_removal::tests::no_removal_preserves_none_and_owned_values",
+    "pluto_name_removal::tests::removal_preserves_unrelated_raw_tags_and_invalid_utf16_keys",
+    "pluto_name_removal::tests::removal_without_added_components_becomes_explicit",
+    "pluto_name_removal::tests::unexpected_noncompound_is_preserved_not_guessed",
+    "pluto_name_removal::tests::unrelated_removal_does_not_materialize_name_state"
+  ],
+  "final_receipt": {
+    "error": null,
+    "fixture_seal_sha256": "8af296f5766ede131e17a8bdd6b79d7b7ae9837f07ba0dcbc92033755d3dcc7e",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "applied_regions": {
+        "fragments": [
+          {
+            "boundaries": [
+              "fn network_explosion(",
+              "/// `Player.isWithinBlockInteractionRange`"
+            ],
+            "destination": "guest.rs",
+            "sha256": "0d3f53f727e01bb8675de6f9450d186714838c2abe6d9871c0b05afc676c1fe8",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/stage/crates/horizon-client/src/lan/guest.rs"
+          },
+          {
+            "boundaries": [
+              "use crate::items::ItemStack;",
+              "#[cfg(test)]\nmod tests"
+            ],
+            "destination": "item_sync.rs",
+            "sha256": "55f029947e43045557238baa126e678b1d45438713ce095988fd4fa83b3af5c2",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/stage/crates/horizon-client/src/item_sync.rs"
+          },
+          {
+            "boundaries": [
+              "fn network_explosion(",
+              "/// `Player.isWithinBlockInteractionRange`"
+            ],
+            "destination": "native_guest.rs",
+            "sha256": "749e910a75f326826fab2a0d7f352dd7a6bc505060b60c2c3c13b27104448bc2",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-client/src/lan/guest.rs"
+          },
+          {
+            "boundaries": [
+              "use crate::items::ItemStack;",
+              "#[cfg(test)]\nmod tests"
+            ],
+            "destination": "native_item_sync.rs",
+            "sha256": "b064ef81473c0912dba837a51d12252759da1196ad257f8cb2d6399ab5477e5e",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-client/src/item_sync.rs"
+          },
+          {
+            "boundaries": [
+              "final pluto_name_removal module"
+            ],
+            "destination": "name_module.rs",
+            "sha256": "763a872b25f9abd02f638e112759a89989690770ca98fd0fa734c5799e12ad2f",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/stage/crates/horizon-client/src/client_lib.rs"
+          },
+          {
+            "boundaries": [
+              "pub const DYES:",
+              "fn dye_prefix("
+            ],
+            "destination": "dyes.rs",
+            "sha256": "5d627ac87c134073adbf8a1083712062f9fe3b410799198377ef01c8176afe61",
+            "source": "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-client-render/src/block_entity_render.rs"
+          }
+        ],
+        "modified_files": [
+          "crates/horizon-client/src/client_lib.rs",
+          "crates/horizon-client/src/item_sync.rs",
+          "crates/horizon-client/src/lan/guest.rs"
+        ],
+        "passed": true
+      },
+      "apply": {
+        "passed": true,
+        "stage_seal_sha256": "cb400b1279b2b99992e5cfac7d3f63aa8b50cd3090f6b5eb17a093df018d65ad"
+      },
+      "entry_models": {
+        "names": [
+          "guest::pluto_name_entry_gate::tests::unarmed_entry_has_no_bypass",
+          "guest::pluto_name_entry_gate::tests::immediate_entry_consumes_once_before_body_callbacks",
+          "guest::pluto_name_entry_gate::tests::nested_entries_are_independent_after_parent_consumption",
+          "guest::pluto_name_entry_gate::tests::duplicate_arm_never_invokes_second_callback",
+          "guest::pluto_name_entry_gate::tests::return_without_entry_clears_pending_state",
+          "guest::pluto_name_entry_gate::tests::panic_before_consumption_clears_pending_state",
+          "guest::pluto_name_entry_gate::tests::nested_panic_after_consumption_clears_both_scopes",
+          "guest::pluto_name_entry_gate::tests::concurrent_threads_do_not_share_or_leave_pending_state"
+        ],
+        "passed": true,
+        "tests": 8
+      },
+      "exclusive_guard": {
+        "passed": true,
+        "scope": "three targets plus all guest/receive extensions reserved"
+      },
+      "guard_checks": {
+        "passed": true,
+        "tests": 12
+      },
+      "metadata": {
+        "dependencies_sha256": "df9dffb35b702449f22f1b165a21e0760d8020cfa940d38adeac6c868ad94403",
+        "lock_sha256": "d021d785c0df4864d191e47af3942910f7619f7f4739349b717797870e0e8389",
+        "passed": true
+      },
+      "mixins_compile": {
+        "compilers": [
+          {
+            "crate": "horizon_mixins",
+            "invocation_sha256": "12baa104e21e9a8543cc8a3190f2a9cd8e27b48f47d4fee3923bdbea49685e97",
+            "source": [
+              "crates/horizon-mixins-cli/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "passed": true
+      },
+      "native_codec": {
+        "names": [
+          "codec_tests::receive_removal_precedes_native_wire_baseline",
+          "codec_tests::canonical_root_removal_wins_without_mutating_input",
+          "codec_tests::no_marker_matches_unchanged_native_send",
+          "codec_tests::no_removal_matches_unchanged_native_receive",
+          "codec_tests::charged_children_use_actual_native_template_codec",
+          "codec_tests::bundle_children_use_actual_native_template_codec",
+          "codec_tests::container_children_preserve_native_raw_container_encoding",
+          "codec_tests::mixed_nested_entries_run_each_native_body_once_in_order",
+          "codec_tests::unrelated_custom_data_and_source_patch_are_not_mutated",
+          "codec_tests::usable_raw_patch_and_count_only_echo_keep_original_wire",
+          "codec_tests::editing_native_baseline_selects_a_distinct_canonical_proposal",
+          "codec_tests::callback_panic_does_not_poison_later_native_conversion",
+          "codec_tests::nested_callback_panic_unwinds_all_entry_scopes",
+          "codec_tests::parallel_native_conversions_keep_entry_state_thread_local",
+          "codec_tests::none_retains_native_no_callback_behavior",
+          "codec_tests::duplicate_and_contradictory_removals_have_one_canonical_name_removal",
+          "codec_tests::explicit_custom_name_remains_independent_from_removed_item_name",
+          "codec_tests::ordinary_slot_codec_also_carries_explicit_removal"
+        ],
+        "passed": true,
+        "tests": 18
+      },
+      "native_compile": {
+        "compilers": [
+          {
+            "crate": "horizon_core",
+            "invocation_sha256": "679c82a7dfe318ea7edea02a4cbbf0dfad85d3f563f1539a8d0c454d206d09d2",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-core/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client_core",
+            "invocation_sha256": "ae5b8297fb748696576b58b3807b21403c59f578d8a3deaf47da0bea41112d59",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-client-core/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_items",
+            "invocation_sha256": "11e608f2c1c0e8990b86c48b748be6c8d439d3ff2cf2dc8b81a2eaf20a20612a",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-items/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_protocol",
+            "invocation_sha256": "f1fd29dda26f8f58666c214ee82eaccb206c1ed46cda5e3b76b6990fd5572c72",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-protocol/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_world",
+            "invocation_sha256": "b0f34d4dd863332ea8f88048845662346aad7e8451f68f53710e2886a368f473",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-world/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "pluto_item_name_removal_tests",
+            "invocation_sha256": "6a13f23f58701b9ed5ee85019ba0ebfa7b195a4c538781402685712943556abc",
+            "source": [
+              "lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "passed": true,
+        "test_executable_sha256": "02e4a696f1e3a0c0efcf6e7a16ceaa222ff9278debfa9eb9007df995eec33536"
+      },
+      "official_sources": {
+        "passed": true,
+        "pins": {
+          "horizon": {
+            "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+            "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock_sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        }
+      },
+      "owned_tag": {
+        "names": [
+          "pluto_name_removal::tests::no_removal_preserves_none_and_owned_values",
+          "pluto_name_removal::tests::removal_without_added_components_becomes_explicit",
+          "pluto_name_removal::tests::removal_preserves_unrelated_raw_tags_and_invalid_utf16_keys",
+          "pluto_name_removal::tests::explicit_removal_wins_and_repeated_removals_are_idempotent",
+          "pluto_name_removal::tests::unrelated_removal_does_not_materialize_name_state",
+          "pluto_name_removal::tests::unexpected_noncompound_is_preserved_not_guessed"
+        ],
+        "passed": true,
+        "tests": 6
+      },
+      "plan": {
+        "cli_sha256": "959446f5dd7f76ad244a0e94200cb49593976cf86669516e1bf0f32c9d1172f6",
+        "counts": {
+          "bridges": 0,
+          "crates": 0,
+          "data": 0,
+          "injections": 3,
+          "modules": 2,
+          "post_build": 0,
+          "states": 0
+        },
+        "passed": true,
+        "sha256": "ae7a27d14dcab8945deaea08a201cf10bfe4d09569907730f1cb1bfc1c349b04"
+      },
+      "preparer_checks": {
+        "passed": true,
+        "tests": 8
+      },
+      "runner": {
+        "passed": true,
+        "tests": 23
+      },
+      "test_inventory": {
+        "names": [
+          "codec_tests::bundle_children_use_actual_native_template_codec",
+          "codec_tests::callback_panic_does_not_poison_later_native_conversion",
+          "codec_tests::canonical_root_removal_wins_without_mutating_input",
+          "codec_tests::charged_children_use_actual_native_template_codec",
+          "codec_tests::container_children_preserve_native_raw_container_encoding",
+          "codec_tests::duplicate_and_contradictory_removals_have_one_canonical_name_removal",
+          "codec_tests::editing_native_baseline_selects_a_distinct_canonical_proposal",
+          "codec_tests::explicit_custom_name_remains_independent_from_removed_item_name",
+          "codec_tests::mixed_nested_entries_run_each_native_body_once_in_order",
+          "codec_tests::nested_callback_panic_unwinds_all_entry_scopes",
+          "codec_tests::no_marker_matches_unchanged_native_send",
+          "codec_tests::no_removal_matches_unchanged_native_receive",
+          "codec_tests::none_retains_native_no_callback_behavior",
+          "codec_tests::ordinary_slot_codec_also_carries_explicit_removal",
+          "codec_tests::parallel_native_conversions_keep_entry_state_thread_local",
+          "codec_tests::receive_removal_precedes_native_wire_baseline",
+          "codec_tests::unrelated_custom_data_and_source_patch_are_not_mutated",
+          "codec_tests::usable_raw_patch_and_count_only_echo_keep_original_wire",
+          "guest::pluto_name_entry_gate::tests::concurrent_threads_do_not_share_or_leave_pending_state",
+          "guest::pluto_name_entry_gate::tests::duplicate_arm_never_invokes_second_callback",
+          "guest::pluto_name_entry_gate::tests::immediate_entry_consumes_once_before_body_callbacks",
+          "guest::pluto_name_entry_gate::tests::nested_entries_are_independent_after_parent_consumption",
+          "guest::pluto_name_entry_gate::tests::nested_panic_after_consumption_clears_both_scopes",
+          "guest::pluto_name_entry_gate::tests::panic_before_consumption_clears_pending_state",
+          "guest::pluto_name_entry_gate::tests::return_without_entry_clears_pending_state",
+          "guest::pluto_name_entry_gate::tests::unarmed_entry_has_no_bypass",
+          "pluto_name_removal::tests::explicit_removal_wins_and_repeated_removals_are_idempotent",
+          "pluto_name_removal::tests::no_removal_preserves_none_and_owned_values",
+          "pluto_name_removal::tests::removal_preserves_unrelated_raw_tags_and_invalid_utf16_keys",
+          "pluto_name_removal::tests::removal_without_added_components_becomes_explicit",
+          "pluto_name_removal::tests::unexpected_noncompound_is_preserved_not_guessed",
+          "pluto_name_removal::tests::unrelated_removal_does_not_materialize_name_state"
+        ],
+        "passed": true,
+        "tests": 32
+      }
+    },
+    "generated_output_seal_sha256": "6a8d0e194fc1816987c0e5783ca7c0ce710a2cd86215100268f6ed55fd00c4a9",
+    "head": "37f0977a8bc6348b7735bc8818294143501716ab",
+    "minimum_free_bytes": 89400225792,
+    "official_checkout_seals": {
+      "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git": "a8eeccb44e97655a0e8bdfcf378fedaf4b97d4d5a4bbf9a2050a96fd62139f6e",
+      "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/mixins-git": "174c7135030b7f3d7364678a92275009fa0512ce452c4c9b399f6c40211581de"
+    },
+    "passed": true,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 2926,
+        "raw_sha256": "ddf943582e5f40c06d2c4571f7c1d6561949c380c6ef3915efb634cac84764df",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "guard_checks",
+        "raw_bytes": 1457,
+        "raw_sha256": "dc7459ddc3cf23b44c570306cc6396d8907cb58018a56ef196afd49c443e7a80",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "preparer_checks",
+        "raw_bytes": 1228,
+        "raw_sha256": "b7bc7558bda7e6528120815b49bfac2ef74a99a37dbbe0383a073ada0c97fde6",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+        "seconds": 8.023
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 723,
+        "raw_sha256": "ea37e5020ad92d82115f5de06ce9b79fbd1687b214e75a95b548fcf1485bd99a",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "0ef9ed9187f851ecca4cda971ec66d37f7249742deb2fc7289a2668bbcf30d41",
+        "seconds": 4.412
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 89,
+        "raw_sha256": "0d9961e7e031412d079f7b7ffa1cf412ada3f1440ee01bd9c2f6c6011a051c4b",
+        "seconds": 0.603
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.605
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-locked-fetch",
+        "raw_bytes": 15993,
+        "raw_sha256": "d1cdef3dd25df7b75555edd32041bad13648115549ffd9241e29ef9989b6c63b",
+        "seconds": 5.217
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 722,
+        "raw_sha256": "21e526b73856606223f25f68869053a44a9cb2e56d34e144fdc2d8ffda7a2568",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "46a3acfd7e87f0064127d1e269a4b136861d8c1b27609da1093b39edb1fedbc7",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 98,
+        "raw_sha256": "3c31bc675aaba31de4e14000d71e185be8792b43943bc4d4ed9a55ac2df21963",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-locked-fetch",
+        "raw_bytes": 1207,
+        "raw_sha256": "fb89689e5cb81cfa58acadf98f1c6e50ae3181ff862fee555de5930ebf06ca26",
+        "seconds": 0.804
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_mixins",
+            "invocation_sha256": "12baa104e21e9a8543cc8a3190f2a9cd8e27b48f47d4fee3923bdbea49685e97",
+            "source": [
+              "crates/horizon-mixins-cli/src/main.rs"
+            ],
+            "test": false
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-build",
+        "raw_bytes": 292313,
+        "raw_sha256": "d5a7913c253464412e03e48e8f7f81d0fdc0e88f723dd86a1155c7ec63341193",
+        "seconds": 147.007
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "actual-plan",
+        "raw_bytes": 266,
+        "raw_sha256": "f2a34e27cd4fedeb701e8396c9d4ce68381bd08af0346ddffe68f90062f8b4d2",
+        "seconds": 7.02
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "exclusive-guard",
+        "raw_bytes": 87,
+        "raw_sha256": "aa1d28e22d9554fdc5e91f4353bbd977158357f9b7c7233706bb25c69439e12d",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "actual-apply",
+        "raw_bytes": 329,
+        "raw_sha256": "96e41b4cc8f2689cbf00c08a4c673e4393030175060a87c9c5d268940c2fec13",
+        "seconds": 7.423
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "prepare-applied-regions",
+        "raw_bytes": 60,
+        "raw_sha256": "eeac9b49924c0c942eb210be6508174b162e2a4b27af1255c6244ed77b32178f",
+        "seconds": 1.004
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "metadata-resolve",
+        "raw_bytes": 59,
+        "raw_sha256": "45713c79d76dc3890b3f2e5a054a3a38fe394a99c6cf631493bfb9d0401b4b7a",
+        "seconds": 1.806
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "verify-before",
+        "raw_bytes": 59,
+        "raw_sha256": "45713c79d76dc3890b3f2e5a054a3a38fe394a99c6cf631493bfb9d0401b4b7a",
+        "seconds": 1.004
+      },
+      {
+        "compilers": [
+          {
+            "crate": "horizon_core",
+            "invocation_sha256": "679c82a7dfe318ea7edea02a4cbbf0dfad85d3f563f1539a8d0c454d206d09d2",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-core/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_world",
+            "invocation_sha256": "b0f34d4dd863332ea8f88048845662346aad7e8451f68f53710e2886a368f473",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-world/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_client_core",
+            "invocation_sha256": "ae5b8297fb748696576b58b3807b21403c59f578d8a3deaf47da0bea41112d59",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-client-core/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_protocol",
+            "invocation_sha256": "f1fd29dda26f8f58666c214ee82eaccb206c1ed46cda5e3b76b6990fd5572c72",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-protocol/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "horizon_items",
+            "invocation_sha256": "11e608f2c1c0e8990b86c48b748be6c8d439d3ff2cf2dc8b81a2eaf20a20612a",
+            "source": [
+              "/home/runner/work/_temp/item-name-removal-37f0977a8bc6348b7735bc8818294143501716ab/horizon-git/crates/horizon-items/src/lib.rs"
+            ],
+            "test": false
+          },
+          {
+            "crate": "pluto_item_name_removal_tests",
+            "invocation_sha256": "6a13f23f58701b9ed5ee85019ba0ebfa7b195a4c538781402685712943556abc",
+            "source": [
+              "lib.rs"
+            ],
+            "test": true
+          }
+        ],
+        "error": null,
+        "exit_code": 0,
+        "name": "native-codec-compile",
+        "raw_bytes": 295948,
+        "raw_sha256": "d4d8d0c860c1e74375520dd0b6ebe07d95c0e8d38d0fabbb36ba5f3d68008117",
+        "seconds": 50.541
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "native-inventory",
+        "raw_bytes": 2542,
+        "raw_sha256": "5e998df7f743bbf3d205d155dc21ce54b6e95eee84e2ea24f7ba34b7ab6b03b1",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "native32",
+        "raw_bytes": 2825,
+        "raw_sha256": "1a94c530715f8beeaf32c1aa058b198c156b17823b5fdf4924d1f8383016af76",
+        "seconds": 0.202
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "verify-after",
+        "raw_bytes": 59,
+        "raw_sha256": "45713c79d76dc3890b3f2e5a054a3a38fe394a99c6cf631493bfb9d0401b4b7a",
+        "seconds": 1.004
+      }
+    ],
+    "scope": "Excluded candidate only: actual official plan/exclusive guard/apply, actual applied regions and codec32. Not installed common package, Game, LAN delivery, default ownership, universal TLS/depth safety or gameplay.",
+    "source_seal_sha256": "2d2e56526f6f09852cc194fc2207ea884446a9e140dbf1acff57ae5a06cba757",
+    "stage_seal_sha256": "cb400b1279b2b99992e5cfac7d3f63aa8b50cd3090f6b5eb17a093df018d65ad",
+    "verified": true
+  },
+  "limits": [
+    "This is Horizon 624c4f6265c02296fbe8a80f029dd0d987fb94c0 / Mixins e8cd0aa38cffef49cb2e088ef716baa107148c02 only.",
+    "Latest official f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd / 5a64af938ec86b00d53d16a408aabc0038fb3e57 was not exercised.",
+    "No ordinary package activation, original TConstruct coexistence, Game/LAN delivery, complete default-component owner, universal TLS/depth safety or gameplay proof.",
+    "The full ephemeral phase logs are not recoverable from their hashes. The fetched GitHub console log and FINAL_RECEIPT were checked; exact console log digest is recorded below."
+  ],
+  "console_log": {
+    "bytes": 53152,
+    "sha256": "d372162966953c9913f08003353a36c9e698f53f2f02df3b2b959c113b6e01e1",
+    "source": "GitHub job logs endpoint, fetched after terminal"
+  }
+}
