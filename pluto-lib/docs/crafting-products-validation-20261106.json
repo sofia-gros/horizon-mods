@@ -208,9 +208,49 @@
     "api-result.log": "a57b1dc12e2316ea9aa1e9587753102b55dbc9af20a5d4d98a064138be97e7ce"
   },
   "initial_failure": "14/15. Fabricated ominous flag without canonical layers failed original codec eligibility before later conditional-component expectation. Test-only correction retains that rejection and decodes a separate canonical test input. Runtime bytes unchanged.",
-  "scope": "Explicit synchronous preparation only. No automatic output/remainder hooks, live inventory consumption, TConstruct production activation, full package apply/type check or multiplayer proof. Existing matching and placement composition guards passed on this feature package plan.",
+  "scope": "Explicit synchronous preparation only. No automatic output/remainder hooks, live inventory consumption, TConstruct production activation, multiplayer proof. Complete central library apply/type check is separately recorded below. Existing matching and placement composition guards passed on this feature package plan.",
   "pending": [
-    "central complete native package apply and lib/bin check",
-    "separately authorized authoritative consumer integration"
-  ]
+    "authoritative automatic pair-consumption design and validation",
+    "separately authorized consumer production activation"
+  ],
+  "central_complete_gate": {
+    "cutoff": {
+      "mod_head": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+      "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "archive_sha256": "80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2",
+      "stage_path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+      "scope": "Complete ordinary Pluto library with bounded terrain-cell adapter, synchronous product/remainder staging and native Font layout facts. No registered custom renderer, automatic crafting pair consumption or guide transport activation; consumer helper proofs remain separate.",
+      "counts": {
+        "crate": 2,
+        "module": 66,
+        "injection": 34,
+        "state": 3
+      },
+      "preflight_groups": 12,
+      "publication_snapshot": "43411ddb6e5be857db96740150319a7c2e83eed1"
+    },
+    "result": {
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 10897825792
+    },
+    "source_tests": {
+      "python_total": 210,
+      "included_inventory_api_tests": 122,
+      "included_fluid_api_tests": 43,
+      "counts_overlap": true
+    },
+    "sealed_stage_files": 5046,
+    "host_check_seconds": 64,
+    "source_archive_identity": "All three product runtime files independently compared byte-for-byte with the exact archive; archive SHA-256 verified.",
+    "log_sha256": {
+      "plan.log": "27024506b1ae368d1d5c355672c142dfe3257a19993eb99112d55f153da6ead1",
+      "native-preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+      "apply.log": "7a56c4c521db8ab522f289fc693e9cb0e3621f8ad26d7370e49f7fb2e607f506",
+      "host-check.log": "1a79899dcf7829678e5f059873569a4a2b4ce68c7a2861d5ac74a3d8637c143b",
+      "api-source-tests.log": "50a11e9daa09904bf21e8eb27c56e9b6eb9c7532322b597412338925ad6939fb"
+    },
+    "scope": "Complete ordinary library only. No automatic pair consumption or production TConstruct provider. Does not upgrade the earlier feature fixture to gameplay proof."
+  }
 }

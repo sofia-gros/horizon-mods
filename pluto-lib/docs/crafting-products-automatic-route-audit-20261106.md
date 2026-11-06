@@ -97,7 +97,12 @@ This Menu candidate still does not cover local direct result clicks or Crafter
 world publication. Those need separate authority-owned derive-and-consume
 adapters that carry one owned pair through their complete original operation.
 Replacing broad native bodies without proof is not a small shared hook and is
-not enabled by this audit. Standard map postprocessing, output allocation,
+not enabled by this audit. In particular, `Game::give` mutates inventory and
+offhand and can return a leftover; it is not a pure allocation check. The legacy
+slot-200 shift fallback checks that leftover before consuming inputs. This
+audit has not proved that fallback reachable when the ordinary QuickMove route
+is handled by Menu, so it does not claim a live duplication bug. A new adapter
+must stage allocation honestly rather than copy that call as an atomic test. Standard map postprocessing, output allocation,
 remaining-item merge/drop rules and native event order must remain explicit.
 
 ## Next evidence gates

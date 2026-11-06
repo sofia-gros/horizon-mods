@@ -58,12 +58,30 @@ correction asserts that rejection, constructs a separate canonical test input
 through official decode, then checks conditional fields. All 15 then passed.
 No rejection or runtime code was weakened. The initial failed log is retained.
 
+## Complete ordinary-library gate closed
+
+The central grouped v14 source `b19b35a10b96e398ca8dabcb46b200d88950edaf`
+(verified publication snapshot `43411ddb6e5be857db96740150319a7c2e83eed1`)
+passed complete package plan, all 12 mandatory guard groups, apply and official
+client library + binary check. Archive SHA-256:
+`80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`.
+All three product runtime files were independently compared with that archive
+and remain byte-identical to 54037209. The archive hash and terminal logs were
+checked, rather than inferring this gate from the earlier focused fixture.
+
+This combined cutoff has two crates, 66 modules, 34 hooks and three states;
+5,046 generated stage files were sealed. The source suite passed 210 Python
+cases, including real 122 inventory-API and 43 fluid-API tests. These included
+counts overlap and must not be added to 210. The cached client library/binary
+check finished in 64 seconds. Minimum free space was 10,897,825,792 bytes, with
+no guard stop. Proof root: central `.work/plutolib-foundation-proof/grouped-v14`.
+
 ## Not established
 
-This is not a complete current-library apply/lib/bin proof; that gate remains
-with the central grouped integration. The feature package is smaller than the
-current central foundation and its old proof must not be substituted for the
-new combined package. No production TConstruct consumer is activated.
+The new gate validates the ordinary library's native shell and types. It does
+not install an automatic crafting provider, run native Menu/Crafter product
+consumption, or activate production TConstruct. The separate automatic-route
+research and inert probes are not part of this library gate.
 
 Exact native Input and real Items/ItemStack/codecs are used. Inherited fixture
 special endpoints and wrappers are modeled and do not establish automatic
