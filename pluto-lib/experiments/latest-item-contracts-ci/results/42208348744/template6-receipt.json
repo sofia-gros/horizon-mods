@@ -1,0 +1,99 @@
+{
+  "gates": {
+    "template6_compile": {
+      "binary_sha256": "ede13b2988a32aa5f913a1870308f2c871ec4536ae2570e89353487d7e6620ab",
+      "compilers": [
+        {
+          "crate": "pluto_latest_template_tests",
+          "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "other_native_compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "525be279dfc393f0236f30055531cb0b7e4e9ffff3522da7ade84ab832951207",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "d7f31511a113ed1629ba79a1eaab89949a133b9c9a2a588db4185018a2b27bec",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "0b0bf52cc2496660160753c0e0d11266bd2073389687b1c9e916bd7dbf68d8e9",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "d95cdd0c34e6a0fa8faaa450110a8629c3423ed03e5dad944f238786edc880e3",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "pluto_latest_template_tests",
+          "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "passed": true
+    },
+    "template6_inventory": {
+      "names": [
+        "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+        "tests::explicit_zero_is_not_recoverable_from_created_stack",
+        "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+        "tests::native_clone_keeps_raw_patch_and_same_over_result",
+        "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+        "tests::transient_map_postprocess_stays_outside_saved_components"
+      ],
+      "passed": true,
+      "tests": 6
+    },
+    "template6_metadata": {
+      "dependencies_sha256": "484b9db495f71c712181bd43f42e5ff1c95369a1b937c4daf497ea94b61e3c4d",
+      "lock_sha256": "03b492914a8a62ef4c1beca133dec846929554ad00618da41c75961f6c3b6868",
+      "passed": true
+    },
+    "template6_preparer": {
+      "passed": true,
+      "tests": 20
+    },
+    "template6_tests": {
+      "filtered": 0,
+      "ignored": 0,
+      "names": [
+        "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+        "tests::explicit_zero_is_not_recoverable_from_created_stack",
+        "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+        "tests::native_clone_keeps_raw_patch_and_same_over_result",
+        "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+        "tests::transient_map_postprocess_stays_outside_saved_components"
+      ],
+      "passed": true,
+      "tests": 6
+    }
+  },
+  "source_seal_sha256": "902c24194fbe9db9e933471d936472e4164ae47fdc7024476738c512a72cc377",
+  "tests": 6,
+  "tests_passed": true,
+  "verified": true
+}

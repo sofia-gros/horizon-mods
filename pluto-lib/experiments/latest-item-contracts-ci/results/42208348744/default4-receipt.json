@@ -1,0 +1,63 @@
+{
+  "gates": {
+    "default4_compile": {
+      "binary_sha256": "b7b83b6ac42d27642d5badf19b94d321eb3fe5ca5cff049f33ae8a8ead937a36",
+      "compilers": [
+        {
+          "crate": "pluto_latest_default_lifetime_tests",
+          "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "other_native_compilers": [
+        {
+          "crate": "pluto_latest_default_lifetime_tests",
+          "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "passed": true
+    },
+    "default4_inventory": {
+      "names": [
+        "catalog_retains_key_but_not_standard_name_value",
+        "holding_native_snapshot_keeps_old_defaults_until_release",
+        "catalog_does_not_retain_native_defaults_snapshot",
+        "display_reads_do_not_materialize_prototype_or_change_patch"
+      ],
+      "passed": true,
+      "tests": 4
+    },
+    "default4_metadata": {
+      "dependencies_sha256": "d14227bdd5dc45ddd51a29070b61dc953f537f8f34e8c6a04d41b7c1933d481f",
+      "lock_sha256": "121ea70b6b93b08c6665f3432680dbcb032611497005ba6a710c80069ab160fb",
+      "passed": true
+    },
+    "default4_preparer": {
+      "passed": true,
+      "tests": 18
+    },
+    "default4_tests": {
+      "filtered": 0,
+      "ignored": 0,
+      "names": [
+        "catalog_retains_key_but_not_standard_name_value",
+        "holding_native_snapshot_keeps_old_defaults_until_release",
+        "catalog_does_not_retain_native_defaults_snapshot",
+        "display_reads_do_not_materialize_prototype_or_change_patch"
+      ],
+      "passed": true,
+      "tests": 4
+    }
+  },
+  "source_seal_sha256": "4ae6e77c8ed697cceb75560fcfc881cbfe1cc5e25ad77dcc034091f42ac98e12",
+  "tests": 4,
+  "tests_passed": true,
+  "verified": true
+}

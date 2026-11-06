@@ -1,0 +1,634 @@
+{
+  "error": null,
+  "fixtures": {
+    "default4": {
+      "gates": {
+        "default4_compile": {
+          "binary_sha256": "b7b83b6ac42d27642d5badf19b94d321eb3fe5ca5cff049f33ae8a8ead937a36",
+          "compilers": [
+            {
+              "crate": "pluto_latest_default_lifetime_tests",
+              "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "other_native_compilers": [
+            {
+              "crate": "pluto_latest_default_lifetime_tests",
+              "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "passed": true
+        },
+        "default4_inventory": {
+          "names": [
+            "catalog_retains_key_but_not_standard_name_value",
+            "holding_native_snapshot_keeps_old_defaults_until_release",
+            "catalog_does_not_retain_native_defaults_snapshot",
+            "display_reads_do_not_materialize_prototype_or_change_patch"
+          ],
+          "passed": true,
+          "tests": 4
+        },
+        "default4_metadata": {
+          "dependencies_sha256": "d14227bdd5dc45ddd51a29070b61dc953f537f8f34e8c6a04d41b7c1933d481f",
+          "lock_sha256": "121ea70b6b93b08c6665f3432680dbcb032611497005ba6a710c80069ab160fb",
+          "passed": true
+        },
+        "default4_preparer": {
+          "passed": true,
+          "tests": 18
+        },
+        "default4_tests": {
+          "filtered": 0,
+          "ignored": 0,
+          "names": [
+            "catalog_retains_key_but_not_standard_name_value",
+            "holding_native_snapshot_keeps_old_defaults_until_release",
+            "catalog_does_not_retain_native_defaults_snapshot",
+            "display_reads_do_not_materialize_prototype_or_change_patch"
+          ],
+          "passed": true,
+          "tests": 4
+        }
+      },
+      "source_seal_sha256": "4ae6e77c8ed697cceb75560fcfc881cbfe1cc5e25ad77dcc034091f42ac98e12",
+      "tests": 4,
+      "tests_passed": true,
+      "verified": true
+    },
+    "template6": {
+      "gates": {
+        "template6_compile": {
+          "binary_sha256": "ede13b2988a32aa5f913a1870308f2c871ec4536ae2570e89353487d7e6620ab",
+          "compilers": [
+            {
+              "crate": "pluto_latest_template_tests",
+              "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "other_native_compilers": [
+            {
+              "crate": "horizon_core",
+              "invocation_sha256": "525be279dfc393f0236f30055531cb0b7e4e9ffff3522da7ade84ab832951207",
+              "source": [
+                "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-core/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_world",
+              "invocation_sha256": "d7f31511a113ed1629ba79a1eaab89949a133b9c9a2a588db4185018a2b27bec",
+              "source": [
+                "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-world/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_client_core",
+              "invocation_sha256": "0b0bf52cc2496660160753c0e0d11266bd2073389687b1c9e916bd7dbf68d8e9",
+              "source": [
+                "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-client-core/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "horizon_items",
+              "invocation_sha256": "d95cdd0c34e6a0fa8faaa450110a8629c3423ed03e5dad944f238786edc880e3",
+              "source": [
+                "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-items/src/lib.rs"
+              ],
+              "test": false
+            },
+            {
+              "crate": "pluto_latest_template_tests",
+              "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+              "source": [
+                "lib.rs"
+              ],
+              "test": true
+            }
+          ],
+          "passed": true
+        },
+        "template6_inventory": {
+          "names": [
+            "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+            "tests::explicit_zero_is_not_recoverable_from_created_stack",
+            "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+            "tests::native_clone_keeps_raw_patch_and_same_over_result",
+            "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+            "tests::transient_map_postprocess_stays_outside_saved_components"
+          ],
+          "passed": true,
+          "tests": 6
+        },
+        "template6_metadata": {
+          "dependencies_sha256": "484b9db495f71c712181bd43f42e5ff1c95369a1b937c4daf497ea94b61e3c4d",
+          "lock_sha256": "03b492914a8a62ef4c1beca133dec846929554ad00618da41c75961f6c3b6868",
+          "passed": true
+        },
+        "template6_preparer": {
+          "passed": true,
+          "tests": 20
+        },
+        "template6_tests": {
+          "filtered": 0,
+          "ignored": 0,
+          "names": [
+            "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+            "tests::explicit_zero_is_not_recoverable_from_created_stack",
+            "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+            "tests::native_clone_keeps_raw_patch_and_same_over_result",
+            "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+            "tests::transient_map_postprocess_stays_outside_saved_components"
+          ],
+          "passed": true,
+          "tests": 6
+        }
+      },
+      "source_seal_sha256": "902c24194fbe9db9e933471d936472e4164ae47fdc7024476738c512a72cc377",
+      "tests": 6,
+      "tests_passed": true,
+      "verified": true
+    }
+  },
+  "floor_bytes": 10871635968,
+  "gates": {
+    "default4_compile": {
+      "binary_sha256": "b7b83b6ac42d27642d5badf19b94d321eb3fe5ca5cff049f33ae8a8ead937a36",
+      "compilers": [
+        {
+          "crate": "pluto_latest_default_lifetime_tests",
+          "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "other_native_compilers": [
+        {
+          "crate": "pluto_latest_default_lifetime_tests",
+          "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "passed": true
+    },
+    "default4_inventory": {
+      "names": [
+        "catalog_retains_key_but_not_standard_name_value",
+        "holding_native_snapshot_keeps_old_defaults_until_release",
+        "catalog_does_not_retain_native_defaults_snapshot",
+        "display_reads_do_not_materialize_prototype_or_change_patch"
+      ],
+      "passed": true,
+      "tests": 4
+    },
+    "default4_metadata": {
+      "dependencies_sha256": "d14227bdd5dc45ddd51a29070b61dc953f537f8f34e8c6a04d41b7c1933d481f",
+      "lock_sha256": "121ea70b6b93b08c6665f3432680dbcb032611497005ba6a710c80069ab160fb",
+      "passed": true
+    },
+    "default4_preparer": {
+      "passed": true,
+      "tests": 18
+    },
+    "default4_tests": {
+      "filtered": 0,
+      "ignored": 0,
+      "names": [
+        "catalog_retains_key_but_not_standard_name_value",
+        "holding_native_snapshot_keeps_old_defaults_until_release",
+        "catalog_does_not_retain_native_defaults_snapshot",
+        "display_reads_do_not_materialize_prototype_or_change_patch"
+      ],
+      "passed": true,
+      "tests": 4
+    },
+    "official_sources": {
+      "passed": true,
+      "pin": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "url": "https://github.com/horizon-rust/horizon.git"
+      }
+    },
+    "runner": {
+      "passed": true,
+      "tests": 24
+    },
+    "shared_native_compile": {
+      "compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "525be279dfc393f0236f30055531cb0b7e4e9ffff3522da7ade84ab832951207",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "0b0bf52cc2496660160753c0e0d11266bd2073389687b1c9e916bd7dbf68d8e9",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "d95cdd0c34e6a0fa8faaa450110a8629c3423ed03e5dad944f238786edc880e3",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "d7f31511a113ed1629ba79a1eaab89949a133b9c9a2a588db4185018a2b27bec",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        }
+      ],
+      "owner": "template6",
+      "passed": true,
+      "scope": "One real cold native graph, not repeated compile proof for the later harness"
+    },
+    "template6_compile": {
+      "binary_sha256": "ede13b2988a32aa5f913a1870308f2c871ec4536ae2570e89353487d7e6620ab",
+      "compilers": [
+        {
+          "crate": "pluto_latest_template_tests",
+          "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "other_native_compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "525be279dfc393f0236f30055531cb0b7e4e9ffff3522da7ade84ab832951207",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "d7f31511a113ed1629ba79a1eaab89949a133b9c9a2a588db4185018a2b27bec",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "0b0bf52cc2496660160753c0e0d11266bd2073389687b1c9e916bd7dbf68d8e9",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "d95cdd0c34e6a0fa8faaa450110a8629c3423ed03e5dad944f238786edc880e3",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "pluto_latest_template_tests",
+          "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "passed": true
+    },
+    "template6_inventory": {
+      "names": [
+        "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+        "tests::explicit_zero_is_not_recoverable_from_created_stack",
+        "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+        "tests::native_clone_keeps_raw_patch_and_same_over_result",
+        "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+        "tests::transient_map_postprocess_stays_outside_saved_components"
+      ],
+      "passed": true,
+      "tests": 6
+    },
+    "template6_metadata": {
+      "dependencies_sha256": "484b9db495f71c712181bd43f42e5ff1c95369a1b937c4daf497ea94b61e3c4d",
+      "lock_sha256": "03b492914a8a62ef4c1beca133dec846929554ad00618da41c75961f6c3b6868",
+      "passed": true
+    },
+    "template6_preparer": {
+      "passed": true,
+      "tests": 20
+    },
+    "template6_tests": {
+      "filtered": 0,
+      "ignored": 0,
+      "names": [
+        "tests::absent_and_empty_patch_remain_distinct_raw_templates",
+        "tests::explicit_zero_is_not_recoverable_from_created_stack",
+        "tests::explicit_removal_replaces_inherited_value_without_mutating_input",
+        "tests::native_clone_keeps_raw_patch_and_same_over_result",
+        "tests::none_is_compatible_only_with_the_old_synthetic_create_oracle",
+        "tests::transient_map_postprocess_stays_outside_saved_components"
+      ],
+      "passed": true,
+      "tests": 6
+    }
+  },
+  "generated_output_seal_sha256": "3caee483b7d749c2916f958fd07278379243570788cb02807d657e6eebbe6755",
+  "head": "be7b6b98d4911270679fd35f85800186105b1715",
+  "minimum_free_bytes": 89876086784,
+  "official_seal_sha256": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b",
+  "passed": true,
+  "phases": [
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "runner-checks",
+      "raw_bytes": 3031,
+      "raw_sha256": "75bb6a49523da0a5214c599a651e8f30794c4a1b2dcbf8467dd02b4bea6559da",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-preparer-checks",
+      "raw_bytes": 2577,
+      "raw_sha256": "a9e3a0931761ee650e456e8261dd99d8862303556cad09a0022306b57ec65fe7",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-preparer-checks",
+      "raw_bytes": 2343,
+      "raw_sha256": "95342a85f5d435fd63b5d594af8e843f3d4b366fceedeb7a09152c7aa0b6a39c",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "toolchain",
+      "raw_bytes": 257,
+      "raw_sha256": "5f75ffd1584354e30e6c4ead246d2a4807422b220697104064d8a7c296b79d22",
+      "seconds": 7.016
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-init",
+      "raw_bytes": 724,
+      "raw_sha256": "d87e38e0313808e3e233299d1791795f5ff6a47510b933684bad65bea4b21ef5",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-origin",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-fetch",
+      "raw_bytes": 121,
+      "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+      "seconds": 4.811
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-checkout",
+      "raw_bytes": 84,
+      "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+      "seconds": 0.602
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "official-locked-fetch",
+      "raw_bytes": 16703,
+      "raw_sha256": "eb52056a12cfa580b0cf2928a656c0852dc282ecb77b5af58ceb8179b9fd3107",
+      "seconds": 4.209
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-prepare",
+      "raw_bytes": 414,
+      "raw_sha256": "612846a7f6c28d83cfdb44132f95a9328fd2c6c71d0e41772e21795fea4d447c",
+      "seconds": 0.802
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-metadata",
+      "raw_bytes": 413,
+      "raw_sha256": "7a4eb9844833ed72b618850e15825e319ca609bbb4dd3a7a8b6b52e11dd395ce",
+      "seconds": 1.204
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-verify-before",
+      "raw_bytes": 413,
+      "raw_sha256": "7a4eb9844833ed72b618850e15825e319ca609bbb4dd3a7a8b6b52e11dd395ce",
+      "seconds": 0.402
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-prepare",
+      "raw_bytes": 283,
+      "raw_sha256": "98d7aae85be71a2d6e8415d2f6d1fcf64c6bb5523fee3f477de2b7e0aed8c6f3",
+      "seconds": 0.802
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-metadata",
+      "raw_bytes": 282,
+      "raw_sha256": "ce0bc3fd7a8cecb1a1bdcde4f13d0d27576072b747ce337b175b9a27c1a0c64e",
+      "seconds": 1.203
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-verify-before",
+      "raw_bytes": 282,
+      "raw_sha256": "ce0bc3fd7a8cecb1a1bdcde4f13d0d27576072b747ce337b175b9a27c1a0c64e",
+      "seconds": 0.402
+    },
+    {
+      "compilers": [
+        {
+          "crate": "horizon_core",
+          "invocation_sha256": "525be279dfc393f0236f30055531cb0b7e4e9ffff3522da7ade84ab832951207",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_world",
+          "invocation_sha256": "d7f31511a113ed1629ba79a1eaab89949a133b9c9a2a588db4185018a2b27bec",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-world/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_client_core",
+          "invocation_sha256": "0b0bf52cc2496660160753c0e0d11266bd2073389687b1c9e916bd7dbf68d8e9",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-client-core/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "horizon_items",
+          "invocation_sha256": "d95cdd0c34e6a0fa8faaa450110a8629c3423ed03e5dad944f238786edc880e3",
+          "source": [
+            "/home/runner/work/_temp/latest-item-contracts-be7b6b98d4911270679fd35f85800186105b1715/official/crates/horizon-items/src/lib.rs"
+          ],
+          "test": false
+        },
+        {
+          "crate": "pluto_latest_template_tests",
+          "invocation_sha256": "7c7a7d2954bd2f972c183848b159834c6e0f5e2cca0e413f332a551df7c42fa5",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-compile",
+      "raw_bytes": 229097,
+      "raw_sha256": "cdd1d006ce49e5df96c2fd6405f1fe40d3d920b7a78bd8fb7b2f8c37772df0d4",
+      "seconds": 33.076
+    },
+    {
+      "compilers": [
+        {
+          "crate": "pluto_latest_default_lifetime_tests",
+          "invocation_sha256": "f12071ca54c6fcb9828f3cbe0fd2b18bb8402874cf8a617477a9014d2f94474f",
+          "source": [
+            "lib.rs"
+          ],
+          "test": true
+        }
+      ],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-compile",
+      "raw_bytes": 92349,
+      "raw_sha256": "6c5cc49366d820e4c193ca0f8063ab60f92c6501e149b318864e235330b24a97",
+      "seconds": 0.402
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-inventory",
+      "raw_bytes": 439,
+      "raw_sha256": "c645c432b902c7089027b78964204303c5f1ef5a2a5f026ca91d06e9bed4c006",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-tests",
+      "raw_bytes": 565,
+      "raw_sha256": "54f7eb03532403602e53086e25abc3183857dea406b98b1e30c7a7362cf87d6d",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "template6-verify-after",
+      "raw_bytes": 413,
+      "raw_sha256": "7a4eb9844833ed72b618850e15825e319ca609bbb4dd3a7a8b6b52e11dd395ce",
+      "seconds": 0.402
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-inventory",
+      "raw_bytes": 260,
+      "raw_sha256": "24be573ad6b0069f186a28e080230db680866fb39a31cb5050e2ee7daf192c19",
+      "seconds": 0.202
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-tests",
+      "raw_bytes": 374,
+      "raw_sha256": "cf8975ce125f6698c80fbb79ee819c3cf729c594b0bb5507689af8bd8418d05b",
+      "seconds": 0.201
+    },
+    {
+      "compilers": [],
+      "error": null,
+      "exit_code": 0,
+      "name": "default4-verify-after",
+      "raw_bytes": 282,
+      "raw_sha256": "ce0bc3fd7a8cecb1a1bdcde4f13d0d27576072b747ce337b175b9a27c1a0c64e",
+      "seconds": 0.402
+    }
+  ],
+  "scope": "Latest f4dc Template6 and unchanged default-lifetime4 in separate actual native fixtures. No Mixins, installed package, latest codec32, default-name owner, Game or production activation.",
+  "source_seal_sha256": "05ac072d3719a4c5dd25538056726a61cbb587201e59ae21fdde2227f208f482",
+  "verified": true
+}
