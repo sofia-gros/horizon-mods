@@ -1,6 +1,8 @@
 # Guarded outer-tank CI source proposal
 
-**Runner-only correction prepared; not published to the trigger or retried.**
+**Verified bounded native proof: 160/160 tests passed at `a583c0f2`.**
+See the [exact result and retained log](../../docs/outer-tank-native-validation-20261106.json)
+and [scope summary](../../docs/outer-tank-native-validation-20261106.md).
 The new fixed branch is `checkpoint/plutolib-outer-tank-native-ci-20261106`.
 Its entry path checks the exact repository/pins and real-root memory admission
 before setup; every command retains the same continuous guard. There is no
@@ -9,9 +11,10 @@ fallback on unknown topology. It does not create a cgroup or apply a hard cap.
 The earlier [diagnostic run](https://github.com/sofia-gros/horizon-mods/actions/runs/42183008828)
 at `9db4f9a2` intentionally stopped before setup. The separate `527bd9cc`
 root-guard source checkpoint remained diagnostic-only. Neither ran native tests.
-The 160-case suite remains unexecuted; its earlier 146-case predecessor and
-pure author-API CI are separate proofs. Native trigger publication and execution
-still require independent final review and the coordinator's remote slot.
+The separately authorized corrected native run now passed the 160-case suite.
+Its earlier 146-case predecessor and pure author-API CI remain separate proofs.
+The source-preparation and first-attempt sections below record their historical
+states; neither was relabeled as a native success.
 
 ## Exact inputs and scope
 
@@ -33,11 +36,11 @@ bodies are unchanged from the frozen harness. **Drain uses its existing mock
 Game/world.** Comparing its saved proposals and counters is not proof of native
 actor/slot authority, full gameplay, disk durability or rollback.
 
-Expected result: one full suite of exactly 160 tests, 0 ignored/filtered, with
+The verified result is one full suite of exactly 160 tests, 0 ignored/filtered, with
 all four named new cases required. The 156 imported tests are distinguished from
 the four additions: Cannon 128 matrix comparisons, four retained-wire variants
 plus opaque item preservation, 24 controller comparisons and 576 Drain route
-comparisons. These are expectations, not results.
+comparisons. See the exact receipt and all 160 names in the result record.
 
 ## Preparing without reimplementing the fixture
 
@@ -128,7 +131,7 @@ guards and both byte-equivalent fixture preparations. Setup ran, but Rust did
 not: Cargo metadata exited 0, then JSON parsing failed because the runner mixed
 its stdout JSON with stderr download progress. The final receipt is false,
 `native_started=false`, and the source/official/copied-input verification passed.
-All 160 Rust cases remain unexecuted. This is a runner capture defect, not a
+All 160 Rust cases were unexecuted in that attempt. This was a runner capture defect, not a
 production storage failure or a memory-guard stop.
 
 [The preserved attempt record](../../docs/outer-tank-first-native-attempt-20261106.json)
@@ -146,4 +149,21 @@ can fill while the guarded poll waits. One added real Python subprocess regressi
 writes JSON to stdout and progress to stderr, checks both complete files, and
 ensures extra stdout still fails parsing. All **30 pure Python checks** pass.
 The 55 original inputs, old oracles, metadata identities and 160-case scope are
-unchanged. Independent review and a new one-shot execution grant remain required.
+unchanged. Independent review and a separate one-shot execution grant preceded
+the corrected run below.
+
+## Corrected guarded attempt: terminal success
+
+[Run 42186716846](https://github.com/sofia-gros/horizon-mods/actions/runs/42186716846)
+at exact `a583c0f272f847bcb7fb72435747172f698ab903` completed successfully.
+The cold compile contains actual rustc invocations for the four official native
+crates, the actual inventory API and fixture test. The sealed execution passed
+160/160 tests, including all four mandatory additions, with no ignored, measured
+or filtered cases. Both metadata phases now parse their entire separate stdout.
+
+All four required gates, source/official/copied-file/lock/OUT_DIR seals and final
+clean checks passed. The final receipt has `passed=true`, `verified=true` and
+`error=null`. Minimum available RAM was 14,524,874,752 bytes and minimum free disk
+was 90,941,816,832 bytes. The topology-aware polling guard stayed enabled; no
+hard memory cap was applied. The original false receipt and full failed log are
+retained separately. This result does not expand the fixture scope above.
