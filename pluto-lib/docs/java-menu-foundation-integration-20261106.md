@@ -26,3 +26,16 @@ Only the already reviewed ordinary-test replacement from standalone `rustc` to t
 4. A complete official native apply/type gate is a separate coordinator-owned gate; do not infer it from pure-crate or packaging tests.
 
 Keep the prior limitations: no new live Java reference run, no gameplay/network lifecycle or successful component-sensitive placement proof, no same-pair automatic crafting authority, and no consumer-wide migration claim.
+
+
+## Combined-source API unit gate, 2026-11-06
+
+The exact combined source `69c6b72b0b79b64317483bede6a2b2a689d5b83a` (remote exact-tree checkpoint `7aaf04c6091b74a6d343137a26aa95069c9b7e7a`) passed **125 API unit tests, 0 failed, 0 ignored**, using a complete unchanged copy of the real 30-file API package and committed lock seed. All 193 materialized source hashes, all API hashes and the seed lock were checked before and after. This is the actual combined API, not the older separate group results.
+
+The single allowed test-harness compilation was observed through a fail-closed Rust compiler wrapper. It permitted exactly one `pluto_inventory_api --test` invocation at the copied real source path and correct output directory. Registry crates, another API compilation and non-test library compilation would have been rejected before compiler execution. The remaining calls were two Cargo version queries and one print-capability query. These incidental Cargo queries were not a manual version-check task.
+
+The locked/offline, jobs=1, debug=0, incremental=0 run finished in 3.40 seconds. The continuous floor was 10 GiB +128 MiB; minimum free space was 10,882,441,216 bytes. There was no disk stop or timeout. The guard required an additional 16 MiB at launch and bounded process-group shutdown. No Cargo/rustc process remained after completion.
+
+[Exact proof receipt](proofs/java-menu-api-20261106/receipt.json) and [test log](proofs/java-menu-api-20261106/api-unit-result.log) retain the actual argv, hashes and local proof harness. Those harness files record this workspace-specific run; they are not installed mod modules or a replacement CI runner.
+
+**Still pending on this combined tree:** the two consumer differential fixtures, and the separate complete official native plan/apply/type gate. The previous 24 Python checks and reproducible archive proof remain distinct. No Actions operation, game session, new material-display API or automatic crafting activation is included.
