@@ -29,9 +29,7 @@ impl Cannon {
         for alias in ["FluidName", "Amount", "Tag"] { if raw_tank.get(alias).is_some() { return None; } }
         if before.tank.to_nbt_preserving(raw_tank).as_ref() != Some(raw_tank) { return None; }
         let tank = self.tank.to_nbt_preserving(raw_tank)?;
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        fields.insert("tank".into(), tank);
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [("tank", Some(tank))])
     }
     /// Preserve native machine fields while changing a representable item.
     /// An opaque saved item can remain untouched, but cannot be removed,

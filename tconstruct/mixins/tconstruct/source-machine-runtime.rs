@@ -521,9 +521,7 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
         super::tconstruct_source_fluid_container::Direction::Auto, None,
         &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return container; }
     let Some(tank) = state.tank.to_nbt_preserving(raw_tank) else { return false; };
-    let horizon_world::nbt::Tag::Compound(mut fields) = raw_controller.clone() else { return false; };
-    fields.insert("tank".into(), tank);
-    let saved = horizon_world::nbt::Tag::Compound(fields);
+    let Some(saved) = horizon_client::pluto_nbt_storage::patch_compound(&raw_controller, [("tank", Some(tank))]) else { return false; };
     if store::read(&game.world, controller, "tconstruct:smeltery").as_ref() != Some(&raw_controller) { return false; }
     if !store::write(&mut game.world, controller, "tconstruct:smeltery", saved) { return false; }
     if game.creative {
@@ -1060,9 +1058,10 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
 // Only unfiltered built-in Drains and canonical storage are eligible here.
 // Revalidate the controller and the formed shell rather than trusting a stale owner map.
 fn patch_smeltery_controller_tank(raw: &horizon_world::nbt::Tag, state: &Smeltery) -> Option<horizon_world::nbt::Tag> {
-    let horizon_world::nbt::Tag::Compound(mut fields) = raw.clone() else { return None; };
-    fields.insert("tank".into(), state.tank.to_nbt());
-    Some(horizon_world::nbt::Tag::Compound(fields))
+    let horizon_world::nbt::Tag::Compound(_) = raw else { return None; };
+    // Keep tank encoding after the original compound clone, as before.
+    horizon_client::pluto_nbt_storage::patch_compound(raw,
+        std::iter::once_with(|| ("tank", Some(state.tank.to_nbt()))))
 }
 
 fn validated_drain(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery, horizon_world::nbt::Tag)> {

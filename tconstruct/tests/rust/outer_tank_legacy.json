@@ -1,0 +1,39 @@
+{
+  "source_commit": "477069362ea08fcabf26e67ad910f3ee8ebfe452",
+  "status": "source_only_native_not_run",
+  "methods": {
+    "cannon": {
+      "path": "tconstruct/mixins/tconstruct/source-fluid-cannon.rs",
+      "declaration": "    pub(super) fn tank_to_nbt_preserving(",
+      "oracle_path": "tconstruct/tests/rust/outer_tank_cannon_legacy.rs",
+      "oracle_sha256": "537c481600b4e8fec10029b1e9ed4ea3af98a2aad652c97a3a4d5fd92f20b601",
+      "original_method_sha256": "cf544a2fdd78d9341ef5b561a0ca8bad0c746dd030aab86e44d81d414295b854",
+      "adopted_method_sha256": "2d6a09fe7a38aba95266de3d7d423fb076f7ef4dc6c5084475d9c0ae5a0e0e3c"
+    },
+    "drain": {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "declaration": "pub(super) fn interact_drain(",
+      "oracle_path": "tconstruct/tests/rust/outer_tank_drain_legacy.rs",
+      "oracle_sha256": "04eaf14b57cc6178a851e640360d3e2cf79bf32b629667bb4024c56bb95937ca",
+      "original_method_sha256": "2ae9324ce5fa02712ca45dde81e4ad8379503c737462635f46ca2621467588de",
+      "adopted_method_sha256": "b146cd4a7e5ca0b38693f5ba4b11d883ae06661171d35e62c591514641665b93"
+    },
+    "controller": {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "declaration": "fn patch_smeltery_controller_tank(",
+      "oracle_path": "tconstruct/tests/rust/outer_tank_controller_legacy.rs",
+      "oracle_sha256": "99adebe8c26150d0ec5b4e62d82b88a6bfbe1a6a6d0a2c5d2fd668576e44dffe",
+      "original_method_sha256": "24c723ed4324df2408d7535e45cc67593284761f5bda6f6566ab5b91e6208492",
+      "adopted_method_sha256": "8a62c816e794e026d4c3c38e5f67f29ac8cd37e87c4be32d426121e1566b1607"
+    }
+  },
+  "original_files": {
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": "de767cc7b079f283ec01cb9ea2bd5c5525dde65465e7b748b65e34ec3d18a4df",
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": "995d5cf4d8c028411426ddfe1d84b8ae1b47385dfe6a2b48feab6f77fc884801"
+  },
+  "unchanged_dependencies": {
+    "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+    "tconstruct/mixins/tconstruct/source-chute-hopper.rs": "e3e1c842cf0c8242721aa2f8e570a1444d0371e189d240142a6a27bd0dbdb00e",
+    "tconstruct/tests/rust/drain_container_fixture.rs": "312df0ac01e8d2f1c65479b9bf95dc949bb6932a85aed5cad38a7e7d396cc04b"
+  }
+}
