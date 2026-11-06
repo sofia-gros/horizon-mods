@@ -51,9 +51,9 @@ class Checks(unittest.TestCase):
             with self.assertRaises(ValueError): m.validate_python(bad)
 
     def test_disk_floor_includes_toolchain_and_root(self):
-        for low in ['/', '/rustup', '/work', str(m.ROOT)]:
+        for low in ['/', '/rustup', '/cargo', '/work', str(m.ROOT)]:
             with mock.patch.object(m, 'existing', side_effect=Path), mock.patch.object(m.shutil, 'disk_usage', side_effect=lambda p: SimpleNamespace(free=m.FLOOR-1 if str(p)==low else m.FLOOR+3*1024**3)):
-                with self.assertRaises(RuntimeError): m.Runner(Path('/work'), {'RUSTUP_HOME':'/rustup'}).guard()
+                with self.assertRaises(RuntimeError): m.Runner(Path('/work'), {'RUSTUP_HOME':'/rustup', 'CARGO_HOME':'/cargo'}).guard()
         with mock.patch.object(m.shutil, 'disk_usage', return_value=SimpleNamespace(free=m.FLOOR+1024**3)):
             with self.assertRaises(RuntimeError): m.Runner(Path('/tmp'), {}).guard(reserve=2*1024**3)
 

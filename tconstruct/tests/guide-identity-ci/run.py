@@ -79,7 +79,8 @@ def existing(path):
     return path
 
 def filesystems(work, env):
-    return [existing(p) for p in [ROOT, work, '/', env.get('RUSTUP_HOME', str(Path.home()/'.rustup'))]]
+    return [existing(p) for p in [ROOT, work, '/', env.get('RUSTUP_HOME', str(Path.home()/'.rustup')),
+                                 env.get('CARGO_HOME', str(Path.home()/'.cargo'))]]
 
 def ensure_group_gone(pgid, name):
     deadline = time.monotonic()+1

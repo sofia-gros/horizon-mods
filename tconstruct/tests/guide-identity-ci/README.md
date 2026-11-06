@@ -9,7 +9,8 @@ filtered tests. The eleven unrelated existing index tests are not executed.
 The workflow has read-only repository permission, an exact public-repository and
 branch gate, no caches/artifacts/manual dispatch, and no custom runner. All setup
 and child processes use the continuous 10 GiB + 128 MiB floor on the workspace,
-output, root and Rustup filesystems. Setup first requires another 2 GiB of free
+output, root, Rustup and Cargo-home filesystems (even though Cargo is not run).
+Setup first requires another 2 GiB of free
 space. Output ownership is exclusive; timeout/disk failures stop the own process
 group, including residual children after its leader exits. Source file-set/byte
 seals and executable seals are checked after compilation and execution. A failed
