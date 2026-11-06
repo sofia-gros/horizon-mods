@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "source candidate only; Rust uncompiled; no extended overlay or CI yet",
+  "successful_fixture": "1ac143d840eaf3dde9e108ada3f5f2ec9f4c451f",
+  "production_head": "43f174273cd5f1b9cf3acd1d26abab8838025510",
+  "production_bundle_sha256": "cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76",
+  "source_sha256": {
+    "experiments/terrain-material-cpu/check_plan.py": "22ff48bc6ee66799f7d87715771c10acc0bdd7c3e549ed3e1c1acd17d8a4665e",
+    "experiments/terrain-material-cpu/fixture.rs": "682ac48e12dfd7367fc19a6fca758293df9c7c7f82872b058c8d7654ef04644c",
+    "experiments/terrain-material-cpu/inputs.json": "812ac9f0c9fc7b166cf9d1cc943a4ae93a1089512ddcee1939dece5c2015a418",
+    "experiments/terrain-material-cpu/prepare.py": "0454ff69e59c6e5d6e8b93b9f6392b5aa5647d76792f966ee6dbe9fa9f914ffc",
+    "experiments/terrain-material-cpu/test_source.py": "15465c7336ea8ecf8c2e7c0ffe660d52a131cc19930b848c5c18d8df39439355",
+    "mixins/pluto_native_creative/terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "mixins/pluto_native_creative/terrain-cell-host.rs": "a9fa0703859f8146bd0de0330d2a9eed47791a9d1e7ff15a6eb6c0b6291749c4",
+    "mixins/pluto_native_creative/terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "experiments/terrain-cpu-profile/profile.rs": "d83f13722ee11ea0768bc3dffbbf848c1f3d3f612bcbdf2392234595ec2eb575",
+    "experiments/terrain-cpu-profile/source.py": "b8b1fd4e07d4d9b37df80e7ee06c6a84e07cf1f163d6d0ab3cc2c9fad363b04e",
+    "experiments/terrain-cpu-profile/test_source.py": "193db7422f03e997f804de1e494144d94bbddaf659d40914dfa3447c7dc4b2ab",
+    "experiments/terrain-cpu-profile/README.md": "7452b84ad2f5cd5b0567366c35801a3290439529a627d2a88b915e6b64b971e9"
+  },
+  "test": "mesher::pluto_terrain_material_cpu::tests::profile::same_output_callbacks_and_microkernels",
+  "expected_profile_equal_rows": 20,
+  "expected_pair_rows": 3,
+  "expected_micro_rows": 5,
+  "extra_native_fallback_replays": 3
+}
