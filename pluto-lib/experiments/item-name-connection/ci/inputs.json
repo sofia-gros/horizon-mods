@@ -1,0 +1,95 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-item-name-removal-ci-20261106",
+  "base": "47422d690b08f9db0575e5b5cb5d2260cb04f02f",
+  "runtime_source": "0f528de0332afc5d86910dd07b08dcebe98a04dd",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "lock_sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "runner_tests": 23,
+  "groups": [
+    {
+      "name": "native_codec",
+      "source": "codec_tests.rs",
+      "prefix": "codec_tests::",
+      "tests": [
+        "codec_tests::receive_removal_precedes_native_wire_baseline",
+        "codec_tests::canonical_root_removal_wins_without_mutating_input",
+        "codec_tests::no_marker_matches_unchanged_native_send",
+        "codec_tests::no_removal_matches_unchanged_native_receive",
+        "codec_tests::charged_children_use_actual_native_template_codec",
+        "codec_tests::bundle_children_use_actual_native_template_codec",
+        "codec_tests::container_children_preserve_native_raw_container_encoding",
+        "codec_tests::mixed_nested_entries_run_each_native_body_once_in_order",
+        "codec_tests::unrelated_custom_data_and_source_patch_are_not_mutated",
+        "codec_tests::usable_raw_patch_and_count_only_echo_keep_original_wire",
+        "codec_tests::editing_native_baseline_selects_a_distinct_canonical_proposal",
+        "codec_tests::callback_panic_does_not_poison_later_native_conversion",
+        "codec_tests::nested_callback_panic_unwinds_all_entry_scopes",
+        "codec_tests::parallel_native_conversions_keep_entry_state_thread_local",
+        "codec_tests::none_retains_native_no_callback_behavior",
+        "codec_tests::duplicate_and_contradictory_removals_have_one_canonical_name_removal",
+        "codec_tests::explicit_custom_name_remains_independent_from_removed_item_name",
+        "codec_tests::ordinary_slot_codec_also_carries_explicit_removal"
+      ]
+    },
+    {
+      "name": "entry_models",
+      "source": "../candidate/entry-gate.rs",
+      "prefix": "guest::pluto_name_entry_gate::tests::",
+      "tests": [
+        "guest::pluto_name_entry_gate::tests::unarmed_entry_has_no_bypass",
+        "guest::pluto_name_entry_gate::tests::immediate_entry_consumes_once_before_body_callbacks",
+        "guest::pluto_name_entry_gate::tests::nested_entries_are_independent_after_parent_consumption",
+        "guest::pluto_name_entry_gate::tests::duplicate_arm_never_invokes_second_callback",
+        "guest::pluto_name_entry_gate::tests::return_without_entry_clears_pending_state",
+        "guest::pluto_name_entry_gate::tests::panic_before_consumption_clears_pending_state",
+        "guest::pluto_name_entry_gate::tests::nested_panic_after_consumption_clears_both_scopes",
+        "guest::pluto_name_entry_gate::tests::concurrent_threads_do_not_share_or_leave_pending_state"
+      ]
+    },
+    {
+      "name": "owned_tag",
+      "source": "../candidate/name-removal.rs",
+      "prefix": "pluto_name_removal::tests::",
+      "tests": [
+        "pluto_name_removal::tests::no_removal_preserves_none_and_owned_values",
+        "pluto_name_removal::tests::removal_without_added_components_becomes_explicit",
+        "pluto_name_removal::tests::removal_preserves_unrelated_raw_tags_and_invalid_utf16_keys",
+        "pluto_name_removal::tests::explicit_removal_wins_and_repeated_removals_are_idempotent",
+        "pluto_name_removal::tests::unrelated_removal_does_not_materialize_name_state",
+        "pluto_name_removal::tests::unexpected_noncompound_is_preserved_not_guessed"
+      ]
+    }
+  ],
+  "source_sha256": {
+    ".github/workflows/item-name-removal-wip.yml": "1043c60dd12c17aa9f0b4327e69d2b1adbb91833a91c6cf10d1b7bcbfbc15c80",
+    "pluto-lib/experiments/item-name-connection/candidate/README.md": "53e50e4069bca28fd1906b1599a2308bd564b85ab38a97359b37eaa942188e84",
+    "pluto-lib/experiments/item-name-connection/candidate/entry-gate.rs": "73fcb2fc11b19d0ae6fcfc451c401485d22ac08a53845cf46ed589f14cb0cf26",
+    "pluto-lib/experiments/item-name-connection/candidate/horizon-mixin.toml": "35f81e3b8576c40d8296f85b6a772f30dc9b40e851d0462693f586e0147004a1",
+    "pluto-lib/experiments/item-name-connection/candidate/name-removal.rs": "8d7db15c670a52bba0be89710cd9800e5db3451f64331ef5eae147b15d96fa80",
+    "pluto-lib/experiments/item-name-connection/candidate/receive.rs": "c804971285ef2ca3e9adadbc2c85a0f33dbfef578e951dcc183ef9d3aaab61c2",
+    "pluto-lib/experiments/item-name-connection/candidate/send.rs": "72e4d068a22f98b8df84c52f750937ef2d9a820fdad74693c272f3f9c7d1442d",
+    "pluto-lib/experiments/item-name-connection/ci/README.md": "215330e43607a48556435594086ac77bebfa64af68e64cc9c9e049b5294e9210",
+    "pluto-lib/experiments/item-name-connection/ci/run.py": "395d06fe609fdeb496eb2676fbd242c2acb4f577a038166672d54cd12ecaa53b",
+    "pluto-lib/experiments/item-name-connection/ci/test_runner.py": "6c9c51c30cb36f5652936d01e5c119bcafbe0d3f09ada67fee62926f56f04d2e",
+    "pluto-lib/experiments/item-name-connection/validation/README.md": "b77fbb33d0978b5b574c07a4d2263a67a386d1554f4a9a697ac1f2e058308876",
+    "pluto-lib/experiments/item-name-connection/validation/check_plan.py": "04060fa1776a7b09941c4c952e715cc72fe9ba8a145ad3bf9edeaded7cd42952",
+    "pluto-lib/experiments/item-name-connection/validation/codec_tests.rs": "987cf59a489471565fceaacd162ada5ff607530643739d8bce0fcb4a346ad7b1",
+    "pluto-lib/experiments/item-name-connection/validation/fixture-inputs.json": "d99ede72a70d55bb4cd548fc6c36cd61cd42276d1dad0aef62cd8d3a69cf0c54",
+    "pluto-lib/experiments/item-name-connection/validation/inputs.json": "54d3aa3d03469ade09afc3e455961424f4a48eaaaec7362443a54c311d6a9c83",
+    "pluto-lib/experiments/item-name-connection/validation/prepare_fixture.py": "6fb14a27f3b4c08681316257add0ce927e721089a195f33e651faa5315601057",
+    "pluto-lib/experiments/item-name-connection/validation/test_plan.py": "0183b3a800621c1052189bc7ca77716e654284a6d021bc562baaa0e1465f7662",
+    "pluto-lib/experiments/item-name-connection/validation/test_prepare.py": "9c2b39282a2c4f02efcb137491f3af4956009aed405f785845f9c5019d60481c",
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+  }
+}
