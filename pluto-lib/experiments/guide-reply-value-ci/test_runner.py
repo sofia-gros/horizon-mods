@@ -88,13 +88,13 @@ class Checks(unittest.TestCase):
         self.assertNotIn('CARGO_PKG_HOMEPAGE',output.getvalue())
     def test_verbose_suite_obeys_inherited_parent_parser(self):
         names=unittest.defaultTestLoader.getTestCaseNames(Checks)
-        names.remove('test_verbose_suite_obeys_inherited_parent_parser');self.assertEqual(len(names),23)
+        names.remove('test_verbose_suite_obeys_inherited_parent_parser');self.assertEqual(len(names),28)
         output=io.StringIO()
         with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
             result=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite(Checks(n) for n in names))
-        self.assertTrue(result.wasSuccessful(),output.getvalue());self.assertEqual(result.testsRun,23)
+        self.assertTrue(result.wasSuccessful(),output.getvalue());self.assertEqual(result.testsRun,28)
         self.assertNotIn('COMPILER_SOURCE_MISMATCH',output.getvalue())
-        m.python_pass(output.getvalue(),23)
+        m.python_pass(output.getvalue(),28)
     def test_actual_single_test_artifact(self):
         meta=graph();row=artifact_row(meta)
         self.assertEqual(m.artifact(json.dumps(row),meta,Path('/target')),Path('/target/debug/deps/test-binary'))
@@ -105,6 +105,58 @@ class Checks(unittest.TestCase):
             with self.assertRaises(ValueError):m.artifact(json.dumps(changed),meta,Path('/target'))
         for log in [json.dumps(row)+'\n'+json.dumps(row),'warning\n'+json.dumps(row),'{}']:
             with self.assertRaises(ValueError):m.artifact(log,meta,Path('/target'))
+    def test_known_exact_build_script_prefix_is_classified_not_json(self):
+        meta=graph();meta['packages'].append({'id':'serde-id','name':'serde','version':'1.0.228',
+            'targets':[{'kind':['custom-build'],'src_path':'/serde/build.rs'}]})
+        row=artifact_row(graph());log='[serde 1.0.228] cargo:rerun-if-changed=build.rs\n'+json.dumps(row)
+        detail={};self.assertEqual(m.artifact(log,meta,Path('/target'),detail),Path('/target/debug/deps/test-binary'))
+        self.assertEqual(detail['build_script_owners'],{'serde@1.0.228':1})
+        self.assertEqual((detail['json_lines'],detail['build_script_lines']),(1,1))
+        self.assertEqual(detail['sha256'],m.sha(log.encode()))
+
+    def test_unknown_version_owner_nonbuild_and_duplicate_owner_reject(self):
+        meta=graph();base={'id':'serde-id','name':'serde','version':'1.0.228',
+            'targets':[{'kind':['custom-build'],'src_path':'/serde/build.rs'}]}
+        meta['packages'].append(base)
+        for log in ['[serde 1.0.227] cargo:x','[unknown 1.0.228] cargo:x','[serde 1.0.228]no-space',
+                    '[serde 1.0.228]','warning: ordinary stdout']:
+            detail={}
+            with self.assertRaises(ValueError):m.cargo_rows(log,meta,detail)
+            self.assertIn('rejected',detail)
+        for kind in ('nonbuild','duplicate'):
+            changed=copy.deepcopy(meta)
+            if kind=='nonbuild':changed['packages'][-1]['targets'][0]['kind']=['lib']
+            else:changed['packages'].append(dict(base,id='another-id'))
+            with self.assertRaises(ValueError):m.cargo_rows('[serde 1.0.228] cargo:x',changed,{})
+
+    def test_malformed_duplicate_nonfinite_or_nonobject_json_reject(self):
+        for log in ['{broken','[]','null','1','{}','{"reason":"unknown"}',
+                    '{"reason":"build-finished","reason":"build-finished"}',
+                    '{"reason":"build-finished","value":NaN}']:
+            detail={}
+            with self.assertRaises(ValueError):m.cargo_rows(log,graph(),detail)
+            self.assertEqual(detail['rejected']['line'],1)
+        with self.assertRaises(ValueError):m.cargo_rows(json.dumps(artifact_row(graph()))+'\n\n',graph(),{})
+
+    def test_unclassified_line_has_bounded_false_receipt_evidence(self):
+        log='x'*10000;detail={};capture=io.StringIO()
+        with contextlib.redirect_stdout(capture),self.assertRaises(ValueError):m.cargo_rows(log,graph(),detail)
+        self.assertEqual(capture.getvalue(),'')
+        self.assertEqual(detail['rejected']['bytes'],10000)
+        self.assertEqual(len(detail['rejected']['excerpt']),320)
+        self.assertEqual(detail['rejected']['sha256'],m.sha(log.encode()))
+        self.assertLess(len(json.dumps(detail)),1000)
+
+    def test_compiler_evidence_precedes_artifact_and_retains_all_admission(self):
+        source=(HERE/'run.py').read_text()
+        self.assertLess(source.index("report['compiler_witnesses']=witnesses"),source.index("binary=artifact(raw"))
+        self.assertLess(source.index("report['cargo_stdout']={}"),source.index("binary=artifact(raw"))
+        row=artifact_row(graph());meta=graph();meta['packages'].append({'id':'x','name':'serde','version':'1',
+            'targets':[{'kind':['custom-build']}]})
+        prefix='[serde 1] output\n'
+        for body in [json.dumps(row)+'\n'+json.dumps(row),json.dumps(dict(row,fresh=True))]:
+            with self.assertRaises(ValueError):m.artifact(prefix+body,meta,Path('/target'))
+
     def test_prepare_requires_outer_controller_before_any_write(self):
         with patch.dict(os.environ,{},clear=True),patch.object(m.prep,'prepare') as called:
             with self.assertRaises(ValueError):m.prepare_command(Path('/host'),Path('/api'),Path('/legacy'),Path('/fixture'))

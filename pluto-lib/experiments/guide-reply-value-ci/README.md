@@ -47,3 +47,16 @@ The preparer now requires exactly one metadata package for each local name,
 including the API, and rejects a second API entry with a different ID. Its
 twenty-one synthetic checks replace the earlier twenty; the ten Rust cases,
 compiler witnesses, runtime sources and workflow remain unchanged and unrun.
+
+The first actual attempt is preserved in result-5eae.json/md. Its no-run compile
+returned zero, but artifact parsing stopped before binary admission or tests.
+The exact rejected stdout line was not retained, so a build-script prefix is
+not asserted as its observed cause. The follow-up classifies only Cargo -vv
+prefixes with a unique exact metadata package name/version and a custom-build
+target. All other lines must be strict Cargo JSON records. Unknown prefixes,
+malformed/duplicate/nonfinite JSON and unclassified text fail with a bounded
+line excerpt, hash and byte count in the false receipt. Artifact uniqueness,
+owner/target/test/fresh/path checks and executable seals remain required. The
+three compiler witnesses are retained before artifact parsing to preserve
+partial evidence. These parser-only changes do not alter any Rust case, native
+source, workspace, lock or 21-name inventory. No follow-up run is started.

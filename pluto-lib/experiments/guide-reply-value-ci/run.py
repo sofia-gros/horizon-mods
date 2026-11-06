@@ -18,7 +18,7 @@ API_PATH='pluto-lib/mixins/pluto_native_creative/inventory-api'
 UTILITY=['pluto-lib/experiments/guide-storage-ci/run.py','tconstruct/tests/guide-identity-ci/run.py']
 NATIVE=['horizon-client-core','pluto-inventory-api']
 NAME='pluto-guide-reply-tests'
-RUNNER_TESTS=24
+RUNNER_TESTS=29
 REQUIRED={'runner','preparer21','source6','toolchain','official','mod_inputs','metadata','compile','inventory21','reply10'}
 
 def load(name,path):
@@ -127,8 +127,49 @@ def compilers(log,metadata,fixture):
     if len(result)!=3 or {r['crate'] for r in result}!=set(wanted):raise ValueError('Missing/duplicate cold compiler')
     return result
 
-def artifact(log,metadata,target):
-    rows=[json.loads(line) for line in log.splitlines()]
+def cargo_rows(log,metadata,diagnostic):
+    # Cargo -vv can put build-script stdout beside its JSON messages. Admit
+    # only Cargo's exact prefix for a unique actual custom-build package.
+    # Do not infer that this was the unobserved bad line in the first run.
+    owners={}
+    for package in metadata['packages']:
+        key=(package['name'],package.get('version'))
+        owners.setdefault(key,[]).append(package)
+    diagnostic.update(bytes=len(log.encode()),sha256=sha(log.encode()),json_lines=0,
+                      build_script_lines=0,build_script_owners={})
+    def reject(number,line,reason):
+        raw=line.encode()
+        diagnostic['rejected']={'line':number,'bytes':len(raw),'sha256':sha(raw),
+                                'excerpt':line[:320],'reason':reason}
+        raise ValueError('Unclassified Cargo stdout at line '+str(number)+': '+reason)
+    def unique_object(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise ValueError('Duplicate JSON field')
+            result[key]=value
+        return result
+    def no_constant(value):raise ValueError('Nonfinite JSON constant')
+    rows=[]
+    for number,line in enumerate(log.splitlines(),1):
+        prefix=re.fullmatch(r'\[([A-Za-z0-9_-]+) ([^\]\s]+)\] (.*)',line)
+        if prefix:
+            key=prefix.group(1,2);matches=owners.get(key,[])
+            if len(matches)!=1 or not any(t.get('kind')==['custom-build'] for t in matches[0]['targets']):
+                reject(number,line,'Unknown or ambiguous build-script owner')
+            diagnostic['build_script_lines']+=1
+            label=key[0]+'@'+key[1]
+            diagnostic['build_script_owners'][label]=diagnostic['build_script_owners'].get(label,0)+1
+            continue
+        try:row=json.loads(line,object_pairs_hook=unique_object,parse_constant=no_constant)
+        except (ValueError,TypeError):reject(number,line,'Invalid JSON or non-Cargo line')
+        if not isinstance(row,dict) or row.get('reason') not in {
+                'compiler-artifact','compiler-message','build-script-executed','build-finished'}:
+            reject(number,line,'Unknown JSON record shape/reason')
+        rows.append(row);diagnostic['json_lines']+=1
+    return rows
+
+def artifact(log,metadata,target,diagnostic=None):
+    rows=cargo_rows(log,metadata,{} if diagnostic is None else diagnostic)
     packages=[p for p in metadata['packages'] if p['name']==NAME]
     if len(packages)!=1:raise ValueError('Wrong artifact owner')
     candidates=[r for r in rows if r.get('reason')=='compiler-artifact' and r.get('package_id')==packages[0]['id'] and r.get('profile',{}).get('test') is True and r.get('executable')]
@@ -222,7 +263,10 @@ def execute(report):
         fixture_before=seal(fixture);g['metadata']={'sha256':sha(raw.encode()),'packages':len(metadata['packages']),'lock_sha256':sha((fixture/'Cargo.lock').read_bytes())}
         raw=runner.run('native-compile',['cargo','test','--lib','--no-run','--locked','--offline','--manifest-path',str(fixture/'Cargo.toml'),'-vv','--message-format=json'],cwd=fixture,timeout=1800,separate_stdout=True)
         witnesses=compilers((work/'native-compile.stderr.log').read_text(),metadata,fixture)
-        binary=artifact(raw,metadata,target);compiled=base.binary_seal(binary);generated=outputs(target)
+        report['compiler_witnesses']=witnesses
+        print('ACTUAL_REPLY_COMPILERS',json.dumps(witnesses,sort_keys=True),flush=True)
+        report['cargo_stdout']={}
+        binary=artifact(raw,metadata,target,report['cargo_stdout']);compiled=base.binary_seal(binary);generated=outputs(target)
         g['compile']={'passed':True,'actual_compilers':witnesses,'binary':compiled}
         if seal(fixture)!=fixture_before or seal(host)!=host_before or seal(ROOT)!=original:raise ValueError('Source changed during compile')
         inventory(runner.run('inventory',[str(binary),'--list','--format','terse']),p['inventory_names'])
