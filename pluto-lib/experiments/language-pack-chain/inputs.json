@@ -1,0 +1,146 @@
+{
+  "status": "source-only; six Rust cases uncompiled and unrun",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_url": "https://github.com/horizon-rust/horizon.git",
+  "prior_overlay_success": {
+    "head": "ce495a88afe32b6322703ad778263a90b2bb98a9",
+    "run": 42195249104,
+    "closure": "4102a43c3e448374bb2c874cccf440cc2fc2cf6a"
+  },
+  "execution": {
+    "run_now": false,
+    "requires_separate_review_and_ci_grant": true,
+    "root_local_patches_required": [
+      "wgpu-hal",
+      "naga",
+      "libmimalloc-sys"
+    ]
+  },
+  "official_inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+    },
+    {
+      "path": "crates/horizon-client-lib/Cargo.toml",
+      "sha256": "e6a27acdaa9f4304a40ff4b0569802c16a6956ab3686bf5d1ae72500686855a4"
+    },
+    {
+      "path": "crates/horizon-client/src/client_lib.rs",
+      "sha256": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content.rs",
+      "sha256": "8f4121d5a0a045ea2796d79f3548efd7436859e2648be99d6504a10f8368ec93"
+    },
+    {
+      "path": "crates/horizon-client/src/mod_content_biomes.rs",
+      "sha256": "fb616f86eda457d5582e0e39a3bb8175ae92a914f6a2b8279364e138209ed295"
+    },
+    {
+      "path": "crates/horizon-client-core/src/lang.rs",
+      "sha256": "7384b98b80acdea2540ca46c5cd1b608c5b5361abe8c83da9edd372b7c9afe5d"
+    },
+    {
+      "path": "crates/horizon-mods/src/lib.rs",
+      "sha256": "729233bfb444ec833a1eb8bb487856c687aa7c5ed3b8bbe4ed2de71624695840"
+    },
+    {
+      "path": "crates/horizon-mods/src/manifest.rs",
+      "sha256": "b4cf560d11c589ae65f17578867d6f4d97223f8ce4661d5eff433b8296f5930a"
+    },
+    {
+      "path": "crates/horizon-mods/src/content.rs",
+      "sha256": "23254782eb291a94279fd6e9743fd2f6e6cf2ee5df0146a1b6d9edac484c3409"
+    },
+    {
+      "path": "crates/horizon-client/src/game/packs.rs",
+      "sha256": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs.rs",
+      "sha256": "c7212c509709788e4276fec1dba65531428033981df4b9ee102b3f62a48e29ed"
+    },
+    {
+      "path": "crates/horizon-client/src/game/options.rs",
+      "sha256": "8b50db0d6dccfd1a5e9b0521c2ad28f87798404748b0179c38d4b8cab35d4b24"
+    },
+    {
+      "path": "crates/horizon-client/src/game/startup_menu.rs",
+      "sha256": "c8624302953019a1166a20b2ca76d96211c4cacecdad4bf3cf73fa8cc6254cd8"
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "sha256": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "b4455978698b49acff6ef58a17fb299c53af48dca149766110ad701bba0dbd4e"
+    },
+    {
+      "path": "third_party/wgpu-hal/Cargo.toml",
+      "sha256": "c9af359e3b22c03be3ef7e3240944682755f0d3c248071cb21f75b4893dabec2"
+    },
+    {
+      "path": "third_party/naga/Cargo.toml",
+      "sha256": "00f66d135eba8611772149f2d2eb2714c7df275d97eeded495db1793d7ebe1a4"
+    },
+    {
+      "path": "third_party/libmimalloc-sys/Cargo.toml",
+      "sha256": "bb61afd11805969f3236b82ce45779b700d29fc4cb01a5ab27ccdf535454c523"
+    },
+    {
+      "path": "crates/horizon-client-render/Cargo.toml",
+      "sha256": "ec3361aa69c7a5385092201ece06979a89b429fa1a619a2a5e306396e800d0af"
+    },
+    {
+      "path": "crates/horizon-client-render/src/lib.rs",
+      "sha256": "2c1671b6f40b50b89d0b71f6c2c4b056728e3ccd13719f5fb13de9abbb459ccf"
+    },
+    {
+      "path": "crates/horizon-client-render/src/packs/cache.rs",
+      "sha256": "0df3ed83d3203beac80ccec039ad731e68b0b66369bfab9fc03ae25b8af46c16"
+    },
+    {
+      "path": "crates/horizon-client-render/src/zip.rs",
+      "sha256": "449de38b45bd952be36b4fdec086137ff61764c3eeb96fe1623f900e67b6e7ef"
+    }
+  ],
+  "fixture_inputs": {
+    "fixture.rs": "1fa3ebd629b09c89a053c5906f17a5e79aabc64a31b8d1363c2bffd61ea4b833",
+    "Cargo.toml.in": "2eee3012db6451684f15df4ba6562d97865845ef88a4ca49d843c98b602876c5"
+  },
+  "unchanged_prior_inputs": {
+    "pluto-lib/experiments/language-overlay/fixture.rs": "b02e42f7b3331bda4c8388dc45c7ff97ad7ec3adce7b40f10256ec7f74aa647c",
+    "pluto-lib/experiments/language-overlay/Cargo.toml.in": "04e017cd1a1346971022cace62772dc75e0605bc3b2133c6d09857bb96d39572",
+    "pluto-lib/experiments/language-overlay/inputs.json": "1d6398a785de7d82fd84f74c58156599fabcebeb7a2ceb2b80d7d4eb078f08a6",
+    "pluto-lib/experiments/language-overlay-ci/run.py": "f00b3dbac827c16a7c1bd4f4ea8c5e1d8f8583a6e7705a6cbbe1e8e51f6217da",
+    "pluto-lib/experiments/language-overlay-ci/prepare.py": "1d1fec58f9353005773dda4d1735dc81d5360d607d84b2a3ddc49b46679de923",
+    "pluto-lib/experiments/language-overlay-ci/inputs.json": "ceabe69cae25bbcca01c1f3725a52f90e0489ca193c3e03f505fcaadb5dd71b0",
+    ".github/workflows/language-overlay-wip.yml": "c4fb74356ac91be12f8d9f5adc539c0710d51c8dd4f2e2c2305e0412dbf5026e"
+  },
+  "zip_identity": {
+    "name": "zip",
+    "version": "9.1.3",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "checksum": "1156b39d142a34b999c2310a50455e0cb3760bf7efad0122f796d813bee26ccb"
+  },
+  "expected_test_names": [
+    "tests::selected_order_merges_keys_before_mod_whole_file_replacement",
+    "tests::supplied_server_pack_is_above_selected_packs_but_below_mod_file",
+    "tests::filter_removes_lower_layers_but_allows_its_own_file_then_mod",
+    "tests::filter_without_replacement_stays_absent_until_explicit_mod_file",
+    "tests::invalid_pack_layer_is_skipped_but_invalid_mod_file_replaces",
+    "tests::unchanged_pack_cache_and_selected_locale_survive_mod_english_overlay"
+  ],
+  "excluded": [
+    "priority repair or key-retention policy",
+    "Game pack/server-selection authority",
+    "Options locale and startup/reload installation",
+    "live UI/retained Guide/LAN refresh",
+    "native content-cache policy version/transition",
+    "production resource coverage",
+    "permission modes/timestamps",
+    "native compilation or test execution at this checkpoint"
+  ]
+}

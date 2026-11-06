@@ -1,0 +1,22 @@
+{
+  "status": "source guards passed; Rust not compiled or run",
+  "python_tests": 7,
+  "seconds": 0.125,
+  "strict_python_output_parser": "existing language-overlay-ci/run.py validate_python_checks",
+  "source_sha256": {
+    "Cargo.toml.in": "2eee3012db6451684f15df4ba6562d97865845ef88a4ca49d843c98b602876c5",
+    "README.md": "67261d1c07c046d7bc2caeb53eb5f8aaf6e1a90719eaee6cacabcc69b0be47d6",
+    "fixture.rs": "1fa3ebd629b09c89a053c5906f17a5e79aabc64a31b8d1363c2bffd61ea4b833",
+    "inputs.json": "42ebe819e1a1c665a39c698447e08ef7b20b64b9342e8eca5fb2da95636107a9",
+    "test_source.py": "46fa936d80c2957c02051029e2b87dc8b6ee7f4896cb74a49efe943486fb5209"
+  },
+  "log_sha256": "cf4054fc81923f3410f96021380d4832b0841651e1082d52a763948621d47348",
+  "no_execution": [
+    "Cargo",
+    "metadata",
+    "rustc",
+    "native planner/apply",
+    "full stage copy",
+    "CI dispatch"
+  ]
+}
