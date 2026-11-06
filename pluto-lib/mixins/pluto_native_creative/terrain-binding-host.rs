@@ -118,10 +118,21 @@ pub fn with_frame<R>(
     mesher: &Mesher<'_>,
     callback: impl FnOnce(&Status) -> R,
 ) -> Result<R, CacheError> {
+    with_owners(mesher.assets, mesher.render, mesher.tables, callback)
+}
+
+// Internal staged mesher adapter: the exact owner borrows are split from the
+// mutable mesher borrow. Same lookup and before/after validity contract.
+pub(super) fn with_owners<R>(
+    assets: &Assets,
+    render: &RenderAssets,
+    tables: &MeshTables,
+    callback: impl FnOnce(&Status) -> R,
+) -> Result<R, CacheError> {
     let status = CACHE
         .lock()
         .map_err(|_| CacheError::Poisoned)?
-        .get(mesher.assets, mesher.render, mesher.tables)
+        .get(assets, render, tables)
         .ok_or(CacheError::Unbound)?;
     api::inspect(&status.status, status.revision.as_ref(), callback)
 }

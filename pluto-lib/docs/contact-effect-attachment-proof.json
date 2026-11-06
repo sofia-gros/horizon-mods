@@ -1,0 +1,135 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "status": "Exact official planner rejection observed; native instance attachment unsupported under this state contract",
+  "official_horizon_sha256": {
+    "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+    "crates/horizon-client/src/block_contact.rs": "359d9c95134d07e86e3ba92bcdc9fc23afbe59799bf5fc5e46c20e43c1c9d143",
+    "crates/horizon-client/src/motion.rs": "32caf71a62f87dda437f650e271922a9e5add6dec7056a67cf0d82471b56a4ae",
+    "crates/horizon-client/src/motion/fluids.rs": "308ef21944974fa88cf1ff9e6c146a2c9ff4529a33676f1ad5858a568fac274e",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/levels.rs": "839eec483b745eef8cfdf8ac2502160e46517e1dbd62534b69e612d2828b7ba7",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/beacon.rs": "32d2af0aedcd7a2d80393ff9248f81fcd3f0b0ad3ef5de96685bdafd74749348",
+    "crates/horizon-client/src/game/block_entity_anims.rs": "7dcd35f88ee124ded8451ae7e1da70058cbdff39a55e2d136899cbf48bfa8463",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/mobs.rs": "425f605cf6daeaa0f5e76b8bed5bcfee5110daef3a741ea34fc66133a04a6028",
+    "crates/horizon-world/src/entity_fluid.rs": "407d46a47c01939d9216e96d9a039298cd78b055205963e70b0a12a28178b633"
+  },
+  "official_mixins_sha256": {
+    "crates/horizon-mixins-core/src/state.rs": "ae74844a3c88e2001be7d65f3ffc7cf2fb8c74baf0ebac71a37b997f2d9d1c9a",
+    "docs/effects-and-state.md": "ebfb99951ebce0032c6d7bc33a7a3d990342e8610de5e4d93814ee9fd3be6a70"
+  },
+  "source_tconstruct": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "source_forge": "d13dd327bdc75c010f3358992e80e7e92f51e030",
+  "source_snapshot_sha256": {
+    "MobEffectLiquidBlock.java": "6a1bc7d67d1f78df488de47100d6751b0f6f5c7bf878f169a5168da13081af73",
+    "BurningLiquidBlock.java": "2a65acfff5baf92d0dfb42b23f70dfd46d4ae841aa2e2ef509da300b03e8811b",
+    "Entity.java.patch": "cab829b94a5e9c10b4447fb8533681d95e8b5f1f75c5c18851e6ae24932ed9a0",
+    "MobEffectInstance.java.patch": "a2a6f9acb64ceb5c09aad340d7725aef0103facebd048dad69a2d7e3fc7cd2c9",
+    "IForgeMobEffectInstance.java": "6397e142118d7b9a3bd3324022a3ac13db8c3e7ef29882e2e029737dd452999d"
+  },
+  "negative_probe": {
+    "executed": true,
+    "expected_code": "E_STATE",
+    "expected_message": "state requires a private field or non_exhaustive struct; external construction would break",
+    "constructor_coverage_verified": false,
+    "native_insertion_attempted": false,
+    "source_commit": "55a9e8edfb6cc9e9aef07a3c1846b248c6a53b21",
+    "observed_code": "E_STATE",
+    "observed_message": "state requires a private field or non_exhaustive struct; external construction would break",
+    "result": {
+      "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "command": [
+        "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+        "plan",
+        "--workspace",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+        "--mods",
+        "/workspace/scratch/c7b540ff3393/plutolib-fluid-contact-api/pluto-lib/tests/probes/effect-instance-state",
+        "--out",
+        "/workspace/scratch/c7b540ff3393/plutolib-fluid-contact-api/.work/effect-instance-state-proof-55a9e8ed-env/unexpected-plan.json"
+      ],
+      "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff",
+      "manifest_sha256": "ca1cd87da7c92803d5dc5aa45d2d9db2c85346129a8bb831f86ca4a41ef42aa2",
+      "official_files_verified": 5007,
+      "guard_free_bytes": 10871635968,
+      "minimum_free_bytes": 10995793920,
+      "limits": [
+        "Negative planner result only",
+        "No apply/build/gameplay",
+        "Constructor coverage and field types are not reached by this rejection"
+      ],
+      "returncode": 1,
+      "disk_guard_stopped": false,
+      "elapsed_seconds": 7.876126111004851,
+      "official_inputs_unchanged": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "6fc852954a403f33634e215536567a838d447af1385b57f90f3c824f34052843",
+      "expected_rejection_observed": true
+    },
+    "runner_sha256": "fca7bf08d21a2d4f8a4375a911328a2d4d7c4e02bf6c6a21356bc7398636d9cb",
+    "result_sha256": "eb5e9f10b9ac5e09f832bfa182b9a68cfcb6a15317410d6c5c0bf649e611e069",
+    "initial_attempt": {
+      "result": {
+        "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+        "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+          "plan",
+          "--workspace",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+          "--mods",
+          "/workspace/scratch/c7b540ff3393/plutolib-fluid-contact-api/pluto-lib/tests/probes/effect-instance-state",
+          "--out",
+          "/workspace/scratch/c7b540ff3393/plutolib-fluid-contact-api/.work/effect-instance-state-proof-55a9e8ed/unexpected-plan.json"
+        ],
+        "cli_sha256": "50fd3105daafd09525889c11c2374a727dbd41b0bad0a5b8714c01b0d06866ff",
+        "manifest_sha256": "ca1cd87da7c92803d5dc5aa45d2d9db2c85346129a8bb831f86ca4a41ef42aa2",
+        "official_files_verified": 5007,
+        "guard_free_bytes": 10871635968,
+        "minimum_free_bytes": 10996002816,
+        "limits": [
+          "Negative planner result only",
+          "No apply/build/gameplay",
+          "Constructor coverage and field types are not reached by this rejection"
+        ],
+        "returncode": 1,
+        "disk_guard_stopped": false,
+        "elapsed_seconds": 0.9692859180067899,
+        "official_inputs_unchanged": true,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "a0d6e6bb43912a9d510c7452b503ff28f716152e7f4342a4de4c91b0f32ee707",
+        "expected_rejection_observed": false
+      },
+      "diagnostic": {
+        "code": "E_METADATA",
+        "message": "failed to start `cargo metadata`: No such file or directory (os error 2)"
+      },
+      "result_sha256": "498541295c934e718011f45d340fa4253f15e04d9c28c5efbf4e99e3a01ec650",
+      "remedy": "Same frozen probe with approved env.sh PATH. No compile/test. The planner itself invokes cargo metadata."
+    },
+    "environment": {
+      "setup": "Existing approved .devtools/env.sh",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "2",
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null
+    },
+    "no_output_plan": true
+  },
+  "probe_python_guards_passed": 2,
+  "runtime_sources_changed": false,
+  "limitations": [
+    "No applied-host field insertion or safe native attachment claimed",
+    "No contact hook or mutation authority added",
+    "Player EffectInstance and mob effect tuple domains are distinct",
+    "No live order/cure/save/network test",
+    "No official repository changed"
+  ]
+}

@@ -26,8 +26,7 @@ class GuideDocumentBoundaryTests(unittest.TestCase):
     def test_document_converter_installs_no_automatic_hook_or_state(self):
         manifest = tomllib.loads((NATIVE / "horizon-mixin.toml").read_text())
         modules = [m for m in manifest["module"] if m["id"].startswith("guide-")]
-        self.assertEqual(len(modules), 1)
-        self.assertEqual(modules[0]["source"], "guide-text.rs")
+        self.assertEqual({m["source"] for m in modules}, {"guide-text.rs", "guide-layout.rs"})
         for section in ["injection", "state"]:
             self.assertFalse(any(m["id"].startswith("guide-") for m in manifest.get(section, [])))
 
@@ -36,7 +35,7 @@ class GuideDocumentBoundaryTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         import json
         _, files = module._bundle(json.loads((ROOT / "horizon-native.json").read_text()))
-        for name in ["guide-text.rs", "inventory-api/src/guide/mod.rs", "inventory-api/src/guide/document.rs"]:
+        for name in ["guide-text.rs", "guide-layout.rs", "inventory-api/src/guide/mod.rs", "inventory-api/src/guide/document.rs"]:
             self.assertEqual(files[f"pluto_native_creative/{name}"], (NATIVE/name).read_bytes())
 
 

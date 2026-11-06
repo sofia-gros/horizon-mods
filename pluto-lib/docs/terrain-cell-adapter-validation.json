@@ -1,0 +1,33 @@
+{
+  "source_head": "d63a7c8effcd3fa52b956141317a357a07f6780f",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "archive_sha256": "058f90042accfb876c1e6941da2e22ad10692b1391ee818e5147c7d9b55b9d6b",
+  "scope": "Complete actual packaged read-only plan and exact source/composition guards only. No native apply/type/CPU-mesh/GPU proof. No consumer registration.",
+  "plan": {
+    "exit": 0,
+    "seconds": 20.496952475,
+    "crates": 2,
+    "modules": 63,
+    "injections": 34,
+    "states": 3,
+    "artifact": "/tmp/pluto-terrain-cell-plan-20261106",
+    "minimum_free_bytes": 10910306304,
+    "disk_guard_stop": false
+  },
+  "guards_passed": [
+    "check_terrain_cell_plan.py",
+    "check_terrain_binding_plan.py"
+  ],
+  "tests": {
+    "std_only": 17,
+    "source_package": 19,
+    "artifact": "/tmp/pluto-terrain-cell-api-20261106"
+  },
+  "pending": [
+    "Complete combined preflight/apply/native host check",
+    "Actual CPU mesh no-claim/stale/claimed differential with original synthetic or prepared assets",
+    "GPU visual and performance proof",
+    "Consumer-specific fluid policy activation"
+  ]
+}

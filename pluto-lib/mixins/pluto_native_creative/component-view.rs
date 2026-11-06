@@ -5,8 +5,8 @@ use crate::pluto_inventory::advancements::predicates::{
 };
 
 pub fn from_nbt(tag: horizon_world::nbt::Tag) -> ComponentValue {
-    use horizon_world::nbt::Tag as Native;
     use ComponentValue as Value;
+    use horizon_world::nbt::Tag as Native;
     match tag {
         Native::End => Value::End,
         Native::Byte(v) => Value::Byte(v),
@@ -25,6 +25,32 @@ pub fn from_nbt(tag: horizon_world::nbt::Tag) -> ComponentValue {
         ),
         Native::IntArray(v) => Value::IntArray(v),
         Native::LongArray(v) => Value::LongArray(v),
+    }
+}
+
+/// Structural inverse only. This does not validate a component schema or grant
+/// permission to replace a native stack. Callers must bound supplied trees.
+pub fn to_nbt(value: &ComponentValue) -> horizon_world::nbt::Tag {
+    use ComponentValue as Value;
+    use horizon_world::nbt::{JavaString, Tag as Native};
+    match value {
+        Value::End => Native::End,
+        Value::Byte(v) => Native::Byte(*v),
+        Value::Short(v) => Native::Short(*v),
+        Value::Int(v) => Native::Int(*v),
+        Value::Long(v) => Native::Long(*v),
+        Value::Float(v) => Native::Float(*v),
+        Value::Double(v) => Native::Double(*v),
+        Value::ByteArray(v) => Native::ByteArray(v.clone()),
+        Value::String(v) => Native::String(JavaString(v.0.clone())),
+        Value::List(v) => Native::List(v.iter().map(to_nbt).collect()),
+        Value::Compound(v) => Native::Compound(
+            v.iter()
+                .map(|(key, v)| (JavaString(key.0.clone()), to_nbt(v)))
+                .collect(),
+        ),
+        Value::IntArray(v) => Native::IntArray(v.clone()),
+        Value::LongArray(v) => Native::LongArray(v.clone()),
     }
 }
 
@@ -98,6 +124,31 @@ mod tests {
                 ComponentValue::Long(i64::MIN)
             ])
         );
+    }
+    #[test]
+    fn pluto_component_conversion_is_structurally_reversible() {
+        use horizon_world::nbt::{JavaString, Tag};
+        let values = vec![
+            Tag::End,
+            Tag::Byte(-8),
+            Tag::Short(-9),
+            Tag::Int(-10),
+            Tag::Long(i64::MIN),
+            Tag::Float(0x7fc00001),
+            Tag::Double(0xfff0000000000001),
+            Tag::ByteArray(vec![0, 255]),
+            Tag::String(JavaString(vec![0xd800])),
+            Tag::IntArray(vec![i32::MIN]),
+            Tag::LongArray(vec![i64::MAX]),
+            Tag::List(vec![Tag::Int(7)]),
+            Tag::Compound(std::collections::BTreeMap::from([(
+                JavaString(vec![0xdc00]),
+                Tag::Byte(1),
+            )])),
+        ];
+        for value in values {
+            assert_eq!(to_nbt(&from_nbt(value.clone())), value);
+        }
     }
     #[test]
     fn pluto_component_view_keeps_known_default_patch_distinct_from_unavailable() {

@@ -15,27 +15,35 @@ class NativePreflightTests(unittest.TestCase):
         entries = ["reviewed metadata"]
         metadata = {"payload": "reviewed source"}
         calls = []
-        with patch.object(MODULE.protection, "check", side_effect=lambda p: calls.append(("protection", p))), \
-             patch.object(MODULE.advancement, "check", side_effect=lambda p, w: calls.append(("advancement", p, w))), \
-             patch.object(MODULE.equipment, "entries", return_value=entries), \
-             patch.object(MODULE.equipment, "check_order", side_effect=lambda p, e: calls.append(("order", p, e))), \
-             patch.object(MODULE.equipment, "verify_source", side_effect=lambda p, w, e: calls.append(("source", p, w, e))), \
-             patch.object(MODULE.payload, "metadata", return_value=metadata), \
-             patch.object(MODULE.payload, "check", side_effect=lambda p, m: calls.append(("payload", p, m))), \
-             patch.object(MODULE.payload, "check_source", side_effect=lambda w, m: calls.append(("payload-source", w, m))), \
-             patch.object(MODULE.placement, "check", side_effect=lambda p, w: calls.append(("placement", p, w))), \
-             patch.object(MODULE.current_book, "metadata", return_value=metadata), \
-             patch.object(MODULE.current_book, "check", side_effect=lambda p, m: calls.append(("book", p, m))), \
-             patch.object(MODULE.current_book, "check_source", side_effect=lambda w, m: calls.append(("book-source", w, m))), \
-             patch.object(MODULE.wire_snapshot, "check", side_effect=lambda p, w: calls.append(("wire-snapshot", p, w))), \
-             patch.object(MODULE.matching, "check", side_effect=lambda p, w: calls.append(("matching", p, w))), \
-             patch.object(MODULE.terrain, "metadata", return_value=metadata), \
-             patch.object(MODULE.terrain, "check", side_effect=lambda p, m: calls.append(("terrain", p, m))), \
-             patch.object(MODULE.terrain, "check_source", side_effect=lambda w, m: calls.append(("terrain-source", w, m))), \
-             patch.object(MODULE.cloud, "check", side_effect=lambda p, w: calls.append(("cloud", p, w))), \
-             patch.object(MODULE.station, "check", side_effect=lambda p, w: calls.append(("station", p, w))):
+        from contextlib import ExitStack
+        with ExitStack() as stack:
+            for manager in [
+                patch.object(MODULE.protection, "check", side_effect=lambda p: calls.append(("protection", p))),
+                patch.object(MODULE.advancement, "check", side_effect=lambda p, w: calls.append(("advancement", p, w))),
+                patch.object(MODULE.equipment, "entries", return_value=entries),
+                patch.object(MODULE.equipment, "check_order", side_effect=lambda p, e: calls.append(("order", p, e))),
+                patch.object(MODULE.equipment, "verify_source", side_effect=lambda p, w, e: calls.append(("source", p, w, e))),
+                patch.object(MODULE.payload, "metadata", return_value=metadata),
+                patch.object(MODULE.payload, "check", side_effect=lambda p, m: calls.append(("payload", p, m))),
+                patch.object(MODULE.payload, "check_source", side_effect=lambda w, m: calls.append(("payload-source", w, m))),
+                patch.object(MODULE.placement, "check", side_effect=lambda p, w: calls.append(("placement", p, w))),
+                patch.object(MODULE.current_book, "metadata", return_value=metadata),
+                patch.object(MODULE.current_book, "check", side_effect=lambda p, m: calls.append(("book", p, m))),
+                patch.object(MODULE.current_book, "check_source", side_effect=lambda w, m: calls.append(("book-source", w, m))),
+                patch.object(MODULE.wire_snapshot, "check", side_effect=lambda p, w: calls.append(("wire-snapshot", p, w))),
+                patch.object(MODULE.matching, "check", side_effect=lambda p, w: calls.append(("matching", p, w))),
+                patch.object(MODULE.terrain, "metadata", return_value=metadata),
+                patch.object(MODULE.terrain, "check", side_effect=lambda p, m: calls.append(("terrain", p, m))),
+                patch.object(MODULE.terrain, "check_source", side_effect=lambda w, m: calls.append(("terrain-source", w, m))),
+                patch.object(MODULE.cloud, "check", side_effect=lambda p, w: calls.append(("cloud", p, w))),
+                patch.object(MODULE.station, "check", side_effect=lambda p, w: calls.append(("station", p, w))),
+                patch.object(MODULE.terrain_cell, "metadata", return_value=metadata),
+                patch.object(MODULE.terrain_cell, "check", side_effect=lambda p, m: calls.append(("terrain-cell", p, m))),
+                patch.object(MODULE.terrain_cell, "check_source", side_effect=lambda w, m: calls.append(("terrain-cell-source", w, m))),
+            ]:
+                stack.enter_context(manager)
             MODULE.check(plan, "pristine")
-        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine"))])
+        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine")), ("terrain-cell", plan, metadata), ("terrain-cell-source", Path("pristine"), metadata)])
 
     def test_advancement_failure_stops_before_equipment_application_checks(self):
         with patch.object(MODULE.protection, "check"), \
@@ -128,7 +136,7 @@ class NativePreflightTests(unittest.TestCase):
 
     def test_new_guard_failures_cannot_skip_through_to_success(self):
         from contextlib import ExitStack
-        for failing in (MODULE.cloud, MODULE.station):
+        for failing in (MODULE.cloud, MODULE.station, MODULE.terrain_cell):
             with self.subTest(guard=failing.__name__), ExitStack() as stack:
                 for module, name in [(MODULE.protection, "check"), (MODULE.advancement, "check"),
                                      (MODULE.equipment, "check_order"), (MODULE.equipment, "verify_source"),
@@ -137,10 +145,14 @@ class NativePreflightTests(unittest.TestCase):
                                      (MODULE.current_book, "check_source"), (MODULE.wire_snapshot, "check"),
                                      (MODULE.matching, "check"), (MODULE.terrain, "check"),
                                      (MODULE.terrain, "check_source"), (MODULE.cloud, "check"),
-                                     (MODULE.station, "check")]:
+                                     (MODULE.station, "check"), (MODULE.terrain_cell, "check"),
+                                     (MODULE.terrain_cell, "check_source")]:
                     stack.enter_context(patch.object(module, name))
                 stack.enter_context(patch.object(failing, "check", side_effect=ValueError("new boundary conflict")))
                 with self.assertRaisesRegex(ValueError, "new boundary conflict"):
                     MODULE.check({}, "pristine")
                 if failing is MODULE.cloud:
                     MODULE.station.check.assert_not_called()
+                if failing in (MODULE.cloud, MODULE.station):
+                    MODULE.terrain_cell.check.assert_not_called()
+                MODULE.terrain_cell.check_source.assert_not_called()

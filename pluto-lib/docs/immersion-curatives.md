@@ -79,6 +79,22 @@ twelve new kernel/policy tests. The minimal official-loader fixture passed 9/9,
 including its new actual View height test. Both had zero ignored tests; the
 strict fixture source/dependency checks passed before and after. The continuous
 disk guard did not stop either run; final free space was 11,052,900,352 bytes.
-The complete combined package gate remains separate. Evidence is recorded in
+The complete combined package gate is recorded below. Evidence is recorded in
 [the proof record](immersion-curatives-proof.json). Neither fixture proves live
 contact cadence, native effect attachment, gameplay assets or curing in Game.
+
+## Complete shared package gate
+
+The full package at `31cf76672d3a7b982aebab86a91a78440afd163e` passed official
+plan, all eleven required composition guards, apply and host library/binary
+type checking. Archive SHA-256 is
+`20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5`.
+The actual packaged `effects.rs`, `contact.rs`, `contact/immersion.rs` and
+`world-fluid-query.rs` match the tested `697a851a` bytes. All 5,045 sealed stage
+files were reverified. Central validation passed 193 Python tests and both real
+API crates (43 and 115 tests). The entire API crate is not asserted identical
+to the earlier branch: central also includes the later registry revision lease.
+
+This establishes composition and native types for these building blocks. It
+does not establish native instance attachment, contact cadence, effect curing,
+full production assets or client/server gameplay.

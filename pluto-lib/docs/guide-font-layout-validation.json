@@ -1,0 +1,75 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "base": "38b07177",
+  "verified_ordinary_runtime_unchanged": "921bb12dc23caea0c970c5bcc39b72921e98981c",
+  "official_sources": {
+    "crates/horizon-client-render/src/font.rs": "e3074b2780834ae1fdc73f3d4e2860b4db4c9377cff0871ed7df9bc62875d28a",
+    "crates/horizon-client-render/src/bidi.rs": "3340c92219318713e469ec8504d7a0d4fb13b470f86477aa5d449a400e19d6e9",
+    "crates/horizon-client-core/src/text.rs": "e7de50e868577e09f96b68d98cb9f5f37879502a925e03abbc8b90a7ed3a7c67",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf"
+  },
+  "sources": {
+    "pluto-lib/mixins/pluto_native_creative/guide-layout.rs": "6a460b292cf628388315bb81a1bc54dd33344b5ba24ed39337fdf2561ae4bb9a",
+    "pluto-lib/mixins/pluto_native_creative/guide-text.rs": "591ebaba601061d3ae2fe0bc4d9ac8f1e97cf0eaf275b029499f846329d933e7",
+    "pluto-lib/tests/native/guide_layout.rs": "136e87b4f6f96889c384bcb4e3a6ed0552ef0edbbb2a5ca3c1937e07cdada814",
+    "pluto-lib/tests/native/guide_font_provider.json": "9bf7ce3a992d0b31672d1e5b10eae90d60b6d58dcbf302583062229e2b6552eb",
+    "pluto-lib/tests/native/guide_text_baseline.rs": "df9526013021ce595571c11a8c722fce5c4347d8a583f39a74f9264a0bde4de1"
+  },
+  "converter_baseline": {
+    "commit": "38b07177",
+    "source": "pluto-lib/mixins/pluto_native_creative/guide-text.rs",
+    "function_source_sha256": "535dda1a13239b4c4120ac886d034c99c44d9b3a1b09e854e02f2fa727d80c3f",
+    "transform": "Add two provenance comment lines; omit cfg(test) module; trim the final blank line. Function source is otherwise byte-identical."
+  },
+  "validation": {
+    "source_package_contract_tests": {
+      "status": "passed",
+      "count": 7,
+      "log": "/tmp/pluto-guide-layout-proof-20261106/source-tests.log"
+    },
+    "native_font_fixture": {
+      "status": "passed",
+      "executed": 8,
+      "passed": 8,
+      "ignored": 0,
+      "fixture": "/workspace/scratch/c7b540ff3393/.work/pluto-guide-layout-fixture-20261106",
+      "fixture_receipt_sha256": "e1d3b79f6faf6f2384dc3abf6d86e9101036e2df2a4e0ead56ffb0bb38b70449",
+      "log": "/tmp/pluto-guide-layout-proof-20261106/layout-tests.log",
+      "filter": "guide_layout_tests::",
+      "actual_types": "Clean official horizon-client-render Font::metrics, native Text, production query/converter and actual API crate; original synthetic space provider; no renderer"
+    },
+    "complete_native_package": "pending central grouped application/typecheck for this source",
+    "peer_review": "No serious issue in bounded source-only review; no native execution by reviewer",
+    "existing_converter_fixture": {
+      "status": "passed",
+      "executed": 3,
+      "passed": 3,
+      "ignored": 0,
+      "filter": "guide_text::tests::",
+      "log": "/tmp/pluto-guide-layout-proof-20261106/converter-tests.log"
+    },
+    "locked_offline_source_path_verification": "passed",
+    "run": {
+      "terminal_exit": 0,
+      "minimum_free_bytes": 10977452032,
+      "floor_bytes": 10871635968,
+      "disk_stopped": false,
+      "result": "/tmp/pluto-guide-layout-proof-20261106/result.json"
+    }
+  },
+  "exclusions": [
+    "No renderer/window/Game instance",
+    "No physical input admission or action",
+    "No native session ownership or transport",
+    "No TConstruct consumer activation",
+    "No Mojang asset import or download",
+    "No fork access"
+  ],
+  "source_cutoff": "0d67efc71cd65c0727f66ab2cc9b170c22e5c355",
+  "additional_unrun_coverage": [
+    "negative or large/nonfinite font-provider advances",
+    "rendered-font cache exhaustion",
+    "renderer/window input, visible glyph placement and native screen lifetime"
+  ]
+}

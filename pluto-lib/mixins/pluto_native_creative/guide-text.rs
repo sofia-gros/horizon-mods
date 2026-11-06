@@ -5,6 +5,38 @@ use crate::{
     text::{ClickEvent, Span, Style, Text},
 };
 
+fn native_link(style: &Style) -> Result<Option<u16>, api::Error> {
+    if style.shadow_color.is_some()
+        || style.hover.is_some()
+        || style.hover_item.is_some()
+        || style.hover_entity.is_some()
+        || style.font.is_some()
+        || style.inline_object.is_some()
+    {
+        return Err(api::Error::UnsupportedStyle);
+    }
+    let link = match &style.click {
+        None => None,
+        Some(ClickEvent::ChangePage(n)) => Some(u16::try_from(*n).map_err(|_| api::Error::Link)?),
+        _ => return Err(api::Error::UnsupportedStyle),
+    };
+    Ok(link)
+}
+
+pub(crate) fn from_native_style(style: &Style) -> Result<api::Style, api::Error> {
+    let link = native_link(style)?;
+    Ok(api::Style {
+        color: style.color,
+        bold: style.bold,
+        italic: style.italic,
+        underlined: style.underlined,
+        strikethrough: style.strikethrough,
+        obfuscated: style.obfuscated,
+        page: link,
+        metadata: style.insertion.clone(),
+    })
+}
+
 pub fn from_native(
     pages: &[Text],
     admit: impl FnMut(&str) -> bool,
@@ -21,22 +53,8 @@ pub fn from_native(
         let mut spans = Vec::with_capacity(page.spans.len());
         for span in &page.spans {
             let style = &span.style;
-            if style.shadow_color.is_some()
-                || style.hover.is_some()
-                || style.hover_item.is_some()
-                || style.hover_entity.is_some()
-                || style.font.is_some()
-                || style.inline_object.is_some()
-            {
-                return Err(api::Error::UnsupportedStyle);
-            }
-            let link = match &style.click {
-                None => None,
-                Some(ClickEvent::ChangePage(n)) => {
-                    Some(u16::try_from(*n).map_err(|_| api::Error::Link)?)
-                }
-                _ => return Err(api::Error::UnsupportedStyle),
-            };
+            // Preserve admission/error order before cloning metadata.
+            native_link(style)?;
             if span.text.len() > api::MAX_TEXT_BYTES {
                 return Err(api::Error::Text);
             }
@@ -56,16 +74,7 @@ pub fn from_native(
             }
             spans.push(api::Span {
                 text: span.text.clone(),
-                style: api::Style {
-                    color: style.color,
-                    bold: style.bold,
-                    italic: style.italic,
-                    underlined: style.underlined,
-                    strikethrough: style.strikethrough,
-                    obfuscated: style.obfuscated,
-                    page: link,
-                    metadata: style.insertion.clone(),
-                },
+                style: from_native_style(style)?,
             });
         }
         result.push(spans);
@@ -74,36 +83,34 @@ pub fn from_native(
 }
 
 pub fn to_native(document: &api::Document) -> Vec<Text> {
-    document
-        .pages()
+    document.pages().iter().map(to_native_page).collect()
+}
+
+pub(crate) fn to_native_page(page: &api::Page) -> Text {
+    // Text::literal/styled discard empty strings; direct semantic spans keep
+    // an empty span's style/metadata. The native source-JSON cache stays None.
+    let mut text = Text::empty();
+    text.spans = page
         .iter()
-        .map(|page| {
-            // Text::literal/styled discard empty strings; direct semantic spans keep
-            // an empty span's style/metadata. The native source-JSON cache stays None.
-            let mut text = Text::empty();
-            text.spans = page
-                .iter()
-                .map(|span| {
-                    let style = &span.style;
-                    Span {
-                        text: span.text.clone(),
-                        style: Style {
-                            color: style.color,
-                            bold: style.bold,
-                            italic: style.italic,
-                            underlined: style.underlined,
-                            strikethrough: style.strikethrough,
-                            obfuscated: style.obfuscated,
-                            click: style.page.map(|n| ClickEvent::ChangePage(i32::from(n))),
-                            insertion: style.metadata.clone(),
-                            ..Default::default()
-                        },
-                    }
-                })
-                .collect();
-            text
+        .map(|span| {
+            let style = &span.style;
+            Span {
+                text: span.text.clone(),
+                style: Style {
+                    color: style.color,
+                    bold: style.bold,
+                    italic: style.italic,
+                    underlined: style.underlined,
+                    strikethrough: style.strikethrough,
+                    obfuscated: style.obfuscated,
+                    click: style.page.map(|n| ClickEvent::ChangePage(i32::from(n))),
+                    insertion: style.metadata.clone(),
+                    ..Default::default()
+                },
+            }
         })
-        .collect()
+        .collect();
+    text
 }
 
 #[cfg(test)]

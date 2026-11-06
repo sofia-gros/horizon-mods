@@ -2,10 +2,11 @@
   "source_commit": "921bb12dc23caea0c970c5bcc39b72921e98981c",
   "source_path": "tconstruct/mixins/tconstruct/source-tinker-chests.rs",
   "source_sha256": "8a31e47787099bcdb20017e0a8b3205564a87dcff42533022cf5bb37a925050f",
-  "oracle_sha256": "6141b5a3c5b6ee856febbc7cedefca20bad958604ab0bf84501e69a558e876fa",
+  "oracle_sha256": "b5bad2854c249e4d82770477b07d18b0c9e4e7523ec51d0c429fbae71c8632a0",
   "functions": {
     "pickup_player": "6c5ef783fae6ae2589763446ef400c35743e62391a91af912be29ad3e6e65f2e",
     "take_for_drop": "2725765bcaa9af1de2205239846b97bc2debf2de33ffe35e5d17de16ea9da939",
-    "pickup_all_ordered": "b2b24b5552e402d32a6f3096a7016fc2f55ad1b4d91b51bd968a007c6f815b1f"
+    "pickup_all_ordered": "b2b24b5552e402d32a6f3096a7016fc2f55ad1b4d91b51bd968a007c6f815b1f",
+    "pickup_slot": "bcb27f64dfde892093749e2c4e432723f197bc2eda4a06d6b336b24c8fc14467"
   }
 }

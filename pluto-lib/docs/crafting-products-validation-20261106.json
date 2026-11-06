@@ -1,0 +1,216 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "production_commit": "5403720990fdef9560dbe80695f94f42da0e5a89",
+  "corrected_test_commit": "46984bd227d073b8cd299406af6a5c610c857f45",
+  "source_sha256": {
+    "inventory-api/src/crafting/products.rs": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+    "crafting-products.rs": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa",
+    "component-view.rs": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297"
+  },
+  "fixture_files_sha256": {
+    "products-source-helpers.rs": "5794238f6a05e74a91eee74b78b217aaa760ca4bcfaabca0b679172f1bd5c897",
+    "stack-storage.rs": "2317420b47749a25678fec6c65ccf922264c85453155570958af6b8bc004114e",
+    "preview.rs": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964",
+    "callback.rs": "317656fb90f487a01bd0cea3e4e7202833bb47e8f58d0846c0589d5db65bfe4c",
+    "attempt.rs": "38256a9d22c1c581022dad691260ce74713fd76e3eb0d76e44f0affe9045982b",
+    "products-proposal.rs": "35f5ad1d733d824ec2cccbed5cb43dcb32738fe6b68e960e65ff7d226aad150d",
+    "placement.rs": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e",
+    "nbt-storage.rs": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+    "products-reference.rs": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+    "lib.rs": "7993f6262536eed7efbb2a7c3afd02ec3674ce79b540bc606dbc1824fb1f55b7",
+    "products.rs": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa",
+    "crafting.rs": "d111ce414890a4f6a0475bbed13e692e08ef01e5715b961e7c89d09cce35c496",
+    "matching-reference-plan.rs": "2e0893290cd3e1d154844300e7accd4ac83550bd5df5e0db097596f6037e3465",
+    "recipe_book.rs": "c183e503737713a160af4da41170e004acd81daf62dc00bf5a6bbb32c5487127",
+    "native_menu.rs": "3622365cf69c2ce6321edaf1891fb6042afccc3a85aa85974cb59db6dea20e53",
+    "click.rs": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f",
+    "matching-head.rs": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2",
+    "component-view.rs": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297",
+    "Cargo.toml": "67bdd79dbaa307529a417622240ef79f7f8515ea555268f6b7d214d20712f704",
+    "matching.rs": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1",
+    "matching-reference-gate.rs": "bc414ea4970affd7988f3e027bb15486377153a51df335a4d274f9db6c60eebc",
+    "definition.rs": "f0510835e2b8d0eef8c9f7a689ba09bece3fcc710e457855c2efcb29b0cd2b00",
+    "reference_marked.rs": "1ce99038cf8b251434095dcd2525c4d99ac37a21c77a9ae6530356000cde1c2c",
+    "native_game.rs": "6af8819819857fd8af163db1a8ed79e9894596f25f520cf69da5bb668c3c3d38",
+    "item-view.rs": "5b897c5c11cdc46f41818ed2525793bbe8951fe943d4f1b6c09460c841bf4d5f",
+    "matching-callback.rs": "c51ded6105c0be03b4b05827d79a695c9ae7f5ba35079765c9ef8f1e2aa07346",
+    "inventory-api/Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+    "inventory-api/src/blocking.rs": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+    "inventory-api/src/advancements.rs": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+    "inventory-api/src/equipment.rs": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+    "inventory-api/src/lib.rs": "4d3ce5a7a9030942f000bc6fc2d480f9325e504b609ce2dc112f63a95768b380",
+    "inventory-api/src/crafting.rs": "54719eccbe76e40be9b7386ab9973f9756dba7096acf6362f8b380698e1fe05f",
+    "inventory-api/src/recipe_book.rs": "0d14ac569859cf88b4c074c957fcb2ed82b7830faa238ae845fccda7269181e3",
+    "inventory-api/src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+    "inventory-api/src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+    "inventory-api/src/armor_wear.rs": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+    "inventory-api/src/protection.rs": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+    "inventory-api/src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+    "inventory-api/src/recipe_book/placement.rs": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+    "inventory-api/src/advancements/tags.rs": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+    "inventory-api/src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+    "inventory-api/src/advancements/events.rs": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+    "inventory-api/src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+    "inventory-api/src/crafting/products.rs": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+    "inventory-api/src/crafting/ingredients.rs": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+    "inventory-api/src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104"
+  },
+  "official_sources_sha256": {
+    "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+    "crates/horizon-client/src/recipe_book.rs": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+    "crates/horizon-client/src/menu/place.rs": "a1a2fa0760085f43c100fdb2faf1cafa43c0e57a5f0e00daa6c16b9212cbd740",
+    "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+    "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+    "crates/horizon-client/src/game/lan_crafting.rs": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+    "crates/horizon-client/src/advancements.rs": "dfd9380e525ca52f555562da04cc882df2db96cddc3504fae0a63b5d1e5ee404"
+  },
+  "native_consumption_source_sha256": {
+    "crates/horizon-client/src/menu.rs": "d1c87e41131b3338b13201f362eca52790440a25536a8d8495413d5e15eb4c36",
+    "crates/horizon-client/src/game/machines/crafter.rs": "e01f16cdf1b76d58e6b8843ae48f2f6f555f14b96d91c28e69306a821711e808"
+  },
+  "consumer_reference": {
+    "commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+    "plan_sha256": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+    "helpers_sha256": "5794238f6a05e74a91eee74b78b217aaa760ca4bcfaabca0b679172f1bd5c897"
+  },
+  "archive_sha256": "ea264a2375902968e1c2a6236426b8835fd48caca17ec1e1d57385188333011e",
+  "plan_sha256": "159318f474c311323e6ab903051afc57317687015a3a840790fd887d6f048434",
+  "plan_counts": {
+    "crates": 2,
+    "modules": 43,
+    "injections": 29,
+    "states": 2
+  },
+  "test_counts": {
+    "bounded_native": 15,
+    "new_product_native_cases": 6,
+    "shared_api": 80,
+    "new_product_api_cases": 7,
+    "python_source_package": 6
+  },
+  "results": {
+    "prepare-result": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11009536000,
+      "elapsed_seconds": 0.6011145770025905,
+      "command": [
+        "python",
+        "pluto-lib/tools/prepare_crafting_products_fixture.py",
+        "--horizon-source",
+        "/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105",
+        "--output",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-fixture"
+      ]
+    },
+    "fixture-result": {
+      "exit_code": 101,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11001147392,
+      "elapsed_seconds": 1.802526575003867,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-fixture/Cargo.toml",
+        "--lib"
+      ]
+    },
+    "diagnostic-result": {
+      "exit_code": 101,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11000406016,
+      "elapsed_seconds": 0.20060166700568516,
+      "command": [
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/host-target/debug/deps/pluto_crafting_products_tests-857e9e9f40c1762f",
+        "conditional_modeled",
+        "--nocapture"
+      ]
+    },
+    "prepare-v2-result": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 10999250944,
+      "elapsed_seconds": 0.6009752139943885,
+      "command": [
+        "python",
+        "pluto-lib/tools/prepare_crafting_products_fixture.py",
+        "--horizon-source",
+        "/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105",
+        "--output",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-fixture-v2"
+      ]
+    },
+    "fixture-v2-result": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 10997895168,
+      "elapsed_seconds": 1.0036547540075844,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-fixture-v2/Cargo.toml",
+        "--lib"
+      ]
+    },
+    "api-result": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 10995585024,
+      "elapsed_seconds": 1.401850882000872,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-fixture-v2/Cargo.toml",
+        "-p",
+        "pluto-inventory-api",
+        "--lib"
+      ]
+    },
+    "plan-result": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 10996817920,
+      "elapsed_seconds": 19.232511385009275,
+      "command": [
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/cli-target/release/horizon-mixins",
+        "plan",
+        "--workspace",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+        "--mods",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-plan/packaged/mixins",
+        "--out",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/crafting-products-plan/plan.json"
+      ]
+    }
+  },
+  "log_sha256": {
+    "verify-final.log": "8916ac193d59060789abdccbd2f6e653d1ae1d1407c11059bafad67058fbfcef",
+    "placement-guard.log": "8e870d28cd66cc5265fcd44ddd985508d9d21f09ec293a1c8b7802f94c008e9d",
+    "prepare-result.log": "239cfb855877f0877a80c1db7316e5ea3f8f2c52f9210e43c95e067daf4ba1c2",
+    "fixture-v2-result.log": "b04b75690abb1c2b4443293bf1cc2ecb5e00b65bf9b9d814382c29550e3ec58a",
+    "diagnostic-result.log": "aa358fd197891b3bfb8bcf4b50916b36c7c1759a8ef33aae9e3eef935d443b44",
+    "fixture-result.log": "b0d699296cf5dbc6718ce797a859b4db2f725ceccf1d0b765d152c030a22f259",
+    "prepare-v2-result.log": "8d5defe92b6c3248ad96c1bf2e85549bd11a9634ec1a281a953ed35d619a0026",
+    "plan-result.log": "3494489246ed89b1cbc714abd6d3a0ef2862d24fe77105e558d686ebbff28fc9",
+    "source-tests-final.log": "15f8be3c1c0528ed5c708b45f541cec151ccc15e2f5404ee8e589170c0b330cf",
+    "matching-guard.log": "41368ddd79be00b73a37a5dfdd7f180b291a8ad4743b08a70f4cc9aab6953366",
+    "source-tests.log": "f50dd90129efd2aa69e4c8649c6f8e41ec2ffda7831dfa6d1452f6b657dc70cf",
+    "api-result.log": "a57b1dc12e2316ea9aa1e9587753102b55dbc9af20a5d4d98a064138be97e7ce"
+  },
+  "initial_failure": "14/15. Fabricated ominous flag without canonical layers failed original codec eligibility before later conditional-component expectation. Test-only correction retains that rejection and decodes a separate canonical test input. Runtime bytes unchanged.",
+  "scope": "Explicit synchronous preparation only. No automatic output/remainder hooks, live inventory consumption, TConstruct production activation, full package apply/type check or multiplayer proof. Existing matching and placement composition guards passed on this feature package plan.",
+  "pending": [
+    "central complete native package apply and lib/bin check",
+    "separately authorized authoritative consumer integration"
+  ]
+}

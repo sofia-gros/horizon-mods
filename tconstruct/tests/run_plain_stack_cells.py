@@ -62,6 +62,8 @@ mod differential;
         'invalid_collection_rejects_before_any_partial_merge',
         'caller_merge_policy_controls_opaque_identity_and_keeps_carried_identity',
         'consumer_wrappers_reject_malformed_inputs_without_changing_values',
+        'chest_slot_delegation_preserves_admission_limits_and_empty_cursor_bypass',
+        'chest_slot_rejects_invalid_shape_and_malformed_values_without_mutation',
     ]])
     verify_fixture_lock(manifest, host, root)
     if subprocess.check_output(['git', '-C', str(host), 'status', '--porcelain', '--untracked-files=no'], text=True):

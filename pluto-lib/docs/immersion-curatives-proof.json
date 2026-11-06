@@ -84,5 +84,38 @@
     "No TConstruct effect/cure activation or save/LAN proof"
   ],
   "source_commit": "697a851a43c7926dde144e2ae723c8e95122530d",
-  "complete_package_gate": "pending central composition; no new hook or state"
+  "complete_package_gate": {
+    "status": "passed actual complete shared package; no gameplay activation",
+    "cutoff": "31cf76672d3a7b982aebab86a91a78440afd163e",
+    "archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+    "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "sources_equal_to_697a851a_and_actual_archive": {
+      "api/src/effects.rs": "ff192e31ec531c6f07cd699dbf50a4a599da0a572f95de25340176a999883f9e",
+      "api/src/fluid/contact.rs": "331191f122c36f96d7aff9213510adfb1f3480bfba9924bcf8016b2af5eb90ae",
+      "api/src/fluid/contact/immersion.rs": "1599214ac71ccf6d1b44abf29149027f5cde8fd06d88cfcdc1333f50243603d0",
+      "world-fluid-query.rs": "c3cb8749f670fd43095c93329362f9fb198fdb29dfea750f309367a411507e00"
+    },
+    "stage_files_reverified": 5045,
+    "plan_seconds": 23.863420446,
+    "apply_seconds": 24.63,
+    "host_lib_bin_check_seconds": 72,
+    "required_plan_guard_groups": 11,
+    "python_passed": 193,
+    "combined_actual_pluto_api_passed": 43,
+    "combined_actual_inventory_api_passed": 115,
+    "minimum_free_bytes": 10905317376,
+    "complete_api_crate_identical_to_697a851a": false,
+    "note": "The integrated API includes the later registry revision lease tests. Only the four listed immersion/curative sources are asserted byte-identical to the earlier source cutoff.",
+    "evidence_sha256": {
+      "cutoff.json": "ec5498f4ab3de377faf255297999dd231fdc01ae07d02949cb78d2254272676e",
+      "result.json": "04848d0bcf47c3c5222d7b41e0618fcf1d469bb7ea126716ffd449f385eefbc9",
+      "plan.log": "5fedc4020fc96604fe0920bf2dd5a79ed34d4089ba5e41bc7c5fd9d6e35a4b9b",
+      "apply.log": "1e15177fc57337b4d040862fd4eb8adca99e9927ee37df600ae2cbcf049f103b",
+      "host-check.log": "5aabe2198074e30aae73810c9bcf4cdf89c1bf10648a980de7628d1a3edd86c8",
+      "api-source-tests.log": "7bd4f8900e476e326635572c6500bb3fca49ed9c47f113c81236525ee911a92e",
+      "native-preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+      "stage-source-sha256.json": "dba302cbfbfb4bb2afd399df7a1c0344fd087a51331ba316e9d85644078f5b23"
+    }
+  }
 }

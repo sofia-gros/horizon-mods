@@ -1,0 +1,76 @@
+{
+  "central_cutoff": "31cf76672d3a7b982aebab86a91a78440afd163e",
+  "module_source_cutoff": "f2b2cb17a53d1b42bcc263a49596b8eb0bcd9667",
+  "package_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+  "package_module_path": "mixins/pluto_native_creative/pluto_native_creative/stack-cells.rs",
+  "package_module_exact_source_bytes": true,
+  "module_applied_verification": {
+    "source_cutoff": "f2b2cb17a53d1b42bcc263a49596b8eb0bcd9667",
+    "central_cutoff": "31cf76672d3a7b982aebab86a91a78440afd163e",
+    "native_source_sha256": "36d8153d3f9eb1aa3861503a9b38f40231612667ff94a32f6a578969ca0cbbea",
+    "applied_file": "crates/horizon-client/src/client_lib.rs",
+    "applied_file_sha256": "67ac38f3947a22fed5929a4114d9b76d2a39dfef48753ad14acbd9b88f660195",
+    "applied_body_sha256": "9769261b51de9e1ea36b07010b93713276628d6a92833581f09f3f1fec1b66d7",
+    "comparison": "After comments and whitespace removal, only the three recorded formatter-added trailing commas differ. All remaining text is identical.",
+    "formatter_changes": [
+      {
+        "added": ",",
+        "following": ")",
+        "context": "take(cell:&mutOption<ItemStack>,all:bool)"
+      },
+      {
+        "added": ",",
+        "following": "}",
+        "context": "st.get(i),Cell::Second(i)=>second.get(i)}"
+      },
+      {
+        "added": ",",
+        "following": "}",
+        "context": "ut(i),Cell::Second(i)=>second.get_mut(i)}"
+      }
+    ],
+    "seal_verified": true
+  },
+  "full_library": {
+    "counts": {
+      "crate": 2,
+      "module": 62,
+      "injection": 33,
+      "state": 3
+    },
+    "mandatory_guards": 11,
+    "plan": "pass",
+    "apply": "pass",
+    "lib_bin_check": "pass",
+    "python_checks": 193,
+    "api_tests_included_not_additional": {
+      "fluid": 43,
+      "inventory": 115
+    },
+    "check_log_sha256": "5aabe2198074e30aae73810c9bcf4cdf89c1bf10648a980de7628d1a3edd86c8"
+  },
+  "archival": {
+    "files": 5045,
+    "archive": "/workspace/scratch/c7b540ff3393/.work/official-cleanup-evidence-20261105/grouped-v13-staged.tar.xz",
+    "archive_bytes": 34065224,
+    "archive_sha256": "782aaff29f61cd385fa2c77ff633e9e7d5f69e5431acd9504602f44e18ab60aa",
+    "mtime_manifest": "/workspace/scratch/c7b540ff3393/.work/official-cleanup-evidence-20261105/grouped-v13-stage-mtime-ns.json",
+    "mtime_manifest_sha256": "662245e48f73b008da79a4c8f868ae11ceb541a0eb75fc71f5ec53e9b730c1ae",
+    "source_seal": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v13/stage-source-sha256.json",
+    "source_seal_sha256": "dba302cbfbfb4bb2afd399df7a1c0344fd087a51331ba316e9d85644078f5b23",
+    "full_readback_verified": true,
+    "exact_mtime_ns_preserved": true,
+    "no_open_handles": true,
+    "initial_free_bytes": 10909806592,
+    "minimum_free_bytes": 10877779968,
+    "free_bytes_after": 11010801664,
+    "net_recovered_bytes": 100995072
+  },
+  "separate_consumer_evidence": "plain-stack-cells-adoption-validation-20261106.json",
+  "not_claimed": [
+    "complete TConstruct package",
+    "live Game or Hub behavior",
+    "save/reload or LAN synchronization",
+    "post-v13 pickup_slot adoption native validation"
+  ]
+}

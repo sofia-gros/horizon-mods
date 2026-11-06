@@ -84,8 +84,8 @@ NBT tests. The six boundary tests include the 3,058 differential comparisons
 above. All 6,586 tracked source hashes and strict official dependency identities
 were unchanged after execution. The continuous disk guard did not stop; minimum
 free space was 11,053,699,072 bytes. See the [machine-readable receipt](plain-stack-cells-validation-20261106.json).
-The separate source/package guard suite passed three checks. A complete packaged
-plan/apply/type-check has not yet been recorded for this additive slice.
+The separate source/package guard suite passed three checks. At that initial
+cutoff, the complete package gate was pending; the later v13 result is recorded below.
 
 
 ## Narrow consumer adoption gate
@@ -106,6 +106,51 @@ guards also passed. See the [adoption receipt](plain-stack-cells-adoption-valida
 Before that final run, the unsupported `//!` support-module header was corrected
 to ordinary comments and checked by the native package's generic header guard.
 The first `538c0fa4` fixture result remains evidence only for its earlier bytes;
-it never proved official package planning. The final adapter still needs its
-complete native-package integration gate. There is no live native-menu, save or
+it never proved official package planning. The corrected adapter subsequently passed the complete v13 native-package
+integration gate described below. There is no live native-menu, save or
 LAN proof.
+
+
+## Additional policy-preserving chest pickup delegation
+
+A separate post-v13 source delta delegates `pickup_slot` to the same API. The
+consumer still checks exact ChestKind length and index, first-equal/parts-tag
+admission for incoming stacks, and its effective capped slot limit. Taking with
+an empty cursor deliberately bypasses part admission, as before. The shared
+module, four caller files, native notification order and all other source helper
+bodies are unchanged.
+
+The original `pickup_slot` body is added to the immutable oracle. The source
+guard reconstructs the entire original file using all four frozen bodies, so the
+remaining consumer policy cannot accidentally drift. A new 3,456-case native
+matrix covers all three chest kinds, tagged/untagged incoming stacks, a matching
+stack in another slot, limits, left/right clicks, empty cursor, opaque metadata
+and large counts. Invalid shapes and malformed values are tested separately.
+The exact native fixture rerun at `acd47001` passed 33 tests, including
+all 3,456 new cases and the earlier 3,058 cases, for 9,572 total comparisons.
+The original source reconstruction, four unchanged caller files, official lock
+and path identities, and all 6,591 tracked source hashes passed. Minimum free
+space was 10,976,231,424 bytes; the disk guard did not stop. See the
+[separate pickup delegation receipt](chest-pickup-delegation-validation-20261106.json).
+This new proof is separate from the earlier 31-test receipt and v13 library
+package gate; it still does not execute native Game/Hub or whole-mod behavior.
+
+
+## Complete library package gate
+
+The corrected plain-cell module is included in the complete Pluto library at
+`31cf76672d3a7b982aebab86a91a78440afd163e`, package SHA-256
+`20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5`.
+The packaged module bytes match the tested `f2b2cb17` source exactly. Inspection
+of the sealed applied module found only formatter-added trailing commas after
+removing comments/whitespace; all remaining text matched. All 11 guards, native
+plan, apply, and client library/binary checks passed. The 193-check source suite
+includes 43 fluid and 115 inventory API tests, not additional disjoint counts.
+
+The completed 5,045-file stage was fully archived as tar.xz, with every file hash
+read back and exact mtime-ns preserved before its unused working copy was
+removed. This recovered 100,995,072 bytes without deleting shared compiled
+caches. See the [complete-package receipt](plain-stack-cells-v13-validation-20261106.json).
+The focused 31-test consumer proof and this full library composition proof remain
+separate. Neither proves the complete TConstruct package, live gameplay, saved
+world reload, LAN synchronization, or the later pickup_slot source delta.

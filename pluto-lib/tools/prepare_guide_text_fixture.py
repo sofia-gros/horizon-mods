@@ -72,7 +72,7 @@ def verify(output):
     return evidence
 
 
-def prepare(host, output, include_payload=False, include_correlation=False):
+def prepare(host, output, include_payload=False, include_correlation=False, include_layout=False):
     include_payload = include_payload or include_correlation
     host, output = host.resolve(), output.resolve()
     pin = tomllib.loads((ROOT / "mixins/pluto_native_creative/horizon-mixin.toml").read_text())["compatibility"]["horizon_revision"]
@@ -94,6 +94,13 @@ def prepare(host, output, include_payload=False, include_correlation=False):
         shutil.copyfile(ROOT / "tests/native/guide_request_projection.rs", output / "guide-request-projection.rs")
         with (output / "lib.rs").open("a") as file:
             file.write('#[cfg(test)] #[path="guide-request-projection.rs"] mod guide_request_projection;\n')
+    if include_layout:
+        shutil.copyfile(source / "guide-layout.rs", output / "guide-layout.rs")
+        for name in ["guide_layout.rs", "guide_text_baseline.rs", "guide_font_provider.json"]:
+            shutil.copyfile(ROOT / "tests/native" / name, output / name)
+        with (output / "lib.rs").open("a") as file:
+            file.write('pub use horizon_client_render::font;\npub use guide_text as pluto_guide_text;\n#[path="guide-layout.rs"] pub mod guide_layout;\n#[cfg(test)] #[path="guide_layout.rs"] mod guide_layout_tests;\n')
+        manifest += 'horizon-client-render={path=' + json.dumps(str(host / "crates/horizon-client-render")) + ',default-features=false}\n'
     patches = tomllib.loads((host / "Cargo.toml").read_text()).get("patch", {}).get("crates-io", {})
     manifest += '\n[patch.crates-io]\n'
     for name, entry in patches.items():
@@ -109,10 +116,10 @@ def prepare(host, output, include_payload=False, include_correlation=False):
     evidence = {"official_source": str(host), "official_revision": pin,
         "official_text_sha256": digest((host / TEXT_SOURCE).read_bytes()),
         "official_extra_sha256": {name: digest((host/name).read_bytes()) for name in
-            (["crates/horizon-protocol/src/packets/play.rs", "crates/horizon-protocol/src/packets/configuration.rs"] if include_payload else [])},
+            ((["crates/horizon-protocol/src/packets/play.rs", "crates/horizon-protocol/src/packets/configuration.rs"] if include_payload else []) + (["crates/horizon-client-render/src/font.rs", "crates/horizon-client-render/src/bidi.rs"] if include_layout else []))},
         "official_lock_sha256": digest((host / "Cargo.lock").read_bytes()),
         "files_sha256": {str(p.relative_to(output)): digest(p.read_bytes()) for p in output.rglob("*") if p.is_file()},
-        "scope": "Actual official Text, actual packaged API and production semantic converter" + (" plus actual play-packet projection" if include_payload else "") + (" plus explicit in-process request correlation" if include_correlation else "") + "; no native package apply, observer-phase, screen or network runtime."}
+        "scope": "Actual official Text, actual packaged API and production semantic converter" + (" plus actual play-packet projection" if include_payload else "") + (" plus explicit in-process request correlation" if include_correlation else "") + (" plus actual native Font::metrics on original synthetic provider" if include_layout else "") + "; no native package apply, observer-phase, screen or network runtime."}
     (output / "fixture-sources.json").write_text(json.dumps(evidence, indent=2) + "\n")
     verify(output)
     print(output)
@@ -125,6 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--verify-lock", action="store_true")
     parser.add_argument("--include-payload", action="store_true")
     parser.add_argument("--include-correlation", action="store_true")
+    parser.add_argument("--include-layout", action="store_true")
     args = parser.parse_args()
     if args.verify_lock:
         verify(args.output.resolve())
@@ -132,4 +140,4 @@ if __name__ == "__main__":
     elif args.horizon_source is None:
         parser.error("--horizon-source is required")
     else:
-        prepare(args.horizon_source, args.output, args.include_payload, args.include_correlation)
+        prepare(args.horizon_source, args.output, args.include_payload, args.include_correlation, args.include_layout)

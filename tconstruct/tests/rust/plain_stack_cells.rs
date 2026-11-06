@@ -163,3 +163,50 @@ fn consumer_wrappers_reject_malformed_inputs_without_changing_values() {
     assert!(!consumer::pickup_all_ordered(&mut cells, &mut [], &mut cursor, &[(true, 0)], 0));
     assert_eq!(state(&(&cells, &cursor)), before);
 }
+
+
+#[test]
+fn chest_slot_delegation_preserves_admission_limits_and_empty_cursor_bypass() {
+    let mut cases = 0;
+    for kind in [consumer::ChestKind::Plain(3), consumer::ChestKind::Tinkers, consumer::ChestKind::Part] {
+        for limit in [1, 8, 64, u32::MAX] {
+            for right in [false, true] {
+                for carried in [None, Some(stack(1, 2)), Some(stack(2, 2)), Some(stack(9, 2)), Some(stack(64, 2)), Some(stack(u32::MAX, 2))] {
+                    for target in [None, Some(stack(1, 0)), Some(stack(1, 2)), Some(stack(8, 2)), Some(stack(16, 2)), Some(stack(65, 3))] {
+                        for peer in [false, true] {
+                            for tagged in [false, true] {
+                                let mut old = vec![None; kind.slots()]; old[1] = target.clone();
+                                if peer { old[0] = Some(stack(1, 2)); }
+                                let mut new = old.clone(); let mut old_cursor = carried.clone(); let mut new_cursor = carried.clone();
+                                let before = total(&old, &carried);
+                                let expected = legacy::pickup_slot(kind, &mut old, 1, &mut old_cursor, right, limit, tagged);
+                                let actual = consumer::pickup_slot(kind, &mut new, 1, &mut new_cursor, right, limit, tagged);
+                                assert_eq!(actual, expected);
+                                assert_eq!(state(&(&new, &new_cursor)), state(&(&old, &old_cursor)));
+                                assert_eq!(total(&new, &new_cursor), before);
+                                cases += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 3456);
+}
+
+#[test]
+fn chest_slot_rejects_invalid_shape_and_malformed_values_without_mutation() {
+    for (kind, length, slot, cursor, value, limit) in [
+        (consumer::ChestKind::Part, 3, 1, Some(stack(1, 2)), None, 64),
+        (consumer::ChestKind::Plain(3), 3, 3, Some(stack(1, 2)), None, 64),
+        (consumer::ChestKind::Plain(3), 3, 1, Some(stack(0, 2)), None, 64),
+        (consumer::ChestKind::Plain(3), 3, 1, None, Some(stack(0, 2)), 64),
+        (consumer::ChestKind::Plain(3), 3, 1, None, Some(stack(2, 2)), 0),
+    ] {
+        let mut cells = vec![None; length]; cells[1] = value; let mut cursor = cursor;
+        let before = state(&(&cells, &cursor));
+        assert!(!consumer::pickup_slot(kind, &mut cells, slot, &mut cursor, true, limit, true));
+        assert_eq!(state(&(&cells, &cursor)), before);
+    }
+}

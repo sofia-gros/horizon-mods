@@ -44,7 +44,7 @@
       "name": "pluto_terrain_binding_host",
       "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
       "source": "terrain-binding-host.rs",
-      "sha256": "40d8868bc6c1ad752f873e1adda2e591a2e683ca363bbf6677a752612f8a86e2"
+      "sha256": "4ba1079209c82bce2387819cedbdcfea60c2e2812b81dac97196e046b182d177"
     },
     {
       "module_id": "terrain-bindings",

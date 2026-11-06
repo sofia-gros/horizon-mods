@@ -1,0 +1,42 @@
+{
+  "source_cutoff": "acd47001057e5bfa81d3634bd1112badc4d92119",
+  "runtime_delta": "e509f6501b87c58207a31cbb2a05df705bd9d7cf",
+  "legacy_cutoff": "921bb12dc23caea0c970c5bcc39b72921e98981c",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "terminal_exit": 0,
+  "disk_guard_stopped": false,
+  "minimum_free_bytes": 10976231424,
+  "end_free_bytes": 10977046528,
+  "rust_tests": {
+    "boundary": 9,
+    "actual_consumer_chest": 18,
+    "existing_nbt": 6,
+    "total": 33
+  },
+  "valid_cases": {
+    "earlier_plain_cells": 3058,
+    "chest_pickup": 3456,
+    "total": 6514
+  },
+  "comparisons": {
+    "earlier_plain_cells_direct_and_wrapper": 6116,
+    "chest_pickup_wrapper": 3456,
+    "total": 9572
+  },
+  "unchanged_native_module_sha256": "36d8153d3f9eb1aa3861503a9b38f40231612667ff94a32f6a578969ca0cbbea",
+  "tracked_mod_source_files": 6591,
+  "source_seal": "/tmp/pluto-plain-cells-chest-20261106-source-seal.json",
+  "source_seal_sha256": "4670b5b2ab13905d09bd4cbaad181aee4141fbb4cb8d58cad69bdb735fdb1c26",
+  "log": "/tmp/pluto-plain-cells-chest-20261106.log",
+  "log_sha256": "87665aa13ae0bd11111c2bd6ac407c96d22450775c5e91a1cae952dd48320db4",
+  "source_guard_checks": 3,
+  "unchanged_four_caller_files": true,
+  "frozen_oracle_full_original_file_reconstruction": true,
+  "not_claimed": [
+    "complete TConstruct package",
+    "native Game or Hub execution",
+    "save/reload or LAN behavior",
+    "native menu-hook parity",
+    "new mutation authority"
+  ]
+}

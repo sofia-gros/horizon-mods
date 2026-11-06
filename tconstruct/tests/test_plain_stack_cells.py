@@ -21,7 +21,7 @@ class PlainStackCells(unittest.TestCase):
         for name in ('pub fn pickup(', 'pub fn take(', 'pub fn collect_ordered(', 'ZeroCount', 'ZeroLimit'):
             self.assertIn(name, source)
 
-    def test_four_callers_still_use_same_helpers_and_only_three_bodies_changed(self):
+    def test_four_callers_still_use_same_helpers_and_only_four_bodies_changed(self):
         source = ROOT / 'tconstruct/mixins/tconstruct'
         for name in ('source-tinker-chest-click.rs', 'source-side-chest-click.rs', 'source-chest-guest-click.rs', 'source-crafting-lan.rs'):
             code = (source / name).read_text()
@@ -44,7 +44,7 @@ class PlainStackCells(unittest.TestCase):
                 depth += (text[end] == '{') - (text[end] == '}')
                 end += 1
             return start, end
-        for name in reversed(('pickup_player', 'take_for_drop', 'pickup_all_ordered')):
+        for name in reversed(('pickup_slot', 'pickup_player', 'take_for_drop', 'pickup_all_ordered')):
             start, end = span(oracle, name)
             original = oracle[start:end]
             self.assertEqual(hashlib.sha256(original.encode()).hexdigest(), receipt['functions'][name])
