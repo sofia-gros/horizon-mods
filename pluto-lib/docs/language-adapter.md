@@ -1,5 +1,10 @@
 # Internal language loading and prepared assets
 
+**Latest scoped result:** actual native fixture 22/22 passed at CI `0e4d68ea`
+(run 42181415662), including all eight internal language tests and six Key tests.
+The earlier unrun notes below describe source preparation history; see the final
+closure for the exact scope. Distribution/overlay/installed Game/UI remain open.
+
 Source candidate based on verified central local `8715b123` / published
 `89744814b8d536a117e82f8ea3c8cdc9798faa95`. Targets official Horizon
 `624c4f6265c02296fbe8a80f029dd0d987fb94c0` and Mixins
@@ -147,3 +152,29 @@ The composed Key source includes Guide test-only correction
 changes; the production Key/adapter bodies remain unchanged. The source ledger
 pins the corrected helper SHA `1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2`.
 This is pre-execution fixture correction, not a native pass.
+
+## Actual native language/Key fixture closure
+
+The first dedicated CI run [42181415662](https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662)
+on exact head `0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5` passed. Its fixture
+cutoff is `df0645ec2bdd1063364eb82d85c45ef45d61c876`; composed language cutoff
+is `ea7095d80b67ab8659b26b3e0e32a92d77de2cae`. The two actual module files and
+input ledger were fetched from that exact CI commit and compared byte-for-byte
+with this branch. Internal eight and Key six fully qualified names also match
+the source ledger exactly. The observed job log reports 22 passed, zero failed,
+ignored or filtered, in 0.08 seconds: internal8 + Key6 + item-display8.
+
+The runner required actual official client-core/items/world and fixture Rust
+compilation. It type-checked the original author example through an explicit
+fixture `horizon_client` alias, not an installed client-library facade. Fifteen
+runner and twenty-five source checks passed. FINAL_RECEIPT reported passed and
+verified true, error null; final source, official, fixture and generated-output
+seals matched. The independent source-scoped receipt is recorded in
+[language-adapter-proof.json](language-adapter-proof.json).
+
+This proves actual Language/ResourceSource/Text semantics at the fixture boundary,
+including fallback, source/namespace ordering, detached loading and scoped
+re-resolution. It does not run the Options language setting, real pack/content
+overlay, Game resource installation, glyph rendering, retained Guide/LAN refresh
+or live UI. The separate eight-case Package→Content→Language fixture is still
+uncompiled and unrun; no result from this 22-case run is attributed to it.
