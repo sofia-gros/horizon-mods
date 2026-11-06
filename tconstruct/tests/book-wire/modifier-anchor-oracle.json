@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "status": "uninstalled_bounded_oracle_not_runtime_equivalence",
+  "source_commit": "6c363d99fc1455cc4911f664f7b60639f2281f6f",
+  "published_source_commit": "37a5ee6ab59da5640a1138cc3ff2889fad8976b8",
+  "books": [
+    "materials_and_you",
+    "puny_smelting",
+    "mighty_smelting",
+    "encyclopedia",
+    "tinkers_gadgetry",
+    "fantastic_foundry"
+  ],
+  "modifier_entries": [
+    {
+      "name": "index",
+      "path": "modifiers/index.json",
+      "title": "Modifiers"
+    },
+    {
+      "name": "traits",
+      "path": "modifiers/traits.json",
+      "title": "Traits"
+    },
+    {
+      "name": "upgrades",
+      "path": "modifiers/upgrades.json",
+      "title": "Upgrades"
+    },
+    {
+      "name": "slotless",
+      "path": "modifiers/slotless.json",
+      "title": "Slotless Modifiers"
+    },
+    {
+      "name": "abilities",
+      "path": "modifiers/abilities.json",
+      "title": "Abilities"
+    },
+    {
+      "name": "defense",
+      "path": "modifiers/defense.json",
+      "title": "Defense Modifiers"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/index.json",
+      "sha256": "a966382386aa44e7e82613d546e15a80cbad8c504549a9aa7d15ce2f88bf2881"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/puny_smelting/index.json",
+      "sha256": "f6302bd9893af6713c68381ba43490f833a27715b4da720e76934859b262ae31"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/mighty_smelting/index.json",
+      "sha256": "0829638d48b6c60f75d8056155ec3e5def99a45503d71d22512c184168ad4db4"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/encyclopedia/index.json",
+      "sha256": "12615b13104ea05a78974dd8e37b3a516d7a2afc5512e33ae56661a5158c47a9"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/tinkers_gadgetry/index.json",
+      "sha256": "1ec6a5d3de7475c7cb398d07337c342401d0e7874deec5c94ee680d4ccc7665f"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/fantastic_foundry/index.json",
+      "sha256": "9a42be2ed712cbaf74be66794c9fa09129595ca60f23de6fd1386dc2eb44e9e3"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/sections/modifiers.json",
+      "sha256": "327d134c2375bcb692b20dbb11227b9869d3dc99d204e38c5ff9adb63cfb035f"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/language.lang",
+      "sha256": "9eacf69408345ace7a84c6e9be91b7420ef86f7e0e1bda71eaf0447704898be1"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/index.json",
+      "sha256": "f9f293cacdd31740560cc3ce19f3164e2605e5c52f5d8d07149a76c352a217f3"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/traits.json",
+      "sha256": "0b2251bc9334670d19221e886c5f0ab42382086409d292381dbb2aefcf572cd7"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/upgrades.json",
+      "sha256": "dac061190355784ee9e3b99e8654f6f7ea9312181041453f62bb5a392b2b4bd6"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/slotless.json",
+      "sha256": "e55e35b5d77c394f498db90d23bb3d98ce71fb323ebbe7769a2ce637d2123fb7"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/abilities.json",
+      "sha256": "3e70419e5fafbe810e0efd41f3856afdc8a8b09de007e83cf475cbeb96216713"
+    },
+    {
+      "path": "tconstruct/content/assets/tconstruct/book/materials_and_you/en_us/modifiers/defense.json",
+      "sha256": "d192f97581507e9f5055b120fb9c911e513996ba73fdae349629e11b4aba9831"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "sha256": "2a03b919083d1e9059db6effec9cc133a768a0781ebafcfad39f43e0b4e8b747"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+      "sha256": "b334f6c9ebf166c1e27d691912d21b3f92500cfa7b7b46e7704b04770931504d"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-draw.rs",
+      "sha256": "d68d218488ec7f1cf47443a85d54df24973563771aab3f429ab19e098f8328aa"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+      "sha256": "0c93540ea7086f16480895abb785052aad8707d9aa47ed869bed122c6542f85e"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+      "sha256": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+      "sha256": "214548c68cafdd46859937e8d280b1b2139cc1657936c68918c5f13a34182107"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-identity.rs",
+      "sha256": "041c225e40afdf1fe34e37ead32f89aabd8f56e97c5b62363e26722b5fbc45e8"
+    }
+  ],
+  "legacy_resolver_source": "        if labels.get(\"modifiers\").is_some_and(|label| *label == heading) {\n            let source_index = read(path, &format!(\"{root}en_us/modifiers/index.json\"))\n                .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());\n            let index_title = source_index.as_ref().and_then(|v| v.get(\"title\")).and_then(|v| v.as_str());\n            let index_page = chapter.iter().position(|page| page.spans.first().is_some_and(|span| Some(span.text.as_str()) == index_title));\n            let mut links = Vec::new();\n            for name in [\"traits\", \"upgrades\", \"slotless\", \"abilities\", \"defense\"] {\n                let source = read(path, &format!(\"{root}en_us/modifiers/{name}.json\"))\n                    .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());\n                let Some(title) = source.as_ref().and_then(|v| v.get(\"title\")).and_then(|v| v.as_str()) else { continue; };\n                let Some(offset) = chapter.iter().position(|page| page.spans.first().is_some_and(|span| span.text == title)) else { continue; };\n                let destination = first_page.checked_add(i32::try_from(offset).ok()?)?;\n                links.push((title.to_owned(), destination));\n            }\n            if let Some(page) = index_page.and_then(|index| chapter.get_mut(index)) {\n                for (title, destination) in links {\n                    page.push(\"\\n\");\n                    page.push(Text::styled(title, horizon_client::text::Style {\n                        click: Some(horizon_client::text::ClickEvent::ChangePage(destination)),\n                        underlined: Some(true), ..Default::default()\n                    }));\n                }\n            }\n        }\n",
+  "limits": {
+    "entries": 32,
+    "pages": 256
+  },
+  "scope": "Models first-span facts and already-generated page counts only. No native Text, Font, Game, package, localization or LAN execution."
+}
