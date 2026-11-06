@@ -1,0 +1,64 @@
+{
+  "head": "a4ebdab16b23688b82e6dce19054a1121298f6eb",
+  "run_id": 42218194849,
+  "job_id": 127893380563,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42218194849",
+  "conclusion": "failure",
+  "console": {
+    "utf8_bytes": 19812,
+    "sha256": "4fde43bd86e48bf638c9e6b261ae6764cb9a5fc8013d302ea3436ed998e44924"
+  },
+  "final_receipt": {
+    "error": "ValueError: wrong fixture workspace; ValueError: wrong fixture workspace; ValueError: Missing required gates",
+    "fixture_seal_sha256": null,
+    "gates": {
+      "official": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "selected_files": 7
+      },
+      "preparer15": {
+        "passed": true,
+        "tests": 15
+      },
+      "runner": {
+        "passed": true,
+        "tests": 20
+      },
+      "source6": {
+        "passed": true,
+        "tests": 6
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "a4ebdab16b23688b82e6dce19054a1121298f6eb",
+    "minimum_free_bytes": 89955147776,
+    "official_seal_sha256": "7a9e25fbe124ddfa631574c1e694f36755c918151b52111d97912058af757a2c",
+    "output_seal_sha256": null,
+    "passed": false,
+    "scope": "Six exact production generation cases using actual latest core/render Font and synthetic fixture data. Old twelve and codec three are compiled/inventoried only. No Game, GPU, live drawing, UI/lifetime, language refresh, LAN or installed package proof.",
+    "source_seal_sha256": "32c390f152acd90525127c4fedbdeffd8b2825b4b40bfe9eef58805cd718f4fd",
+    "verified": false
+  },
+  "reached": [
+    "runner20/preparer15/source6 passed",
+    "official f4dc source and toolchain setup",
+    "fixture prepare",
+    "offline fixture metadata exit 0"
+  ],
+  "stopped": "preparer.verify rejected wrong fixture workspace",
+  "not_reached": [
+    "locked metadata comparison",
+    "actual Rust/native compile",
+    "21-test inventory",
+    "six generation test executions",
+    "successful final fixture/output seals"
+  ],
+  "metadata_stdout": {
+    "bytes": 2288267,
+    "sha256": "b54e60977ed9a4a03b0431443480f3989187da789549daf5f766ddd804ebd24d",
+    "raw_retained_in_public_console": false
+  },
+  "diagnosis": "Generated manifest declares [workspace] and an in-tree inventory-api path dependency, while verifier requires only the root fixture as member. Cargo automatic path-member inclusion is a source-supported candidate; actual metadata member set was not retained in the public console. No native correctness failure established.",
+  "scope": "False first attempt. No Game, GPU, live UI/lifetime, language refresh, LAN, or installed package proof."
+}
