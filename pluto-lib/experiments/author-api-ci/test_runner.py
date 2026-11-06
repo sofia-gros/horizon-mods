@@ -7,12 +7,12 @@ spec=importlib.util.spec_from_file_location('author_ci',HERE/'run.py');m=importl
 class Tests(unittest.TestCase):
  def test_full_suites_have_exact_source_sets(self):
   c=m.read_inputs();root=HERE/'source' if (HERE/'source').is_dir() else m.ROOT
-  for key,count,files in [('inventory',143,32),('public',58,11)]:
+  for key,count,files in [('inventory',147,33),('public',58,11)]:
    s=c['apis'][key];self.assertEqual(s['tests'],count);self.assertEqual(len(s['files']),files)
    self.assertEqual(m.regular_seal(root/s['path']),s['files'])
    actual=sum((root/s['path']/p).read_text().count('#[test]') for p in s['files'] if p.startswith('src/') and p.endswith('.rs'))
    self.assertEqual(actual,count)
-  self.assertEqual(len(c['apis']['inventory']['required_tests']),9)
+  self.assertEqual(len(c['apis']['inventory']['required_tests']),13)
   self.assertEqual(len(c['apis']['public']['required_tests']),6)
  def test_all_input_hashes(self):
   root=HERE/'source' if (HERE/'source').is_dir() else m.ROOT
@@ -72,8 +72,13 @@ class Tests(unittest.TestCase):
   self.assertEqual(registry(inv),registry(pub));self.assertEqual(len(registry(inv)),11)
  def test_scope_excludes_host_and_keeps_storage_assertions(self):
   c=m.read_inputs();root=HERE/'source' if (HERE/'source').is_dir() else m.ROOT
-  storage=(root/c['consumer_bins']['storage']).read_text()
-  self.assertEqual(storage.count('assert_eq!')+storage.count('assert!'),6);self.assertIn('planned.expect(',storage)
+  self.assertEqual(c['storage_bins'],['storage','storage_public'])
+  self.assertEqual(len(c['consumer_bins']),4)
+  for key in c['storage_bins']:
+   storage=(root/c['consumer_bins'][key]).read_text()
+   self.assertEqual(storage.count('assert_eq!')+storage.count('assert!'),6);self.assertIn('planned.expect(',storage)
+  legacy=(root/c['consumer_bins']['storage']).read_text();public=(root/c['consumer_bins']['storage_public']).read_text()
+  self.assertEqual(public,legacy.replace('use pluto_inventory_api::{plan_between, storage::stage_updates, MoveError, StackSnapshot};','use pluto_inventory_api::inventory::{plan_between, stage_updates, MoveError, StackSnapshot};'))
   s=(HERE/'run.py').read_text()
   for bad in ['horizon-mixins','horizon-client','--allow-dirty','sofia-gros/horizon.git']:self.assertNotIn(bad,s)
 if __name__=='__main__':unittest.main()

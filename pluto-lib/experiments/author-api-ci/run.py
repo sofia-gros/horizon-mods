@@ -218,16 +218,17 @@ def main():
         typed=runner.run('recipe-storage-type',['cargo','check','--bins','--locked','--offline','--manifest-path',str(consumer/'Cargo.toml'),'-vv'])
         for name in config['consumer_bins']:actual_compile(typed,name)
         gates['recipe_storage_examples_type']={'passed':True,'bins':list(config['consumer_bins'])}
-        built=runner.run('storage-example-build',['cargo','build','--bin','storage','--locked','--offline','--manifest-path',str(consumer/'Cargo.toml'),'-vv'])
-        actual_compile(built,'storage')
-        before=out_dirs(work/'target');runner.run('storage-example',[str(work/'target/debug/storage')])
-        if out_dirs(work/'target')!=before:raise ValueError('Generated inputs changed during storage example')
-        gates['storage_example_run']={'passed':True,'scope':'six assertions in the unchanged source; no commit or event'}
+        for bin_name in config['storage_bins']:
+            built=runner.run(bin_name+'-example-build',['cargo','build','--bin',bin_name,'--locked','--offline','--manifest-path',str(consumer/'Cargo.toml'),'-vv'])
+            actual_compile(built,bin_name)
+            before=out_dirs(work/'target');runner.run(bin_name+'-example',[str(work/'target/debug'/bin_name)])
+            if out_dirs(work/'target')!=before:raise ValueError('Generated inputs changed during storage example: '+bin_name)
+            gates[bin_name+'_example_run']={'passed':True,'scope':'six assertions in unchanged legacy/public source; no commit or event'}
         fluidcmd=['cargo','test','--test','fluid_usage','--locked','--offline','--manifest-path',str(consumer/'Cargo.toml'),'-vv']
         built=runner.run('fluid-example-compile',fluidcmd+['--no-run']);actual_compile(built,'fluid_usage',True)
         test_after_compile(runner,'fluid-example',fluidcmd+['--','--test-threads=1'],1,['actual_example_preserves_unknown_and_registration_contract']);gates['fluid_example']={'passed':True,'tests':1}
         generated=out_dirs(work/'target')
-        if set(gates)!={'runner13','inventory','public','guide_example','recipe_storage_examples_type','storage_example_run','fluid_example'}:raise ValueError('Missing required gate')
+        if set(gates)!={'runner13','inventory','public','guide_example','recipe_storage_examples_type','storage_example_run','storage_public_example_run','fluid_example'}:raise ValueError('Missing required gate')
     except BaseException as exc:
         error=type(exc).__name__+': '+str(exc)
     finally:

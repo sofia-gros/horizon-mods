@@ -324,6 +324,9 @@ pub mod advancements;
 /// Non-mutating proposal staging for caller-owned partitioned storage.
 pub mod storage;
 
+/// Public inventory planning and proposal entry points; existing types and owners.
+pub mod inventory;
+
 /// Host-independent read-only raised-item block events.
 pub mod blocking;
 

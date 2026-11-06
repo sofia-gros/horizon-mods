@@ -1,7 +1,7 @@
 {
   "repository": "sofia-gros/horizon-mods",
   "branch": "checkpoint/plutolib-author-api-ci-20261106",
-  "base": "2f692e4530acbfeef4f5b21be7708f8766e514ed",
+  "base": "b29252e45789c64e7e470ad2ba03a0cf2b360128",
   "official": {
     "url": "https://github.com/horizon-rust/horizon.git",
     "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
@@ -13,7 +13,7 @@
       "package": "pluto-inventory-api",
       "crate": "pluto_inventory_api",
       "lock": "pluto-lib/tests/inventory-api.Cargo.lock",
-      "tests": 143,
+      "tests": 147,
       "required_tests": [
         "client_payload::tests::event_entry_uses_old_registry_and_explicit_removal",
         "client_payload::tests::event_settings_preserve_registration_error_order_and_bounds",
@@ -23,7 +23,11 @@
         "guide::entry_tests::short_request_path_does_not_activate_or_own_a_screen",
         "recipe_book::presentation::tests::fluent_proposal_copies_current_address_and_moves_nonclone_values",
         "recipe_book::presentation::tests::fluent_proposal_keeps_empty_clear_and_duplicate_rejection",
-        "recipe_book::presentation::tests::fluent_proposal_is_not_a_freshness_or_kind_bypass"
+        "recipe_book::presentation::tests::fluent_proposal_is_not_a_freshness_or_kind_bypass",
+        "inventory::tests::root_and_public_entry_types_are_interchangeable",
+        "inventory::tests::plan_move_reexport_keeps_results_errors_and_callback_order",
+        "inventory::tests::pair_reexport_keeps_logical_indexes_and_zero_request_behavior",
+        "inventory::tests::staging_reexport_keeps_independent_copies_order_and_rejection"
       ],
       "files": {
         "Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
@@ -45,8 +49,9 @@
         "src/guide/document.rs": "161676b8e6f273f63fd9be06c9ebe8d1e46d9230d513a5ab3a86a5c848419bc8",
         "src/guide/mod.rs": "9b1a16a152012960cd02ccacd33b9402098d7045e58cb9067f5dd5c91c2f690e",
         "src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+        "src/inventory.rs": "beccd7c7cf82b5974bd84e1c58f8c0b5a29c2ea2085ce0f9ff88d33daea35d87",
         "src/java_hashmap.rs": "ac5125fe098dd7d132ea0436a7d70f9d4a15a247f15c9b041e9fb671413e41c3",
-        "src/lib.rs": "214167e7c559ed54325d4a4d262dc48fa433e21c68329937324e856014938c7b",
+        "src/lib.rs": "757e8c7c365b735cdd2e0c8f4b55271b7bd3f0089459173364e7648096c4bbb1",
         "src/menu_words.rs": "0501660a8f866ef1bc143f3dcd209108d05ebed8a49a0df2994e2b8cbfe6c536",
         "src/predicate_fold.rs": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
         "src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
@@ -92,7 +97,8 @@
   "consumer_bins": {
     "storage": "pluto-lib/examples/inventory/stage_proposals.rs",
     "recipe_presentation": "pluto-lib/examples/recipes/presentation.rs",
-    "recipe_matching": "pluto-lib/examples/recipes/matching_registration.rs"
+    "recipe_matching": "pluto-lib/examples/recipes/matching_registration.rs",
+    "storage_public": "pluto-lib/examples/inventory/stage_proposals_public.rs"
   },
   "fluid_example": "pluto-lib/experiments/fluid-author-api/example.rs",
   "cutoffs": {
@@ -102,7 +108,9 @@
     "recipe_builder": "dd491b3a1e6d0431eeac6965c2d18ed9f0a1ea11",
     "fluid_declaration": "bf9f64e7d179f06af34bf781c01dac7afe212c82",
     "fluid_example": "3c778609e2660a44774f2504964abc02164b7d0f",
-    "storage_example": "0e54bcb24571545f3bdde5bac7d1807fe60cbbd7"
+    "storage_example": "0e54bcb24571545f3bdde5bac7d1807fe60cbbd7",
+    "inventory_public_entry": "9954c098696945157022c0a29644ced334ef7874",
+    "first_author_api_proof": "b29252e45789c64e7e470ad2ba03a0cf2b360128"
   },
   "inputs_sha256": {
     "pluto-lib/docs/fluid-declarations.md": "c1b0dbfc74c3572f6ce5c9ef71fa853f9625a11b716821fcf1c832769abbc857",
@@ -143,7 +151,7 @@
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/mod.rs": "9b1a16a152012960cd02ccacd33b9402098d7045e58cb9067f5dd5c91c2f690e",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/java_hashmap.rs": "ac5125fe098dd7d132ea0436a7d70f9d4a15a247f15c9b041e9fb671413e41c3",
-    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs": "214167e7c559ed54325d4a4d262dc48fa433e21c68329937324e856014938c7b",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs": "757e8c7c365b735cdd2e0c8f4b55271b7bd3f0089459173364e7648096c4bbb1",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/menu_words.rs": "0501660a8f866ef1bc143f3dcd209108d05ebed8a49a0df2994e2b8cbfe6c536",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/predicate_fold.rs": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
@@ -156,6 +164,14 @@
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book.rs": "f4c157393f854d59aea12f888846208646ac280fccd134b532f32648d495883e",
     "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
     "pluto-lib/tests/fluid-api.Cargo.lock": "a256e8b9e85dcd613f31149f5cd7f120e1666a54f0979bb022823c73cb47ead5",
-    "pluto-lib/tests/inventory-api.Cargo.lock": "2fc623e5a6e0448b432f032e1f96e6920ee3557aae41094f6b9ef8bb72b201be"
-  }
+    "pluto-lib/tests/inventory-api.Cargo.lock": "2fc623e5a6e0448b432f032e1f96e6920ee3557aae41094f6b9ef8bb72b201be",
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/inventory.rs": "beccd7c7cf82b5974bd84e1c58f8c0b5a29c2ea2085ce0f9ff88d33daea35d87",
+    "pluto-lib/examples/inventory/stage_proposals_public.rs": "068bac3893c040959c805c0c1bdb0e6868cf33cc4ed1608b4267834bbb2938ab",
+    "pluto-lib/docs/storage-usage.md": "f827bbb25e42e734727cd5b2fcdb3c60398ad85cbe47f5dfa23fcae272bb57e8",
+    "pluto-lib/tests/test_inventory_public_entry.py": "d08cacbb60a808b7300acd62d1b58f8009e90a9a69e25ec9c57ac36f51889a85"
+  },
+  "storage_bins": [
+    "storage",
+    "storage_public"
+  ]
 }

@@ -1,6 +1,6 @@
 # Mod-author API layers: exact pure-crate validation
 
-**Prepared, not yet run. This is a validation-only composition, not an installed
+**Inventory public-entry follow-up prepared, not yet run. This is a validation-only composition, not an installed
 native package or a main-ready TConstruct migration.**
 
 The user's direction is two logical layers: maintainable typed internal services
@@ -31,27 +31,27 @@ CI. Inputs and source sets are recorded in `inputs.json`.
 - Storage example `0e54bcb24571545f3bdde5bac7d1807fe60cbbd7`: required plan
   success and six assertions over caller-owned values; no native slot commit.
 
-The resulting inventory API has 32 exact files including its Guide example.
-The public API has 11. The source parser counts 143 and 58 `#[test]` cases
+The resulting inventory API has 33 exact files including its Guide example.
+The public API has 11. The source parser counts 147 and 58 `#[test]` cases
 respectively; the CI must execute those complete library suites without a
 filter and verify every passing result, with zero ignored or filtered tests.
-The nine new Guide/Recipe and six Declaration test names are explicitly required.
+The thirteen new Guide/Recipe/inventory and six Declaration test names are explicitly required.
 No mock API crate, copied Game/ItemStack or stubbed host adapter is used.
 
 ## Separate evidence gates
 
 1. Thirteen source/scope/parser/mocked runner checks. They do not run Rust.
-2. Real `pluto-inventory-api`: 143 library tests, including legacy and wrapper
+2. Real `pluto-inventory-api`: 147 library tests, including legacy and wrapper
    use of the same registration/validation paths.
 3. Real `pluto-api`: 58 library tests, including the six Declaration cases.
 4. Guide's actual standalone example: one test invokes its explicit startup,
    constructs a document, and explicitly removes its subscription.
 5. An independent consumer crate imports both real API packages. Cargo metadata
    must show exactly these two local packages plus the consumer, at their
-   expected paths. The two Recipe binaries and Storage binary are type checked;
+   expected paths. The two Recipe binaries and both legacy/public Storage binaries are type checked;
    each needs an observed actual rustc invocation. Recipe main functions are
    empty, so they are **not** claimed as runtime behavior tests.
-6. Storage is built and its exact binary is run. Its six assertions must be
+6. Legacy Storage and the new public-entry Storage are separately built and executed against the same final API. Each set of six assertions must be
    reached; the source no longer permits an empty successful planning path.
 7. One small consumer test calls the unchanged fluid author example and checks
    idempotent registration, dry/unknown/registered-source contact results using
@@ -110,3 +110,7 @@ from an unrealistically shallow temporary path and stopped before tests; it was
 rerun from its exact repository-shaped path. No Rust or CI result is claimed
 until an exact matching run reaches terminal status. Evidence is retained in
 ordinary CI logs/summary and a later docs-only closure.
+
+## Inventory public-entry follow-up
+
+The first exact composition at 2ee73a700647a5a73142cd20fea065b44c8de598 passed all 203 Rust cases; its preserved result is b29252e45789c64e7e470ad2ba03a0cf2b360128. This subsequent cutoff adds only the same-owner inventory re-export from 9954c098, its four compatibility tests, a second external storage example differing only in import, and their docs/guards. Existing API lib.rs receives only the three-line module declaration, preserving the combined Java/menu exports. Both old and new examples are checked, built and executed against the final 147-test API. No native or i18n changes are introduced.
