@@ -1,0 +1,145 @@
+{
+  "kind": "bounded_step2_candidate_decision_not_global_completion",
+  "central_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+  "decisions": [
+    {
+      "candidate": "indexed_word_receive",
+      "actual_sites": 5,
+      "decision": "no_new_api_selected",
+      "reason": "Only ordered append-or-drop mechanics repeat; reset, routing, actor selection, commit and visible-state failure behavior differ. Adding a byte/word cap would change current behavior rather than just extract it. Existing menu codec already validates the final frame."
+    },
+    {
+      "candidate": "recipe_ui_index_repetition",
+      "decision": "existing_shared_boundaries_consumer_work_remaining",
+      "boundary_ids": [
+        "S06",
+        "S07",
+        "S08",
+        "S09"
+      ],
+      "reason": "UI invalidation, current-record CAS, explicit preview and deny-only placement already exist; family ID/material/selection and world publication remain local or blocked."
+    },
+    {
+      "candidate": "effective_stack_limit",
+      "decision": "no_duplicate_shared_storage_calculation_found_in_reviewed_paths",
+      "reason": "Products uses native per-stack override/removal semantics; storage planners accept caller limits. Smeltery guest catalog limit is different policy and must not be silently replaced."
+    },
+    {
+      "candidate": "changed_or_expired_refresh",
+      "decision": "deferred_not_implemented",
+      "reason": "Two small equivalent timer updates exist, but actor/reload/invalidation lifecycle is consumer owned and no broader shared service demand was established."
+    }
+  ],
+  "next_concrete_work": [
+    "Compose the already-published Java and menu-word groups into the broad Pluto foundation under coordinator ownership, preserving independent workflow deltas.",
+    "After a separately authorized consumer phase, migrate existing acquisition/recipe native seams through the proven APIs while retaining policy.",
+    "Keep B01 same-pair automatic authority, B02 persistent index lifetime and B03 dynamic guest publication explicitly unresolved."
+  ],
+  "no_new_runtime_or_test_execution": true,
+  "source_records": [
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "tconstruct/mixins/tconstruct/part-selection-remote-data.rs",
+      "sha256": "7261cb0991a812d4c941d2a1b0b8b58ee4152fab7c856951b0b627d623cd0b50",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/part-selection-remote-data.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+      "sha256": "4ac1fc2101e37574c6dda5761ebb3d0cca13975da3ca517a4e847e2522ce3504",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/horizon-mixin.toml"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "tconstruct/mixins/tconstruct/source-broad-wire.rs",
+      "sha256": "9548d5e3f1dfbeb657c65d1d350b948a55a60b871b802a8d7ccd7e705577a3c6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-broad-wire.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "tconstruct/mixins/tconstruct/source-haste-wire.rs",
+      "sha256": "28d75e2c8796c06c26b2acc3c67c89bc532c7c93e202507a69ef1e49577c7a84",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-haste-wire.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-guest-guard.rs",
+      "sha256": "3816023800abff2ed2fd1f82da215ea55bb6c250e80e379e3dc04ed17349271e",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/tconstruct/mixins/tconstruct/source-smeltery-guest-guard.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "pluto-lib/mixins/pluto_native_creative/crafting-products.rs",
+      "sha256": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/crafting-products.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "pluto-lib/mixins/pluto_native_creative/stack-cells.rs",
+      "sha256": "47015d67867a5ef2e90bc9481cfbdd36ebc1d8b8540d446b2a87044cd573d1d6",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/stack-cells.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs",
+      "sha256": "35fc03c3fcca9d266614b41e8aab34dbb0f3294100882e70fee835e4b4c383ff",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs"
+    },
+    {
+      "local_source_commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+      "published_equivalent_commit": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+      "path": "pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs",
+      "sha256": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/89744814b8d536a117e82f8ea3c8cdc9798faa95/pluto-lib/mixins/pluto_native_creative/inventory-api/src/storage.rs"
+    },
+    {
+      "local_source_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "published_equivalent_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-fake-material-book-ui.rs",
+      "sha256": "1c2d82238e18c7da6ca87f0baaf403f0faf8f48dbc26b5106d7d0bcf1036d0c5",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-fake-material-book-ui.rs"
+    },
+    {
+      "local_source_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "published_equivalent_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tag.rs",
+      "sha256": "b76ada4d8ccc5f5e4b86cd44e2cf31b14caf3efcbb8e2271ed7eda58c5573227",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-advancement-tag.rs"
+    },
+    {
+      "local_source_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "published_equivalent_commit": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+      "path": "tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs",
+      "sha256": "f87ac2ce3dc83e770197aabb58bc083e3db8126c6a1ba3ae2b9ec2d770a89aff",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/8c56bb52b6b77fae6115e894af9e369a5c3f9e08/tconstruct/mixins/tconstruct/source-advancement-tool-predicate.rs"
+    },
+    {
+      "local_source_commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "published_equivalent_commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "path": "tconstruct/mixins/tconstruct/source-travelers-book-ui.rs",
+      "sha256": "3a9f46f7b312b6c70ff28da42e4ff35d53d20deaf1a864cc2d0b0f96ad9e2db1",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/a8fc1e18e9c819c93a60cd50aea87dc8a099efaa/tconstruct/mixins/tconstruct/source-travelers-book-ui.rs"
+    },
+    {
+      "local_source_commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "published_equivalent_commit": "a8fc1e18e9c819c93a60cd50aea87dc8a099efaa",
+      "path": "tconstruct/mixins/tconstruct/source-travelers-book.rs",
+      "sha256": "397bd5db09166253b602204918dbda0b3cddbadc875c68457531aae8b6f6ca61",
+      "url": "https://github.com/sofia-gros/horizon-mods/blob/a8fc1e18e9c819c93a60cd50aea87dc8a099efaa/tconstruct/mixins/tconstruct/source-travelers-book.rs"
+    },
+    {
+      "official_source_commit": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "path": "crates/horizon-client/src/menu.rs",
+      "sha256": "d1c87e41131b3338b13201f362eca52790440a25536a8d8495413d5e15eb4c36",
+      "url": "https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/menu.rs#L1343-L1356"
+    }
+  ]
+}
