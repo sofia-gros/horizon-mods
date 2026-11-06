@@ -138,3 +138,13 @@ raw/lazy operations found no serious additional issue. It confirmed separate
 old/new CPU Font instances, explicit normal/full region assertions and an oracle
 that invokes native traversal without Pluto. The reviewer ran no execution,
 metadata or build and did not claim visible-row draw/UI/GPU/package validation.
+
+
+The [read-only preflight review](guide-text-migration-preflight-review.json)
+records unchanged LAN/content/navigation source hashes and the exact old fixture
+dependency comparison. Its prior executed Font test binary was 12,493,320 bytes,
+already larger than the approximately 7 MiB available headroom when reviewed.
+That is evidence against an assumed tiny run, not a fresh output upper bound.
+The old frozen fixture inputs still match their receipt; no native metadata was
+started and no previous artifact was deleted by this worker. Original source-only
+and new twelve-case execution claims remain separate.

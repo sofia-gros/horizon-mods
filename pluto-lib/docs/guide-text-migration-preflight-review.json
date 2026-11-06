@@ -1,0 +1,94 @@
+{
+  "scope": "Read-only source/fixture identity and capacity comparison; no metadata/native execution",
+  "source_cutoff": "c4ba10564af81bff8d001fed2400619a29138251",
+  "published_source": "a35ae5404a0b08904cd36d02c7190a7d81cc8a82",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "unchanged_consumer_sources_from_base": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book.rs",
+      "sha256": "3e31953570b3bd42d1e07501b4bb081d4325321fc1190fccc7e5095c86ea7c96"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-wire.rs",
+      "sha256": "960087432e9f9c071797f67b1d411c781dcc0cdafeb7dce57a7ebfbe8b9032d7"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-use.rs",
+      "sha256": "c59cbf20d6a206e5402b874ab7815225c2de644af11076da391ef2274449bbaa"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-remote.rs",
+      "sha256": "df2138ada8ca80cdb8dae9ceb08b32fc70fa3351bd813db4aa389891c686c850"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-request.rs",
+      "sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-response.rs",
+      "sha256": "5216f1404439880c54db043e7c463ea54ce224264909198d3ab42e8301a4b647"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-key.rs",
+      "sha256": "9101a70bb624c3351635c453ea83e737b35a2cdfe5b2da3a4e26cb5b0ca9edd9"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-turn.rs",
+      "sha256": "1fabc6505f1ae93520f71718797a439fd6fdd7d0c91147331563c17e2e7f7d57"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-materials-book-layout.rs",
+      "sha256": "1bcd958e1136454d8d5a9b87ff1b2efb72a0023649955abdee2c97f0b46f8faf"
+    }
+  ],
+  "semantic_review": {
+    "preserved_by_exact_source": [
+      "LAN body/envelope/reply admission",
+      "source content and embedded material/run layout",
+      "cover/spread/page/history/key/actions except query delegation",
+      "book opening/remote request route"
+    ],
+    "proved_by_source_only": [
+      "No extra preflight glyph/width/resolve calls in raw API",
+      "All strict admission fallback occurs before native Font access",
+      "Selected row traversal stops at original first negative remainder"
+    ],
+    "not_proved": [
+      "Full consumer application/typechecking",
+      "Live visible17-row draw/GPU pixel upload/cache exhaustion",
+      "Screen/window lifetime and delayed reply authority",
+      "Per-frame whole-document conversion performance"
+    ]
+  },
+  "dependency_comparison": {
+    "old_fixture": ".work/pluto-guide-layout-fixture-20261106",
+    "old_api_files": 26,
+    "new_api_files": 28,
+    "new_api_source_bytes": 205460,
+    "api_manifest_equal": true,
+    "changed_api_paths": [
+      "src/crafting.rs",
+      "src/crafting/products.rs",
+      "src/lib.rs",
+      "src/predicate_fold.rs"
+    ],
+    "root_dependencies": "Same planned core/render(default-features=false)/copied API manifest shape as old fixture; new copied API/fixture paths and source bytes alter local identities",
+    "limitation": "Static manifest equality is not fresh resolved feature/profile/artifact identity proof. No Cargo metadata was run."
+  },
+  "capacity_evidence": {
+    "old_terminal_log": "/tmp/pluto-guide-layout-proof-20261106/layout-tests.log",
+    "old_source": "0d67efc71cd65c0727f66ab2cc9b170c22e5c355",
+    "old_executable": "host-target/debug/deps/pluto_guide_text_tests-3ac29c54c820c202",
+    "old_executable_bytes": 12493320,
+    "old_executable_sha256": "b3f42f9d788d021b6ad17850b0144f87612ecde411c0e06847fe998e9392267e",
+    "old_sealed_fixture_drift": false,
+    "conclusion": "Old test executable alone exceeds observed approximately7MiB workspace headroom. It is not a new output upper bound. No run authorized. Exact old terminal executable offered for separate verified preservation procedure; not deleted here."
+  },
+  "validation": {
+    "pure_source_tests": "7 passed at source c4ba1056",
+    "native_tests": "12 prepared, unrun",
+    "native_metadata": "unrun",
+    "consumer_plan_apply_type": "unrun"
+  }
+}
