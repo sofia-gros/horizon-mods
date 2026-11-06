@@ -454,19 +454,23 @@ pub(super) fn click_with_color(slots: &mut [Option<ItemStack>; 2], carried: &mut
     };
     if index != 0 || !accepts_with_color(&held, known_fluid, allow_color) { *carried = Some(held); return false; }
     let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle" | "tconstruct:splash_bottle" | "tconstruct:lingering_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    use horizon_client::pluto_inventory::{plan_between, StackSnapshot};
+    let requested = if right { 1 } else { held.count };
+    let Ok(Some(plan)) = plan_between(
+        Some(StackSnapshot { item: &held, count: held.count }),
+        slots[index].as_ref().map(|item| StackSnapshot { item, count: item.count }),
+        requested, |_, _| max, |_, _| true,
+        |offered, receiving| receiving.item == offered.item && receiving.damage == offered.damage && receiving.extra == offered.extra,
+    ) else { *carried = Some(held); return false; };
+    let count = plan.count;
     match slots[index].as_mut() {
         None => {
-            let count = if right { 1 } else { held.count.min(max) };
             let mut placed = held.clone(); placed.count = count; held.count -= count;
             slots[index] = Some(placed); *carried = (held.count > 0).then_some(held);
         }
-        Some(existing) if existing.item == held.item && existing.damage == held.damage && existing.extra == held.extra => {
-            let available = max.saturating_sub(existing.count);
-            let count = if right { held.count.min(available).min(1) } else { held.count.min(available) };
-            if count == 0 { *carried = Some(held); return false; }
+        Some(existing) => {
             existing.count += count; held.count -= count; *carried = (held.count > 0).then_some(held);
         }
-        Some(_) => { *carried = Some(held); return false; }
     }
     true
 }
@@ -480,19 +484,16 @@ pub(super) fn quick_input_with_color(slots: &mut [Option<ItemStack>; 2], stack: 
     let Some(held) = stack.as_mut() else { return false; };
     if !accepts_with_color(held, known_fluid, allow_color) { return false; }
     let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle" | "tconstruct:splash_bottle" | "tconstruct:lingering_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
-    let amount = match slots[0].as_mut() {
-        None => {
-            let amount = held.count.min(max);
-            let mut placed = held.clone(); placed.count = amount;
-            slots[0] = Some(placed); amount
-        }
-        Some(existing) if existing.item == held.item && existing.damage == held.damage && existing.extra == held.extra => {
-            let amount = held.count.min(max.saturating_sub(existing.count));
-            existing.count += amount; amount
-        }
-        _ => 0,
-    };
-    if amount == 0 { return false; }
+    use horizon_client::pluto_inventory::{plan_between, StackSnapshot};
+    let Ok(Some(plan)) = plan_between(
+        Some(StackSnapshot { item: &*held, count: held.count }),
+        slots[0].as_ref().map(|item| StackSnapshot { item, count: item.count }),
+        held.count, |_, _| max, |_, _| true,
+        |offered, receiving| receiving.item == offered.item && receiving.damage == offered.damage && receiving.extra == offered.extra,
+    ) else { return false; };
+    let amount = plan.count;
+    if let Some(existing) = slots[0].as_mut() { existing.count += amount; }
+    else { let mut placed = held.clone(); placed.count = amount; slots[0] = Some(placed); }
     held.count -= amount;
     if held.count == 0 { *stack = None; }
     true

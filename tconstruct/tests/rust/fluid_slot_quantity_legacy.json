@@ -1,0 +1,21 @@
+{
+  "source_commit": "e2e791455381723948c4f8b166bb8d5fb3c4409a",
+  "source_path": "tconstruct/mixins/tconstruct/source-fluid-container.rs",
+  "source_sha256": "3c28f5386fbdd2a7b7f024addfbfb3eb80248b704840e989f36ef7f5fee1c4f5",
+  "oracle_sha256": "a7d7cd2ebb0b2170eca5139a7fe43f5663390b46d739584ff6f8afeb04d591fa",
+  "functions": {
+    "click_with_color": {
+      "old_sha256": "f9d393fc9c8f0068561302c584c3347f6086d5f51c1d73ece468670fd25a80a8",
+      "adopted_sha256": "8039348619433cf1c95b56a26fbc910fead29d3e79c03802f8fbe04dff0b8ade"
+    },
+    "quick_input_with_color": {
+      "old_sha256": "5011de573eba7b1224a769ab510c3cd9fa928360896edf7aa4f804bbb241b92a",
+      "adopted_sha256": "611924f8ab03b66c1b9559546189c2be837c893724ded56768c8f5f7b4260c9a"
+    }
+  },
+  "preserved_extraction_prefix_sha256": "636508612135861e76e83f636ccb1a81bb5b1d055c29918f7bedd5014bbdaa71",
+  "callers": {
+    "tconstruct/mixins/tconstruct/source-smeltery-click.rs": "862301e8edcf5d0407a78281c571da5313ddb45654011c1c375de2bf42867627",
+    "tconstruct/mixins/tconstruct/source-smeltery-guest-guard.rs": "3816023800abff2ed2fd1f82da215ea55bb6c250e80e379e3dc04ed17349271e"
+  }
+}
