@@ -1,0 +1,34 @@
+--- a/crates/horizon-client/src/game.rs
++++ b/crates/horizon-client/src/game.rs
+@@ -23364,3 +23364,31 @@
+         level.write_without_player(dir)
+     }
+ }
++
++// UNAPPLIED negative compilation probe, mutually exclusive with the positive.
++// Must be checked only after the matching positive real-crate check succeeds.
++#[allow(dead_code)]
++mod pluto_contact_negative_probe {
++    use super::Game;
++    use horizon_client::{effects::EffectInstance, motion::MotionWorld};
++    use horizon_core::geometry::Vec3;
++
++    fn still_live_motion_borrow(
++        game: &mut Game<'_>, effect: EffectInstance,
++    ) -> Option<Vec3> {
++        let player = game.player.as_mut()?;
++        let world = MotionWorld {
++            entities: &[],
++            player,
++            scene: &mut game.world,
++            assets: &game.pack.assets,
++            collision_binding: game.collision,
++            resources: game.motion,
++            health: &game.health_resources,
++        };
++        // EXPECTED E0499 at this exact call, not an arbitrary compiler failure.
++        game.add_player_effect(effect);
++        // Keeps the real field borrow alive across the whole-Game call above.
++        Some(world.player.position)
++    }
++}

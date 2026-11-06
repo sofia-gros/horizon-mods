@@ -50,5 +50,14 @@
     "official_files_pinned": 13,
     "native_execution": false,
     "design": "../synchronous-contact-native-refactor.md"
+  },
+  "game_borrow_probes": {
+    "status": "Exact unapplied additions prepared; no overlay or compilation",
+    "source_guards_passed": 8,
+    "official_sources_pinned": 19,
+    "positive_compile_executed": false,
+    "negative_compile_executed": false,
+    "runtime_executed": false,
+    "design": "../guest-game-borrow-fixture.md"
   }
 }

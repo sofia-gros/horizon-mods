@@ -147,3 +147,12 @@ blockers. `contact_sources.py` pins 13 official files; `test_contact_order.py`
 checks ten source-order/representation groups. These checks pass but do not
 execute Game, validate a new borrow implementation, or authorize contact writes.
 No abstract authority API or mock Game implementation is added.
+
+## Actual-Game borrowing probes (prepared only)
+
+`game_borrow_positive.rs` and `game_borrow_negative.rs` have exact, mutually
+exclusive addition diffs against the real private Game module. The positive
+probe checks a proposed sequential reborrow shape and prepares a native guest
+teleport observation; the negative expects E0499 while a MotionWorld borrow is
+still live. Neither has been compiled or executed. Eight source guards pass.
+No overlay has been staged. See [the fixture contract and limitations](../../docs/guest-game-borrow-fixture.md).
