@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "scope": "Read-only source comparison. No metadata/guard/runtime change, native test or compatibility claim.",
+  "integration": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "diagnostic": {
+    "run": 42231588813,
+    "job": 127938548202,
+    "guard": "check_wire_snapshot_plan.py",
+    "exit": 1,
+    "error": "Wire snapshot guard rejected: Official private Wire declaration/source differs from the reviewed target"
+  },
+  "old": {
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "bytes": 64784,
+    "sha256": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d"
+  },
+  "new": {
+    "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "bytes": 76150,
+    "sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402",
+    "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-items/src/item_data.rs",
+    "verification": "Immutable official raw fetch exactly matches independently read local bytes"
+  },
+  "private_wire": {
+    "declaration": "pub struct Wire(Option<Arc<(ItemStack, Arc<[u8]>)>>);",
+    "count_each": 1,
+    "struct_and_impl_bytes": 438,
+    "struct_and_impl_sha256": "478a186f55a1134a7238a9733bef3ade2829d830ee8ab0910bb4779c6d9314ac",
+    "equal": true
+  },
+  "prefix_including_stackdata": {
+    "bytes": 10250,
+    "sha256": "4f596eafa0ab859fa8f8d843d5bea7b970ed540da5f19843aae1978c355ff9b9",
+    "equal": true
+  },
+  "borrow_reader": {
+    "bytes": 590,
+    "sha256": "4d24575901fb3ffe8913bdfdf27f60043ed543532e605b3ae9f5f8c55e56c0a7",
+    "matches_existing_metadata": true,
+    "behavior": "Borrow native retained ItemStack and patch through Wire.0; no clone, write, current-state reinterpretation or encode/decode."
+  },
+  "runtime_diff": "--- official624c/item_data.rs runtime\n+++ official41f/item_data.rs runtime\n@@ -255,6 +255,20 @@\n     held.into_iter().map(|(_, stack)| stack).collect()\n }\n \n+/// `NbtOps.getBooleanValue`, used by boolean component codecs: every numeric tag\n+/// is true unless its double value is zero. In particular, fractions stay true.\n+pub fn component_bool(value: &Tag) -> Option<bool> {\n+    Some(match value {\n+        Tag::Byte(v) => *v != 0,\n+        Tag::Short(v) => *v != 0,\n+        Tag::Int(v) => *v != 0,\n+        Tag::Long(v) => *v != 0,\n+        Tag::Float(bits) => f32::from_bits(*bits) != 0.0,\n+        Tag::Double(bits) => f64::from_bits(*bits) != 0.0,\n+        _ => return None,\n+    })\n+}\n+\n impl ItemStack {\n     pub fn new(item: &str, count: u32) -> Self {\n         Self {\n@@ -334,11 +348,12 @@\n     /// non-empty `minecraft:enchantments` component (`Item.isFoil` is\n     /// `ItemStack.isEnchanted`; stored book enchantments do not count).\n     pub fn has_foil(&self, item_glint: bool) -> bool {\n-        if let Some(Tag::Byte(flag)) = self\n+        if let Some(flag) = self\n             .data()\n             .and_then(|d| d.other(\"minecraft:enchantment_glint_override\"))\n+            .and_then(component_bool)\n         {\n-            return *flag != 0;\n+            return flag;\n         }\n         item_glint || !self.enchantments().is_empty()\n     }\n@@ -347,6 +362,17 @@\n     }\n     pub fn custom_name(&self) -> Option<String> {\n         self.data()?.custom_name_plain()\n+    }\n+    /// Non-empty slots of a `minecraft:container` component.\n+    pub fn container(&self) -> &[(u8, ItemStack)] {\n+        self.data().map_or(&[], |d| &d.container)\n+    }\n+    /// The `minecraft:custom_data` compound if present.\n+    pub fn custom_data(&self) -> Option<&horizon_world::nbt::Compound> {\n+        match self.data()?.other(\"minecraft:custom_data\")? {\n+            Tag::Compound(map) => Some(map),\n+            _ => None,\n+        }\n     }\n     /// `ResolvableProfile.name`: a bare profile string or its `name` field.\n     pub fn profile_name(&self) -> Option<String> {\n@@ -714,11 +740,31 @@\n /// A filled map's empty decorations equal its prototype (`Items.mapProperties`).\n pub fn encode_components(stack: &ItemStack) -> Option<Tag> {\n     let mut components = components_tag(stack.damage, stack.data())?;\n+    // LodestoneTracker.CODEC: optionalFieldOf(\"tracked\", true).\n+    if let Some(Tag::Compound(tracker)) = components.get_mut(\"minecraft:lodestone_tracker\")\n+        && tracker.get(&JavaString::from(\"tracked\")) == Some(&Tag::Byte(1))\n+    {\n+        tracker.remove(&JavaString::from(\"tracked\"));\n+    }\n     if &*stack.item == \"minecraft:filled_map\"\n         && matches!(components.get(\"minecraft:map_decorations\"), Some(Tag::Compound(entries)) if entries.is_empty())\n         && let Tag::Compound(entries) = &mut components\n     {\n         entries.remove(&JavaString::from(\"minecraft:map_decorations\"));\n+        if entries.is_empty() {\n+            return None;\n+        }\n+    }\n+    // Items.BEEHIVE/BEE_NEST use this whole block-state map as their prototype.\n+    // Empty maps and maps with extra properties are distinct, nondefault patches.\n+    if matches!(&*stack.item, \"minecraft:beehive\" | \"minecraft:bee_nest\")\n+        && matches!(components.get(\"minecraft:block_state\"), Some(Tag::Compound(state))\n+            if state.len() == 1\n+                && matches!(state.get(&JavaString::from(\"honey_level\")),\n+                    Some(Tag::String(level)) if level.to_string_lossy() == \"0\"))\n+        && let Tag::Compound(entries) = &mut components\n+    {\n+        entries.remove(&JavaString::from(\"minecraft:block_state\"));\n         if entries.is_empty() {\n             return None;\n         }\n@@ -939,7 +985,9 @@\n     let Some(c) = components else {\n         return (0, None);\n     };\n-    let damage = c.get(\"minecraft:damage\").and_then(int).unwrap_or(0).max(0) as u32;\n+    // NbtOps.getNumberValue supplies a boxed number; Codec.INT truncates its value.\n+    let damage =\n+        horizon_world::datafix::dynamic::as_int(c.get(\"minecraft:damage\"), 0).max(0) as u32;\n     let potion = match c.get(\"minecraft:potion_contents\") {\n         Some(Tag::String(s)) => Some(Arc::from(s.to_string_lossy().as_str())),\n         Some(t) => t\n",
+  "changed_runtime_scope": [
+    "New numeric component_bool plus has_foil uses it.",
+    "New ItemStack container and custom_data borrowed accessors.",
+    "encode_components omits the default lodestone tracked=Byte(1) and the exact default hive honey_level map.",
+    "decode_components damage accepts numeric tags through dynamic::as_int."
+  ],
+  "still_required": [
+    "Actual complete latest plan module owner/visibility/source and no item_data injections or states must pass unchanged checks. The first run did not retain full plan bytes, so this remains pending raw-plan re-observation.",
+    "A separate reviewed latest metadata cutoff may update whole-file source identity only after this diff and corresponding plan are accepted. Do not remove or bypass the full-file/reader/owner checks.",
+    "Native type proof of the installed adapter and any full serialization semantics remain separate. Old624c comparisons do not establish newencode/decode equivalence."
+  ]
+}
