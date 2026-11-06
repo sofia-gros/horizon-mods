@@ -223,7 +223,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Replay all12 guards on fixed17f/recovered9cc1 plan; finish payload/crafting/cloud migrations, then guarded apply/type/build and Windows link/startup. Do not delay or retarget fixed guard-only for new Windows tooling. Main unchanged until actual build/error conditions pass.",
+  "next": "Fixed17f/recovered9cc1 guard-only first; preserve-behavior payload/crafting/cloud migration, then same full guards/apply/native build. Asset-free BuildOnly source exists but Windows/formatter/link are unrun. Main stays unchanged until actual build/error conditions pass.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -442,6 +442,25 @@
       "activation": "Excluded source only; no workflow/trigger or ordinary hook/API change",
       "api153_or_finite16_executed": false,
       "bootstrap5_executed": false
+    },
+    {
+      "subject": "Asset-free guarded Windows link mode",
+      "source": "49e3f7217975cde5b28ec56817bf69140a37081b",
+      "paths": 7,
+      "source_checks": 9,
+      "independent_review": "Guide7immutableblobs and2entryinverse; central9mocked-command checks",
+      "scope": "BuildOnly uses same full guards/apply/GNU default gameplay link, skips assets/game startup, distinct linked receipt/mode identity",
+      "actual_windows_or_native_executed": false
+    },
+    {
+      "subject": "Legacy-contract pure Overslime pair provider proposal",
+      "paths": 11,
+      "source_checks": 12,
+      "independent_review": "Rendering old2modules/2helpers full-plan byte comparison; central12pure",
+      "activation": "Excluded source only; no ordinary hooks/registry/bootstrap activation",
+      "new_once_only_guarantee": false,
+      "finite_rust_tests_unrun": 16,
+      "limits": "Independent assembly/remainders derivation retained; combined registry startup failure contract not yet implemented."
     }
   ],
   "guide_limits": [

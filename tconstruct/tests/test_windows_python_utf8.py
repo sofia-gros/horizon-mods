@@ -31,8 +31,12 @@ class Tests(unittest.TestCase):
 
     def test_only_two_process_encoding_assignments_are_added(self):
         raw = (ROOT / 'tools/play_windows_latest.py').read_bytes()
-        self.assertEqual(sha(raw), EVIDENCE['launcher_sha256'])
         text = raw.decode('utf-8')
+        inverse = json.loads((ROOT / 'tests/windows-link-only-inverse.json').read_text(encoding='utf-8'))['files']['tools/play_windows_latest.py']
+        self.assertEqual(sha(raw), inverse['after_sha256'])
+        for old, new in reversed(inverse['edits']):
+            self.assertEqual(text.count(new), 1); text = text.replace(new, old, 1)
+        self.assertEqual(sha(text.encode('utf-8')), EVIDENCE['launcher_sha256'])
         after = "'PYTHONUTF8', 'PYTHONIOENCODING', 'PLUTO_GUARD_RUSTFMT', 'CARGO'"
         self.assertEqual(text.count(after), 1)
         text = text.replace(after, "'PLUTO_GUARD_RUSTFMT', 'CARGO'", 1)

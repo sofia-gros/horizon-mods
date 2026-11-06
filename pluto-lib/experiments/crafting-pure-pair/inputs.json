@@ -1,0 +1,29 @@
+{
+  "base": "17f44dc36fc2df28547328aa8554286ae965b208",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "actual_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b",
+  "oracle_sha256": {
+    "overslime.rs": "da80c34ee5b8ebb88be5bb863371ca4bc887fca4e395f72b62552cce00866b7f",
+    "overslime-crafting.rs": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+    "old-assembly.rs": "bfa08e9dfff0b0685dd976e6f5dbc33c9789a65fdd6946ea68176627c9c97663",
+    "old-remainders.rs": "abf3c55dabefc1a96701a9c90f605d3a0167819f272f8473b4cf8409c44b3493",
+    "old-matching-head.rs": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2",
+    "official/ingredient-declarations": "f359441dcb3708d7b3833ba1bfc4080bdd1a338240e315a6e80813c87a1e98b4",
+    "official/ingredient-of": "4cdad321731b4dbdb25e3b838a0d257db611594777cc3659092c963b7a10b251",
+    "official/complete-template": "b0ed768128b746c5880ea7bf454d1512f6737d8247703cf77893ce030587166d",
+    "official/recipe-declarations": "3eeeab8af9dad4b1e11b8128e78f0583bbac77a11fc96e94c407999acaffe5de",
+    "official/complete-input": "b7764a87c02c63c479d1c5cbd30ab2ca436a376bbe807bc39584b35ac75bada1"
+  },
+  "actual_ordinary_activation": false,
+  "native_executed": false,
+  "old_hook_removed": false,
+  "official_crafting_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+  "candidate_sha256": {
+    "native-derivation.rs": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e",
+    "consumer.rs": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+    "matching-head.rs": "814dce596098aeaae669e5748f4138d18521ff45e87c0d73a00b2676aa24f16f",
+    "remainders-head.rs": "ff061e793e9d8da4029fda367003c3df326c1c3555af8866a4ce8cf5cba01f16",
+    "regression_tests.rs": "4cfb5bd1bc233472d223758c21e104921c6ac9ee09187eaeac8eff032d83a212"
+  }
+}

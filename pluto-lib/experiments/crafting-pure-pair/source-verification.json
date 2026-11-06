@@ -1,0 +1,70 @@
+{
+  "files": {
+    "lib.rs": {
+      "sha256": "0f133b9abb67456687c81cd0a4d97127514847724b8d5d7d4dd671cb997fa131",
+      "bytes": 221
+    },
+    "crafting.rs": {
+      "sha256": "b33f6f476a5b66f43cb6c076de6bdb7f3bc3c50c8e1ff015845fb79b38e1b5cc",
+      "bytes": 12030
+    },
+    "overslime-arithmetic.rs": {
+      "sha256": "6ff12a11cbd493a0774a1692711d011c1b15225c645105a74dd32a8e70c16a95",
+      "bytes": 676
+    },
+    "overslime-crafting.rs": {
+      "sha256": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+      "bytes": 2463
+    },
+    "native-derivation.rs": {
+      "sha256": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e",
+      "bytes": 5194
+    },
+    "consumer.rs": {
+      "sha256": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+      "bytes": 924
+    },
+    "regression_tests.rs": {
+      "sha256": "4cfb5bd1bc233472d223758c21e104921c6ac9ee09187eaeac8eff032d83a212",
+      "bytes": 11117
+    }
+  },
+  "tests": [
+    "crafting::pluto_derivations::tests::four_bottle_types_keep_native_outputs_and_original_remainder_order",
+    "crafting::pluto_derivations::tests::holes_offsets_and_compression_change_only_remainder_coordinates",
+    "crafting::pluto_derivations::tests::full_active_tool_returns_original_bottles_but_inactive_is_unmatched",
+    "crafting::pluto_derivations::tests::overworked_and_saturated_values_keep_existing_refill_math",
+    "crafting::pluto_derivations::tests::mixed_bottles_multiple_tools_and_wrong_tool_counts_still_reject",
+    "crafting::pluto_derivations::tests::absent_and_malformed_stored_custom_data_preserve_original_results",
+    "crafting::pluto_derivations::tests::full_unknown_fields_runtime_values_and_native_clone_are_preserved",
+    "crafting::pluto_derivations::tests::top_wire_bytes_survive_clone_but_modified_output_has_no_wire_authority",
+    "crafting::pluto_derivations::tests::nested_wire_and_unused_bottle_metadata_survive_without_decode",
+    "crafting::pluto_derivations::tests::selector_shape_result_and_exact_remainder_id_keep_native_fallback",
+    "crafting::pluto_derivations::tests::independent_requests_repeat_the_pure_value_not_a_cached_pair",
+    "crafting::pluto_derivations::tests::veto_prevents_even_selectors_and_output_authority",
+    "crafting::pluto_derivations::tests::duplicate_ids_never_replace_and_conflict_invokes_no_derivation",
+    "crafting::pluto_derivations::tests::empty_registry_does_not_claim_assembly_or_remainders",
+    "crafting::pluto_derivations::tests::selectors_run_unlocked_and_snapshot_does_not_adopt_new_registration",
+    "crafting::pluto_derivations::tests::original_empty_grid_remainder_fallback_keeps_declared_side"
+  ],
+  "rust_executed": false,
+  "actual_installed_head": false,
+  "same_invocation_pair_guarantee": false,
+  "source_checks": {
+    "passed": 12,
+    "failed": 0,
+    "native_executed": false
+  },
+  "source_sha256": {
+    "README.md": "3b3e3ac65d9ee5a636ac99401cf79a4f6c678d08e16c1f770b35e4048d2b40d4",
+    "consumer.rs": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+    "inputs.json": "0a899ea5a42a76d92160194a4f48e46baabbb49abf5387d2418c915ff44a08a6",
+    "matching-head.rs": "814dce596098aeaae669e5748f4138d18521ff45e87c0d73a00b2676aa24f16f",
+    "native-derivation.rs": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e",
+    "oracles.json": "2e57086dcb49f596f616e73f13c05b7d22582a7ed3b185875c619b2be60e86bb",
+    "regression_tests.rs": "4cfb5bd1bc233472d223758c21e104921c6ac9ee09187eaeac8eff032d83a212",
+    "remainders-head.rs": "ff061e793e9d8da4029fda367003c3df326c1c3555af8866a4ce8cf5cba01f16",
+    "render.py": "4fd83bfa7a18a11be22042f848d4f07b2129c2b45080d0c0b05ac6b99c350323",
+    "test_source.py": "530c1548726c158daf46b42bd847e78632919b042bbf4b621882e61e2ba08ecc"
+  }
+}

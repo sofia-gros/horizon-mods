@@ -64,3 +64,10 @@ Finite native Text reply tests passed at exact `fe52ae4c`, [run42241486458](http
 Windows source now requires a separately prepared official rustfmt archive and byte-identical executable. Two existing guards receive the verified formatter by absolute path without changing comparisons or transformation hunks. Child Python runs UTF-8 without changing system locale or user settings. The12-path intake from `f9fcdd39`, `6ecd8daa` and `3da8fe52` passed13 formatter plus7 UTF-8 pure checks and independent review. No archive installation, new PowerShell execution, formatter regeneration, native compile or game startup ran for this intake. Historical43-test Windows success does not cover these changes. See [explicit preparation requirements](tconstruct/docs/windows-latest-launch.md).
 
 The guard-only diagnostic remains pinned to `17f44dc3` and need not wait for this tooling intake. Native mod/content and the approved chest-color deferral are unchanged. Main remains unmerged.
+
+
+## Build-only preparation and retained crafting proposal
+
+`-BuildOnly` / `--build-only` now offers the same guarded stage and default-feature Windows GNU link without external game assets or game startup. It does not bypass a guard or treat link output as a playable-ready cache. The7-path `49e3f721` change passed independent source review and9 mocked-command/inverse checks; actual Windows, formatter, planner, compiler, linker and startup were not run for this mode. See [its scope and remaining gates](tconstruct/docs/windows-link-only-20261106.md).
+
+The11-file `crafting-pure-pair` group is retained under experiments only. It preserves the old independent Overslime output/remainders computations, not a new once-only transaction guarantee.12 pure source checks and independent old-module/full-plan comparison passed. Its16 Rust comparisons and combined registration startup contract remain unrun/unimplemented. No ordinary crafting hook was removed or enabled by this save.

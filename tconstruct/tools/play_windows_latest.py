@@ -190,27 +190,37 @@ def pe_x64(path):
     if header != b'PE\0\0\x64\x86': raise ValueError('Built executable is not Windows x64 PE')
 
 
+def link_mode(build_only, resources):
+    if build_only and resources is not None:
+        raise ValueError('Build-only mode does not accept resources; omit --resources. No game will be started.')
+    if not build_only and resources is None:
+        raise ValueError('Game startup requires explicitly prepared --resources; use --build-only for link verification only.')
+    return 'link-only' if build_only else 'playtest'
+
+
 def execute(args):
     if os.name != 'nt' or platform.machine().upper() not in ('AMD64', 'X86_64'):
         raise ValueError('This launch route requires Windows 11 x64. Nothing was installed or compiled.')
     repo = directory(Path(__file__).parents[1]); pluto = directory(repo.parent/'pluto-lib')
     validate_compat(json.loads(read(repo/'compatibility.json')))
     guard_format.require_guard_routing(pluto)
-    horizon, mixins, resources, toolchain = map(directory,
-        (args.horizon, args.mixins, args.resources, args.toolchain))
+    mode = link_mode(args.build_only, args.resources)
+    horizon, mixins, toolchain = map(directory, (args.horizon, args.mixins, args.toolchain))
+    resources = directory(args.resources) if args.resources is not None else None
     external_bundle = directory(args.pluto_bundle) if args.pluto_bundle else None
     rustfmt_archive = Path(os.path.abspath(args.rustfmt_archive))
     directory(rustfmt_archive.parent)
     home = Path(os.path.abspath(args.home))
     # All explicitly selected inputs must remain outside generated outputs and saves.
-    disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('resources',resources),('toolchain',toolchain),('repo',repo.parent),('rustfmt archive',rustfmt_archive)])
+    disjoint([('home',home),('Horizon',horizon),('Mixins',mixins),('toolchain',toolchain),('repo',repo.parent),('rustfmt archive',rustfmt_archive)]
+             + ([('resources',resources)] if resources is not None else []))
     if external_bundle is not None and (home == external_bundle or home in external_bundle.parents or external_bundle in home.parents): raise ValueError('Bundle/output overlap')
     directory(home.parent); no_parent_configs(home)
     for path in (horizon, mixins): no_parent_configs(path.parent)
     for path in ('bin/rustc.exe','bin/cargo.exe','bin/rustdoc.exe','bin/rustfmt.exe','mingw64/bin/gcc.exe',
                  'mingw64/bin/g++.exe','mingw64/bin/ar.exe','mingw64/bin/ranlib.exe','mingw64/bin/windres.exe'):
         if not (toolchain/path).is_file(): raise ValueError('Missing official launcher toolchain component: '+path+'; prepare it explicitly, no automatic installer is used.')
-    if not (resources/'horizon-resources.json').is_file(): raise ValueError('Select explicitly prepared official Horizon 26.3 resources, not a source checkout or saves folder.')
+    if resources is not None and not (resources/'horizon-resources.json').is_file(): raise ValueError('Select explicitly prepared official Horizon 26.3 resources, not a source checkout or saves folder.')
     cargo_home = home/'cargo-home-latest-gnu'
     for name in ('config','config.toml'):
         if (cargo_home/name).exists(): raise ValueError('Unexpected isolated Cargo config: '+str(cargo_home/name))
@@ -255,15 +265,19 @@ def execute(args):
                 'official_mixins': source_identity(mixins,'horizon-mixins',MIXINS,MIXINS_LOCK,git,env),
                 'package_sources':package_sources(), 'packages':package_receipt,
                 'compatibility':sha(read(repo/'compatibility.json')), 'pluto':fingerprint(bundle,pluto),
-                'resources':{'path':str(resources),'files':tree_digest(resources)},
+                'mode':mode,
+                'resources':({'path':str(resources),'files':tree_digest(resources)} if resources is not None else None),
                 'toolchain':{'path':str(toolchain),'files':tree_digest(toolchain),'rust':rust,'cargo':cargo,'gcc':gcc,'gcc_version':gcc_version},
                 'formatter':{**guard_format.admit(toolchain,rustfmt_archive),'version':formatter_version},
                 'target':TARGET,'profile':PROFILE,'default_features':True,'features':feature_contract(horizon),
                 'stage_sha256':sha(read(repo/'tools/stage.py'))}
     initial = snapshot(); key = ready_identity(initial)
-    build = home/'builds-latest-gnu'/key; ready = build/'.ready.json'
+    build = home/'builds-latest-gnu'/key; ready = build/('.linked.json' if args.build_only else '.ready.json')
     game = build/'horizon-client.exe'; game_resources = build/'resources'
-    def outputs(): return {'game':sha(read(game)), 'resources':tree_digest(game_resources)}
+    def outputs():
+        value = {'game':sha(read(game))}
+        if not args.build_only: value['resources'] = tree_digest(game_resources)
+        return value
     if build.exists(): directory(build)
     if not ready.exists():
         if build.exists(): raise ValueError('Incomplete generated build preserved at '+str(build)+'; inspect it before choosing a new output home. No cleanup is automatic.')
@@ -277,19 +291,26 @@ def execute(args):
         run(compile_args(toolchain/'bin/cargo.exe',stage/'modded',home/'cargo-target-latest-gnu'),cwd=cwd,env=env)
         compiled = home/'cargo-target-latest-gnu'/TARGET/PROFILE/'horizon-client.exe'
         pe_x64(compiled); shutil.copyfile(compiled,game)
-        overlay = build/'item-resources'
-        run([sys.executable,repo/'tools/resources.py',resources,overlay],cwd=cwd,env=env)
-        run([game,'--tconstruct-prepare',overlay,repo/'content',game_resources],cwd=cwd,env=env)
-        run([sys.executable,repo/'tools/prepare_horizon_source_data.py',resources,game_resources/'minecraft-original-pack'],cwd=cwd,env=env)
-        run([sys.executable,repo/'tools/prepare_bundled_forge.py',game_resources/'forge-original-pack'],cwd=cwd,env=env)
+        if not args.build_only:
+            overlay = build/'item-resources'
+            run([sys.executable,repo/'tools/resources.py',resources,overlay],cwd=cwd,env=env)
+            run([game,'--tconstruct-prepare',overlay,repo/'content',game_resources],cwd=cwd,env=env)
+            run([sys.executable,repo/'tools/prepare_horizon_source_data.py',resources,game_resources/'minecraft-original-pack'],cwd=cwd,env=env)
+            run([sys.executable,repo/'tools/prepare_bundled_forge.py',game_resources/'forge-original-pack'],cwd=cwd,env=env)
         if snapshot()!=initial: raise ValueError('Inputs changed; no ready marker was written')
         ready.write_text(json.dumps({'schema':1,'key':key,'inputs':initial,'outputs':outputs()},sort_keys=True,indent=2)+'\n',encoding='utf-8')
-    directory(build); directory(game_resources)
+    directory(build)
+    if not args.build_only: directory(game_resources)
     receipt = json.loads(read(ready))
     if receipt.get('key')!=key or receipt.get('inputs')!=initial or receipt.get('outputs')!=outputs():
         raise ValueError('Cached input/output identity mismatch; nothing was launched or deleted')
     if snapshot()!=initial: raise ValueError('Inputs changed before startup')
     pe_x64(game)
+    if args.build_only:
+        print(json.dumps({'scope':'guarded-windows-link-only','game_started':False,
+                          'resources_prepared':False,'receipt':str(ready),
+                          'executable':str(game),'sha256':sha(read(game))},sort_keys=True),flush=True)
+        return
     game_dir = home/('game-latest-'+HORIZON[:12]); game_dir.mkdir(exist_ok=True)
     directory(game_dir); env['HORIZON_HOME']=str(game_dir)
     print('Starting isolated latest world. Saves: '+str(game_dir/'saves'),flush=True)
@@ -298,7 +319,9 @@ def execute(args):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ('horizon','mixins','resources','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    for name in ('horizon','mixins','toolchain','home'): p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--resources',type=Path,help='required for startup; omit with --build-only')
+    p.add_argument('--build-only',action='store_true',help='same guarded stage and GNU link, without assets, resource preparation or game startup')
     p.add_argument('--rustfmt-archive',type=Path,required=True,help='existing official Rust 1.99.1 GNU rustfmt tar.gz; verified/read only, never installed automatically')
     p.add_argument('--pluto-bundle',type=Path,help='optional external bundle, accepted only if byte-identical to same-checkout generated Pluto')
     try: execute(p.parse_args())
