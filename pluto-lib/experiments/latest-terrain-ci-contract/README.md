@@ -2,7 +2,7 @@
 
 **Pure contract code only, not a runnable CI or a compatibility result.**
 There is no workflow, command launcher, fetch, apply, compile or filesystem
-mutation in `contract.py`. Seventeen Python parser/source regressions pass on synthetic
+mutation in `contract.py`. Eighteen Python parser/source regressions pass on synthetic
 strings. Those strings are not compiler output or Rust results. The latest
 complete plan and its actual rendering identities remain unavailable.
 

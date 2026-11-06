@@ -51,7 +51,14 @@ def bounded(log):
 
 def records(log, marker):
     bounded(log)
-    return [strict_json(s) for s in re.findall('^' + re.escape(marker) + r' (.+)$', log, re.M)]
+    result = []
+    for line in log.splitlines():
+        if line.partition(' ')[0] != marker:
+            continue
+        head, sep, body = line.partition(' ')
+        require(sep and body.strip(), 'empty structured receipt')
+        result.append(strict_json(body))
+    return result
 
 
 def unsigned(value, positive=False):
@@ -171,6 +178,8 @@ def validate_reload(log, inventory):
     validate_result(log, 'reload', inventory)
     rows = re.findall(r'^RELOAD_CASE (\S+) (\S+)$', log, re.M)
     require(rows == [(name, 'ok') for name in RELOAD], 'missing/duplicate/reordered reload case')
+    require([line for line in log.splitlines() if line.startswith('RELOAD_CASE')] ==
+            ['RELOAD_CASE '+name+' ok' for name in RELOAD], 'malformed extra reload receipt')
     return {'cases': RELOAD, 'scope': 'synthetic native owner values, not Game reload/streaming execution'}
 
 

@@ -162,6 +162,12 @@ class Contracts(unittest.TestCase):
             with self.assertRaises(ValueError): m.strict_json(value)
         with self.assertRaises(ValueError): m.records('x'*(m.MAX_LOG_BYTES+1),'X')
 
+    def test_malformed_empty_structured_extra_receipts_reject(self):
+        for suffix in ['PLUTO_PROFILE_EQUAL\n','PLUTO_PROFILE_MICRO \n']:
+            with self.assertRaises(ValueError): m.validate_profile(profile()+suffix,0,NAMES)
+        good = result('reload')+''.join('RELOAD_CASE '+n+' ok\n' for n in m.RELOAD)
+        with self.assertRaises(ValueError): m.validate_reload(good+'RELOAD_CASE malformed\n',NAMES)
+
     def test_actual_argv_shape_and_artifact_profiles_pair(self):
         for opt in (0,3):
             r = m.validate_compiler(args(opt),'/stage/crates/horizon-client-render','/stage',opt)

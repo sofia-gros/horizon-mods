@@ -18,9 +18,9 @@
     "pluto-lib/experiments/latest-terrain-witness/contract.json": "c518e3588e8b00134ce519c50f08ddc70f326b14698660aa8f87c5a7f2962ff6"
   },
   "contract_sha256": {
-    "contract.py": "aab75d63e6dc3974d540df3f3f8bd7aeb34dc9b15f06a46a16c5fa222579f2f9",
-    "test_contract.py": "d99f3b21f7d765a27434339b5571863363f7fe618282b25133a6e2ce44e67078",
-    "README.md": "f41b6528724ca22a8c2ec1151fad556d0e7b8a6908be9fd57da841952a21a5fe"
+    "contract.py": "1397e2e490c0813f253117f2aad45659d254196940641eefa8dd63c5155d1921",
+    "test_contract.py": "ad09fe559f6324e5129d851a794f339896a142750fc1d483b3837dfe3d6fe2bb",
+    "README.md": "22f400d2a01cfdbd5c3826a2bdc2d1b3c033a01298a096c23fc073b9072dda35"
   },
   "profiles": [
     {
