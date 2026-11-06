@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "status": "source-only frozen; 20 runner and 16 candidate pure guards passed; actual CLI/metadata/planner unrun",
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-latest-mining-probe-ci-20261106",
+  "candidate_source": "b78ee288d7627e1be1c046db73541fab1d40c249",
+  "official": {
+    "horizon": {
+      "url": "https://github.com/horizon-rust/horizon.git",
+      "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+      "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+    },
+    "mixins": {
+      "url": "https://github.com/horizon-rust/horizon-mixins.git",
+      "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+      "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+    }
+  },
+  "source_sha256": {
+    ".github/workflows/latest-mining-probe-wip.yml": "7c2247aad3f41dbf19fdf4765668d351c1733b79529d45ec34decd715bf89826",
+    "pluto-lib/experiments/latest-main-common-ci/inputs.json": "da0c13315d70e6307d98f13929ec11197ad5ec5727c2eda1d72d20e740d62089",
+    "pluto-lib/experiments/latest-mining-context/README.md": "0a4072a1548dc443954f9aa81e426bc0fa780b04847d92343ac741533079d2ba",
+    "pluto-lib/experiments/latest-mining-context/candidate.py": "65585f31849d48c6d00efa0abc4e55ec3c93e131c5a31133487dee03c75a73ca",
+    "pluto-lib/experiments/latest-mining-context/inputs.json": "559c5917d65d4d5660c3ed7fbf361c185cbf0daac29c163594d21bbd068cc8c0",
+    "pluto-lib/experiments/latest-mining-context/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+    "pluto-lib/experiments/latest-mining-context/oracles.json": "709da5be03f0af3ef03dc8ecae4ea028d3c13285a98ed242053e095747620baf",
+    "pluto-lib/experiments/latest-mining-context/review/recipe-evidence.json": "86dc8c455b6ff9f1921944e0c4e3371e74d1b496573bdce1320cc09522bbaac6",
+    "pluto-lib/experiments/latest-mining-context/review/recipe-review.md": "ef50d1ab90c509767848d571eafe66face3486f497922923b36d560f7ec4b0cf",
+    "pluto-lib/experiments/latest-mining-context/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e",
+    "pluto-lib/experiments/latest-mining-context/test_candidate.py": "0f62c08206ab4b0a1bc957154b07f78f531b44aae162b12cae9e8d2b28e6a829",
+    "pluto-lib/experiments/latest-mining-probe-ci/README.md": "9e268cc1eea24f805ba98a6b25a15a4dbc734a37a02eeb4f2c7badf67ffe467f",
+    "pluto-lib/experiments/latest-mining-probe-ci/observe_plan.py": "a95d3974653887d66c5302b9499006c45aee0ae9f3ef54ba6305888e0bf8c7cd",
+    "pluto-lib/experiments/latest-mining-probe-ci/prepare.py": "6092b47df2e126c6f2fdf63b5f6ee56bb33bc6db190a17e0370a3a5277fe2960",
+    "pluto-lib/experiments/latest-mining-probe-ci/run.py": "881ac751aab94fed0738efde3d85e3074b15b764939694fabad64facf32b9c19",
+    "pluto-lib/experiments/latest-mining-probe-ci/test_runner.py": "b60d50710d8cdc00e0b86ff83d251e35e3703ad644f9970456dc62e891740bb7"
+  },
+  "probe_payload_sha256": {
+    "pluto_native_creative/horizon-mixin.toml": "c749b00570360b3722006234e6043779366cc2b34baf166c3046c6864380d2c4",
+    "pluto_native_creative/mining-context.rs": "dfbc6e2a36840850c94a5aaae188e01e3b225736057b4d6273e85d1bbf64aa6c",
+    "tconstruct_native/horizon-mixin.toml": "d5806334e74ab089c1075c97b50430deee96cc4ad6dbb408449a6e53c9a46b98",
+    "tconstruct_native/source-mining-context-native.rs": "e33d57091a145618cad8089da5aa432cfb96485cb1af99e30dca238e24b4c26e"
+  },
+  "scope": {
+    "modules": 1,
+    "injections": 1,
+    "states": 0,
+    "crates": 0,
+    "candidate_payload_members": 4,
+    "plan_timeout_seconds": 600,
+    "native_type_verified": false,
+    "full_composition_tested": false,
+    "apply_allowed": false
+  }
+}
