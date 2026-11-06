@@ -72,7 +72,10 @@ def memory_status():
 
 
 def available_memory():
-    return memory_status()["effective_available"]
+    status = memory_status()
+    if not any(item["limit"] is not None for item in status["cgroups"]):
+        raise ValueError("finite effective cgroup memory bound is not observable; native attempt is blocked")
+    return status["effective_available"]
 
 
 class GuardedRunner(ci.Runner):

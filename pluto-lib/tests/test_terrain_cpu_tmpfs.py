@@ -15,6 +15,14 @@ spec.loader.exec_module(runner)
 
 
 class TmpfsGuards(unittest.TestCase):
+    def test_unknown_or_unbounded_cgroup_cannot_use_host_only_admission(self):
+        for constraints in ([], [{"limit": None}]):
+            with patch.object(runner, "memory_status", return_value={"cgroups": constraints, "effective_available": 99999999999}):
+                with self.assertRaisesRegex(ValueError, "not observable"):
+                    runner.available_memory()
+        with patch.object(runner, "memory_status", return_value={"cgroups": [{"limit": 4096}], "effective_available": 1234}):
+            self.assertEqual(runner.available_memory(), 1234)
+
     def test_frozen_inputs_are_identical_to_published_ci(self):
         for name, expected in runner.FROZEN.items():
             self.assertEqual(runner.ci.digest(HERE / name), expected)

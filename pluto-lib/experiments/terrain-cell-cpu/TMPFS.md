@@ -1,4 +1,13 @@
-# Bounded local alternative, not an execution result
+# Blocked local alternative, not an execution result
+
+The 2026-11-06 preparation was stopped **before any native launch** because this
+environment does not expose its cgroup filesystem. Host MemAvailable does not
+prove the container's effective limit. The runner now rejects admission when no
+finite applicable cgroup limit is observable. A later visible bound still needs
+an independently reviewed full-hierarchy/authority assessment before a slot is
+granted; this runner does not establish that an outer hidden limit is absent.
+Use the frozen manual CI path instead. No native plan, apply, compile or CPU
+measurement was performed by this local alternative.
 
 The manual CI checkpoint remains unchanged at `74d4cb7c`. This separate runner
 uses exactly its frozen fixture, verifier and driver bytes and requires the
@@ -20,8 +29,8 @@ Admission and every expensive subprocess enforce three independent limits:
 - `/tmp` filesystem: at least 512 MiB free.
 - RAM: at least 1.5 GiB of the minimum of host MemAvailable and every visible
   applicable cgroup's remaining memory, including visible ancestor limits.
-  If no cgroup filesystem is exposed, the result explicitly records its limit
-  as unknown; host memory alone is not proof of an unlimited container.
+  If no finite cgroup bound is exposed, admission fails; host memory alone is
+  not an approved substitute.
 
 The process-group monitor checks every 250 ms, has a one-hour total deadline,
 and interrupts only its own subprocess group on failure. If it does not exit
