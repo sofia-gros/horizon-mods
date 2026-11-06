@@ -91,13 +91,20 @@ separate from native execution. Minimum free disk was 10,977,452,032 bytes,
 above the 10 GiB +128 MiB floor, with no guard stop. Exact logs and the fixture
 receipt are in [the validation record](guide-font-layout-validation.json).
 
-Complete-package application/typechecking of this new module remains pending
-central integration. The fixture proves only these font/codec queries on original
+Complete ordinary-library plan, all 12 mandatory guards, application and client
+library/binary typechecking subsequently passed at `b19b35a1`, package SHA-256
+`80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`.
+The 5,046-file stage was sealed. The group ran 210 Python checks, including its
+43 fluid and 122 inventory API cases (not additional disjoint test counts).
+The packaged layout/converter bytes match this focused fixture source exactly.
+This adds installed composition/type proof, not a consumer or rendering test.
+The separate eight-test fixture proves only these font/codec queries on original
 metrics data. It cannot establish rendering, physical input, current-book action
 behavior, real guide screen lifetime or delayed-reply safety. Signed/large or
 nonfinite provider inputs and rendered-font cache exhaustion were inspected at
 source level but are not executed fixture cases.
-The excluded lifetime experiment and ordinary verified v12 package are unchanged.
+The lifetime experiment remains excluded; earlier v12 and v13 evidence is not
+retroactively relabeled as testing this new module.
 
 Reproduction commands, only in the coordinator's native slot:
 

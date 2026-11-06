@@ -1,71 +1,72 @@
 # Grouped PlutoLib foundation validation (latest run 2026-11-06)
 
-Complete library cutoff: `31cf76672d3a7b982aebab86a91a78440afd163e`. Official Horizon:
+Complete ordinary-library cutoff: `b19b35a10b96e398ca8dabcb46b200d88950edaf`. Official Horizon:
 `624c4f6265c02296fbe8a80f029dd0d987fb94c0`. Mixins: `e8cd0aa38cffef49cb2e088ef716baa107148c02`.
 
-**2 crates, 62 modules, 33 injections, 3 owned states.** This batch adds explicit
-immersion-height calculation, immutable curative-policy values, and borrowed
-plain-cell count mechanics. Three existing TConstruct helper wrappers delegate
-to the latter; their caller layout/admission/notification order stays unchanged.
-The full consuming bundle and isolated guide lifetime experiment are not installed.
+**2 crates, 66 modules, 34 injections, 3 owned states.** This batch adds a bounded,
+version-pinned terrain-cell adapter, explicit product/remainder pair staging,
+native Font layout facts, and a fourth plain-cell consumer helper delegation.
+The full TConstruct consumer bundle and isolated experiments are not installed.
 
 ## Actual complete-package results
 
-- Official plan passed in 23.86 seconds.
-- All eleven required source/composition guard groups passed.
-- Official apply passed in 24.63 seconds.
-- Host lib/bin type-check passed in 1m 12s, offline/locked, debug=0,
+- Official plan passed in 21.00 seconds.
+- All twelve required source/composition guard groups passed.
+- Official apply passed in 21.39 seconds.
+- Host lib/bin type-check passed in 1m 04s, offline/locked, debug=0,
   incremental=0 and two jobs.
-- 193 Python checks passed, including both complete actual API suites:
-  43 gameplay/fluid API and 115 inventory/guide API tests.
-- Minimum free space: 10,905,317,376 bytes; disk guard did not stop.
-- All 5,045 generated files are sealed. 5,038 byte-identical previous
-  files received recorded timestamps after archive verification, with no content edits.
+- 210 Python checks passed, invoking both complete actual API suites:
+  43 gameplay/fluid API and 122 inventory/guide API tests. Counts overlap focused tests.
+- Minimum free space: 10,897,825,792 bytes; disk guard did not stop.
+- All 5,046 generated files are sealed. 5,040 byte-identical previous
+  files received recorded timestamps after archive verification, without content edits.
 
-Archive SHA256: `20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5`.
-Exact artifacts are in `grouped-v13`. Earlier cutoffs and their separate results
-remain in the JSON and version history; current source does not retroactively
-validate old PR heads.
+Archive SHA256: `80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`.
+Exact artifacts are in `grouped-v14`. Previous cutoffs remain in the JSON and
+version history; this run does not retroactively validate old PR heads.
 
-## Supporting tests and deliberate differences
+## Supporting evidence
 
-The source branch passed 36 actual API tests and nine actual World/View tests
-using a tiny original bundle accepted by official loaders. The central suite
-also includes later fluid registry lease tests. Height sampling reuses the real
-decoder; adjusted bounds/timing remain explicit caller responsibilities.
-Curative values distinguish unresolved defaults from explicit empty values and
-preserve copy versus ordinary-update semantics, without native attachment.
+- Terrain: 17 focused standard-library tests, 19 source/package checks and actual
+  plan/guards preceded this grouped apply/type proof. Actual CPU equivalence,
+  timing and GPU tests remain unexecuted; no consumer provider is registered.
+- Products: 15 actual native-item/codec fixture tests and 80 feature API tests.
+  The initial 14/15 fixture assertion failure was corrected in test-only source
+  by using an official canonical ominous item; production bytes did not change.
+- Font layout: eight actual Font tests plus three converter tests using an original
+  synthetic provider. Raw wrapping and logical legacy-resolved hit facts do not
+  prove rendered bidi hit testing, UI ownership or live input behavior.
+- Plain cells: 33 native fixture tests, 6,514 valid cases and 9,572 comparisons,
+  including the fourth pickup_slot delegation. Caller admission and limits remain
+  local. Zero-count/zero-limit rejection is a deliberate correction, not legacy parity.
 
-Plain-cell tests passed 31 native cases, including 3,058 valid-input differential
-cases through both direct API and actual helper wrappers (6,116 comparisons).
-They preserve full-stack clone/move behavior under caller-supplied equality.
-Malformed zero counts/limits are deliberately rejected before mutation, not
-claimed equivalent to old underflow/zero-stack behavior. The four Game/guest
-callers were source-verified unchanged, not executed as live gameplay.
-
-## Remaining limits
+## Remaining limits and publication
 
 This is a **library package type-check**, not a linked game/consumer release.
-No full TConstruct bundle, gameplay, save/reload, LAN or ordinary launcher ran.
-Library fixtures and modeled endpoints cannot be relabelled as those outcomes.
+No full TConstruct bundle, live gameplay, save/reload, LAN or ordinary launcher ran.
+No native test experiment is silently included in the ordinary package.
 
-Plain-cell APIs are not native menu operations: permission, result-slot,
-onTake, notification and synchronization hooks remain caller-owned. A merge
-keeps the destination identity under the supplied predicate and may discard a
-distinct opaque identity. They supply no actor/world/physical-slot authority,
-disk transaction or rollback guarantee.
+Product pairs are explicitly staged and caller-released; no automatic crafting
+hook or coherent native output-consumption transaction is activated. Plain-cell
+operations have no menu-hook, notification, save/sync or actor/slot authority.
 
-No native EffectInstance curative metadata or same-pass contact hook is installed.
-Terrain catalog/geometry is not yet connected to the production mesher. Cloud
-insertion is type-checked but unactivated, with four private helper tests and two
-factory tests still unrun. Recipe output/remainder authority is separate from
-deny-only matching and explicit current-index patching.
+No native EffectInstance curative metadata or same-pass effectful contact hook is
+installed. Cloud insertion is type-checked but unactivated; four private helper
+and two factory tests remain unrun. Actual minimal-loader contact tests do not
+prove production assets or Game-wrapper gameplay.
 
-Guide request correlation is pure in-process caller-owned state. Native session
-ownership, admitted input, reply effects and transport remain unproved and
-unactivated. The isolated native lifetime experiment retains its own older
-library-plus-experiment proof and is excluded from this package.
+Guide request correlation is caller-owned in-process state. Native persistent
+screen ownership, admitted input and delayed reply effects remain unproved.
+The existing consumer response hook conflicts with the mandatory payload guard;
+its LAN behavior has not been removed to make validation pass. The separate
+navigation repair does not resolve that response boundary.
+
+The exact source tree is preserved at [the v14 checkpoint](https://github.com/sofia-gros/horizon-mods/commit/43411ddb6e5be857db96740150319a7c2e83eed1).
+[Draft PR #944](https://github.com/sofia-gros/horizon-mods/pull/944) remains the
+reviewed v13 snapshot, not a main-ready full consumer. Original local development
+history is also retained in a [verified recovery bundle](https://github.com/sofia-gros/horizon-mods/tree/checkpoint/plutolib-original-history-20261106/pluto-lib/history/20261106),
+which is an archive rather than the ordinary PR graph. Main has not been merged.
 
 Use [guarded staging](native-installation.md#mandatory-development-preflight).
-The ordinary launcher does not execute required guards. See the
-[migration ledger](shared-api-migration-status.md) for responsibilities.
+The ordinary launcher does not run mandatory guards. See the
+[migration ledger](shared-api-migration-status.md) for remaining responsibilities.

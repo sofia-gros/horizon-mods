@@ -49,7 +49,8 @@ paths are documented explicitly; they are not a universal cross-host ABI.
 | Creative/item APIs | Generic registration and documented short-use dispatch | Content definitions and item behavior |
 | Existing tool/fluid adapters | Native access and generic operations documented by each adapter | Tool restrictions, fluid choice, capacity and effect rules |
 
-See [inventory](inventory.md), [advancements](advancements.md),
+See [inventory](inventory.md), [plain inventory cell operations](plain-stack-cells.md),
+[advancements](advancements.md),
 [tool rules](tool-rules.md), [item use](item-use-b2.md) and
 [component transport](component-transport.md) for exact limits. In particular,
 snapshot equality and save eligibility are different operations: retained wire

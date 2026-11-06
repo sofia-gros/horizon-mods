@@ -1,11 +1,26 @@
 # Commonization checkpoint, 2026-11-06
 
-This development branch preserves committed work; it is not a release or a completed TConstruct recovery.
+This branch preserves development work, not a completed TConstruct recovery.
 
-The latest complete ordinary-library proof is cutoff `31cf76672d3a7b982aebab86a91a78440afd163e` (v13), archive SHA-256 `20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5`, against official Horizon `624c4f6265c02296fbe8a80f029dd0d987fb94c0` and Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`. That exact package passed plan, all 11 required composition guards, apply and client library/binary checks. Its 193 Python checks invoke the actual fluid API (43 tests) and inventory API (115 tests).
+The latest complete ordinary-library proof is `b19b35a10b96e398ca8dabcb46b200d88950edaf` (v14), archive
+`80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2`, on official Horizon `624c4f6265c02296fbe8a80f029dd0d987fb94c0` and Mixins `e8cd0aa38cffef49cb2e088ef716baa107148c02`.
+Official plan, all twelve guards, apply and client library/binary checks passed.
+The 210 Python checks invoke 43 actual fluid API and 122 inventory API tests.
+All 5,046 applied files are sealed. This does not install the full consumer bundle.
 
-Later committed candidates include the bounded terrain-cell adapter, explicit crafting product/remainder staging, native Font layout queries, and a further chest pickup helper delegation. Their focused evidence is recorded in the corresponding documents. They have NOT yet passed the next combined ordinary-library apply/type gate. The terrain-cell adapter adds a twelfth required complete-plan guard. CPU rendering equivalence, GPU behavior and automatic product-pair consumption remain unproved/unactivated.
+The version-pinned terrain-cell adapter, explicit product/remainder staging,
+native Font layout and fourth chest-cell delegation are included and type-checked.
+CPU rendering equivalence/timing, GPU behavior, automatic crafting consumption,
+Guide UI/transport authority and native cure attachment remain unproved or unactivated.
 
-The existing TConstruct `materials-book-response` cancellable `handle_packet` hook and `materials-book-turn` hook conflict with the mandatory client-payload/current-book guards. The full TConstruct + Pluto staging/CI route therefore remains blocked. Do not bypass these guards, treat this branch as main-ready, or infer full consumer, live gameplay, save/reload or LAN correctness from the ordinary-library proof.
+The preserved TConstruct guide response/turn hooks conflict with mandatory
+payload/current-book guards. Navigation-only repair is tracked separately in
+[Draft #945](https://github.com/sofia-gros/horizon-mods/pull/945); it preserves LAN
+response behavior and does not close the response conflict. Full consumer staging
+and main readiness must not be inferred from this library-only proof.
 
-The isolated guide lifetime experiment remains excluded from ordinary native packaging. EffectInstance attachment has an observed official E_STATE rejection; the reusable curative values do not attach to native instances. All work uses the official upstream source pins, never the prohibited user Horizon fork.
+[The exact v14 tree](https://github.com/sofia-gros/horizon-mods/commit/43411ddb6e5be857db96740150319a7c2e83eed1)
+is published. [Draft #944](https://github.com/sofia-gros/horizon-mods/pull/944) retains
+the reviewed v13 snapshot. [The recovery bundle](https://github.com/sofia-gros/horizon-mods/tree/checkpoint/plutolib-original-history-20261106/pluto-lib/history/20261106)
+retains 203 original commits and verified restoration, separate from ordinary PR
+ancestry. Main has not been merged. Only official upstream engine sources were used.

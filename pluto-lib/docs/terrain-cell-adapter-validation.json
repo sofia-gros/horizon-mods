@@ -3,7 +3,7 @@
   "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
   "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
   "archive_sha256": "058f90042accfb876c1e6941da2e22ad10692b1391ee818e5147c7d9b55b9d6b",
-  "scope": "Complete actual packaged read-only plan and exact source/composition guards only. No native apply/type/CPU-mesh/GPU proof. No consumer registration.",
+  "scope": "Complete ordinary PlutoLib plan, all composition guards, apply and official host lib/bin type check passed. CPU fixture and GPU rendering remain unexecuted; no consumer registration.",
   "plan": {
     "exit": 0,
     "seconds": 20.496952475,
@@ -25,9 +25,32 @@
     "artifact": "/tmp/pluto-terrain-cell-api-20261106"
   },
   "pending": [
-    "Complete combined preflight/apply/native host check",
     "Actual CPU mesh no-claim/stale/claimed differential with original synthetic or prepared assets",
     "GPU visual and performance proof",
     "Consumer-specific fluid policy activation"
-  ]
+  ],
+  "ordinary_installed_gate": {
+    "name": "grouped-v14",
+    "mod_head": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+    "published_snapshot": "43411ddb6e5be857db96740150319a7c2e83eed1",
+    "archive_sha256": "80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2",
+    "production_terrain_source_unchanged": "d63a7c8effcd3fa52b956141317a357a07f6780f",
+    "crates": 2,
+    "modules": 66,
+    "injections": 34,
+    "states": 3,
+    "mandatory_guards": 12,
+    "plan_seconds": 20.9976277,
+    "apply_seconds": 21.393466823,
+    "host_lib_bin_check_seconds": 64,
+    "exit": 0,
+    "disk_guard_stop": false,
+    "minimum_free_bytes": 10897825792,
+    "sealed_stage_files": 5046,
+    "python_tests": 210,
+    "fluid_api_tests": 43,
+    "inventory_api_tests": 122,
+    "artifact": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v14",
+    "scope": "Installed ordinary library only. Test-only CPU overlay excluded."
+  }
 }

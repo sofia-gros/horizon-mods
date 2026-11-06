@@ -39,7 +39,30 @@
       "filter": "guide_layout_tests::",
       "actual_types": "Clean official horizon-client-render Font::metrics, native Text, production query/converter and actual API crate; original synthetic space provider; no renderer"
     },
-    "complete_native_package": "pending central grouped application/typecheck for this source",
+    "complete_native_package": {
+      "status": "passed",
+      "runtime_cutoff": "b19b35a10b96e398ca8dabcb46b200d88950edaf",
+      "archive_sha256": "80adf5750e59abbaf3060a57025610230eb3cab73452761b0763699d03bbd6a2",
+      "counts": {
+        "crate": 2,
+        "module": 66,
+        "injection": 34,
+        "state": 3
+      },
+      "mandatory_guards": 12,
+      "plan": "passed",
+      "apply": "passed",
+      "client_lib_bin_check": "passed",
+      "stage_sealed_files": 5046,
+      "python_tests": 210,
+      "nested_fluid_api_tests": 43,
+      "nested_inventory_api_tests": 122,
+      "minimum_free_bytes": 10897825792,
+      "terminal_exit": 0,
+      "disk_stopped": false,
+      "evidence": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v14",
+      "scope": "Complete ordinary library only; no TConstruct guide consumer, renderer/GPU/window, input, screen ownership or transport proof."
+    },
     "peer_review": "No serious issue in bounded source-only review; no native execution by reviewer",
     "existing_converter_fixture": {
       "status": "passed",
