@@ -14,7 +14,7 @@ This branch combines the current ordinary source work for review and a future pl
 - PR #944 foundation, PR #945 navigation, and later common035273 ordinary source, merged by exact Git type/mode/blob records.
 - Guide lazy page text/query, stable BookId and modifier anchors from d9f8. The overlapping files preserve all PR #945 navigation injections, controls and history handling. Eight source checks and complete inverse reconstruction passed. This is not a new native/Font/UI result.
 - Mining context now uses one native BreakSpeed HEAD plus a Pluto borrowed-facts module. Both raw manifests explicitly target 41f; PR #945 policies remain unchanged. Sixteen pure adaptation checks passed; no latest complete native build is claimed.
-- Pluto bundle and guard inputs now participate in the Windows cache key, with rechecks before marking ready or launching. Twelve pure checks passed; the latest Windows launch contract is still pending.
+- The Windows launch source now selects explicit official inputs and generates both native packages from this same branch. Whole package/cache seals, preserved default gameplay features, isolated saves, and mandatory plan → guards → apply are wired in. Twenty latest, twelve historical-cache, and eleven synthetic-package checks passed; PowerShell/Windows execution remains unrun.
 - Three existing outer-tank NBT delegation changes are included without reverting PR #945 storage migrations. Twelve source/inverse checks passed. The earlier 160-case proof used official624c and is not a latest Game/build result.
 - Pluto's package header and all six ordinary components now declare the same 41f target, with the header fixed to Mixins5a64. Eight declaration/inverse checks passed. This removes a packaging-input mismatch, not the remaining plan/guard/type failures.
 - The latest 41f terrain collector as an excluded observation tool, plus source/Windows delivery audits. These do not alter guards or enable experiments.
@@ -30,7 +30,7 @@ Pick-block does not perform TConstruct's extra stored-color inheritance in this 
 3. Produce one complete plan for this exact composition; inspect all twelve guards and adapt changed boundaries with evidence. Existing cloud exclusivity conflicts are not solved by hash updates.
 4. Apply and type-check/build the exact guarded source, then validate Windows link/package and only then attempt bounded startup where available.
 
-The cache input fix is included, but the old launch path still needs its latest-target update and validation. No launcher-ready executable or branch-specific successful launch command is claimed. Minecraft assets remain the user's locally prepared resources and are not published here.
+The latest launch source is included, but it is not a launcher-ready executable or a successfully executed command. Its source and explicit prerequisites are in [the Windows launch guide](tconstruct/docs/windows-latest-launch.md). Do not treat those instructions as proof that the current composition passes its required guards. Minecraft assets remain the user's locally prepared resources and are not published here.
 
 ## Explicitly not enabled
 

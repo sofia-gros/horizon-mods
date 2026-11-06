@@ -1,8 +1,8 @@
 {
   "horizon_repository": "https://github.com/horizon-rust/horizon.git",
-  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
   "mixins_repository": "https://github.com/horizon-rust/horizon-mixins.git",
   "tconstruct_repository": "https://github.com/SlimeKnights/TinkersConstruct.git",
   "tconstruct_revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
-  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
 }

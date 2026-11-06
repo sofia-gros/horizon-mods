@@ -39,8 +39,8 @@
       "reason": "41f pin changes require reviewed boundaries and actual plan identities. Cloud exclusivity also rejects 20 active consumer declarations by source inspection. TConstruct source-fluid-cloud directly constructs Breath/PotionCloud without required fields and bypasses Pluto ownership checks; no compiler run yet. Hash updates or broad allowlists cannot solve this."
     },
     {
-      "subject": "Legacy Windows launch target and cache",
-      "reason": "Pluto cache input correction is included. Latest toolchain/target/features, explicit resources and official source admission are still being implemented. Legacy compatibility.json and launch target are not yet validated."
+      "subject": "Windows execution validation",
+      "reason": "Latest same-branch guarded launch source is integrated and pure-tested. PowerShell parser/Windows pure CI, actual packaging, all twelve accepted guards, Windows native build/link/resources/startup remain unrun."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -223,6 +223,27 @@
       "activation": "Excluded only, no constructor injection or registration installed",
       "rust_tests_unrun": 5,
       "limits": "Cached registration failure panics before Recipes constructor body; prior remote incoming take is not rolled back. Actual constructor/whole composition unverified."
+    },
+    {
+      "subject": "Same-branch guarded Windows launch source",
+      "source": "59f3fa23cc5b95fbc8e7bcb42d24e2d5d9771bc9",
+      "paths": 15,
+      "pure_checks": {
+        "latest": 20,
+        "historical_cache": 12,
+        "bundle_synthetic": 11
+      },
+      "exact_current_base_inverse": {
+        "tconstruct/tools/stage.py": "fd8e2c4a3d1eedb138272a7d74818177f92f7b77",
+        "tconstruct/compatibility.json": "1735a85710941cbc43b61a067aded1ebd65c0728",
+        "tconstruct/tools/play-windows.ps1": "c0f0dea8f7336aa5743d9c7f11a9031d2fea3114"
+      },
+      "independent_review": "World v1 and Storage v3 source checks; central final source, current-base inverse and 43 pure checks",
+      "behavior": "Explicit official source/resources/toolchain; exact same-branch native packages; individual budgets and full member seals; mandatory plan/guards/apply; default gameplay features retained",
+      "actual_packagers_executed": false,
+      "powershell_executed": false,
+      "windows_build_executed": false,
+      "game_started": false
     }
   ],
   "guide_limits": [
