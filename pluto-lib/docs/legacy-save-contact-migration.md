@@ -49,7 +49,7 @@ Bounds on entries, fields and ID units are checked before conversion/allocation.
 Unknown subtrees are only borrowed, not recursively cloned or interpreted.
 Normal native parser limits are still required for the original load.
 
-Seven prepared Rust tests compare the projection with the **exact extracted
+Seven selected Rust tests compare the projection with the **exact extracted
 native expression**, using complete unchanged official NBT and `nbt_value`
 modules. They cover all numeric types/defaults, unsigned amplifiers, omissions,
 invalid UTF-16, order/duplicates/unresolved IDs, retained hidden/icon/unknown
@@ -115,3 +115,13 @@ alone supplies this authority.
 The new source guards confirm the current ordering/swap anchors only. They do
 not execute actor swapping, contact callbacks or a continuation. No mocked Game,
 unsafe reborrow, delayed effect queue or substitute mutation sink is introduced.
+
+## Bounded result
+
+At frozen source `edc6440be3ec3306ccf5f4ca4c720f870573efb0`, all seven selected
+inspection tests and eight Python source guards passed. Official sources, native
+expression and generated fixture hashes were checked before and after. The
+continuous disk floor held; minimum free space was 10,898,886,656 bytes. The 12
+compiled native NBT tests were filtered, not counted as executed. See
+[legacy-validation.json](../experiments/effect-instance-proposal/legacy-validation.json).
+The owner/continuation and actual save gates above remain unfinished.

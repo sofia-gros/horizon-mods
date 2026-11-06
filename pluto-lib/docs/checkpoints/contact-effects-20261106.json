@@ -37,8 +37,11 @@
   "legacy_inspection": {
     "status": "Unapplied borrowed inspection only, not a legacy save migration or synchronous actor authority",
     "rust_tests_prepared": 7,
-    "rust_tests_executed": false,
+    "rust_tests_executed": true,
     "python_source_guards_passed": 8,
-    "design": "../legacy-save-contact-migration.md"
+    "design": "../legacy-save-contact-migration.md",
+    "rust_tests_passed": 7,
+    "source_commit": "edc6440be3ec3306ccf5f4ca4c720f870573efb0",
+    "native_nbt_tests_filtered_not_run": 12
   }
 }

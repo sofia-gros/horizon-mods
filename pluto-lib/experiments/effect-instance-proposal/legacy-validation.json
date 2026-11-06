@@ -1,0 +1,95 @@
+{
+  "status": "PASS: bounded UNAPPLIED legacy inspection only",
+  "execution": {
+    "source_commit": "edc6440be3ec3306ccf5f4ca4c720f870573efb0",
+    "remote_checkpoint": "43a65b74ed81ee94dd812b905c11b4f07336c3c2",
+    "scope": "UNAPPLIED borrowed legacy view versus exact Level expression with unchanged native NBT/number modules; no Level/Game, save migration or actor authority execution",
+    "floor": 10871635968,
+    "initial_free_bytes": 10908430336,
+    "minimum_free_bytes": 10898886656,
+    "phases": [
+      {
+        "name": "compile",
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "--test",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/legacy-save-inspection/fixture.rs",
+          "-C",
+          "debuginfo=0",
+          "-C",
+          "opt-level=0",
+          "-o",
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/legacy-save-inspection/fixture-tests"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.602644054000848,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "tests",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/pluto-contact-effects-checkpoint-20261106/.work/legacy-save-inspection/fixture-tests",
+          "proposal_legacy_",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.05070515700208489,
+        "log_sha256": "8008d52469954e5f3ebdd4d5d18535aab64da0bef318dcd4c8dfefffb58d45d5"
+      }
+    ],
+    "guard_stopped": false,
+    "source_before_verified": true,
+    "runner_sha256": "2df5495db50bc89cb9db47fddb270646c0f688c0c333d90dc630cb893d812deb",
+    "end_free_bytes": 10900717568,
+    "source_after_verified": true
+  },
+  "preparation": {
+    "status": "UNAPPLIED borrowed legacy inspection, not native migration or contact activation",
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "source_sha256": {
+      "crates/horizon-client-render/src/effects.rs": "5269c3c35f38c4c658d4409b0f7badae4f0ddca0b68df36c5197a5dd51f735dd",
+      "crates/horizon-world/src/nbt.rs": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c",
+      "crates/horizon-client-core/src/nbt_value.rs": "c289ce9eba52dea6d0f2682b2620a4d955b2a75dde08f8e34437c7e81dacce82",
+      "crates/horizon-client/src/save.rs": "5d4cda583f246f987494f90490b10b39fb0641ce9377ae607d6cd75353bf559b",
+      "crates/horizon-client/src/lan/playerdata.rs": "6f798f8564e49570d8b2719f3e3e07a39e6e082c9a74cb5a0c262306b2fd9886",
+      "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+      "crates/horizon-client/src/motion.rs": "32caf71a62f87dda437f650e271922a9e5add6dec7056a67cf0d82471b56a4ae",
+      "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460"
+    },
+    "prepared_files": {
+      "official-nbt.rs": "6cbce272aa37242d50a7f0baa9ce6fd76f694e4d7cb8aac8c84951e4f778500c",
+      "official-nbt-value.rs": "c289ce9eba52dea6d0f2682b2620a4d955b2a75dde08f8e34437c7e81dacce82",
+      "legacy_oracle.rs": "9fee07e69c52c0f5427f27cc9e2177b363cc878188c75aa51b286ab24afb3b0a",
+      "legacy_view.rs": "5174dd6b5cbd28ca86f323ab8b7ba7787aff5c201ee872547faad6dd05d9ec72",
+      "legacy_tests.rs": "b11c34f068bc673af858480c48adaebd5a8f3397de10a0fd1293b3b2d5efce02",
+      "fixture.rs": "4abe8900955b96be7988aa5c0b3c797c86ccc7cbf282bb7652bb0b6042a2f814"
+    },
+    "oracle": "Exact Level::read_player active_effects RHS; only enclosing assignment and semicolon removed, wrapped in standalone function",
+    "native_types": "Complete unchanged official NBT and nbt_value modules",
+    "excluded": [
+      "Full Level or Game execution",
+      "Registry resolution or effect merge",
+      "Local/LAN file migration",
+      "Actor swap or contact authority",
+      "Native NBT own tests unless explicitly selected"
+    ]
+  },
+  "selected_tests_passed": 7,
+  "official_nbt_tests_filtered_not_run": 12,
+  "python_source_guards_passed": 8,
+  "tests_log": "\nrunning 7 tests\ntest legacy_tests::proposal_legacy_exact_numeric_defaults_and_unsigned_byte ... ok\ntest legacy_tests::proposal_legacy_hidden_icons_unknown_fields_are_retained_not_adopted ... ok\ntest legacy_tests::proposal_legacy_keeps_order_duplicates_and_unresolved_ids ... ok\ntest legacy_tests::proposal_legacy_missing_wrong_root_and_empty_are_distinct ... ok\ntest legacy_tests::proposal_legacy_omissions_and_lossy_ids_remain_visible ... ok\ntest legacy_tests::proposal_legacy_out_of_range_is_not_silently_clamped ... ok\ntest legacy_tests::proposal_legacy_rejects_allocation_bounds_without_changing_source ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s\n\n",
+  "result_sha256": "18f2c32dea22367670e386d351a0f8d2361b6b848aab197aa3e05d49d6a7777d",
+  "prepared_evidence_sha256": "d4ee1597e4bb34cb5d67c39801069fe83ebaf927bb9675ec0dace5004c2ac6d8",
+  "executable_sha256": "ed1a75a16d09b86090a35bc64d418dbfc17b3cb44c80a7a7612d8a4d24935a9b",
+  "executable_bytes": 7705352,
+  "excluded": [
+    "Whole Level or Game execution",
+    "Registry resolution, constructor clamp or duplicate-instance merge",
+    "Local/LAN file migration, owner-file selection or autosave durability",
+    "Actual guest swapping or synchronous contact mutation authority",
+    "Production package activation"
+  ]
+}

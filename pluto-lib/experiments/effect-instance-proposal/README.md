@@ -133,6 +133,8 @@ five-field interpretation is observed. Unsupported/omitted data remains visible;
 there is no conversion commit, persistent key, writer or actor permission.
 The fixture imports complete official NBT/number helpers and an exact extracted
 `Level::read_player` expression, rather than reconstructing native types.
-Seven Rust tests are prepared but not yet executed. Eight Python source guards
-pass. See [the local/LAN and contact design](../../docs/legacy-save-contact-migration.md)
+All seven selected Rust tests passed at exact source `edc6440be3ec3306ccf5f4ca4c720f870573efb0`. Eight Python source guards pass.
+The native NBT module's own 12 tests were filtered and are not part of that count.
+[The recorded evidence](legacy-validation.json) preserves exact inputs, commands,
+logs and the continuous disk-floor result. See [the local/LAN and contact design](../../docs/legacy-save-contact-migration.md)
 for the source-pinned owner/snapshot/continuation gates that remain unfinished.
