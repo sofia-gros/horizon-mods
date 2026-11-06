@@ -156,3 +156,10 @@ probe checks a proposed sequential reborrow shape and prepares a native guest
 teleport observation; the negative expects E0499 while a MotionWorld borrow is
 still live. Neither has been compiled or executed. Eight source guards pass.
 No overlay has been staged. See [the fixture contract and limitations](../../docs/guest-game-borrow-fixture.md).
+
+## Applied-v15 real Game probe preparation
+
+The separate-copy runner and exact applied-v15 additions are described in
+[guest-game-borrow-v15.md](../../docs/guest-game-borrow-v15.md). Ten source/parser
+guards pass. No stage copy or Cargo invocation has occurred; a later serial
+grant is required. Pristine and applied Game source evidence remain distinct.

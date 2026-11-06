@@ -1,0 +1,17 @@
+{
+  "status": "Prepared test-only applied-v15 probe; no copy or Cargo execution",
+  "runtime_source": "f5a83539525c26fd2142e26e43789a3dd0107033",
+  "package_sha256": "7d9c4c5d7bd91ec6584b9206658f9d5bdb5d04dd3f95f1cfe90ceca6daae5386",
+  "source_seal_sha256": "e16a3781aae1dea6d1a627f4bd28641469e16e822dae9704d0507a75a8d02428",
+  "source_guards_passed": 10,
+  "positive_compile_executed": false,
+  "negative_compile_executed": false,
+  "negative_observed_code": null,
+  "runtime_executed": false,
+  "artifact_sha256": {
+    "run_game_borrow_v15.py": "757941b620b1d536422139cbe9cfe782f2194afdc7f456c2275ee6fecff50ff3",
+    "test_game_borrow_v15.py": "d0c448dd687f1d6877ceae0780afd0c6048acdaf4da4b05f72dbbc81aa2e2b9f",
+    "UNAPPLIED-v15-game-borrow-positive.patch": "0998fb4e10914b1164da1bcdc0cd761196944b7d7723e535c2972d41fb0a3937",
+    "UNAPPLIED-v15-game-borrow-negative.patch": "efc1faf7213acda4fa7919cdcb3db36192a9f769ca9d4cced38ed5b52af48684"
+  }
+}

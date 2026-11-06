@@ -59,5 +59,12 @@
     "negative_compile_executed": false,
     "runtime_executed": false,
     "design": "../guest-game-borrow-fixture.md"
+  },
+  "applied_v15_game_borrow_probes": {
+    "status": "Prepared separate-copy runner only; no copy or compilation",
+    "source_guards_passed": 10,
+    "compile_executed": false,
+    "runtime_executed": false,
+    "design": "../guest-game-borrow-v15.md"
   }
 }
