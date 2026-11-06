@@ -1,0 +1,53 @@
+{
+  "status": "source-only authoring example; compile and runtime not_run",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "base": {
+    "commit": "8715b1232c0fca133fe012f35830e2108e653d59",
+    "published": "89744814b8d536a117e82f8ea3c8cdc9798faa95",
+    "sha256": {
+      "pluto-lib/README.md": "81284582ed50f6b0e59d1d602b1e86f4c327c76bc8c56e0e1f4efa404265bb34",
+      "pluto-lib/docs/shared-api-boundary.md": "86e26901318220438287a69f10e2ba2f2cfe4acc50c9ab8fad09b51632aca00c",
+      "pluto-lib/docs/native-installation.md": "c57be43ecf191a1c0733e1ca98f40d960fad1f041c5d1742995bab77c67e42b3",
+      "pluto-lib/docs/world-fluids.md": "4b1d4d69f0c1a374fd71e69be16643b3930dfaeca6722dcc7aad9b3b555114ef",
+      "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": "71e8324bcfd6996ebaf7823f3f1bc80ef33f5e4f5a078cb38f92d1fe7b804709",
+      "pluto-lib/mixins/pluto_native_creative/api/src/fluid/contact.rs": "331191f122c36f96d7aff9213510adfb1f3480bfba9924bcf8016b2af5eb90ae"
+    }
+  },
+  "render_source_only": {
+    "commit": "510f0fa89551f89c81097052ced06235037a6451",
+    "published": "a432ce4561ae1c81448b37a5b19e71126d8c4e72",
+    "sha256": {
+      "pluto-lib/docs/terrain-materials.md": "9948054b09df7bbfd90ba357cff5546d042a2545c13cdb7e03ff3c9aa74711a0",
+      "pluto-lib/docs/fluid-render-contracts.md": "7324a9b873a5a598043e6a570a31f041d783b5086628b6a68a2908627efd53db"
+    }
+  },
+  "fabric_references": {
+    "read_on": "2026-11-06",
+    "urls": [
+      "https://docs.fabricmc.net/develop/events/",
+      "https://docs.fabricmc.net/develop/items/first-item",
+      "https://docs.fabricmc.net/develop/fluids/first-fluid"
+    ]
+  },
+  "source_checks": {
+    "status": "passed",
+    "initial": {
+      "passed": 3,
+      "failed": 1,
+      "reason": "test expected phrase same registry; document says without replacing the fluid registry; test-only wording corrected"
+    },
+    "native_execution": false,
+    "passed": 4,
+    "failed": 0,
+    "elapsed_seconds": 0.022
+  },
+  "native_compile": "not_run",
+  "runtime": "not_run",
+  "production_delta": false,
+  "artifact_sha256": {
+    "pluto-lib/docs/fluid-mod-author-style.md": "3343371b0438c0700e3b63167a104bcda8d2a262d820d433d7d96cb072ea270b",
+    "pluto-lib/experiments/fluid-author-api/example.rs": "2c1e66adf6e003913cccd00b01ffabafc32b7fd32f61bdf124bd546001268ce8",
+    "pluto-lib/experiments/fluid-author-api/test_example_source.py": "3ae6cd9bec59a820398f96d54d63b9fef28c60fae0e3a50452de7300d3b58d67"
+  }
+}
