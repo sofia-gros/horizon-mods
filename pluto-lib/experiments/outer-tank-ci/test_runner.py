@@ -3,6 +3,7 @@ import json
 import contextlib
 import io
 import os
+import sys
 import ast
 from pathlib import Path
 import tempfile
@@ -33,6 +34,23 @@ def memory_tree():
         yield proc,root,leaf
 
 class Tests(unittest.TestCase):
+    def test_metadata_stdout_is_exact_and_stderr_is_preserved_separately(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);runner=m.Runner(root,os.environ.copy())
+            with mock.patch.object(runner,'guard'),contextlib.redirect_stdout(io.StringIO()):
+                output=runner.run('metadata',[sys.executable,'-c',
+                    'import sys;sys.stderr.write("Downloading progress\\n");print(\'{"packages":[]}\')'],
+                    separate_stdout=True)
+            self.assertEqual(output,'{"packages":[]}\n');self.assertEqual(json.loads(output),{'packages':[]})
+            self.assertEqual((root/'metadata.stdout.json').read_text(),output)
+            self.assertEqual((root/'metadata.log').read_text(),'Downloading progress\n')
+            # No line filtering may hide additional/invalid stdout.
+            with self.assertRaises(json.JSONDecodeError):json.loads(output+'not json\n')
+            code=(HERE/'run.py').read_text()
+            for phase in ['cold-metadata','locked-metadata']:
+                line=next(s for s in code.splitlines() if "runner.run('"+phase+"'" in s)
+                self.assertIn('separate_stdout=True',line)
+
     def test_actual_root_omissions_allow_host_bound_without_new_limit(self):
         with memory_tree() as (proc,root,leaf):
             self.assertEqual(m.memory_hierarchy(proc,root),[(None,1024),(None,1024)])

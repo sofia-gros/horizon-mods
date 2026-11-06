@@ -1,6 +1,6 @@
 # Guarded outer-tank CI source proposal
 
-**Source-only next cutoff. Not published to its trigger branch or executed.**
+**Runner-only correction prepared; not published to the trigger or retried.**
 The new fixed branch is `checkpoint/plutolib-outer-tank-native-ci-20261106`.
 Its entry path checks the exact repository/pins and real-root memory admission
 before setup; every command retains the same continuous guard. There is no
@@ -104,7 +104,7 @@ non-root. The `527bd9cc` checkpoint passed 26 pure Python tests while retaining
 the diagnostic-only entry. The historical diagnostic observation lacks some
 new device/overmount checks and cannot be reused as a successful admission.
 
-This next proposal has 29 pure Python checks: the same root regressions plus
+The first guarded proposal passed 29 pure Python checks: the same root regressions plus
 pre-setup admission failure/no fallback, exact official/MOD source allowlists,
 and whole-checkout ignored-file/link seals. Only one call owns the native driver,
 after the memory check; the new mode and branch are fixed. The legacy diagnostic
@@ -119,3 +119,31 @@ No Rust, Cargo metadata, cgroup/systemd write or local native job was run for
 this proposal. Initial publication must be to a non-trigger source checkpoint;
 CI admission is still a separate decision, not a claim that hard memory limits
 have been installed.
+
+## First guarded attempt and captured-stream correction
+
+[Run 42185710725](https://github.com/sofia-gros/horizon-mods/actions/runs/42185710725)
+at `f7f5d90b` passed memory admission, all 29 runner checks, five unchanged source
+guards and both byte-equivalent fixture preparations. Setup ran, but Rust did
+not: Cargo metadata exited 0, then JSON parsing failed because the runner mixed
+its stdout JSON with stderr download progress. The final receipt is false,
+`native_started=false`, and the source/official/copied-input verification passed.
+All 160 Rust cases remain unexecuted. This is a runner capture defect, not a
+production storage failure or a memory-guard stop.
+
+[The preserved attempt record](../../docs/outer-tank-first-native-attempt-20261106.json)
+contains the exact receipt, phase witness and full UTF-8 job log compressed as
+`gzip+base64`, with compressed/uncompressed hashes. Full decompression and
+byte-for-byte readback were verified. Minimum observed CI available RAM was
+15,086,231,552 bytes; minimum free disk was 91,155,132,416 bytes. No hard memory cap
+was applied, and no automatic retry occurred.
+
+The correction gives both metadata commands separate file-backed stdout and
+stderr under the same process-group timeout/disk/memory guard. The parser reads
+**all stdout** as JSON, without searching for a leading brace or dropping lines.
+Stderr remains in its own log and both streams are printed for evidence. No pipe
+can fill while the guarded poll waits. One added real Python subprocess regression
+writes JSON to stdout and progress to stderr, checks both complete files, and
+ensures extra stdout still fails parsing. All **30 pure Python checks** pass.
+The 55 original inputs, old oracles, metadata identities and 160-case scope are
+unchanged. Independent review and a new one-shot execution grant remain required.

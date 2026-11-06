@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Frozen outer-tank comparison on real official dependencies, in dedicated CI only."""
 import hashlib
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -61,13 +62,17 @@ class Runner:
         memory = check_memory(reserve=2 * 1024**3 if reserve else 512 * 1024**2)
         self.minimum_memory = min(getattr(self, 'minimum_memory', memory), memory)
         if free < FLOOR + reserve: raise RuntimeError('Disk floor reached; own process group stopped')
-    def run(self, name, command, cwd=None, timeout=900):
+    def run(self, name, command, cwd=None, timeout=900, separate_stdout=False):
         self.guard()
         path = self.work / (name + '.log')
+        stdout_path = self.work / (name + '.stdout.json')
         print('PHASE', name, json.dumps(command), flush=True)
         started = time.monotonic()
-        with path.open('w') as log:
-            proc = subprocess.Popen(command, cwd=cwd or ROOT, env=self.env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        with path.open('w') as log, (stdout_path.open('w') if separate_stdout else contextlib.nullcontext(log)) as out:
+            # Metadata JSON must not be mixed with Cargo's stderr progress.
+            # File-backed streams avoid a full pipe blocking the guarded poll.
+            proc = subprocess.Popen(command, cwd=cwd or ROOT, env=self.env, stdout=out,
+                                    stderr=log if separate_stdout else subprocess.STDOUT, start_new_session=True)
             try:
                 while proc.poll() is None:
                     self.guard()
@@ -92,10 +97,12 @@ class Runner:
                     if time.monotonic() >= deadline: raise RuntimeError('Own process group remains: ' + name)
                     time.sleep(0.02)
                 print(path.read_text(errors='replace'), end='', flush=True)
+                if separate_stdout:
+                    print(stdout_path.read_text(errors='replace'), end='', flush=True)
         self.guard()
         print('TERMINAL', name, proc.returncode, 'seconds', round(time.monotonic()-started, 3), flush=True)
         if proc.returncode != 0: raise RuntimeError(name + ' exited ' + str(proc.returncode))
-        return path.read_text()
+        return (stdout_path if separate_stdout else path).read_text()
 
 def validate_tests(log, names, filtered=None):
     results = re.findall(r'^test (\S+) \.\.\. (\w+)\s*$', log, re.M)
@@ -417,8 +424,8 @@ def execute_native_prepared(report,config):
     gates={};snapshots={};host=None;official_before=None;error=None;verified=False;generated=None
     try:
         checks=runner.run('runner-checks',[sys.executable,str(HERE/'test_runner.py'),'-v'])
-        if re.findall(r'^Ran (\d+) tests in .+$',checks,re.M)!=['29'] or re.findall(r'^OK$',checks,re.M)!=['OK']:
-            raise ValueError('Expected twenty-nine unskipped runner checks')
+        if re.findall(r'^Ran (\d+) tests in .+$',checks,re.M)!=['30'] or re.findall(r'^OK$',checks,re.M)!=['OK']:
+            raise ValueError('Expected thirty unskipped runner checks')
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal'],timeout=600)
         roots=[]
         for name,url,revision in [('frozen-mod',config['source_url'],config['source_revision']),('official',config['official']['url'],config['official']['revision'])]:
@@ -467,11 +474,11 @@ def execute_native_prepared(report,config):
         # Cold metadata may only prune the official lock and add two local
         # packages; check every identity/path before any compilation.
         runner.guard(reserve=4*1024**3)
-        meta=runner.run('cold-metadata',['cargo','metadata','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,timeout=600)
+        meta=runner.run('cold-metadata',['cargo','metadata','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,timeout=600,separate_stdout=True)
         assert_metadata(json.loads(meta),package_paths(host,source,fixture));verify_lock(host,fixture)
         snapshots[str(fixture)]=regular_seal(fixture)
         runner.run('locked-fetch',['cargo','fetch','--locked','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,timeout=600)
-        meta=runner.run('locked-metadata',['cargo','metadata','--locked','--offline','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture)
+        meta=runner.run('locked-metadata',['cargo','metadata','--locked','--offline','--format-version','1','--manifest-path',str(fixture/'Cargo.toml')],cwd=fixture,separate_stdout=True)
         assert_metadata(json.loads(meta),package_paths(host,source,fixture));verify_lock(host,fixture)
         gates['official_dependencies']={'passed':True,'packages':sorted(package_paths(host,source,fixture))}
         phase=work/'compiler-phase';phase.write_text('compile')
