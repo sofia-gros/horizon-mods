@@ -1,0 +1,167 @@
+{
+  "status": "SUCCESS: excluded latest owned storage tests plus actual host typing only",
+  "source_head": "06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75",
+  "run_id": 42213040086,
+  "job_id": 127876124439,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42213040086",
+  "completed_utc": "2026-11-06T11:53:15Z",
+  "console": {
+    "utf8_bytes": 28257,
+    "sha256": "e1871e9e62d0219cfbef542239ac81599aa5c95fb7475b4c7b7a9c534d5eda25",
+    "availability": "Complete decoded compact job console retrieved; raw per-phase files remain ephemeral on runner."
+  },
+  "prior_attempts": [
+    {
+      "head": "c5e4094bc3c4cb1eb55188a13b6dae75fb2a630a",
+      "run": 42207740778,
+      "result": "failure at fresh direct-site inventory; no std compile/host type"
+    },
+    {
+      "head": "0447b0bab69102dbd5456617a6b6542f8bada4db",
+      "run": 42209312310,
+      "result": "full latest inventory passed, std compile E0282, no tests/host type"
+    },
+    {
+      "head": "fece0572e74fb73ea114bdf88cadeb54f2c3514d",
+      "run": 42210426433,
+      "result": "std compile and actual terse inventory reached; parser failed; no ten-test execution/host type"
+    }
+  ],
+  "verification_limits": [
+    "Generic std-owned storage tests use test values, not actual UI execution.",
+    "Actual official client-lib and Game lib/bin compilation includes the private BookScreen adapter; no live Client/window/resource universe was run.",
+    "Full latest direct-site inventory is spelling-based and not alias, callback or complete lifecycle coverage.",
+    "The thirteen-file official-source experiment is excluded and unapplied to ordinary PlutoLib or official repositories.",
+    "No permitted Game opening, actor/overlay authority, language reload, delayed LAN reply or gameplay demonstration.",
+    "Later native-opening and Font generation candidates are not included.",
+    "No merge or existing PR state change."
+  ],
+  "final_receipt": {
+    "build_outputs_seal": "a08236942a622f4f1d6298939d1fe670f66e3b10c253c6d0f2c3babace56f11c",
+    "error": null,
+    "floor_bytes": 10871635968,
+    "gates": {
+      "compile": {
+        "mode": 493,
+        "sha256": "b91ecb95cd406e01d85e72279e10b26832a356258d115fc9d390f12e0a77ad8c",
+        "size": 7005160
+      },
+      "experiment_delta": {
+        "count": 13,
+        "helper_fragments_unchanged": 3,
+        "paths": {
+          "crates/horizon-client/src/game.rs": "63457c67c439e6a92431d6d78f2c531dc509423c6f2585013aff376527ecf36d",
+          "crates/horizon-client/src/game/boat_authority_fixture.rs": "9b28900490b38d1020053d02f73d706c2d817d63ee04eff8d0349fb64c225d02",
+          "crates/horizon-client/src/game/boat_rider_fixture.rs": "0f10d1a9d2fc0d77839fb68f744c10827af365d04341fba05734d98ab0eebc06",
+          "crates/horizon-client/src/game/books.rs": "9dc7bef003253d0089e16d27821fe1eed437cab4fe34d54ec75bb9d344dd2a2b",
+          "crates/horizon-client/src/game/ime.rs": "79068b892b2e6c62463ad2ea524d7185216d8f2294061d645d841f372423ec18",
+          "crates/horizon-client/src/game/lan_actions.rs": "b778959bb210e25e589b1ae185160dbab02f3b03ac66baeddda390029dd9a401",
+          "crates/horizon-client/src/game/native_hooks.rs": "b5e0f83528f758bca823bf236b00dd111cd3351701448ad6d68e4f5d53ff96de",
+          "crates/horizon-client/src/game/native_machines.rs": "72c5e535d98cd8ea03794ca7f356240872833e707f2863c32adddfe6642918dd",
+          "crates/horizon-client/src/game/pad_menu.rs": "0d4ea5ce92ffb8c2aeacaa29ef053979869c9095306408f2edd1359563bde2f5",
+          "crates/horizon-client/src/game/remote.rs": "0841e5fecb19810da93f4bf046d84a16024adc93d6c2c2894a82a31c324f92c2",
+          "crates/horizon-client/src/game/remote_chat.rs": "311a92215a2b09435d7ec675088f078be93698bcc46a4a830f57ad9c85d64077",
+          "crates/horizon-client/src/game/retained_book.rs": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398",
+          "crates/horizon-client/src/game/saving.rs": "22c5f050d531706c1546156a5b14207f106aafd43c1694be41f0c80c37fea7eb"
+        }
+      },
+      "host_type": {
+        "actual_compiler_invocations": [
+          {
+            "command_sha256": "759c9f984541faa4ed64e1fe597bc20bb0e8488f75272167c7a40ba6c9487006",
+            "crate": "horizon_client_lib",
+            "source": "client_lib.rs"
+          },
+          {
+            "command_sha256": "f03d07a035fbf8e4dcb33de93ee5f6d6cc66a52bba32997a452919db835d64c7",
+            "crate": "horizon_client",
+            "source": "src/lib.rs"
+          },
+          {
+            "command_sha256": "9045b522c67f36e8458e6e6e1db40c91ae80fdf1cfbacae41f2316c08b9b18fe",
+            "crate": "horizon_client",
+            "source": "src/main.rs"
+          }
+        ],
+        "log_sha256": "65fe553d4d6eb54526f59ec352fd684f518e2275c7d4537ef8d2c11b8d0d13f0"
+      },
+      "inventory": [
+        "retained_book::storage_tests::actual_option_shape_remains_available_to_native_readers",
+        "retained_book::storage_tests::equal_replacement_and_restoration_never_reuse_opening",
+        "retained_book::storage_tests::borrowed_mutation_advances_revision_without_replacing_opening",
+        "retained_book::storage_tests::overlay_does_not_mutate_slot_and_attachment_reset_preserves_contents",
+        "retained_book::storage_tests::replace_returns_old_contents_without_dropping_them",
+        "retained_book::storage_tests::id_and_revision_exhaustion_do_not_disable_native_content_changes",
+        "retained_book::storage_tests::assignment_destructor_panic_cannot_leave_a_valid_old_stamp",
+        "retained_book::ownership_tests::identical_owned_reopen_revokes_old_owner",
+        "retained_book::ownership_tests::native_close_and_identical_restore_cannot_claim_old_owner",
+        "retained_book::ownership_tests::owner_from_other_slot_cannot_use_matching_contents",
+        "retained_book::ownership_tests::page_revision_rejects_old_observation_but_preserves_owner",
+        "retained_book::ownership_tests::attachment_reset_revokes_owner_without_removing_contents",
+        "retained_book::ownership_tests::dropping_prepared_guard_does_not_mutate_storage",
+        "retained_book::ownership_tests::exhausted_install_returns_exact_candidate_and_preserves_old_state",
+        "retained_book::ownership_tests::revision_exhaustion_rejects_before_any_change",
+        "retained_book::ownership_tests::old_value_drops_only_after_committed_state_is_observable",
+        "retained_book::ownership_tests::destructor_panic_after_commit_does_not_restore_old_storage"
+      ],
+      "latest_inventory": {
+        "attachment_sites": 26,
+        "book_sites": 79,
+        "full_inventory_verified": true,
+        "known_source_files": 21,
+        "patch_sha256": "e35455951b4bc7e3aa01912f348a4c178523dc128c712ece6c7413a7c2d987d0",
+        "receipt_sha256": "e00de6ae236610b1cde4375dc4556964d676e03a1df4cfa68907e9e52490ff72"
+      },
+      "latest_source": 14,
+      "metadata": {
+        "full_dependencies": true,
+        "normalized_sha256": "1eb4497a073daa09d212d5dfbd26bbf06dca1d2a19ea722daea10176adc32ab5"
+      },
+      "official_source": {
+        "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+        "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"
+      },
+      "ownership10": {
+        "filtered": 7,
+        "log_sha256": "0a933f783f4b0d369624fa5b6cc84d9da56e4d9b9572921570218bcbfc862e03",
+        "names": [
+          "retained_book::ownership_tests::identical_owned_reopen_revokes_old_owner",
+          "retained_book::ownership_tests::native_close_and_identical_restore_cannot_claim_old_owner",
+          "retained_book::ownership_tests::owner_from_other_slot_cannot_use_matching_contents",
+          "retained_book::ownership_tests::page_revision_rejects_old_observation_but_preserves_owner",
+          "retained_book::ownership_tests::attachment_reset_revokes_owner_without_removing_contents",
+          "retained_book::ownership_tests::dropping_prepared_guard_does_not_mutate_storage",
+          "retained_book::ownership_tests::exhausted_install_returns_exact_candidate_and_preserves_old_state",
+          "retained_book::ownership_tests::revision_exhaustion_rejects_before_any_change",
+          "retained_book::ownership_tests::old_value_drops_only_after_committed_state_is_observable",
+          "retained_book::ownership_tests::destructor_panic_after_commit_does_not_restore_old_storage"
+        ],
+        "passed": 10
+      },
+      "prior_runner": 15,
+      "prototype_identity": {
+        "helper_sha256": "0bf154aa213fdcdb5aeecf0f079f137feaa44f4a25451fe8c51bfcf78a93b398",
+        "original_fragments_unchanged": true
+      },
+      "runner": 16,
+      "source": {
+        "native_type_executed": false,
+        "ownership_tests": 10,
+        "rust_executed": false,
+        "source_files": 12
+      },
+      "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+    },
+    "head": "06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75",
+    "minimum_free_bytes": 89300168704,
+    "mod_source_seal": "dc4d67692878f5ccc43172fadfc1c4c038ae9ed60f76925b767a41a6dd3063ad",
+    "passed": true,
+    "scope": "Latest f4dc target: ten generic owned-storage tests plus excluded official Game/BookScreen lib+bin typing. Not ordinary Pluto composition, permitted Game opening, actual Client/UI, catalog reload or LAN reply execution.",
+    "source_seals": {
+      "/home/runner/work/_temp/guide-latest-owned-opening-06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75/experiment": "2430e0468e5668e06ed9e54a7095535c551f2588d1cce635e87fbb7a37bf5dc6",
+      "/home/runner/work/_temp/guide-latest-owned-opening-06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75/official-git": "7a9e25fbe124ddfa631574c1e694f36755c918151b52111d97912058af757a2c",
+      "/home/runner/work/_temp/guide-latest-owned-opening-06305ddc07abf1ffd70ced7f830bdc3e3c8bdf75/pristine": "a5aa60c573d189d1e9b207247f9aba76516764849a2fec1edc1a85cb6af093a7"
+    },
+    "verified": true
+  }
+}
