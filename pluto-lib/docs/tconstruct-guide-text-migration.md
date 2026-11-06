@@ -67,9 +67,9 @@ partial delegation. The fallback's original unbounded-input costs remain.
 
 ## Validation status
 
-Six source regressions passed: exact inverse click/draw reconstruction, module-only
+Seven source regressions passed: exact inverse click/draw reconstruction, module-only
 manifest addition, delegation/fallback scope, no extra/replayed native query calls,
-and prepared fixture coverage. A peer read-only review found no serious issue in
+prepared fixture coverage, and original PNG bytes/intended full-region assertions. A peer read-only review found no serious issue in
 the corrected sequence; it ran no build or test.
 
 Twelve actual official Font/Text cases are prepared but **not yet run**. Ten use
@@ -79,7 +79,9 @@ unsupported actions/styles, invalid links, document/amplification limits, invali
 widths, nonfinite coordinates/metrics and negative advances. Two use public native
 `Font::load` and an original 16x8 RGBA bitmap to compare pending CPU pixel patches,
 selected-row queries and subsequent missing-glyph behavior with normal versus
-one-glyph atlas capacity. They do not construct a window or GPU. Successful CPU
+one-glyph atlas capacity. Expected patch counts, retained first glyph and missing
+second glyph/advance are asserted independently, so equal results alone cannot
+accidentally pass without reaching the full-region branch. They do not construct a window or GPU. Successful CPU
 patch comparisons would still not prove real HUD drawing/upload/lifetime/LAN.
 
 Only under the coordinator's bounded native grant:
@@ -102,3 +104,37 @@ This branch does not incorporate #945 navigation. Its old turn-page and response
 composition blockers remain visible and no guard is weakened. Reconcile #945 by
 its own navigation delta, not an older full tree. No feature or existing PR state
 is changed by publication of this WIP checkpoint; it is not a main-ready branch.
+
+## Execution preparation review
+
+The source review tightened the CPU fixture's intended-branch assertions and
+validated the original PNG signature, chunk CRCs, dimensions and every decompressed
+pixel with a pure regression. Fixture verification now compares the copied API's
+complete file set and bytes with the frozen production API, in addition to the
+existing official source/lock/local-dependency identity checks. It also seals the
+preparer and consumer draw/click/manifest sources; these are not typechecked by the
+Font-only fixture and remain explicit wider-integration limits.
+
+Do not run the documented commands as an unguarded batch. A granted run must record
+an exact clean local commit, use a new fixture/log directory under `/tmp`, the
+coordinator-selected existing shared target, `--locked --offline`, debug info 0,
+incremental off and at most two jobs. Monitor workspace free space continuously
+against 10 GiB +128 MiB, terminate the process group on crossing the floor, and
+verify source/lock/fixture identities after terminal status. Record all twelve
+named results, ignored/filtered counts and logs separately from the seven pure
+checks. `/tmp` capacity and workspace capacity are separate budgets. Do not delete
+or change a previous sealed fixture, native stage or shared artifact to force a
+pass. Current ~5 MiB headroom is not evidence that metadata/linking can safely fit;
+no native job is authorized or has run for this source revision.
+
+The `RawLines` value is a snapshot of split native lines, not a font/screen handle.
+The caller must choose when to re-split after content, font or layout changes.
+`hit_native` uses the explicitly supplied current Font; it neither proves that it
+matches the splitting Font nor owns a world/window/input lifetime. Existing
+TConstruct use keeps split and hit within one synchronous handler.
+
+An independent read-only review of the corrected fixture, identity verifier and
+raw/lazy operations found no serious additional issue. It confirmed separate
+old/new CPU Font instances, explicit normal/full region assertions and an oracle
+that invokes native traversal without Pluto. The reviewer ran no execution,
+metadata or build and did not claim visible-row draw/UI/GPU/package validation.

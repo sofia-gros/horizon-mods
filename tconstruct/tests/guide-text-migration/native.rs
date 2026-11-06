@@ -149,7 +149,7 @@ fn rendered(region: (u32, u32), atlas: (u32, u32)) -> Fixture {
 fn patches(font: &Font) -> Vec<(u32, u32, u32, u32, Vec<u8>)> {
     font.take_patches().into_iter().map(|p| (p.x, p.y, p.width, p.height, p.rgba)).collect()
 }
-fn compare_cache(region: (u32, u32), atlas: (u32, u32)) {
+fn compare_cache(region: (u32, u32), atlas: (u32, u32), full: bool) {
     let old = rendered(region, atlas);
     let new = rendered(region, atlas);
     let pages = [text("ab\n§la", 1)];
@@ -158,7 +158,8 @@ fn compare_cache(region: (u32, u32), atlas: (u32, u32)) {
     assert!(matches!(new_lines, Lines::Shared(_)));
     assert_eq!(old_lines, new_lines.as_slice());
     let before = patches(&old.1);
-    assert!(!before.is_empty()); // Actual non-metrics allocator path ran.
+    assert_eq!(before.len(), if full { 1 } else { 2 }); // Prove the intended allocator branch ran.
+    assert_eq!((before[0].0, before[0].1, before[0].2, before[0].3), (0, 0, 8, 8));
     assert_eq!(before, patches(&new.1));
     // Compare a selected row's exact old traversal without rerunning split.
     let line = old_lines[1].resolve_legacy();
@@ -172,6 +173,12 @@ fn compare_cache(region: (u32, u32), atlas: (u32, u32)) {
     assert_eq!(patches(&old.1), patches(&new.1));
     // Observe subsequent cache reads, including native missing-glyph fallback
     // when the deliberately tiny region has no room. No GPU upload is run.
+    assert!(old.1.glyph('a').rect.is_some());
+    assert_eq!(old.1.glyph('b').rect.is_none(), full);
+    assert_eq!(old.1.glyph('b').advance, if full { 6.0 } else { 7.0 });
+    assert!(new.1.glyph('a').rect.is_some());
+    assert_eq!(new.1.glyph('b').rect.is_none(), full);
+    assert_eq!(new.1.glyph('b').advance, if full { 6.0 } else { 7.0 });
     for c in ['a', 'b', 'a'] {
         let a = old.1.glyph(c);
         let b = new.1.glyph(c);
@@ -181,9 +188,9 @@ fn compare_cache(region: (u32, u32), atlas: (u32, u32)) {
 }
 #[test]
 fn actual_cpu_font_patch_order_matches_split_then_selected_hit() {
-    compare_cache((0, 32), (64, 32));
+    compare_cache((0, 32), (64, 32), false);
 }
 #[test]
 fn actual_full_cpu_font_region_preserves_native_missing_glyph_fallback() {
-    compare_cache((0, 8), (9, 8));
+    compare_cache((0, 8), (9, 8), true);
 }

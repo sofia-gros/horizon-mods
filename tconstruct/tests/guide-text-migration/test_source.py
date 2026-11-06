@@ -1,5 +1,8 @@
 """Scope/reversal guards, separate from actual Font execution."""
 import hashlib
+import re
+import struct
+import zlib
 from pathlib import Path
 import tomllib
 import unittest
@@ -69,6 +72,28 @@ class Scope(unittest.TestCase):
         self.assertEqual(hit.count('resolve_legacy()'), 1)
         self.assertIn('return Some(NativeHit', hit)
         self.assertNotIn('Result<', hit)
+    def test_original_bitmap_and_intended_full_region_are_explicit(self):
+        source = (Path(__file__).parent / 'native.rs').read_text()
+        values = re.search(r'const ORIGINAL_BITMAP: &\[u8\] = &\[([^]]+)\]', source).group(1)
+        png = bytes(int(value) for value in values.split(','))
+        self.assertEqual(png[:8], b'\x89PNG\r\n\x1a\n')
+        offset, chunks = 8, {}
+        while offset < len(png):
+            size = int.from_bytes(png[offset:offset+4], 'big')
+            kind = png[offset+4:offset+8]
+            data = png[offset+8:offset+8+size]
+            crc = int.from_bytes(png[offset+8+size:offset+12+size], 'big')
+            self.assertEqual(crc, zlib.crc32(kind + data))
+            chunks[kind] = data
+            offset += size + 12
+        self.assertEqual(chunks[b'IHDR'], struct.pack('!2I5B', 16, 8, 8, 6, 0, 0, 0))
+        raw = zlib.decompress(chunks[b'IDAT'])
+        row = b'\0' + b''.join(bytes([255, 255, 255, 255 if x < 2 or 8 <= x < 14 else 0]) for x in range(16))
+        self.assertEqual(raw, row * 8)
+        self.assertIn('before.len(), if full { 1 } else { 2 }', source)
+        self.assertIn("old.1.glyph('b').rect.is_none(), full", source)
+        self.assertIn("new.1.glyph('b').advance, if full { 6.0 } else { 7.0 }", source)
+
     def test_fixture_is_actual_native_font_and_preserves_fallback_cases(self):
         source = (Path(__file__).parent / 'native.rs').read_text()
         self.assertIn('Font::metrics(&root)', source)
