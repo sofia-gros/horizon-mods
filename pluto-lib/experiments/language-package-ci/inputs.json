@@ -1,0 +1,43 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-language-package-ci-20261106",
+  "base": "09321be86bae00951c421cbda2469417635c4a75",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+  },
+  "cutoffs": {
+    "fixture": "4d776b907aff5e748c700dafa422d791ecaf99ac",
+    "successful_runner": "0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5"
+  },
+  "result_groups": [
+    {
+      "expected": 8,
+      "names": [
+        "tests::hmod_round_trip_preserves_owned_locale_bytes_and_actual_lookup",
+        "tests::packaged_missing_exact_locale_uses_english_not_regional_guess",
+        "tests::content_admission_rejects_unowned_locale_namespace",
+        "tests::content_admission_requires_registries_even_for_only_language_files",
+        "tests::package_toml_asset_is_not_runtime_language_support",
+        "tests::package_content_admission_does_not_validate_language_json_schema",
+        "tests::custom_owned_locale_does_not_prove_native_locale_menu_discovery",
+        "tests::admitted_file_loss_is_failure_not_missing_resource_success"
+      ],
+      "prefix": "tests::"
+    }
+  ],
+  "python_tests": 5,
+  "runner_tests": 20,
+  "inputs_sha256": {
+    "pluto-lib/experiments/language-package/fixture.rs": "5bc5864eee68d924511fcac9e70bfe7ae2c528968eb1de6766322279d60e8d90",
+    "pluto-lib/experiments/language-package/Cargo.toml.in": "4966b727ff00979adc3e5e059d7213d329d8520003119459a52b3038e2a71b0a",
+    "pluto-lib/experiments/language-package/README.md": "be6d6b41798ae8338dbe4b280b139c48716a5cf46622c0fb1cc04b071633edc9",
+    "pluto-lib/experiments/language-package/inputs.json": "fbd772ac9c9b598af0274bf8882f5f666054b881215bd20e6915a1f6e4b0e2d7",
+    "pluto-lib/experiments/language-package/check_source.py": "320b14b192aa3cc72ceb77d37b6e237ba5be6808e9cd3b5e049b44d0e3ad66b0",
+    "pluto-lib/experiments/language-package-ci/prepare.py": "e0965e3a29e3f0363a15394689ab4af653db24f9e4d6a5801250fdcbb024f745",
+    "pluto-lib/experiments/language-package-ci/run.py": "e0f416db9e16f26e156171e1d8a8d383c3fb7140b9b030615cd68cba51bbe1da",
+    "pluto-lib/experiments/language-package-ci/test_runner.py": "5921a7f9f27aa933326c03ce225b86696cba74d9b481f981cd379b9be4b72c91",
+    ".github/workflows/language-package-wip.yml": "8c5884705e423af6599a6e840efd0751a1c65bf9a53a054af543e5a7d06962ec"
+  }
+}
