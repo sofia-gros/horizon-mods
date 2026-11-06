@@ -36,10 +36,26 @@ def caller(native):
     a = native.index(start); b = native.index(end,a)+len(b'\n}')
     return native[a:b]
 
-def compose(official, repair):
+def validate_manifest(parsed):
+    expected = {
+        'id':'language-policy-root',
+        'target':'horizon_client_lib::mod_content::resource_root',
+        'kind':'MODIFY_VARIABLE',
+        'variable':{'name':'out','ordinal':0,'at':'STORE'},
+        'require':1,'ordinal':0,'helper':'root-store.rs',
+        'bindings':[{'name':'out','ty':'std::path::PathBuf','value':'$value'},
+                    {'name':'stamp','ty':'&String','value':'$local_ref:stamp:0'}],
+    }
+    require(set(parsed) == {'mod','compatibility','injection'} and
+            parsed['injection'] == [expected], 'exact explicit lexical capture required')
+    require(parsed['mod'] == {'id':'pluto_language_root_probe','version':'0.0.0','priority':100} and
+            parsed['compatibility'] == {'horizon_revision':HORIZON}, 'manifest owner')
+
+def compose(official, repair, mixins):
     raw_config = (HERE/'inputs.json').read_bytes(); c = json.loads(raw_config)
     require(c['horizon'] == HORIZON and c['mixins'] == MIXINS and c['status'] == 'excluded source proposal only', 'scope')
     originals = {p:read(official,p,h) for p,h in c['official_sources'].items()}
+    rules = {p:read(mixins,p,h) for p,h in c['mixins_sources'].items()}
     native = originals[TARGET]; fn = caller(native)
     require(sha(fn) == c['caller_sha256'] and native.count(OLD) == 1, 'caller source')
     require(b'const ROOT_NAME: usize = 16;' in native and native.count(b'const ROOT_NAME:') == 1, 'root width')
@@ -49,13 +65,13 @@ def compose(official, repair):
     require(policies == [c['policy_id'].encode()] and helper.count(b'"'+policies[0]+b'"') == 1, 'single policy source identity')
     manifest = read(HERE,'horizon-mixin.toml',c['manifest_sha256'])
     parsed = tomllib.loads(manifest.decode())
-    require(set(parsed) == {'mod','compatibility','injection'} and len(parsed['injection']) == 1, 'one root hook only')
+    validate_manifest(parsed)
     require(parsed['injection'][0] == c['injection'], 'root hook/binding contract')
-    require(parsed['mod'] == {'id':'pluto_language_root_probe','version':'0.0.0','priority':100} and parsed['compatibility'] == {'horizon_revision':HORIZON}, 'manifest owner')
     require(BEGIN not in native and b'fn separate_root' not in native, 'already composed')
     generated = native.replace(OLD,NEW,1) + BEGIN + helper + END
     require(inverse(generated,helper) == native, 'full native inverse')
     require(originals == {p:read(official,p,h) for p,h in c['official_sources'].items()} and raw_config == (HERE/'inputs.json').read_bytes(), 'source changed while composing')
+    require(rules == {p:read(mixins,p,h) for p,h in c['mixins_sources'].items()}, 'Mixins source changed while composing')
     return generated, {'scope':'source-only root basename separation; not native stamp repair',
         'native_sha256':sha(native),'generated_sha256':sha(generated),'generated_bytes':len(generated),
         'full_native_inverse':True,'native_stamp_bytes_unchanged':True,

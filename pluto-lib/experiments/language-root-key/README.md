@@ -13,8 +13,8 @@ Exact official Horizon
 first returns the unchanged base for no content, computes the native stamp,
 selects `cache/mod-content`, and initializes `out` with the first 16 stamp hex
 characters. The proposed single MODIFY_VARIABLE STORE changes that owned `out`
-value only. Its other binding borrows the complete native `stamp` already in
-scope. The actual planner must still accept the selected local, extra binding,
+value only. Its other binding explicitly captures `$local_ref:stamp:0` as
+`&String`, borrowing the complete native `stamp` already in scope. The actual planner must still accept the selected local, extra binding,
 helper placement and types. No planner/apply/type check has run.
 
 `root-store.rs` hashes these ordered UTF-8 parts with SHA256, each preceded by
@@ -79,7 +79,7 @@ not newly executed diagnostics. The exact plan.rs SHA256 is
 
 ## Current validation and future gates
 
-Nine Python checks cover fixed actual source identity, whole-file inverse,
+Ten Python checks cover fixed actual source identity, whole-file inverse,
 original call order, exact one-hook/binding declaration, policy agreement,
 length-prefixed hash-contract examples, and input/path rejection. They do not
 execute the Rust helper. Source inputs are assumed quiescent; checks do not
@@ -91,3 +91,18 @@ complete installed composition and guards; finally Game/UI/reload behavior.
 The 16-hex policy-collision limitation also needs a conscious contract decision
 or a separately proven persisted-identity design. No execution or activation
 is authorized by this source checkpoint alone.
+
+## Corrected lexical capture, not observed placement
+
+The earlier `bd9900e1` draft used a plain `&stamp` binding. That is a source-level
+incompatible draft: latest official [helpers.rs](https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/helpers.rs#L479-L490)
+permits ordinary binding expressions only when rooted in target parameters.
+`stamp` is a local, not a parameter. This follow-up uses the explicit
+`$local_ref:stamp:0` syntax from [scopes.rs](https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/scopes.rs#L500-L570).
+Both complete official source files are pinned and rechecked by the source
+composer. A negative source regression rejects plain borrow, other ordinals,
+other local names/modes, and `&str`. The helper and generated direct-call bytes
+are unchanged. Actual plan must still supply the local capture identity, scope
+visibility, ordinal, expression and type; `ROOT_NAME` access from real generated
+helper placement also remains unproved. No native probe was run for the bad
+binding or this correction.

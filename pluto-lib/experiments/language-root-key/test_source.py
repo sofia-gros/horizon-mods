@@ -1,5 +1,6 @@
 """Pure source and hash-contract checks. No Rust or Mixins execution."""
 import ast
+import copy
 import hashlib
 import importlib.util
 import json
@@ -13,6 +14,7 @@ import unittest
 HERE=Path(__file__).resolve().parent
 s=importlib.util.spec_from_file_location('root_source',HERE/'source.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 HOST=Path(os.environ['PLUTO_SELECTED_SOURCE']);REPAIR=Path(os.environ['PLUTO_REPAIR_SOURCE'])
+MIXINS=Path(os.environ['PLUTO_MIXINS_SOURCE'])
 C=json.loads((HERE/'inputs.json').read_bytes())
 
 def transcript(parts):
@@ -20,7 +22,7 @@ def transcript(parts):
 
 class SourceTests(unittest.TestCase):
     def test_complete_exact_native_inverse(self):
-        output,receipt=m.compose(HOST,REPAIR)
+        output,receipt=m.compose(HOST,REPAIR,MIXINS)
         self.assertEqual(m.inverse(output,(HERE/'root-store.rs').read_bytes()),(HOST/m.TARGET).read_bytes())
         self.assertTrue(receipt['full_native_inverse'])
         self.assertFalse(any(receipt[k] for k in ['mixins_plan_accepted','rust_executed','writer_connected','actual_cache_tested','full_composition_tested','game_ui_tested']))
@@ -29,9 +31,17 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(set(v),{'mod','compatibility','injection'})
         self.assertEqual(v['injection'],[C['injection']])
         self.assertEqual(C['injection']['variable'],{'name':'out','ordinal':0,'at':'STORE'})
-        self.assertEqual(C['injection']['bindings'][1],{'name':'stamp','ty':'&String','value':'&stamp'})
+        self.assertEqual(C['injection']['bindings'][1],{'name':'stamp','ty':'&String','value':'$local_ref:stamp:0'})
+    def test_plain_borrow_wrong_ordinal_type_or_capture_rejects(self):
+        original=tomllib.loads((HERE/'horizon-mixin.toml').read_text())
+        m.validate_manifest(original)
+        for key,value in [('value','&stamp'),('value','$local_ref:stamp:1'),
+            ('value','$local:stamp:0'),('value','$local_mut:stamp:0'),
+            ('value','$local_ref:roots:0'),('ty','&str')]:
+            changed=copy.deepcopy(original);changed['injection'][0]['bindings'][1][key]=value
+            with self.assertRaises(ValueError):m.validate_manifest(changed)
     def test_native_stamp_parent_compare_write_and_prune_order_unchanged(self):
-        native=(HOST/m.TARGET).read_bytes();after,_=m.compose(HOST,REPAIR)
+        native=(HOST/m.TARGET).read_bytes();after,_=m.compose(HOST,REPAIR,MIXINS)
         old=m.caller(native);new=m.caller(after)
         self.assertEqual(new.replace(m.NEW,m.OLD),old)
         witnesses=[b'return Ok(base.to_owned());',b'let stamp = stamp(base, mods)?;',
@@ -58,7 +68,7 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(len(set(hashes)),3)
         self.assertEqual(hashes[0],'b89008df129e2200e5ef52d530aced166e158a8e05782908a7f2d340cff47d39')
     def test_policy_is_exact_existing_helper_value(self):
-        m.compose(HOST,REPAIR)
+        m.compose(HOST,REPAIR,MIXINS)
         helper=(HERE/'root-store.rs').read_text()
         self.assertEqual(helper.count('"'+C['policy_id']+'"'),1)
         self.assertNotIn('static ',helper)
@@ -67,7 +77,7 @@ class SourceTests(unittest.TestCase):
         self.assertNotIn('unwrap',helper)
     def test_invalid_native_caller_or_inverse_rejects(self):
         with self.assertRaises(ValueError):m.caller(b'not selected native')
-        output,_=m.compose(HOST,REPAIR);helper=(HERE/'root-store.rs').read_bytes()
+        output,_=m.compose(HOST,REPAIR,MIXINS);helper=(HERE/'root-store.rs').read_bytes()
         for bad in [output+b'x',output.replace(m.NEW,m.OLD),output+output]:
             with self.assertRaises(ValueError):m.inverse(bad,helper)
     def test_symlink_and_hash_mismatch_reject(self):

@@ -9,7 +9,7 @@
   },
   "caller_sha256": "3447145cfb10715e4f9af9cb2ecad6fb064d8aa8943cac2bdcc5a5a86d474793",
   "helper_sha256": "34d58c2e35d07d2b5920623a9e5e03c4a2e24f05866c4cf450a0f94b0275d980",
-  "manifest_sha256": "0d8b4af5e49342101426619b4a9249d49fd0c67962ea307fc1e1222e26887b99",
+  "manifest_sha256": "46654e55a52ed3226c28ddad6b0171dd094b868dc8717947fd928b8f4c0bd702",
   "merge_sha256": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
   "policy_id": "plutolib language lower-only strict strings 1",
   "injection": {
@@ -33,7 +33,7 @@
       {
         "name": "stamp",
         "ty": "&String",
-        "value": "&stamp"
+        "value": "$local_ref:stamp:0"
       }
     ]
   },
@@ -42,5 +42,9 @@
     "No placement, compile, cache, Game or composition proof.",
     "No unsupported fallback to native root is introduced.",
     "The original stamp function, errors, file contents and root parent are unchanged."
-  ]
+  ],
+  "mixins_sources": {
+    "crates/horizon-mixins-core/src/scopes.rs": "ad89d65e7f178affeb38627ead9891bdad1faf0fd1e035832cdf48268c3f29fd",
+    "crates/horizon-mixins-core/src/helpers.rs": "5d32a79d9344e8c35afdce6c1ba5e47324d2137ff2198884d70dc422efbe5661"
+  }
 }
