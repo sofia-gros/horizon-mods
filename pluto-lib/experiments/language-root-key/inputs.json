@@ -1,0 +1,46 @@
+{
+  "status": "excluded source proposal only",
+  "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "official_sources": {
+    "crates/horizon-client/src/mod_content.rs": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c",
+    "crates/horizon-client-lib/Cargo.toml": "40dc61e95122f5318a63d83a6564d23ca9ed47cf938b457fa53153bfc533c9fc",
+    "Cargo.lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+  },
+  "caller_sha256": "3447145cfb10715e4f9af9cb2ecad6fb064d8aa8943cac2bdcc5a5a86d474793",
+  "helper_sha256": "34d58c2e35d07d2b5920623a9e5e03c4a2e24f05866c4cf450a0f94b0275d980",
+  "manifest_sha256": "0d8b4af5e49342101426619b4a9249d49fd0c67962ea307fc1e1222e26887b99",
+  "merge_sha256": "6fdb34f89b4f9db9837bbbed39cb6e3e886c18dbd37963bb4c28d0e12b6c8117",
+  "policy_id": "plutolib language lower-only strict strings 1",
+  "injection": {
+    "id": "language-policy-root",
+    "target": "horizon_client_lib::mod_content::resource_root",
+    "kind": "MODIFY_VARIABLE",
+    "variable": {
+      "name": "out",
+      "ordinal": 0,
+      "at": "STORE"
+    },
+    "require": 1,
+    "ordinal": 0,
+    "helper": "root-store.rs",
+    "bindings": [
+      {
+        "name": "out",
+        "ty": "std::path::PathBuf",
+        "value": "$value"
+      },
+      {
+        "name": "stamp",
+        "ty": "&String",
+        "value": "&stamp"
+      }
+    ]
+  },
+  "limitations": [
+    "Only a 16-hex root key; cryptographic collisions remain possible and policy collisions are not distinguished by the unchanged native stamp file.",
+    "No placement, compile, cache, Game or composition proof.",
+    "No unsupported fallback to native root is introduced.",
+    "The original stamp function, errors, file contents and root parent are unchanged."
+  ]
+}

@@ -1,0 +1,20 @@
+[mod]
+id = "pluto_language_root_probe"
+version = "0.0.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd"
+
+[[injection]]
+id = "language-policy-root"
+target = "horizon_client_lib::mod_content::resource_root"
+kind = "MODIFY_VARIABLE"
+variable = { name = "out", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "root-store.rs"
+bindings = [
+  { name = "out", ty = "std::path::PathBuf", value = "$value" },
+  { name = "stamp", ty = "&String", value = "&stamp" },
+]

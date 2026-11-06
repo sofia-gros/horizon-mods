@@ -1,0 +1,25 @@
+{
+  "scope": "source-only root basename separation; not native stamp repair",
+  "native_sha256": "a8c6cea6ee73824d704699d0d68775cbdb60d19c51a7f406336874f3350e1e6c",
+  "generated_sha256": "0a36841dfdbfcbade71fb3beac55140cdde99e8cce3f51f4a7a6614180704f7c",
+  "generated_bytes": 118551,
+  "full_native_inverse": true,
+  "native_stamp_bytes_unchanged": true,
+  "mixins_plan_accepted": false,
+  "rust_executed": false,
+  "writer_connected": false,
+  "actual_cache_tested": false,
+  "full_composition_tested": false,
+  "game_ui_tested": false,
+  "python_checks": 9,
+  "python_exit": 0,
+  "python_log_sha256": "50e109845f1e5c0fb1868d97d8c8c6b5de54d30630df15cbc400463b36616b48",
+  "input_files_sha256": {
+    "README.md": "f4854bbe7b7471949f8bed8ffb418c2e3b46846f7b9e75278fa8a2b8b9707f8e",
+    "horizon-mixin.toml": "0d8b4af5e49342101426619b4a9249d49fd0c67962ea307fc1e1222e26887b99",
+    "inputs.json": "f31bfb388ce87cd92d76cad865d69e065ee5363589b453649e8688054d144820",
+    "root-store.rs": "34d58c2e35d07d2b5920623a9e5e03c4a2e24f05866c4cf450a0f94b0275d980",
+    "source.py": "71440ec2d27f4636fb68ad84a0cb4c5487aff42fce9ea8f28c2202973af4bfe7",
+    "test_source.py": "ac85ffb4bb853d36d6e7b78fe01a44a3bc3034247cce95675da20e6ef2954f22"
+  }
+}
