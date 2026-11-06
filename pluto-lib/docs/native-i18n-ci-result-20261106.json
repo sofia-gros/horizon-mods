@@ -1,0 +1,326 @@
+{
+  "status": "passed_bounded_native_i18n_contracts",
+  "ci_head": "0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5",
+  "ci_tree": "6d9ab21c133d5b2a730ad31dcc5f41790532e1b1",
+  "workflow": ".github/workflows/native-i18n-wip.yml",
+  "run_id": 42181415662,
+  "job_id": 127771667512,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42181415662",
+  "source_parent": "df0645ec2bdd1063364eb82d85c45ef45d61c876",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "receipt": {
+    "cutoffs": {
+      "composed_language": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+      "fixture": "df0645ec2bdd1063364eb82d85c45ef45d61c876"
+    },
+    "error": null,
+    "fixture_seal_sha256": "428b475b4a6fe4ee783e117190a223d639e8d5e30488dffab9c2eee8d028c793",
+    "floor_bytes": 10871635968,
+    "gates": {
+      "actual_compile": {
+        "example": "original author example included and type-checked in bounded fixture with explicit horizon_client alias, not installed client library",
+        "native_crates": [
+          "horizon_client_core",
+          "horizon_items",
+          "horizon_world"
+        ],
+        "passed": true
+      },
+      "item_display_tests::": {
+        "names": [
+          "item_display_tests::construction_does_not_fabricate_an_item_name_patch",
+          "item_display_tests::custom_name_wins_and_preserves_explicit_italic",
+          "item_display_tests::item_name_is_resolved_again_without_mutating_the_component",
+          "item_display_tests::missing_key_and_explicit_fallback_are_native",
+          "item_display_tests::native_codec_keeps_translate_arguments_and_style",
+          "item_display_tests::standard_keys_use_current_then_english_fallback",
+          "item_display_tests::standard_paths_preserve_slashes_and_implicit_namespace",
+          "item_display_tests::styled_name_defers_unadorned_stack_to_current_default"
+        ],
+        "passed": true,
+        "tests": 8
+      },
+      "metadata": {
+        "packages": [
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/block-buffer-0.10.4/Cargo.toml",
+            "name": "block-buffer",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.5/Cargo.toml",
+            "name": "cfg-if",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/cobs-0.3.0/Cargo.toml",
+            "name": "cobs",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.2.17/Cargo.toml",
+            "name": "cpufeatures",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.2/Cargo.toml",
+            "name": "crc32fast",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/crypto-common-0.1.7/Cargo.toml",
+            "name": "crypto-common",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/digest-0.10.7/Cargo.toml",
+            "name": "digest",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-io-0.4.0/Cargo.toml",
+            "name": "embedded-io",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-io-0.6.1/Cargo.toml",
+            "name": "embedded-io",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/flate2-1.1.10/Cargo.toml",
+            "name": "flate2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/generic-array-0.14.7/Cargo.toml",
+            "name": "generic-array",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-client-core/Cargo.toml",
+            "name": "horizon-client-core",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-core/Cargo.toml",
+            "name": "horizon-core",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-items/Cargo.toml",
+            "name": "horizon-items",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-world/Cargo.toml",
+            "name": "horizon-world",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18/Cargo.toml",
+            "name": "itoa",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.190/Cargo.toml",
+            "name": "libc",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/libm-0.2.16/Cargo.toml",
+            "name": "libm",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.34/Cargo.toml",
+            "name": "log",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/lz4_flex-0.14.0/Cargo.toml",
+            "name": "lz4_flex",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3/Cargo.toml",
+            "name": "memchr",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/fixture/Cargo.toml",
+            "name": "pluto-item-display-language-tests",
+            "source": null
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/postcard-1.1.3/Cargo.toml",
+            "name": "postcard",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/Cargo.toml",
+            "name": "proc-macro2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/Cargo.toml",
+            "name": "quote",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/Cargo.toml",
+            "name": "serde",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.229/Cargo.toml",
+            "name": "serde_core",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/Cargo.toml",
+            "name": "serde_derive",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/Cargo.toml",
+            "name": "serde_json",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/sha2-0.10.9/Cargo.toml",
+            "name": "sha2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/syn-3.0.6/Cargo.toml",
+            "name": "syn",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.21/Cargo.toml",
+            "name": "thiserror",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-impl-2.0.21/Cargo.toml",
+            "name": "thiserror-impl",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1/Cargo.toml",
+            "name": "typenum",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.26/Cargo.toml",
+            "name": "unicode-ident",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/Cargo.toml",
+            "name": "version_check",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/xxhash-rust-0.8.19/Cargo.toml",
+            "name": "xxhash-rust",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zlib-rs-0.6.8/Cargo.toml",
+            "name": "zlib-rs",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          },
+          {
+            "manifest_path": "/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23/Cargo.toml",
+            "name": "zmij",
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+          }
+        ],
+        "passed": true
+      },
+      "pluto_language::tests::": {
+        "names": [
+          "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+          "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+          "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery",
+          "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+          "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+          "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+          "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+          "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority"
+        ],
+        "passed": true,
+        "tests": 8
+      },
+      "pluto_language_text::tests::": {
+        "names": [
+          "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+          "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+          "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+          "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+          "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+          "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+        ],
+        "passed": true,
+        "tests": 6
+      },
+      "runner": {
+        "passed": true,
+        "tests": 15
+      },
+      "source": {
+        "passed": true,
+        "tests": 25
+      }
+    },
+    "generated_output_seal_sha256": "2e0cccec72c5324ed5fe44c504d31bc7a7e1592914235ca20fa7f1186fd21bff",
+    "head": "0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5",
+    "minimum_free_bytes": 90025824256,
+    "official_seal_sha256": "3fd9eb59fd89d315f9db87792b584e7f727b9565b000b5814c8b289da83310a1",
+    "passed": true,
+    "scope": "Actual official Language/Text/ItemStack plus exact native Names/styled_name fragments. No installed Game, live GUI, pack/content overlay, LAN, retained-page refresh or general NBT losslessness claim.",
+    "source_seal_sha256": "b6dfaa9dbc7faf2dc6e90797b6c143590ed306b9ba413ba5ce0590c65f0b741d",
+    "verified": true
+  },
+  "terminal_lines": [
+    "TERMINAL runner-checks 0 seconds 0.202",
+    "TERMINAL source-checks 0 seconds 0.202",
+    "TERMINAL toolchain 0 seconds 8.423",
+    "TERMINAL official-init 0 seconds 0.202",
+    "TERMINAL official-origin 0 seconds 0.201",
+    "TERMINAL official-fetch 0 seconds 4.612",
+    "TERMINAL official-checkout 0 seconds 0.603",
+    "TERMINAL official-locked-fetch 0 seconds 4.613",
+    "TERMINAL prepare 0 seconds 0.402",
+    "TERMINAL metadata-resolve 0 seconds 0.202",
+    "TERMINAL verify-before 0 seconds 0.202",
+    "TERMINAL actual-native-compile 0 seconds 43.925",
+    "TERMINAL native22 0 seconds 0.202",
+    "TERMINAL verify-after 0 seconds 0.202"
+  ],
+  "summary_lines": [
+    "2026-11-06T07:31:28.2677597Z Ran 15 tests in 0.009s",
+    "2026-11-06T07:31:28.4733639Z Ran 25 tests in 0.014s",
+    "2026-11-06T07:32:32.8782839Z test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s"
+  ],
+  "actual_rustc_witnesses": [
+    "2026-11-06T07:32:32.7774829Z      Running `CARGO=/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=horizon_world CARGO_MANIFEST_DIR=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-world CARGO_MANIFEST_PATH=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-world/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='Horizon vanilla world data, NBT, regions and chunk storage' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE=MIT CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=horizon-world CARGO_PKG_README='' CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION=1.85 CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' HORIZON_WORLD_SOURCES=2685772eec2354d84cc074cb1618e291 LD_LIBRARY_PATH='/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps:/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/lib' OUT_DIR=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/build/horizon-world-081eff9c5be3aaca/out /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc --crate-name horizon_world --edition=2024 /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-world/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no '--allow=clippy::type_complexity' '--allow=clippy::too_many_arguments' '--allow=clippy::needless_range_loop' '--allow=clippy::large_enum_variant' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=ed7a1d564aabb0e3 -C extra-filename=-530338bd6420cf36 --out-dir /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps -C strip=debuginfo -L dependency=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps --extern flate2=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libflate2-98b1c77acc9ae368.rmeta --extern horizon_core=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_core-ebf2c98728712a7a.rmeta --extern libm=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/liblibm-1c646cea67553ce1.rmeta --extern log=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/liblog-d469efeb295841a8.rmeta --extern lz4_flex=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/liblz4_flex-435cdb3f527794b4.rmeta --extern postcard=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libpostcard-77f7a843959bdada.rmeta --extern serde=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde-9f435a7091261fa6.rmeta --extern serde_json=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde_json-3cadd5c7b3699d00.rmeta --extern sha2=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libsha2-9d87b6e18377fa7f.rmeta --extern xxhash_rust=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libxxhash_rust-0feabd3c6b5e9a1a.rmeta`",
+    "2026-11-06T07:32:32.7796594Z      Running `CARGO=/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=horizon_client_core CARGO_MANIFEST_DIR=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-client-core CARGO_MANIFEST_PATH=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-client-core/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='The client'\\''s lowest layer: chat text and translations, SNBT and NBT paths, the scoreboard, boss bars, game rules and the registry and particle tables commands name' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE=MIT CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=horizon-client-core CARGO_PKG_README='' CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION=1.90 CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' LD_LIBRARY_PATH='/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps:/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/lib' /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc --crate-name horizon_client_core --edition=2024 /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-client-core/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no '--allow=clippy::type_complexity' '--allow=clippy::too_many_arguments' '--allow=clippy::needless_range_loop' '--allow=clippy::large_enum_variant' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=57d73db307d0e772 -C extra-filename=-396f38393bfa25bf --out-dir /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps -C strip=debuginfo -L dependency=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps --extern horizon_world=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_world-530338bd6420cf36.rmeta --extern serde_json=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde_json-3cadd5c7b3699d00.rmeta`",
+    "2026-11-06T07:32:32.7815892Z      Running `CARGO=/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=horizon_items CARGO_MANIFEST_DIR=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-items CARGO_MANIFEST_PATH=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-items/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='Blocks and items as the client knows them: block facts, item stacks and their data components, enchantments, cooldowns, bundles, and items in NBT' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE=MIT CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=horizon-items CARGO_PKG_README='' CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION=1.90 CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' LD_LIBRARY_PATH='/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps:/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/lib' /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc --crate-name horizon_items --edition=2024 /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/official/crates/horizon-items/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no '--allow=clippy::type_complexity' '--allow=clippy::too_many_arguments' '--allow=clippy::needless_range_loop' '--allow=clippy::large_enum_variant' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values(\"test-support\"))' -C metadata=0ca58a16aeacd255 -C extra-filename=-ca75de986b1febc0 --out-dir /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps -C strip=debuginfo -L dependency=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps --extern horizon_client_core=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_client_core-396f38393bfa25bf.rmeta --extern horizon_core=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_core-ebf2c98728712a7a.rmeta --extern horizon_world=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_world-530338bd6420cf36.rmeta --extern log=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/liblog-d469efeb295841a8.rmeta --extern serde=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde-9f435a7091261fa6.rmeta --extern serde_json=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde_json-3cadd5c7b3699d00.rmeta`",
+    "2026-11-06T07:32:32.7834994Z      Running `CARGO=/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=pluto_item_display_language_tests CARGO_MANIFEST_DIR=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/fixture CARGO_MANIFEST_PATH=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/fixture/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE='' CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=pluto-item-display-language-tests CARGO_PKG_README='' CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION='' CARGO_PKG_VERSION=0.0.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=0 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' CARGO_PRIMARY_PACKAGE=1 LD_LIBRARY_PATH='/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps:/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/lib' /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc --crate-name pluto_item_display_language_tests --edition=2024 lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=f386315a74bf306c -C extra-filename=-d0d241fb65218846 --out-dir /home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps -C strip=debuginfo -L dependency=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps --extern horizon_client_core=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_client_core-396f38393bfa25bf.rlib --extern horizon_items=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_items-ca75de986b1febc0.rlib --extern horizon_world=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libhorizon_world-530338bd6420cf36.rlib --extern serde_json=/home/runner/work/_temp/pluto-i18n-0e4d68ea9c0d9cdecf07aed14daf5dacc57710c5/target/debug/deps/libserde_json-3cadd5c7b3699d00.rlib`"
+  ],
+  "not_proved": [
+    "Installed horizon-client or whole native package type/application",
+    "Live Game tooltip/window/UI rendering",
+    "Content default component propagation to every ItemStack construction",
+    "Full hmod admission or resource-pack/content overlay priority",
+    "Same-locale resource reload and held Guide page rebuild",
+    "LAN locale synchronization or delayed reply lifetime",
+    "Automatic translation of all mod UI",
+    "Arbitrary unknown NBT/Wire or invalid UTF-16 losslessness",
+    "GPU behavior or performance"
+  ],
+  "preparation_history": "First local input materialization changed bytes and was rejected by the hash regression before Cargo. Verbatim materialization and all Git blob identities were verified; 15 runner and 25 source checks then passed. The CI runtime source was not modified."
+}
