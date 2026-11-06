@@ -1,0 +1,29 @@
+{
+  "status": "source-only; Rust UNRUN",
+  "mod_revision": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "official_revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+  "source_sha256": {
+    "tconstruct/mixins/tconstruct/source-mining-rules.rs": "8d86384b9e443f3b2eae623888919ccfa1bd0813d89435eb8e467dd8edfbaee6",
+    "tconstruct/mixins/tconstruct/source-mining-math.rs": "eaf09275f5c7f11e30c6c05e7b03198e2b761f8e465b75b4f57f714874e1beef",
+    "tconstruct/mixins/tconstruct/source-pure-rules.rs": "694fd7c3f40a4613023d4ad459ecb85b52df4cc8334dd438e97db69a969e7ec6",
+    "pluto-lib/mixins/pluto_tool_rules/rules.rs": "9aa2c2d0643c7079baacdcc8da6af8e77b6d8aff659d05b481e71981f3f165b3",
+    "official/crates/horizon-client/src/game.rs": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+    "official/crates/horizon-client/src/game/hand.rs": "0502ba69f313eaa59cd941dfcdfac1372b355ef86acfe27e3ada46c5dbcd381f",
+    "official/crates/horizon-client/src/game/lan_actions.rs": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c"
+  },
+  "regression_sha256": "f50edbf5404d913f047be3cdaa4c0f128818f3384fe77de4cf058f66e7371beb",
+  "required_additional_tests": [
+    "normal_incoming_speed_is_the_base_not_a_recomputed_tool_speed",
+    "native_attribute_does_not_scale_the_source_flat_addition",
+    "source_environment_preserves_fatigue_water_ground_order",
+    "current_water_multiplier_and_previous_water_hydraulic_are_distinct",
+    "airborne_then_armor_follows_flat_bonus",
+    "broken_tool_preserves_incoming_before_independent_armor",
+    "malformed_tool_and_valid_ineffective_tool_remain_distinct",
+    "unavailable_broad_is_not_a_known_empty_tag",
+    "queried_position_changes_dwarven_policy_without_a_mining_cache",
+    "official_progress_keeps_harvest_division",
+    "zero_hardness_nan_is_caller_specific_not_normalized",
+    "official_nonfinite_and_negative_values_are_not_clamped"
+  ]
+}

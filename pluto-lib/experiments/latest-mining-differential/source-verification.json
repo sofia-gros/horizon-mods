@@ -1,0 +1,21 @@
+{
+  "source_only": true,
+  "runtime_status": "UNRUN",
+  "candidate_review": "6c0a3f64aec3a3c8f2a7798ea3e2da37cae9309f",
+  "pure_renderer_tests": 6,
+  "pure_renderer_result": "PASS",
+  "actual_input_render": "PASS; seven Rust source files rendered in memory, not compiled",
+  "source_hashes": {
+    "README.md": "3f587d48c3389480e57ff2c792e0657dd26ae5dec238a73fbcb040864fdc147e",
+    "implementation-review.md": "8aaa3cd00afc7096ab0ea0964d9400f80019b3002092973f7ad1ed4387a2052a",
+    "inputs.json": "005a7553a3c3511d8100f8f26348a8dfc68fda9b326df95eb07bb2202a559409",
+    "prepare_sources.py": "2107c823071ae16f68b0fe6908be633b863e5e47b3350e15ebc1b1b3a2cc214d",
+    "regression_tests.rs": "f50edbf5404d913f047be3cdaa4c0f128818f3384fe77de4cf058f66e7371beb",
+    "test_prepare.py": "b3f1a0920ffe1a1ab266538e213ce1d9567d324b36472aba3beefd00fcc55915"
+  },
+  "additional_rust_cases": 12,
+  "rust_tests_executed": false,
+  "cargo_metadata_executed": false,
+  "native_plan_or_apply_executed": false,
+  "independent_review": "Storage source-only review: no serious type/expectation mismatch; native-fragment-only nonfinite claim clarified; Rust unrun"
+}
