@@ -31,6 +31,29 @@ class Checks(unittest.TestCase):
             self.assertIn(token,s)
         for token in ['workflow_dispatch','pull_request:','actions/cache','upload-artifact','secrets.','self-hosted']:
             self.assertNotIn(token,s)
+    def test_official_allowlist_precedes_fetch(self):
+        import copy
+        c=m.config();m.validate_config(c)
+        for key,value in [('url','https://github.com/forbidden/engine.git'),('revision','0'*40)]:
+            bad=copy.deepcopy(c);bad['official']['horizon'][key]=value
+            with self.assertRaises(ValueError):m.validate_config(bad)
+        bad=copy.deepcopy(c);bad['official']['extra']=bad['official']['horizon']
+        with self.assertRaises(ValueError):m.validate_config(bad)
+        s=(HERE/'run.py').read_text()
+        self.assertLess(s.index('validate_config(c);verify_sources(c)'),s.index("runner.run(name+'-fetch'"))
+    def test_complete_seal_sees_ignored_files_and_link_target(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);(root/'source').write_text('original');(root/'link').symlink_to('source')
+            baseline=m.strict_seal(root)
+            self.assertEqual(baseline['link'],{'kind':'symlink','target':'source'})
+            (root/'.cargo').mkdir();extra=root/'.cargo/config.toml';extra.write_text('[build]')
+            with self.assertRaises(ValueError):m.assert_strict(root,baseline)
+            extra.unlink();(root/'link').unlink();(root/'link').symlink_to('other')
+            with self.assertRaises(ValueError):m.assert_strict(root,baseline)
+    def test_ignored_checkout_fails_admission(self):
+        with mock.patch.object(m.A,'git',return_value='!! .cargo/config.toml') as git:
+            with self.assertRaises(ValueError):m.assert_checkout()
+            self.assertIn('--ignored=matching',git.call_args.args)
     def test_frozen_inputs_and_inherited_runner(self):
         c=m.config();m.verify_sources(c)
         self.assertEqual(c['bundle_sha256'],'cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76')
@@ -95,9 +118,9 @@ class Checks(unittest.TestCase):
         self.assertLess(s.index("generated=A.out_dirs"),s.index("runner.run('native-material2'"))
     def test_guards_setup_and_final_seals_order(self):
         s=(HERE/'run.py').read_text()
-        self.assertLess(s.index("runner.run('runner12'"),s.index("runner.run('apt-update'"))
+        self.assertLess(s.index("runner.run('runner15'"),s.index("runner.run('apt-update'"))
         self.assertLess(s.index("runner.run('all12guards'"),s.index("runner.run('official-apply'"))
         self.assertLess(s.index("runner.run('fixture-plan-guard'"),s.index("runner.run('official-apply'"))
-        for token in ['A.assert_clean_checkout()','runner.guard(reserve=2*1024**3)',"A.out_dirs(work/'host-target')!=generated","'--verify'",'A.assert_seal(ROOT,before,True)']:
+        for token in ['assert_checkout()','runner.guard(reserve=2*1024**3)',"A.out_dirs(work/'host-target')!=generated","'--verify'",'assert_strict(ROOT,before)']:
             self.assertIn(token,s)
 if __name__=='__main__':unittest.main()

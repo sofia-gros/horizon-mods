@@ -13,7 +13,7 @@ setup and outputs use the prior successful filesystem/PGID guard, jobs1,
 debug0/incremental0, a 10GiB+128MiB floor and extra2GiB before setup. This is a
 GitHub-hosted runner route, not permission to use the memory-limited local host.
 
-Required gates: twelve new and twenty inherited runner checks;23 production
+Required gates: fifteen new and twenty inherited runner checks;23 production
 source checks;12 excluded-fixture checks; exact official export; exact ordinary
 archive; prepare; complete plan; all12 ordinary guards; additional one-module
 guard; official apply; actual host lib/bin type checks; actual renderer unit-test
@@ -42,3 +42,8 @@ Timing is unoptimized original-synthetic CPU mesh timing, not a production
 threshold or an optimized-game performance claim. GPU rendering, real resource
 packs, gameplay, fluid simulation and TConstruct registration/activation remain
 outside this job. A complete test success cannot close those separate tasks.
+
+The new runner additionally seals every source file and symlink target without
+following links, including ignored files, rejects ignored checkout additions,
+and validates constant official URL/revision/lock and production identifiers
+before any fetch. The imported successful runner remains byte-identical.

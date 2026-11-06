@@ -20,12 +20,44 @@ A=importlib.util.module_from_spec(spec);spec.loader.exec_module(A)
 FLOOR=A.FLOOR
 TEST='mesher::pluto_terrain_material_cpu::tests::real_native_mesh_differential_and_timing'
 PROFILE='test; opt-level=0; debug=0; incremental=0'
-RUNNER_TEST_COUNT=12
-REQUIRED_GATES={'runner12','inherited_runner20','source23','fixture_source12','official_sources',
+RUNNER_TEST_COUNT=15
+REQUIRED_GATES={'runner15','inherited_runner20','source23','fixture_source12','official_sources',
     'production_package','prepare','plan','complete_plan_guards','fixture_plan_guard','apply',
     'host_lib_bin_type','renderer_compile','native_material2','cpu_no_provider','cpu_registered'}
 TARGETS={'pluto_api','pluto_inventory','horizon_client_render','horizon_client_lib','horizon_client'}
 def config():return json.loads((HERE/'inputs.json').read_text())
+def validate_config(c):
+    expected={'horizon':{'url':'https://github.com/horizon-rust/horizon.git',
+        'revision':'624c4f6265c02296fbe8a80f029dd0d987fb94c0'},
+        'mixins':{'url':'https://github.com/horizon-rust/horizon-mixins.git',
+        'revision':'e8cd0aa38cffef49cb2e088ef716baa107148c02'}}
+    if (c['repository']!='sofia-gros/horizon-mods' or
+        c['branch']!='checkpoint/plutolib-terrain-material-cpu-ci-20261106' or c['official']!=expected or
+        c['official_lock_sha256']!='463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31' or
+        c['production_head']!='43f174273cd5f1b9cf3acd1d26abab8838025510' or
+        c['bundle_sha256']!='cd6de18cacbe7c40218ec817671bf3842aef3be0d586c613bb788babafbd3a76'):
+        raise ValueError('Require exact official repositories, revisions and production cutoff')
+
+def strict_seal(root):
+    # Include ignored/untracked input files. Do not follow source symlinks.
+    import stat
+    result={}
+    for path in sorted(root.rglob('*')):
+        relative=path.relative_to(root)
+        if relative.parts[0]=='.git':continue
+        info=path.lstat();mode=info.st_mode
+        if stat.S_ISDIR(mode):continue
+        if stat.S_ISREG(mode):result[str(relative)]={'kind':'file','sha256':A.sha(path.read_bytes()),'mode':stat.S_IMODE(mode)}
+        elif stat.S_ISLNK(mode):result[str(relative)]={'kind':'symlink','target':os.readlink(path)}
+        else:raise ValueError('Special source node: '+str(path))
+    return result
+
+def assert_strict(root,expected):
+    if strict_seal(root)!=expected:raise ValueError('Complete source/file/link drift: '+str(root))
+def assert_checkout():
+    if A.git(ROOT,'status','--porcelain','--untracked-files=all','--ignored=matching'):
+        raise ValueError('Dirty, untracked or ignored checkout')
+
 def compiler_records(log):
     records=[]
     for line in log.splitlines():
@@ -142,13 +174,13 @@ def verify_sources(c):
         if A.sha((ROOT/path).read_bytes())!=digest:raise ValueError('Frozen input changed: '+path)
 
 def execute(report):
-    c=config();verify_sources(c)
+    c=config();validate_config(c);verify_sources(c)
     event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
     if (os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('GITHUB_REPOSITORY')!=c['repository'] or
         os.environ.get('GITHUB_EVENT_NAME')!='push' or os.environ.get('GITHUB_REF')!='refs/heads/'+c['branch'] or
         event.get('repository',{}).get('private') is not False or A.git(ROOT,'rev-parse','HEAD')!=os.environ.get('GITHUB_SHA')):
         raise ValueError('Only the exact authorized public push branch is supported')
-    A.assert_clean_checkout();before=A.seal(ROOT,True)
+    assert_checkout();before=strict_seal(ROOT)
     work=Path(os.environ['RUNNER_TEMP'])/('terrain-material-cpu-'+os.environ['GITHUB_SHA'])
     env=os.environ.copy()
     for k in ['RUSTFLAGS','CARGO_ENCODED_RUSTFLAGS','RUSTC_WRAPPER','RUSTC_WORKSPACE_WRAPPER']:env.pop(k,None)
@@ -159,7 +191,7 @@ def execute(report):
     work.mkdir();Path(env['CARGO_HOME']).mkdir();Path(env['TMPDIR']).mkdir()
     runner=Runner(work,env,report);g=report['gates'];seals={};generated=None;binary=None;binary_hash=None
     try:
-        out=runner.run('runner12',[sys.executable,str(HERE/'test_runner.py'),'-v']);A.validate_python_checks(out,12);g['runner12']='passed'
+        out=runner.run('runner15',[sys.executable,str(HERE/'test_runner.py'),'-v']);A.validate_python_checks(out,15);g['runner15']='passed'
         out=runner.run('inherited-runner20',[sys.executable,str(HERE.parent/'terrain-author-ci/test_runner.py'),'-v']);A.validate_python_checks(out,20);g['inherited_runner20']='passed'
         runner.guard(reserve=2*1024**3)
         runner.run('apt-update',['sudo','apt-get','update'],timeout=600)
@@ -175,7 +207,7 @@ def execute(report):
             if A.git(checkout,'rev-parse','HEAD')!=info['revision'] or A.git(checkout,'remote','get-url','origin')!=info['url'] or A.git(checkout,'status','--porcelain','--untracked-files=all'):
                 raise ValueError('Official source identity mismatch')
             runner.run(name+'-export',[sys.executable,str(HERE/'run.py'),'--export',str(checkout),info['revision'],str(original)])
-            seals[str(original)]=A.seal(original)
+            seals[str(original)]=strict_seal(original)
         official=work/'horizon';mixins=work/'mixins'
         if A.sha((official/'Cargo.lock').read_bytes())!=c['official_lock_sha256']:raise ValueError('Official lock changed')
         g['official_sources']='passed';env['PLUTO_OFFICIAL_SOURCE']=str(official)
@@ -186,16 +218,16 @@ def execute(report):
         if A.sha(bundle.read_bytes())!=c['bundle_sha256']:raise ValueError('Exact 43f production archive changed')
         g['production_package']='passed'
         runner.run('prepare',[sys.executable,str(FIXTURE/'prepare.py'),'--official',str(official),'--bundle',str(bundle),'--output',str(overlay)])
-        seals[str(overlay)]=A.seal(overlay);g['prepare']='passed'
+        seals[str(overlay)]=strict_seal(overlay);g['prepare']='passed'
         plan=work/'plan.json';stage=work/'stage'
         runner.run('official-plan',[str(cli),'plan','--workspace',str(official),'--mods',str(overlay/'mods'),'--out',str(plan)]);g['plan']='passed'
         runner.run('all12guards',[sys.executable,str(ROOT/'pluto-lib/tools/check_native_plan.py'),str(plan),str(official)]);g['complete_plan_guards']='passed'
         runner.run('fixture-plan-guard',[sys.executable,str(FIXTURE/'check_plan.py'),str(overlay),str(plan)]);g['fixture_plan_guard']='passed'
         runner.run('official-apply',[str(cli),'apply','--workspace',str(official),'--mods',str(overlay/'mods'),'--out',str(stage)])
-        seals[str(stage)]=A.seal(stage);g['apply']='passed'
+        seals[str(stage)]=strict_seal(stage);g['apply']='passed'
         runner.run('locked-fetch',['cargo','fetch','--locked','--manifest-path',str(stage/'Cargo.toml')])
         checked=runner.run('host-type',['cargo','check','--offline','--locked','--manifest-path',str(stage/'Cargo.toml'),'-p','horizon-client','--no-default-features','--lib','--bin','horizon-client','-vv'],cwd=stage)
-        A.native_host_checks(checked);A.assert_seal(stage,seals[str(stage)]);g['host_lib_bin_type']='passed'
+        A.native_host_checks(checked);assert_strict(stage,seals[str(stage)]);g['host_lib_bin_type']='passed'
         built=runner.run('renderer-compile',['cargo','test','--offline','--locked','--manifest-path',str(stage/'Cargo.toml'),'-p','horizon-client-render','--no-default-features','--lib','--no-run','--message-format=json-render-diagnostics','-vv'],cwd=stage)
         A.native_test_compilation(built,'horizon_client_render','src/lib.rs')
         binary=artifact(built,stage,work/'host-target');binary_hash=A.sha(binary.read_bytes());g['renderer_compile']='passed'
@@ -203,21 +235,21 @@ def execute(report):
         out=runner.run('native-material2',[str(binary),c['native_filter'],'--show-output','--test-threads=1'],cwd=stage)
         A.validate_tests(out,c['native_tests']);g['native_material2']='passed'
         for mode in ['no-provider','registered']:
-            for path,seal in seals.items():A.assert_seal(Path(path),seal)
+            for path,seal in seals.items():assert_strict(Path(path),seal)
             if A.out_dirs(work/'host-target')!=generated or A.sha(binary.read_bytes())!=binary_hash:raise ValueError('Pre-execution generated/binary drift')
             env.update(PLUTO_TERRAIN_FIXTURE_RESOURCES=str(overlay/'resources'),PLUTO_TERRAIN_FIXTURE_MODE=mode,
                 PLUTO_TERRAIN_PROFILE_LABEL=PROFILE,PLUTO_TERRAIN_TIMING_ITERS='64')
             out=runner.run('cpu-'+mode,[str(binary),TEST,'--exact','--show-output','--test-threads=1'],cwd=stage,timeout=900)
             report['cpu'][mode]=validate_cpu(out,mode)
             runner.run('verify-'+mode,[sys.executable,str(FIXTURE/'prepare.py'),'--output',str(overlay),'--verify'])
-            for path,seal in seals.items():A.assert_seal(Path(path),seal)
+            for path,seal in seals.items():assert_strict(Path(path),seal)
             if A.out_dirs(work/'host-target')!=generated or A.sha(binary.read_bytes())!=binary_hash:raise ValueError('Post-execution generated/binary drift')
             g['cpu_'+mode.replace('-','_')]='passed'
     except BaseException as exc:A.record_error(report,exc)
     finally:
         try:
-            A.assert_seal(ROOT,before,True);A.assert_clean_checkout();verify_sources(c)
-            for path,seal in seals.items():A.assert_seal(Path(path),seal)
+            assert_strict(ROOT,before);assert_checkout();verify_sources(c)
+            for path,seal in seals.items():assert_strict(Path(path),seal)
             if generated is not None and A.out_dirs(work/'host-target')!=generated:raise ValueError('Final generated-input drift')
             if binary is not None and A.sha(binary.read_bytes())!=binary_hash:raise ValueError('Final executable drift')
             runner.guard();report['verified']=True
