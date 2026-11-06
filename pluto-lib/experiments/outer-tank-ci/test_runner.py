@@ -16,7 +16,102 @@ def module(name,path):
 m=module('outer_ci',HERE/'run.py')
 gate=module('outer_rustc_gate',HERE/'rustc_gate.py')
 
+@contextlib.contextmanager
+def memory_tree():
+    # Synthetic files test the parser/decision, not actual kernel behavior.
+    with tempfile.TemporaryDirectory() as tmp:
+        base=Path(tmp);proc=base/'proc';root=base/'cgroup';(proc/'self').mkdir(parents=True)
+        leaf=root/'system.slice'/'runner.service';leaf.mkdir(parents=True)
+        device=leaf.stat().st_dev
+        (proc/'meminfo').write_text('MemTotal: 16777216 kB\nMemAvailable: 12582912 kB\n')
+        (proc/'self/cgroup').write_text('0::/system.slice/runner.service\n')
+        (proc/'self/mountinfo').write_text(f'1 0 {os.major(device)}:{os.minor(device)} / {root} rw - cgroup2 cgroup rw\n')
+        (root/'cgroup.controllers').write_text('cpu memory pids\n')
+        for p in [root/'system.slice',leaf]:
+            for name,value in {'cgroup.type':'domain','cgroup.events':'populated 1\nfrozen 0','memory.max':'max','memory.current':'1024'}.items():
+                (p/name).write_text(value+'\n')
+        yield proc,root,leaf
+
 class Tests(unittest.TestCase):
+    def test_actual_root_omissions_allow_host_bound_without_new_limit(self):
+        with memory_tree() as (proc,root,leaf):
+            self.assertEqual(m.memory_hierarchy(proc,root),[(None,1024),(None,1024)])
+            self.assertEqual(m.check_memory(2*1024**3,proc,root),12*1024**3)
+
+    def test_namespace_root_with_core_files_is_not_unlimited(self):
+        for name in ['cgroup.events','cgroup.type','memory.max','memory.current']:
+            with memory_tree() as (proc,root,leaf):
+                (root/name).write_text('max\n')
+                with self.assertRaisesRegex(ValueError,'actual hierarchy root'):
+                    m.check_memory(1,proc,root)
+
+    def test_every_nonroot_limit_is_applied_and_low_limit_rejects(self):
+        with memory_tree() as (proc,root,leaf):
+            (leaf/'memory.max').write_text(str(10*1024**3));(leaf/'memory.current').write_text(str(1024**3))
+            parent=leaf.parent;(parent/'memory.max').write_text(str(8*1024**3));(parent/'memory.current').write_text(str(3*1024**3))
+            self.assertEqual(m.check_memory(1,proc,root),5*1024**3)
+            (parent/'memory.max').write_text(str(4*1024**3))
+            with self.assertRaises(RuntimeError):m.check_memory(1,proc,root)
+
+    def test_root_permission_error_is_not_missing(self):
+        with memory_tree() as (proc,root,leaf):
+            original=Path.lstat
+            def limited(path):
+                if path==root/'memory.max':raise PermissionError('masked')
+                return original(path)
+            with mock.patch.object(Path,'lstat',limited),self.assertRaises(PermissionError):
+                m.check_memory(1,proc,root)
+
+    def test_missing_nonroot_or_disabled_controller_rejects(self):
+        for name in ['memory.max','memory.current','cgroup.events','cgroup.type']:
+            with memory_tree() as (proc,root,leaf):
+                (leaf/name).unlink()
+                with self.assertRaises(FileNotFoundError):m.check_memory(1,proc,root)
+        with memory_tree() as (proc,root,leaf):
+            (root/'cgroup.controllers').write_text('cpu pids')
+            with self.assertRaises(ValueError):m.check_memory(1,proc,root)
+
+    def test_mount_root_alias_nested_mask_and_device_mismatch_reject(self):
+        with memory_tree() as (proc,root,leaf):
+            p=proc/'self/mountinfo';original=p.read_text()
+            for bad in [original.replace(' / ',' /delegated ',1),original+original,
+                        original+f'2 1 0:1 / {root}/memory.max rw - tmpfs tmpfs rw\n',
+                        original.replace(' cgroup2 ',' tmpfs '),
+                        original.replace(original.split()[2],'999:999',1)]:
+                p.write_text(bad)
+                with self.assertRaises(ValueError):m.check_memory(1,proc,root)
+
+    def test_symlink_path_or_control_file_is_rejected(self):
+        with memory_tree() as (proc,root,leaf):
+            file=leaf/'memory.max';file.unlink();file.symlink_to(leaf.parent/'memory.max')
+            with self.assertRaises(ValueError):m.check_memory(1,proc,root)
+        with memory_tree() as (proc,root,leaf):
+            alias=root.parent/'alias';alias.symlink_to(root)
+            with self.assertRaises(ValueError):m.check_memory(1,proc,alias)
+
+    def test_malformed_or_escaping_membership_and_limit_reject(self):
+        with memory_tree() as (proc,root,leaf):
+            p=proc/'self/cgroup';original=p.read_text()
+            for bad in ['0::/../runner\n','0::/system.slice//runner.service\n',original+'1:memory:/\n','0::relative\n']:
+                p.write_text(bad)
+                with self.assertRaises(ValueError):m.check_memory(1,proc,root)
+            p.write_text(original)
+            for bad in ['-1','unknown','1.5']:
+                (leaf/'memory.max').write_text(bad)
+                with self.assertRaises(ValueError):m.check_memory(1,proc,root)
+
+    def test_membership_change_during_read_rejects(self):
+        with memory_tree() as (proc,root,leaf):
+            original=Path.read_text;reads=[]
+            def changing(path,*args,**kw):
+                value=original(path,*args,**kw)
+                if path==proc/'self/cgroup':
+                    reads.append(1)
+                    if len(reads)>1:return '0::/other\n'
+                return value
+            with mock.patch.object(Path,'read_text',changing),self.assertRaisesRegex(ValueError,'topology changed'):
+                m.check_memory(1,proc,root)
+
     def test_frozen_configuration_and_complete_api(self):
         c=m.read_inputs()
         self.assertEqual(c['source_revision'],'794a0c526ca0a96d0ca9c9ff40010611b5968a89')

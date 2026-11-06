@@ -99,8 +99,8 @@ ancestor's memory/controller/events/type fields. Missing facts remain explicit
 errors. This is diagnostic evidence, not a guard exception: a true hierarchy
 root may lack memory.max/current, but hidden/delegated ancestors cannot be
 assumed unlimited. The first CI attempt must stop before native setup
-with a false receipt and these observations. No exception is implemented without
-separately reviewing actual runner topology.
+with a false receipt and these observations. The initial diagnostic checkpoint contained no root exception. The prepared
+source-only guard below still needs separate review before native admission.
 
 The native driver below this entry point is retained draft source only; it has
 no call site and cannot be selected by CLI/config/environment. A readable
@@ -109,3 +109,13 @@ memory.max says max, so the old visible-limit loop is not sufficient approval.
 Actual topology observations and a separately reviewed new cutoff are required
 before enabling any native path. Expected 160-case instructions above describe
 that later proposed proof, not this diagnostic execution.
+
+## Prepared real-root guard, still diagnostic-only
+
+The [source-only root analysis](../../docs/outer-tank-memory-root-20261106.md)
+binds the narrow missing-root-files exception to Linux's actual-parent file
+creation rule. Its 26 pure Python regressions pass, including namespace roots,
+permission failures, mount/device masking, symlinks and ancestor limits. It
+does not enable the native draft or apply any cgroup/systemd setting. The
+earlier diagnostic observation is not retroactively sufficient for its new
+mount/device checks. A separate reviewed execution decision is still required.
