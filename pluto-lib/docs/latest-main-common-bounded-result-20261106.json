@@ -1,0 +1,1309 @@
+{
+  "schema": 1,
+  "status": "diagnostic complete; official plan rejected; compatibility false",
+  "run": {
+    "id": 42204940940,
+    "job_id": 127849104018,
+    "head": "ada5a94348885cec83cce94461f9d51d6dff05c7",
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42204940940",
+    "conclusion": "success",
+    "created_at": "2026-11-06T10:44:18Z",
+    "updated_at": "2026-11-06T10:57:02Z"
+  },
+  "prior_timeout_proof": "ac311972dfb0bce806e35bb2dc209a059a52871f",
+  "final_receipt": {
+    "artifact_seals": {
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/plutolib.hnmod": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/tconstruct.hnmod": "8178b440266664d3db4dd9784af02894ebdb29910b0dd8f13504b2d341cf8f42"
+    },
+    "compatibility": false,
+    "diagnostic_complete": true,
+    "error": null,
+    "gates": {
+      "cli_compile": {
+        "binary_sha256": "a5bf3ea4153161552b67ec96e6520c8f5d9c767e6081ea5d74defdbc31583bbd",
+        "passed": true,
+        "scope": "official tool only; no Game or consumer build",
+        "witness": {
+          "crate": "horizon_mixins",
+          "invocation_sha256": "443722061da6056b0d39f0a2ce381cfa7426e32fdb2fec46ed85f33ad99eea47",
+          "source": [
+            "crates/horizon-mixins-cli/src/main.rs"
+          ]
+        }
+      },
+      "combined_payload": {
+        "headers": [
+          {
+            "game": "26.3",
+            "horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+            "id": "tconstruct_native",
+            "mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+            "schema": 1,
+            "version": "0.5.0"
+          },
+          {
+            "game": "26.3",
+            "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+            "id": "pluto_native_creative",
+            "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+            "schema": 1,
+            "version": "0.1.0"
+          }
+        ],
+        "members": 644,
+        "members_seal_sha256": "64da0c8d80bf83249747ee5267a7ac8cb393ea9cb5ce3b31c16cb2c1e9e9306c",
+        "passed": true
+      },
+      "common_bundle": {
+        "bytes": 270125,
+        "passed": true,
+        "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d"
+      },
+      "fixed_checkouts": {
+        "contract_sources": [
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon",
+            "sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon",
+            "sha256": "53e109ad5f888db5f8bf72bd7697f38f64924c50d94c144c0f677f374da7b640"
+          },
+          {
+            "path": "Cargo.lock",
+            "repo": "horizon-mixins",
+            "sha256": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca"
+          },
+          {
+            "path": "Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "256bc8a56d26fed98ac03b70dafd3be915b530bd5d832f5aba49d47091e13197"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/Cargo.toml",
+            "repo": "horizon-mixins",
+            "sha256": "b9a216e63f51edbce7f630d217e9c79b3b88645695de9c8d4a770b1c5e70ea6e"
+          },
+          {
+            "path": "crates/horizon-mixins-cli/src/main.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c051512984c7e19a53c45a90a551f620754194abb6bb285b60e3ac4322169678"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/index.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c9ddfb2233bebb472d8d548a4756785a5ca526f3d3ef4a2824fd6fb039ce4711"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/manifest.rs",
+            "repo": "horizon-mixins",
+            "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/diagnostic.rs",
+            "repo": "horizon-mixins",
+            "sha256": "c98c165c5bdaeb52421e1737ab888164c4dc17634bbf2ddfdaa5ea7a64929068"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/plan.rs",
+            "repo": "horizon-mixins",
+            "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db"
+          },
+          {
+            "path": "crates/horizon-mixins-core/src/native.rs",
+            "repo": "horizon-mixins",
+            "sha256": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85"
+          }
+        ],
+        "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+        "official": {
+          "horizon": {
+            "lock": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+            "revision": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+            "url": "https://github.com/horizon-rust/horizon.git"
+          },
+          "mixins": {
+            "lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+            "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+            "url": "https://github.com/horizon-rust/horizon-mixins.git"
+          }
+        },
+        "passed": true
+      },
+      "main_bundle": {
+        "bytes": 8171156,
+        "header": {
+          "game": "26.3",
+          "horizon": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa",
+          "id": "tconstruct_native",
+          "mixins": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
+          "schema": 1,
+          "version": "0.5.0"
+        },
+        "members": 499,
+        "passed": true,
+        "sha256": "8178b440266664d3db4dd9784af02894ebdb29910b0dd8f13504b2d341cf8f42",
+        "support_members": 4662
+      },
+      "memory_admission": {
+        "admission_available_minimum": 2147483648,
+        "available_bytes": 15774744576,
+        "capacity_minimum": 6442450944,
+        "passed": true
+      },
+      "plan_diagnostic": {
+        "accepted": false,
+        "diagnostic": {
+          "code": "E_LOCAL_NOT_FOUND",
+          "file": "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/revision-only-candidate/tconstruct_native/horizon-mixin.toml",
+          "injection_id": "source-host-mining-context",
+          "message": "no local declaration speed:0",
+          "mod_id": "tconstruct_native",
+          "target": "horizon_client::game::Game<'_>::tick_mining"
+        },
+        "passed": true,
+        "tool_calls": [
+          {
+            "allowed": true,
+            "argv": [
+              "metadata",
+              "--format-version",
+              "1",
+              "--no-deps",
+              "--manifest-path",
+              "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/horizon/Cargo.toml",
+              "--offline",
+              "--locked"
+            ],
+            "kind": "cargo",
+            "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+          }
+        ]
+      },
+      "revision_only_candidate": {
+        "actual_horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+        "actual_mixins_tool": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+        "candidate_members_sha256": "692fa172e45e00dcddf62d201c6dbf206702f16e8b06a7109c8e6b6c13f0c125",
+        "change_count": 2,
+        "changed_paths": [
+          "pluto_native_creative/horizon-mixin.toml",
+          "tconstruct_native/horizon-mixin.toml"
+        ],
+        "changes": [
+          {
+            "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\"",
+            "after_sha256": "5fc01ef8d392bb0b38c6f7d1ee8bca5ba115ca57e8cd0193c104a495c2c9cfe6",
+            "before_line": "horizon_revision = \"0c7b5b61a5e746d621afffba919b12aeccf9c0fa\"",
+            "before_sha256": "12bca61e376746756ed52c2785750a27d144dc7379f48088b7ffcff249185865",
+            "bytes": 189162,
+            "path": "tconstruct_native/horizon-mixin.toml",
+            "prior": "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+          },
+          {
+            "after_line": "horizon_revision = \"f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd\"",
+            "after_sha256": "19887c15e3a8a9a2b9ac2e5f6c8042004f46a0ad53628cb7fa142be5fe829110",
+            "before_line": "horizon_revision = \"624c4f6265c02296fbe8a80f029dd0d987fb94c0\"",
+            "before_sha256": "f63dbc76fefa30c84d4ae8dbce844dd9fdb0465de48f2912a4d0dd2bcd91da91",
+            "bytes": 29905,
+            "path": "pluto_native_creative/horizon-mixin.toml",
+            "prior": "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+          }
+        ],
+        "header_policy": "Original hnmod headers remain unchanged; only two unpacked manifest horizon_revision fields change. This is a diagnostic candidate, not a repaired package.",
+        "inverse_matches_original": true,
+        "original_members_sha256": "64da0c8d80bf83249747ee5267a7ac8cb393ea9cb5ce3b31c16cb2c1e9e9306c",
+        "passed": true,
+        "unchanged_members": 642
+      },
+      "runner": {
+        "passed": true,
+        "tests": 40
+      }
+    },
+    "head": "ada5a94348885cec83cce94461f9d51d6dff05c7",
+    "input_seals": {
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/combined-original": "250b472db0035c649b7780f02a1e9938578c4b92ea4de1a7c8f1181f19d84bfc",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/horizon": "333ac5fce63c1028a1db26f9968e6e4eeced64ca89557a0d6fa65827948d46ed",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/horizon-git": "d38e336ef123cf4e6c8f33961b3438bf83ade7fbf849df890de3d32f0b2a1a7b",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/main-git": "9560780af3936c864ea4c80c44fa0aee0b710e7238475e48dc1bb7f33fe6c1e4",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/metadata-only": "c30054901b883bd6e34295683e8c577e58145c2936274084385dde3523b8acd0",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/mixins-git": "69dcea38dfa0e9e77ac0228d9ee5727a95fdaa7b1c175624263549bcb25d368e",
+      "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/revision-only-candidate": "ef41b6bf96d39c4c7fc117fc15cce5c6c67a86d082e58dd19bc544a8f47b1ce4"
+    },
+    "memory_observation": {
+      "admission": "not determined by this observation; guard remains independent",
+      "cgroup2_mounts": [
+        {
+          "filesystem": "cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot",
+          "mount_point": "/sys/fs/cgroup",
+          "options": "rw,nosuid,nodev,noexec,relatime",
+          "root": "/"
+        }
+      ],
+      "host_memory": {
+        "MemAvailable": "15405024 kB",
+        "MemTotal": "16367524 kB"
+      },
+      "self_cgroup": {
+        "text": "0::/system.slice/hosted-compute-agent.service\n"
+      },
+      "visible_ancestors": [
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "503377920\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory pids\n"
+            },
+            "cgroup.events": {
+              "text": "populated 1\nfrozen 0\n"
+            },
+            "cgroup.type": {
+              "text": "domain\n"
+            },
+            "memory.current": {
+              "text": "1341898752\n"
+            },
+            "memory.max": {
+              "text": "max\n"
+            }
+          },
+          "path": "/sys/fs/cgroup/system.slice"
+        },
+        {
+          "facts": {
+            "cgroup.controllers": {
+              "text": "cpuset cpu io memory hugetlb pids rdma misc dmem\n"
+            },
+            "cgroup.events": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.events'"
+            },
+            "cgroup.type": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/cgroup.type'"
+            },
+            "memory.current": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.current'"
+            },
+            "memory.max": {
+              "error": "FileNotFoundError: [Errno 2] No such file or directory: '/sys/fs/cgroup/memory.max'"
+            }
+          },
+          "path": "/sys/fs/cgroup"
+        }
+      ]
+    },
+    "minimum_free_bytes": 90522918912,
+    "minimum_memory_bytes": 13539319808,
+    "phases": [
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "runner-checks",
+        "raw_bytes": 4713,
+        "raw_sha256": "88ce538df112196c6334573cdd4144937cf24ab32d01682e28238ebae9f7e1d3",
+        "seconds": 0.608
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "toolchain",
+        "raw_bytes": 257,
+        "raw_sha256": "ee64f19b4373f6976291fe72f1b7353709216f4941b0da82ee33f70608e8efea",
+        "seconds": 8.475
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-init",
+        "raw_bytes": 729,
+        "raw_sha256": "12be3903dc7393ff2a965639077dacbf13020a5050b83f70ba42b060a0000d2f",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-fetch",
+        "raw_bytes": 121,
+        "raw_sha256": "7601557410c57d458bbd442168caeba2d8193fd19ac46674ea7cb68045f1392a",
+        "seconds": 4.236
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-checkout",
+        "raw_bytes": 84,
+        "raw_sha256": "73a7bd9d83cdef3fb418bdf15b2ab763750657c07d7398f7563ce569bceaa13b",
+        "seconds": 0.607
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-init",
+        "raw_bytes": 728,
+        "raw_sha256": "b7d7b99351fa34ed08b689ce0ae6903f00796ba43ff45cd796930ce6ef49574b",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-fetch",
+        "raw_bytes": 128,
+        "raw_sha256": "dfee60e40af6ff135f7c3836d1ea7e89e4898a38a8faee2271fa187e3be8d541",
+        "seconds": 0.406
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "mixins-checkout",
+        "raw_bytes": 103,
+        "raw_sha256": "e106eef2c7d4f4338f2e87d284e27f59cfc8fbcfc856b961e6f357e5c702f983",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-init",
+        "raw_bytes": 726,
+        "raw_sha256": "fb026f3d3ab360be795e4e915f61ae6b902628a6c9a8672aa23761e96fda926f",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-origin",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-fetch",
+        "raw_bytes": 124,
+        "raw_sha256": "8b12e295488b644311130f0dff560978c333210bc0215f6ea288efb49f33a449",
+        "seconds": 1.415
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-checkout",
+        "raw_bytes": 88,
+        "raw_sha256": "f0f08f7a30899d14c11f756b46b68382a2f4f6ece9e6ce2f638d5e87baf3c990",
+        "seconds": 0.609
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "horizon-export",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.618
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-locked-fetch",
+        "raw_bytes": 2175,
+        "raw_sha256": "d5b985c179f3d40cfc58e667ee580ca40057d1ddb615d2aa2c9c6a4cb30f7609",
+        "seconds": 1.414
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cli-cold-build",
+        "raw_bytes": 295229,
+        "raw_sha256": "ed48ff4e9741fdf01efbfeffef36941b780db654fe2aad32857b815bf7601b9b",
+        "seconds": 145.922
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "main-package",
+        "raw_bytes": 0,
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 1.216
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "common-package",
+        "raw_bytes": 110,
+        "raw_sha256": "f8772b92cc4f30caa1f21841634123aef711c73140ae3366b83892e6cdd3891c",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "cargo-path",
+        "raw_bytes": 74,
+        "raw_sha256": "e833df172c51ec79bd1a9df3ca709f9231fdae57b7cc7107f0dbc7edea36d494",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": null,
+        "exit_code": 0,
+        "name": "rustc-path",
+        "raw_bytes": 74,
+        "raw_sha256": "d0193700af7f567877ce9dbc20f915552972e146926733da26ae3fe0e363efcc",
+        "seconds": 0.204
+      },
+      {
+        "compilers": [],
+        "error": "RuntimeError: official-plan exited 1",
+        "exit_code": 1,
+        "name": "official-plan",
+        "raw_bytes": 382,
+        "raw_sha256": "ab683524776074c3aa7634b686e099909c8e044521e6e2e8f7dca63119bf4789",
+        "seconds": 575.217
+      }
+    ],
+    "plan_accepted": false,
+    "plan_cpu_observation": {
+      "cli_exit_code": 1,
+      "complete": true,
+      "observer_exit_code": 1,
+      "present": true,
+      "raw_bytes": 10376,
+      "raw_sha256": "7c28aee9676cad27d53382b66c3431371c378cfd9a249953b0bba8d9300a14e7",
+      "records": [
+        {
+          "kind": "start",
+          "owner_pid": 4214,
+          "pgid": 4214,
+          "pid": 4215,
+          "session": 4214,
+          "start_ticks": 26103,
+          "ticks_per_second": 100
+        },
+        {
+          "elapsed_seconds": 0.001,
+          "kind": "sample",
+          "system_ticks": 0,
+          "user_ticks": 0
+        },
+        {
+          "elapsed_seconds": 5.004,
+          "kind": "sample",
+          "system_ticks": 90,
+          "user_ticks": 404
+        },
+        {
+          "elapsed_seconds": 10.007,
+          "kind": "sample",
+          "system_ticks": 105,
+          "user_ticks": 890
+        },
+        {
+          "elapsed_seconds": 15.01,
+          "kind": "sample",
+          "system_ticks": 106,
+          "user_ticks": 1389
+        },
+        {
+          "elapsed_seconds": 20.013,
+          "kind": "sample",
+          "system_ticks": 107,
+          "user_ticks": 1889
+        },
+        {
+          "elapsed_seconds": 25.016,
+          "kind": "sample",
+          "system_ticks": 107,
+          "user_ticks": 2388
+        },
+        {
+          "elapsed_seconds": 30.019,
+          "kind": "sample",
+          "system_ticks": 108,
+          "user_ticks": 2888
+        },
+        {
+          "elapsed_seconds": 35.023,
+          "kind": "sample",
+          "system_ticks": 109,
+          "user_ticks": 3388
+        },
+        {
+          "elapsed_seconds": 40.026,
+          "kind": "sample",
+          "system_ticks": 109,
+          "user_ticks": 3887
+        },
+        {
+          "elapsed_seconds": 45.029,
+          "kind": "sample",
+          "system_ticks": 110,
+          "user_ticks": 4387
+        },
+        {
+          "elapsed_seconds": 50.032,
+          "kind": "sample",
+          "system_ticks": 110,
+          "user_ticks": 4887
+        },
+        {
+          "elapsed_seconds": 55.036,
+          "kind": "sample",
+          "system_ticks": 111,
+          "user_ticks": 5386
+        },
+        {
+          "elapsed_seconds": 60.039,
+          "kind": "sample",
+          "system_ticks": 112,
+          "user_ticks": 5885
+        },
+        {
+          "elapsed_seconds": 65.042,
+          "kind": "sample",
+          "system_ticks": 113,
+          "user_ticks": 6385
+        },
+        {
+          "elapsed_seconds": 70.045,
+          "kind": "sample",
+          "system_ticks": 113,
+          "user_ticks": 6885
+        },
+        {
+          "elapsed_seconds": 75.048,
+          "kind": "sample",
+          "system_ticks": 114,
+          "user_ticks": 7385
+        },
+        {
+          "elapsed_seconds": 80.051,
+          "kind": "sample",
+          "system_ticks": 115,
+          "user_ticks": 7884
+        },
+        {
+          "elapsed_seconds": 85.055,
+          "kind": "sample",
+          "system_ticks": 115,
+          "user_ticks": 8384
+        },
+        {
+          "elapsed_seconds": 90.058,
+          "kind": "sample",
+          "system_ticks": 116,
+          "user_ticks": 8883
+        },
+        {
+          "elapsed_seconds": 95.061,
+          "kind": "sample",
+          "system_ticks": 117,
+          "user_ticks": 9383
+        },
+        {
+          "elapsed_seconds": 100.064,
+          "kind": "sample",
+          "system_ticks": 118,
+          "user_ticks": 9882
+        },
+        {
+          "elapsed_seconds": 105.067,
+          "kind": "sample",
+          "system_ticks": 118,
+          "user_ticks": 10382
+        },
+        {
+          "elapsed_seconds": 110.071,
+          "kind": "sample",
+          "system_ticks": 119,
+          "user_ticks": 10882
+        },
+        {
+          "elapsed_seconds": 115.074,
+          "kind": "sample",
+          "system_ticks": 119,
+          "user_ticks": 11381
+        },
+        {
+          "elapsed_seconds": 120.077,
+          "kind": "sample",
+          "system_ticks": 119,
+          "user_ticks": 11881
+        },
+        {
+          "elapsed_seconds": 125.081,
+          "kind": "sample",
+          "system_ticks": 120,
+          "user_ticks": 12380
+        },
+        {
+          "elapsed_seconds": 130.084,
+          "kind": "sample",
+          "system_ticks": 121,
+          "user_ticks": 12880
+        },
+        {
+          "elapsed_seconds": 135.087,
+          "kind": "sample",
+          "system_ticks": 121,
+          "user_ticks": 13380
+        },
+        {
+          "elapsed_seconds": 140.09,
+          "kind": "sample",
+          "system_ticks": 122,
+          "user_ticks": 13879
+        },
+        {
+          "elapsed_seconds": 145.094,
+          "kind": "sample",
+          "system_ticks": 123,
+          "user_ticks": 14378
+        },
+        {
+          "elapsed_seconds": 150.097,
+          "kind": "sample",
+          "system_ticks": 124,
+          "user_ticks": 14877
+        },
+        {
+          "elapsed_seconds": 155.1,
+          "kind": "sample",
+          "system_ticks": 124,
+          "user_ticks": 15377
+        },
+        {
+          "elapsed_seconds": 160.103,
+          "kind": "sample",
+          "system_ticks": 125,
+          "user_ticks": 15876
+        },
+        {
+          "elapsed_seconds": 165.107,
+          "kind": "sample",
+          "system_ticks": 126,
+          "user_ticks": 16376
+        },
+        {
+          "elapsed_seconds": 170.11,
+          "kind": "sample",
+          "system_ticks": 126,
+          "user_ticks": 16876
+        },
+        {
+          "elapsed_seconds": 175.113,
+          "kind": "sample",
+          "system_ticks": 127,
+          "user_ticks": 17375
+        },
+        {
+          "elapsed_seconds": 180.117,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 17875
+        },
+        {
+          "elapsed_seconds": 185.12,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 18375
+        },
+        {
+          "elapsed_seconds": 190.123,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 18875
+        },
+        {
+          "elapsed_seconds": 195.127,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 19376
+        },
+        {
+          "elapsed_seconds": 200.13,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 19876
+        },
+        {
+          "elapsed_seconds": 205.133,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 20376
+        },
+        {
+          "elapsed_seconds": 210.136,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 20877
+        },
+        {
+          "elapsed_seconds": 215.14,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 21377
+        },
+        {
+          "elapsed_seconds": 220.143,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 21877
+        },
+        {
+          "elapsed_seconds": 225.146,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 22377
+        },
+        {
+          "elapsed_seconds": 230.15,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 22878
+        },
+        {
+          "elapsed_seconds": 235.153,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 23378
+        },
+        {
+          "elapsed_seconds": 240.156,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 23878
+        },
+        {
+          "elapsed_seconds": 245.159,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 24378
+        },
+        {
+          "elapsed_seconds": 250.163,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 24879
+        },
+        {
+          "elapsed_seconds": 255.166,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 25379
+        },
+        {
+          "elapsed_seconds": 260.169,
+          "kind": "sample",
+          "system_ticks": 128,
+          "user_ticks": 25879
+        },
+        {
+          "elapsed_seconds": 265.172,
+          "kind": "sample",
+          "system_ticks": 129,
+          "user_ticks": 26379
+        },
+        {
+          "elapsed_seconds": 270.176,
+          "kind": "sample",
+          "system_ticks": 130,
+          "user_ticks": 26878
+        },
+        {
+          "elapsed_seconds": 275.179,
+          "kind": "sample",
+          "system_ticks": 130,
+          "user_ticks": 27378
+        },
+        {
+          "elapsed_seconds": 280.182,
+          "kind": "sample",
+          "system_ticks": 131,
+          "user_ticks": 27877
+        },
+        {
+          "elapsed_seconds": 285.185,
+          "kind": "sample",
+          "system_ticks": 132,
+          "user_ticks": 28377
+        },
+        {
+          "elapsed_seconds": 290.188,
+          "kind": "sample",
+          "system_ticks": 132,
+          "user_ticks": 28877
+        },
+        {
+          "elapsed_seconds": 295.191,
+          "kind": "sample",
+          "system_ticks": 133,
+          "user_ticks": 29376
+        },
+        {
+          "elapsed_seconds": 300.194,
+          "kind": "sample",
+          "system_ticks": 134,
+          "user_ticks": 29875
+        },
+        {
+          "elapsed_seconds": 305.197,
+          "kind": "sample",
+          "system_ticks": 134,
+          "user_ticks": 30374
+        },
+        {
+          "elapsed_seconds": 310.2,
+          "kind": "sample",
+          "system_ticks": 135,
+          "user_ticks": 30874
+        },
+        {
+          "elapsed_seconds": 315.203,
+          "kind": "sample",
+          "system_ticks": 136,
+          "user_ticks": 31373
+        },
+        {
+          "elapsed_seconds": 320.206,
+          "kind": "sample",
+          "system_ticks": 136,
+          "user_ticks": 31873
+        },
+        {
+          "elapsed_seconds": 325.21,
+          "kind": "sample",
+          "system_ticks": 137,
+          "user_ticks": 32373
+        },
+        {
+          "elapsed_seconds": 330.213,
+          "kind": "sample",
+          "system_ticks": 137,
+          "user_ticks": 32873
+        },
+        {
+          "elapsed_seconds": 335.216,
+          "kind": "sample",
+          "system_ticks": 138,
+          "user_ticks": 33372
+        },
+        {
+          "elapsed_seconds": 340.219,
+          "kind": "sample",
+          "system_ticks": 138,
+          "user_ticks": 33872
+        },
+        {
+          "elapsed_seconds": 345.223,
+          "kind": "sample",
+          "system_ticks": 139,
+          "user_ticks": 34372
+        },
+        {
+          "elapsed_seconds": 350.226,
+          "kind": "sample",
+          "system_ticks": 140,
+          "user_ticks": 34872
+        },
+        {
+          "elapsed_seconds": 355.229,
+          "kind": "sample",
+          "system_ticks": 140,
+          "user_ticks": 35371
+        },
+        {
+          "elapsed_seconds": 360.233,
+          "kind": "sample",
+          "system_ticks": 141,
+          "user_ticks": 35871
+        },
+        {
+          "elapsed_seconds": 365.236,
+          "kind": "sample",
+          "system_ticks": 142,
+          "user_ticks": 36370
+        },
+        {
+          "elapsed_seconds": 370.239,
+          "kind": "sample",
+          "system_ticks": 142,
+          "user_ticks": 36870
+        },
+        {
+          "elapsed_seconds": 375.242,
+          "kind": "sample",
+          "system_ticks": 143,
+          "user_ticks": 37370
+        },
+        {
+          "elapsed_seconds": 380.245,
+          "kind": "sample",
+          "system_ticks": 143,
+          "user_ticks": 37869
+        },
+        {
+          "elapsed_seconds": 385.249,
+          "kind": "sample",
+          "system_ticks": 144,
+          "user_ticks": 38366
+        },
+        {
+          "elapsed_seconds": 390.252,
+          "kind": "sample",
+          "system_ticks": 145,
+          "user_ticks": 38866
+        },
+        {
+          "elapsed_seconds": 395.255,
+          "kind": "sample",
+          "system_ticks": 145,
+          "user_ticks": 39366
+        },
+        {
+          "elapsed_seconds": 400.259,
+          "kind": "sample",
+          "system_ticks": 146,
+          "user_ticks": 39866
+        },
+        {
+          "elapsed_seconds": 405.262,
+          "kind": "sample",
+          "system_ticks": 146,
+          "user_ticks": 40365
+        },
+        {
+          "elapsed_seconds": 410.266,
+          "kind": "sample",
+          "system_ticks": 147,
+          "user_ticks": 40865
+        },
+        {
+          "elapsed_seconds": 415.269,
+          "kind": "sample",
+          "system_ticks": 147,
+          "user_ticks": 41364
+        },
+        {
+          "elapsed_seconds": 420.272,
+          "kind": "sample",
+          "system_ticks": 148,
+          "user_ticks": 41864
+        },
+        {
+          "elapsed_seconds": 425.276,
+          "kind": "sample",
+          "system_ticks": 148,
+          "user_ticks": 42364
+        },
+        {
+          "elapsed_seconds": 430.279,
+          "kind": "sample",
+          "system_ticks": 148,
+          "user_ticks": 42864
+        },
+        {
+          "elapsed_seconds": 435.282,
+          "kind": "sample",
+          "system_ticks": 149,
+          "user_ticks": 43364
+        },
+        {
+          "elapsed_seconds": 440.286,
+          "kind": "sample",
+          "system_ticks": 149,
+          "user_ticks": 43864
+        },
+        {
+          "elapsed_seconds": 445.289,
+          "kind": "sample",
+          "system_ticks": 150,
+          "user_ticks": 44363
+        },
+        {
+          "elapsed_seconds": 450.293,
+          "kind": "sample",
+          "system_ticks": 151,
+          "user_ticks": 44863
+        },
+        {
+          "elapsed_seconds": 455.296,
+          "kind": "sample",
+          "system_ticks": 151,
+          "user_ticks": 45362
+        },
+        {
+          "elapsed_seconds": 460.299,
+          "kind": "sample",
+          "system_ticks": 152,
+          "user_ticks": 45862
+        },
+        {
+          "elapsed_seconds": 465.303,
+          "kind": "sample",
+          "system_ticks": 153,
+          "user_ticks": 46362
+        },
+        {
+          "elapsed_seconds": 470.306,
+          "kind": "sample",
+          "system_ticks": 153,
+          "user_ticks": 46861
+        },
+        {
+          "elapsed_seconds": 475.309,
+          "kind": "sample",
+          "system_ticks": 154,
+          "user_ticks": 47360
+        },
+        {
+          "elapsed_seconds": 480.313,
+          "kind": "sample",
+          "system_ticks": 154,
+          "user_ticks": 47860
+        },
+        {
+          "elapsed_seconds": 485.316,
+          "kind": "sample",
+          "system_ticks": 155,
+          "user_ticks": 48360
+        },
+        {
+          "elapsed_seconds": 490.319,
+          "kind": "sample",
+          "system_ticks": 156,
+          "user_ticks": 48858
+        },
+        {
+          "elapsed_seconds": 495.322,
+          "kind": "sample",
+          "system_ticks": 156,
+          "user_ticks": 49358
+        },
+        {
+          "elapsed_seconds": 500.325,
+          "kind": "sample",
+          "system_ticks": 157,
+          "user_ticks": 49858
+        },
+        {
+          "elapsed_seconds": 505.329,
+          "kind": "sample",
+          "system_ticks": 157,
+          "user_ticks": 50358
+        },
+        {
+          "elapsed_seconds": 510.332,
+          "kind": "sample",
+          "system_ticks": 158,
+          "user_ticks": 50856
+        },
+        {
+          "elapsed_seconds": 515.335,
+          "kind": "sample",
+          "system_ticks": 158,
+          "user_ticks": 51356
+        },
+        {
+          "elapsed_seconds": 520.339,
+          "kind": "sample",
+          "system_ticks": 159,
+          "user_ticks": 51856
+        },
+        {
+          "elapsed_seconds": 525.342,
+          "kind": "sample",
+          "system_ticks": 159,
+          "user_ticks": 52356
+        },
+        {
+          "elapsed_seconds": 530.345,
+          "kind": "sample",
+          "system_ticks": 160,
+          "user_ticks": 52855
+        },
+        {
+          "elapsed_seconds": 535.349,
+          "kind": "sample",
+          "system_ticks": 160,
+          "user_ticks": 53352
+        },
+        {
+          "elapsed_seconds": 540.352,
+          "kind": "sample",
+          "system_ticks": 161,
+          "user_ticks": 53852
+        },
+        {
+          "elapsed_seconds": 545.355,
+          "kind": "sample",
+          "system_ticks": 161,
+          "user_ticks": 54352
+        },
+        {
+          "elapsed_seconds": 550.359,
+          "kind": "sample",
+          "system_ticks": 162,
+          "user_ticks": 54849
+        },
+        {
+          "elapsed_seconds": 555.362,
+          "kind": "sample",
+          "system_ticks": 163,
+          "user_ticks": 55349
+        },
+        {
+          "elapsed_seconds": 560.366,
+          "kind": "sample",
+          "system_ticks": 163,
+          "user_ticks": 55849
+        },
+        {
+          "elapsed_seconds": 565.369,
+          "kind": "sample",
+          "system_ticks": 164,
+          "user_ticks": 56348
+        },
+        {
+          "elapsed_seconds": 570.372,
+          "kind": "sample",
+          "system_ticks": 164,
+          "user_ticks": 56848
+        },
+        {
+          "elapsed_seconds": 575.176,
+          "exit_code": 1,
+          "kind": "end",
+          "samples": 115
+        }
+      ],
+      "scope": "Samples of the direct owned CLI PID only; no child aggregation, CPU percentage, completion or planner target inference."
+    },
+    "probe_completed": true,
+    "scope": "Fixed original main/common archives, only two candidate manifest Horizon revisions updated for latest official. One official plan only. CLI tool cold-build only; no apply/Game/consumer build. A complete rejection is not compatibility success.",
+    "source_seal_sha256": "b8dee6292c4de1cfedf792f11b8c86ef002cfe3611023253c3799f62e9d7e8ce",
+    "source_verified": true,
+    "tool_argv": {
+      "calls": [
+        {
+          "allowed": true,
+          "argv": [
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+            "/home/runner/work/_temp/latest-main-common-plan-ada5a94348885cec83cce94461f9d51d6dff05c7/horizon/Cargo.toml",
+            "--offline",
+            "--locked"
+          ],
+          "kind": "cargo",
+          "real": "/home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo"
+        }
+      ],
+      "log_present": true,
+      "mtime_ns": 1793962039433680902,
+      "raw_bytes": 335,
+      "raw_sha256": "1dcf6c6b83b079b31463889925f85041dc7f0fd82a4d6b29bac1fcace2de25ed",
+      "semantics": "Pre-exec invocation witness only; no metadata completion or internal planner phase inferred.",
+      "validated": true,
+      "validation_error": null,
+      "wrapper_installed": true
+    }
+  },
+  "full_console": {
+    "bytes": 49336,
+    "sha256": "5c7aba2d544259fffcf2c62b2e61ae87c2aa53909eb1d93f10eff4d2cc45bc98",
+    "encoding": "gzip+base64",
+    "gzip_bytes": 10992,
+    "payload": "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"
+  },
+  "reconstructed_exact_records": {
+    "plan-cpu-reconstructed.jsonl": {
+      "bytes": 10376,
+      "sha256": "7c28aee9676cad27d53382b66c3431371c378cfd9a249953b0bba8d9300a14e7",
+      "encoding": "gzip+base64",
+      "gzip_bytes": 1273,
+      "payload": "H4sIAAAAAAACA52a3W4bRwyF7/MUga4DYYecH05fxjBsoRCS2EakoC2CvHsPXcdtxT0AMVeG1vCnD/SK5+yufhw+n58eD799PFyu99+uh08fD89/PJ2+3b2c/WiVUnHo5ff/vfr1ouHF5XS5nJ+f/v3tK+fuen74fMFB6WVTHH19ffcC8OX08Pz6jmXbfn74cTh9uX+5nB7fjvvfbMdtK/ibd7P7ry9fTq52+etyPX19h2849P0C5vuBfWADsGaAMxDrVveZxS1HBlq2dku1SUwLVEsO2m+hRW3uUwWuRXPYEbBGsS7bF7GiZvtYdduZw1rAGsXCVpJDmLdYpbYVttJXsWaDYN02N4QST1pl2AZblVUstW2w1dwQSrnFNrW+j+1umxyCBKxZI1jY1uQQ9BbblWEHbGtbxVLb4baWw9Zb7KC2BtuWWzUl7K9hRtaiwba1Rawpw063TQ4hLEasBCVY2PbkEMIGm8qwSDZwa44bVtg0E8Z137HIRRBTsKfZSA5iRjA39kAbdRWMSCsE7Jk2xjLYOBjGlhuFhBVZEGss2j3XLDcKKRFsHOzGYxWs3NizLbd+RXbayJiMC+GZnETYlKXqMNaeXDg5iRrBNgYDt2NZxTalWATcP/U4AW4RbKMzMHyT7VRikexKwQi5Upa5XBgpV5IVVWJFHTpIzBVz4eQk4socxsEwllWucWFEXUn21D0wF54uvDyJSc8JQdqVZeFpnAthXQXLxoWLC/dlMF0TuCI+lrrKLXRPCMIOa28ZzIXFhZcnIdwYYVfaMtfYhhdkHRbqKlhpdEh14eVJKDeubjxXwTzsBGGHTb0MpvEsHnZ9eRSIOwb2uOvLo2jc2ONuJJdxKIPSubHH3ciNQrcI5meF592Yq+DBzwrPO8uNQksE81XheWe5j7RKvC3DV4UHntkymBt74M1cWdFQM4UHnnrgJfur1gimEa2eeMn+GsGKxCOXz4rES54TLWKNY9tRkv1VQx1UBB65gFYEnmx9GWwcDOPkKRFqpgoXRt5JsgTtgbmwunByEhZvW+ogV+Za3Xgug42DYZwssBrviFZujMCT5K3WukUwN25uPFfBCDxyL0EReJJssLVEsHEwjJMNtoadqQg8csmPXwA8l8HGwTBO3nStYRnjc0fBCDxJ3nbdA1ufDOzGyVHEZWzaWXwg8KQlR9F2HhlwMIyTN193wJMa182Nk6OI63gaB8O4yyK4bvgcELAHXrLD1hHBxsFuPFfBSCuSpdUjL9lhq0WwcTCMkx12Byzc2DMv2WH3wNzYMy/ZYeuMD7+4sWee9WUwN/bMs9woWnyuVrGR2WNAGM9cgrQSwcbBMJ59Fdy0kzCtnnkzOQqJYOPgdtRk2Wxh0dfOjZF5miybe2DrhYHdODmKkCB1oD4QMDJPk21zD2wcDONk22wtPh/mxtONk6PoOw+eG3v8jsxTkVXwVAZuyDyVXJi2uOincbAbz0Vw27gxMk+TD/ebRbC1zsAw1rYKxjUlA4sbJ0cxI5gbI/M02TZ3wMKNkXmabJt9i2BrjYHdeK6C8e8h260h8zTZNvvedzM4GMbJtrkDrty4uXFyFPFrH9XqZGAYJ9tmD4u+NaVgZJ4m2+YemBt75iXbZg+LvnVc9BKwZ16ybe6BjYPb2x3T05/n693D8+PJGf95oxN+fPr1fm/fEfj54W81gofUiCgAAA==",
+      "method": "Reconstructed deterministically from complete console/receipt records; exact size and SHA256 matched the original runner receipt."
+    },
+    "tool-argv-reconstructed.jsonl": {
+      "bytes": 335,
+      "sha256": "1dcf6c6b83b079b31463889925f85041dc7f0fd82a4d6b29bac1fcace2de25ed",
+      "encoding": "gzip+base64",
+      "gzip_bytes": 253,
+      "payload": "H4sIAAAAAAACA1WQwW7DIAyG73uKivMIjZpkSa97jGmqPDANCtgRgabatHcfKKedLH+2/P+/f8TiyIjrSWiIdxavJ1Hqo4APETCBgQQVSmk5BkjygXFzTJW1x4BYGly3owlAzuKW5ApprkjNHFDFTIRR7RwXdUsYVuUh1bUAjqTmEJjk6oFkUexh6i7dOI69Rj1etMap64bWTqZvzWCsPff6rdyN7ptJvVffTeLgDwdsrXeER+NZL2jEZ43lPe9Yo6aYsYCI4Gvwfw6bmLeUV5WYvZ6LuU21zdQ3Z/kch9vQyUwL8U6yaOSnvFNWX47U8bzflz/IUoJhTwEAAA==",
+      "method": "Reconstructed deterministically from complete console/receipt records; exact size and SHA256 matched the original runner receipt."
+    },
+    "official-plan-reconstructed.log": {
+      "bytes": 382,
+      "sha256": "ab683524776074c3aa7634b686e099909c8e044521e6e2e8f7dca63119bf4789",
+      "encoding": "gzip+base64",
+      "gzip_bytes": 287,
+      "payload": "H4sIAAAAAAACA2WPPU/DMBCG9/6KKAsLxq2alNRCSIivpWoXmC3rfElN7bvKdksB8d9Jmm4st9xz7z3vz6QoSmCLpSrKZ73aPD6s9Hrzpl827+un8npYB0zJdGeCuPAMxhcWwZtosmMq0h7RqukIt86fSbnlgDIeiDDKT447qTOGvfQmY8oiGEcCOAQmsfeGhLGmNstqXjVNUwNCMwfAZVUtZu3S1jO7sG07reFWRjy61L8VTP5LgCHrbJ8pMzClHA+QNfVeR+wNovvuweBOjm4yB3/pw1Y7O0j+uxkBRx8IQ7ULlvgQAcWWB3FHjrpenTKe8shnEzvMA3l5qcE7pKxUZwIq9drPuyt9r1R2sNNjRDn5nfwBy1MOZn4BAAA=",
+      "method": "Reconstructed deterministically from complete console/receipt records; exact size and SHA256 matched the original runner receipt."
+    }
+  },
+  "observation_limits": [
+    "GitHub success means diagnostic collection and final verification completed, not compatibility.",
+    "One allowed exact offline/locked/no-deps metadata pre-exec witness was recorded. Its JSONL record alone is not a metadata completion marker.",
+    "115 samples concern only the known direct CLI PID. Last sample at570.372s has user56848 and system164 ticks at100Hz. This is not aggregate descendant CPU, final total CPU, a utilization measurement or attribution to a specific source phase.",
+    "The actual error identifies the first rejected injection and target; earlier state/module work and the cause of its computation cost were not individually timed.",
+    "No accepted plan.json or complete plan subset was produced; 12guards/apply/Game/consumer build were not reached.",
+    "Raw verbose phase files other than the reconstructed382B official diagnostic were not fetched. Their hashes do not reconstruct them.",
+    "Original main/PR/CLI, archive bytes, runtime bodies, native guards and safety conditions were not edited. Only the two declared candidate Horizon revision values changed. No further automatic retry."
+  ]
+}
