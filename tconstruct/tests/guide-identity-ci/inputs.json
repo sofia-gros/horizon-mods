@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/guide-identity-ci-20261106",
+  "toolchain": "1.95.0",
+  "fixture_commit": "d9f8e6ba50fe7b1d9a3fc457bafa1650d3da8bd5",
+  "fixture_inputs_sha256": "d6b79c5ebe0b21da6982adb6559d1b67f0a0abfc0db4b5039e4d009d93e39f9a",
+  "source_sha256": {
+    "tconstruct/mixins/tconstruct/source-materials-book-identity.rs": "041c225e40afdf1fe34e37ead32f89aabd8f56e97c5b62363e26722b5fbc45e8",
+    "tconstruct/mixins/tconstruct/source-materials-book-index.rs": "24189c1870efd5504ce6ba268abcdf197489c59ff624fb6c15b26bb2b474d1f2",
+    "tconstruct/tests/guide-identity-proof/fixture.rs": "961dd14fd6eeef3aaec36853f42ecf154af3cf7327e80a33ad69a1171a1e4e78"
+  }
+}
