@@ -1,0 +1,81 @@
+{
+  "repository": "sofia-gros/horizon-mods",
+  "branch": "checkpoint/plutolib-native-i18n-ci-20261106",
+  "base": "df0645ec2bdd1063364eb82d85c45ef45d61c876",
+  "official": {
+    "url": "https://github.com/horizon-rust/horizon.git",
+    "revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+  },
+  "cutoffs": {
+    "composed_language": "ea7095d80b67ab8659b26b3e0e32a92d77de2cae",
+    "fixture": "df0645ec2bdd1063364eb82d85c45ef45d61c876"
+  },
+  "result_groups": [
+    {
+      "expected": 8,
+      "names": [
+        "item_display_tests::standard_keys_use_current_then_english_fallback",
+        "item_display_tests::standard_paths_preserve_slashes_and_implicit_namespace",
+        "item_display_tests::item_name_is_resolved_again_without_mutating_the_component",
+        "item_display_tests::custom_name_wins_and_preserves_explicit_italic",
+        "item_display_tests::native_codec_keeps_translate_arguments_and_style",
+        "item_display_tests::missing_key_and_explicit_fallback_are_native",
+        "item_display_tests::styled_name_defers_unadorned_stack_to_current_default",
+        "item_display_tests::construction_does_not_fabricate_an_item_name_patch"
+      ],
+      "prefix": "item_display_tests::"
+    },
+    {
+      "expected": 6,
+      "names": [
+        "pluto_language_text::tests::retained_key_resolves_again_but_previous_text_is_a_snapshot",
+        "pluto_language_text::tests::missing_key_and_explicit_fallback_keep_native_components",
+        "pluto_language_text::tests::existing_selected_and_english_entries_win_over_fallback",
+        "pluto_language_text::tests::reordered_styled_arguments_use_native_text_without_flattening",
+        "pluto_language_text::tests::malformed_and_missing_placeholders_keep_native_fallback_behavior",
+        "pluto_language_text::tests::static_key_accepts_shorter_borrowed_fallback_without_registration"
+      ],
+      "prefix": "pluto_language_text::tests::"
+    },
+    {
+      "expected": 8,
+      "names": [
+        "pluto_language::tests::actual_loader_keeps_source_order_and_selected_over_english",
+        "pluto_language::tests::namespace_order_is_not_replaced_by_global_source_priority",
+        "pluto_language::tests::current_fallbacks_and_missing_keys_use_native_scope",
+        "pluto_language::tests::loading_does_not_set_selection_or_invent_regional_fallback",
+        "pluto_language::tests::direct_native_lenient_and_partial_file_rules_are_unchanged",
+        "pluto_language::tests::missing_and_invalid_sources_do_not_clear_english",
+        "pluto_language::tests::format_and_text_fallbacks_are_native_not_normalized",
+        "pluto_language::tests::custom_namespace_locale_is_not_native_menu_discovery"
+      ],
+      "prefix": "pluto_language::tests::"
+    }
+  ],
+  "language": "pluto-lib/mixins/pluto_native_creative/language.rs",
+  "author": "pluto-lib/mixins/pluto_native_creative/language-text.rs",
+  "example": "pluto-lib/examples/language_text.rs",
+  "python_modules": [
+    "pluto-lib/tests/test_language_source.py",
+    "pluto-lib/tests/test_language_text_scope.py",
+    "pluto-lib/tests/test_language_prepare.py",
+    "pluto-lib/tests/test_item_display_language_fixture.py"
+  ],
+  "python_tests": 25,
+  "runner_tests": 15,
+  "inputs_sha256": {
+    "pluto-lib/docs/item-display-language-inputs-20261106.json": "29345384142a6a5cbd6a7e12c8299aa39196e84ccdd49cffe1d53b322b4e0401",
+    "pluto-lib/tests/test_item_display_language_fixture.py": "7b771b81e89d84a542fc1172a713a7f79928cf2a20549b2eb3dda60a6eeb7d28",
+    "pluto-lib/tests/test_language_text_scope.py": "0354674f5e34b4c478e47735476cee8c0eb65ce1b051041e6a2b1c7310087abf",
+    "pluto-lib/tests/test_language_source.py": "d5bbc50a9859e615e7ed5fb9f7437647a35cfbd9c94d47704689494c79a7ec30",
+    "pluto-lib/tests/test_language_prepare.py": "b04b68fd219aeba8549503f78b38bc3d1e0718e7fe12d9bb85c735343d27a1d1",
+    "pluto-lib/tools/prepare_item_display_language_fixture.py": "1f930b43446dcf3ffa2580e37fe3a71e081e23b37188f5fbf618b7b5f137cbb6",
+    "pluto-lib/tools/prepare_language_json.py": "aad57587d0f56a2e478c1aacd499712f9821847dec901c13e5f1ff55f0f13619",
+    "pluto-lib/examples/language_text.rs": "268f7e1691e2f1ece6a77ad8cccace84f6ffc91efe0e144c1b4368ded2513025",
+    "pluto-lib/tests/native/item_display_language.rs": "cdda6e8370609e9be4463b17d8e563451e9775f39a422564a4d9e07d943e95db",
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "c7ac856f1f7b74ab07b5568c48d6e219b2df1e8c6baab50c446bfb4f2014cfc0",
+    "pluto-lib/mixins/pluto_native_creative/language-text.rs": "1059fbc87941979c05008746b520e23a3677c5dee9aa2326434907eec48266d2",
+    "pluto-lib/mixins/pluto_native_creative/language.rs": "ce1f3056a73bfda5e7bc338dafe40f84223c41c83f17bee2faa6dce12ea7bb4d"
+  }
+}
