@@ -52,16 +52,28 @@ class Scope(unittest.TestCase):
         self.assertEqual(entries[0]['file'], 'crates/horizon-client/src/game/books.rs')
     def test_adapter_retains_full_document_and_native_fallback(self):
         source = (SOURCE / 'source-materials-book-text.rs').read_text()
-        for token in ['from_native(self.pages, |_| true)', 'layout::wrap(font, doc, index, width)',
+        for token in ['from_native(self.pages, |_| true)', 'layout::split_raw(font, doc, index, width)',
                       'Lines::Legacy(font.split(text, width))', 'style.click.clone()', 'OnceCell<Option<Document>>']:
             self.assertIn(token, source)
         for token in ['Game<', 'send_packet(', 'book_follow_link(', 'static ', 'Mutex', 'unsafe']:
             self.assertNotIn(token, source)
+    def test_raw_api_has_no_eager_or_post_failure_native_queries(self):
+        source = (ROOT / 'pluto-lib/mixins/pluto_native_creative/guide-layout.rs').read_text()
+        split = source.split('pub fn split_raw(', 1)[1]
+        self.assertEqual(split.count('font.'), 1)
+        self.assertIn('Ok(RawLines { lines: font.split(&native, width) })', split)
+        for token in ['advances(', 'width_text(', 'resolve_legacy(', 'Err(']:
+            self.assertNotIn(token, split.split('let native =', 1)[1])
+        hit = source.split('pub fn hit_native(', 1)[1].split('/// Bounded admission', 1)[0]
+        self.assertEqual(hit.count('font.'), 1)
+        self.assertEqual(hit.count('resolve_legacy()'), 1)
+        self.assertIn('return Some(NativeHit', hit)
+        self.assertNotIn('Result<', hit)
     def test_fixture_is_actual_native_font_and_preserves_fallback_cases(self):
         source = (Path(__file__).parent / 'native.rs').read_text()
         self.assertIn('Font::metrics(&root)', source)
         self.assertIn('font.split(text, width)', source)
-        self.assertEqual(source.count('#[test]'), 10)
+        self.assertEqual(source.count('#[test]'), 12)
         for token in ['RunCommand', 'OpenUrl', 'CopyToClipboard', 'f32::NAN', 'usize::MAX', '8193', '4097', '1e100']:
             self.assertIn(token, source)
 

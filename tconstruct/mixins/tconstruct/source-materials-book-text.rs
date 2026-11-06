@@ -3,7 +3,7 @@
 // No screen/session handle, action execution, wire codec or persistent cache.
 use horizon_client::{
     font::Font,
-    pluto_guide_layout::{self as layout, Wrapped},
+    pluto_guide_layout::{self as layout, RawLines},
     pluto_guide_text,
     pluto_inventory::guide::document::Document,
     text::{ClickEvent, Text},
@@ -29,7 +29,7 @@ impl<'a> Book<'a> {
             pluto_guide_text::from_native(self.pages, |_| true).ok()
         });
         if let Some(wrapped) = document.as_ref()
-            .and_then(|doc| layout::wrap(font, doc, index, width).ok())
+            .and_then(|doc| layout::split_raw(font, doc, index, width).ok())
         {
             return Some(Lines::Shared(wrapped));
         }
@@ -40,7 +40,7 @@ impl<'a> Book<'a> {
 }
 
 pub enum Lines {
-    Shared(Wrapped),
+    Shared(RawLines),
     Legacy(Vec<Text>),
 }
 impl Lines {
@@ -54,13 +54,8 @@ impl Lines {
     /// Caller already admitted its own row/geometry. The row is the original
     /// native cast, including its existing nonfinite-coordinate behavior.
     pub fn click(&self, font: &Font, x: f32, row: usize) -> Option<ClickEvent> {
-        if let Self::Shared(wrapped) = self
-            && x >= 0.0
-        {
-            if let Ok(hit) = wrapped.hit(x, 0.0, 1.0, row, 1) {
-                return hit.and_then(|hit| hit.style.page)
-                    .map(|page| ClickEvent::ChangePage(i32::from(page)));
-            }
+        if let Self::Shared(wrapped) = self {
+            return wrapped.hit_native(font, x, row).and_then(|hit| hit.style.click);
         }
         // This is the old logical traversal, not visual bidi hit testing.
         let line = self.as_slice().get(row)?.resolve_legacy();

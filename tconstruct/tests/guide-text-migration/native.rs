@@ -120,14 +120,70 @@ fn cover_or_missing_page_never_converts_or_queries_font() {
 }
 
 #[test]
-fn nonfinite_native_metric_falls_back_without_substitution() {
+fn nonfinite_native_metric_keeps_original_arithmetic_without_replay() {
     let f = Fixture::provider(br#"{"providers":[{"type":"space","advances":{"a":1e100,"b":5}}]}"#);
     assert!(!f.1.advance('a', &Style::default()).is_finite());
-    compare(&f.1, &[text("ab", 1)], 182.0, false);
+    compare(&f.1, &[text("ab", 1)], 182.0, true);
 }
 #[test]
 fn negative_native_metric_keeps_signed_advance_semantics() {
     let f = Fixture::provider(br#"{"providers":[{"type":"space","advances":{"a":-3,"b":5}}]}"#);
     assert_eq!(f.1.advance('a', &Style::default()), -3.0);
     compare(&f.1, &[text("ab", 1)], 182.0, true);
+}
+
+// Original 16x8 RGBA test image: two 8-pixel cells, opaque widths 2 and 6.
+// This is not a game asset or renderer. Font::load executes its real CPU
+// rasterization/atlas-region allocator and exposes pending pixel patches.
+const ORIGINAL_BITMAP: &[u8] = &[137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,16,0,0,0,8,8,6,0,0,0,240,118,127,151,0,0,0,26,73,68,65,84,120,156,99,248,143,0,12,56,48,46,0,150,103,64,23,24,53,96,40,26,0,0,53,179,190,80,141,252,69,136,0,0,0,0,73,69,78,68,174,66,96,130];
+fn rendered(region: (u32, u32), atlas: (u32, u32)) -> Fixture {
+    let mut f = Fixture::provider(br#"{"providers":[{"type":"bitmap","file":"minecraft:font/original.png","ascent":7,"chars":["ab"]}]}"#);
+    let png = f.0.join("assets/minecraft/textures/font/original.png");
+    std::fs::create_dir_all(png.parent().unwrap()).unwrap();
+    std::fs::write(png, ORIGINAL_BITMAP).unwrap();
+    let white = horizon_client_render::hud::Rect { u0: 0.0, v0: 0.0, u1: 1.0,
+        v1: 1.0, w: 1, h: 1 };
+    f.1 = Font::load(&f.0, &std::collections::HashMap::new(), &[], atlas, region, white);
+    f
+}
+fn patches(font: &Font) -> Vec<(u32, u32, u32, u32, Vec<u8>)> {
+    font.take_patches().into_iter().map(|p| (p.x, p.y, p.width, p.height, p.rgba)).collect()
+}
+fn compare_cache(region: (u32, u32), atlas: (u32, u32)) {
+    let old = rendered(region, atlas);
+    let new = rendered(region, atlas);
+    let pages = [text("ab\n§la", 1)];
+    let old_lines = old.1.split(&pages[0], 182.0);
+    let new_lines = Book::new(&pages).page(&new.1, 0, 182.0).unwrap();
+    assert!(matches!(new_lines, Lines::Shared(_)));
+    assert_eq!(old_lines, new_lines.as_slice());
+    let before = patches(&old.1);
+    assert!(!before.is_empty()); // Actual non-metrics allocator path ran.
+    assert_eq!(before, patches(&new.1));
+    // Compare a selected row's exact old traversal without rerunning split.
+    let line = old_lines[1].resolve_legacy();
+    let mut remaining = 0.0;
+    let mut link = None;
+    for (character, style) in line.chars() {
+        remaining -= old.1.advance(character, style);
+        if remaining < 0.0 { link = style.click.clone(); break; }
+    }
+    assert_eq!(link, new_lines.click(&new.1, 0.0, 1));
+    assert_eq!(patches(&old.1), patches(&new.1));
+    // Observe subsequent cache reads, including native missing-glyph fallback
+    // when the deliberately tiny region has no room. No GPU upload is run.
+    for c in ['a', 'b', 'a'] {
+        let a = old.1.glyph(c);
+        let b = new.1.glyph(c);
+        assert_eq!((a.advance, a.rect.is_some()), (b.advance, b.rect.is_some()));
+    }
+    assert_eq!(patches(&old.1), patches(&new.1));
+}
+#[test]
+fn actual_cpu_font_patch_order_matches_split_then_selected_hit() {
+    compare_cache((0, 32), (64, 32));
+}
+#[test]
+fn actual_full_cpu_font_region_preserves_native_missing_glyph_fallback() {
+    compare_cache((0, 8), (9, 8));
 }
