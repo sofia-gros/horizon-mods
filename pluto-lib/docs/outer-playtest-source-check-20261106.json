@@ -1,0 +1,67 @@
+{
+  "checks": {
+    "chest_helper_changed": false,
+    "compatibility": null,
+    "crafting_experiment_activated": false,
+    "latest_game_type_verified": false,
+    "latest_plan_verified": false,
+    "ordinary_manifest_changes_in_this_commit": false,
+    "pr945_shared_and_store_changed": false,
+    "selected_inverse_rechecked": true,
+    "two_postimages_equal_intake_and_historical": true
+  },
+  "dependency": {
+    "path": "pluto-lib/mixins/pluto_native_creative/nbt-storage.rs",
+    "sha256": "aa4c33e9e24ca9128bb8e8378684ce3138ceb663301aa18b35344eecda9aaaf8",
+    "unchanged_from_parent": true
+  },
+  "historical_proof": "a09e0d48d9ddba4dd872a6837912f3da2783d539",
+  "historical_runtime": "794a0c526ca0a96d0ca9c9ff40010611b5968a89",
+  "intake": "b12a8d4b7fd22f76bb04323f3e2650fd6716de8a",
+  "integration_head": "24b8ff1671db1ed2fb3c0d0a9c0c952f6f0211fc",
+  "limits": [
+    "The exact two changed ordinary source blobs and declared patch were compared; no full repository checkout/package was created.",
+    "The old160 proof used official624c and mock Drain Game. It is not a latest41f installed Game or whole composition proof.",
+    "Both ordinary manifests and chest/shared/store paths are unchanged in24b8 relative to the independently checked cb7909 parent.",
+    "Selected input source tests and byte inverses passed; no Cargo, metadata, planner, apply, build or runtime launched here."
+  ],
+  "ordinary_runtime_changes": [
+    {
+      "changes": 4,
+      "git_blob": "36fa892a0fa615ceb24e22ef5c74f160dd2e8d89",
+      "patch": "@@ -29,9 +29,7 @@ impl Cannon {\n         for alias in [\"FluidName\", \"Amount\", \"Tag\"] { if raw_tank.get(alias).is_some() { return None; } }\n         if before.tank.to_nbt_preserving(raw_tank).as_ref() != Some(raw_tank) { return None; }\n         let tank = self.tank.to_nbt_preserving(raw_tank)?;\n-        let Tag::Compound(mut fields) = raw.clone() else { return None; };\n-        fields.insert(\"tank\".into(), tank);\n-        Some(Tag::Compound(fields))\n+        horizon_client::pluto_nbt_storage::patch_compound(raw, [(\"tank\", Some(tank))])\n     }\n     /// Preserve native machine fields while changing a representable item.\n     /// An opaque saved item can remain untouched, but cannot be removed,",
+      "path": "tconstruct/mixins/tconstruct/source-fluid-cannon.rs"
+    },
+    {
+      "changes": 11,
+      "git_blob": "b48515995bf47eb9a63b95b9eb62012a59f8286c",
+      "patch": "@@ -521,9 +521,7 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {\n         super::tconstruct_source_fluid_container::Direction::Auto, None,\n         &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return container; }\n     let Some(tank) = state.tank.to_nbt_preserving(raw_tank) else { return false; };\n-    let horizon_world::nbt::Tag::Compound(mut fields) = raw_controller.clone() else { return false; };\n-    fields.insert(\"tank\".into(), tank);\n-    let saved = horizon_world::nbt::Tag::Compound(fields);\n+    let Some(saved) = horizon_client::pluto_nbt_storage::patch_compound(&raw_controller, [(\"tank\", Some(tank))]) else { return false; };\n     if store::read(&game.world, controller, \"tconstruct:smeltery\").as_ref() != Some(&raw_controller) { return false; }\n     if !store::write(&mut game.world, controller, \"tconstruct:smeltery\", saved) { return false; }\n     if game.creative {\n@@ -1060,9 +1058,10 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe\n // Only unfiltered built-in Drains and canonical storage are eligible here.\n // Revalidate the controller and the formed shell rather than trusting a stale owner map.\n fn patch_smeltery_controller_tank(raw: &horizon_world::nbt::Tag, state: &Smeltery) -> Option<horizon_world::nbt::Tag> {\n-    let horizon_world::nbt::Tag::Compound(mut fields) = raw.clone() else { return None; };\n-    fields.insert(\"tank\".into(), state.tank.to_nbt());\n-    Some(horizon_world::nbt::Tag::Compound(fields))\n+    let horizon_world::nbt::Tag::Compound(_) = raw else { return None; };\n+    // Keep tank encoding after the original compound clone, as before.\n+    horizon_client::pluto_nbt_storage::patch_compound(raw,\n+        std::iter::once_with(|| (\"tank\", Some(state.tank.to_nbt()))))\n }\n \n fn validated_drain(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery, horizon_world::nbt::Tag)> {",
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs"
+    }
+  ],
+  "ordinary_runtime_postimages": {
+    "tconstruct/mixins/tconstruct/source-fluid-cannon.rs": {
+      "bytes": 4363,
+      "git_blob": "36fa892a0fa615ceb24e22ef5c74f160dd2e8d89",
+      "sha256": "ad8456578ae983be299ed05a9c5c649b812da88ddacfa53f3d125309bb984290"
+    },
+    "tconstruct/mixins/tconstruct/source-machine-runtime.rs": {
+      "bytes": 107956,
+      "git_blob": "b48515995bf47eb9a63b95b9eb62012a59f8286c",
+      "sha256": "b87726d2ecfe4dbf12ac6cb1f070bbee02895aa160046701ef5178cb667fda71"
+    }
+  },
+  "parent": "cb7909c4e48a50d8b17e0d829a9ac22f0201ca27",
+  "previous_parent_mining_and_preserved_sources": {
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "8b9d66baab0aaa7407274920cdcf1d386e8a4b74",
+    "pluto-lib/mixins/pluto_native_creative/mining-context.rs": "767ad3b1b41e5d6b60ee0b2cd13dffa8ec72b821",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "223a6bafd917aea7e0bdfa4ff42843aa1bc831c5",
+    "tconstruct/mixins/tconstruct/source-chest-pick.rs": "24384d4a0f5599ce5501a32685b37bc7176ea2d1",
+    "tconstruct/mixins/tconstruct/source-melter-store.rs": "b13d8cc44c56024bbc35f50ed2487c210d0b5c9b",
+    "tconstruct/mixins/tconstruct/source-mining-context-native.rs": "17632f3707d4acf9ff821c543db2d883beb01fdc",
+    "tconstruct/mixins/tconstruct/source-mining-context-shared.rs": "1c9164320f8047c43644e41a2abd35d567e7a8fe"
+  },
+  "repository": "sofia-gros/horizon-mods",
+  "schema": 1,
+  "status": "read-only source composition check; no new native or planner execution"
+}
