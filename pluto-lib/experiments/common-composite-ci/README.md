@@ -15,7 +15,7 @@ Source-only runner for immutable production composition `035273c4805d75111e528c8
 
 Dedicated exact-branch push only, public ubuntu-24.04 runner, read-only contents, pinned credential-free checkout, no cache/artifact upload/secrets or billing change. All setup commands are under the same bounded process-group teardown and continuous disk floor (10 GiB +128 MiB); setup requires another 2 GiB. This is a polled reserve, not a hard quota or RAM limit.
 
-23 local Python runner regressions and 46 exact-source checks are prerequisites. Full original checkout, official checkouts, exports, package and staged input seals include files, modes, non-followed symlink targets and directories. Ignored/untracked checkout additions fail. Locks and OUT_DIR files remain unchanged after the two test builds; test binaries are hashed before and after every process.
+23 local Python runner regressions and 46 exact-source checks are prerequisites. Full original checkout, official checkouts, exports, package and staged input seals include regular-file bytes and modes, non-followed symlink targets, and directory presence/kind. Directory permissions and symlink modes are not sealed. Ignored/untracked checkout additions fail. Locks and OUT_DIR files remain unchanged after the two test builds; test binaries are hashed before and after every process.
 
 Raw phase logs are validated in full on the ephemeral runner. Console output is deliberately bounded: phase SHA256/size, actual compile identities, selected named results, and final receipt. Complete raw logs are not uploaded, so their hashes alone do not make those bytes independently retrievable. Failures retain bounded error diagnostics/tail and a false receipt, including setup and final-verification failures.
 
