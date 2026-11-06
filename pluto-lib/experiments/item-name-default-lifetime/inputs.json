@@ -1,0 +1,27 @@
+{
+  "status": "source_prepared_rust_unrun",
+  "official": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "separate_frozen_codec32_source": "014d99aaca6fbcf71dc57b01171a58a60aa0f1de",
+  "native_sha256": {
+    "crates/horizon-world/src/item_defaults.rs": "a5a1c495cfecf422ae497e786c154b075360efc55aafd3ccb5e4ca22946b3338",
+    "crates/horizon-world/src/loot.rs": "69404d7090353f220d06659380d4593e06f1ce91ae010964a2392b8bbb19c465",
+    "crates/horizon-items/src/items.rs": "ac65c572d00bea03ddd37899c6c40b5091b435a44fa0b5deab4fd3677248bc49",
+    "crates/horizon-items/src/item_data.rs": "59a3641702ea8d67b795dbcf2bf70d53c9fe1347366f1c133a241f57c2a62e8d",
+    "crates/horizon-client/src/item_tooltip.rs": "8baf7a5810b038c7fbdab3686a3591492574ad4b07256e027ae3262457767501",
+    "crates/horizon-client/src/game/stations.rs": "9a8848ef138b6bfa82852ed37da254a0ad14d379c1204345c052f68ca2118d9d",
+    "crates/horizon-client/src/game/titles.rs": "f30ba6b37ae2dd8a50e520a905dd12142fcc44edea9f6dbc48c5914560a48639"
+  },
+  "mixins_state_docs_sha256": "ebfb99951ebce0032c6d7bc33a7a3d990342e8610de5e4d93814ee9fd3be6a70",
+  "source_sha256": {
+    "catalog_tests.rs": "864db7e085caea9ac6ef7a5105e88746d3c2ab867cddfa411bad44d83287c123",
+    "README.md": "6220ce4c3749a90c94dad026ce6258abaa98e24736b18721f6d769e27127d78c",
+    "test_source.py": "0736780559dfd598f17e0fb9e632ac146369c69dc55bfb3a27241c5b05eb1226"
+  },
+  "tests": [
+    "catalog_retains_key_but_not_standard_name_value",
+    "holding_native_snapshot_keeps_old_defaults_until_release",
+    "catalog_does_not_retain_native_defaults_snapshot",
+    "display_reads_do_not_materialize_prototype_or_change_patch"
+  ]
+}
