@@ -1,0 +1,375 @@
+{
+  "status": "Read-only exact source comparison. No latest plan, apply, Rust, Game typing or UI/LAN execution.",
+  "old_official": {
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+  },
+  "new_official": {
+    "horizon": "f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "mixins_limit": "New Mixins identity is the coordinator-verified cutoff, not a Mixins source/application audit. The isolated storage/owned-opening experiment uses a proposed native source patch, not a Mixins application.",
+  "latest_tree": {
+    "url": "https://api.github.com/repos/horizon-rust/horizon/git/trees/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd?recursive=1",
+    "truncated": false,
+    "entries": 5956,
+    "scope": "Tree metadata only. Downloaded bytes limited to ten existing patch targets. Each UTF-8 file matched its exact blob SHA-1 and byte length."
+  },
+  "target_count": 11,
+  "existing_targets": [
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "old_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+      "new_sha256": "5334ca297dea6cb9aaf6805a25aaeb8337954994918d560d12c26760a4105f2c",
+      "unchanged": false,
+      "old_bytes": 1005021,
+      "new_bytes": 1031429,
+      "diff_lines": 2364,
+      "latest_git_blob_sha1": "03a5dfb9ae627157a2637fc8c95633748ca39b4e",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "old_sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+      "new_sha256": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+      "unchanged": true,
+      "old_bytes": 62409,
+      "new_bytes": 62409,
+      "diff_lines": 0,
+      "latest_git_blob_sha1": "24b38c17cb10b0f93a58365ca6fb9944e8c8c41e",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/books.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/ime.rs",
+      "old_sha256": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
+      "new_sha256": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
+      "unchanged": true,
+      "old_bytes": 6173,
+      "new_bytes": 6173,
+      "diff_lines": 0,
+      "latest_git_blob_sha1": "f3109ef935f938e54505e619cea71063e6f137f0",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/ime.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "old_sha256": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+      "new_sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "unchanged": false,
+      "old_bytes": 263301,
+      "new_bytes": 270381,
+      "diff_lines": 350,
+      "latest_git_blob_sha1": "935a38f8dc5652920ebcd38746b484945bbaaab8",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/lan_actions.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_hooks.rs",
+      "old_sha256": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+      "new_sha256": "c67bf3acf03c35b651b4230ce88eee822504bd5c111bdf1bbdd15aa3daa2a190",
+      "unchanged": false,
+      "old_bytes": 496812,
+      "new_bytes": 507210,
+      "diff_lines": 337,
+      "latest_git_blob_sha1": "c33bf2d3f91ec010c11b041ff0f899e70e2b4522",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/native_hooks.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_machines.rs",
+      "old_sha256": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+      "new_sha256": "a7d89ec51853b66534666963e95e4782abbed856766fb7e1a6a6aab8787e4613",
+      "unchanged": false,
+      "old_bytes": 20925,
+      "new_bytes": 20947,
+      "diff_lines": 24,
+      "latest_git_blob_sha1": "71b7483d64ae304a36af7970df1041db549253d8",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/native_machines.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/pad_menu.rs",
+      "old_sha256": "7cf888cede2a0b1e836cc1c24ca5b4481cf3d9a2800c574bad01879579e65d2a",
+      "new_sha256": "0ffa6e8014f97455583ee1bce7696adbde0d41f7094b89d7150dfb5cf6c4a1f4",
+      "unchanged": false,
+      "old_bytes": 89102,
+      "new_bytes": 102936,
+      "diff_lines": 794,
+      "latest_git_blob_sha1": "355e7f13a763ac9d717941f1fae3705c0f306cfc",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/pad_menu.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "old_sha256": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+      "new_sha256": "443901d338aaf2ec69e5968b8276c8751a50616303a7c72a55951e6464cde5c5",
+      "unchanged": false,
+      "old_bytes": 523587,
+      "new_bytes": 533300,
+      "diff_lines": 897,
+      "latest_git_blob_sha1": "9b8b274fad4e5d00972e3ad52f3e0ecf857b7fcd",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/remote.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote_chat.rs",
+      "old_sha256": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+      "new_sha256": "7d91a2678595c184e6d4adad0282336c2ac3ade9fb13152fde4f7c1e6a02a063",
+      "unchanged": false,
+      "old_bytes": 19257,
+      "new_bytes": 19309,
+      "diff_lines": 23,
+      "latest_git_blob_sha1": "c21b1f19b0db9d921362d746f5ce3dc7554d8015",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/remote_chat.rs"
+    },
+    {
+      "path": "crates/horizon-client/src/game/saving.rs",
+      "old_sha256": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
+      "new_sha256": "a4d0be995171ded63be66ca6de96d7457d410cf48faccba27fb345b1f580593d",
+      "unchanged": true,
+      "old_bytes": 10697,
+      "new_bytes": 10697,
+      "diff_lines": 0,
+      "latest_git_blob_sha1": "968bfc51d8256cf61c3942ef666b47d94575d76e",
+      "latest_mode": "100644",
+      "content_matches_nontruncated_official_tree": true,
+      "url": "https://github.com/horizon-rust/horizon/blob/f4dcf8a2fb4a68b2d28422f4d34d2be2970e26bd/crates/horizon-client/src/game/saving.rs"
+    }
+  ],
+  "new_target": {
+    "path": "crates/horizon-client/src/game/retained_book.rs",
+    "absent_from_latest_nontruncated_tree": true,
+    "source": "Proposed experiment helper, not an existing official service."
+  },
+  "replacement_counts": [
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "literal": "mod books;\n",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "literal": "    book: Option<books::BookScreen>,",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "literal": "            book: None,",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "self.book = Some(screen);",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "self.book = None;",
+      "old_expected_count": 2,
+      "latest_count": 2
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "match &self.book",
+      "old_expected_count": 3,
+      "latest_count": 3
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "let Some(book) = &self.book",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "matches!(self.book,",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/books.rs",
+      "literal": "self.book,\n",
+      "old_expected_count": 3,
+      "latest_count": 3
+    },
+    {
+      "path": "crates/horizon-client/src/game/pad_menu.rs",
+      "literal": "matches!(self.book,",
+      "old_expected_count": 2,
+      "latest_count": 2
+    },
+    {
+      "path": "crates/horizon-client/src/game/ime.rs",
+      "literal": "matches!(self.book,",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_hooks.rs",
+      "literal": "match &self.book",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/native_machines.rs",
+      "literal": "self.book = book;",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote_chat.rs",
+      "literal": "=> self.book = Some(*book),",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/lan_actions.rs",
+      "literal": "std::mem::replace(&mut self.book, host_book)",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "literal": "self.book = None;",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "literal": "        self.remote = Some(Remote {",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "regex": "(?m)^( +)(self\\.player = (?:None|Some\\(player\\));)$",
+      "old_expected_count": 3,
+      "latest_count": 3
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "regex": "(?m)^( +)(self\\.player = (?:None|Some\\(player\\));)$",
+      "old_expected_count": 5,
+      "latest_count": 5
+    },
+    {
+      "path": "crates/horizon-client/src/game.rs",
+      "regex": "(?m)^( +)(if let Some\\(mut (?:remote|r)\\) = self\\.remote\\.take\\(\\) \\{)$",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/remote.rs",
+      "regex": "(?m)^( +)(if let Some\\(mut (?:remote|r)\\) = self\\.remote\\.take\\(\\) \\{)$",
+      "old_expected_count": 1,
+      "latest_count": 1
+    },
+    {
+      "path": "crates/horizon-client/src/game/saving.rs",
+      "regex": "(?m)^( +)(if let Some\\(mut (?:remote|r)\\) = self\\.remote\\.take\\(\\) \\{)$",
+      "old_expected_count": 1,
+      "latest_count": 1
+    }
+  ],
+  "function_comparisons": [
+    {
+      "path": "game.rs",
+      "function": "capture",
+      "old": {
+        "line": 8363,
+        "end": 8489,
+        "sha256": "14f38232a5b4531e1223af27864f45d56c391baf75db64d9e2963c20cb68fbd9"
+      },
+      "new": {
+        "line": 8489,
+        "end": 8615,
+        "sha256": "14f38232a5b4531e1223af27864f45d56c391baf75db64d9e2963c20cb68fbd9"
+      },
+      "unchanged": true
+    },
+    {
+      "path": "game.rs",
+      "function": "reset_inventory_clicks",
+      "old": {
+        "line": 9705,
+        "end": 9709,
+        "sha256": "ff131b4ffca1aa4741113d6db1392243a0100c43c5b05cde7ec8ddbaee07830c"
+      },
+      "new": {
+        "line": 9839,
+        "end": 9843,
+        "sha256": "ff131b4ffca1aa4741113d6db1392243a0100c43c5b05cde7ec8ddbaee07830c"
+      },
+      "unchanged": true
+    },
+    {
+      "path": "game/native_hooks.rs",
+      "function": "native_client_packet",
+      "old": {
+        "line": 6989,
+        "end": 6991,
+        "sha256": "2830086193f2c47884d7bd44022d477709127c4813e4e75f10fd7e4487650adf"
+      },
+      "new": {
+        "line": 7134,
+        "end": 7136,
+        "sha256": "2830086193f2c47884d7bd44022d477709127c4813e4e75f10fd7e4487650adf"
+      },
+      "unchanged": true
+    },
+    {
+      "path": "game/remote_chat.rs",
+      "function": "answer_command_prompt",
+      "old": {
+        "line": 421,
+        "end": 446,
+        "sha256": "dc619c477b2c624638473d0b918a98794e36975d0c38e2b206a68489ecb6ad90"
+      },
+      "new": {
+        "line": 422,
+        "end": 447,
+        "sha256": "dc619c477b2c624638473d0b918a98794e36975d0c38e2b206a68489ecb6ad90"
+      },
+      "unchanged": true
+    }
+  ],
+  "findings": [
+    "books.rs is byte-identical: BookScreen View fields, native open/close, page-turn, book key/click/draw, cover-sensitive arithmetic and lectern behavior have not changed at this file boundary.",
+    "ime.rs and saving.rs are also byte-identical. Seven of ten existing patch targets differ; the old exact source guard must reject them.",
+    "All 22 pinned literal/transition replacement counts match in the ten downloaded targets. This is not a patch application or exhaustive new lifecycle inventory.",
+    "native_client_packet body is identical. handle_packet still calls it first before matching the packet, including the four existing recognized custom-payload branches. A RETURN observer there remains before ordinary native packet handling, not after all native handling.",
+    "Controller routing now gives prompts a separate focus/back/typing path. pad_in_menu includes prompt_open; pad_navigation_mode prioritizes prompts over pointer screens; pad_all_targets avoids underlying menu targets when a prompt is open.",
+    "remote_chat draw_command_prompt now calls widgets::cover_frame before declaring the prompt. Command cancellation restoration itself is byte-identical.",
+    "Native capture and reset_inventory_clicks are byte-identical. Owned opening still cannot skip their tails or perform native open a second time after minting an owner.",
+    "native_machines changes expose its existing test module/server_game as pub(crate); production save/restore is unchanged. This remains a resource-dependent server fixture, not a demonstrated Client/window fixture."
+  ],
+  "limits": [
+    "The complete old direct-field inventory contains 19 files. This audit downloaded only ten existing patch targets; seven of the other nine have different Git blob IDs, two match. It does not claim a complete latest alias/direct-field inventory or no new callers.",
+    "Matching literal counts do not prove semantic equivalence, source transformation validity, target privacy or compilation on f4dc.",
+    "Unchanged function bodies do not prove unchanged transitive callees, renderer/assets, hooks or scheduling.",
+    "Old 751999 success and queued aa235 belong to 624c only. aa235 remains untriggered on coordinator hold.",
+    "No source/guard/ordinary manifest was changed. Existing LAN remains enabled and unmodified; retained-screen ownership, language reload and reply authority remain unproved."
+  ],
+  "next_minimum_gates": [
+    "Refresh the complete direct-field/player/connection lifecycle inventory against f4dc, including changed old inventory files and newly introduced callers; do not merely update ten hashes.",
+    "Regenerate a separate latest-target patch only after the new inventory is reviewed. Preserve old source/fixtures/results unchanged.",
+    "Run latest source/application/type gates separately; do not label a future old-pin aa235 pass as latest compatibility.",
+    "Add explicit prompt/controller/cover/retained-overlay cases before any Game opening or reply update activation."
+  ]
+}
