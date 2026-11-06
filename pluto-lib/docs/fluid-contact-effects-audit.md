@@ -84,3 +84,53 @@ Sources: [official contact](https://github.com/horizon-rust/horizon/blob/624c4f6
 [official native shape](https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client/src/game/native_entity_motion.rs),
 [official effect instances](https://github.com/horizon-rust/horizon/blob/624c4f6265c02296fbe8a80f029dd0d987fb94c0/crates/horizon-client-render/src/effects.rs),
 [TConstruct definitions](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java).
+
+
+## Narrow existing observation bridge, separate from effect application
+
+A source-only follow-up identifies a smaller **read-only observation** candidate,
+not a solution to immediate effects. On the same official target,
+`game/native_hooks.rs::block_contact(dimension, Event, &mut damage)` still receives
+`Contact.block` as a borrowed name. Its subsequent
+`Game::native_block_entity_inside` call drops that name and forwards only entity
+number/kind, numerical state and position. Without a registry owner, that state
+number is not a safe independent fluid lookup or persistent identity.
+
+An adapter at the existing upper bridge could potentially expose the already
+observed Inside facts and associate a block name with Pluto's single registered
+fluid-definition catalog. It cannot calculate fluid level/height or actor
+immersion from that association. It receives no Game, live actor, world/resource
+owner or effect instance. This candidate could support read-only diagnostics or
+consumer observation, not burning, potion effects, curative attachment or a
+mutable Fabric-style entity callback. It has not been implemented or planned by
+the native CLI; the exact binding/placement remains unproved.
+
+The lower `block_contact::dispatch` has already excluded `minecraft:` blocks and
+requires its current dimension scope plus the installed process HOOK. Official
+`run_with` installs this bridge through OnceLock. Do not replace that hook or
+invent another authority registry. A future observer must make its order
+explicit: entry to this bridge, before the existing native callback dispatch,
+not after all effects, not after the whole tick. It must preserve the original
+dispatch exactly once and leave StepOn/FallOn untouched. The private mutable
+fall-damage reference must not leak through an Inside observer. Its later native
+finite-value restoration and nonnegative clamp are not observer return policy.
+
+No-listener and unavailable/unregistered-family paths must continue native work.
+Registered callbacks must have explicit borrowed lifetime, ordering, work and
+panic contracts; callback side effects cannot be rolled back. A number or kind
+string is not mutable permission, and dropped items/projectiles must not be
+assumed to be living entities. Observation callbacks cannot acquire the missing
+Game by a side table, delayed lookup, nested actor swap or hidden global.
+
+The already pinned ordinary v15 plan has no direct injection at this bridge or
+`native_block_entity_inside`. That is only a bounded source inventory, not a
+complete installed-mod compatibility result. Before any implementation is
+promoted, the real binding and complete combined overlap/forwarding guards and
+a native fixture must be demonstrated. All existing immediate-effect gates and
+21 native cases remain unproved. The accompanying validation-plan JSON and
+source checks record this candidate separately; no new runtime hook is enabled.
+
+Follow-up Python source/ordinary-plan checks: **21/21 passed in 0.077 seconds**,
+including the prior 19 checks. This count is separate from the 21 proposed native
+cases, which remain unrun. No native plan, compiler, resource fixture or runtime
+observer was executed.

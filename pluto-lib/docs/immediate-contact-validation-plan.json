@@ -351,7 +351,8 @@
   },
   "artifact_sha256": {
     "pluto-lib/docs/immediate-contact-validation-plan.md": "0ac505b295a37c3c40468be43ab514d0212ecf9bd909818b3ef096bf6edd275c",
-    "pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py": "c28a069fde11058596ae0f45ae7e7a8d01fad5f56fe004aac50f9ad543b358c9"
+    "pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py": "9d00a94a6b20572e007823f67f3492350d5be091b444eac73faff20c6e6a4e04",
+    "pluto-lib/docs/fluid-contact-effects-audit.md": "d61ffd99627c96b2d5c78be8c7513635033975c72069116a7a092ff0092c09b3"
   },
   "g4_followup": {
     "status": "SOURCE_ONLY bounded operation and ordinary-plan overlap inventory; G4 still blocked_design",
@@ -655,6 +656,61 @@
       "includes_previous_checks": 13,
       "native_execution": false,
       "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c checkout> PLUTO_ORDINARY_PLAN=<frozen v15 ordinary plan> PLUTO_GAME_CI_SOURCE=<MOD checkout containing exact19059> python -B pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py"
+    }
+  },
+  "inside_observation_candidate": {
+    "status": "source-only candidate; not implemented, planned, applied or executed",
+    "scope": "Read-only notification for an existing Inside event only, not immediate fluid effects",
+    "official_bridge": "crates/horizon-client/src/game/native_hooks.rs::block_contact",
+    "facts_present": [
+      "dimension",
+      "entity number",
+      "entity kind",
+      "block name",
+      "block state number",
+      "block position"
+    ],
+    "facts_absent": [
+      "Game borrow",
+      "live actor capability",
+      "world/registry resource owner",
+      "current bounding box",
+      "fluid level or immersion height",
+      "effect instance",
+      "continuation identity"
+    ],
+    "candidate_phase": "Existing upper bridge entry after lower custom-block and dimension/HOOK gates, before its existing Event match and native callbacks; planner feasibility unproved",
+    "name_boundary": "Contact.block is present in the bridge Event but not forwarded to native_block_entity_inside; the latter receives a numerical BlockStateId without a registry owner.",
+    "original_path_requirements": [
+      "Do not replace or race the process OnceLock HOOK; preserve run_with installing the official bridge.",
+      "Only examine Inside; StepOn and FallOn must pass unchanged. Do not borrow or modify damage through the public observer.",
+      "Preserve the one existing native dispatch. A new observer ordering is explicit and must pass complete-installed-plan overlap checks.",
+      "Any optional fluid-family association must use the existing single definition registry, never infer cell level or load a world through numeric state/entity IDs.",
+      "No listeners, unregistered family or unavailable facts must preserve the original path. Unknown is not zero immersion or a replacement actor.",
+      "The callback can receive borrowed observation facts only, with explicit synchronous lifetime/order/panic rules. It cannot retain an actor or receive mutation, cancellation or deferred work authority.",
+      "Native real-resource point/box queries, G2-G6 and source-specific protected effects remain separate. Item/projectile contacts must not be mislabeled living entities."
+    ],
+    "ordinary_v15_overlap": {
+      "sha256": "8978646c181c5a074f687423a47c6337204e519f1f11dd30fdacdb84e2192e7f",
+      "scope": "only the frozen ordinary Pluto plan, not complete consumer/other mod composition",
+      "direct_targets": [
+        "block_contact",
+        "native_block_entity_inside"
+      ],
+      "matching_injection_ids": []
+    },
+    "next_proof": "If separately approved: exact HEAD binding feasibility, additive facade contract, complete-installed-plan and unchanged forwarding guards, then bounded actual native bridge observation fixture. No mutation API follows from this.",
+    "native_compile": "not_run",
+    "native_runtime": "not_run",
+    "source_checks": {
+      "status": "passed",
+      "count": 21,
+      "passed": 21,
+      "failed": 0,
+      "elapsed_seconds": 0.077,
+      "includes_previous_checks": 19,
+      "native_execution": false,
+      "command": "PLUTO_OFFICIAL_SOURCE=<approved official624c> PLUTO_ORDINARY_PLAN=<exact ordinary v15 plan> PLUTO_GAME_CI_SOURCE=<MOD source containing frozen19059> python -B pluto-lib/experiments/effect-instance-proposal/test_immediate_contact_plan.py"
     }
   }
 }

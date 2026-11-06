@@ -289,6 +289,41 @@ class ImmediateContactPlan(unittest.TestCase):
                              (ROOT / 'pluto-lib/experiments/effect-instance-proposal' / name).read_text())
         self.assertEqual(self.plan['fixture_admission_followup']['game_ci']['execution'], 'not_run')
 
+    def test_observation_bridge_keeps_name_but_does_not_supply_game(self):
+        lower = self.src('block_contact.rs')
+        contact = lower.split("pub struct Contact<'a> {", 1)[1].split('}', 1)[0]
+        self.assertIn("pub block: &'a str", contact)
+        hooks = self.src('game/native_hooks.rs')
+        bridge = hooks.split('pub(super) fn block_contact(', 1)[1].split('/// `native_living_incoming_damage`', 1)[0]
+        self.assertIn("event: horizon_client::block_contact::Event<'_>", bridge)
+        self.assertIn('damage: &mut f32', bridge)
+        self.assertNotIn('&mut self', bridge)
+        self.order(bridge, 'Event::StepOn(c)', 'Event::Inside(c)', 'Game::native_block_entity_inside(',
+                   'dimension', 'c.entity', 'c.kind', 'c.state', '[c.position.x, c.position.y, c.position.z]',
+                   'Event::FallOn(c, distance)')
+        target = hooks.split('pub(super) fn native_block_entity_inside(', 1)[1].split('pub(super) fn native_block_fall_on(', 1)[0]
+        self.assertIn('state: BlockStateId', target)
+        self.assertNotIn('block: &str', target)
+        self.assertNotIn('&mut self', target)
+        self.assertIn('mod_api::dispatch_block_entity_inside(', target)
+
+    def test_observation_preserves_existing_scope_forwarding_and_damage_rules(self):
+        source = self.src('block_contact.rs')
+        dispatch = source.split('fn dispatch(event:', 1)[1].split('/// Reuse the entity block sweep', 1)[0]
+        self.order(dispatch, 'contact.block.starts_with("minecraft:")', 'return;',
+                   'LEVEL.get()', 'HOOK.get()', 'let original = *damage',
+                   'hook(dimension, event, damage)', 'if !damage.is_finite()',
+                   '*damage = original', '*damage = damage.max(0.0)')
+        self.assertIn('block_contact::HOOK.set(native_hooks::block_contact)', self.src('game.rs'))
+        evidence = self.plan['inside_observation_candidate']
+        self.assertEqual(evidence['native_compile'], 'not_run')
+        self.assertEqual(evidence['native_runtime'], 'not_run')
+        matched = [i['injection_id'] for i in self.ordinary['injections']
+                   if i['file'] == 'crates/horizon-client/src/game/native_hooks.rs'
+                   and any(i['target'].endswith('::' + m) for m in evidence['ordinary_v15_overlap']['direct_targets'])]
+        self.assertEqual(matched, evidence['ordinary_v15_overlap']['matching_injection_ids'])
+        self.assertEqual(matched, [])
+
     def test_official_inputs_unchanged_after_source_checks(self):
         self.assertEqual(len(self.plan['official_sha256']), 19)
         sources = {**self.plan['official_sha256'], **self.plan['g4_followup']['official_source_sha256'],
