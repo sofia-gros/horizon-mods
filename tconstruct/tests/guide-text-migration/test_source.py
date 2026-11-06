@@ -94,6 +94,15 @@ class Scope(unittest.TestCase):
         self.assertIn("old.1.glyph('b').rect.is_none(), full", source)
         self.assertIn("new.1.glyph('b').advance, if full { 6.0 } else { 7.0 }", source)
 
+    def test_asset_root_is_fresh_before_loading_and_stale_root_is_rejected(self):
+        source = (Path(__file__).parent / 'native.rs').read_text()
+        self.assertIn('std::fs::create_dir(root)', source)
+        provider = source.split('fn provider(bytes:', 1)[1].split('impl Drop', 1)[0]
+        self.assertLess(provider.index('create_root(&root).unwrap();'), provider.index('std::fs::create_dir_all('))
+        self.assertLess(provider.index('create_root(&root).unwrap();'), provider.index('Font::metrics(&root)'))
+        self.assertIn('create_root(&f.0).unwrap_err().kind(), std::io::ErrorKind::AlreadyExists', source)
+        self.assertNotIn('create_dir_all(root)', source)
+
     def test_fixture_is_actual_native_font_and_preserves_fallback_cases(self):
         source = (Path(__file__).parent / 'native.rs').read_text()
         self.assertIn('Font::metrics(&root)', source)

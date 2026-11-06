@@ -67,9 +67,10 @@ partial delegation. The fallback's original unbounded-input costs remain.
 
 ## Validation status
 
-Seven source regressions passed: exact inverse click/draw reconstruction, module-only
+Eight source regressions passed: exact inverse click/draw reconstruction, module-only
 manifest addition, delegation/fallback scope, no extra/replayed native query calls,
-prepared fixture coverage, and original PNG bytes/intended full-region assertions. A peer read-only review found no serious issue in
+prepared fixture coverage, original PNG bytes/intended full-region assertions,
+and atomic fresh asset-root creation before any native loading. A peer read-only review found no serious issue in
 the corrected sequence; it ran no build or test.
 
 Twelve actual official Font/Text cases are prepared but **not yet run**. Ten use
@@ -121,7 +122,7 @@ coordinator-selected existing shared target, `--locked --offline`, debug info 0,
 incremental off and at most two jobs. Monitor workspace free space continuously
 against 10 GiB +128 MiB, terminate the process group on crossing the floor, and
 verify source/lock/fixture identities after terminal status. Record all twelve
-named results, ignored/filtered counts and logs separately from the seven pure
+named results, ignored/filtered counts and logs separately from the eight pure
 checks. `/tmp` capacity and workspace capacity are separate budgets. Do not delete
 or change a previous sealed fixture, native stage or shared artifact to force a
 pass. Current ~5 MiB headroom is not evidence that metadata/linking can safely fit;
@@ -148,3 +149,22 @@ That is evidence against an assumed tiny run, not a fresh output upper bound.
 The old frozen fixture inputs still match their receipt; no native metadata was
 started and no previous artifact was deleted by this worker. Original source-only
 and new twelve-case execution claims remain separate.
+
+
+## Fresh fixture asset roots
+
+Before native execution, a further read-only review found that the PID/counter
+asset directory used `create_dir_all` without rejecting leftovers. The fixture now
+atomically creates that root with `create_dir` before writing or loading anything.
+An existing directory or symlink fails closed and is not overwritten or removed.
+The existing cover/missing-page test also checks `AlreadyExists` and unchanged
+asset bytes on a second creation attempt. There are still twelve native cases;
+none has run. The added pure source guard passes, bringing that separate count to
+eight. This is a test-only correction, not changed production behavior.
+
+The prior terminal Font executable was subsequently archived and verified by the
+separate storage recovery procedure; its source, hashes and logs were preserved.
+After the next prioritized API test, available workspace headroom was still only
+about 13 MiB, close to that old executable's size before allowing for new library
+or temporary object output. Native/Cargo/metadata execution remains ungranted.
+The earlier c4ba fixture source must not be substituted for this corrected cutoff.

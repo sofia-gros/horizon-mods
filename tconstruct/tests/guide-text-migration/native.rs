@@ -2,6 +2,11 @@ use crate::{font::Font, text::{ClickEvent, Span, Style, Text}};
 use crate::consumer::{Book, Lines};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+// Fresh ownership before any asset traversal. A stale PID/counter directory,
+// including a symlink, is rejected rather than read, overwritten or removed.
+fn create_root(root: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir(root)
+}
 struct Fixture(std::path::PathBuf, Font);
 impl Fixture {
     fn new() -> Self { Self::provider(include_bytes!("guide_font_provider.json")) }
@@ -9,6 +14,7 @@ impl Fixture {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let root = std::env::temp_dir().join(format!("tconstruct-guide-query-{}-{}",
             std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
+        create_root(&root).unwrap();
         let file = root.join("assets/minecraft/font/default.json");
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(&file, bytes).unwrap();
@@ -110,6 +116,9 @@ fn query_geometry_errors_use_native_fallback() {
 #[test]
 fn cover_or_missing_page_never_converts_or_queries_font() {
     let f = Fixture::new();
+    let original = std::fs::read(f.0.join("assets/minecraft/font/default.json")).unwrap();
+    assert_eq!(create_root(&f.0).unwrap_err().kind(), std::io::ErrorKind::AlreadyExists);
+    assert_eq!(std::fs::read(f.0.join("assets/minecraft/font/default.json")).unwrap(), original);
     let pages = [text("a", 99)];
     let book = Book::new(&pages);
     // Same handler shape as a cover: construct the borrowed adapter but never
