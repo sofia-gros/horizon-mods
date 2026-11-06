@@ -1,6 +1,8 @@
 # Read-only client play-payload observations
 
 This is a guide-support boundary, not a guide protocol or request/reply service.
+For the additive event-style entry and explicit startup example, see
+[guide API usage](guide-api-usage.md). The legacy functions remain supported.
 The single `pluto_inventory::client_payload` registry accepts an explicit
 subscriber ID, exact namespaced channel, maximum observed byte count and function
 pointer. The consumer owns payload interpretation. Registration grants no
