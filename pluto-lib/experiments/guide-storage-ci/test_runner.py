@@ -60,6 +60,23 @@ class Checks(unittest.TestCase):
             value=self.sample_metadata('/tmp/one');value['packages'][0]['targets'].pop(removed)
             with self.assertRaises(ValueError):m.metadata(json.dumps(value),Path('/tmp/one'))
 
+    def test_metadata_stdout_is_separate_from_stderr(self):
+        proc=mock.Mock(pid=123456789,returncode=0)
+        proc.poll.return_value=0;proc.wait.return_value=0
+        def launch(*args,**kwargs):
+            kwargs['stdout'].write('{"valid":true}\n');kwargs['stdout'].flush()
+            kwargs['stderr'].write('Cargo warning on stderr\n');kwargs['stderr'].flush()
+            return proc
+        with tempfile.TemporaryDirectory() as t, mock.patch.object(m.subprocess,'Popen',side_effect=launch), mock.patch.object(m.os,'killpg',side_effect=ProcessLookupError), contextlib.redirect_stdout(io.StringIO()):
+            runner=m.Runner(Path(t),{})
+            with mock.patch.object(runner,'guard'):
+                result=runner.run('metadata',['unused'],separate_stdout=True)
+            self.assertEqual(json.loads(result),{'valid':True})
+            self.assertEqual((Path(t)/'metadata.stderr.log').read_text(),'Cargo warning on stderr\n')
+        text=(HERE/'run.py').read_text()
+        self.assertEqual(text.count('cwd=pristine,separate_stdout=True'),1)
+        self.assertEqual(text.count('cwd=experiment,separate_stdout=True'),1)
+
     def test_actual_compiler_invocations_not_fresh_or_mock(self):
         good='\n'.join(['Running `rustc --crate-name horizon_client_lib ../horizon-client/src/client_lib.rs --emit=metadata`',
                         'Running `rustc --crate-name horizon_client src/lib.rs --emit=metadata`',
@@ -137,5 +154,7 @@ class Checks(unittest.TestCase):
         runner=(HERE/'run.py').read_text()
         self.assertNotIn("'horizon-mixins'",runner)
         self.assertNotIn('package_native.py',runner)
+        self.assertNotIn("'sudo'",runner)
+        self.assertNotIn("'apt-get'",runner)
 
 if __name__=='__main__':unittest.main()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Isolated official-host storage type experiment; no installed Mod or UI proof."""
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -20,7 +21,7 @@ REPOSITORY = 'sofia-gros/horizon-mods'
 HORIZON = '624c4f6265c02296fbe8a80f029dd0d987fb94c0'
 HORIZON_URL = 'https://github.com/horizon-rust/horizon.git'
 LOCK = '463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31'
-RUNNER_TESTS = 14
+RUNNER_TESTS = 15
 REQUIRED = {'runner', 'official_source', 'prototype_source', 'experiment_delta', 'metadata', 'host_type'}
 LOG_LIMIT = 128*1024**2
 
@@ -44,17 +45,20 @@ def config():
     return value
 
 class Runner(base.Runner):
-    def run(self, name, command, cwd=None, timeout=120):
+    def run(self, name, command, cwd=None, timeout=120, separate_stdout=False):
         self.guard(); path = self.work/(name+'.log')
         print('PHASE', name, json.dumps(command), flush=True)
         started = time.monotonic()
-        with path.open('x') as log:
+        with path.open('x') as log, contextlib.ExitStack() as stack:
+            err_path = self.work/(name+'.stderr.log') if separate_stdout else None
+            err = stack.enter_context(err_path.open('x')) if err_path else subprocess.STDOUT
             proc = subprocess.Popen(command, cwd=cwd or ROOT, env=self.env, stdout=log,
-                                    stderr=subprocess.STDOUT, start_new_session=True)
+                                    stderr=err, start_new_session=True)
             try:
                 while proc.poll() is None:
                     self.guard()
-                    if path.stat().st_size > LOG_LIMIT: raise RuntimeError('Bounded log limit reached')
+                    size = path.stat().st_size + (err_path.stat().st_size if err_path else 0)
+                    if size > LOG_LIMIT: raise RuntimeError('Bounded log limit reached')
                     if time.monotonic()-started > timeout: raise TimeoutError(name)
                     time.sleep(0.2)
             finally:
@@ -70,11 +74,15 @@ class Runner(base.Runner):
                 # dumped into an unbounded Actions response. On failure show a
                 # bounded diagnostic tail; success has exact selected evidence.
                 raw = path.read_bytes()
+                stderr = err_path.read_bytes() if err_path else b''
                 print('LOG', name, json.dumps({'sha256':sha(raw), 'bytes':len(raw)}), flush=True)
+                if err_path:
+                    print('STDERR_LOG', name, json.dumps({'sha256':sha(stderr), 'bytes':len(stderr)}), flush=True)
                 if proc.returncode:
                     print(raw[-65536:].decode(errors='replace'), flush=True)
+                    if stderr: print(stderr[-65536:].decode(errors='replace'), flush=True)
         self.guard()
-        if len(raw) > LOG_LIMIT: raise RuntimeError('Bounded log limit reached')
+        if len(raw)+len(stderr) > LOG_LIMIT: raise RuntimeError('Bounded log limit reached')
         print('TERMINAL', name, proc.returncode, flush=True)
         if proc.returncode: raise RuntimeError(name+' exited '+str(proc.returncode))
         return raw.decode()
@@ -191,8 +199,6 @@ def execute(report):
     try:
         python_pass(runner.run('runner-checks',[sys.executable,str(HERE/'test_runner.py'),'-v']),RUNNER_TESTS)
         report['gates']['runner']=RUNNER_TESTS
-        runner.run('apt-update',['sudo','apt-get','update'],timeout=600)
-        runner.run('apt-install',['sudo','apt-get','install','-y','--no-install-recommends','libasound2-dev','libudev-dev'],timeout=600)
         runner.run('toolchain',['rustup','toolchain','install','1.95.0','--profile','minimal','--no-self-update'],timeout=600)
         runner.run('official-init',['git','init',str(checkout)])
         runner.run('official-origin',['git','-C',str(checkout),'remote','add','origin',HORIZON_URL])
@@ -213,8 +219,8 @@ def execute(report):
         report['gates']['experiment_delta']={'paths':value['expected_delta'],'count':11}
         runner.run('locked-fetch',['cargo','fetch','--locked','--manifest-path',str(pristine/'Cargo.toml')],cwd=pristine,timeout=900)
         arguments=['cargo','metadata','--locked','--offline','--no-default-features','--format-version','1','--manifest-path']
-        old=metadata(runner.run('pristine-metadata',arguments+[str(pristine/'Cargo.toml')],cwd=pristine),pristine)
-        new=metadata(runner.run('experiment-metadata',arguments+[str(experiment/'Cargo.toml')],cwd=experiment),experiment)
+        old=metadata(runner.run('pristine-metadata',arguments+[str(pristine/'Cargo.toml')],cwd=pristine,separate_stdout=True),pristine)
+        new=metadata(runner.run('experiment-metadata',arguments+[str(experiment/'Cargo.toml')],cwd=experiment,separate_stdout=True),experiment)
         if old!=new: raise ValueError('Dependency/feature graph changed beyond source-root relocation')
         report['gates']['metadata']={'normalized_sha256':sha(old.encode()),'full_dependencies':True}
         typed=runner.run('host-type',['cargo','check','--offline','--locked','--manifest-path',str(experiment/'Cargo.toml'),

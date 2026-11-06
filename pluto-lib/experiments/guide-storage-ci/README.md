@@ -17,10 +17,14 @@ roots. The normal official checkout is never patched, and no engine fork is read
    artifact publication, manual input or release. First preserve source on a
    non-trigger branch; independent review and coordinator release are required
    before creating `checkpoint/guide-storage-type-ci-20261106`.
-2. Run fourteen bounded Python runner checks. These model parser/guard failures;
+2. Run fifteen bounded Python runner checks. These model parser/guard failures;
    they are not actual Game tests.
 3. Under the continuous 10 GiB + 128 MiB floor (and initial additional 2 GiB
-   reserve), install the official pinned Rust toolchain and usual host headers.
+   reserve), install only the official pinned minimal Rust toolchain. No sudo or
+   apt is used. Official `crates/horizon-client/Cargo.toml:113–117` documents that
+   this no-default-features build does not link libasound/libudev; the client-lib
+   dependency also disables its defaults. This remains a type-only build and
+   does not become evidence of working audio, controllers or a live Client.
    Fetch only official Horizon 624c4f62, verify the exact commit/lock and preserve
    the complete original checkout and exported pristine file sets.
 4. Run the existing seven prototype source/hunk tests against that pristine
@@ -31,6 +35,8 @@ roots. The normal official checkout is never patched, and no engine fork is read
 5. Fetch the official locked dependency set. Compare full locked/offline metadata
    with no default features for pristine and experiment after normalizing only
    their root paths. Local package/target sources must remain within their tree.
+   Metadata stdout and stderr have distinct file-backed streams. The complete
+   stdout must be JSON; no convenient JSON line is extracted from mixed output.
    No previous Pluto/v15 build cache or dependency identity is assumed.
 6. Check actual horizon-client lib and named bin with no default features,
    one job, debug/incremental disabled, locked/offline dependencies. Require
