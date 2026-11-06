@@ -727,3 +727,17 @@ file = "crates/horizon-client/src/recipe_book.rs"
 name = "pluto_presentation"
 source = "recipe-book-presentation.rs"
 visibility = "pub"
+
+[[module]]
+id = "language"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_language"
+source = "language.rs"
+visibility = "pub"
+
+[[module]]
+id = "language-text"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_language_text"
+source = "language-text.rs"
+visibility = "pub"

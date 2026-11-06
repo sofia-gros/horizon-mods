@@ -6,6 +6,7 @@ use std::sync::{Arc, Weak};
 pub const MAX_BINDINGS: usize = 16_384;
 pub const MAX_TEXT_BYTES: usize = 1024 * 1024;
 pub const MAX_LIVE_OWNERS: usize = 64;
+pub const MAX_MATERIAL_TEMPLATES: usize = 256;
 
 /// The upper content owner supplies explicit selectors and an opaque variant.
 /// This layer never interprets level names, flow, tint or a fluid family policy.
@@ -18,9 +19,77 @@ pub struct Request {
     pub texture: String,
 }
 
+/// Optional prepared secondary material for one existing group/variant.
+/// The model must already have been baked by the native standalone-model loader.
+/// This is a resource selector, never permission to load assets while meshing.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AppearanceRequest {
+    pub group: String,
+    pub variant: u32,
+    pub model: String,
+    pub texture: String,
+    pub tint: u32,
+    pub anchor: super::pluto_terrain_cell_geometry::VerticalAnchor,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Appearance {
+    pub secondary_sprite: u16,
+    pub tint: u32,
+    pub anchor: super::pluto_terrain_cell_geometry::VerticalAnchor,
+}
+/// Shared text/count budget covers both original selectors and material names.
+/// Each appearance must refer to an existing request, exactly once.
+pub fn validate_appearances(
+    requests: &[Request],
+    appearances: &[AppearanceRequest],
+) -> Result<(), Error> {
+    validate(requests)?;
+    if appearances.len() > requests.len() {
+        return Err(Error::LimitExceeded);
+    }
+    let keys: std::collections::BTreeSet<_> = requests
+        .iter()
+        .map(|r| (r.group.as_str(), r.variant))
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut bytes = 0usize;
+    for r in requests {
+        for v in [&r.group, &r.block, &r.texture]
+            .into_iter()
+            .chain(r.properties.iter().flat_map(|(k, v)| [k, v]))
+        {
+            bytes = bytes.checked_add(v.len()).ok_or(Error::LimitExceeded)?;
+        }
+    }
+    for a in appearances {
+        if a.tint > 0xFF_FFFF
+            || !keys.contains(&(a.group.as_str(), a.variant))
+            || a.model.is_empty()
+            || a.texture.is_empty()
+        {
+            return Err(Error::InvalidRequest);
+        }
+        if !seen.insert((a.group.as_str(), a.variant)) {
+            return Err(Error::DuplicateVariant {
+                group: a.group.clone(),
+                variant: a.variant,
+            });
+        }
+        for v in [&a.group, &a.model, &a.texture] {
+            bytes = bytes.checked_add(v.len()).ok_or(Error::LimitExceeded)?;
+            if bytes > MAX_TEXT_BYTES {
+                return Err(Error::LimitExceeded);
+            }
+        }
+    }
+    Ok(())
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     RegistryUnavailable,
+    UnsupportedAppearance(String),
+    MissingMaterialModel(String),
+    InvalidMaterialModel(String),
     StaleRegistry,
     LimitExceeded,
     InvalidRequest,
@@ -332,6 +401,70 @@ mod revision_view_tests {
                 42
             }),
             Err(CacheError::StaleRegistry)
+        );
+    }
+}
+
+#[cfg(test)]
+mod appearance_tests {
+    use super::*;
+    fn requests() -> Vec<Request> {
+        vec![Request {
+            group: "demo".into(),
+            variant: 0,
+            block: "demo:block".into(),
+            properties: BTreeMap::new(),
+            texture: "demo:still".into(),
+        }]
+    }
+    fn appearance() -> AppearanceRequest {
+        AppearanceRequest {
+            group: "demo".into(),
+            variant: 0,
+            model: "demo:model".into(),
+            texture: "demo:flow".into(),
+            tint: 0xFF_FFFF,
+            anchor: super::super::pluto_terrain_cell_geometry::VerticalAnchor::Bottom,
+        }
+    }
+    #[test]
+    fn legacy_empty_and_single_appearance_validate() {
+        assert!(validate_appearances(&requests(), &[]).is_ok());
+        assert!(validate_appearances(&requests(), &[appearance()]).is_ok());
+    }
+    #[test]
+    fn duplicate_unknown_and_invalid_material_selectors_fail() {
+        let mut r = requests();
+        r.push(Request {
+            variant: 1,
+            ..r[0].clone()
+        });
+        assert!(matches!(
+            validate_appearances(&r, &[appearance(), appearance()]),
+            Err(Error::DuplicateVariant { .. })
+        ));
+        for change in 0..4 {
+            let mut a = appearance();
+            match change {
+                0 => a.variant = 2,
+                1 => a.model.clear(),
+                2 => a.texture.clear(),
+                _ => a.tint = 0x100_0000,
+            };
+            assert_eq!(validate_appearances(&r, &[a]), Err(Error::InvalidRequest));
+        }
+    }
+    #[test]
+    fn material_text_is_charged_to_the_same_total_budget() {
+        let mut a = appearance();
+        a.texture = "x".repeat(MAX_TEXT_BYTES);
+        assert_eq!(
+            validate_appearances(&requests(), &[a]),
+            Err(Error::LimitExceeded)
+        );
+        assert_eq!(
+            validate_appearances(&[], &[appearance()]),
+            Err(Error::LimitExceeded)
         );
     }
 }

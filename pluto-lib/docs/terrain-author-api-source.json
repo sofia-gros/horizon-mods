@@ -1,0 +1,20 @@
+{
+  "base_runtime": "a432ce4561ae1c81448b37a5b19e71126d8c4e72",
+  "prerequisite": "Explicit u32 tint correction from60054; no other runtime modification",
+  "before_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "terrain-cell-providers.rs": "322f5dba8dd26f4aff20749a8b10baa2af48997a94018e188d2f4a2ff0a35e35",
+    "terrain-cell-geometry.rs": "efdf05934c1d74fa1bd5a1101da5cccd5667eb435ebb18cf1885fa31fd958994",
+    "terrain-bindings.rs": "52238d6cb0097f781c747ecc0b5b76b3f19747478ee4574b6f970520a227f33c",
+    "horizon-mixin.toml": "b5a97de3e1940038af77903d7bc9c6036309fbca1bed8be9c0e5bd89d6318df4"
+  },
+  "native_tests": "prepared, unexecuted",
+  "gpu": "unverified",
+  "composition_original_manifest_sha256": "f7f11ce44573a04b4a6050eacf318423f22aaf593205d292dcb3b0f1b291ce6b",
+  "composition_additive_module_ids": [
+    "recipe-book-presentation",
+    "language",
+    "language-text"
+  ],
+  "composition_note": "This combined source changes only the manifest pin; test_common_composite removes the exact three additive module blocks and recovers the original full manifest bytes. Prior immutable terrain receipts remain separate."
+}

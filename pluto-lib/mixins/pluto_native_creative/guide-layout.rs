@@ -205,3 +205,64 @@ pub fn wrap(
     }
     Ok(Wrapped { raw, lines })
 }
+
+
+/// A native-host logical hit fact. The cloned native style is not permission to
+/// execute its action, and is not a second portable document/wire schema.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NativeHit {
+    pub line: usize,
+    pub scalar: usize,
+    pub character: char,
+    pub style: Style,
+}
+
+/// Raw native split output without eager metric/legacy/bidi queries. Unlike
+/// `Wrapped`, constructing this value does not measure every resolved line.
+/// Native metric behavior (including nonfinite/negative advances) is retained.
+pub struct RawLines {
+    lines: Vec<Text>,
+}
+impl RawLines {
+    pub fn native_lines(&self) -> &[Text] {
+        &self.lines
+    }
+
+    /// Exact selected-row native logical traversal. No coordinate admission,
+    /// visual bidi promise or action execution. The caller selects its row and
+    /// admits its input. Native nonfinite/signed arithmetic is not normalized.
+    /// Resolve only this line and stop advancing at the first negative remainder.
+    /// This operation cannot fail after a partial font traversal and request a
+    /// retry; an absent row or no matching character is simply None.
+    pub fn hit_native(&self, font: &Font, mut x: f32, row: usize) -> Option<NativeHit> {
+        let line = self.lines.get(row)?.resolve_legacy();
+        for (scalar, (character, style)) in line.chars().enumerate() {
+            x -= font.advance(character, style);
+            if x < 0.0 {
+                return Some(NativeHit { line: row, scalar, character, style: style.clone() });
+            }
+        }
+        None
+    }
+}
+
+/// Bounded admission followed by exactly one native raw splitter invocation.
+/// Unlike `wrap`, there is NO advance preflight, width_text, legacy resolution,
+/// or per-line measurement. Errors occur before any Font query, allowing a
+/// consumer to retain its old native fallback without replaying cache effects.
+/// There are no new post-split error paths. The original native splitter owns
+/// its glyph/atlas cache behavior, which is not made pure by this API.
+pub fn split_raw(
+    font: &Font,
+    document: &document::Document,
+    page: usize,
+    width: f32,
+) -> Result<RawLines, Error> {
+    if !width.is_finite() || width <= 0.0 {
+        return Err(Error::Width);
+    }
+    let page = document.pages().get(page).ok_or(Error::Page)?;
+    admit(page)?;
+    let native = pluto_guide_text::to_native_page(page);
+    Ok(RawLines { lines: font.split(&native, width) })
+}
