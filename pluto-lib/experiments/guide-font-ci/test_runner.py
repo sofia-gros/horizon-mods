@@ -1,0 +1,34 @@
+import importlib.util
+from pathlib import Path
+import unittest
+HERE=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('guide_ci',HERE/'run.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+class Checks(unittest.TestCase):
+    def setUp(self):
+        self.c=m.read_inputs()
+        self.log='\n'.join('test '+n+' ... ok' for n in self.c['test_names'])+'\ntest result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.01s\n'
+    def test_exact_names_and_count(self):m.validate_tests(self.log,self.c)
+    def test_zero_or_skipped_is_not_success(self):
+        for text in ['',self.log.replace('12 passed','0 passed'),self.log.replace(' ... ok',' ... ignored',1)]:
+            with self.assertRaises(ValueError):m.validate_tests(text,self.c)
+    def test_duplicate_unknown_missing_rejected(self):
+        for text in [self.log+'test '+self.c['test_names'][0]+' ... ok\n',self.log.replace(self.c['test_names'][0],'consumer_tests::other'),self.log.split('\n',1)[1]]:
+            with self.assertRaises(ValueError):m.validate_tests(text,self.c)
+    def test_actual_three_compilers_required(self):
+        log='\n'.join('Running `rustc --crate-name '+n+' --edition=2024`' for n in ['horizon_client_core','horizon_client_render','pluto_guide_text_tests'])
+        m.native_rustc(log)
+        with self.assertRaises(ValueError):m.native_rustc(log.replace('horizon_client_render','modeled_render'))
+    def test_offline_and_post_seal_gates_are_explicit(self):
+        source=(HERE/'run.py').read_text()
+        for token in ["'official-locked-fetch'","'--locked'","'--offline'","'verify-after-compile'","'verify-after-tests'","out_dirs(target) != generated","start_new_session=True","signal.SIGTERM","signal.SIGKILL"]:
+            self.assertIn(token,source)
+        self.assertLess(source.index("'official-locked-fetch'"),source.index("runner.run('prepare'"))
+    def test_workflow_is_only_exact_branch_readonly_no_cache_artifacts(self):
+        workflow=(HERE.parents[2]/'.github/workflows/guide-font-wip.yml').read_text()
+        self.assertIn('push:\n    branches:\n      - '+self.c['branch'],workflow)
+        for token in ['contents: read','persist-credentials: false','runs-on: ubuntu-24.04','timeout-minutes: 55']:
+            self.assertIn(token,workflow)
+        for token in ['workflow_dispatch','pull_request:','contents: write','actions/cache','upload-artifact','secrets.','self-hosted']:
+            self.assertNotIn(token,workflow)
+if __name__=='__main__':unittest.main()

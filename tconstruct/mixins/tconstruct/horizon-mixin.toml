@@ -3436,6 +3436,12 @@ helper = "source-materials-book-response.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
 
 [[module]]
+id = "materials-book-text"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_text"
+source = "source-materials-book-text.rs"
+
+[[module]]
 id = "materials-book-index"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_index"

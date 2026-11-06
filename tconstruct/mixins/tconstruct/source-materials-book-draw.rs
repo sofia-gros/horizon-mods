@@ -70,11 +70,13 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         game.draw_item(batch, &stack, x, y);
         stack
     };
+    let book_text = tconstruct_materials_book_text::Book::new(pages);
     for offset in 0..if cover { 0 } else { 2 } {
     let Some(text) = pages.get(base + offset) else { continue; };
     let left = if offset == 0 { center - 206.0 + 16.0 - 36.0 } else { center + 8.0 - 36.0 };
     let is_title = text.spans.first().and_then(|span| span.style.insertion.as_deref()).is_some_and(|id| id.starts_with("tconstruct:book:") || id == "tconstruct:book-title");
-    for (i, line) in game.gui.atlas.font.split(text, 182.0).iter().take(17).enumerate() {
+    let Some(lines) = book_text.page(&game.gui.atlas.font, base + offset, 182.0) else { continue; };
+    for (i, line) in lines.as_slice().iter().take(17).enumerate() {
         let x = if is_title && i == 0 { left + 36.0 + (182.0 - HudBatch::text_width(atlas, &text.spans.first().map(|s| s.text.as_str()).unwrap_or(""))) / 2.0 } else { left + 36.0 };
         let material_title = i == 0 && text.spans.first().and_then(|span| span.style.insertion.as_deref()).is_some_and(|id| id.starts_with("tconstruct:book:") && id.contains("\"material_panel\""));
         batch.text_styled(atlas, line, x, top + 12.0 + i as f32 * 9.0, BLACK, material_title);
