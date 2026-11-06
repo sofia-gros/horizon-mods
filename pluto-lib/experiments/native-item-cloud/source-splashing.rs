@@ -445,15 +445,12 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
     // This branch is the existing held-item action, not a generic cloud source.
-    // Capture before cooldown/world effects; missing/changed native action context is explicit.
+    // Both guest and local/fake are supported. An unproved initial context
+    // rejects the complete cloud action before cooldown, placement or charge.
     let cloud_frame = if is_cloud {
         match super::tconstruct_source_fluid_cloud::capture(game) {
             Ok(frame) => Some(frame),
-            Err(error) => {
-                if !mixed_glow { return Some(Err(format!("TConstruct cloud action unsupported: {error:?}").into())); }
-                eprintln!("TConstruct cloud action unsupported, retaining glow-only attempt: {error:?}");
-                None
-            }
+            Err(error) => return Some(Err(format!("TConstruct cloud action unsupported: {error:?}").into())),
         }
     } else { None };
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);

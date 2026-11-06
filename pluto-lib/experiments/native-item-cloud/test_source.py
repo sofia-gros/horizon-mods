@@ -77,7 +77,7 @@ class NativeItemSource(unittest.TestCase):
         self.assertIn('insert_native_item_frame(game, frame, request)',v)
     def test_existing_policy_request_is_not_rewritten(self):
         v=read('source-fluid-cloud.rs')
-        for x in ['duration.checked_mul(4)','effects.len() > pluto_cloud::MAX_EFFECTS','(0..=255)',
+        for x in ['duration.checked_mul(4)','let effect_budget = effects.len()','(0..=255)',
                   'radius: 1.0','radius_per_tick: -1.0 / 600.0','radius_on_use: -0.5',
                   'duration_ticks: 600','wait_ticks: 10','reapplication_ticks: 20',
                   'effect_duration_scale: 0.25','entity.minecraft.area_effect_cloud']:
@@ -100,17 +100,63 @@ class NativeItemSource(unittest.TestCase):
         self.assertIn('require_current(game, frame)',body)
         self.assertIn('held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)',body)
         self.assertIn('item commit',body)
-    def test_unsupported_cloud_before_cooldown_has_explicit_mixed_behavior(self):
+    def test_unsupported_initial_context_rejects_whole_action_before_cooldown(self):
         v=read('source-splashing.rs').split('pub(super) fn block(',1)[1]
         capture=v.index('::capture(game)');cooldown=v.index('game.add_cooldown')
         self.assertLess(capture,cooldown)
-        self.assertIn('if !mixed_glow { return Some(Err(',v[capture:cooldown])
-        self.assertIn('retaining glow-only attempt',v[capture:cooldown])
+        self.assertIn('Err(error) => return Some(Err(',v[capture:cooldown])
+        self.assertNotIn('mixed_glow',v[capture:cooldown])
+        self.assertNotIn('glow-only',v[capture:cooldown])
     def test_inventory_of_prepared_tests_and_no_runtime_manifest(self):
         names=re.findall(r'#\[test\]\s+fn (\w+)',read('cloud-insertion.rs'))
         self.assertEqual(len(names),6);self.assertEqual(len(set(names)),6)
         self.assertEqual(len(re.findall(r'#\[test\]\s+fn (\w+)',read('source-fluid-cloud.rs'))),3)
         self.assertFalse((R/'horizon-mixin.toml').exists())
         self.assertIsNone(S['actual_plan_identity']);self.assertIsNone(S['actual_type_result'])
+
+    def test_default_budget_validation_body_reverses_to_original(self):
+        v=read('cloud-descriptor.rs');spec=S['descriptor']
+        self.assertEqual(sha(v),spec['after_sha256'])
+        for old,new in reversed(spec['edits']):
+            self.assertEqual(v.count(new),1);v=v.replace(new,old)
+        self.assertEqual(sha(v),spec['before_sha256'])
+        self.assertIn('pub const MAX_EFFECTS: usize = 256;',v)
+        self.assertIn('validate_with_effect_budget(descriptor, MAX_EFFECTS)',read('cloud-descriptor.rs'))
+        method=read('cloud-descriptor.rs').split('pub fn with_native_effect_color',1)[1].split('\n}',1)[0]
+        self.assertIn('(mut self) -> Self',method)
+        self.assertIn('.filter(|effect| effect.visible).map(|effect| (effect.raw_id, effect.amplifier))',method)
+        self.assertEqual(method.count('pluto_potions::effects_color('),1)
+        self.assertNotIn('color: u32',method)
+
+
+    def test_explicit_budget_is_typed_and_overflow_checked_not_a_flag(self):
+        v=read('cloud-descriptor.rs').split('pub fn validate_with_effect_budget',1)[1]
+        self.assertIn('effect_budget: usize',v)
+        self.assertIn('effect_budget.checked_mul(element_bytes)',v)
+        self.assertIn('bytes > isize::MAX as usize',v)
+        self.assertIn('std::mem::size_of::<Effect>()',v)
+        self.assertIn('std::mem::size_of::<ResolvedEffect>()',v)
+        self.assertLess(v.index('checked_mul'),v.index('pluto_potions::effect('))
+        self.assertIn('descriptor.effects.len() > effect_budget',v)
+
+    def test_color_adapter_reverses_exactly_and_delegates_native_once(self):
+        v=read('potion-facts.rs');spec=S['color']
+        self.assertEqual(sha(v),spec['after_sha256'])
+        self.assertEqual(v.count(spec['addition']),1)
+        self.assertEqual(sha(v.replace(spec['addition'],'')),spec['before_sha256'])
+        self.assertEqual(spec['addition'].count('potions::effects_color(effects)'),1)
+        self.assertNotIn('sort',spec['addition']);self.assertNotIn('dedup',spec['addition'])
+
+    def test_large_owned_sequence_retains_order_and_checks_tail_flags(self):
+        v=read('source-fluid-cloud.rs')
+        body=v.split('#[cfg(test)]')[0]
+        for x in ['let effect_budget = effects.len()', 'effects.iter().enumerate()',
+                  'color_rgb: 0', '}, effect_budget).map(|value| value.with_native_effect_color()).map_err(Error::Invalid)']:
+            self.assertIn(x,body)
+        for x in ['MAX_EFFECTS','red +=','green +=','blue +=','.sort(','.dedup(']:self.assertNotIn(x,body)
+        for x in ['for budget in [0,256,usize::MAX]','conflicting.effects[256].ambient=true',
+                  'ConflictingFlags { index:256 }','invalid.effects[256].amplifier=256',
+                  'validate(value.descriptor().clone())','take(512)','raw_color.color_rgb=0xffffefff','visible.effects[1].visible=false']:
+            self.assertIn(x,v)
 
 if __name__=='__main__':unittest.main()

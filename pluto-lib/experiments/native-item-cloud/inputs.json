@@ -15,11 +15,11 @@
   "caller": {
     "scope": "pub(super) fn block(",
     "before_sha256": "e56cab690999023a7d9a2d159a9d3c9854dcf26ec2b09ff296a9d318c3630ea3",
-    "after_sha256": "6c44a9bdbe6356efbda5ad0f0821b40b77acc8e964dd2e168450e537e542c06f",
+    "after_sha256": "026a29e4cb575d39929b44c80a22cc9821259f6a5c5b902c6280bc2d0bd956bb",
     "edits": [
       [
         "    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);",
-        "    // This branch is the existing held-item action, not a generic cloud source.\n    // Capture before cooldown/world effects; missing/changed native action context is explicit.\n    let cloud_frame = if is_cloud {\n        match super::tconstruct_source_fluid_cloud::capture(game) {\n            Ok(frame) => Some(frame),\n            Err(error) => {\n                if !mixed_glow { return Some(Err(format!(\"TConstruct cloud action unsupported: {error:?}\").into())); }\n                eprintln!(\"TConstruct cloud action unsupported, retaining glow-only attempt: {error:?}\");\n                None\n            }\n        }\n    } else { None };\n    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);"
+        "    // This branch is the existing held-item action, not a generic cloud source.\n    // Both guest and local/fake are supported. An unproved initial context\n    // rejects the complete cloud action before cooldown, placement or charge.\n    let cloud_frame = if is_cloud {\n        match super::tconstruct_source_fluid_cloud::capture(game) {\n            Ok(frame) => Some(frame),\n            Err(error) => return Some(Err(format!(\"TConstruct cloud action unsupported: {error:?}\").into())),\n        }\n    } else { None };\n    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);"
       ],
       [
         "        let mut successes = 0usize;\n        let mut remaining = fluid.clone();",
@@ -37,7 +37,8 @@
   },
   "consumer": {
     "derived_from": "70a589b21b1b202b44debb8b5aa848c83daf9207",
-    "after_sha256": "e7fb20002db22280abdf34adbf5894a6790b3c6d05d1143242cd30c0eb4b8323"
+    "after_sha256": "45d5f330a0e54422ce0beb60a9c4fd8f893fbc5cf96ffa9ea51de005d361f212",
+    "before_v2_sha256": "e7fb20002db22280abdf34adbf5894a6790b3c6d05d1143242cd30c0eb4b8323"
   },
   "manifest_required_but_not_applied": {
     "before_sha256": "938047349574713d1a7163926a03d7c2354505f32879bc0b68c133ba3b5dcec2",
@@ -99,6 +100,48 @@
       "sha256": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
       "git_blob": "c34b42fdfc2be8b743ca5eb6458cf4ebbc7abf24",
       "bytes": 9498
+    },
+    "crates/horizon-client-core/src/potions.rs": {
+      "sha256": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772",
+      "git_blob": "832d1fc0174693ef3b9db956153cd87bb73bd913",
+      "bytes": 13499
     }
+  },
+  "previous_candidate": "16a6bc4292b5ab94260869733a3e3094d74110c6",
+  "descriptor": {
+    "before_sha256": "4ef35cd998317a3f47fc2376d026e24e850d8331da4354987dc34791800c1a22",
+    "after_sha256": "7fc3a21853418403549d7c0267710d4f237a59aea870ff2ad5018de5405b9b64",
+    "edits": [
+      [
+        "pub fn validate(descriptor: Descriptor) -> Result<Validated, Error> {",
+        "pub fn validate(descriptor: Descriptor) -> Result<Validated, Error> {\n    validate_with_effect_budget(descriptor, MAX_EFFECTS)\n}\n\n/// The same validation with an explicit finite effect-count budget. The default\n/// entry keeps its 256 limit. This does not authorize a cloud or allocate IDs.\n/// A caller preserving an already admitted owned sequence may supply its exact\n/// length; it remains responsible for that input's admission and memory cost.\n/// Budgets impossible for either owned vector layout reject before validation.\n/// No sorting, duplicate collapse, filtering or partial validation is performed.\npub fn validate_with_effect_budget(descriptor: Descriptor, effect_budget: usize)\n    -> Result<Validated, Error> {\n    for element_bytes in [std::mem::size_of::<Effect>(), std::mem::size_of::<ResolvedEffect>()] {\n        if effect_budget.checked_mul(element_bytes).is_none_or(|bytes| bytes > isize::MAX as usize) {\n            return Err(Error::EffectBudget);\n        }\n    }"
+      ],
+      [
+        "descriptor.effects.len() > MAX_EFFECTS",
+        "descriptor.effects.len() > effect_budget"
+      ],
+      [
+        "    pub fn effects(&self) -> &[ResolvedEffect] { &self.effects }\n",
+        "    pub fn effects(&self) -> &[ResolvedEffect] { &self.effects }\n\n    /// Opt into the native mix of the validated visible effects, in caller\n    /// order. This accepts no raw color value and grants no actor authority.\n    /// Native u32 arithmetic (including its profile-dependent overflow behavior)\n    /// is preserved; the resulting bits need not satisfy the separate explicit\n    /// RGB-input restriction. Compute this before native construction/ID work.\n    pub fn with_native_effect_color(mut self) -> Self {\n        self.descriptor.color_rgb = pluto_potions::effects_color(self.effects.iter()\n            .filter(|effect| effect.visible).map(|effect| (effect.raw_id, effect.amplifier)));\n        self\n    }\n"
+      ],
+      [
+        "    /// Unmixed RGB, without an alpha byte.\n",
+        "    /// Explicit RGB input to validate(), without an alpha byte. The consuming\n    /// Validated::with_native_effect_color operation instead stores the exact\n    /// native color-mix u32 result, including its native overflow behavior.\n"
+      ]
+    ]
+  },
+  "color": {
+    "before_sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f",
+    "after_sha256": "556109f53c45803dfaf69c27312e37d89d3637200821ab23bd1325e3e60d8f14",
+    "addition": "/// Native amplifier-weighted color in the given order, with native duplicate,\n/// unknown-ID and arithmetic behavior. This is not effect admission: callers\n/// validate their input and choose whether that native policy is appropriate.\npub fn effects_color<'a>(effects: impl Iterator<Item = (&'a str, i32)>) -> u32 {\n    potions::effects_color(effects)\n}\n"
+  },
+  "ordinary_runtime_changed": false,
+  "policy_v2": {
+    "default_effect_budget_unchanged": 256,
+    "caller_budget": "exact already-owned admitted sequence length",
+    "new_count_limit": false,
+    "color": "explicit consuming Validated native mix of same ordered visible effects; no arbitrary raw32 input; native panic/wrap delegated before IDs",
+    "initial_unproved_mixed_context": "explicit whole-action error before cooldown/world/item effects; no invented glow-only fallback",
+    "unchanged_after_publication": "original mixed following effect / partial accounting / precharge current-frame checks"
   }
 }
