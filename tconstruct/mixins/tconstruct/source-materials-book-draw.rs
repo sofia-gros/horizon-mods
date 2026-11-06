@@ -3,13 +3,8 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let Some(BookScreen::View { pages, page, lectern: None }) = game.book.as_ref() else { return Continue(()); };
     if pages.first().and_then(|p| p.spans.first()).and_then(|s| s.style.insertion.as_deref()) != Some("tconstruct:materials-book-root") { return Continue(()); }
     let atlas = &game.gui.atlas;
-    let puny = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Puny Smelting\n"));
-    let mighty = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Mighty Smelting\n"));
-    let encyclopedia = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Encyclopedia\n"));
-    let gadgetry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Tinkers' Gadgetry\n"));
-    let foundry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Fantastic Foundry\n"));
-    let cover_sprite = if gadgetry { "gui/tconstruct_book_covers_gadgetry_cover" } else if foundry { "gui/tconstruct_book_covers_fantastic_foundry_cover" } else if puny { "gui/tconstruct_book_covers_puny_smelting_cover" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_cover" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_cover" } else { "gui/tconstruct_book_covers_materials_and_you_cover" };
-    let pages_sprite = if gadgetry { "gui/tconstruct_book_covers_gadgetry_pages" } else if foundry { "gui/tconstruct_book_covers_fantastic_foundry_pages" } else if puny { "gui/tconstruct_book_covers_puny_smelting_pages" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_pages" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_pages" } else { "gui/tconstruct_book_covers_materials_and_you_pages" };
+    let title = pages.first().and_then(|p| p.spans.first()).map(|s| s.text.as_str()).unwrap_or("");
+    let (cover_sprite, pages_sprite) = tconstruct_materials_book_identity::legacy_draw_sprites(title);
     let center = batch.width / 2.0;
     let top = (batch.height / 2.0 - 100.0).floor();
     let cover = *page == usize::MAX;

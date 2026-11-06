@@ -327,15 +327,8 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
 }
 
 pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) -> Option<Vec<Text>> {
-    let (root, book_title) = match book {
-        "tconstruct:fantastic_foundry" => ("assets/tconstruct/book/fantastic_foundry/", "Fantastic Foundry"),
-        "tconstruct:puny_smelting" => ("assets/tconstruct/book/puny_smelting/", "Puny Smelting"),
-        "tconstruct:mighty_smelting" => ("assets/tconstruct/book/mighty_smelting/", "Mighty Smelting"),
-        "tconstruct:tinkers_gadgetry" => ("assets/tconstruct/book/tinkers_gadgetry/", "Tinkers' Gadgetry"),
-        "tconstruct:encyclopedia" => ("assets/tconstruct/book/encyclopedia/", "Encyclopedia"),
-        "tconstruct:materials_and_you" => ("assets/tconstruct/book/materials_and_you/", "Materials & You"),
-        _ => return None,
-    };
+    let identity = super::tconstruct_materials_book_identity::BookId::from_item(book)?;
+    let (root, book_title) = identity.source_parts();
     let foundry = book == "tconstruct:fantastic_foundry";
     let puny = book == "tconstruct:puny_smelting";
     let mighty = book == "tconstruct:mighty_smelting";

@@ -3448,6 +3448,12 @@ name = "tconstruct_materials_book_index"
 source = "source-materials-book-index.rs"
 
 [[module]]
+id = "materials-book-identity"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_identity"
+source = "source-materials-book-identity.rs"
+
+[[module]]
 id = "materials-book-wire"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_wire"

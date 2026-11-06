@@ -11,13 +11,7 @@ fn root(pages: &[Text]) -> bool {
 fn book_id(pages: &[Text]) -> Option<&'static str> {
     if !root(pages) { return None; }
     let title = pages.first()?.spans.first()?.text.as_str();
-    if title.starts_with("Materials & You\n") { Some("materials") }
-    else if title.starts_with("Puny Smelting\n") { Some("puny") }
-    else if title.starts_with("Mighty Smelting\n") { Some("mighty") }
-    else if title.starts_with("Encyclopedia\n") { Some("encyclopedia") }
-    else if title.starts_with("Tinkers' Gadgetry\n") { Some("gadgetry") }
-    else if title.starts_with("Fantastic Foundry\n") { Some("foundry") }
-    else { None }
+    super::tconstruct_materials_book_identity::legacy_wire_id(title)
 }
 
 pub(crate) fn encode_reply(sequence: u64, pages: &[Text]) -> Option<Vec<u8>> {
