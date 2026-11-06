@@ -1,0 +1,53 @@
+{
+  "status": "read_only_source_audit_no_migration",
+  "repository": "sofia-gros/horizon-mods",
+  "source": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "common_composition": "The shared matching/placement APIs are deny-only and their required guards reserve the corresponding native targets. No coexistence proof or guard relaxation is performed here.",
+  "callers": [
+    {
+      "injection_id": "anvil-material-recipe",
+      "helper": "tconstruct/mixins/tconstruct/anvil-material-recipe.rs",
+      "sha256": "a4f4029c37bf153e42f5714cfe4834ad8d542fc244f53ac221b0013ef3cfd70b",
+      "authority": "deny_only",
+      "observed_role": "Crafting-station self-ingredient subtraction and anvil RequiredMaterial/component match.",
+      "migration_boundary": "Matching veto is a candidate; preserve consumer interest, cropped cell order and component availability. No output authority."
+    },
+    {
+      "injection_id": "survival-melter-no-container",
+      "helper": "tconstruct/mixins/tconstruct/survival-melter-recipe.rs",
+      "sha256": "03a5ac0d50b0bb63af7597710702b022f8404b93f8fe0f66e32a900d390bdcc3",
+      "authority": "deny_only",
+      "observed_role": "Refuse a seared gauge with any present tank payload when making melter/cannon. Zero-amount compound and malformed payload remain refused.",
+      "migration_boundary": "Matching veto is a candidate; TankItem/NoContainer policy stays in TConstruct."
+    },
+    {
+      "injection_id": "overslime-crafting-assemble",
+      "helper": "tconstruct/mixins/tconstruct/source-overslime-craft-assemble.rs",
+      "sha256": "bfa08e9dfff0b0685dd976e6f5dbc33c9789a65fdd6946ea68176627c9c97663",
+      "authority": "replace_output_and_independent_remainder",
+      "observed_role": "Clones shield-bearing input, changes owned custom_data and returns replacement output; separate remainder hook recomputes plan over the original grid.",
+      "migration_boundary": "Not a veto. Requires one authoritative generation/consumption of the same output/remainder pair. Staging API is not automatic craft authority."
+    },
+    {
+      "injection_id": "crafting-station-recipe-placement-guard",
+      "helper": "tconstruct/mixins/tconstruct/source-crafting-recipe-guard.rs",
+      "sha256": "5bd672d074ab4f29c43aec1c56b84abac3d1e62591bd6a1dcd9781bd80bc0857",
+      "authority": "local_menu_transaction_commit",
+      "observed_role": "Local crafting station only; refresh, native menu placement, drop/component-count validation, accepted grid persistence and UI updates.",
+      "migration_boundary": "Not a deny-only replacement. Needs actor/menu/slot conservation/authoritative commit boundaries; remote and LAN acting path explicitly fall through."
+    }
+  ],
+  "support_sha256": {
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6",
+    "tconstruct/mixins/tconstruct/source-overslime-craft-remainders.rs": "abf3c55dabefc1a96701a9c90f605d3a0167819f272f8473b4cf8409c44b3493",
+    "tconstruct/mixins/tconstruct/source-overslime-crafting.rs": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13",
+    "tconstruct/mixins/tconstruct/source-crafting-station.rs": "7fa0ea9aa143beff70b771c89fc427be14c499c5bcf6318971f9cc6673aca523",
+    "tconstruct/mixins/tconstruct/survival-empty-tank.rs": "61ac8af3b22eb21e9c0f82feb907ffe3200691f42d7f0e1bd4037ecc60945ece"
+  },
+  "limitations": [
+    "No planner, Rust, gameplay or LAN execution.",
+    "Old hooks unchanged. Initial pin incompatibility remains separate from authority conflicts.",
+    "Overslime component preservation and paired automatic crafting remain unproved by deny-only APIs.",
+    "Do not import accumulated branch trees or weaken exclusive guards to make coexistence pass."
+  ]
+}
