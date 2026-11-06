@@ -1,0 +1,16 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "file": "crates/horizon-client/src/game.rs",
+  "file_sha256": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+  "start": "    fn hurt_armor(&mut self, source: horizon_world::damage_source::DamageTypeId, damage: f32) {",
+  "end": "    /// Voxel traversal that also stops at fluid source blocks (bucket pick).",
+  "function_sha256": "cea7aeb6903171ab4677ab986895d0b6034d959522dbebbfee6d0378de8bbcc3",
+  "header": "// Adapted from official horizon-rust/horizon 624c4f6265c02296fbe8a80f029dd0d987fb94c0.\n// Copyright (c) 2026 Ludovic Marie and the Horizon contributors. MIT.\n// See HORIZON-DAMAGE-LICENSE.txt. Regenerate/review on every native body change.\n// MIT License\n//\n// Copyright (c) 2026 Ludovic Marie and the Horizon contributors\n//\n// Permission is hereby granted, free of charge, to any person obtaining a copy\n// of this software and associated documentation files (the \"Software\"), to deal\n// in the Software without restriction, including without limitation the rights\n// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n// copies of the Software, and to permit persons to whom the Software is\n// furnished to do so, subject to the following conditions:\n//\n// The above copyright notice and this permission notice shall be included in all\n// copies or substantial portions of the Software.\n//\n// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n// SOFTWARE.\nfn pluto_armor_wear_observe(\n    game: &mut crate::game::Game<'_>,\n    source: horizon_world::damage_source::DamageTypeId,\n    damage: f32,\n) -> std::ops::ControlFlow<()> {\n    // Match the native nonpositive gate before taking any observation.\n    // NaN is intentionally not rejected here: preserve native comparison.\n    if damage <= 0.0 {\n        return std::ops::ControlFlow::Continue(());\n    }\n    let Some(observation) = crate::game::pluto_armor_wear::begin(game, source, damage) else {\n        return std::ops::ControlFlow::Continue(());\n    };\n",
+  "footer": "\n    original(game, source, damage);\n    observation.finish(game);\n    std::ops::ControlFlow::Break(())\n}\n",
+  "target": "horizon_client::game::Game<'_>::hurt_armor",
+  "injection_id": "armor-wear-observation-replacement",
+  "declaration": "fn hurt_armor(",
+  "helper": "armor-wear-observe-head.rs",
+  "changes": [],
+  "function_fingerprint": "6df4d3263e4096356bd40b52d91498f145f740c2a91739b6446dcd9a468fee48"
+}

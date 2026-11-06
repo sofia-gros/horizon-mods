@@ -16,7 +16,7 @@ fn copper_can_contents_gui(
         ("tconstruct:potion".to_owned(), Some(tag))
     } else { return; };
     let sprite_id = crate::game::tconstruct_source_melter_render::sprite(&fluid);
-    let Some(sprite) = game.gui.atlas.sprites.get(&sprite_id).copied() else { return; };
+    let Some(sprite) = horizon_client::pluto_render::sprite(&game.gui.atlas, &sprite_id) else { return; };
     let color = if let Some(tag) = tag.as_ref() {
         let Some(color) = crate::game::tconstruct_source_melter_render::can_potion_color(tag) else { return; };
         color
@@ -24,13 +24,7 @@ fn copper_can_contents_gui(
     // Opaque row spans of the MIT copper_can_fluid.png (16 x 16).
     // Crop the existing still sprite, preserving the base icon outside its mask.
     for (left, top, width) in [(6., 3., 4.), (5., 4., 6.), (5., 5., 6.), (6., 6., 4.)] {
-        let mut clipped = sprite;
-        let du = (sprite.u1 - sprite.u0) / 16.0;
-        let dv = (sprite.v1 - sprite.v0) / 16.0;
-        clipped.u0 = sprite.u0 + left * du;
-        clipped.u1 = clipped.u0 + width * du;
-        clipped.v0 = sprite.v0 + top * dv;
-        clipped.v1 = clipped.v0 + dv;
-        batch.rect_uv(x + left, y + top, width, 1.0, clipped, color);
+        let _ = horizon_client::pluto_render::crop(batch, sprite,
+            [left, top, width, 1.0], [16.0, 16.0], [x + left, y + top, width, 1.0], color);
     }
 }

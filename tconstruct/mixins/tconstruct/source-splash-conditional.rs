@@ -93,7 +93,7 @@ pub(super) fn apply(game: &mut Game<'_>, effects: &[Value], position: [i32; 3], 
             if !game.may_build() { continue; }
             let Some(state) = game.pack.assets.registry.default_state(id) else { continue; };
             state
-        } else { game.with_level(|blocks, _, _| blocks.legacy_block(blocks.fluid(state))) };
+        } else { game.with_level(|blocks, _, _| horizon_client::pluto_fluid_facts::replacement_after_removal(blocks, state)) };
         if state == replacement { continue; }
         // Source reports one level for a valid change even if the world
         // operation reports an error after beginning the update.

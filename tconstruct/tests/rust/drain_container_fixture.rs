@@ -1,3 +1,5 @@
+include!("__MIXINS__/../../tests/rust/pluto_storage_fixture.rs");
+include!("__MIXINS__/../../tests/rust/pluto_potion_fixture.rs");
 #[path="__MIXINS__/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-smeltery-tank.rs"] mod tconstruct_source_smeltery_tank;

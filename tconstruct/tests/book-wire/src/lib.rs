@@ -1,3 +1,6 @@
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
 extern crate self as horizon_client;
 pub mod text {
     #[derive(Clone, Debug, PartialEq)] pub enum ClickEvent { ChangePage(i32), RunCommand(String) }

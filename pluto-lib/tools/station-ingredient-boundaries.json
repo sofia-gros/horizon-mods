@@ -1,0 +1,30 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "boundaries": [
+    {
+      "target": "horizon_client_lib::stations::ingredient",
+      "file": "crates/horizon-client/src/stations.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "value",
+          "ty": "&serde_json::Value",
+          "value": "v"
+        },
+        {
+          "name": "items",
+          "ty": "&Items",
+          "value": "items"
+        }
+      ],
+      "function_fingerprint": "209d222eef7391e83c44d179f2e640c5a1dd7735fc40407adfa5faa3cb376b5f",
+      "injection_id": "station-ingredient-parser",
+      "helper": "station-ingredient-head.rs",
+      "file_sha256": "3de174a22da3dbd708cea70fbed8ae50489c2891bd1d7ca7296c944681919f36",
+      "helper_sha256": "516156f6e92c80fc7d250a72543ea60e2f3b4e7ffa6385309f20e917bf1d02bd"
+    }
+  ]
+}

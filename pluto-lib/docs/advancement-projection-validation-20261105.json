@@ -1,0 +1,49 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_advancements_sha256": "dfd9380e525ca52f555562da04cc882df2db96cddc3504fae0a63b5d1e5ee404",
+  "production_sources_sha256": {
+    "inventory-api/src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+    "advancement-projection.rs": "e6287c55a8e02774f7dd3c4b9b15d01dc109da83625c8ef8f62e45e2e9c2b30a",
+    "advancement-projection-world.rs": "fdb3ebf301c543a0904cabec8a0fa2caa0beebfc8a6318d51f8b7d9cd03f9a75"
+  },
+  "native_fixture_tests": 7,
+  "api_unit_tests": 26,
+  "package_guard_tests": 7,
+  "final_native_fixture": {
+    "exit_code": 0,
+    "disk_guard_stopped": false,
+    "minimum_free_bytes": 11030933504,
+    "floor_bytes": 10871635968,
+    "seconds": 1.203
+  },
+  "identity_verified": true,
+  "limits": [
+    "Official parser/tree/index and actual projection source tested; outer Game ownership shell modeled.",
+    "API files exactly match the earlier26-test run; native header-only correction rerun7tests passed.",
+    "No TConstruct consumer activation or game/LAN/full acquisition migration."
+  ],
+  "complete_native_package": {
+    "mod_head": "999468ef38bd542e2e4dc8f83205f26462ad6e33",
+    "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "archive_sha256": "2737204f0ead5e3e57757532279904145d8a935ed8d28b296ac9823f4eeeea45",
+    "scope": "Complete actual Pluto package; no full TConstruct consumer bundle. All mandatory source/composition guards required.",
+    "counts": {
+      "crate": 2,
+      "module": 34,
+      "injection": 25,
+      "state": 2
+    },
+    "check_result": {
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 11244822528
+    },
+    "gates": [
+      "plan",
+      "mandatory native preflight",
+      "apply",
+      "official horizon-client library+binary check"
+    ]
+  }
+}

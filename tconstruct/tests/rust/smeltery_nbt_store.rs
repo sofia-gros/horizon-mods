@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+include!("pluto_storage_fixture.rs");
 #[path = "../../mixins/tconstruct/source-melter-state.rs"]
 mod tconstruct_source_melter_state;
 mod tconstruct_world {
@@ -133,4 +134,39 @@ fn typed_casting_write_rejects_live_wire_before_encoding_and_slot_patch_is_safe(
     let (mut world,pos)=casting_world(raw);
     assert!(tconstruct_source_melter_store::write_casting(&mut world,pos,"tconstruct:table",&state));
     assert_eq!(tconstruct_source_melter_store::read(&world,pos,"tconstruct:table"),Some(patched));
+}
+
+#[test]
+fn write_many_preserves_repeated_update_order_across_partitions() {
+    use horizon_world::nbt::Tag;
+    use std::sync::Arc;
+    let mut world = tconstruct_world::World::default();
+    world.chunks.insert((0,0), Arc::new(tconstruct_world::Chunk::default()));
+    world.chunks.insert((1,0), Arc::new(tconstruct_world::Chunk::default()));
+    let p = (1,70,1); let q = (17,70,1);
+    assert!(tconstruct_source_melter_store::write_many(&mut world, &[
+        (q, "tconstruct:heater", Tag::Int(1)),
+        (p, "tconstruct:heater", Tag::Int(2)),
+        (q, "tconstruct:heater", Tag::Int(3)),
+    ]));
+    assert_eq!(tconstruct_source_melter_store::read(&world, q, "tconstruct:heater"), Some(Tag::Int(3)));
+    assert_eq!(tconstruct_source_melter_store::read(&world, p, "tconstruct:heater"), Some(Tag::Int(2)));
+    assert_eq!(world.modified.len(), 2);
+    assert_eq!(world.chunks[&(1,0)].saved.as_ref().unwrap().block_entity_sources.len(), 1);
+}
+
+#[test]
+fn write_many_missing_partition_and_empty_changes_never_publish() {
+    use horizon_world::nbt::Tag;
+    use std::sync::Arc;
+    let mut world = tconstruct_world::World::default();
+    world.chunks.insert((0,0), Arc::new(tconstruct_world::Chunk::default()));
+    let p = (1,70,1); let missing = (17,70,1);
+    assert!(!tconstruct_source_melter_store::write_many(&mut world, &[
+        (p, "tconstruct:heater", Tag::Int(1)),
+        (missing, "tconstruct:heater", Tag::Int(2)),
+    ]));
+    assert!(world.chunks[&(0,0)].saved.is_none()); assert!(world.modified.is_empty());
+    assert!(tconstruct_source_melter_store::write_many(&mut world, &[]));
+    assert!(world.chunks[&(0,0)].saved.is_none()); assert!(world.modified.is_empty());
 }

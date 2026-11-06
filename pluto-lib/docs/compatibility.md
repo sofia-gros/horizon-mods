@@ -15,7 +15,25 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 
 ## Development target
 
-The staged bundle targets Horizon [`0c7b5b61a5e746d621afffba919b12aeccf9c0fa`](https://github.com/horizon-rust/horizon/commit/0c7b5b61a5e746d621afffba919b12aeccf9c0fa) and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. This target has not yet been built or run with PlutoLib. A joint Linux stage and build with TConstruct runtime `8a612f5` and PlutoLib product `add61038` passed on the earlier Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` pair. Representative checks covered Creative search, material tool assembly and mining, Crafting Station, Chest, save/reload, bows in both hands, and LAN guest inventory movement and Longbow firing. The [test images](https://github.com/sofia-gros/horizon-mods/pull/77#issuecomment-6580143489) show the session. A missing TConstruct content mod was rejected as `Missing: tconstruct 0.1.0`; this content check does not validate native `.hnmod` dependencies. On the earlier `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` pair, TConstruct adopted Creative registration, Tool rules and component transport, and its Chest insertion used the inventory planner with representative local/LAN save and reconnect tests; its player quick-move integration has separate representative checks. These do not prove arbitrary components or complete TConstruct coverage. TConstruct has not adopted the short-use Item behavior or preparation-time Registry APIs.
+The staged development candidate targets official Horizon
+[`624c4f6265c02296fbe8a80f029dd0d987fb94c0`](https://github.com/horizon-rust/horizon/commit/624c4f6265c02296fbe8a80f029dd0d987fb94c0)
+and Mixins
+[`e8cd0aa38cffef49cb2e088ef716baa107148c02`](https://github.com/horizon-rust/horizon-mixins/commit/e8cd0aa38cffef49cb2e088ef716baa107148c02).
+See the [recovery baseline](official-upgrade-20261105.md) and service-specific
+validation reports. A focused adapter apply or library check is not a combined
+TConstruct build or gameplay result. The complete candidate remains unverified.
+
+The preceding [preservation integration #927](https://github.com/sofia-gros/horizon-mods/pull/927)
+passed combined official apply, client checking/building and its focused
+preservation fixtures on Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` and
+Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`; see the
+[successful CI run](https://github.com/sofia-gros/horizon-mods/actions/runs/42042344046).
+That run did not establish live gameplay, save/reload or LAN behavior, and it
+does not validate the new target.
+
+## Earlier integration history
+
+A joint Linux stage and build with TConstruct runtime `8a612f5` and PlutoLib product `add61038` passed on the earlier Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` pair. Representative checks covered Creative search, material tool assembly and mining, Crafting Station, Chest, save/reload, bows in both hands, and LAN guest inventory movement and Longbow firing. The [test images](https://github.com/sofia-gros/horizon-mods/pull/77#issuecomment-6580143489) show the session. A missing TConstruct content mod was rejected as `Missing: tconstruct 0.1.0`; this content check does not validate native `.hnmod` dependencies. On the earlier `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` pair, TConstruct adopted Creative registration, Tool rules and component transport, and its Chest insertion used the inventory planner with representative local/LAN save and reconnect tests; its player quick-move integration has separate representative checks. These do not prove arbitrary components or complete TConstruct coverage. TConstruct has not adopted the short-use Item behavior or preparation-time Registry APIs.
 
 The [combined native demos](../experiments/unified-target/README.md) were built and run on Linux with Horizon [`cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7`](https://github.com/horizon-rust/horizon/commit/cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The demo-only native item limit of 200 was checked in Creative at 199, 200 and 201; These standalone demo checks did not exercise TConstruct; its later adoption is described above. Windows and the full launcher path remain unverified.
 

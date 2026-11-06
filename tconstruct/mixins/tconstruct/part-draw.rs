@@ -10,13 +10,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let has_heater = if game.remote.is_some() {
             game.remote_chest_menu().is_some_and(|(rows, _)| rows == 6)
         } else { game.container_size() > 27 };
-        if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_melter").copied() {
-            let du = (sprite.u1 - sprite.u0) / sprite.w as f32;
-            let dv = (sprite.v1 - sprite.v0) / sprite.h as f32;
+        if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_melter") {
             let (x, width, height, sx) = if has_heater { (150.0, 18.0, 36.0, 176.0) } else { (152.0, 14.0, 38.0, 194.0) };
-            sprite.u0 += sx * du; sprite.v0 += 52.0 * dv;
-            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + height * dv;
-            batch.rect_uv(ox + x, oy + 31.0, width, height, sprite, u32::MAX);
+            let _ = horizon_client::pluto_render::crop(batch, sprite,
+                [sx, 52.0, width, height], sprite.logical_size(),
+                [ox + x, oy + 31.0, width, height], u32::MAX);
         }
         let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
         let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
@@ -34,17 +32,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 if let Some(tank) = fuel {
                     if let Some(fluid) = tank.fluid.as_deref() {
                         let sprite = crate::game::tconstruct_source_melter_render::sprite(fluid);
-                        if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                        if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, &sprite).or_else(|| horizon_client::pluto_render::sprite(atlas, "block/tconstruct_fluid_fallback")) {
                             let height = (36u64 * u64::from(tank.amount) / u64::from(tank.capacity.max(1))).min(36) as f32;
-                            let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
                             let color = crate::game::tconstruct_source_melter_render::color_with_complete(fluid, tank.tag.as_ref(), game.remote.is_none());
-                            let mut y = 0.0;
-                            while y < height {
-                                let h = (height - y).min(16.0); let mut part = sprite;
-                                part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
-                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, color);
-                                y += h;
-                            }
+                            let _ = horizon_client::pluto_render::tiled_bottom_up(batch, sprite,
+                                [ox + 153.0, oy + 68.0, 12.0, height], [16.0, 16.0], color, 64);
                         }
                     }
                 }
@@ -54,30 +46,18 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 // Tile the first frame of the original still-fluid texture in
                 // the source tank's 52x52 area, scaled by the stored amount.
                 let sprite_name = crate::game::tconstruct_source_melter_render::sprite(fluid);
-                if let Some(sprite) = atlas.sprites.get(&sprite_name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, &sprite_name).or_else(|| horizon_client::pluto_render::sprite(atlas, "block/tconstruct_fluid_fallback")) {
                     let height = (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0);
-                    let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
                     let color = crate::game::tconstruct_source_melter_render::color_with_complete(fluid, melter.tank.tag.as_ref(), game.remote.is_none());
-                    let mut y = 0.0;
-                    while y < height {
-                        let h = (height - y).min(16.0);
-                        let mut x = 0.0;
-                        while x < 52.0 {
-                            let w = (52.0_f32 - x).min(16.0);
-                            let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
-                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, color);
-                            x += w;
-                        }
-                        y += h;
-                    }
+                    let _ = horizon_client::pluto_render::tiled_bottom_up(batch, sprite,
+                        [ox + 90.0, oy + 68.0, 52.0, height], [16.0, 16.0], color, 64);
                 }
             }
             // GuiMelterScreen overlays the original 52×52 gauge after fluid.
-            if let Some(mut gauge) = atlas.sprites.get("gui/tconstruct_melter").copied() {
-                let (du, dv) = ((gauge.u1 - gauge.u0) / gauge.w as f32, (gauge.v1 - gauge.v0) / gauge.h as f32);
-                gauge.u0 += 176.0 * du;
-                gauge.u1 = gauge.u0 + 52.0 * du; gauge.v1 = gauge.v0 + 52.0 * dv;
-                batch.rect_uv(ox + 90.0, oy + 16.0, 52.0, 52.0, gauge, u32::MAX);
+            if let Some(gauge) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_melter") {
+                let _ = horizon_client::pluto_render::crop(batch, gauge,
+                    [176.0, 0.0, 52.0, 52.0], gauge.logical_size(),
+                    [ox + 90.0, oy + 16.0, 52.0, 52.0], u32::MAX);
             }
             if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
                 let fluid_height = if melter.tank.capacity == 0 { 0.0 } else {
@@ -112,12 +92,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             let choices = if inputs_valid { slots.first().and_then(Option::as_ref).map(crate::game::tconstruct_source_upgrade_rules::extractable).unwrap_or_default() } else { Vec::new() };
             for (index, id) in choices.iter().enumerate() {
                 let (x, y) = (ox + 28.0 + (index % 4) as f32 * 18.0, oy + 15.0 + (index / 4) as f32 * 18.0);
-                if let Some(mut region) = atlas.sprites.get("gui/tconstruct_worktable").copied() {
-                    let (du, dv) = ((region.u1 - region.u0) / region.w as f32, (region.v1 - region.v0) / region.h as f32);
+                if let Some(region) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_worktable") {
                     let selected = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)).is_some_and(|selected| selected.as_str() == *id);
-                    region.u0 += 176.0 * du; region.v0 += (if selected { 33.0 } else { 15.0 }) * dv;
-                    region.u1 = region.u0 + 18.0 * du; region.v1 = region.v0 + 18.0 * dv;
-                    batch.rect_uv(x, y, 18.0, 18.0, region, u32::MAX);
+                    let _ = horizon_client::pluto_render::crop(batch, region,
+                        [176.0, if selected { 33.0 } else { 15.0 }, 18.0, 18.0], region.logical_size(),
+                        [x, y, 18.0, 18.0], u32::MAX);
                 }
                 let sprite = format!("gui/tconstruct_modifier_{}", id.rsplit(':').next().unwrap_or(""));
                 batch.sprite(atlas, &sprite, x + 1.0, y + 1.0);
@@ -144,11 +123,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.sprite_region(atlas, texture, [ox, oy, 176.0, 184.0], 256.0, 256.0);
     // The atlas contains reusable elements outside the 176x184 background.
     let part = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, x: f32, y: f32, color: u32| {
-        if let Some(mut r) = atlas.sprites.get(texture).copied() {
-            let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-            r.u0 += sx * du; r.v0 += sy * dv;
-            r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
-            batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, color);
+        if let Some(region) = horizon_client::pluto_render::sprite(atlas, texture) {
+            let _ = horizon_client::pluto_render::crop(batch, region,
+                [sx, sy, 18.0, 18.0], region.logical_size(),
+                [ox + x, oy + y, 18.0, 18.0], color);
         }
     };
     crate::game::tconstruct_source_workstation_tabs_ui::draw(game,batch,ox,oy,station);
@@ -174,18 +152,16 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         }
         // Source TinkerStationScreen paints the translucent item cover before
         // rendering the active layout's slot backgrounds.
-        if let Some(mut r) = atlas.sprites.get(texture).copied() {
-            let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-            r.u0 += 176.0 * du; r.v0 += 18.0 * dv;
-            r.u1 = r.u0 + 70.0 * du; r.v1 = r.v0 + 64.0 * dv;
-            batch.rect_uv(ox + 7.0, oy + 18.0, 70.0, 64.0, r, horizon_client::hud::rgba(255, 255, 255, 209));
+        if let Some(region) = horizon_client::pluto_render::sprite(atlas, texture) {
+            let _ = horizon_client::pluto_render::crop(batch, region,
+                [176.0, 18.0, 70.0, 64.0], region.logical_size(),
+                [ox + 7.0, oy + 18.0, 70.0, 64.0], horizon_client::hud::rgba(255, 255, 255, 209));
         }
-        if let Some(sprite) = atlas.sprites.get(texture).copied() {
+        if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, texture) {
             let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
-                let mut r = sprite;
-                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-                r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
-                batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
+                let _ = horizon_client::pluto_render::crop(batch, sprite,
+                    [sx, sy, sw, sh], sprite.logical_size(),
+                    [ox + x, oy + y, w, h], u32::MAX);
             };
             // The original top beams and decorations frame the button and
             // information modules; they do not create additional slots.
@@ -211,10 +187,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         }
         crate::game::tconstruct_station_info_ui::draw(game, batch, ox, oy);
         if crate::game::tconstruct_name_ui::available(game) {
-            if let Some(mut r) = atlas.sprites.get(texture).copied() {
-                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-                r.v0 += 244.0 * dv; r.u1 = r.u0 + 90.0 * du; r.v1 = r.v0 + 12.0 * dv;
-                batch.rect_uv(ox + 79.0, oy + 5.0, 90.0, 12.0, r, u32::MAX);
+            if let Some(region) = horizon_client::pluto_render::sprite(atlas, texture) {
+                let _ = horizon_client::pluto_render::crop(batch, region,
+                    [0.0, 244.0, 90.0, 12.0], region.logical_size(),
+                    [ox + 79.0, oy + 5.0, 90.0, 12.0], u32::MAX);
             }
             let mut edit = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key)).cloned()
                 .unwrap_or_else(|| crate::game::tconstruct_name_ui::new_box(ox, oy));
@@ -226,12 +202,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             let (x, y) = (x as f32, y as f32);
             let selected = active_layout.as_ref().is_some_and(|active| active.id == layout.id);
             let hovered = (ox + x..ox + x + 18.0).contains(&game.cursor.0) && (oy + y..oy + y + 18.0).contains(&game.cursor.1);
-            if let Some(mut r) = atlas.sprites.get("gui/tconstruct_icons").copied() {
-                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-                r.u0 += (if selected { 144.0 } else if hovered { 216.0 } else { 180.0 }) * du;
-                r.v0 += 216.0 * dv;
-                r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
-                batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, u32::MAX);
+            if let Some(region) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_icons") {
+                let _ = horizon_client::pluto_render::crop(batch, region,
+                    [if selected { 144.0 } else if hovered { 216.0 } else { 180.0 }, 216.0, 18.0, 18.0], region.logical_size(),
+                    [ox + x, oy + y, 18.0, 18.0], u32::MAX);
             }
             if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
                 game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox + x + 1.0, oy + y + 1.0);
@@ -291,13 +265,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     } else {
         crate::game::tconstruct_builder_info_ui::draw(game, batch, ox, oy);
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
-            if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
-                let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);
+            if let Some(icon) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_icons") {
                 for (slot, sx, sy, x) in [(0, 0.0, 216.0, 7.0), (1, 54.0, 234.0, 28.0)] {
                     if slots.get(slot).and_then(Option::as_ref).is_none() {
-                        let mut r = icon;
-                        r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
-                        batch.rect_uv(ox + x, oy + 42.0, 18.0, 18.0, r, u32::MAX);
+                        let _ = horizon_client::pluto_render::crop(batch, icon,
+                            [sx, sy, 18.0, 18.0], icon.logical_size(),
+                            [ox + x, oy + 42.0, 18.0, 18.0], u32::MAX);
                     }
                 }
             }
@@ -322,11 +295,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         horizon_client::widgets::record(&label, [ox + x, oy + y, 18.0, 18.0], true);
                     }
                 }
-                if let Some(mut r) = atlas.sprites.get(texture).copied() {
-                    let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-                    r.u0 += if patterns.len() > 16 { 176.0 * du } else { 188.0 * du };
-                    r.u1 = r.u0 + 12.0 * du; r.v1 = r.v0 + 15.0 * dv;
-                    batch.rect_uv(ox + 126.0, oy + 15.0 + (59.0 * progress.clamp(0.0, 1.0)) as i32 as f32, 12.0, 15.0, r, u32::MAX);
+                if let Some(region) = horizon_client::pluto_render::sprite(atlas, texture) {
+                    let _ = horizon_client::pluto_render::crop(batch, region,
+                        [if patterns.len() > 16 { 176.0 } else { 188.0 }, 0.0, 12.0, 15.0], region.logical_size(),
+                        [ox + 126.0, oy + 15.0 + (59.0 * progress.clamp(0.0, 1.0)) as i32 as f32, 12.0, 15.0], u32::MAX);
                 }
                 let result = if game.remote.is_some() { None }
                     else { game.world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&key).and_then(|(_, _, _, result)| result.as_ref()) };

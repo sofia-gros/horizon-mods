@@ -1,3 +1,11 @@
+extern crate self as horizon_client;
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
+// Use the real shared resource API in this standalone boundary harness.
+extern crate self as pluto_api;
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/api/src/resources.rs"]
+pub mod resources;
 // The real projection helper and broken predicate, with host attribute/trait
 // boundary doubles. The model keeps additive effects before total multipliers.
 extern crate self as horizon_world;

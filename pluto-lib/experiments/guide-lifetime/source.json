@@ -1,0 +1,383 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_sources": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd",
+    "crates/horizon-client/src/game/levels.rs": "839eec483b745eef8cfdf8ac2502160e46517e1dbd62534b69e612d2828b7ba7",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client-render/src/chunk_map.rs": "718fe95c909ca5970b39db2cc30e96ae264cf43a3954b4f52773ebb4e47ec96a"
+  },
+  "experiment_sources": {
+    "mods/pluto_guide_lifetime_experiment/game-invalidate.rs": "37ca73eb6977352b88539121dc01489b03e7fb6def63f8254d38b61a2847ceeb",
+    "mods/pluto_guide_lifetime_experiment/state.rs": "7627c38e05b77ae7779168dc69a9c8d9061a93e13a65aedcaa95e8cd9066454f",
+    "mods/pluto_guide_lifetime_experiment/horizon-mixin.toml": "7d02765ec5646338a94b3677b93425930bdde3643dc84d08c316043e1914fd16",
+    "mods/pluto_guide_lifetime_experiment/chunks-invalidate.rs": "c6daa2354afef5d1aea5bfad036c7e685628a605fdcb7011716cc71adf88c249",
+    "mods/pluto_guide_lifetime_experiment/native.rs": "891a1d2911ed462f4da309934308a87049f80087948c3b41a45b1eca90aca213"
+  },
+  "hooks": [
+    {
+      "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        10,
+        5
+      ],
+      "function_fingerprint": "534f5b6563bc2b5aba91b33a1a800288b30efb4405bf9d0f44479d47d0509275",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "chunks",
+          "ty": "&mut ChunkMap",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_clear(chunks: &mut ChunkMap) {\n    chunks\n        .__horizon_mixins_pluto_guide_lifetime_experiment_session_mut()\n        .invalidate();\n}\n"
+    },
+    {
+      "target": "horizon_client::game::books::Game<'_>::open_book",
+      "file": "crates/horizon-client/src/game/books.rs",
+      "node": [
+        14,
+        9
+      ],
+      "function_fingerprint": "022fc49e5c20e505e9aea8d2d0e6b127ae45954f2b4b9a13e66946cfcc08f38f",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::books::Game<'_>::close_book",
+      "file": "crates/horizon-client/src/game/books.rs",
+      "node": [
+        14,
+        10
+      ],
+      "function_fingerprint": "8c2a4a154ec1d87d0e787db00c531452dcdb0d8d0e570b216c057abaa6ac8f16",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::books::Game<'_>::save_book",
+      "file": "crates/horizon-client/src/game/books.rs",
+      "node": [
+        14,
+        11
+      ],
+      "function_fingerprint": "5f0cfe790ca9143fa1ea72cf19d5d6144f4b7450ba41ebf595db6df61f88b19a",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_client_level_unload",
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "node": [
+        40,
+        10
+      ],
+      "function_fingerprint": "641cf523bd2460d8d0aa4ce10166ddfcf7a59f75ba38945b2714828caffa3eeb",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::remote::Game<'_>::join_server",
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        42,
+        7
+      ],
+      "function_fingerprint": "0de5989026752404328afb2c5791e7edcf009455f708d0913e219c3a0670f021",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::remote::Game<'_>::leave_server",
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        42,
+        8
+      ],
+      "function_fingerprint": "286e1f17d8cfa0ae442d7962c45bdac4f75f1c46f7506c7776b2aad135c2a862",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::remote::Game<'_>::enter_remote_dimension",
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "node": [
+        42,
+        45
+      ],
+      "function_fingerprint": "eefbae49c5e635078d03abae4d6815b071917f33bf773db4ceba999f7875d4b3",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    },
+    {
+      "target": "horizon_client::game::remote_chat::Game<'_>::answer_command_prompt",
+      "file": "crates/horizon-client/src/game/remote_chat.rs",
+      "node": [
+        18,
+        10
+      ],
+      "function_fingerprint": "6a47e993b709fcd3a3c4bdfa9a29baf7ff47c2c20abcc5da09f125fe6292170b",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 2147483647,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut crate::game::Game<'_>",
+          "value": "self"
+        }
+      ],
+      "helper_source": "fn guide_lifetime_invalidate(game: &mut crate::game::Game<'_>) {\n    crate::game::books::pluto_guide_lifetime_experiment::invalidate(game);\n}\n"
+    }
+  ],
+  "state": {
+    "target": "horizon_client_render::chunk_map::ChunkMap",
+    "file": "crates/horizon-client-render/src/chunk_map.rs",
+    "node": [
+      8
+    ],
+    "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+    "initial": ":: core :: default :: Default :: default ()",
+    "deserialize": false,
+    "constructors": [
+      {
+        "file": "crates/horizon-client-render/src/chunk_map.rs",
+        "node": [
+          9,
+          0
+        ],
+        "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+        "expression": 2,
+        "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+      }
+    ],
+    "name": "__horizon_mixins_pluto_guide_lifetime_experiment_session",
+    "ty": "crate :: chunk_map :: pluto_guide_lifetime_state :: State"
+  },
+  "allowed_disjoint_clear_hooks": [
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "injection_id": "pluto_native_creative-advancement-tags-clear",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        10,
+        5
+      ],
+      "function_fingerprint": "534f5b6563bc2b5aba91b33a1a800288b30efb4405bf9d0f44479d47d0509275",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "helper_source": "fn pluto_clear_advancement_tags(map: &mut crate::chunk_map::ChunkMap) {\n    // Drop only this world's overlays and custom cache; native cache is untouched.\n    map.__horizon_mixins_pluto_native_creative_advancement_tags_mut().clear();\n}\n",
+      "bindings": [
+        {
+          "name": "map",
+          "ty": "&mut crate::chunk_map::ChunkMap",
+          "value": "&mut *self"
+        }
+      ]
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "injection_id": "pluto_native_creative-landing-state-clear",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        10,
+        5
+      ],
+      "function_fingerprint": "534f5b6563bc2b5aba91b33a1a800288b30efb4405bf9d0f44479d47d0509275",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "helper_source": "fn pluto_clear_landing_state(map: &mut crate::chunk_map::ChunkMap) {\n    map.__horizon_mixins_pluto_native_creative_landing_state_mut().clear();\n}\n",
+      "bindings": [
+        {
+          "name": "map",
+          "ty": "&mut crate::chunk_map::ChunkMap",
+          "value": "&mut *self"
+        }
+      ]
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "injection_id": "pluto_native_creative-saved-book-clear",
+      "priority": 100,
+      "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "node": [
+        10,
+        5
+      ],
+      "function_fingerprint": "534f5b6563bc2b5aba91b33a1a800288b30efb4405bf9d0f44479d47d0509275",
+      "kind": "HEAD",
+      "cancellable": false,
+      "argument": null,
+      "constant_site": null,
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "call_site": null,
+      "site_fingerprint": null,
+      "selector": null,
+      "ordinal": null,
+      "require": null,
+      "helper_source": "fn pluto_saved_book_clear(map: &mut crate::chunk_map::ChunkMap) {\n    map.__horizon_mixins_pluto_native_creative_saved_book_pending_mut()\n        .clear();\n}\n",
+      "bindings": [
+        {
+          "name": "map",
+          "ty": "&mut crate::chunk_map::ChunkMap",
+          "value": "&mut *self"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "name": "pluto_guide_lifetime_state",
+      "visibility": "pub",
+      "source": "// Isolated lifetime experiment, not an installed/public guide API.\n// These identities correlate a local presentation and request, not authority.\nuse std::sync::atomic::{AtomicU64, Ordering};\n\nstatic NEXT_OPEN: AtomicU64 = AtomicU64::new(1);\n\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub struct Opening(u64);\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub struct Request {\n    opening: Opening,\n    sequence: u64,\n}\n#[derive(Debug, PartialEq, Eq)]\npub enum Error {\n    InvalidName,\n    Exhausted,\n    Inactive,\n}\nstruct Session {\n    opening: Opening,\n    epoch: u64,\n    owner: String,\n    channel: String,\n    sequence: u64,\n    pending: Option<Request>,\n}\n#[derive(Default)]\npub struct State {\n    session: Option<Session>,\n}\nfn valid_name(name: &str) -> bool {\n    let Some((namespace, path)) = name.split_once(':') else {\n        return false;\n    };\n    !namespace.is_empty()\n        && !path.is_empty()\n        && name.len() <= 256\n        && namespace\n            .bytes()\n            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b\"_.-\".contains(&c))\n        && path\n            .bytes()\n            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b\"_./-\".contains(&c))\n}\nimpl State {\n    /// Called only by an explicitly owned opening path in a future adapter.\n    /// The native experiment intentionally has no such activation path.\n    pub fn open(&mut self, epoch: u64, owner: &str, channel: &str) -> Result<Opening, Error> {\n        self.open_using(&NEXT_OPEN, epoch, owner, channel)\n    }\n    fn open_using(\n        &mut self,\n        counter: &AtomicU64,\n        epoch: u64,\n        owner: &str,\n        channel: &str,\n    ) -> Result<Opening, Error> {\n        self.invalidate();\n        if !valid_name(owner) || !valid_name(channel) {\n            return Err(Error::InvalidName);\n        }\n        // MAX is a permanently exhausted sentinel, never returned or reset.\n        let opening = Opening(\n            counter\n                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))\n                .map_err(|_| Error::Exhausted)?,\n        );\n        self.session = Some(Session {\n            opening,\n            epoch,\n            owner: owner.into(),\n            channel: channel.into(),\n            sequence: 0,\n            pending: None,\n        });\n        Ok(opening)\n    }\n    pub fn invalidate(&mut self) {\n        self.session = None;\n    }\n    pub fn active(&self, opening: Opening) -> bool {\n        self.session.as_ref().is_some_and(|s| s.opening == opening)\n    }\n    pub fn request(&mut self, opening: Opening) -> Result<Request, Error> {\n        let session = self\n            .session\n            .as_mut()\n            .filter(|s| s.opening == opening)\n            .ok_or(Error::Inactive)?;\n        let Some(sequence) = session.sequence.checked_add(1) else {\n            self.invalidate();\n            return Err(Error::Exhausted);\n        };\n        session.sequence = sequence;\n        let request = Request { opening, sequence };\n        session.pending = Some(request);\n        Ok(request)\n    }\n    /// Consume a matching pending reply before any later caller effect.\n    /// Hidden replies are dropped; an absent/changed level revokes the session.\n    /// No document mutation or network operation happens in this method.\n    pub fn accept(\n        &mut self,\n        request: Request,\n        epoch: Option<u64>,\n        admitted: bool,\n        owner: &str,\n        channel: &str,\n    ) -> bool {\n        let Some(session) = self.session.as_mut() else {\n            return false;\n        };\n        if epoch != Some(session.epoch) {\n            self.invalidate();\n            return false;\n        }\n        if session.pending != Some(request) || session.owner != owner || session.channel != channel\n        {\n            return false;\n        }\n        session.pending = None;\n        admitted\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n    const OWNER: &str = \"example:guide\";\n    const CHANNEL: &str = \"example:reply\";\n    fn open(state: &mut State, counter: &AtomicU64) -> Opening {\n        state.open_using(counter, 7, OWNER, CHANNEL).unwrap()\n    }\n    #[test]\n    fn identical_content_reopen_never_reuses_identity() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let first = open(&mut state, &counter);\n        let late = state.request(first).unwrap();\n        state.invalidate();\n        let second = open(&mut state, &counter);\n        assert_ne!(first, second);\n        assert!(!state.active(first));\n        assert!(state.active(second));\n        assert!(!state.accept(late, Some(7), true, OWNER, CHANNEL));\n    }\n    #[test]\n    fn same_key_player_reset_requires_explicit_invalidation() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let opening = open(&mut state, &counter);\n        let reply = state.request(opening).unwrap();\n        state.invalidate();\n        assert!(!state.accept(reply, Some(7), true, OWNER, CHANNEL));\n    }\n    #[test]\n    fn close_restore_reconfiguration_and_disconnect_revoke() {\n        let counter = AtomicU64::new(1);\n        for _event in [\n            \"close\",\n            \"direct_restore\",\n            \"reconfigure\",\n            \"disconnect\",\n            \"save_take\",\n            \"clear_empty\",\n        ] {\n            let mut state = State::default();\n            let opening = open(&mut state, &counter);\n            let reply = state.request(opening).unwrap();\n            state.invalidate();\n            assert!(!state.accept(reply, Some(7), true, OWNER, CHANNEL));\n        }\n    }\n    #[test]\n    fn latest_pending_request_wins_and_duplicate_is_consumed() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let opening = open(&mut state, &counter);\n        let old = state.request(opening).unwrap();\n        let current = state.request(opening).unwrap();\n        assert!(!state.accept(old, Some(7), true, OWNER, CHANNEL));\n        assert!(state.accept(current, Some(7), true, OWNER, CHANNEL));\n        assert!(!state.accept(current, Some(7), true, OWNER, CHANNEL));\n    }\n    #[test]\n    fn hidden_reply_is_not_replayed_after_overlay_dismissal() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let opening = open(&mut state, &counter);\n        let reply = state.request(opening).unwrap();\n        assert!(!state.accept(reply, Some(7), false, OWNER, CHANNEL));\n        assert!(!state.accept(reply, Some(7), true, OWNER, CHANNEL));\n        assert!(state.active(opening));\n    }\n    #[test]\n    fn absent_or_changed_epoch_revokes_without_cross_world_revival() {\n        let counter = AtomicU64::new(1);\n        for epoch in [None, Some(8)] {\n            let mut state = State::default();\n            let opening = open(&mut state, &counter);\n            let reply = state.request(opening).unwrap();\n            assert!(!state.accept(reply, epoch, true, OWNER, CHANNEL));\n            assert!(!state.active(opening));\n            assert!(!state.accept(reply, Some(7), true, OWNER, CHANNEL));\n        }\n    }\n    #[test]\n    fn owner_and_channel_mismatch_cannot_consume_current_request() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let opening = open(&mut state, &counter);\n        let reply = state.request(opening).unwrap();\n        assert!(!state.accept(reply, Some(7), true, \"other:guide\", CHANNEL));\n        assert!(!state.accept(reply, Some(7), true, OWNER, \"other:reply\"));\n        assert!(state.accept(reply, Some(7), true, OWNER, CHANNEL));\n    }\n    #[test]\n    fn map_replacement_and_two_clients_cannot_reuse_open_nonce() {\n        let counter = AtomicU64::new(1);\n        let mut a = State::default();\n        let mut b = State::default();\n        let first = open(&mut a, &counter);\n        let reply = a.request(first).unwrap();\n        let second = open(&mut b, &counter);\n        assert_ne!(first, second);\n        assert!(!b.accept(reply, Some(7), true, OWNER, CHANNEL));\n        a = State::default();\n        let third = open(&mut a, &counter);\n        assert_ne!(first, third);\n        assert!(!a.accept(reply, Some(7), true, OWNER, CHANNEL));\n    }\n    #[test]\n    fn open_nonce_exhaustion_never_wraps() {\n        let counter = AtomicU64::new(u64::MAX - 1);\n        let mut state = State::default();\n        let last = open(&mut state, &counter);\n        assert_eq!(\n            state.open_using(&counter, 7, OWNER, CHANNEL),\n            Err(Error::Exhausted)\n        );\n        assert!(!state.active(last));\n        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);\n        assert_eq!(\n            state.open_using(&counter, 7, OWNER, CHANNEL),\n            Err(Error::Exhausted)\n        );\n    }\n    #[test]\n    fn request_exhaustion_revokes_instead_of_wrapping() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        let opening = open(&mut state, &counter);\n        state.session.as_mut().unwrap().sequence = u64::MAX;\n        assert_eq!(state.request(opening), Err(Error::Exhausted));\n        assert!(!state.active(opening));\n    }\n    #[test]\n    fn malformed_owner_names_do_not_activate() {\n        let counter = AtomicU64::new(1);\n        let mut state = State::default();\n        for name in [\"\", \":empty\", \"empty:\", \"UPPER:id\", \"double:colon:value\"] {\n            assert_eq!(\n                state.open_using(&counter, 7, name, CHANNEL),\n                Err(Error::InvalidName)\n            );\n        }\n        assert_eq!(counter.load(Ordering::Relaxed), 1);\n    }\n}\n"
+    },
+    {
+      "file": "crates/horizon-client/src/game/books.rs",
+      "name": "pluto_guide_lifetime_experiment",
+      "visibility": "pub(crate)",
+      "source": "// Experimental adapter. There is deliberately no native activation, network\n// subscription, send or document-mutation entry. Never infer ownership from\n// the current book. This experiment requires the frozen current-book service.\nuse super::Game;\nuse horizon_client::chunk_map::pluto_guide_lifetime_state::{Opening, Request};\n\npub(crate) fn invalidate(game: &mut Game<'_>) {\n    if game.options.execution_role.is_client() && game.lan_acting.is_none() {\n        game.world\n            .chunks\n            .__horizon_mixins_pluto_guide_lifetime_experiment_session_mut()\n            .invalidate();\n    }\n}\n/// Observe the existing state only. A current book never creates an opening.\npub(crate) fn active(game: &Game<'_>, opening: Opening) -> bool {\n    game.options.execution_role.is_client()\n        && game.lan_acting.is_none()\n        && game\n            .world\n            .chunks\n            .__horizon_mixins_pluto_guide_lifetime_experiment_session()\n            .active(opening)\n}\n/// A conditional correlation experiment, not a screen-update capability.\n/// The existing current-book gate/converter is reused without a page action.\npub(crate) fn admit_reply(\n    game: &mut Game<'_>,\n    request: Request,\n    owner: &str,\n    channel: &str,\n) -> bool {\n    let epoch = game\n        .remote\n        .as_ref()\n        .filter(|remote| remote.has_level())\n        .and_then(|remote| remote.native_epoch())\n        .map(|epoch| epoch.get());\n    let admitted = super::pluto_current_book::with_current(game, |_, _| ()).is_ok();\n    game.world\n        .chunks\n        .__horizon_mixins_pluto_guide_lifetime_experiment_session_mut()\n        .accept(request, epoch, admitted, owner, channel)\n}\n"
+    }
+  ],
+  "allowed_disjoint_modules": [
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-advancement-tag-state",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "name": "pluto_advancement_tag_state",
+      "visibility": "pub",
+      "fingerprint": "b24af94b758edf763d8595737082271a1fc22230bf3d686fb903bcee7477efd7",
+      "source": "// Native storage layer deliberately uses std only: render cannot depend on a\n// bundled API attached to the higher client-library layer.\n#[derive(Clone, Default)]\npub struct TagState {\n    pub owners: std::sync::Arc<\n        std::collections::BTreeMap<String, std::collections::BTreeMap<String, Option<Vec<String>>>>,\n    >,\n    // The game adapter owns the concrete immutable (snapshot, tree, index) type.\n    // No lower-layer reference to a client library type or global cache exists.\n    pub cache: Option<std::sync::Arc<dyn std::any::Any + Send + Sync>>,\n}\nimpl TagState {\n    pub fn clear(&mut self) {\n        self.owners = Default::default();\n        self.cache = None;\n    }\n}\n"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-landing-state-api",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "name": "pluto_landing_state",
+      "visibility": "pub",
+      "fingerprint": "b24af94b758edf763d8595737082271a1fc22230bf3d686fb903bcee7477efd7",
+      "source": "// Per-player transient landing data, shared by equipment and motion hooks.\nuse super::ChunkMap;\n\n#[derive(Clone, Default)]\npub struct LandingState {\n    pub enabled: bool,\n    pub damage_multiplier: Option<f32>,\n    pub rebound_y: Option<f64>,\n    pub guest: bool,\n    pub movement_y: f64,\n}\n\npub fn get(world: &ChunkMap, entity: i32) -> Option<&LandingState> {\n    world.__horizon_mixins_pluto_native_creative_landing_state().get(&entity)\n}\n\npub fn get_mut(world: &mut ChunkMap, entity: i32) -> &mut LandingState {\n    world.__horizon_mixins_pluto_native_creative_landing_state_mut().entry(entity).or_default()\n}\n\npub fn remove(world: &mut ChunkMap, entity: i32) {\n    world.__horizon_mixins_pluto_native_creative_landing_state_mut().remove(&entity);\n}\n"
+    },
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-saved-book-state",
+      "file": "crates/horizon-client-render/src/chunk_map.rs",
+      "name": "pluto_saved_book_state",
+      "visibility": "pub",
+      "fingerprint": "b24af94b758edf763d8595737082271a1fc22230bf3d686fb903bcee7477efd7",
+      "source": "// Exact prepared-world ownership in the render layer; std only, no API dependency.\nuse std::collections::{BTreeMap, BTreeSet};\nuse std::path::{Path, PathBuf};\nuse std::sync::Mutex;\n\npub type Saved = (BTreeSet<String>, BTreeSet<String>);\nstruct Pending {\n    save_root: PathBuf,\n    owners: BTreeMap<String, Saved>,\n}\n#[derive(Default)]\npub struct State {\n    pending: Mutex<Option<Pending>>,\n}\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub enum InstallError {\n    Poisoned,\n    AlreadyCaptured,\n}\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub enum TakeError {\n    Poisoned,\n    WorldMismatch,\n}\nimpl State {\n    pub fn install(\n        &self,\n        save_root: PathBuf,\n        owners: BTreeMap<String, Saved>,\n    ) -> Result<(), InstallError> {\n        let mut pending = self.pending.lock().map_err(|_| InstallError::Poisoned)?;\n        if pending.is_some() {\n            return Err(InstallError::AlreadyCaptured);\n        }\n        *pending = Some(Pending { save_root, owners });\n        Ok(())\n    }\n    pub fn take(&self, save_root: &Path, owner: &str) -> Result<Option<Saved>, TakeError> {\n        let mut pending = self.pending.lock().map_err(|_| TakeError::Poisoned)?;\n        let Some(pending) = pending.as_mut() else {\n            return Ok(None);\n        };\n        if pending.save_root != save_root {\n            return Err(TakeError::WorldMismatch);\n        }\n        // Keep the empty marker: a second capture may not revive consumed IDs.\n        Ok(pending.owners.remove(owner))\n    }\n    pub fn clear(&mut self) {\n        self.pending = Mutex::new(None);\n    }\n}\n#[cfg(test)]\nmod tests {\n    use super::*;\n    fn owners() -> BTreeMap<String, Saved> {\n        BTreeMap::from([(\n            \"test:a\".into(),\n            (BTreeSet::from([\"a:1\".into()]), BTreeSet::new()),\n        )])\n    }\n    #[test]\n    fn moves_with_exact_state_and_consumes_each_owner_once() {\n        let first = State::default();\n        let second = State::default();\n        first.install(\"world-a\".into(), owners()).unwrap();\n        assert_eq!(second.take(Path::new(\"world-a\"), \"test:a\"), Ok(None));\n        let moved = first;\n        assert_eq!(\n            moved.take(Path::new(\"world-b\"), \"test:a\"),\n            Err(TakeError::WorldMismatch)\n        );\n        assert!(moved\n            .take(Path::new(\"world-a\"), \"test:a\")\n            .unwrap()\n            .is_some());\n        assert_eq!(moved.take(Path::new(\"world-a\"), \"test:a\"), Ok(None));\n        assert_eq!(\n            moved.install(\"world-a\".into(), owners()),\n            Err(InstallError::AlreadyCaptured)\n        );\n    }\n    #[test]\n    fn clear_discards_pending_and_does_not_touch_another_world() {\n        let mut first = State::default();\n        let second = State::default();\n        first.install(\"world-a\".into(), owners()).unwrap();\n        second.install(\"world-b\".into(), owners()).unwrap();\n        first.clear();\n        assert_eq!(first.take(Path::new(\"world-a\"), \"test:a\"), Ok(None));\n        assert!(second\n            .take(Path::new(\"world-b\"), \"test:a\")\n            .unwrap()\n            .is_some());\n    }\n}\n"
+    }
+  ]
+}

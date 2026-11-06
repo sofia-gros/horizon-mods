@@ -1,0 +1,43 @@
+{
+  "source_commit": "08854c385ba5818d2654bc39a499aaf6b3600bdb",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_checks_passed": 26,
+  "official_dependency_identity": "passed_before_and_after_run",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "oracle.rs": "60de4f438ee2394f77c144adcef393c4482c345d2f69e1c39c08f1e25b7c5476",
+    "crop-oracle.rs": "5290ff34fa8d67b47ef379da2388dd5b0db645758661e98bf25df08364c1b981",
+    "panel-oracle.rs": "9a0627b673232f1d689e62ef3f20fabe7f1d6a25ef672e2ea4054843f71c079e",
+    "station-oracle.rs": "c32c6bcc3dfce05ac2872aacc7130fd5f1904dc554a4fad7321ff551ac395144",
+    "side-oracle.rs": "9b65a6fcda95ec3b34cfcc96c8ac73f76bcc24e09422f645b18cbdbc3ec4d079",
+    "tests.rs": "5f4bf81ffd28b58de6f0729c5672f3b19d1cb8f24f3ef31ba224249bc0a2bbae",
+    "Cargo.toml": "89dfebc2ec74a98ed143033dbc68614232f21e4a301d758c8f3b9416e9b4b6c4",
+    "lib.rs": "e2ff7aea7a75b5734dfd7cc36dd336cbcbbe2277f0528a12e48a8689c4b76d01"
+  },
+  "non_crop_policy_sha256": {
+    "tconstruct/mixins/tconstruct/source-side-draw.rs": "8321fda19d97868a6b734670864e6bebb8050c4ae65a72b907e893ff0d78243a",
+    "tconstruct/mixins/tconstruct/builder-info-ui.rs": "5eb3467f18c4f5c692b531fb82e97b094fd9d260e68f25f873dc056c8fbad092"
+  },
+  "native_equivalence": {
+    "status": "passed",
+    "tests_passed": 16,
+    "tests_failed": 0,
+    "added_tests": [
+      "side_inventory_rows_padding_scroll_and_missing_sprites_match",
+      "information_panel_edges_and_missing_sprite_match"
+    ],
+    "elapsed_seconds": 2.002755641937256,
+    "end_free_bytes": 11157463040,
+    "log_sha256": "05efc0fcbf881716e690593ba8ea05897cafb2f47847c4f8fe016733833a3926"
+  },
+  "scope": "Two existing crop closures reuse the unchanged shared renderer. All non-crop consumer policy is byte-preserved; exact old/new geometry bodies compared with real official types. Title font drawing is unchanged and source-guarded, not a native font proof.",
+  "shared_runtime_reference": {
+    "candidate": "999468ef38bd542e2e4dc8f83205f26462ad6e33",
+    "source_sha256": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "status": "Composition proof reported by coordinated integration; identical shared runtime source. New consumer lies outside cutoff."
+  },
+  "consumer_complete_bundle_check": "not_run_for_this_followup",
+  "gameplay_visual": "not_run"
+}

@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
 
 [[crate]]
 id = "creative-api"
@@ -24,6 +24,41 @@ source = "inventory-export.rs"
 visibility = "pub"
 
 [[module]]
+id = "stack-storage"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_storage"
+source = "stack-storage.rs"
+visibility = "pub"
+
+[[module]]
+id = "stack-cells"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_cells"
+source = "stack-cells.rs"
+visibility = "pub"
+
+[[module]]
+id = "wire-read"
+file = "crates/horizon-items/src/item_data.rs"
+name = "pluto_wire_read"
+source = "wire-read.rs"
+visibility = "pub"
+
+[[module]]
+id = "stack-snapshot"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_snapshot"
+source = "stack-snapshot.rs"
+visibility = "pub"
+
+[[module]]
+id = "nbt-storage"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_nbt_storage"
+source = "nbt-storage.rs"
+visibility = "pub"
+
+[[module]]
 id = "landing-state-api"
 file = "crates/horizon-client-render/src/chunk_map.rs"
 name = "pluto_landing_state"
@@ -40,6 +75,52 @@ initial = "::core::default::Default::default()"
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[module]]
+id = "rendering"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_render"
+source = "rendering.rs"
+visibility = "pub"
+
+[[module]]
+id = "cloud-descriptor"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_cloud"
+source = "cloud-descriptor.rs"
+visibility = "pub"
+
+[[module]]
+id = "cloud-factory"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "pluto_cloud_factory"
+source = "cloud-factory.rs"
+
+[[module]]
+id = "lifecycle-readiness"
+file = "crates/horizon-client/src/game/native_lifecycle.rs"
+name = "pluto_lifecycle_readiness"
+source = "lifecycle-readiness.rs"
+
+[[module]]
+id = "cloud-insertion"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_cloud_insertion"
+source = "cloud-insertion.rs"
+
+[[module]]
+id = "potion-facts"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_potions"
+source = "potion-facts.rs"
+visibility = "pub"
+
+[[module]]
+id = "fluid-facts"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_fluid_facts"
+source = "fluid-facts.rs"
+visibility = "pub"
 
 [[module]]
 id = "fluid-read"
@@ -75,3 +156,528 @@ kind = "HEAD"
 helper = "landing-clear.rs"
 bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
 
+
+# Component-aware inventory events, backed by the shared inventory API facade.
+[[injection]]
+id = "inventory-advancement-components"
+target = "horizon_client::game::advancements::Game<'_>::check_inventory_trigger"
+kind = "HEAD"
+cancellable = true
+helper = "inventory-advancements.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Player-victim protection service. Tinkers supplies its own policy callbacks.
+[[module]]
+id = "protection-runtime"
+file = "crates/horizon-world/src/combat_rules.rs"
+name = "pluto_protection"
+source = "protection-context.rs"
+visibility = "pub"
+
+[[module]]
+id = "protection-player-api"
+file = "crates/horizon-client/src/health.rs"
+name = "pluto_protection"
+source = "protection-player-api.rs"
+visibility = "pub"
+
+[[injection]]
+id = "protection-player-scope"
+target = "horizon_client_lib::health::PlayerMotion::hurt_caused_by"
+kind = "HEAD"
+priority = 2147483647
+cancellable = true
+helper = "protection-player-wrap.rs"
+bindings = [
+  { name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" },
+  { name = "resources", ty = "&crate::health::HealthResources", value = "resources" },
+  { name = "rules", ty = "crate::health::HealthRules", value = "rules" },
+  { name = "source", ty = "horizon_world::damage_source::DamageTypeId", value = "source" },
+  { name = "amount", ty = "f32", value = "amount" },
+  { name = "blocking", ty = "&Option<crate::health::Blocking>", value = "&blocking" },
+  { name = "living_cause", ty = "bool", value = "living_cause" },
+  { name = "causing", ty = "i32", value = "causing" },
+]
+
+[[injection]]
+id = "protection-arm"
+target = "horizon_client_lib::health::<Environment<'_> as ArmorWorld>::server_level"
+kind = "HEAD"
+helper = "protection-arm.rs"
+bindings = [{ name = "environment", ty = "&crate::health::Environment<'_>", value = "&*self" }]
+
+[[injection]]
+id = "protection-project"
+target = "horizon_client_render::effects::StatusFlags::protection"
+kind = "RETURN"
+priority = -10000
+helper = "protection-project.rs"
+bindings = [{ name = "value", ty = "f32", value = "$value" }, { name = "status", ty = "&crate::effects::StatusFlags", value = "self" }]
+
+[[injection]]
+id = "protection-kernel"
+target = "horizon_world::combat_rules::after_magic"
+kind = "HEAD"
+cancellable = true
+helper = "protection-kernel.rs"
+bindings = [{ name = "damage", ty = "f32", value = "damage" }, { name = "protection", ty = "f32", value = "protection" }]
+
+[[module]]
+id = "motion-query"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_motion_query"
+source = "motion-query.rs"
+
+[[module]]
+id = "world-fluid-query"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_world_fluid_query"
+source = "world-fluid-query.rs"
+
+[[module]]
+id = "world-fluid"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_world_fluid"
+source = "world-fluid.rs"
+
+[[injection]]
+id = "world-fluid-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+priority = 90
+helper = "world-fluid-use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "world-fluid-tick"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_tick_block"
+kind = "HEAD"
+helper = "world-fluid-tick.rs"
+bindings = [
+  { name = "level", ty = "&mut crate::game::GameLevel<'_>", value = "&mut *self" },
+  { name = "ticks", ty = "&mut horizon_world::level::ticks::Ticks", value = "&mut *ticks" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "handled", ty = "&mut bool", value = "&mut *handled" },
+]
+
+[[injection]]
+id = "world-fluid-neighbor"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
+kind = "RETURN"
+helper = "world-fluid-neighbor.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "self" },
+  { name = "ticks", ty = "&mut horizon_world::level::ticks::Ticks", value = "&mut *ticks" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+]
+
+[[module]]
+id = "protection-native-tests"
+file = "crates/horizon-world/src/combat_rules.rs"
+name = "pluto_protection_native_tests"
+source = "protection-native-tests.rs"
+# One shared callback boundary; consuming mods register policy without host types.
+[[injection]]
+id = "advancement-item-predicate"
+target = "horizon_client_lib::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "advancement-item-predicate.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]
+
+[[module]]
+id = "tag-graph"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_tag_graph"
+source = "tag-graph.rs"
+visibility = "pub"
+
+# Explicit synchronous event submission, with no automatic trigger hook.
+[[module]]
+id = "advancement-events"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_events"
+source = "advancement-events.rs"
+
+
+# Lossless equipment input and version-locked exact native caller adapters.
+[[module]]
+id = "equipment-snapshot"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_equipment"
+source = "equipment-snapshot.rs"
+visibility = "pub"
+
+[[module]]
+id = "equipment-game-dispatch"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_damage_equipment"
+source = "equipment-game-dispatch.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "equipment-ordinary-replacement"
+target = "horizon_client::game::creatures::Game<'_>::hurt_player_from"
+kind = "HEAD"
+priority = -2147483648
+cancellable = true
+helper = "ordinary-equipment-head.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "amount", ty = "f32", value = "amount" },
+  { name = "from", ty = "Option<[f64; 3]>", value = "from" },
+  { name = "damage_type", ty = "&str", value = "damage_type" },
+  { name = "known", ty = "Option<Option<u32>>", value = "known" },
+]
+
+[[injection]]
+id = "equipment-explosion-replacement"
+target = "horizon_client::game::explosion::Game<'_>::explosion_hurt_player"
+kind = "HEAD"
+priority = -2147483648
+cancellable = true
+helper = "explosion-equipment-head.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "context", ty = "&ExplosionHookContext<'_>", value = "context" },
+  { name = "radius", ty = "f32", value = "radius" },
+  { name = "damage_type", ty = "&str", value = "damage_type" },
+  { name = "exploding", ty = "Option<u32>", value = "exploding" },
+  { name = "attacker", ty = "Option<&(u32, Text)>", value = "attacker" },
+  { name = "cause", ty = "Option<&horizon_client::advancements::EntityView>", value = "cause" },
+]
+
+[[module]]
+id = "advancement-tag-state"
+file = "crates/horizon-client-render/src/chunk_map.rs"
+name = "pluto_advancement_tag_state"
+source = "advancement-tag-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "advancement-tags"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "advancement-tags"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_tags"
+source = "advancement-tags.rs"
+
+[[injection]]
+id = "advancement-tags-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "advancement-tags-clear.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "advancement-tag-predicate"
+target = "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"
+kind = "HEAD"
+cancellable = true
+helper = "advancement-tag-predicate.rs"
+bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "advancement-tag-index"
+target = "horizon_client::game::advancements::Game<'_>::inventory_index"
+kind = "HEAD"
+cancellable = true
+helper = "advancement-tag-index.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+# Shared native final block feedback; consumers own all item/wear policy.
+[[module]]
+id = "block-feedback"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_block_feedback"
+source = "block-feedback.rs"
+visibility = "pub(crate)"
+
+# Resident source facts are borrowed from the native hit's actual registry.
+[[module]]
+id = "damage-source-context"
+file = "crates/horizon-world/src/damage_source.rs"
+name = "pluto_context"
+source = "damage-source-context.rs"
+visibility = "pub"
+
+[[module]]
+id = "protection-provider-facts"
+file = "crates/horizon-client/src/health.rs"
+name = "pluto_protection_facts"
+source = "protection-provider-facts.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "protection-contribution"
+file = "crates/horizon-client/src/health.rs"
+name = "pluto_protection_contribution"
+source = "protection-contribution.rs"
+visibility = "pub(crate)"
+
+# One shared semantic NBT/component converter for all native read adapters.
+[[module]]
+id = "component-view"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_component_view"
+source = "component-view.rs"
+visibility = "pub"
+
+# Shared semantic equipment capture, without a mutation capability.
+[[module]]
+id = "equipment-view"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_equipment_view"
+source = "equipment-view.rs"
+visibility = "pub(crate)"
+
+# Observational native armor-wear boundary. Policy and mutation stay native.
+[[module]]
+id = "armor-wear-observation"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_armor_wear"
+source = "armor-wear-observation.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "armor-wear-observation-replacement"
+target = "horizon_client::game::Game<'_>::hurt_armor"
+kind = "HEAD"
+priority = -2147483648
+cancellable = true
+helper = "armor-wear-observe-head.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "self" },
+    { name = "source", ty = "horizon_world::damage_source::DamageTypeId", value = "source" },
+    { name = "damage", ty = "f32", value = "damage" },
+]
+
+
+# Explicit loaded-tree capability only: no projection registry or automatic hook.
+[[module]]
+id = "advancement-projection"
+file = "crates/horizon-client/src/advancements.rs"
+name = "pluto_advancement_projection"
+source = "advancement-projection.rs"
+visibility = "pub"
+
+[[module]]
+id = "advancement-projection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_projection"
+source = "advancement-projection-world.rs"
+
+# Explicit cache capability, with no recipe policy or automatic lifecycle hook.
+[[module]]
+id = "recipe-book-invalidation"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "pluto_invalidation"
+source = "recipe-book-invalidation.rs"
+visibility = "pub(crate)"
+
+# Restricted semantic guide text; no screen, session, input or packet side effects.
+[[module]]
+id = "guide-text"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_guide_text"
+source = "guide-text.rs"
+visibility = "pub"
+
+[[module]]
+id = "recipe-book-preview"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "pluto_preview"
+source = "recipe-book-preview.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "recipe-book-preview-cells"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "pluto_preview_cells"
+source = "recipe-book-preview-cells.rs"
+visibility = "pub"
+
+# Saved knowledge is attached to the exact prepared ChunkMap, not global state.
+[[module]]
+id = "saved-book-state"
+file = "crates/horizon-client-render/src/chunk_map.rs"
+name = "pluto_saved_book_state"
+source = "saved-book-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "saved-book-pending"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_saved_book_state::State"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "saved-book-capture"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_saved_book_capture"
+source = "saved-book-capture.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "saved-book-world"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_saved_book"
+source = "saved-book-world.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "saved-book-before-open"
+target = "horizon_client::game::Game<'_>::finish_open_world"
+kind = "HEAD"
+priority = -2147483648
+helper = "saved-book-before-open.rs"
+bindings = [{ name = "prepared", ty = "&crate::game::world_loading::PreparedWorld", value = "&prepared" }]
+
+[[injection]]
+id = "saved-book-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "saved-book-clear.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[module]]
+id = "client-payload"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_client_payload"
+source = "client-payload.rs"
+visibility = "pub"
+
+[[injection]]
+id = "client-payload-observed"
+target = "horizon_client::game::native_hooks::Game<'_>::native_client_packet"
+kind = "RETURN"
+helper = "client-payload-observed.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&Game<'_>", value = "&*self" }, { name = "packet", ty = "&ClientboundPlayPacket", value = "packet" }]
+
+# Explicit recipe index operation only; no world ownership or lifecycle hook.
+[[module]]
+id = "recipe-index-patch"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "pluto_index_patch"
+source = "recipe-index-patch.rs"
+visibility = "pub"
+
+[[module]]
+id = "recipe-placement"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_placement"
+source = "recipe-placement.rs"
+visibility = "pub"
+
+[[module]]
+id = "recipe-placement-attempt"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "pluto_placement"
+source = "recipe-placement-attempt.rs"
+
+[[injection]]
+id = "recipe-placement-definition"
+target = "horizon_client_lib::crafting::Recipes::placement"
+kind = "HEAD"
+cancellable = true
+helper = "recipe-placement-definition.rs"
+bindings = [{ name = "recipes", ty = "&Recipes", value = "self" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "recipe-placement-click"
+target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "recipe-placement-click.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "book_type", ty = "BookType", value = "book_type" }, { name = "entry_index", ty = "usize", value = "entry_index" }]
+
+[[module]]
+id = "current-book"
+file = "crates/horizon-client/src/game/books.rs"
+name = "pluto_current_book"
+source = "current-book.rs"
+
+[[module]]
+id = "crafting-match"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_matching"
+source = "crafting-match.rs"
+visibility = "pub"
+
+[[injection]]
+id = "crafting-match-veto"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "crafting-match-veto.rs"
+bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+
+# Derived render bindings have lower-layer ownership and no gameplay dependency.
+[[module]]
+id = "terrain-bindings"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_terrain_bindings"
+source = "terrain-bindings.rs"
+visibility = "pub"
+
+[[module]]
+id = "terrain-binding-host"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_terrain_binding_host"
+source = "terrain-binding-host.rs"
+visibility = "pub"
+
+[[module]]
+id = "fluid-render-prepare"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_fluid_render_prepare"
+source = "fluid-render-prepare.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "fluid-render-before-assemble"
+target = "horizon_client::game::PackResources::assemble"
+kind = "HEAD"
+helper = "fluid-render-before-assemble.rs"
+bindings = [{ name = "assets", ty = "&Arc<Assets>", value = "&assets" }, { name = "render", ty = "&Arc<RenderAssets>", value = "&render" }, { name = "tables", ty = "&Arc<MeshTables>", value = "&tables" }]
+
+# Explicit fixed-size geometry only; does not install a mesher/draw hook.
+[[module]]
+id = "terrain-cell-geometry"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_terrain_cell_geometry"
+source = "terrain-cell-geometry.rs"
+visibility = "pub"
+
+[[module]]
+id = "station-ingredient"
+file = "crates/horizon-client/src/stations.rs"
+name = "pluto_ingredient"
+source = "station-ingredient.rs"
+visibility = "pub"
+
+[[injection]]
+id = "station-ingredient-parser"
+target = "horizon_client_lib::stations::ingredient"
+kind = "HEAD"
+cancellable = true
+helper = "station-ingredient-head.rs"
+bindings = [{ name = "value", ty = "&serde_json::Value", value = "v" }, { name = "items", ty = "&Items", value = "items" }]

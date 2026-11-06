@@ -1,0 +1,59 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "boundaries": [
+    {
+      "target": "horizon_client_lib::crafting::Recipes::placement",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "recipes",
+          "ty": "&Recipes",
+          "value": "self"
+        },
+        {
+          "name": "id",
+          "ty": "&str",
+          "value": "id"
+        }
+      ],
+      "function_fingerprint": "cfba8f2fbd0054a5b8a4628c1db3fa6c2d7a000e82b3be436454384891f8db4d",
+      "injection_id": "recipe-placement-definition",
+      "helper": "recipe-placement-definition.rs",
+      "file_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+      "helper_sha256": "f0510835e2b8d0eef8c9f7a689ba09bece3fcc710e457855c2efcb29b0cd2b00"
+    },
+    {
+      "target": "horizon_client::game::recipe_book::Game<'_>::place_recipe",
+      "file": "crates/horizon-client/src/game/recipe_book.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        },
+        {
+          "name": "book_type",
+          "ty": "BookType",
+          "value": "book_type"
+        },
+        {
+          "name": "entry_index",
+          "ty": "usize",
+          "value": "entry_index"
+        }
+      ],
+      "function_fingerprint": "89ef9141412aa60155e3adebf0c255e27dcd2a0e2c93ffb407cdc81871d92452",
+      "injection_id": "recipe-placement-click",
+      "helper": "recipe-placement-click.rs",
+      "file_sha256": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+      "helper_sha256": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f"
+    }
+  ]
+}

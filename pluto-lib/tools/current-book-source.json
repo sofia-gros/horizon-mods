@@ -1,0 +1,17 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "module_id": "current-book",
+  "module_name": "pluto_current_book",
+  "module_file": "crates/horizon-client/src/game/books.rs",
+  "source": "current-book.rs",
+  "source_sha256": "ecc1847d15830381acf8e8fea4bb8e4790bbb006e5ba24b267bd7561af96cff9",
+  "turn_target": "horizon_client::game::books::Game<'_>::turn_page",
+  "turn_fingerprint": "254a042b8af87cf2940f5f8d03744f81027c4642356b88b378038e311495d442",
+  "official_sources": {
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd"
+  }
+}

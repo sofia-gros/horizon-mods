@@ -1,0 +1,21 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_candidate": "b0563ea7c7c7dfb35123951beb45cace00c33e76",
+  "central_cutoff": "c55f4985001999b7ea9aa34f7470e8725a5684af",
+  "group": "grouped-v8",
+  "archive_sha256": "47dcc0d20c79beb6a592db4385b729e1019e87de0c752cac4430a658ea4e4f61",
+  "sealed_stage_files": 5039,
+  "actual_plan": "pass",
+  "all_mandatory_guards": "pass",
+  "apply": "pass",
+  "client_lib_bin_typecheck": "pass",
+  "typecheck_seconds": 84,
+  "grouped_python_tests": 130,
+  "grouped_api_tests": 93,
+  "unrun": [
+    "Three private native BookScreen projection tests.",
+    "Real client native page-turn action, at-most-once execution, audio and input-consumption behavior."
+  ],
+  "scope": "Installed full-library composition/type proof, not live screen, session, input or network behavior."
+}

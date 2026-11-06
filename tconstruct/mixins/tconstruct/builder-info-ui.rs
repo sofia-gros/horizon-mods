@@ -102,12 +102,11 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
 
 pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32, width: f32, height: f32) {
     let atlas = &game.gui.atlas;
-    let Some(sprite) = atlas.sprites.get("gui/tconstruct_panel").copied() else { return; };
+    let Some(sprite) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_panel") else { return; };
     let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
-        let mut r = sprite;
-        let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-        r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
-        batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
+        let _ = horizon_client::pluto_render::crop(batch, sprite,
+            [sx, sy, sw, sh], sprite.logical_size(),
+            [ox + x, oy + y, w, h], u32::MAX);
     };
     let inner = height - 8.0;
     region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, width - 8.0, inner);

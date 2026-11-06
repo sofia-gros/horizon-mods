@@ -77,7 +77,7 @@ pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
     }
     let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tag, true)?;
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag))?;
-    let base = horizon_client_core::potions::potion(&id)?;
+    let base = horizon_client::pluto_potions::potion(&id)?;
     let custom = match tag.get("CustomPotionEffects") {
         None => &[][..],
         Some(Tag::List(effects)) if effects.len() <= 64 => effects.as_slice(),
@@ -88,7 +88,7 @@ pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
     let (mut r, mut g, mut b, mut total) = (0.0f32, 0.0f32, 0.0f32, 0i32);
     let mut add = |effect: &str, amplifier: i32, visible: bool| -> Option<()> {
         if visible {
-            let color = horizon_client_core::potions::effect(effect)?.color;
+            let color = horizon_client::pluto_potions::effect(effect)?.color_rgb;
             let weight = amplifier.max(0) + 1;
             r += (weight * ((color >> 16 & 255) as i32)) as f32 / 255.0f32;
             g += (weight * ((color >> 8 & 255) as i32)) as f32 / 255.0f32;
@@ -155,12 +155,10 @@ pub(super) fn melter_heat(game: &super::Game<'_>, pos: (i32,i32,i32), slot: usiz
 pub(super) fn draw_heat_bar(batch: &mut horizon_client::hud::HudBatch, atlas: &horizon_client::hud::HudAtlas,
     texture: &str, x: f32, y: f32, source_x: f32, height: f32) {
     if height <= 0.0 { return; }
-    if let Some(mut sprite) = atlas.sprites.get(texture).copied() {
-        let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
-        sprite.u0 += source_x * du;
-        sprite.v0 += (150.0 + 16.0 - height) * dv;
-        sprite.u1 = sprite.u0 + 3.0 * du; sprite.v1 = sprite.v0 + height * dv;
-        batch.rect_uv(x - 4.0, y + 16.0 - height, 3.0, height, sprite, u32::MAX);
+    if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, texture) {
+        let _ = horizon_client::pluto_render::crop(batch, sprite,
+            [source_x, 150.0 + 16.0 - height, 3.0, height], sprite.logical_size(),
+            [x - 4.0, y + 16.0 - height, 3.0, height], u32::MAX);
     }
 }
 
@@ -188,11 +186,10 @@ pub(super) fn draw_fire(batch: &mut horizon_client::hud::HudBatch, atlas: &horiz
     texture: &str, x: f32, y: f32, fuel: u32, quality: u32) {
     let height = fire_height(fuel, quality) as f32;
     if height == 0.0 { return; }
-    if let Some(mut sprite) = atlas.sprites.get(texture).copied() {
-        let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
-        sprite.u0 += 176.0 * du; sprite.v0 += (136.0 + 14.0 - height) * dv;
-        sprite.u1 = sprite.u0 + 14.0 * du; sprite.v1 = sprite.v0 + height * dv;
-        batch.rect_uv(x, y + 14.0 - height, 14.0, height, sprite, u32::MAX);
+    if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, texture) {
+        let _ = horizon_client::pluto_render::crop(batch, sprite,
+            [176.0, 136.0 + 14.0 - height, 14.0, height], sprite.logical_size(),
+            [x, y + 14.0 - height, 14.0, height], u32::MAX);
     }
 }
 
@@ -255,9 +252,8 @@ pub(super) fn fluid_luminosity(fluid: &str) -> u8 {
 
 /// Horizon packs sky into the low byte and block light into the next byte.
 pub(super) fn fluid_light(world_light: u8, fluid: &str) -> u32 {
-    let sky = u32::from(world_light >> 4) * 16;
-    let block = u32::from((world_light & 15).max(fluid_luminosity(fluid))) * 16;
-    sky | (block << 8)
+    horizon_client::pluto_render::minimum_block_light(world_light, fluid_luminosity(fluid))
+        .expect("source fluid luminosity must be in 0..=15")
 }
 
 #[cfg(test)]

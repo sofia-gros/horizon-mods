@@ -1,0 +1,63 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "geometry_sha256": "d99be52aa776daf98d6f66ae6c8b148f51c7b118a55ab8381d6e5321fd0fb6d0",
+  "official_source": "crates/horizon-client-render/src/mesher/fluid.rs",
+  "official_source_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+  "rust_tests": {
+    "status": "passed",
+    "count": 5,
+    "differential_cases": 12288,
+    "scope": "Exact official coordinate/UV/winding expressions only, wrapped in explicit test arguments. No native tessellation, loader, shading/culling, flow, draw pass or GPU execution.",
+    "artifact": "/tmp/pluto-terrain-geometry-oracle-noinner-20261105"
+  },
+  "source_package_tests": {
+    "status": "passed",
+    "count": 5
+  },
+  "full_installed_plan_apply_typecheck": {
+    "status": "passed",
+    "mod_head": "3ba060dfca5e567bf9ff0b4853f429a221564c25",
+    "archive_sha256": "e42240e75471359eb9b3c82486e30a1940ba5308c1688fccda25bc83acd22890",
+    "geometry_matches_actual_archive": true,
+    "counts": {
+      "crate": 2,
+      "module": 61,
+      "injection": 33,
+      "state": 3
+    },
+    "mandatory_guards": 11,
+    "plan_seconds": 20.05,
+    "apply_seconds": 21.41,
+    "host_lib_bin_check_seconds": 64,
+    "stage_files_sealed": 5042,
+    "process": {
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 11120369664
+    },
+    "artifact": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v11b",
+    "scope": "Actual installed module and native lib/bin type compatibility only; no mesher hook or runtime rendering execution."
+  },
+  "runtime_changes": "One explicit pure support module; no hook/state/registry or existing rendering call changes",
+  "not_proven": [
+    "native geometry emission integration",
+    "whole fluid tessellation",
+    "culling/light/pass/animation metadata",
+    "GPU output",
+    "reload",
+    "performance",
+    "TConstruct recovery"
+  ],
+  "initial_installed_failure": {
+    "cutoff": "ba948587",
+    "diagnostic": "E_MODULE file attributes",
+    "cause": "Two module-wide inner doc comments parsed as inner file attributes",
+    "correction": "Ordinary comments only; arithmetic unchanged. Five Rust tests including 12288 oracle cases and five source/package checks rerun and passed."
+  },
+  "grouped_tests": {
+    "python_total_including_api_runner": 187,
+    "inventory_api": 106,
+    "scope": "Across the entire shared library group, not terrain-only tests."
+  }
+}

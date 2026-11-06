@@ -109,7 +109,7 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
 fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), tank: &crate::game::tconstruct_source_melter_state::Tank, bounds: [f32; 6], sides: bool) {
     let Some(fluid) = tank.fluid.as_deref() else { return; };
     let name = crate::game::tconstruct_source_melter_render::sprite(fluid);
-    let Some(sprite) = game.gui.atlas.sprites.get(&name).or_else(|| game.gui.atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() else { return; };
+    let Some(sprite) = horizon_client::pluto_render::sprite(&game.gui.atlas, &name).or_else(|| horizon_client::pluto_render::sprite(&game.gui.atlas, "block/tconstruct_fluid_fallback")) else { return; };
     let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
     if at.distance_squared(camera) >= 64.0 * 64.0 { return; }
     let origin = (at - camera).as_vec3();
@@ -117,23 +117,10 @@ fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, 
     let bottom = y0;
     let top = bottom + (y1 - bottom) * (tank.amount as f32 / tank.capacity as f32).clamp(0.0, 1.0);
     let light = crate::game::tconstruct_source_melter_render::fluid_light(game.world.light(pos.0, pos.1, pos.2), fluid);
-    let u0 = sprite.u0; let u1 = sprite.u0 + (sprite.u1 - sprite.u0) * (16.0 / sprite.w as f32);
-    let v0 = sprite.v0; let v1 = sprite.v0 + (sprite.v1 - sprite.v0) * (16.0 / sprite.h as f32);
-    let uv = [[u0,v0], [u1,v0], [u1,v1], [u0,v1]];
-    let faces = [
-        [[x0,top,z0], [x1,top,z0], [x1,top,z1], [x0,top,z1]],
-        [[x0,top,z0], [x0,top,z1], [x0,bottom,z1], [x0,bottom,z0]],
-        [[x1,top,z1], [x1,top,z0], [x1,bottom,z0], [x1,bottom,z1]],
-        [[x1,top,z0], [x0,top,z0], [x0,bottom,z0], [x1,bottom,z0]],
-        [[x0,top,z1], [x1,top,z1], [x1,bottom,z1], [x0,bottom,z1]],
-    ];
     let color = crate::game::tconstruct_source_melter_render::color_with_complete(fluid, tank.tag.as_ref(), game.remote.is_none());
-    for face in faces.into_iter().take(if sides { 5 } else { 1 }) {
-        for (p, uv) in face.into_iter().zip(uv) {
-            out.push(Vertex { pos: (origin + glam::Vec3::from_array(p)).to_array(), uv, layer: 0,
-                color, light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
-        }
-    }
+    let faces = if sides { horizon_client::pluto_render::TOP_AND_SIDES } else { horizon_client::pluto_render::TOP };
+    let _ = horizon_client::pluto_render::cuboid(out, sprite, origin.to_array(),
+        [x0, bottom, z0, x1, top, z1], faces, [16.0, 16.0], color, light);
 }
 
 }

@@ -1,0 +1,102 @@
+{
+  "schema": 6,
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+    "crates/horizon-client/src/game/native_entity_refs.rs": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+    "crates/horizon-client/src/game/native_level_refs.rs": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+    "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+    "crates/horizon-client/src/game/commands/players.rs": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/lan_entities.rs": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
+    "crates/horizon-client/src/mod_api.rs": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643",
+    "crates/horizon-client/src/game/commands.rs": "415bda393e631faa8e125bd115b63ad911467efce723bae5e76b71b4461902bd",
+    "crates/horizon-client/src/game/integrated.rs": "c185c500e00a28bd3ab33af90df04ad1c1b2ff964c481de49b2e91bf99624a36",
+    "crates/horizon-client/src/game/dedicated.rs": "8a76797bf31f36aebe0f4d6c0a9fee1652fc39c9e022d40064d8f9756516c6d1",
+    "crates/horizon-client/src/game/dragon.rs": "1543d9cb792a7d2227c3b54f1767bf657fb438723b3871df632b4021ab293a3b",
+    "crates/horizon-client/src/game/potions.rs": "9d504ba0534f79a5a040d85e40649b14943847cb9691a2621c9dfe37ef45f460",
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
+    "crates/horizon-client-render/src/world.rs": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
+    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772"
+  },
+  "modules": [
+    {
+      "module_id": "pluto_native_creative-cloud-descriptor",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_cloud",
+      "visibility": "pub",
+      "source_file": "cloud-descriptor.rs",
+      "source_sha256": "4ef35cd998317a3f47fc2376d026e24e850d8331da4354987dc34791800c1a22"
+    },
+    {
+      "module_id": "pluto_native_creative-potion-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_potions",
+      "visibility": "pub",
+      "source_file": "potion-facts.rs",
+      "source_sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f"
+    },
+    {
+      "module_id": "pluto_native_creative-cloud-factory",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "pluto_cloud_factory",
+      "visibility": "pub(crate)",
+      "source_file": "cloud-factory.rs",
+      "source_sha256": "5e9e0a365a8595e69b92bd1315552f044d59fe7962e509594a478f4f7694f45d"
+    },
+    {
+      "module_id": "pluto_native_creative-lifecycle-readiness",
+      "file": "crates/horizon-client/src/game/native_lifecycle.rs",
+      "name": "pluto_lifecycle_readiness",
+      "visibility": "pub(crate)",
+      "source_file": "lifecycle-readiness.rs",
+      "source_sha256": "d55de930fa4c9e9dd9eb293e5b919b2d8f57f76d879a57130bc0473dd59d5819"
+    },
+    {
+      "module_id": "pluto_native_creative-cloud-insertion",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_cloud_insertion",
+      "visibility": "pub(crate)",
+      "source_file": "cloud-insertion.rs",
+      "source_sha256": "374dd81a2483345319a029657b46adf8501c4de0036830b15f76708077a27033"
+    }
+  ],
+  "exclusive_files": [
+    "crates/horizon-client/src/game/native_lifecycle.rs",
+    "crates/horizon-client/src/game/native_entity_refs.rs",
+    "crates/horizon-client/src/game/native_level_refs.rs",
+    "crates/horizon-client/src/game/mod_api_host.rs",
+    "crates/horizon-client/src/game/commands/players.rs",
+    "crates/horizon-client/src/game/lan_actions.rs",
+    "crates/horizon-client/src/game/lan_entities.rs",
+    "crates/horizon-client/src/mod_api.rs",
+    "crates/horizon-client/src/game/commands.rs",
+    "crates/horizon-client/src/game/integrated.rs",
+    "crates/horizon-client/src/game/dedicated.rs",
+    "crates/horizon-client/src/game/dragon.rs",
+    "crates/horizon-client/src/game/potions.rs",
+    "crates/horizon-client-render/src/world.rs",
+    "crates/horizon-client-core/src/potions.rs"
+  ],
+  "protected_target_prefixes": [
+    "horizon_client::game::native_lifecycle::",
+    "horizon_client::game::native_entity_refs::",
+    "horizon_client::game::native_level_refs::",
+    "horizon_client::game::mod_api_host::",
+    "horizon_client::game::commands::",
+    "horizon_client::game::lan_actions::",
+    "horizon_client::game::lan_entities::",
+    "horizon_client::game::integrated::",
+    "horizon_client::game::dedicated::",
+    "horizon_client::game::dragon::",
+    "horizon_client::game::potions::",
+    "horizon_client_lib::mod_api::",
+    "horizon_client_render::world::",
+    "horizon_client_core::potions::"
+  ],
+  "protected_state_files": [
+    "crates/horizon-client/src/game.rs",
+    "crates/horizon-client/src/client_lib.rs"
+  ]
+}

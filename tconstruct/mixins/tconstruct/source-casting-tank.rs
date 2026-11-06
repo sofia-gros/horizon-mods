@@ -44,11 +44,7 @@ impl CastingTank {
         if self.tank.amount == 0 { 0 } else { 1 + (14 * self.tank.amount / self.tank.capacity) as i32 }
     }
     pub(super) fn lossless(&self) -> bool {
-        self.slots.iter().flatten().all(|stack| {
-            if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
-            let raw = item_to_nbt(stack);
-            item_from_nbt(&raw).is_some_and(|decoded| decoded.count == stack.count && decoded.damage == stack.damage && decoded.same_item_same_components(stack))
-        })
+        self.slots.iter().flatten().all(|stack| horizon_client::pluto_stack_storage::encode_item_lossless(stack).is_some())
     }
     /// Preserve native extensions and unchanged raw slots. Changing an opaque
     /// saved item must wait rather than discard data omitted by its decoder.

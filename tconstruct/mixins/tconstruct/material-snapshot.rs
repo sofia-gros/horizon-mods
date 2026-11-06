@@ -9,25 +9,26 @@ pub(super) fn merge_pack(
     files: impl IntoIterator<Item = String>,
     read: impl Fn(&str) -> Option<Vec<u8>>,
 ) {
-    for file in files {
-        let Some(rest) = file.strip_prefix("data/") else { continue; };
-        let Some((namespace, path)) = rest.split_once('/') else { continue; };
-        let Some(path) = path.strip_suffix(".json") else { continue; };
-        if namespace.is_empty() || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
-            || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
-            || path.split('/').any(|part| part.is_empty() || part == "." || part == "..") { continue; }
-        let is_tag = path.starts_with("tinkering/tags/materials/");
-        let is_material = ["definition", "stats", "traits"].iter().any(|kind| path.starts_with(&format!("tinkering/materials/{kind}/")))
-            || path.starts_with("tinkering/tool_definitions/")
-            || path.starts_with("tinkering/station_layouts/")
-            || path.starts_with("tinkering/fluid_effects/");
-        if !is_tag && !is_material { continue; }
-        if let Some(bytes) = read(&file) {
-            let id = format!("{namespace}:{path}");
-            if is_tag { tags.entry(id).or_default().push(bytes); }
-            else { materials.entry(id).or_default().push(bytes); }
-        }
-    }
+    // As before, missing reads do not append a layer. Definition/trait/tag
+    // interpretation and exact Tinkering directory selection stay here.
+    let _ = pluto_api::resources::visit_json_pack_with_policy(
+        files,
+        read,
+        |resource| {
+            let path = resource.path;
+            let is_tag = path.starts_with("tinkering/tags/materials/");
+            let is_material = ["definition", "stats", "traits"].iter().any(|kind| path.starts_with(&format!("tinkering/materials/{kind}/")))
+                || path.starts_with("tinkering/tool_definitions/")
+                || path.starts_with("tinkering/station_layouts/")
+                || path.starts_with("tinkering/fluid_effects/");
+            (is_tag || is_material).then_some(is_tag)
+        },
+        |is_tag, id, bytes| {
+            let layers = if is_tag { &mut *tags } else { &mut *materials };
+            layers.entry(id).or_default().push(bytes);
+        },
+        pluto_api::resources::UnreadablePolicy::Skip,
+    );
 }
 
 #[cfg(test)]
@@ -46,5 +47,35 @@ mod tests {
         assert_eq!(tags["tconstruct:tinkering/tags/materials/wood"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(values["tconstruct:tinkering/tool_definitions/pickaxe"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(values["tconstruct:tinkering/station_layouts/pickaxe"], [b"base".to_vec(), b"override".to_vec()]);
+    }
+    #[test]
+    fn unreadable_layer_is_skipped_without_dropping_later_raw_files() {
+        let material = "data/x/tinkering/materials/stats/example.json";
+        let tag = "data/x/tinkering/tags/materials/example.json";
+        let fluid = "data/x/tinkering/fluid_effects/example.json";
+        let mut values = BTreeMap::new();
+        let mut tags = BTreeMap::new();
+        merge_pack(&mut values, &mut tags, [material.into()], |_| Some(b"base".to_vec()));
+        merge_pack(&mut values, &mut tags, [material.into(), tag.into(), fluid.into()], |file| {
+            (file != material).then(|| b"not JSON".to_vec())
+        });
+        assert_eq!(values["x:tinkering/materials/stats/example"], [b"base".to_vec()]);
+        assert_eq!(tags["x:tinkering/tags/materials/example"], [b"not JSON".to_vec()]);
+        assert_eq!(values["x:tinkering/fluid_effects/example"], [b"not JSON".to_vec()]);
+    }
+    #[test]
+    fn invalid_and_unrelated_paths_never_reach_the_reader() {
+        let mut values = BTreeMap::new();
+        let mut tags = BTreeMap::new();
+        merge_pack(&mut values, &mut tags, [
+            "data/x/tinkering/materials/stats/../bad.json",
+            "data/x/tinkering/materials/stats/.json",
+            "data/x/tinkering/materials/stats//bad.json",
+            "data/x/tinkering/materials/unknown/good.json",
+            "data/x/tinkering/modifiers/good.json",
+            "assets/x/tinkering/materials/stats/good.json",
+        ].map(str::to_owned), |_| panic!("invalid or unselected path was read"));
+        assert!(values.is_empty());
+        assert!(tags.is_empty());
     }
 }

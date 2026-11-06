@@ -1,0 +1,94 @@
+# Isolated experiment only: never included by package_native.py.
+[mod]
+id = "pluto_guide_lifetime_experiment"
+version = "0.1.0"
+priority = 2147483647
+[compatibility]
+horizon_revision = "624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+
+[[module]]
+id = "state-api"
+file = "crates/horizon-client-render/src/chunk_map.rs"
+name = "pluto_guide_lifetime_state"
+source = "state.rs"
+visibility = "pub"
+
+[[module]]
+id = "native-adapter"
+file = "crates/horizon-client/src/game/books.rs"
+name = "pluto_guide_lifetime_experiment"
+source = "native.rs"
+visibility = "pub(crate)"
+
+[[state]]
+id = "session"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_guide_lifetime_state::State"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "map-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "chunks-invalidate.rs"
+bindings = [{ name = "chunks", ty = "&mut ChunkMap", value = "self" }]
+
+[[injection]]
+id = "open"
+target = "horizon_client::game::books::Game<'_>::open_book"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "close"
+target = "horizon_client::game::books::Game<'_>::close_book"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "save"
+target = "horizon_client::game::books::Game<'_>::save_book"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "level-unload"
+target = "horizon_client::game::native_hooks::Game<'_>::native_client_level_unload"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "join"
+target = "horizon_client::game::remote::Game<'_>::join_server"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "leave"
+target = "horizon_client::game::remote::Game<'_>::leave_server"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "dimension"
+target = "horizon_client::game::remote::Game<'_>::enter_remote_dimension"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "restore"
+target = "horizon_client::game::remote_chat::Game<'_>::answer_command_prompt"
+kind = "HEAD"
+helper = "game-invalidate.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }]

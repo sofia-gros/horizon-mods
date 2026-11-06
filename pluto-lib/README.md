@@ -2,6 +2,11 @@
 
 **Reusable Rust APIs for Horizon mods.**
 
+PlutoLib owns reusable APIs and their official Horizon/Mixins adapters; consuming
+mods own their content and gameplay policy. See the
+[shared API boundary](docs/shared-api-boundary.md) for the dependency contract
+and the current migration limits.
+
 Define items and blocks with a small Rust API, then make them available in the Creative inventory. Block declarations can override properties such as emitted light and sound templates. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
 
 ![The PlutoLib demo Creative tab in Horizon](docs/demo-tab.png)

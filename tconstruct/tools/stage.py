@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Export pinned Horizon sources and apply a resolved Mixins revision."""
-import argparse, json, os, re, shutil, subprocess, tempfile, tomllib
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, tomllib
 from portable_archive import extract_git_tar
 from pathlib import Path
 
@@ -103,4 +103,10 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     combined = Path(temp) / 'bundles'
     shutil.copytree(mods, combined)
     shutil.copytree(pluto, combined / "pluto_native_creative")
+    # Validate the complete installed composition, not only Pluto's own hooks.
+    # The guard uses this checkout's reviewed source and verifies the exact
+    # copied helper bytes embedded in the plan before any source is applied.
+    plan = output / 'complete-plan.json'
+    subprocess.run([str(cli), 'plan', '--workspace', str(original), '--mods', str(combined), '--out', str(plan)], check=True)
+    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)

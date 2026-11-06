@@ -1,0 +1,370 @@
+{
+  "status": "design_candidate_only_not_installed",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "runtime_source_cutoff_unchanged": "b0563ea7c7c7dfb35123951beb45cace00c33e76",
+  "scope": "Client-only owned read-only guide presentation and synchronous reply-correlation candidate. Not server authority, generic input ownership, or a deployed lifecycle service.",
+  "source_files_sha256": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd",
+    "crates/horizon-client/src/game/levels.rs": "839eec483b745eef8cfdf8ac2502160e46517e1dbd62534b69e612d2828b7ba7",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client-render/src/chunk_map.rs": "718fe95c909ca5970b39db2cc30e96ae264cf43a3954b4f52773ebb4e47ec96a"
+  },
+  "probe": {
+    "exit_code": 0,
+    "disk_stopped": false,
+    "min_free_bytes": 10933063680,
+    "floor_bytes": 10871635968,
+    "command": [
+      "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+      "plan",
+      "--workspace",
+      "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+      "--mods",
+      "/tmp/pluto-guide-lifecycle-probe-20261105/mods",
+      "--out",
+      "/tmp/pluto-guide-lifecycle-probe-20261105/plan.json"
+    ],
+    "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "scope": "Read-only plan only; no apply/build/runtime validation.",
+    "injections": [
+      {
+        "id": "map-clear",
+        "target": "horizon_client_render::chunk_map::ChunkMap::clear",
+        "file": "crates/horizon-client-render/src/chunk_map.rs",
+        "node": [
+          10,
+          5
+        ],
+        "fingerprint": "534f5b6563bc2b5aba91b33a1a800288b30efb4405bf9d0f44479d47d0509275",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "chunks",
+            "ty": "&mut ChunkMap",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "open",
+        "target": "horizon_client::game::books::Game<'_>::open_book",
+        "file": "crates/horizon-client/src/game/books.rs",
+        "node": [
+          14,
+          9
+        ],
+        "fingerprint": "022fc49e5c20e505e9aea8d2d0e6b127ae45954f2b4b9a13e66946cfcc08f38f",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "close",
+        "target": "horizon_client::game::books::Game<'_>::close_book",
+        "file": "crates/horizon-client/src/game/books.rs",
+        "node": [
+          14,
+          10
+        ],
+        "fingerprint": "8c2a4a154ec1d87d0e787db00c531452dcdb0d8d0e570b216c057abaa6ac8f16",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "save",
+        "target": "horizon_client::game::books::Game<'_>::save_book",
+        "file": "crates/horizon-client/src/game/books.rs",
+        "node": [
+          14,
+          11
+        ],
+        "fingerprint": "5f0cfe790ca9143fa1ea72cf19d5d6144f4b7450ba41ebf595db6df61f88b19a",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "level-unload",
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_client_level_unload",
+        "file": "crates/horizon-client/src/game/native_hooks.rs",
+        "node": [
+          40,
+          10
+        ],
+        "fingerprint": "641cf523bd2460d8d0aa4ce10166ddfcf7a59f75ba38945b2714828caffa3eeb",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "join",
+        "target": "horizon_client::game::remote::Game<'_>::join_server",
+        "file": "crates/horizon-client/src/game/remote.rs",
+        "node": [
+          42,
+          7
+        ],
+        "fingerprint": "0de5989026752404328afb2c5791e7edcf009455f708d0913e219c3a0670f021",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "target": "horizon_client::game::remote::Game<'_>::leave_server",
+        "file": "crates/horizon-client/src/game/remote.rs",
+        "node": [
+          42,
+          8
+        ],
+        "fingerprint": "286e1f17d8cfa0ae442d7962c45bdac4f75f1c46f7506c7776b2aad135c2a862",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "dimension",
+        "target": "horizon_client::game::remote::Game<'_>::enter_remote_dimension",
+        "file": "crates/horizon-client/src/game/remote.rs",
+        "node": [
+          42,
+          45
+        ],
+        "fingerprint": "eefbae49c5e635078d03abae4d6815b071917f33bf773db4ceba999f7875d4b3",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      },
+      {
+        "id": "restore",
+        "target": "horizon_client::game::remote_chat::Game<'_>::answer_command_prompt",
+        "file": "crates/horizon-client/src/game/remote_chat.rs",
+        "node": [
+          18,
+          10
+        ],
+        "fingerprint": "6a47e993b709fcd3a3c4bdfa9a29baf7ff47c2c20abcc5da09f125fe6292170b",
+        "kind": "HEAD",
+        "cancellable": false,
+        "bindings": [
+          {
+            "name": "game",
+            "ty": "&mut Game<'_>",
+            "value": "self"
+          }
+        ]
+      }
+    ],
+    "states": [
+      {
+        "mod_id": "pluto_guide_lifecycle_probe",
+        "mod_version": "0.1.0",
+        "state_id": "session-identity-probe",
+        "priority": 100,
+        "target": "horizon_client_render::chunk_map::ChunkMap",
+        "file": "crates/horizon-client-render/src/chunk_map.rs",
+        "node": [
+          8
+        ],
+        "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+        "name": "__horizon_mixins_pluto_guide_lifecycle_probe_session_identity_probe",
+        "ty": "Option < (u64 , u64) >",
+        "initial": ":: core :: default :: Default :: default ()",
+        "deserialize": false,
+        "constructors": [
+          {
+            "file": "crates/horizon-client-render/src/chunk_map.rs",
+            "node": [
+              9,
+              0
+            ],
+            "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+            "expression": 2,
+            "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+          }
+        ]
+      }
+    ],
+    "manifest": "[mod]\nid = \"pluto_guide_lifecycle_probe\"\nversion = \"0.1.0\"\npriority = 100\n[compatibility]\nhorizon_revision = \"624c4f6265c02296fbe8a80f029dd0d987fb94c0\"\n\n[[injection]]\nid = \"open\"\ntarget = \"horizon_client::game::books::Game<'_>::open_book\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"close\"\ntarget = \"horizon_client::game::books::Game<'_>::close_book\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"save\"\ntarget = \"horizon_client::game::books::Game<'_>::save_book\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"restore\"\ntarget = \"horizon_client::game::remote_chat::Game<'_>::answer_command_prompt\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"dimension\"\ntarget = \"horizon_client::game::remote::Game<'_>::enter_remote_dimension\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"leave\"\ntarget = \"horizon_client::game::remote::Game<'_>::leave_server\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"join\"\ntarget = \"horizon_client::game::remote::Game<'_>::join_server\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"level-unload\"\ntarget = \"horizon_client::game::native_hooks::Game<'_>::native_client_level_unload\"\nkind = \"HEAD\"\nhelper = \"game-noop.rs\"\nbindings = [{ name = \"game\", ty = \"&mut Game<'_>\", value = \"self\" }]\n\n[[injection]]\nid = \"map-clear\"\ntarget = \"horizon_client_render::chunk_map::ChunkMap::clear\"\nkind = \"HEAD\"\nhelper = \"chunks-noop.rs\"\nbindings = [{ name = \"chunks\", ty = \"&mut ChunkMap\", value = \"self\" }]\n\n[[state]]\nid = \"session-identity-probe\"\ntarget = \"horizon_client_render::chunk_map::ChunkMap\"\nty = \"Option<(u64, u64)>\"\ninitial = \"::core::default::Default::default()\"\n[[state.constructor]]\ntarget = \"horizon_client_render::chunk_map::<ChunkMap as Default>::default\"\nselector = \"Self\"\nrequire = 1\n",
+    "helpers": {
+      "game-noop.rs": "fn lifecycle_noop(game: &mut Game<'_>) { let _ = game; }\n",
+      "chunks-noop.rs": "fn lifecycle_noop(chunks: &mut ChunkMap) { let _ = chunks; }\n"
+    }
+  },
+  "rejected_alternatives": [
+    {
+      "candidate": "State directly on generic Game",
+      "actual_result": "E_BRIDGE_TARGET: generic bridge owner types are unsupported",
+      "evidence": "/tmp/pluto-guide-probe-20261105/game-state-rejection.log"
+    },
+    {
+      "candidate": "native_screen_opening/closing alone",
+      "result": "Insufficient source semantics: observe_screen returns with no trait mods, polls once per frame, compares only id/menu; identical reopen is invisible."
+    },
+    {
+      "candidate": "Remote::native_epoch alone",
+      "result": "Level identity only; same-key Respawn and same-level book reopen keep it. Native allocator also uses wrapping fetch_add, so a separate checked nonce is required for strict nonreuse."
+    },
+    {
+      "candidate": "Screen::Mod owner string alone",
+      "result": "Real mod-owner association but no per-opening generation. Reopening by same owner is a no-op; different screen/pause behavior is not a book replacement."
+    },
+    {
+      "candidate": "Legacy TConstruct request counter or first-span marker",
+      "result": "Counter echoes through current legacy wire but wraps and resets with ChunkMap; marker/title/current bytes cannot prove presentation identity or authority."
+    }
+  ],
+  "mutation_reset_inventory": [
+    {
+      "path": "game/books.rs:262-282",
+      "operation": "open_book / close_book",
+      "effect": "Replace/clear native book, including identical-content reopen.",
+      "candidate": "Invalidate before either entry; only a separately verified library opening operation may issue a new handle afterwards."
+    },
+    {
+      "path": "game/books.rs:153-160; game/remote_chat.rs:421-439",
+      "operation": "RunCommand takes book, closes, later prompt may restore directly",
+      "effect": "Restored bytes are not the original active capability.",
+      "candidate": "close_book revokes; also revoke at answer_command_prompt before direct restoration. Restricted library documents exclude RunCommand."
+    },
+    {
+      "path": "game/books.rs:286-290",
+      "operation": "save_book takes book before matching Edit",
+      "effect": "Even a wrong-kind invocation can consume the current book.",
+      "candidate": "Revoke at save_book entry; editing itself is outside the owned read-only guide contract."
+    },
+    {
+      "path": "game/books.rs:1022-1062",
+      "operation": "remote lectern page/book updates and close",
+      "effect": "Mutates pages or clears a lectern view directly.",
+      "candidate": "Lectern views are never admitted. A native opening of one revokes the earlier guide."
+    },
+    {
+      "path": "game/remote.rs:4680-4695",
+      "operation": "ContainerClose while dialog exists",
+      "effect": "Directly clears book.",
+      "candidate": "Every operation must require an actual supported current book. Subsequent native opening or command restoration also revokes. No current-value match may issue ownership."
+    },
+    {
+      "path": "game/books.rs:135-143,733-774",
+      "operation": "Native page links / turn_page",
+      "effect": "Changes current page of the retained view.",
+      "candidate": "No new presentation identity. Reply presentation/page policy must be explicit; current capability does not promise input or navigation ownership."
+    },
+    {
+      "path": "game/native_machines.rs:163,226; game/lan_actions.rs:549,951",
+      "operation": "Fake-player / guest take and restore",
+      "effect": "Temporarily substitutes a different actor/window book.",
+      "candidate": "Entire service limited to construction-time Client role with no lan_acting; no server/guest window coverage."
+    },
+    {
+      "path": "game/remote.rs:2210-2344",
+      "operation": "enter_remote_dimension, including same-key Respawn",
+      "effect": "Same-key branch retains ChunkMap and native epoch, but replaces player/loading context.",
+      "candidate": "Revoke before enter_remote_dimension on every call, not just world replacement."
+    },
+    {
+      "path": "game/remote.rs:1976-2005; game/native_hooks.rs:2273",
+      "operation": "Reconfiguring -> native_client_level_unload",
+      "effect": "Drops current level logically before next Login while old storage/epoch can remain.",
+      "candidate": "Revoke at mutable level-unload boundary; also reject absent player, reconfiguring and any active level load."
+    },
+    {
+      "path": "game/remote.rs:1192-1262",
+      "operation": "leave_server",
+      "effect": "May first enter integrated closing-save; later discards Remote and World.",
+      "candidate": "Conservative revocation at leave entry, before early return/errors; discard record with its world. Early revocation is intentional, not an exact native screen-close event."
+    },
+    {
+      "path": "game/remote.rs:897-985",
+      "operation": "join_server",
+      "effect": "Creates new Remote and World.",
+      "candidate": "Revoke at entry; new owned map starts empty; process-wide nonreused nonce prevents later equality."
+    },
+    {
+      "path": "game/remote.rs:1857-1876,2070-2104",
+      "operation": "poll_remote backlog / disconnect / transfer",
+      "effect": "Processes current Remote queue in order. Disconnect/transfer returns, rather than feeding old remainder to new Remote.",
+      "candidate": "Do not move callbacks to network thread or retain packet borrows; validate current session synchronously after the official observer."
+    },
+    {
+      "path": "game.rs:12717,12974-13007; game/levels.rs:269-271,340",
+      "operation": "Whole World replacement / parked-world swaps",
+      "effect": "Owned record drops/moves with ChunkMap. Client enter_level returns before server parked-world swaps.",
+      "candidate": "Client-only scope plus checked global generation; no parked server or restored server record claim."
+    },
+    {
+      "path": "crates/horizon-client-render/src/chunk_map.rs:42-68,139-150",
+      "operation": "ChunkMap Default / clear / ownership",
+      "effect": "Owned non-Clone map; clear can be a no-op on an empty map.",
+      "candidate": "Explicit defaulted owned state is planner-supported. Conservative clear-entry invalidation must also run on empty clear. Membership revision is not a presentation identity."
+    },
+    {
+      "path": "game.rs:18414,18640; game/ime.rs:100-121; game/pad_menu.rs:1953-1976",
+      "operation": "Mouse/key/IME/OSK paths and overlays",
+      "effect": "Stored book, drawn book and admitted input are distinct.",
+      "candidate": "No automatic input interception in this candidate. Each presentation operation checks current context; hidden replies are rejected, not queued for later replay."
+    }
+  ],
+  "unperformed": [
+    "No lifecycle state/hook installed.",
+    "No apply or host compile of the lifecycle probe.",
+    "No actual book opening/closing, respawn, disconnect, overlay or delayed-reply execution.",
+    "No complete package composition guard for these proposed hooks.",
+    "No request/reply protocol or owned guide API implementation."
+  ],
+  "conclusion": "Official source and planner support a narrow mod-only candidate. Safe end-to-end session ownership is not yet established. Existing current-book capability remains synchronous only; do not ship a carrier on the strength of this plan."
+}

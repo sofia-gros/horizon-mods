@@ -1,3 +1,5 @@
+include!("__MIXINS__/../../tests/rust/pluto_storage_fixture.rs");
+include!("__MIXINS__/../../tests/rust/pluto_potion_fixture.rs");
 // Production Cannon interaction, native inventory_add and bounded host callbacks.
 // Production Cannon and Casting Tank routes, with bounded host callbacks.
 #[path="__MIXINS__/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
@@ -8,7 +10,6 @@
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
-#[path="__INVENTORY__"] mod pluto_inventory;
 use std::collections::{HashMap,HashSet};
 use horizon_world::nbt::Tag;use horizon_items::items::ItemStack;
 type Pos=(i32,i32,i32);type Tags=HashMap<String,HashSet<String>>;
@@ -44,6 +45,7 @@ impl Game<'_>{
    9|10=>{let pos=if self.move_fault==9{hopper}else{target};let BlockEntity::Chest(slots)=self.world.block_entities.get_mut(&pos).unwrap();let item=slots[0].as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));},
    11=>{self.world.block_entities.remove(&hopper);},
    12=>{self.world.block_entities.remove(&target);},
+   13|14=>{let BlockEntity::Chest(slots)=self.world.block_entities.get_mut(&hopper).unwrap();let item=slots[4].as_mut().unwrap();let mut decoded=item.clone();if self.move_fault==14{decoded.damage+=1;}item.data_mut().wire=horizon_items::item_data::Wire::new(decoded,std::sync::Arc::<[u8]>::from([7,8,9]));},
    _=>{},
   }
  }
@@ -385,4 +387,77 @@ fn casting_fixture(input:Option<ItemStack>,output:Option<ItemStack>,opaque:bool)
   runtime::interact_casting_tank(&mut game,(0,0,0),clicked_tank);assert_eq!(game.world.raw,raw);assert_eq!(game.held,held);
   let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));assert!(game.gifts.is_empty());
  }}
+}
+
+
+#[test]
+fn machine_save_adapters_preserve_native_codec_eligibility() {
+    use horizon_items::item_nbt::{item_from_nbt, item_to_nbt};
+    use tconstruct_source_fluid_cannon::Cannon;
+    use tconstruct_source_casting_tank::CastingTank;
+    let mut candidates = Vec::new();
+    for id in ["minecraft:stone", "stone", "minecraft:air", "invalid:Bad", "example:item"] {
+        for count in [0, 1, 2, 99, 100, u32::MAX] {
+            candidates.push(ItemStack::new(id, count));
+        }
+    }
+    let mut components = ItemStack::new("minecraft:iron_pickaxe", 3);
+    components.damage = 7;
+    components.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("kept",Tag::Int(23))])));
+    candidates.push(components.clone());
+    for stale in [false, true] {
+        let mut stack = components.clone();
+        let mut decoded = stack.clone();
+        if stale { decoded.damage += 1; }
+        stack.data_mut().wire = horizon_items::item_data::Wire::new(decoded, std::sync::Arc::<[u8]>::from([1,2,3]));
+        assert_eq!(stack.wire_patch().is_none(), stale);
+        candidates.push(stack);
+    }
+    for stack in candidates {
+        // Previous CastingTank predicate had no explicit zero-count guard:
+        // native decoding normalizes zero to one, so the equality rejects it.
+        let old_eligible = stack.wire_patch().is_none()
+            && !stack.data().is_some_and(|data| data.wire.patch().is_some())
+            && item_from_nbt(&item_to_nbt(&stack)).is_some_and(|decoded|
+                decoded.count == stack.count && decoded.damage == stack.damage
+                && decoded.same_item_same_components(&stack));
+        let before = stack.clone();
+        assert_eq!(pluto_stack_storage::encode_item_lossless(&stack).is_some(), old_eligible);
+        assert_eq!(tconstruct_source_melter_state::casting_item_save_safe(&stack), old_eligible);
+        assert_eq!(tconstruct_source_smeltery_fuel::heater_stack_save_safe(&stack), old_eligible);
+        let mut cannon = Cannon::new(); cannon.item = Some(stack.clone());
+        assert_eq!(cannon.lossless(), old_eligible);
+        for slot in 0..2 {
+            let mut tank = CastingTank::new(); tank.slots[slot] = Some(stack.clone());
+            assert_eq!(tank.lossless(), old_eligible);
+        }
+        assert!(pluto_stack_storage::same_item_snapshot(&before, &stack));
+    }
+    assert!(Cannon::new().lossless());
+    assert!(CastingTank::new().lossless());
+}
+
+#[test]
+fn cannon_hopper_preserves_unselected_slot_wire_changes() {
+    for push in [false, true] {
+        for fault in [13, 14] {
+            let (mut game, view) = hopper_fixture();
+            let mut spare = ItemStack::new("minecraft:iron_pickaxe", 1);
+            spare.data_mut().set_other("minecraft:custom_data", Some(Tag::Int(19)));
+            let BlockEntity::Chest(slots) = game.world.block_entities.get_mut(&(32,0,0)).unwrap();
+            slots[4] = Some(spare.clone());
+            game.move_fault = fault;
+            let raw = game.world.raw.clone();
+            assert!(!hopper_runtime::cannon_transfer(&mut game, &view, (0,0,0), push));
+            assert_eq!(game.world.raw, raw);
+            assert_eq!((game.moves,game.world.writes,game.updates,game.signals),(1,0,0,0));
+            let BlockEntity::Chest(slots) = &game.world.block_entities[&(32,0,0)];
+            assert_eq!(slots[0].as_ref().unwrap().count, 8);
+            let changed = slots[4].as_ref().unwrap();
+            assert!(spare.same_item_same_components(changed));
+            assert!(!pluto_stack_storage::same_item_snapshot(&spare, changed));
+            assert_eq!(changed.data().unwrap().wire.patch(), Some(&[7,8,9][..]));
+            assert_eq!(changed.wire_patch().is_none(), fault == 14);
+        }
+    }
 }

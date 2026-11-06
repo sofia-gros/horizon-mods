@@ -1,0 +1,38 @@
+{
+  "source_commit": "703302c99486ac706de241ba1f00e0d2385efc3d",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_checks": {
+    "passed": 22,
+    "skipped": 1,
+    "skip_reason": "Existing standalone production-layout Rust test reported rustc not on PATH before environment loading; not counted as passed. Native render equivalence ran afterward with the approved toolchain."
+  },
+  "official_dependency_identity": "passed_before_and_after_run",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "oracle.rs": "60de4f438ee2394f77c144adcef393c4482c345d2f69e1c39c08f1e25b7c5476",
+    "crop-oracle.rs": "5290ff34fa8d67b47ef379da2388dd5b0db645758661e98bf25df08364c1b981",
+    "panel-oracle.rs": "9a0627b673232f1d689e62ef3f20fabe7f1d6a25ef672e2ea4054843f71c079e",
+    "tests.rs": "0361ff987780907afc916a2629bee7e97925a2d9876bc4ff74304b1f6fe0f529",
+    "Cargo.toml": "89dfebc2ec74a98ed143033dbc68614232f21e4a301d758c8f3b9416e9b4b6c4",
+    "lib.rs": "9268136bfc0314964ddfb65f12e9c384a952947a3c1ed09f0195758e0ac608e3"
+  },
+  "native_equivalence": {
+    "status": "passed",
+    "tests_passed": 12,
+    "tests_failed": 0,
+    "added_tests": [
+      "machine_panel_mode_hover_and_missing_sprites_match",
+      "machine_panel_paging_regions_and_padding_match"
+    ],
+    "added_panel_combinations": 272,
+    "elapsed_seconds": 1.5047707557678223,
+    "end_free_bytes": 11016855552,
+    "log_sha256": "d1586084bbfbf9b4b29b1515aa0be5e1ce82d1ba61c0f502bcc8206758fc3d8b"
+  },
+  "scope": "Only remaining source-smeltery-draw mode/icon/hover/frame/scroll/slot Rect arithmetic. Shared runtime/API and source layout unchanged.",
+  "consumer_complete_bundle_check": "not_run_for_this_followup",
+  "gameplay_visual": "not_run",
+  "shared_runtime_reference": "Unchanged renderer source was composition-checked in complete Pluto package0dd927ef; this consumer-only follow-up is outside that cutoff."
+}

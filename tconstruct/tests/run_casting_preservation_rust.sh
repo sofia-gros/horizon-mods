@@ -2,9 +2,9 @@
 # Compile the bounded source fixture against a compatible local Horizon host.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon 0c7b5b61 checkout or staged workspace}"
+: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon 624c4f62 checkout or staged workspace}"
 HORIZON_HOST=$(cd "$HORIZON_HOST" && pwd)
-EXPECTED=0c7b5b61a5e746d621afffba919b12aeccf9c0fa
+EXPECTED=624c4f6265c02296fbe8a80f029dd0d987fb94c0
 ACTUAL=$(git -C "$HORIZON_HOST" rev-parse HEAD 2>/dev/null) || {
     echo 'HORIZON_HOST must be a verifiable Git checkout of the pinned host.' >&2; exit 1;
 }
@@ -20,6 +20,9 @@ import json, os
 from pathlib import Path
 host = Path(os.environ['HORIZON_HOST'])
 root = Path(os.environ['ROOT'])
+import sys
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import add_inventory_api
 work = Path(os.environ['WORK'])
 for crate in ('horizon-world', 'horizon-items'):
     if not (host / 'crates' / crate / 'Cargo.toml').is_file():
@@ -29,6 +32,7 @@ def quoted(path):
 # Compile the actual full interaction functions with bounded host fixtures.
 base=(root / 'tconstruct/tests/rust/smeltery_nbt_store.rs').read_text()
 base=base.replace('../../mixins/tconstruct/', str(root / 'tconstruct/mixins/tconstruct') + '/')
+base=base.replace('include!("pluto_storage_fixture.rs");', f'include!({quoted(root / "tconstruct/tests/rust/pluto_storage_fixture.rs")});')
 base=base.replace('pub chunks: HashMap<(i32,i32), Arc<Chunk>>, pub modified:', 'pub blocks: HashMap<(i32,i32,i32), u8>, pub block_entities: HashMap<(i32,i32,i32), super::BlockEntity>, pub chunks: super::Chunks, pub modified:')
 route=(root / 'tconstruct/mixins/tconstruct/source-machine-runtime.rs').read_text()
 fixture=(root / 'tconstruct/tests/rust/casting_interaction_fixture.rs').read_text()
@@ -47,6 +51,7 @@ serde_json = "1"
 path = {quoted(work / 'lib.rs')}
 '''
 (work / 'Cargo.toml').write_text(manifest)
+add_inventory_api(work / 'Cargo.toml', root)
 PY
 cd "$ROOT"
 # Seed resolution with the pinned host's lockfile, adding only this local
@@ -74,6 +79,11 @@ test = tomllib.loads((Path(os.environ['WORK']) / 'Cargo.lock').read_text())
 def identity(p):
     return tuple(p.get(k) for k in ('name', 'version', 'source', 'checksum'))
 allowed = {identity(p) for p in host['package']}
+import sys
+root = Path(os.environ['ROOT'])
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import inventory_api_identity
+allowed.add(inventory_api_identity(root))
 unknown = [identity(p) for p in test['package'] if p['name'] != 'casting-preservation-fixture' and identity(p) not in allowed]
 if unknown:
     raise SystemExit(f'fixture dependencies differ from the pinned host lock: {unknown}')
@@ -81,6 +91,8 @@ PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
 for case in \
+    'test write_many_preserves_repeated_update_order_across_partitions ... ok' \
+    'test write_many_missing_partition_and_empty_changes_never_publish ... ok' \
     'test actual_casting_failed_fluid_probe_rechecks_before_all_item_fallbacks ... ok' \
     'test actual_casting_unchanged_probe_preserves_all_item_fallbacks ... ok' \
     'test actual_casting_held_transfers_preserve_extensions_in_all_four_blocks ... ok' \

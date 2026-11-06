@@ -9,8 +9,10 @@ class PotionGaugeNames(unittest.TestCase):
         gauge = (ROOT / 'source-gauge.rs').read_text()
         self.assertIn('if fluid == "tconstruct:potion"', gauge)
         self.assertIn('potion_fluid_name(tank.tag.as_ref())', gauge)
-        self.assertIn('pluto_fluid::first(&game.world, at, facing).is_some()', gauge)
-        self.assertIn('(!native).then(||', gauge)
+        self.assertIn('pluto_fluid::first_snapshot(world, pos, face)', gauge)
+        self.assertIn('native.metadata_complete', gauge)
+        self.assertNotIn('pluto_fluid::first(&game.world, at, facing)', gauge)
+        self.assertIn('metadata_complete.then(||', gauge)
         self.assertIn('unwrap_or_else(|| "fluid.tconstruct.potion".into())', gauge)
         self.assertIn('Text::translate(&key, &[])', gauge)
 

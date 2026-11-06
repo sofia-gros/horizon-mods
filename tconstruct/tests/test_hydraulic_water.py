@@ -21,7 +21,7 @@ class HydraulicWater(unittest.TestCase):
         self.assertEqual(recipe['tools']['tag'], 'tconstruct:modifiable/harvest')
     def test_warning_and_actor_water_sample_are_wired(self):
         context = (ROOT / 'mixins/tconstruct/source-mining-context-shared.rs').read_text()
-        self.assertIn('player.fluids.was_eye_in_water', context)
+        self.assertIn('facts.previous_eye_in_water.then_some(aqua_affinity)', context)
         self.assertIn('conditional_with_water(', context)
         tooltip = (ROOT / 'mixins/tconstruct/part-name-injection.rs').read_text()
         station = (ROOT / 'mixins/tconstruct/station-info-ui.rs').read_text()
