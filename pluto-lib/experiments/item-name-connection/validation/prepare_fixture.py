@@ -22,6 +22,7 @@ guard = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(guard)
 MODIFIED = {'crates/horizon-client/src/client_lib.rs', guard.GUEST, guard.SYNC}
 MARKER = '.horizon-mixins-stage.json'
+REVISION_MARKER = '.horizon-revision'
 
 def sha(data): return hashlib.sha256(data).hexdigest()
 
@@ -59,6 +60,15 @@ def final_module(text, name):
     # No later module is permitted; the actual file tail is kept byte-for-byte.
     return text[text.index(start):]
 
+def verify_official_input(host, stage, relative, digest):
+    if relative == REVISION_MARKER:
+        # The export adds this exact marker; no other missing input is excused.
+        expected = (PIN + '\n').encode()
+        if digest != sha(expected) or (stage / relative).read_bytes() != expected:
+            raise ValueError('Official export revision marker differs')
+    elif sha((host / relative).read_bytes()) != digest:
+        raise ValueError('Official input changed: ' + relative)
+
 def source_evidence(host, stage, plan_path):
     clean_official(host)
     plan = json.loads(plan_path.read_text())
@@ -74,8 +84,7 @@ def source_evidence(host, stage, plan_path):
         raise ValueError('Applied stage file-set differs from official inputs')
     changed = set()
     for relative, digest in plan['inputs'].items():
-        if sha((host / relative).read_bytes()) != digest:
-            raise ValueError('Official input changed: ' + relative)
+        verify_official_input(host, stage, relative, digest)
         if actual[relative] != digest: changed.add(relative)
     if changed != MODIFIED:
         raise ValueError('Applied source changed outside the exact three files')

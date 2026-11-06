@@ -7,7 +7,7 @@ The candidate is still excluded from the normal PlutoLib manifest/package.
 
 This follow-up provides the guard previously listed as missing in the candidate
 README. It has only synthetic/adversarial Python proof until the real candidate
-plan is produced. Twelve guard tests and four preparer checks are separate from
+plan is produced. Twelve guard tests and five preparer checks are separate from
 the **32 pending Rust tests**: 18 native codec cases, eight actual entry-gate
 model cases and six owned-Tag adapter cases. All exact names are in
 `fixture-inputs.json`, split into nonoverlapping groups. Run the complete fixture
@@ -52,7 +52,11 @@ the official locked dependency cache first, never an inferred substitute graph.
 
 The preparer verifies that the stage marker equals the checked plan, the
 complete stage file-set matches the native plan inputs plus the marker, and
-only `client_lib.rs`, `item_sync.rs` and `lan/guest.rs` changed. A marker alone
+only `client_lib.rs`, `item_sync.rs` and `lan/guest.rs` changed. The single
+export-only `.horizon-revision` input must equal the exact official revision
+plus one newline in both the plan hash and stage bytes. It is not read from the
+Git checkout, where it does not exist. No other missing input is excused.
+A marker alone
 does not prove who produced a stage; the CI must retain the actual apply log and
 continuous input/output seals. No copied semantic mock of the native item or
 protocol codec is used.

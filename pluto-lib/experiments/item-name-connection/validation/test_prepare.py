@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import tempfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -11,6 +12,26 @@ prepare = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(prepare)
 
 class PreparationTests(unittest.TestCase):
+    def test_only_exact_export_revision_marker_may_be_absent_from_git(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); host = root / 'git'; stage = root / 'stage'
+            host.mkdir(); stage.mkdir()
+            marker = stage / prepare.REVISION_MARKER
+            expected = (prepare.PIN + '\n').encode(); marker.write_bytes(expected)
+            prepare.verify_official_input(host, stage, marker.name, prepare.sha(expected))
+            for wrong in [prepare.PIN.encode(), b'other\n']:
+                marker.write_bytes(wrong)
+                with self.assertRaises(ValueError):
+                    prepare.verify_official_input(host, stage, marker.name, prepare.sha(expected))
+            marker.write_bytes(expected)
+            with self.assertRaises(ValueError):
+                prepare.verify_official_input(host, stage, marker.name, '0' * 64)
+            marker.unlink()
+            with self.assertRaises(FileNotFoundError):
+                prepare.verify_official_input(host, stage, marker.name, prepare.sha(expected))
+            with self.assertRaises(FileNotFoundError):
+                prepare.verify_official_input(host, stage, 'ordinary-missing.rs', prepare.sha(expected))
+
     def test_source_boundaries_must_be_unique_and_ordered(self):
         self.assertEqual(prepare.section('a START body END z', 'START', 'END'), 'START body ')
         for text in ('START START END', 'END START', 'START only'):
