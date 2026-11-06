@@ -11,6 +11,14 @@ GUARDS = (
     'check_terrain_binding_plan.py', 'check_cloud_insertion_plan.py',
     'check_station_ingredient_plan.py', 'check_terrain_cell_plan.py',
 )
+REJECTION_PREFIX = dict(zip(GUARDS, (
+    'protection ordering rejected: ', 'advancement composition rejected: ',
+    'damage equipment adapter rejected: ', 'client payload observer rejected: ',
+    'Recipe placement composition rejected: ', 'current-book adapter rejected: ',
+    'Wire snapshot guard rejected: ', 'Crafting-match composition rejected: ',
+    'Terrain binding preparation rejected: ', 'Cloud insertion composition rejected: ',
+    'Station-ingredient composition rejected: ', 'Terrain cell adapter rejected: ',
+), strict=True))
 MAX_STREAM = 16 * 1024
 
 def plain(path, directory=False):
@@ -42,6 +50,8 @@ def validate_record(value, script):
         raw = v['text'].encode('utf-8')
         if type(v['bytes']) is not int or v['bytes'] != len(raw) or len(raw)>MAX_STREAM or hashlib.sha256(raw).hexdigest()!=v['sha256']:
             raise ValueError('Guard stream identity mismatch')
+    if value['exit_code']==1 and (not value['stderr']['text'].startswith(REJECTION_PREFIX[script]) or 'Traceback (most recent call last)' in value['stderr']['text']):
+        raise ValueError('Guard exit1 is not a recognized refusal')
     return value
 
 def execute(root, plan, official, script, output):

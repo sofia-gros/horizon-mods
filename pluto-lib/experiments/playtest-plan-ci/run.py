@@ -19,7 +19,7 @@ OFFICIAL={k:dict(v) for k,v in baseline.OFFICIAL.items()}
 OFFICIAL['horizon']['revision']=package.HORIZON
 COLLECTOR='8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937'
 BRANCH='checkpoint/tinkers-playtest-complete-plan-ci-20261106'
-RUNNER_TESTS=30
+RUNNER_TESTS=34
 PREFIX='pluto-lib/experiments/playtest-plan-ci/'
 COLLECTOR_PATH=PREFIX+'terrain-witness/'
 OWN_INPUTS={PREFIX+n for n in ('run.py','prepare.py','guard_once.py','observe_plan.py','test_runner.py','README.md')} | {COLLECTOR_PATH+n for n in ('collect.py','contract.json','test_collect.py','README.md','source-delta-41f.json')} | {'.github/workflows/playtest-complete-plan-wip.yml'}
@@ -32,7 +32,8 @@ def validate(config):
     frozen=config['integration']
     if config.get('ready_for_reviewed_execution') is not True or any(not isinstance(frozen.get(k),str) or not re.fullmatch('[0-9a-f]{40}',frozen[k]) for k in ('head','tree')):
         raise ValueError('Integration cutoff not frozen and reviewed; source preparation only')
-    if not frozen.get('source_sha256'):raise ValueError('Missing exact packaging/intake inputs')
+    required={'tconstruct/compatibility.json','tconstruct/mixins/tconstruct/horizon-mixin.toml','tconstruct/tools/package_hnmod.py','pluto-lib/horizon-native.json','pluto-lib/tools/package_native.py'} | {'pluto-lib/tools/'+n for n in guard_once.GUARDS} | {'pluto-lib/mixins/'+n+'/horizon-mixin.toml' for n in package.COMPONENTS}
+    if not required.issubset(frozen.get('source_sha256',{})):raise ValueError('Missing exact integration package/guard input pins')
     if set(config['source_sha256'])!=OWN_INPUTS:raise ValueError('Controller source pin set changed')
     for name,digest in config['source_sha256'].items():
         path=ROOT/name
@@ -68,17 +69,17 @@ def attempt_terrain(runner,plan,official,integration):
     elif value.get('status')!='observed_only' or value.get('compatibility') is not None or value.get('native_executed') is not False or value.get('plan',{}).get('sha256')!=digest or value.get('contract_sha256')!=sha((ROOT/COLLECTOR_PATH/'contract.json').read_bytes()):raise ValueError('Wrong selected terrain witness')
     return {'passed':code==0,'exit_code':code,'result':value,'scope':'Observation only. Normal refusal retained before all12 independent guards.'}
 
-def attempt_guards(runner,plan,official):
+def attempt_guards(runner,plan,official,integration):
     result={'passed':False,'completed':False,'groups_configured':12,'apply_allowed':False,
         'records':[{'script':script,'reached':False,'passed':False,'exit_code':None} for script in guard_once.GUARDS]}
     runner.report['gates']['complete_guards']=result
     for i,script in enumerate(guard_once.GUARDS):
-        row=result['records'][i];row['reached']=True
+        row=result['records'][i];row.update(attempted=True,reached=None)
         try:
-            out=runner.run('guard-'+str(i+1),[sys.executable,str(HERE/'guard_once.py'),str(ROOT),str(plan),str(official),script,str(runner.work/('guard-streams-'+str(i+1)))],timeout=180)
+            out=runner.run('guard-'+str(i+1),[sys.executable,str(HERE/'guard_once.py'),str(integration),str(plan),str(official),script,str(runner.work/('guard-streams-'+str(i+1)))],timeout=180)
             if len(out.encode())>96*1024:raise ValueError('Oversized guard envelope')
             record=guard_once.validate_record(json.loads(out),script)
-            row.update(record);row['passed']=record['exit_code']==0
+            row.update(record);row['reached']=True;row['passed']=record['exit_code']==0
             if not row['passed']:runner.report['compatibility']=False
         except BaseException as exc:
             row['error']=type(exc).__name__+': '+str(exc)
@@ -192,7 +193,7 @@ def execute(report):
             report['gates']['full_plan_contract']=package.verify_plan(plan,mods,config['required_plan_inputs'])
             terrain=attempt_terrain(runner,plan,official,integration)
             report['gates']['terrain_witness']=terrain
-            guards=attempt_guards(runner,plan,official)
+            guards=attempt_guards(runner,plan,official,integration)
             report['gates']['complete_guards']=guards
             if not guards['passed']:report['compatibility']=False
         report['diagnostic_complete']=True

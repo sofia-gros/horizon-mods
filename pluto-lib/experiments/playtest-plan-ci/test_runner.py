@@ -1,5 +1,5 @@
 """Pure negative and sequencing regressions; no Git, packaging, CLI or native jobs."""
-import ast,copy,hashlib,importlib.util,io,json,os,stat,tempfile,unittest,zipfile
+import ast,contextlib,copy,hashlib,importlib.util,io,json,os,stat,tempfile,unittest,warnings,zipfile
 from pathlib import Path
 from unittest.mock import patch
 HERE=Path(__file__).resolve().parent
@@ -7,7 +7,7 @@ s=importlib.util.spec_from_file_location('runner',HERE/'run.py');r=importlib.uti
 p=r.package;g=r.guard_once
 
 def stream(text):return {'text':text,'bytes':len(text.encode()),'sha256':p.sha(text.encode())}
-def record(name,code=0):return {'script':name,'exit_code':code,'stdout':stream(''), 'stderr':stream('reject\n' if code else '')}
+def record(name,code=0):return {'script':name,'exit_code':code,'stdout':stream(''), 'stderr':stream(g.REJECTION_PREFIX.get(name,'')+'synthetic refusal\n' if code else '')}
 class Fake:
  def __init__(self,codes=None,fail=None):self.report={'gates':{},'phases':[],'compatibility':None};self.work=Path('/synthetic');self.calls=[];self.codes=codes or {};self.fail=fail
  def run(self,name,args,**kwargs):
@@ -28,17 +28,17 @@ class Tests(unittest.TestCase):
   src=(HERE/'run.py').read_text();self.assertNotIn('prepare.revise(',src);self.assertNotIn('write_candidate(',src)
  def test_shared_guard_unmodified_reference(self):self.assertIs(r.Runner,r.baseline.Runner)
  def test_all12_after_first_refusal(self):
-  fake=Fake({0:1,7:1});out=r.attempt_guards(fake,Path('/plan'),Path('/official'))
+  fake=Fake({0:1,7:1});out=r.attempt_guards(fake,Path('/plan'),Path('/official'),Path('/fixed-integration'))
   self.assertEqual(len(fake.calls),12);self.assertTrue(out['completed']);self.assertFalse(out['passed']);self.assertFalse(out['apply_allowed']);self.assertFalse(fake.report['compatibility'])
  def test_all12_success_never_compatibility_true(self):
-  f=Fake();out=r.attempt_guards(f,Path('/plan'),Path('/official'));self.assertTrue(out['passed']);self.assertIsNone(f.report['compatibility'])
+  f=Fake();out=r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'));self.assertTrue(out['passed']);self.assertIsNone(f.report['compatibility'])
  def test_guard_timeout_retains_partial(self):
   f=Fake(fail=2)
-  with self.assertRaises(TimeoutError):r.attempt_guards(f,Path('/plan'),Path('/official'))
-  rows=f.report['gates']['complete_guards']['records'];self.assertEqual(len(f.calls),3);self.assertTrue(rows[2]['reached']);self.assertFalse(rows[3]['reached']);self.assertIn('reason',rows[3]);self.assertFalse(f.report['gates']['complete_guards']['completed'])
+  with self.assertRaises(TimeoutError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  rows=f.report['gates']['complete_guards']['records'];self.assertEqual(len(f.calls),3);self.assertIsNone(rows[2]['reached']);self.assertTrue(rows[2]['attempted']);self.assertFalse(rows[3]['reached']);self.assertIn('reason',rows[3]);self.assertFalse(f.report['gates']['complete_guards']['completed'])
  def test_guard_exit98_not_refusal(self):
   f=Fake({0:98})
-  with self.assertRaises(ValueError):r.attempt_guards(f,Path('/plan'),Path('/official'))
+  with self.assertRaises(ValueError):r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
   self.assertEqual(len(f.calls),1)
  def test_guard_bool_not_exit(self):
   v=record(g.GUARDS[0]);v['exit_code']=False
@@ -86,9 +86,12 @@ class Tests(unittest.TestCase):
  def test_archive_duplicate_rejected(self):
   with tempfile.TemporaryDirectory() as d:
    f=Path(d)/'a.zip'
-   with zipfile.ZipFile(f,'w') as z:
-    for _ in range(2):
-     n=zipfile.ZipInfo('a');n.external_attr=0o100644<<16;z.writestr(n,b'X')
+   with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always',UserWarning)
+    with zipfile.ZipFile(f,'w') as z:
+     for _ in range(2):
+      n=zipfile.ZipInfo('a');n.external_attr=0o100644<<16;z.writestr(n,b'X')
+   self.assertEqual([(w.category,str(w.message)) for w in caught],[(UserWarning,"Duplicate name: 'a'")])
    with self.assertRaises(ValueError):p.members(f)
  def test_archive_traversal_rejected(self):
   stream=io.BytesIO()
@@ -108,4 +111,18 @@ class Tests(unittest.TestCase):
   self.assertIn("INTERVAL=5.0",after);self.assertIn("MAX_SAMPLES=128",after);self.assertIn("MAX_BYTES=64*1024",after);self.assertNotIn('/proc/self/environ',after)
  def test_required_gates_distinguish_refusal(self):
   self.assertNotIn('complete_guards',r.required_gates({'plan_accepted':False}));self.assertIn('complete_guards',r.required_gates({'plan_accepted':True}))
+ def test_guard_integration_root_not_controller(self):
+  f=Fake();r.attempt_guards(f,Path('/plan'),Path('/official'),Path('/fixed-integration'))
+  for _,argv,_ in f.calls:self.assertEqual(argv[2],'/fixed-integration');self.assertNotEqual(argv[2],str(r.ROOT))
+ def test_unknown_exit1_is_transport_failure(self):
+  v=record(g.GUARDS[0],1);v['stderr']=stream('Traceback (most recent call last):\n')
+  with self.assertRaisesRegex(ValueError,'recognized refusal'):g.validate_record(v,g.GUARDS[0])
+ def test_guard_prefix_is_script_specific(self):
+  v=record(g.GUARDS[0],1);v['stderr']=stream(g.REJECTION_PREFIX[g.GUARDS[1]]+'failure\n')
+  with self.assertRaises(ValueError):g.validate_record(v,g.GUARDS[0])
+ def test_real_verbose_warning_case_passes_shared_validator(self):
+  output=io.StringIO()
+  with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output):
+   outcome=unittest.TextTestRunner(stream=output,verbosity=2).run(unittest.TestSuite([Tests('test_archive_duplicate_rejected')]))
+  self.assertTrue(outcome.wasSuccessful());r.common.validate_python_checks(output.getvalue(),1)
 if __name__=='__main__':unittest.main()
