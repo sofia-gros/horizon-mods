@@ -1,14 +1,21 @@
 {
-  "status": "source_checkpoint_rust_unverified",
+  "status": "focused_real_api_and_differential_passed",
   "baseline": "91fa95fd",
   "source_boundary_tests": {
     "passed": 5,
     "failed": 0
   },
   "rust_differential_tests": {
-    "status": "not_run",
-    "prepared_tests": 4,
-    "prepared_result_and_visit_comparisons": 6558
+    "status": "passed",
+    "tests": 4,
+    "failed": 0,
+    "ignored": 0,
+    "result_and_visit_comparisons": 6558,
+    "actual_inventory_api_path_dependency": true,
+    "source_and_lock_unchanged_before_after": true,
+    "elapsed_seconds": 1.401883603000897,
+    "minimum_free_bytes": 10909327360,
+    "guard_stopped": false
   },
   "complete_inventory_api_tests": "not_run_for_this_change",
   "native_host_or_gameplay": "not_run",
@@ -21,8 +28,24 @@
   "strict_station_semantics_unchanged": true,
   "consumer_schema_and_leaf_policy_unchanged": true,
   "limitations": [
-    "Prepared Rust fixtures are not passed tests.",
     "The frozen oracle models already-resolved leaf values; it does not execute native parsers or gameplay.",
-    "The broader condition/casting harnesses have real dependency wiring but have not been run for this change."
-  ]
+    "The broader condition/casting harnesses have real dependency wiring but have not been run for this change.",
+    "The full inventory API unit suite and final combined package/native host gate are not established by this focused fixture.",
+    "The fixture non-test library emits dead-code warnings for its test-only oracle helpers; tests pass without ignoring any case."
+  ],
+  "source_commit": "3c5f56e2dc27145491fc31a738205b691baf1113",
+  "proof": {
+    "cutoff_sha256": "a7291432f88065a4f9d5020860696af8abdec9b736aba2bab1ef5eb32d6f3efc",
+    "result_sha256": "03297fba56b3d6ff3e34e4f66545671ecc1be6daf915f2f14b5bcb009e6cbc15",
+    "log_sha256": "d199abb004090face231700f740f9679f26cb0d2a0e956962530c64022aaeb53",
+    "root": ".work/predicate-fold-proof-20261106"
+  },
+  "later_source_guard_refinement": {
+    "purpose": "Allow independent unrelated changes in shared source files while requiring exact owned decision scopes and legacy fold bodies",
+    "source_boundary_tests_passed": 5,
+    "runtime_and_rust_fixture_changed": false,
+    "oracle_metadata_sha256": "f081e02aeaaaecca687e2a96cb8abf3407526e6b23c0d932ee3d59f5de9f205a",
+    "source_guard_sha256": "9f6dac2610fef6693e401ec134892d6b91e9fe0e6abc1436b5ae62a0b8075adc",
+    "full_file_hashes_are_historical_provenance": true
+  }
 }

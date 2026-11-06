@@ -27,9 +27,10 @@ The packager's existing complete Rust-source traversal includes the new module.
 ## Focused evidence and limits
 
 `tests/predicate-fold/legacy-oracle.json` freezes the original body bytes and
-their full source-file hashes. The source guard reconstructs those files by
-undoing just the five delegation edits and checks that the strict station file
-is untouched. A real-Cargo-package differential fixture compares all 6,558
+their full source-file provenance hashes. The source guard reconstructs the
+owned decision scopes by undoing just the five delegation edits and checks that
+the strict station repair predicate is untouched. It deliberately permits
+unrelated functions in the same file to evolve in other coherent feature groups. A real-Cargo-package differential fixture compares all 6,558
 result-and-visitation cases across three callers, two operators and all sequences
 of length zero through six. Its leaves represent already-resolved true/false/
 unknown values, not native parsers, registries or game state.
@@ -49,3 +50,23 @@ broader casting/acquisition behavior is not established by the pure fold proof.
 This extraction neither enables automatic crafting nor implements the unapplied
 pair-authority proposal. Existing source-policy wrappers keep their previous
 activation status. Complete TConstruct migration/gameplay remains separate.
+
+## Recorded focused result
+
+Exact source `3c5f56e2` passed five Python source-boundary guards and four Rust
+fixture tests against the actual local shared Cargo package with `--locked
+--offline`. The differential test checked all 6,558 result-and-visitation cases;
+zero tests were ignored. All captured API, oracle, fixture and lock bytes were
+unchanged before and after execution. The run took 1.40 seconds and observed
+at least 10,909,327,360 bytes free, with no guard stop. Expected dead-code
+warnings concern the test-only oracle helpers in the fixture's non-test build.
+
+This does not run the broader condition/casting suites, the full inventory API
+unit suite, a combined native package gate or gameplay. Those remain separate
+integration gates, not implied passes.
+
+After the focused proof, the Python composition guard was narrowed from whole
+files to the exact owned decision/repair scopes, so independent storage changes
+in transaction.rs do not produce a false rejection. Five Python guards pass
+again. Runtime/API and Rust differential fixture bytes are unchanged; the oracle
+JSON gained only provenance/scope metadata, not modified legacy fold bodies.

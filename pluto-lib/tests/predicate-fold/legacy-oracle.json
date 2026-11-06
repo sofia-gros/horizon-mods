@@ -53,5 +53,28 @@
     "transaction_and": "                horizon_client::pluto_inventory::predicate_fold::all(values.iter().map(|value| value.matches(registries, config)))",
     "melting_any": "horizon_client::pluto_inventory::predicate_fold::any(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container)))",
     "melting_all": "horizon_client::pluto_inventory::predicate_fold::all(choices.iter().map(|choice| choice.matches_with_container(item, in_tag, no_container)))"
-  }
+  },
+  "owned_scopes": {
+    "source-conditions.rs": {
+      "start": "fn conditional_test(",
+      "end": "\npub(super) fn conditional_conditions(",
+      "sha256": "8214364a48f18469acd31e12669cbb668c7b2a3b0c52ebcfcd2af15df38dee87"
+    },
+    "transaction.rs": {
+      "start": "    fn matches(&self, registries: &std::collections::HashMap",
+      "end": "\n/// Evaluate source conditions",
+      "sha256": "e547d00b523d2298cb3b89e18ff77ca231fc3c11c3f8bf4e792c832517b0dff1"
+    },
+    "source-melting-recipes.rs": {
+      "start": "impl Ingredient {",
+      "end": "\n#[derive(Clone, Debug, PartialEq, Eq)]\npub(super) struct FluidSpec",
+      "sha256": "6a159adb29ee5fae557a0a949026afbdc59e2c9a8de3515d1ccb7bb336b9a55b"
+    },
+    "source-station-recipes.rs": {
+      "start": "pub(super) fn repair_ingredient_matches(",
+      "end": "\n#[derive(Clone, Debug, PartialEq)]\npub(super) struct BuildingRecipe",
+      "sha256": "a26e136cad29b8dcecef1d978c794efb3f28ff18e81063cabdf5cce4a252f1b3"
+    }
+  },
+  "full_file_hash_role": "Historical source provenance only; active composition guards compare exact owned decision scopes, not unrelated functions in the same file."
 }

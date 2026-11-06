@@ -17,7 +17,7 @@ class PredicateFoldBoundaries(unittest.TestCase):
             self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), ORACLE['fragment_sha256'][key])
             self.assertIn(text, fixture)
 
-    def test_only_the_five_original_fold_bodies_changed(self):
+    def test_only_five_fold_bodies_change_inside_owned_decision_scopes(self):
         groups = {'source-conditions.rs': ['conditions'],
                   'transaction.rs': ['transaction_or', 'transaction_and'],
                   'source-melting-recipes.rs': ['melting_any', 'melting_all']}
@@ -27,11 +27,17 @@ class PredicateFoldBoundaries(unittest.TestCase):
                 new = ORACLE['consumer_replacements'][key]
                 self.assertEqual(current.count(new), 1)
                 current = current.replace(new, ORACLE['frozen_fragments'][key], 1)
-            self.assertEqual(hashlib.sha256(current.encode()).hexdigest(), ORACLE['source_sha256'][name])
+            scope = ORACLE['owned_scopes'][name]
+            start = current.index(scope['start'])
+            current = current[start:current.index(scope['end'], start)]
+            self.assertEqual(hashlib.sha256(current.encode()).hexdigest(), scope['sha256'])
 
     def test_strict_station_unknown_semantics_are_untouched(self):
-        source = (ROOT / 'tconstruct/mixins/tconstruct/source-station-recipes.rs').read_bytes()
-        self.assertEqual(hashlib.sha256(source).hexdigest(), ORACLE['strict_station_sha256'])
+        source = (ROOT / 'tconstruct/mixins/tconstruct/source-station-recipes.rs').read_text()
+        scope = ORACLE['owned_scopes']['source-station-recipes.rs']
+        start = source.index(scope['start'])
+        source = source[start:source.index(scope['end'], start)]
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), scope['sha256'])
 
     def test_real_shared_package_is_used_by_all_cargo_fixtures(self):
         for manifest in [FIXTURE / 'Cargo.toml', ROOT / 'tconstruct/tests/condition-snapshot/Cargo.toml',
