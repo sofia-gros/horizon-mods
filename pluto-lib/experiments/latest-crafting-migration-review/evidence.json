@@ -1,0 +1,111 @@
+{
+  "scope": "read-only source review and unapplied proposal; no native/metadata/plan/type test",
+  "main": "08afa992d5091e03360f3473ea93fd17aa793987",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "main_files": {
+    "tconstruct/mixins/tconstruct/anvil-material-recipe.rs": {
+      "bytes": 1939,
+      "sha256": "a4f4029c37bf153e42f5714cfe4834ad8d542fc244f53ac221b0013ef3cfd70b"
+    },
+    "tconstruct/mixins/tconstruct/survival-melter-recipe.rs": {
+      "bytes": 774,
+      "sha256": "03a5ac0d50b0bb63af7597710702b022f8404b93f8fe0f66e32a900d390bdcc3"
+    },
+    "tconstruct/mixins/tconstruct/survival-empty-tank.rs": {
+      "bytes": 1113,
+      "sha256": "61ac8af3b22eb21e9c0f82feb907ffe3200691f42d7f0e1bd4037ecc60945ece"
+    },
+    "tconstruct/mixins/tconstruct/source-overslime-craft-assemble.rs": {
+      "bytes": 592,
+      "sha256": "bfa08e9dfff0b0685dd976e6f5dbc33c9789a65fdd6946ea68176627c9c97663"
+    },
+    "tconstruct/mixins/tconstruct/source-overslime-craft-remainders.rs": {
+      "bytes": 406,
+      "sha256": "abf3c55dabefc1a96701a9c90f605d3a0167819f272f8473b4cf8409c44b3493"
+    },
+    "tconstruct/mixins/tconstruct/source-overslime-crafting.rs": {
+      "bytes": 2463,
+      "sha256": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13"
+    },
+    "tconstruct/mixins/tconstruct/source-crafting-recipe-guard.rs": {
+      "bytes": 3200,
+      "sha256": "5bd672d074ab4f29c43aec1c56b84abac3d1e62591bd6a1dcd9781bd80bc0857"
+    },
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml": {
+      "bytes": 189155,
+      "sha256": "beaaaef4d024122b2687e4c0695686de43b2b099e53c37710d0d7a4eab2346b6"
+    }
+  },
+  "official_files": {
+    "crates/horizon-client/src/crafting.rs": {
+      "bytes": 107065,
+      "sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c"
+    },
+    "crates/horizon-client/src/game/recipe_book.rs": {
+      "bytes": 62959,
+      "sha256": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6"
+    },
+    "crates/horizon-items/src/item_data.rs": {
+      "bytes": 76150,
+      "sha256": "744c7ae08d16ca9c84fbba6b65a14fa14e4e29a7419d3fb937d38e79ac8a7402"
+    }
+  },
+  "ordinary_common_archive": {
+    "bytes": 270125,
+    "sha256": "4f13a6e22e29be159b004e0a99801954acb15581d64851087b4427353de5e11d"
+  },
+  "ordinary_archive_members": {
+    "mixins/pluto_native_creative/pluto_native_creative/component-view.rs": {
+      "bytes": 6400,
+      "sha256": "31089e5f94113115144697a4eb6ead961eaa2d9258fd40510fc0866e86271297"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/crafting-match-veto.rs": {
+      "bytes": 401,
+      "sha256": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/crafting-match.rs": {
+      "bytes": 2646,
+      "sha256": "6b5b439a2cf3a1aa53d6963ceb134a51c92c6d331a9b1e669556fa6883c60ac1"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/crafting-products.rs": {
+      "bytes": 7844,
+      "sha256": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/inventory-api/src/advancements/predicates.rs": {
+      "bytes": 11676,
+      "sha256": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/inventory-api/src/crafting/matching.rs": {
+      "bytes": 10131,
+      "sha256": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/inventory-api/src/crafting/products.rs": {
+      "bytes": 13362,
+      "sha256": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/recipe-placement-click.rs": {
+      "bytes": 227,
+      "sha256": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f"
+    },
+    "mixins/pluto_native_creative/pluto_native_creative/recipe-placement.rs": {
+      "bytes": 3259,
+      "sha256": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e"
+    }
+  },
+  "common_guard_sources": {
+    "pluto-lib/tools/crafting-match-boundaries.json": {
+      "bytes": 975,
+      "sha256": "90dd56366e9266d08db1fd536547ffee1d3fdb606ea7e67d92cb74e693082aab"
+    },
+    "pluto-lib/tools/recipe-placement-boundaries.json": {
+      "bytes": 1921,
+      "sha256": "931c7b2c3b559d18c43bea2efed96a58d6d77b3cf34a5d7f47ae87d159c3fc0b"
+    }
+  },
+  "ordinary_manifest_changed": false,
+  "guards_relaxed": false,
+  "new_registry_added": false,
+  "consumers_activated": false,
+  "native_executed": false
+}
