@@ -90,7 +90,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual((recipe['type'], recipe['cooling_time'], recipe['fluid']['tag']), ('tconstruct:casting_table', 89, 'tconstruct:seared_stone'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
-        self.assertIn('!matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials")', reader)
+        self.assertIn('!matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "abilities")', reader)
         self.assertIn('mighty_advice_page', reader)
         self.assertIn('tools.partial.notice', reader)
         self.assertIn('source_pages(game, &path, book)', reader)

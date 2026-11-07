@@ -142,6 +142,16 @@ pub(super) fn bridge_vanilla_mud_tag(tags: &mut BTreeMap<String, Vec<Vec<u8>>>) 
     }
 }
 
+/// Deliberately partial guide projection using the same existing Pluto tag graph.
+/// Missing values are omitted; required nested tags, invalid groups and cycles
+/// retain the existing available-registry policy and legacy error spelling.
+pub(super) fn resolve_available_entries(
+    id: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+) -> Result<Vec<String>, String> {
+    resolve_available_blocks(id, tags, registry)
+}
+
 /// Project a source block tag onto the actual block registry. Unregistered
 /// source block IDs cannot be encountered in this world and are ignored;
 /// unresolved required nested tags and cycles remain errors.

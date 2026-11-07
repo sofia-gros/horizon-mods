@@ -5,16 +5,16 @@
   "coverage_path": "pluto-lib/docs/pr-reorganization/full-coverage-20261106/coverage.json",
   "coverage_sha256": "dc7af8884dd2c7a3e21c9ca268f2876a15dbf4028441e2f9094c89e7d40e949a",
   "integration_branch": "integration/tinkers-latest-playtest-20261106",
-  "evaluated_runtime_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "evaluated_runtime_head": "44becb774eeea5742bddad878adada1b4f31b7b1",
   "semantics": "Every PR has one implementation owner. Source adoption, existing-production checks, passing source tests, actual native tests, main inclusion and closing the original PR are separate stages. Unreconciled does not mean absent. No old PR is closed by this source intake.",
   "counts": {
     "fixed_snapshot": 265,
-    "explicit_pr_source_intakes": 7,
-    "not_individually_reconciled": 257,
+    "explicit_pr_source_intakes": 10,
+    "not_individually_reconciled": 254,
     "latest_complete_plan_passed": 1,
     "latest_game_build_passed": 0,
     "gameplay_verified": 0,
-    "individually_reviewed_scopes": 8,
+    "individually_reviewed_scopes": 11,
     "verified_main_integrations": 0,
     "prs_closed": 0
   },
@@ -26,7 +26,7 @@
     "game_build": "started then failed with Cargo101 at generated float-range syntax",
     "windows_link": "not completed",
     "game_startup": "not run",
-    "source_scope": "The next one-byte repair candidate is separate source evidence and has not passed the actual build.",
+    "source_scope": "Actual previous complete plan/apply results cover 9e032 only. Run42341666819 is evaluating fixed44bec, before these three new source intakes.",
     "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929",
     "result_commit": "e752b933a3b2722079fda983188577cdb089195e"
   },
@@ -207,10 +207,16 @@
       "own_delta_base_sha": "442946c52b4a6e80ce0754295b1db3a61fa13372",
       "own_diff_sha256": "eb6039baa201da4b45064e9205cafc87d12789d0f4f0888b0359dbad660e2eb6",
       "research_partition": "guide",
-      "intake_status": "not_individually_reconciled",
+      "intake_status": "own_delta_source_adopted_pending_build",
       "feature_completion_verified": false,
       "owner": "guide",
-      "workflow_stage": "queued"
+      "workflow_stage": "work_branch_source_tests_passed_pending_native_build",
+      "source": "33878a2167b3733135b680dea7990187c6cf7efb",
+      "scope": "Puny bonus-slot recipe pages project current Station support through existing Pluto resource snapshots and tag graph; limited supported registry and one-input schema remain explicit.",
+      "tests": "22 selected pure source/inverse checks passed; actual Rust, host, response-size and UI/LAN not run.",
+      "record": "integration/guide-intake-20261107/bonus-modifiers.json",
+      "main_merged": false,
+      "pr_closed": false
     },
     {
       "number": 694,
@@ -255,10 +261,16 @@
       "own_delta_base_sha": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
       "own_diff_sha256": "816d64ad210e211ac22e8eb08ebf220f2408f8cb10118f56a54d2cb62b1bfd8c",
       "research_partition": "armor_defense",
-      "intake_status": "not_individually_reconciled",
+      "intake_status": "own_delta_source_adopted_pending_build",
       "feature_completion_verified": false,
       "owner": "central_armor",
-      "workflow_stage": "queued"
+      "workflow_stage": "work_branch_source_tests_passed_pending_native_build",
+      "source": "2fb5cd0b48561a4d20f02388d5679e59e66c97c0",
+      "scope": "Shared Pluto health-attribute batch update and final downward clamp are used by TConstruct Gold Guard and worn Revitalizing policy. No new state or injection; setter errors are not transactional rollback.",
+      "tests": "11 Python checks and official Rust syntax parsing of four files passed. Actual Rust fixture, full host types, live health and UI/LAN not run.",
+      "record": "integration/armor-intake-20261107/revitalizing.json",
+      "main_merged": false,
+      "pr_closed": false
     },
     {
       "number": 698,
@@ -267,10 +279,16 @@
       "own_delta_base_sha": "38a804e4543cde5172763469e36e313b50897e4b",
       "own_diff_sha256": "730005378de16876a153422f2214efcd082f20f0b2ece35867913a214fe66240",
       "research_partition": "guide",
-      "intake_status": "not_individually_reconciled",
+      "intake_status": "own_delta_source_adopted_pending_build",
       "feature_completion_verified": false,
       "owner": "guide",
-      "workflow_stage": "queued"
+      "workflow_stage": "work_branch_source_tests_passed_pending_native_build",
+      "source": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+      "scope": "Puny upgrades and Mighty abilities display supported ordinary recipes with one to five separate inputs. Station eligibility expressions are factored unchanged and Pluto snapshot/tag owners are reused.",
+      "tests": "29 selected pure checks passed, including previous Guide regressions and 84 finite gate comparisons; retained Rust/native test methods not run.",
+      "record": "integration/guide-intake-20261107/ordinary-modifiers.json",
+      "main_merged": false,
+      "pr_closed": false
     },
     {
       "number": 699,
@@ -3342,6 +3360,30 @@
       "scope": "Adapted Tool Tanks page connects to existing Guide display and documents existing Pluto fluid read/write/resize behavior and its limits. Five implementation inputs unchanged.",
       "tests": "15 selected source checks passed including prior broad-tool checks; actual Rust/package/UI not run",
       "record": "integration/guide-intake-20261107/tool-tanks.json"
+    },
+    {
+      "number": 693,
+      "source": "33878a2167b3733135b680dea7990187c6cf7efb",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Puny bonus-slot recipe pages project current Station support through existing Pluto resource snapshots and tag graph; limited supported registry and one-input schema remain explicit.",
+      "tests": "22 selected pure source/inverse checks passed; actual Rust, host, response-size and UI/LAN not run.",
+      "record": "integration/guide-intake-20261107/bonus-modifiers.json"
+    },
+    {
+      "number": 698,
+      "source": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Puny upgrades and Mighty abilities display supported ordinary recipes with one to five separate inputs. Station eligibility expressions are factored unchanged and Pluto snapshot/tag owners are reused.",
+      "tests": "29 selected pure checks passed, including previous Guide regressions and 84 finite gate comparisons; retained Rust/native test methods not run.",
+      "record": "integration/guide-intake-20261107/ordinary-modifiers.json"
+    },
+    {
+      "number": 697,
+      "source": "2fb5cd0b48561a4d20f02388d5679e59e66c97c0",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Shared Pluto health-attribute batch update and final downward clamp are used by TConstruct Gold Guard and worn Revitalizing policy. No new state or injection; setter errors are not transactional rollback.",
+      "tests": "11 Python checks and official Rust syntax parsing of four files passed. Actual Rust fixture, full host types, live health and UI/LAN not run.",
+      "record": "integration/armor-intake-20261107/revitalizing.json"
     }
   ],
   "current_open_inventory": {
@@ -3353,5 +3395,12 @@
     ],
     "total": 265,
     "fixed_snapshot_matches": true
+  },
+  "active_build": {
+    "head": "44becb774eeea5742bddad878adada1b4f31b7b1",
+    "controller": "5ee46ecc5018eb40087d17d6e2c4d27b3ae6be5f",
+    "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42341666819",
+    "status": "in_progress_at_source_intake",
+    "scope": "One fixed earlier composition; not evidence for later source changes."
   }
 }

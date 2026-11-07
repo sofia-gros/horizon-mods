@@ -62,6 +62,8 @@ def main():
     required = 'test game::live_projection_counts_native_and_tool_flags_and_does_not_stack ... ok'
     if required not in result.stdout:
         raise RuntimeError('Required production Gold Guard adapter test did not pass')
+    if 'test game::revitalizing_same_refresh_gold_guard_swap_uses_final_maximum ... ok' not in result.stdout:
+        raise RuntimeError('Required production Revitalizing adapter test did not pass')
 
 
 if __name__ == '__main__':

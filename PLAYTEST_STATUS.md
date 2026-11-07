@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Dynamic Guide and shared health source intakes, 2026-11-07
+
+PR #693 and #698 now use the existing Pluto resource snapshots and tag graph for the supported Puny bonus/upgrades and Mighty ability recipe pages. TConstruct keeps its recipe shape, Station eligibility and presentation rules. Separate one-to-five input slots are retained. Twenty-nine selected Python checks, including earlier Guide regressions and an 84-case predicate comparison, passed; retained Rust/native methods were not run. The official Rust parser also accepted all four final Guide runtime files without changing them; this is syntax evidence only.
+
+PR #697 adds the shared Pluto health-attribute adapter and routes both existing Gold Guard and worn Revitalizing through it. TConstruct retains equipment/trait eligibility and amounts. Valid updates are followed by one downward health clamp, never healing; native setter errors do not promise rollback. Eleven Python checks and the official Rust parser on four Rust files passed. Full host typing, the actual Rust fixture and live health behavior are still pending.
+
+These are source intakes only. [Windows run42341666819](https://github.com/sofia-gros/horizon-mods/actions/runs/42341666819) is evaluating the earlier fixed44bec composition and cannot prove the later changes in this commit. Main and all original PR states remain unchanged until the required build and error checks pass.
+
 ## Further PR intakes and local Rust syntax evidence, 2026-11-07
 
 PR #735 adds twenty Seared recipe unlocks through the existing native advancement/reward path; its complete own source delta is adapted and two resource checks passed. PR #737 connects the Tool Tanks explanation to the existing Guide route, with fifteen selected checks including the earlier broad-tool regressions. The underlying Pluto fluid read/write/resize and TConstruct transfer implementation remain unchanged. Package, live event and UI behavior have not been newly verified.

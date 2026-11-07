@@ -18,6 +18,29 @@ class ToolTanksIntake(unittest.TestCase):
         for path,item in receipt['files'].items():
             with self.subTest(path=path):
                 raw=(ROOT/path).read_bytes()
+                ordinary = json.loads((ROOT / 'integration/guide-intake-20261107/ordinary-modifiers.json').read_bytes())
+                self.assertEqual(ordinary['ordinary_base'], '33878a2167b3733135b680dea7990187c6cf7efb')
+                if path in ordinary['files']:
+                    item698 = ordinary['files'][path]
+                    self.assertEqual(sha(raw), item698['after'])
+                    projected = raw.decode('utf-8')
+                    for before698, after698 in reversed(item698['replacements']):
+                        self.assertEqual(projected.count(after698), 1)
+                        projected = projected.replace(after698, before698, 1)
+                    raw = projected.encode()
+                    self.assertEqual(sha(raw), item698['before'])
+
+                latest = json.loads((ROOT / 'integration/guide-intake-20261107/bonus-modifiers.json').read_bytes())
+                self.assertEqual(latest['ordinary_base'], '5dde879335d73c69ab6a070ee5dccd90bcd3f89c')
+                if path in latest['files']:
+                    addition = latest['files'][path]
+                    self.assertEqual(sha(raw), addition['after'])
+                    projected = raw.decode('utf-8')
+                    for old, new in reversed(addition['replacements']):
+                        self.assertEqual(projected.count(new), 1)
+                        projected = projected.replace(new, old, 1)
+                    raw = projected.encode()
+                    self.assertEqual(sha(raw), addition['before'])
                 self.assertEqual(sha(raw),item['after']); self.assertEqual(blob(raw),item['after_blob'])
                 text=raw.decode('utf-8')
                 for old,new in reversed(item.get('replacements') or item.get('pr_adaptation',[])):

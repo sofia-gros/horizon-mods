@@ -37,12 +37,14 @@ mod game {
     }
     pub mod tconstruct_source_material_traits {
         use super::*;
-        pub struct Traits;
-        pub fn levels(_: &World, stack:&ItemStack)->Option<Traits>{stack.data()?.other("minecraft:custom_data")?;Some(Traits)}
-        pub fn level_with_upgrade(stack:&ItemStack,_:&Traits,id:&str)->Option<i32>{
-            match stack.data()?.other("minecraft:custom_data")?.get(id){None=>Some(0),Some(Tag::Int(n)) if *n>=0=>Some(*n),_=>None}
+        pub struct Traits {pub levels:BTreeMap<String,i32>}
+        pub fn levels(_: &World, stack:&ItemStack)->Option<Traits>{stack.data()?.other("minecraft:custom_data")?;Some(Traits {levels: match stack.data()?.other("minecraft:custom_data")?.get("revitalizing_trait") {Some(Tag::Int(n))=>BTreeMap::from([("tconstruct:revitalizing".into(),*n)]),_=>BTreeMap::new()}})}
+        pub fn level_with_upgrade(stack:&ItemStack,traits:&Traits,id:&str)->Option<i32>{
+            match stack.data()?.other("minecraft:custom_data")?.get(id){None=>Some(traits.levels.get(id).copied().unwrap_or(0)),Some(Tag::Int(n)) if *n>=0=>Some(*n+traits.levels.get(id).copied().unwrap_or(0)),_=>None}
         }
     }
+    pub mod tconstruct_source_ranged_wear {include!("../../mixins/tconstruct/source-ranged-wear.rs");}
+    pub mod pluto_health_attributes {include!("../../../pluto-lib/mixins/pluto_native_creative/health-attributes.rs");}
     pub mod tconstruct_gold_guard_world {include!("../../mixins/tconstruct/gold-guard-world.rs");}
     include!("../../mixins/tconstruct/gold-guard-attributes.rs");
     include!("../../mixins/tconstruct/golden-armor.rs");
@@ -93,5 +95,132 @@ mod game {
         tconstruct_gold_guard_attributes((), &mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),20.0);assert!(!tconstruct_golden_armor(false,&game));assert!(tconstruct_golden_armor(true,&game));
         let mut game=setup();game.armor[0]=Some(armor(-1,0));tconstruct_gold_guard_attributes((), &mut game);assert!(game.player.as_ref().unwrap().attributes.0.is_empty());
         let mut game=setup();game.remote=Some(());tconstruct_gold_guard_attributes((), &mut game);assert!(game.player.as_ref().unwrap().attributes.0.is_empty());
+    }
+    fn rev_setup()->Game<'static> {
+        let mut game=setup();game.armor=[None,None,None,None];
+        game.world.chunks.defs.as_mut().unwrap().as_mut().unwrap().insert("tconstruct:tinkering/modifiers/revitalizing".into(),br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:attribute",
+      "attribute": "minecraft:generic.max_health",
+      "each_level": 2.0,
+      "operation": "addition",
+      "slots": [
+        "mainhand",
+        "offhand",
+        "feet",
+        "legs",
+        "chest",
+        "head"
+      ],
+      "tooltip_style": "boost"
+    },
+    {
+      "type": "tconstruct:update_health",
+      "slots": [
+        "feet",
+        "legs",
+        "chest",
+        "head"
+      ]
+    },
+    {
+      "type": "tconstruct:update_health",
+      "bonus": {
+        "each_level": 2.0
+      },
+      "slots": [
+        "mainhand",
+        "offhand"
+      ]
+    }
+  ]
+}"#.to_vec());
+        game.world.chunks.tags.as_mut().unwrap().as_mut().unwrap().get_mut("tconstruct:modifiable/armor/worn").unwrap().extend(["tconstruct:plate_chestplate".into(),"tconstruct:plate_leggings".into()]);
+        game
+    }
+    fn rev(item:&str,level:i32)->ItemStack {
+        let mut stack=ItemStack::new(item,1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("revitalizing_trait",Tag::Int(level)),("tic_max_damage",Tag::Int(999))])));stack
+    }
+    #[test] fn revitalizing_worn_levels_clamp_without_healing_and_restore() {
+        let mut game=rev_setup();game.armor[1]=Some(rev("tconstruct:plate_chestplate",2));game.armor[2]=Some(rev("tconstruct:plate_leggings",1));
+        tconstruct_gold_guard_attributes((),&mut game);
+        assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),26.0);
+        assert_eq!(game.player.as_ref().unwrap().health.0,20.0);
+        game.player.as_mut().unwrap().health.0=26.0;game.armor[1]=None;
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_ref().unwrap().health.0,22.0);
+        game.armor[2].as_mut().unwrap().damage=999;
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_ref().unwrap().health.0,20.0);
+        game.armor[2].as_mut().unwrap().damage=0;
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),22.0);assert_eq!(game.player.as_ref().unwrap().health.0,20.0);
+    }
+    #[test] fn revitalizing_same_refresh_gold_guard_swap_uses_final_maximum() {
+        let mut game=rev_setup();game.armor[0]=Some(armor(1,0));tconstruct_gold_guard_attributes((),&mut game);
+        game.player.as_mut().unwrap().health.0=24.0;game.armor[0]=None;game.armor[1]=Some(rev("tconstruct:plate_chestplate",2));
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_ref().unwrap().health.0,24.0);assert_eq!(game.player.as_ref().unwrap().clamps,0);
+        game.armor[1]=None;game.armor[0]=Some(armor(1,0));tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_ref().unwrap().health.0,24.0);
+    }
+    #[test] fn revitalizing_reload_wrong_slot_upgrade_and_remote_fail_closed() {
+        let mut game=rev_setup();game.armor[0]=Some(rev("tconstruct:plate_chestplate",1));tconstruct_gold_guard_attributes((),&mut game);assert!(game.player.as_ref().unwrap().attributes.0.is_empty());
+        game.armor[1]=game.armor[0].take();tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),22.0);
+        let definitions=game.world.chunks.defs.take();game.player.as_mut().unwrap().health.0=22.0;
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_ref().unwrap().health.0,20.0);
+        game.world.chunks.defs=definitions;tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),22.0);
+        game.armor[1].as_mut().unwrap().data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("revitalizing_trait",Tag::Int(1)),("tconstruct:revitalizing",Tag::Int(1))])));
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),20.0);
+        game.armor[1]=Some(rev("tconstruct:plate_chestplate",1));game.remote=Some(());tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),20.0);
+    }
+
+    #[test] fn revitalizing_changed_definition_tag_and_invalid_level_remove_bonus() {
+        let mut game=rev_setup();game.armor[1]=Some(rev("tconstruct:plate_chestplate",1));tconstruct_gold_guard_attributes((),&mut game);
+        let defs=game.world.chunks.defs.as_mut().unwrap().as_mut().unwrap();let old=defs.insert("tconstruct:tinkering/modifiers/revitalizing".into(),b"{}".to_vec()).unwrap();
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),20.0);
+        game.world.chunks.defs.as_mut().unwrap().as_mut().unwrap().insert("tconstruct:tinkering/modifiers/revitalizing".into(),old);
+        game.world.chunks.tags.as_mut().unwrap().as_mut().unwrap().get_mut("tconstruct:modifiable/armor/worn").unwrap().remove("tconstruct:plate_chestplate");
+        tconstruct_gold_guard_attributes((),&mut game);assert_eq!(game.player.as_mut().unwrap().attribute("max").unwrap(),20.0);
+        let mut game=rev_setup();game.armor[1]=Some(rev("tconstruct:plate_chestplate",-1));tconstruct_gold_guard_attributes((),&mut game);assert!(game.player.as_ref().unwrap().attributes.0.is_empty());
+        for invalid in [Tag::Int(-1),Tag::String("1".into())] {
+            game.armor[1]=Some(rev("tconstruct:plate_chestplate",1));
+            game.armor[1].as_mut().unwrap().data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("revitalizing_trait",Tag::Int(1)),("tconstruct:revitalizing",invalid)])));
+            tconstruct_gold_guard_attributes((),&mut game);assert!(game.player.as_ref().unwrap().attributes.0.is_empty());
+        }
+    }
+
+    #[test] fn shared_health_rejects_invalid_batch_without_partial_publication() {
+        let mut game = setup();
+        for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            pluto_health_attributes::refresh(&mut game, &[("first", Some(4.0)), ("second", Some(bad))]);
+            assert_eq!(game.player.as_ref().unwrap().writes, 0);
+        }
+        pluto_health_attributes::refresh(&mut game, &[("same", Some(4.0)), ("same", None)]);
+        pluto_health_attributes::refresh(&mut game, &[("", Some(4.0))]);
+        assert_eq!(game.player.as_ref().unwrap().writes, 0);
+        assert_eq!(game.player.as_ref().unwrap().clamps, 0);
+    }
+    #[test] fn shared_health_batches_swap_clamp_and_noop_without_healing() {
+        let mut game = setup();
+        pluto_health_attributes::refresh(&mut game, &[("one", Some(4.0))]);
+        game.player.as_mut().unwrap().health.0 = 24.0;
+        pluto_health_attributes::refresh(&mut game, &[("one", None), ("two", Some(4.0))]);
+        assert_eq!(game.player.as_ref().unwrap().health.0, 24.0);
+        assert_eq!(game.player.as_ref().unwrap().clamps, 0);
+        let writes = game.player.as_ref().unwrap().writes;
+        pluto_health_attributes::refresh(&mut game, &[("two", Some(4.0))]);
+        assert_eq!(game.player.as_ref().unwrap().writes, writes);
+        pluto_health_attributes::refresh(&mut game, &[("two", None)]);
+        assert_eq!(game.player.as_ref().unwrap().health.0, 20.0);
+        assert_eq!(game.player.as_ref().unwrap().clamps, 1);
+        pluto_health_attributes::refresh(&mut game, &[("one", Some(8.0))]);
+        assert_eq!(game.player.as_ref().unwrap().health.0, 20.0);
+    }
+    #[test] fn shared_health_remote_and_absent_player_are_untouched() {
+        let mut game = setup();game.remote = Some(());
+        pluto_health_attributes::refresh(&mut game, &[("one", Some(4.0))]);
+        assert_eq!(game.player.as_ref().unwrap().writes, 0);
+        game.remote = None;game.player = None;
+        pluto_health_attributes::refresh(&mut game, &[("one", Some(4.0))]);
+        assert!(game.player.is_none());
     }
 }

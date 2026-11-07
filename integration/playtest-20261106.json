@@ -585,7 +585,36 @@
       "main_merge": false,
       "old_prs_closed": false,
       "guard_metadata_changed": false,
-      "guard_dependency_scope": "The 17 current ordinary guard metadata JSON files have no direct pin for the three changed consumer modules. Existing protected hook payloads and manifests are unchanged; a fresh normal plan/guard/build is still required."
+      "guard_dependency_scope": "The 17 current ordinary guard metadata JSON files have no direct pin for the three changed consumer modules. Existing protected hook payloads and manifests are unchanged; a fresh normal plan/guard/build is still required.",
+      "latest_batch": [
+        {
+          "number": 693,
+          "source": "33878a2167b3733135b680dea7990187c6cf7efb",
+          "intake_status": "own_delta_source_adopted_pending_build",
+          "scope": "Puny bonus-slot recipe pages project current Station support through existing Pluto resource snapshots and tag graph; limited supported registry and one-input schema remain explicit.",
+          "tests": "22 selected pure source/inverse checks passed; actual Rust, host, response-size and UI/LAN not run.",
+          "record": "integration/guide-intake-20261107/bonus-modifiers.json"
+        },
+        {
+          "number": 698,
+          "source": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+          "intake_status": "own_delta_source_adopted_pending_build",
+          "scope": "Puny upgrades and Mighty abilities display supported ordinary recipes with one to five separate inputs. Station eligibility expressions are factored unchanged and Pluto snapshot/tag owners are reused.",
+          "tests": "29 selected pure checks passed, including previous Guide regressions and 84 finite gate comparisons; retained Rust/native test methods not run.",
+          "record": "integration/guide-intake-20261107/ordinary-modifiers.json"
+        },
+        {
+          "number": 697,
+          "source": "2fb5cd0b48561a4d20f02388d5679e59e66c97c0",
+          "intake_status": "own_delta_source_adopted_pending_build",
+          "scope": "Shared Pluto health-attribute batch update and final downward clamp are used by TConstruct Gold Guard and worn Revitalizing policy. No new state or injection; setter errors are not transactional rollback.",
+          "tests": "11 Python checks and official Rust syntax parsing of four files passed. Actual Rust fixture, full host types, live health and UI/LAN not run.",
+          "record": "integration/armor-intake-20261107/revitalizing.json"
+        }
+      ],
+      "source_tests_passed": 40,
+      "rust_type_checked": false,
+      "main_merged": false
     },
     "local_rust_syntax": {
       "source": "968f3e6b62e8a371bf1171dc2225a58868de1e72",
@@ -610,6 +639,20 @@
       "whole_project_type_check": false,
       "receipt": "rust-syntax-receipt.json",
       "timeout_seconds": 30
+    },
+    "active_windows_build": {
+      "head": "44becb774eeea5742bddad878adada1b4f31b7b1",
+      "controller": "5ee46ecc5018eb40087d17d6e2c4d27b3ae6be5f",
+      "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42341666819",
+      "status": "in_progress_at_source_intake",
+      "scope": "One fixed earlier composition; not evidence for later source changes."
+    },
+    "guide_source_syntax": {
+      "record": "integration/guide-intake-20261107/ordinary-syntax.json",
+      "source": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+      "files": 4,
+      "passed": true,
+      "type_checked": false
     }
   },
   "safety": {
@@ -619,7 +662,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Before another heavy CI run, perform a bounded local Rust-parser check of the actual generated source if retrievable, otherwise the minimal malformed/repaired reproduction. Add a non-writing post-apply parser gate to the existing normal build path. Keep official pins, features, locks and all guards unchanged. Main stays unchanged until actual build and applicable error checks pass.",
+  "next": "Finish the fixed44bec normal Windows build with its repair and mandatory post-apply syntax receipts. Keep later Guide and health source intakes separate from that result, then test their fresh composition before main inclusion. Main remains unchanged until build and applicable error checks pass.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -1055,6 +1098,18 @@
       "stage_fake_cli_fixture": 1,
       "actual_repair_or_new_build": false,
       "main_merge": false
+    },
+    {
+      "name": "Reuse Pluto resources for dynamic Guide pages and add shared health attribute adapter",
+      "base": "44becb774eeea5742bddad878adada1b4f31b7b1",
+      "prs": [
+        693,
+        698,
+        697
+      ],
+      "source_checks": 40,
+      "official_rust_syntax_health_files": 4,
+      "full_type_or_build": false
     }
   ],
   "guide_limits": [
@@ -1107,6 +1162,30 @@
       "scope": "Adapted Tool Tanks page connects to existing Guide display and documents existing Pluto fluid read/write/resize behavior and its limits. Five implementation inputs unchanged.",
       "tests": "15 selected source checks passed including prior broad-tool checks; actual Rust/package/UI not run",
       "record": "integration/guide-intake-20261107/tool-tanks.json"
+    },
+    {
+      "number": 693,
+      "source": "33878a2167b3733135b680dea7990187c6cf7efb",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Puny bonus-slot recipe pages project current Station support through existing Pluto resource snapshots and tag graph; limited supported registry and one-input schema remain explicit.",
+      "tests": "22 selected pure source/inverse checks passed; actual Rust, host, response-size and UI/LAN not run.",
+      "record": "integration/guide-intake-20261107/bonus-modifiers.json"
+    },
+    {
+      "number": 698,
+      "source": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Puny upgrades and Mighty abilities display supported ordinary recipes with one to five separate inputs. Station eligibility expressions are factored unchanged and Pluto snapshot/tag owners are reused.",
+      "tests": "29 selected pure checks passed, including previous Guide regressions and 84 finite gate comparisons; retained Rust/native test methods not run.",
+      "record": "integration/guide-intake-20261107/ordinary-modifiers.json"
+    },
+    {
+      "number": 697,
+      "source": "2fb5cd0b48561a4d20f02388d5679e59e66c97c0",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Shared Pluto health-attribute batch update and final downward clamp are used by TConstruct Gold Guard and worn Revitalizing policy. No new state or injection; setter errors are not transactional rollback.",
+      "tests": "11 Python checks and official Rust syntax parsing of four files passed. Actual Rust fixture, full host types, live health and UI/LAN not run.",
+      "record": "integration/armor-intake-20261107/revitalizing.json"
     }
   ]
 }
