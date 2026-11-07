@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "status": "source candidate; Rust/native/plan/gameplay unrun; PR open",
+  "base_commit": "8360105dc27ee056df191db873853206b4dd3dc9",
+  "pr": 706,
+  "pr_head": "e2ea4c2f909406a684f4d33e826b9f97225ec7d2",
+  "original_tc": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "official": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "manifest": {
+    "path": "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+    "before_sha256": "1888496f46e8c06411e2d06f1a41b477a8c42d7f600abafc516985671685fe95",
+    "before_git_blob": "5708d47205b8a30a324ba5c37301fc98b566f89a",
+    "after_sha256": "4abe79f4ffad96a848f6564d8549eb8c8fb3d02da7324f418be0357be734eb17",
+    "append": "\n# PR706: native holder clock and real carried slot; no extra actor phase state.\n[[module]]\nid = \"source-overgrowth\"\nfile = \"crates/horizon-client/src/game.rs\"\nname = \"tconstruct_source_overgrowth\"\nsource = \"source-overgrowth.rs\"\n\n[[module]]\nid = \"source-overgrowth-world\"\nfile = \"crates/horizon-client/src/game.rs\"\nname = \"tconstruct_source_overgrowth_world\"\nsource = \"source-overgrowth-world.rs\"\n\n[[module]]\nid = \"source-modifier-random\"\nfile = \"crates/horizon-client/src/game.rs\"\nname = \"tconstruct_modifier_random\"\nsource = \"source-modifier-random.rs\"\n\n[[injection]]\nid = \"source-overgrowth-tick\"\ntarget = \"horizon_client::game::native_hooks::Game<'_>::native_inventory_tick\"\nkind = \"TAIL\"\nhelper = \"source-overgrowth-tick.rs\"\nbindings = [\n  { name = \"game\", ty = \"&mut crate::game::Game<'_>\", value = \"&mut *self\" },\n  { name = \"slot\", ty = \"i32\", value = \"slot\" },\n]\n"
+  },
+  "new_payloads": {
+    "tconstruct/mixins/tconstruct/source-modifier-random.rs": {
+      "sha256": "ae4ad59a4d965ebb4deadd09708facc12d63d745933a1a30f140c99a0a863112",
+      "git_blob": "1dd3badfaaf10b03263602ef07260391bd2bc3d6"
+    },
+    "tconstruct/mixins/tconstruct/source-overgrowth-tick.rs": {
+      "sha256": "547acbb023d570c7391dd7d13803b547faefe3c041537db468926d9f07bbc4bc",
+      "git_blob": "c7fd5d7fc52ea846af9592a6e24024e51aec79f1"
+    },
+    "tconstruct/mixins/tconstruct/source-overgrowth-world.rs": {
+      "sha256": "2a108c8b7346870295ecf58bf82d6dea3b241fabf6ef73641762a91ec75b685c",
+      "git_blob": "be92af42e42f3256a0d919f2e583477372c5549f"
+    },
+    "tconstruct/mixins/tconstruct/source-overgrowth.rs": {
+      "sha256": "0be02c1fc996ca00fe20c9648ade2f3bf67915fee410f79b6a1a8be943acdf4f",
+      "git_blob": "b52d21a9063ae4b32dfb037ec6768d27caf697d7"
+    }
+  },
+  "source_inputs": {
+    "evidence/Modifier.java": {
+      "sha256": "5ab79241d4b83afb192282c0ead12458b0273c4df3425c9be0a4b2247777eef3",
+      "git_blob": "6a7bffe321b3251924801a086b952fb1d76ad71f"
+    },
+    "evidence/OvergrowthModule.java": {
+      "sha256": "dbf50af8489bd2f2a1d5073d7a8051a1e5225f84de3f69e5e4dc3c1ba12fbfb5",
+      "git_blob": "4707b851c5c58ea70315aad98a99d40e2680f085"
+    },
+    "evidence/OverslimeModule.java": {
+      "sha256": "e1ae14bbf544f72c1a6977d519ce305cc64513495144c816b136fe3489812ca6",
+      "git_blob": "40b2a4973219a15bc6706a08e686dd6b950480c1"
+    },
+    "evidence/health.rs": {
+      "sha256": "0adfe7238bfad9506df9625d564e84efd4f9208eedf6d94c74de4c085c87551a",
+      "git_blob": "5d3d9e896e6d94265e88b53e27109f52abc76645"
+    },
+    "evidence/random.rs": {
+      "sha256": "f8fbfd0383a8d0b58357ea51e03ff7d025b7e112b83d114b1bb5fb773c774225",
+      "git_blob": "dc4e20fd14efd2434bfd563fb1fe9f2c086b9c41"
+    }
+  },
+  "old_pr_policy": {
+    "source-overgrowth.rs": "efb589b7c16ca34adbe2983781cbbb47e2134f0ddb41cebfb41b8b29792903e5",
+    "source-overgrowth-world.rs": "618547402cca00d75ac2a00d8f2c8644d3555d537bc031068a57b704647f580f",
+    "source-overgrowth-tick.rs": "f588e13c4db9e7a9e227334d601b94c42b461a3bce7aa1d919bbf5dc36acc21a"
+  },
+  "ownership": {
+    "shared": "horizon_client::pluto_nbt_storage::patch_compound (existing single owner, unchanged)",
+    "tc": "Overgrowth definition/chance/capacity/active-use policy and independent Java-style modifier RNG",
+    "native": "inventory_tick carries the actual Game + slot; health.tick_count is the holder clock; no EntityRef/side-table/frame fabricated"
+  },
+  "prepared_rust_tests": {
+    "rule": 6,
+    "consumer": 4,
+    "random": 1
+  },
+  "limits": [
+    "No new complete plan/type/build proof. Native Game/local/LAN/server callback and save behavior remain unrun.",
+    "Current material/upgrade levels and overslime capacity <=32767 admission are inherited, not original Java fractional/every-custom-definition completeness.",
+    "New process-local stream uses native Java algorithm but not Java startup seed or whole Modifier.RANDOM cross-modifier sequence parity.",
+    "No PR close/main merge before own-diff coverage and native/live gates."
+  ],
+  "official_callers": {
+    "crates/horizon-client/src/game.rs": {
+      "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+      "git_blob": "ac695140626a8c542cb7c98e43979aa80e3d137b"
+    },
+    "crates/horizon-client/src/game/native_hooks.rs": {
+      "sha256": "7ed6c76a8c75adf992c6eb8b60084093dec832205a4793c3a7b93140476ee833",
+      "git_blob": "3ac4cfe8772b62c5735c628c1065a9be3f777800"
+    },
+    "crates/horizon-client/src/game/lan_actions.rs": {
+      "sha256": "a5c52a892775e7315075f6692cf50c3628bbe510705ef27feb0a3626df783b6c",
+      "git_blob": "935a38f8dc5652920ebcd38746b484945bbaaab8"
+    }
+  }
+}

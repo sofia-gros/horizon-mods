@@ -5363,3 +5363,32 @@ kind = "HEAD"
 cancellable = false
 helper = "source-crafting-sources-startup.rs"
 bindings = []
+
+# PR706: native holder clock and real carried slot; no extra actor phase state.
+[[module]]
+id = "source-overgrowth"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overgrowth"
+source = "source-overgrowth.rs"
+
+[[module]]
+id = "source-overgrowth-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overgrowth_world"
+source = "source-overgrowth-world.rs"
+
+[[module]]
+id = "source-modifier-random"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_modifier_random"
+source = "source-modifier-random.rs"
+
+[[injection]]
+id = "source-overgrowth-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_inventory_tick"
+kind = "TAIL"
+helper = "source-overgrowth-tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "i32", value = "slot" },
+]
