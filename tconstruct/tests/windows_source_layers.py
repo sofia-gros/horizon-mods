@@ -19,7 +19,14 @@ def undo(raw, row):
     return original
 
 
+def before_jobs_one(relative, raw):
+    delta = json.loads((ROOT/'experiments/windows-jobs-one/inverse.json').read_bytes())
+    row = delta['files'].get(relative)
+    return undo(raw, row) if row is not None else raw
+
+
 def before_package_contract(relative, raw, *, before_stat=False):
+    raw = before_jobs_one(relative, raw)
     delta = json.loads((ROOT/'experiments/windows-stage-package-contract/inverse.json').read_text(encoding='utf-8'))
     row = delta['files'].get('tconstruct/'+relative)
     if row is not None: raw = undo(raw, row)

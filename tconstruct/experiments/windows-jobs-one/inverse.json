@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "base": "5265ce25fac98f690eeb5b0c36df94caf3a85454",
+  "files": {
+    "tools/play_windows_latest.py": {
+      "before_sha256": "718bf8352032e7d6ae01e37d5c2ec2c0f374da8092b308609415b342681753ab",
+      "after_sha256": "6fe2f8a278f7a8590f3f283446b213cb1d3d1ad9a539384ceb6e7ed06c9bbd6f",
+      "edits": [
+        [
+          "               CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),",
+          "               CARGO_BUILD_JOBS='1', CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),"
+        ]
+      ]
+    }
+  },
+  "historical_test_adapters": {
+    "windows_source_layers.py": {
+      "before_sha256": "a16a755521830e4baa4c327f3ac8d1ac6cfbeeaf4fed878ce7383701257eb7c5",
+      "after_sha256": "975c305ef4aeb05c698925c595cd876b7b85992cfab2bdbbec60beb9a4b62483",
+      "edits": [
+        [
+          "def before_package_contract(relative, raw, *, before_stat=False):\n",
+          "def before_jobs_one(relative, raw):\n    delta = json.loads((ROOT/'experiments/windows-jobs-one/inverse.json').read_bytes())\n    row = delta['files'].get(relative)\n    return undo(raw, row) if row is not None else raw\n\n\ndef before_package_contract(relative, raw, *, before_stat=False):\n    raw = before_jobs_one(relative, raw)\n"
+        ]
+      ]
+    },
+    "test_stage_package_contract.py": {
+      "before_sha256": "ccabfa910517be7b9b3afeae817f010f92dd0c3b49858bd5e414343be6de666f",
+      "after_sha256": "1c04748e181aa96706b00ef2453b38e510c487b1f33655f764606751cde2ac4a",
+      "edits": [
+        [
+          "from test_windows_playtest_bundles import package, archive\n",
+          "from test_windows_playtest_bundles import package, archive\nfrom windows_source_layers import before_jobs_one\n"
+        ],
+        [
+          "raw=(ROOT.parent/rel).read_bytes();self.assertEqual(b.sha(raw),meta['after_sha256']);text=raw.decode('utf-8')",
+          "raw=before_jobs_one(rel.removeprefix('tconstruct/'),(ROOT.parent/rel).read_bytes());self.assertEqual(b.sha(raw),meta['after_sha256']);text=raw.decode('utf-8')"
+        ]
+      ]
+    }
+  }
+}
