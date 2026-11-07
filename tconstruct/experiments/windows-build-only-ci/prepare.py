@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -49,6 +50,21 @@ def environment(original,work):
 def install_argv(rustup):
     return [str(rustup),'toolchain','install',TOOLCHAIN,'--profile','minimal',
             '--component','rustfmt','--no-self-update']
+
+
+def rustup_version(raw,receipt):
+    # Retain the same invocation before admission, including a failed version.
+    observation={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+    receipt['rustup_observation']=observation
+    if len(raw)>4096:raise ValueError('Rustup version output budget')
+    observation['output_utf8']=raw.decode('utf-8',errors='replace')
+    lines=raw.decode('utf-8').splitlines()
+    info={'info: This is the version for the rustup toolchain manager, not the rustc compiler.',
+          'info: no `rustc` is currently active'}
+    versions=[line for line in lines if re.fullmatch(r'rustup 1\.29\.3 \([0-9a-f]{9} [0-9]{4}-[0-9]{2}-[0-9]{2}\)',line)]
+    if len(lines)!=3 or len(versions)!=1 or set(lines)-set(versions)!=info:
+        raise ValueError('Runner rustup differs from reviewed standard version/output')
+    return versions[0]
 
 
 def admit_manifest(toolchain,installed):

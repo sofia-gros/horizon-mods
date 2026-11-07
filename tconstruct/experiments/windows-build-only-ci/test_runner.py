@@ -26,6 +26,36 @@ class Tests(unittest.TestCase):
         rustup=Path('/rustup.exe')
         self.assertEqual(p.install_argv(rustup),[str(rustup),'toolchain','install',p.TOOLCHAIN,'--profile','minimal','--component','rustfmt','--no-self-update'])
 
+    def test_rustup_known_info_order_and_single_exact_version(self):
+        version='rustup 1.29.3 (edbc831ce 2026-11-03)' # synthetic line, not recovered job bytes
+        info=['info: This is the version for the rustup toolchain manager, not the rustc compiler.',
+              'info: no `rustc` is currently active']
+        for rows in ([version,*info],[info[0],version,info[1]],[*info,version]):
+            for ending in ('\n','\r\n'):
+                raw=(ending.join(rows)+ending).encode();receipt={}
+                self.assertEqual(p.rustup_version(raw,receipt),version)
+                self.assertEqual(receipt['rustup_observation']['output_utf8'],raw.decode())
+                self.assertEqual(receipt['rustup_observation']['sha256'],hashlib.sha256(raw).hexdigest())
+        raw=('\n'.join([version,*info])+'\n').encode()
+        for bad in (raw.replace(b'1.29.3',b'1.29.2'),raw.replace(b'1.29.3',b'1.29.4'),
+                    raw+version.encode()+b'\n',raw+b'unknown\n',b'\n'.join([version.encode(),info[0].encode()])):
+            receipt={}
+            with self.assertRaises(ValueError):p.rustup_version(bad,receipt)
+            self.assertEqual(receipt['rustup_observation']['bytes'],len(bad))
+            self.assertEqual(receipt['rustup_observation']['output_utf8'],bad.decode())
+
+    def test_rustup_raw_observation_precedes_bounded_admission(self):
+        for raw in (b'x'*4097,b'\xff'):
+            receipt={}
+            with self.assertRaises(ValueError):p.rustup_version(raw,receipt)
+            observed=receipt['rustup_observation']
+            self.assertEqual(observed['bytes'],len(raw))
+            self.assertEqual(observed['sha256'],hashlib.sha256(raw).hexdigest())
+            if len(raw)>4096:self.assertNotIn('output_utf8',observed)
+        source=(r.HERE/'run.py').read_text(encoding='utf-8')
+        self.assertEqual(source.count("phase('rustup-version'"),1)
+        self.assertNotIn("rv.startswith('rustup 1.29.2 '",source)
+
     def test_isolated_offline_env_discards_rustup_and_build_overrides(self):
         old={'PATH':'base','RUSTUP_HOME':'foreign','RUSTUP_DIST_SERVER':'https://other','RUSTUP_TOOLCHAIN':'stable','CARGO_BUILD_JOBS':'99'}
         saved=old.copy();env=p.environment(old,self.root)

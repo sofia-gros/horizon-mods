@@ -183,8 +183,7 @@ def execute(receipt):
         if actual!=receipt['head']:raise ValueError('Checkout differs from event head')
         dirty=phase('checkout-clean',[git,'-C',ROOT,'status','--porcelain','--untracked-files=all','--ignored=matching'],'pure',work,env,receipt)
         if dirty.strip():raise ValueError('Project checkout is not clean')
-        rv=phase('rustup-version',[rustup,'--version'],'pure',work,env,receipt).decode().splitlines()[0]
-        if not rv.startswith('rustup 1.29.2 '):raise ValueError('Runner rustup differs from reviewed standard version')
+        rv=prepare.rustup_version(phase('rustup-version',[rustup,'--version'],'pure',work,env,receipt),receipt)
         receipt['gates']['rustup']={'version':rv,'executable':tools_before['rustup']}
         phase('rustup-install',prepare.install_argv(rustup),'prepare',work,env,receipt)
         toolchain=work/'rustup/toolchains'/prepare.TOOLCHAIN
