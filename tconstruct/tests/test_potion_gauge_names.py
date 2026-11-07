@@ -25,7 +25,8 @@ class PotionGaugeNames(unittest.TestCase):
         self.assertIn('unwrap_or_else(|| "Milk".to_owned())', render)
 
     def test_host_harness_module_is_in_ci(self):
-        workflow = (ROOT.parents[2] / '.github' / 'workflows' / 'mixins.yml').read_text()
+        github = ROOT.parents[2] / '.github'
+        workflow = (github / 'workflows' / 'mixins.yml').read_text() + (github / 'parked' / 'mixins-full-checks.yml').read_text()
         self.assertIn('tconstruct_source_smeltery_fuel::tests', workflow)
 
 if __name__ == '__main__':

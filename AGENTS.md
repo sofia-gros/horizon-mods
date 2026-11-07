@@ -41,6 +41,7 @@ Mixins bundles from the full manifests (which stay untouched) and `stage.py --pl
 PlutoLib guards of kept features. Everything else is **parked, not deleted**: restore a feature by adding
 its injection id to `slice.json`, then fix whatever the plan/guards/compile report. Do not edit the full
 manifests just to make the build pass.
+CI steps that need the full manifest are kept in `.github/parked/mixins-full-checks.yml` (not a workflow) and move back into `mixins.yml` when their feature returns.
 
 ## Commands
 ```sh

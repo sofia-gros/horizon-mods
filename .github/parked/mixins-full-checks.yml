@@ -1,0 +1,53 @@
+# PARKED CI steps. Not a workflow: GitHub Actions only reads .github/workflows/.
+# These cargo tests need the FULL TConstruct manifest staged into Horizon. They were taken out of
+# mixins.yml because only the vertical slice (tools/smoke-local/slice.json) builds on the current
+# Horizon/Mixins. Move a test back into mixins.yml when its feature returns to the slice.
+
+      - name: Apply Mixins and check client
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/pluto-source"
+          python3 pluto-lib/tools/package_native.py "$RUNNER_TEMP/pluto-source/plutolib.hnmod"
+          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
+          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
+          cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_station_recipes::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_recipes::foundry_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimelytra_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimeskull_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::first_material_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tool_fluid_swap_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimeskull_part_swap_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::swap_presentation_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::first_material_input_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::slimelytra_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tipped_clearing_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tip_clearing::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mining_stack::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_source_mining_rules::haste_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_source::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_wire::tests
+          cargo test --locked --manifest-path tconstruct/tests/haste-wire-fixture/Cargo.toml
+          python3 tconstruct/tests/run_gold_guard.py --horizon ../horizon-official
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_gold_guard::tests -- --nocapture | tee "$RUNNER_TEMP/gold-guard-tests.log"
+          grep -Fq "test game::tconstruct_gold_guard::tests::count_neutral_slots_once_not_modifier_levels ... ok" "$RUNNER_TEMP/gold-guard-tests.log"
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_render::fluid_light_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::casting_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tagged_portable_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_state::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_fuel::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_fluid_container::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::part_swap_predicate_tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_recipe_order::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_stat_types::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_render_info::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_material_id_host_tests::tests

@@ -24,5 +24,5 @@ class StationSwapCapacity(unittest.TestCase):
         self.assertLess(swap.index('BuildingRecipe::swap_parts_fit'), swap.index('rebuild_material_swap('))
         self.assertLess(swap.index('BuildingRecipe::swap_parts_fit'), swap.index('Some((output, vec!'))
         self.assertIn('swap_plan_with_capacity(world, slots, input_capacity, reason)', text)
-        workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
+        workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text() + (ROOT.parent / '.github/parked/mixins-full-checks.yml').read_text()
         self.assertIn('tconstruct_source_station_recipes::tests', workflow)
