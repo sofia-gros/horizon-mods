@@ -10,7 +10,7 @@
 
 Explore Tinkers’ Construct for Horizon and PlutoLib, a Rust library for building mods with reusable APIs.
 
-PlutoLib’s Rust APIs are in development; the current Creative-tab tooling is Python.
+PlutoLib is meant to be Horizon’s Fabric API: an independent, general-purpose mod with Fabric-API-like names and behaviour, released per Horizon version (see its [design principles](pluto-lib/docs/design-principles.md)). Its Rust APIs are in development; the current Creative-tab tooling is Python.
 
 > **Status: under recovery.** The project is being rebuilt on PlutoLib against the latest official Horizon and Horizon Mixins. Only a small vertical slice currently builds and launches; most Tinkers’ Construct features are parked until they are re-absorbed. See [Current status](docs/development.md#current-status-2026-11-07) and the [working rules](AGENTS.md) before relying on any feature described below.
 

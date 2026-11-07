@@ -1,6 +1,8 @@
 # PlutoLib
 
-**Reusable Rust APIs for Horizon mods.**
+**The Fabric API of Horizon: reusable Rust APIs for Horizon mods.**
+
+PlutoLib is an independent mod, installed beside the mods that use it. It mimics Fabric API's names, features and behaviour (Horizon Mixins is expected to offer the NeoForge-like API), is released once per Horizon version so mods need almost no change when Horizon changes, and is general purpose: future mods by anyone should be able to use it. Only the parts Tinkers' Construct needs are built first. See the [design principles](docs/design-principles.md); the text below describes what exists today, which is still short of that goal.
 
 PlutoLib owns reusable APIs and their official Horizon/Mixins adapters; consuming
 mods own their content and gameplay policy. See the
