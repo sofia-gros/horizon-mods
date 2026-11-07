@@ -169,6 +169,11 @@ impl Melter {
     pub(super) fn new() -> Self {
         Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, fuel_quality: 0, temperature: 0, rate: 0 }
     }
+    /// GuiFuelModule reads stored temperature, not remaining or queued fuel.
+    /// Fuel exhaustion can leave a positive residual temperature until lookup.
+    pub(super) fn solid_fuel_tooltip_temperature(&self) -> Option<u32> {
+        (self.temperature > 0).then_some(self.temperature)
+    }
     /// A full output tank leaves a completed slot waiting without demanding
     /// additional fuel. It still retries output when space becomes available.
     pub(super) fn can_heat_slot(&self, slot: usize, temperature: u32, required_temp: u32) -> bool {
@@ -238,6 +243,21 @@ impl Melter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn solid_fuel_tooltip_uses_stored_temperature_across_reload() {
+        for fuel in [0, 1, 100] {
+            for temperature in [0, 1, 800, 1000] {
+                let mut state = Melter::new();
+                state.fuel = fuel; state.temperature = temperature;
+                let expected = (temperature > 0).then_some(temperature);
+                assert_eq!(state.solid_fuel_tooltip_temperature(), expected);
+                let reloaded = Melter::from_nbt(&state.to_nbt()).unwrap();
+                assert_eq!(reloaded.solid_fuel_tooltip_temperature(), expected);
+                assert_eq!(state.fuel, fuel);
+                assert_eq!(state.temperature, temperature);
+            }
+        }
+    }
     #[test]
     fn zero_output_consumes_after_heating_without_changing_full_tank() {
         let mut m = Melter::new(); m.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
