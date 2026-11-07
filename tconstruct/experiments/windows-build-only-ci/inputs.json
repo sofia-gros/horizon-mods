@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "ready": false,
+  "branch": "checkpoint/windows-default-build-ci-20261107",
+  "integration_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "integration_tree": "691fe018f35b7b873dec27e293eb94ad0984bc89",
+  "toolchain": "1.99.1-x86_64-pc-windows-gnu",
+  "official": {
+    "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "horizon-mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "test_names": [
+    "test_component_manifest_hash_and_installed_set_are_exact",
+    "test_exact_release_host_and_no_self_update_install",
+    "test_existing_phase_and_child_status_are_not_reimplemented",
+    "test_fresh_ordinary_build_is_once_and_help_is_later",
+    "test_isolated_offline_env_discards_rustup_and_build_overrides",
+    "test_link_result_requires_exact_mode_hash_and_contained_output",
+    "test_low_disk_refuses_and_restores_resource_guard",
+    "test_low_ram_refuses_and_restores_resource_guard",
+    "test_official_checkout_is_four_owned_commands_only",
+    "test_official_lock_preserved_and_only_plan_local_packages_added",
+    "test_owned_job_process_cap_and_pid_buffer_match",
+    "test_pe_rejects_truncation_and_wrong_machine",
+    "test_phase_budgets_restore_on_failure",
+    "test_unknown_download_never_opens_network",
+    "test_unready_contract_cannot_start_any_phase",
+    "test_winlibs_fresh_safe_prefix_and_complete_files",
+    "test_winlibs_unsafe_case_and_link_rejected_before_writing"
+  ],
+  "source_sha256": {
+    ".github/workflows/windows-default-build-wip.yml": "23a2224620c79f70020735698e1bd442779ff5e5e080b7c06642d9743df4b68e",
+    "tconstruct/experiments/windows-build-only-ci/README.md": "5b89f83ef75e2f70f7559dfb5651fe7749c52d8a01e685f0acfa37f081ad68f6",
+    "tconstruct/experiments/windows-build-only-ci/inspect_pe.py": "03b9a0fe51236fcd03d6f7f413dec9935af48d7b8afcb6c43954c33826dd384c",
+    "tconstruct/experiments/windows-build-only-ci/prepare.py": "16ace759f7f54e05281a13d9dfc6c73cb42e69d304d50d5b3a5263f4be11d7bc",
+    "tconstruct/experiments/windows-build-only-ci/run.py": "0b29e55d47d92b7856257663fdc682fe3a098d7cc8ce9483d8cd8f67773ea176",
+    "tconstruct/experiments/windows-build-only-ci/test_runner.py": "dc617eef74f0ea042c7d955dc0bf5e54cdeca50004cabf8e63f599b63317542f",
+    "tconstruct/experiments/windows-build-only-ci/winjob.py": "bd1fe4063a335651a177118d9a941449268b3c429beee7692fa21415c894b898",
+    "tconstruct/experiments/windows-formatter-ci/child_status.py": "15a14909bc35caf53300f3ce82b8f846346bace06ac8a1bc8c034198df89b380",
+    "tconstruct/experiments/windows-formatter-ci/rustc_runtime.py": "5e2f5fa243011d28937ba490730811ba65c9d93adda1bcb241dc95b75fdea7a2",
+    "tconstruct/experiments/windows-source-ci/run.py": "1d6f6a9b0122033cb7a4dbeeaa1e24cd9ad2385a762eb3c2d75b1ab3083ea3fa",
+    "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
+    "tconstruct/tools/play_windows_latest.py": "6fe2f8a278f7a8590f3f283446b213cb1d3d1ad9a539384ceb6e7ed06c9bbd6f",
+    "tconstruct/tools/playtest_guard_rustfmt.py": "1bb81096f760d6841433bfca5671d557a048efcc545d9b31397053faa21b65bd",
+    "tconstruct/tools/playtest_pluto_inputs.py": "a22d769982a958294a825b34358402f0b7d851286a708a5f236735ee073ae823",
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10",
+    "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7",
+    "tconstruct/tools/stage.py": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+    "tconstruct/tools/stage_package_contract.py": "21343afe98e184ccf7d238af8910a8ed3dfd17891fc32ef0ff9e3b18e143e4af"
+  },
+  "ordinary_tools": {
+    "tconstruct/tools/play_windows_latest.py": "6fe2f8a278f7a8590f3f283446b213cb1d3d1ad9a539384ceb6e7ed06c9bbd6f",
+    "tconstruct/tools/playtest_guard_rustfmt.py": "1bb81096f760d6841433bfca5671d557a048efcc545d9b31397053faa21b65bd",
+    "tconstruct/tools/playtest_pluto_inputs.py": "a22d769982a958294a825b34358402f0b7d851286a708a5f236735ee073ae823",
+    "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7",
+    "tconstruct/tools/stage.py": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+    "tconstruct/tools/stage_package_contract.py": "21343afe98e184ccf7d238af8910a8ed3dfd17891fc32ef0ff9e3b18e143e4af",
+    "tconstruct/tools/portable_archive.py": "7e67e46fb05c6aec4ad6df687cf4e916892416870346ee9c0c7f5bcd8e493b10"
+  }
+}
