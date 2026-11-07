@@ -14,6 +14,7 @@ pub use crate::pure::base::{
     ActionResult, Callback, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
     default_phase,
 };
+pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry, ConfigSpec, ModConfig};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::entity_events_v1::{self, EntityInfo, LivingDamage, ServerEntityEvents, ServerLivingEntityEvents};
 pub use crate::pure::events_interaction_v0::{

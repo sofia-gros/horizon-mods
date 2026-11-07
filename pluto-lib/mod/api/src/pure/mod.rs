@@ -2,6 +2,7 @@
 //! (`pluto-lib/tests/pure` compiles this module on its own; `hooks.rs` connects it to Horizon.)
 
 pub mod base;
+pub mod config_api;
 pub mod data_attachment_api_v1;
 pub mod entity_events_v1;
 pub mod events_interaction_v0;
