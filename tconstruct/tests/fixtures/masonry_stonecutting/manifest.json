@@ -1,0 +1,114 @@
+{
+  "recipes/scorched_bricks_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/scorched_bricks_slab_stonecutter.json",
+    "sha256": "4490bc45679477263b2bd93cbc6994e0ef236faa710ea2b199880469713aaa46"
+  },
+  "advancements/scorched_bricks_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/scorched_bricks_slab_stonecutter.json",
+    "sha256": "d15a720f28f9136dcb94417c6222bde8e892b8cd125021ff853f55520a6c7da3"
+  },
+  "recipes/scorched_bricks_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/scorched_bricks_stairs_stonecutter.json",
+    "sha256": "41a290a8b0ab6b44f9e9c2c2e91c5073ae81cd423ce6a05af11f7189638a4d46"
+  },
+  "advancements/scorched_bricks_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/scorched_bricks_stairs_stonecutter.json",
+    "sha256": "0c7926b82d84c26a67953d51d789a13eba0842fc5f645ea6f0d66e04a7b979d1"
+  },
+  "recipes/scorched_road_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/scorched_road_slab_stonecutter.json",
+    "sha256": "9659ac0ed0c7d5e1ff745e51a0a176460d57422aaf043b06a4595202735aadaa"
+  },
+  "advancements/scorched_road_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/scorched_road_slab_stonecutter.json",
+    "sha256": "b0767f0ba8145d3ac3afb9ac594254d838eb9cc9fa0ed99dc6223fb956e83a97"
+  },
+  "recipes/scorched_road_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/scorched_road_stairs_stonecutter.json",
+    "sha256": "7267dfe7fed1150d00a1206b5aa2ba74fbceaef91da86202f4e50fcc5b05b837"
+  },
+  "advancements/scorched_road_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/scorched_road_stairs_stonecutter.json",
+    "sha256": "b191b0b4a13a0472a3e352264fd302daee6d9d30a12eccd87117e6e818fda0ee"
+  },
+  "recipes/seared_bricks_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_bricks_slab_stonecutter.json",
+    "sha256": "9ca702817b5ae065337cdb0396c5f654d3fc16a22f867812006288bfae965674"
+  },
+  "advancements/seared_bricks_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_bricks_slab_stonecutter.json",
+    "sha256": "ec89aca3edcaea4fd1c2ec9151322ffc5c6df0220b5ff4f5bc0ec31609647014"
+  },
+  "recipes/seared_bricks_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_bricks_stairs_stonecutter.json",
+    "sha256": "5239e08ba978783d23cfd43ea427f5d9f045e3ffafa7db68a4b92160cd076c39"
+  },
+  "advancements/seared_bricks_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_bricks_stairs_stonecutter.json",
+    "sha256": "5213c636852f45b6d8012af49a3b255c60624e72c1cb131de0585f1178cc123b"
+  },
+  "recipes/seared_bricks_wall_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_bricks_wall_stonecutter.json",
+    "sha256": "99273fdeceda14b51f8a1e6f51b98d070852fe43a713cdade2893a854bebf02f"
+  },
+  "advancements/seared_bricks_wall_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_bricks_wall_stonecutter.json",
+    "sha256": "fdb50e0d2ed0ca22eab0938ac488cb3b78593ae47c06e40d9145c9d8aba89da2"
+  },
+  "recipes/seared_cobble_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_cobble_slab_stonecutter.json",
+    "sha256": "21bb78bfb90a5ed7e10754060db17bc28196b355f0e2d1f7ede8f5345703b106"
+  },
+  "advancements/seared_cobble_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_cobble_slab_stonecutter.json",
+    "sha256": "4814f95a9fa8ed99ede5a474a73fc2791611a7d350d87802f3fa8873c4e7d487"
+  },
+  "recipes/seared_cobble_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_cobble_stairs_stonecutter.json",
+    "sha256": "80b8ee38d8fb5691bbf33ac28aa256149454912a75522ae8ab4f85d9ab439ab6"
+  },
+  "advancements/seared_cobble_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_cobble_stairs_stonecutter.json",
+    "sha256": "12d37ba2bb2434440b7c57d63728c72404d3353b9216a06298ed789736dcf8e0"
+  },
+  "recipes/seared_cobble_wall_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_cobble_wall_stonecutter.json",
+    "sha256": "b8b50a8ecd6affb794b113b669c6c1222a95ad7de874029c5b8272342ceddd1f"
+  },
+  "advancements/seared_cobble_wall_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_cobble_wall_stonecutter.json",
+    "sha256": "814eb070f848b90d69965dbc069eb63a3d8be186c0daf17a9a9e7443b1916cb1"
+  },
+  "recipes/seared_paver_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_paver_slab_stonecutter.json",
+    "sha256": "68e7084b66dd7c27a72eb33e58c46a1e73cb0e49633f0052f03b13f5d6ed47b8"
+  },
+  "advancements/seared_paver_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_paver_slab_stonecutter.json",
+    "sha256": "199e61ecfb18a3ec9dfeaf65150301b771b3e8b5f1b99f8df4a1d12498739902"
+  },
+  "recipes/seared_paver_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_paver_stairs_stonecutter.json",
+    "sha256": "b39bdb8f123217b8e6d8944866ab1c9fdf8946451618cbb33d9566843c895503"
+  },
+  "advancements/seared_paver_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_paver_stairs_stonecutter.json",
+    "sha256": "1de32dffd5829a162fb0d7fe7b4fde4556fc7143d0153ab61796145eaa314acf"
+  },
+  "recipes/seared_stone_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_stone_slab_stonecutter.json",
+    "sha256": "a63f9a8365e2f3f9fb64dcc68f6a6523d4ed3c4c3c08de9ad79cf68e17926bea"
+  },
+  "advancements/seared_stone_slab_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_stone_slab_stonecutter.json",
+    "sha256": "288965269f16dcd5225e1c29fce32ec9ec9dc1a1fd6151afb056b8d0097a2eef"
+  },
+  "recipes/seared_stone_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_stone_stairs_stonecutter.json",
+    "sha256": "532df48110836d3eae2ab3e18c4a04809825372e92d2b5b954c23f50876177a0"
+  },
+  "advancements/seared_stone_stairs_stonecutter.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_stone_stairs_stonecutter.json",
+    "sha256": "333728f424d496379102c4afa6ae9854cd2f70091be1f9542313c3d062b10ecf"
+  }
+}

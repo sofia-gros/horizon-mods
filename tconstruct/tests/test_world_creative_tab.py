@@ -15,8 +15,8 @@ class WorldCreativeTab(unittest.TestCase):
     self.assertEqual(len(world),1)
     self.assertEqual(world[0]['icon'],'{count:1,id:"tconstruct:cobalt_ore"}')
     expected=['cobalt_ore','raw_cobalt','raw_cobalt_block','necrotic_bone',
-              'earth_congealed_slime','sky_slime_ball','sky_congealed_slime',
-              'ichor_slime_ball','ichor_congealed_slime','ender_slime_ball','ender_congealed_slime',
+              'earth_congealed_slime','sky_slime_ball','sky_slime','sky_congealed_slime',
+              'ichor_slime_ball','ichor_slime','ichor_congealed_slime','ender_slime_ball','ender_slime','ender_congealed_slime',
               'earth_slime_sapling','earth_slime_leaves','sky_slime_sapling','sky_slime_leaves',
               'blood_slime_sapling','blood_slime_leaves','ender_slime_sapling','ender_slime_leaves',
               'earth_slime_grass_seeds','sky_slime_grass_seeds','blood_slime_grass_seeds','ender_slime_grass_seeds']

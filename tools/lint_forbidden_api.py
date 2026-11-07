@@ -32,7 +32,7 @@ RULES = [
 
 
 # Files that quote the forbidden patterns in order to define or test them.
-SELF = {'tools/lint_forbidden_api.py', 'tests/test_lint_forbidden_api.py'}
+SELF = {'tools/lint_forbidden_api.py', 'tests/test_lint_forbidden_api.py', 'tools/classify_prs.py'}
 
 
 def tracked():
