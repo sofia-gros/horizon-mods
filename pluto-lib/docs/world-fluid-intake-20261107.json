@@ -1,0 +1,284 @@
+{
+  "schema": "world_fluids_intake_20261107_v1",
+  "ordinary_base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "priority_source": {
+    "issue": 379,
+    "url": "https://github.com/sofia-gros/horizon-mods/issues/379",
+    "updated_at": "2026-11-05T14:41:42Z",
+    "focus": "High: custom fluids/contact and world progression/acquisition. This partition contains 23 fluid PRs; world-generation acquisition is not claimed completed by this group."
+  },
+  "ordinary_tc_activation": false,
+  "implementation": {
+    "scope": "Additive bounded nearest-drop routing, same registry/revision, existing native scheduled tick delegate. Definition/default behavior preserved.",
+    "tc_candidate": "Excluded PR716 four-metal flow-routing mapping at final d82 IDs. NOT full fluid registration or activation.",
+    "remaining": [
+      "Actual Rust API tests, new complete plan/guards/host type have not run.",
+      "Existing contact callback lacks mutable Game/actor continuation; item-use cloud capability is not contact authority.",
+      "Native per-effect curative data/copy/save remains unresolved; no new side table.",
+      "Burn/travel/current/drowning/fall, upward flow, fog/overlay, native path choice, source conversion/mixing/waterlogging, save/LAN parity remain separate."
+    ]
+  },
+  "architecture": {
+    "shared": "Single Pluto registry, immutable definitions/render/slope facts, bounded common kernel, native world writes/Spread::Fluid protection and scheduled tick remain internal.",
+    "consumer": "TC identities/assets/acquisition, per-family numeric policies, burn/effects/immunities/visuals remain TC-owned.",
+    "native_item": "Current cloud candidate uses actual Game native-item invocation plus Ready/epoch/reserve/push; actual plan/guard proof exists, Game9/live operations still unrun.",
+    "protection": "Native damage/protection facade covers already-authorized health calls; it cannot grant contact timing or movement/actor lifetime."
+  },
+  "prs": [
+    {
+      "number": 716,
+      "title": "Declare molten iron, gold, copper and cobalt world fluids",
+      "head_sha": "889fb19ff610984b5a69029ea978892ac090d7fd",
+      "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
+      "own_diff_sha256": "be173e23d137a0532ad0f89e98c984a26dde6246f4264f355c69baf2b7e0638e",
+      "group": "family_declaration",
+      "decision": "partial_flow_policy_candidate_only_no_family_activation",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 720,
+      "title": "Declare molten debris and netherite world fluids",
+      "head_sha": "43adf1443ee126ba6f4e5096a09f49d1c374b974",
+      "own_delta_base_sha": "889fb19ff610984b5a69029ea978892ac090d7fd",
+      "own_diff_sha256": "b913ce693fb14407a21694ad39eeb06b99c891814ad6a87674bb8860a526c794",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 722,
+      "title": "Declare native overworld alloy world fluids",
+      "head_sha": "80217bc300fa20a6e517b6dea174eb1dab734e33",
+      "own_delta_base_sha": "43adf1443ee126ba6f4e5096a09f49d1c374b974",
+      "own_diff_sha256": "c773c8858b87603f22029cd1c0fb09a9a41ab6892db38086ae330f606e92bbe6",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 726,
+      "title": "Declare Manyullyn, Hepatizon, Queen's Slime and Soulsteel fluids",
+      "head_sha": "7f5c97b1e2dd50ba7ca234560f58367f456c429a",
+      "own_delta_base_sha": "80217bc300fa20a6e517b6dea174eb1dab734e33",
+      "own_diff_sha256": "8edc51ad1098a8346144df26f961f11f85ea02731ba4b56b0a8a1e081a01dc3e",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 731,
+      "title": "Declare stone world liquids without masonry block collisions",
+      "head_sha": "a13797f0882034248ac60f8542cf278391796f95",
+      "own_delta_base_sha": "7f5c97b1e2dd50ba7ca234560f58367f456c429a",
+      "own_diff_sha256": "de7321092ee379ade34ca41c9f10c48538eff08f36972ae7b4d7f6ec2b0a2d56",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 733,
+      "title": "Declare Emerald, Quartz, Amethyst and Diamond world fluids",
+      "head_sha": "e07225fbf72fd012b4454b4ef6b711f3ee1ea268",
+      "own_delta_base_sha": "a13797f0882034248ac60f8542cf278391796f95",
+      "own_diff_sha256": "a707679442cd70a5ab6ef93c03930518126107f754a2ff3330aa1f6df80bac27",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 738,
+      "title": "Declare Blazing Blood and Fiery Liquid world fluids",
+      "head_sha": "3acf4fc1fd1b146ab96246d7ebf92034f33d0fba",
+      "own_delta_base_sha": "e07225fbf72fd012b4454b4ef6b711f3ee1ea268",
+      "own_diff_sha256": "659cdb51bf7a340e674484c75b8d67299236c5f9746a498ef240e90855102b60",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 743,
+      "title": "Declare remaining conventional molten metal world fluids",
+      "head_sha": "15aa913b3e6e7da964f2ca73104de8f5005c6dec",
+      "own_delta_base_sha": "3acf4fc1fd1b146ab96246d7ebf92034f33d0fba",
+      "own_diff_sha256": "1c6ef69c9e1b8439da951e45d71f0cdac36ac1dfd6f2f41cd7d17a99354873c6",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 750,
+      "title": "Declare cool soup and stew world fluids",
+      "head_sha": "6e46fd8c3dcdb9ae94221bde2576808f358e7d5a",
+      "own_delta_base_sha": "15aa913b3e6e7da964f2ca73104de8f5005c6dec",
+      "own_diff_sha256": "15a776171ed3fa8cfd2e6b1db431be41302ef157b13f77345e54ea49e200bb05",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 757,
+      "title": "Declare molten glass world fluid with source flow policy",
+      "head_sha": "d0227d252ee10d35b25b4f27e62d82bd5a105aa8",
+      "own_delta_base_sha": "6e46fd8c3dcdb9ae94221bde2576808f358e7d5a",
+      "own_diff_sha256": "d06b9e070a147e230e02dd22e336a2868210aefd112c709e93b6a4547cdd2568",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 765,
+      "title": "Declare Venom Honey and Liquid Soul contact-effect fluids",
+      "head_sha": "4798a0cb184adaf85a943b27681d54f7e824f260",
+      "own_delta_base_sha": "d0227d252ee10d35b25b4f27e62d82bd5a105aa8",
+      "own_diff_sha256": "178037e47aa7253b6f5476a347ee56b312d6621b5b66ed034e71107e809b3036",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 768,
+      "title": "Declare Magma world fluid with source slime and burn properties",
+      "head_sha": "e5bbbbb1b9a89d1ad1dcc27514fc405daacb468a",
+      "own_delta_base_sha": "4798a0cb184adaf85a943b27681d54f7e824f260",
+      "own_diff_sha256": "b24f811f020c7229a8b85dd23da0dbf3648dcc367b1568119233bb2ad5ef1736",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 784,
+      "title": "Declare Ichor and Cinderslime upward world fluids",
+      "head_sha": "9da6c61c74940eeb3b2430c17696f0acc54d63b3",
+      "own_delta_base_sha": "e5bbbbb1b9a89d1ad1dcc27514fc405daacb468a",
+      "own_diff_sha256": "6e6ceb80f41e5b54ca67216ad5b9fbe3c1c01d1022f2d593b2795ce447a3756b",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 791,
+      "title": "Protect fluid contact effects from generic curative items",
+      "head_sha": "b1bec77708152d0fb49cbcbf239a890332426b1c",
+      "own_delta_base_sha": "9da6c61c74940eeb3b2430c17696f0acc54d63b3",
+      "own_diff_sha256": "73f19b31ee53c17b48bb47b83ee547044aac02f6efda9a1c13dce6a6e87e3218",
+      "group": "contact_and_effect_retention",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Existing equipment/motion foundations do not establish world-contact effect grant, curative or source sound parity."
+    },
+    {
+      "number": 798,
+      "title": "Declare Earth Slime with Bouncy player landing effect",
+      "head_sha": "0ab9bfd347fac67524dcd6f1e7a034692d015e66",
+      "own_delta_base_sha": "b1bec77708152d0fb49cbcbf239a890332426b1c",
+      "own_diff_sha256": "381a954d56d7659c9c03f79858796f169d284e6ed54be5ddbc1b758d60e98a29",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 801,
+      "title": "Declare Sky Slime with additive Ricochet contact effect",
+      "head_sha": "7c6e4626a9995b86180cfd92eca20a8eb5ddab8a",
+      "own_delta_base_sha": "0ab9bfd347fac67524dcd6f1e7a034692d015e66",
+      "own_diff_sha256": "da2a1bcab3ce553f8c56f8f11e3cf83a85f976d71a78d4348bcb09adab4be784",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 804,
+      "title": "Declare Ender fluids with player Enderference teleport guards",
+      "head_sha": "74b523d4b30bc2cd031e9d40998abb7a85217736",
+      "own_delta_base_sha": "7c6e4626a9995b86180cfd92eca20a8eb5ddab8a",
+      "own_diff_sha256": "7904458775382a4bd388057c2fb4339287e14279c2b4a5839ca5dd28f2ee6c82",
+      "group": "family_declaration",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Old declaration schema is not the Pluto Definition schema. Nine-level downward kernel and new routing subset do not establish all original fluid semantics."
+    },
+    {
+      "number": 811,
+      "title": "Connect Bouncy landing and turn sounds to source slime samples",
+      "head_sha": "bfb7efc9e379e2e0e3f16ed6da8462c8887480d1",
+      "own_delta_base_sha": "74b523d4b30bc2cd031e9d40998abb7a85217736",
+      "own_diff_sha256": "edbdc4b3797f2cd47164229a95ba69a7ddc0939df5e61ea5dae14d42b09660cf",
+      "group": "contact_and_effect_retention",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Existing equipment/motion foundations do not establish world-contact effect grant, curative or source sound parity."
+    },
+    {
+      "number": 824,
+      "title": "Declare source camera fog ranges and explicit world-fluid tints",
+      "head_sha": "986f682af56ef71cd3c88f6c289cb865abd6bf19",
+      "own_delta_base_sha": "bfb7efc9e379e2e0e3f16ed6da8462c8887480d1",
+      "own_diff_sha256": "9c0f22027d9878f66bcbf9787a05e19f11a5fd655fd11e66e2fa250812641150",
+      "group": "visuals",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Shared render appearance exists; source fog/camera and complete 70-family consumer absent."
+    },
+    {
+      "number": 830,
+      "title": "Enable runtime source fog colors for 57 untinted world fluids",
+      "head_sha": "37247d5737ace65b89bf4bb27c510e67a13b2777",
+      "own_delta_base_sha": "986f682af56ef71cd3c88f6c289cb865abd6bf19",
+      "own_diff_sha256": "73f155be3a8619b13b2b4af0a108282dd38833f33d77d2f9ee3cbe6bcc9d6eb2",
+      "group": "visuals",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Shared render appearance exists; source fog/camera and complete 70-family consumer absent."
+    },
+    {
+      "number": 835,
+      "title": "feat(tconstruct): add source camera overlays for 70 world fluids",
+      "head_sha": "c9238186fbc3c869c38b5ec08e36cbd9509a9984",
+      "own_delta_base_sha": "37247d5737ace65b89bf4bb27c510e67a13b2777",
+      "own_diff_sha256": "7fb3519c6e653f75054a8977193fdef779c61ecce4bd7f42fd0095848acb2904",
+      "group": "visuals",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Shared render appearance exists; source fog/camera and complete 70-family consumer absent."
+    },
+    {
+      "number": 866,
+      "title": "feat(tconstruct): declare lava path nodes for 59 hot world fluids",
+      "head_sha": "9a4faf43b900d12de5e7f0af39d3a27d55ad940c",
+      "own_delta_base_sha": "c9238186fbc3c869c38b5ec08e36cbd9509a9984",
+      "own_diff_sha256": "eac273f187b3778b7167fb95dd1c69223376c6772c49f5128b338ef32b6fc25b",
+      "group": "path_and_drowning",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Ordinary custom block is not native FluidKind; path/drowning native policy remains absent."
+    },
+    {
+      "number": 932,
+      "title": "Declare source slime-fluid drowning immunity for #379",
+      "head_sha": "d82b7664cfda55a8a8e850e97808c77dcdbcb732",
+      "own_delta_base_sha": "9a4faf43b900d12de5e7f0af39d3a27d55ad940c",
+      "own_diff_sha256": "ef1267e0177e007016334027f7bef8bf43cffe86f98ac519e6dbb886bae2342c",
+      "group": "path_and_drowning",
+      "decision": "preserve_source_not_adopted_as_complete_fluid_feature",
+      "feature_complete": false,
+      "notes": "Ordinary custom block is not native FluidKind; path/drowning native policy remains absent."
+    }
+  ]
+}

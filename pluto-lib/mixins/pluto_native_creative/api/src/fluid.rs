@@ -4,6 +4,8 @@
 //! pickup and ordinary block-state persistence. It is not a Forge FluidType API.
 pub mod contact;
 mod declaration;
+mod slope;
+pub use slope::SlopeDistance;
 pub use declaration::{register_declarations, Declaration};
 
 use serde_json::{Value, json};
@@ -172,6 +174,7 @@ impl RegistryRevision {
 struct Registry {
     definitions: BTreeMap<String, Arc<Definition>>,
     renders: BTreeMap<String, Arc<RenderDefinition>>,
+    slopes: BTreeMap<String, SlopeDistance>,
     revision: RegistryRevision,
 }
 impl Default for Registry {
@@ -179,6 +182,7 @@ impl Default for Registry {
         Self {
             definitions: BTreeMap::new(),
             renders: BTreeMap::new(),
+            slopes: BTreeMap::new(),
             revision: RegistryRevision::new(),
         }
     }
@@ -247,9 +251,16 @@ fn register_entries(
     all: &mut Registry,
     entries: Vec<(Definition, Option<RenderDefinition>)>,
 ) -> Result<(), String> {
+    register_entries_with_slope(all, entries.into_iter().map(|(d, r)| (d, r, None)).collect())
+}
+fn register_entries_with_slope(
+    all: &mut Registry,
+    entries: Vec<(Definition, Option<RenderDefinition>, Option<SlopeDistance>)>,
+) -> Result<(), String> {
     let mut candidate = all.definitions.clone();
     let mut renders = all.renders.clone();
-    for (definition, render) in entries {
+    let mut slopes = all.slopes.clone();
+    for (definition, render, slope) in entries {
         if let Some(old) = candidate.get(&definition.id) {
             if **old != definition {
                 return Err("fluid already has another definition".into());
@@ -262,6 +273,11 @@ fn register_entries(
                     return Err("fluid already has another render definition".into());
                 }
             }
+            if let Some(slope) = slope {
+                if slopes.get(&definition.id) != Some(&slope) {
+                    return Err("fluid already has another slope policy".into());
+                }
+            }
             continue;
         }
         if candidate
@@ -272,6 +288,9 @@ fn register_entries(
         }
         let render = render.unwrap_or_else(|| RenderDefinition::default_for(&definition));
         renders.insert(definition.id.clone(), Arc::new(render));
+        if let Some(slope) = slope {
+            slopes.insert(definition.id.clone(), slope);
+        }
         candidate.insert(definition.id.clone(), Arc::new(definition));
     }
     if candidate.len() != all.definitions.len() {
@@ -281,6 +300,7 @@ fn register_entries(
         all.revision = RegistryRevision::new();
         all.definitions = candidate;
         all.renders = renders;
+        all.slopes = slopes;
     }
     Ok(())
 }
@@ -295,8 +315,14 @@ pub struct RegistrySnapshot {
     by_block: BTreeMap<String, Arc<Definition>>,
     by_bucket: BTreeMap<String, Arc<Definition>>,
     renders: BTreeMap<String, Arc<RenderDefinition>>,
+    slopes: BTreeMap<String, SlopeDistance>,
 }
 impl RegistrySnapshot {
+    /// Explicit bounded horizontal routing policy from this same snapshot.
+    /// None keeps the original all-directions behavior, not a water default.
+    pub fn slope_distance(&self, id: &str) -> Option<SlopeDistance> {
+        self.slopes.get(id).copied()
+    }
     /// Display facts from exactly the same registration revision as `get`.
     pub fn render(&self, id: &str) -> Option<&RenderDefinition> {
         self.renders.get(id).map(Arc::as_ref)
@@ -328,11 +354,12 @@ impl RegistrySnapshot {
 /// Capture one complete registry revision. All lookups in this snapshot refer
 /// to that same set, even if another startup participant registers later.
 pub fn registry_snapshot() -> Result<RegistrySnapshot, String> {
-    let (by_id, renders, revision) = {
+    let (by_id, renders, slopes, revision) = {
         let registry = registry().read().map_err(|_| "fluid registry poisoned")?;
         (
             registry.definitions.clone(),
             registry.renders.clone(),
+            registry.slopes.clone(),
             registry.revision.clone(),
         )
     };
@@ -350,7 +377,19 @@ pub fn registry_snapshot() -> Result<RegistrySnapshot, String> {
         by_block,
         by_bucket,
         renders,
+        slopes,
     })
+}
+
+/// Resolve the immutable registered routing choice. An absent policy is the
+/// legacy all-directions mode. Unknown identity and poisoned owner are errors,
+/// never a silent downgrade from an explicit policy.
+pub fn registered_slope_distance(id: &str) -> Result<Option<SlopeDistance>, String> {
+    let all = registry().read().map_err(|_| "fluid registry poisoned")?;
+    if !all.definitions.contains_key(id) {
+        return Err("fluid is not registered".into());
+    }
+    Ok(all.slopes.get(id).copied())
 }
 
 pub fn get(id: &str) -> Option<Arc<Definition>> {
@@ -444,6 +483,18 @@ pub fn pickup_source(world: &mut impl World, pos: Position, definition: &Definit
 /// One due scheduled BLOCK tick. The native scheduler persists the queue. Reads
 /// at unloaded boundaries are conservative and retry; they never load chunks.
 pub fn tick(world: &mut impl World, pos: Position, definition: &Definition) {
+    tick_inner(world, pos, definition, None);
+}
+/// Explicit bounded slope routing. Other flow, writes and scheduling retain
+/// the existing finite downward kernel. No contact or native FluidKind is added.
+pub fn tick_with_slope(
+    world: &mut impl World, pos: Position, definition: &Definition, distance: SlopeDistance,
+) {
+    tick_inner(world, pos, definition, Some(distance));
+}
+fn tick_inner(
+    world: &mut impl World, pos: Position, definition: &Definition, distance: Option<SlopeDistance>,
+) {
     let old = world.sample(pos);
     let Some(mut level) = same_level(&old, &definition.id) else {
         return;
@@ -514,7 +565,18 @@ pub fn tick(world: &mut impl World, pos: Position, definition: &Definition) {
     if next >= 8 {
         return;
     }
-    for d in HORIZONTAL {
+    let selected = match distance {
+        None => [true; 4],
+        Some(distance) => match slope::select(world, pos, definition, next, distance) {
+            Some(selected) => selected,
+            None => {
+                world.schedule(pos, definition.tick_delay);
+                return;
+            }
+        },
+    };
+    for (index, d) in HORIZONTAL.into_iter().enumerate() {
+        if !selected[index] { continue; }
         let Some(p) = offset(pos, d) else { continue };
         let old = world.sample(p);
         if old == Sample::Unloaded {

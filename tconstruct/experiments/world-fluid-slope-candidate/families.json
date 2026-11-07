@@ -1,0 +1,211 @@
+{
+  "schema": "tconstruct_world_fluid_slope_candidate_v1",
+  "source_commit": "d82b7664cfda55a8a8e850e97808c77dcdbcb732",
+  "adoption": "NOT ACTIVATED: flow-routing subset only; native contact/physics/fog/path contracts remain missing",
+  "entries": [
+    {
+      "name": "molten_iron",
+      "path": "tconstruct/content/data/tconstruct/registered_fluid/molten_iron.json",
+      "blob": "85a0ac476839f7b3874e644b0e407f08d421b07f",
+      "source": {
+        "source": "tconstruct:molten_iron",
+        "flowing": "tconstruct:flowing_molten_iron",
+        "block": "tconstruct:molten_iron_fluid",
+        "bucket": "tconstruct:molten_iron_bucket",
+        "policy": {
+          "drop_off": 3,
+          "slope_distance": 3,
+          "tick_delay": 30,
+          "source_conversion": false
+        },
+        "visual": {
+          "still": "tconstruct:fluid/molten/ore/iron/still",
+          "flowing": "tconstruct:fluid/molten/ore/iron/flowing",
+          "tint": 16777215,
+          "emission": 12,
+          "fog": {
+            "start": 0.25,
+            "end": 2,
+            "calculate_color": true
+          },
+          "camera": {
+            "texture": "tconstruct:fluid/molten/ore/iron/camera",
+            "opacity": 0.1
+          }
+        },
+        "interaction": {
+          "travel": {
+            "acceleration": 0.02,
+            "horizontal_drag": 0.800000011920929,
+            "vertical_drag": 0.800000011920929,
+            "gravity_scale": 0.0625,
+            "jump": 0.03999999910593033
+          },
+          "motion_scale": 0.0023333333333333335,
+          "can_swim": false,
+          "can_drown": false,
+          "extinguishes": false,
+          "fall_distance_scale": 0.5,
+          "burn": {
+            "seconds": 10,
+            "damage": 5
+          }
+        },
+        "path_type": "lava"
+      }
+    },
+    {
+      "name": "molten_gold",
+      "path": "tconstruct/content/data/tconstruct/registered_fluid/molten_gold.json",
+      "blob": "e36a2c8d616dd8cb3a55a4feee14edf48347f3bb",
+      "source": {
+        "source": "tconstruct:molten_gold",
+        "flowing": "tconstruct:flowing_molten_gold",
+        "block": "tconstruct:molten_gold_fluid",
+        "bucket": "tconstruct:molten_gold_bucket",
+        "policy": {
+          "drop_off": 3,
+          "slope_distance": 3,
+          "tick_delay": 30,
+          "source_conversion": false
+        },
+        "visual": {
+          "still": "tconstruct:fluid/molten/ore/gold/still",
+          "flowing": "tconstruct:fluid/molten/ore/gold/flowing",
+          "tint": 16777215,
+          "emission": 12,
+          "fog": {
+            "start": 0.25,
+            "end": 2,
+            "calculate_color": true
+          },
+          "camera": {
+            "texture": "tconstruct:fluid/molten/ore/gold/camera",
+            "opacity": 0.1
+          }
+        },
+        "interaction": {
+          "travel": {
+            "acceleration": 0.02,
+            "horizontal_drag": 0.800000011920929,
+            "vertical_drag": 0.800000011920929,
+            "gravity_scale": 0.0625,
+            "jump": 0.03999999910593033
+          },
+          "motion_scale": 0.0023333333333333335,
+          "can_swim": false,
+          "can_drown": false,
+          "extinguishes": false,
+          "fall_distance_scale": 0.5,
+          "burn": {
+            "seconds": 10,
+            "damage": 5
+          }
+        },
+        "path_type": "lava"
+      }
+    },
+    {
+      "name": "molten_copper",
+      "path": "tconstruct/content/data/tconstruct/registered_fluid/molten_copper.json",
+      "blob": "3ce4e5126997d2977f574624e306f8d24fff0dac",
+      "source": {
+        "source": "tconstruct:molten_copper",
+        "flowing": "tconstruct:flowing_molten_copper",
+        "block": "tconstruct:molten_copper_fluid",
+        "bucket": "tconstruct:molten_copper_bucket",
+        "policy": {
+          "drop_off": 3,
+          "slope_distance": 3,
+          "tick_delay": 30,
+          "source_conversion": false
+        },
+        "visual": {
+          "still": "tconstruct:fluid/molten/ore/copper/still",
+          "flowing": "tconstruct:fluid/molten/ore/copper/flowing",
+          "tint": 16777215,
+          "emission": 12,
+          "fog": {
+            "start": 0.25,
+            "end": 2,
+            "calculate_color": true
+          },
+          "camera": {
+            "texture": "tconstruct:fluid/molten/ore/copper/camera",
+            "opacity": 0.1
+          }
+        },
+        "interaction": {
+          "travel": {
+            "acceleration": 0.02,
+            "horizontal_drag": 0.800000011920929,
+            "vertical_drag": 0.800000011920929,
+            "gravity_scale": 0.0625,
+            "jump": 0.03999999910593033
+          },
+          "motion_scale": 0.0023333333333333335,
+          "can_swim": false,
+          "can_drown": false,
+          "extinguishes": false,
+          "fall_distance_scale": 0.5,
+          "burn": {
+            "seconds": 10,
+            "damage": 5
+          }
+        },
+        "path_type": "lava"
+      }
+    },
+    {
+      "name": "molten_cobalt",
+      "path": "tconstruct/content/data/tconstruct/registered_fluid/molten_cobalt.json",
+      "blob": "2e26a61277e31f06750a8850e47d0a5db3dd2c09",
+      "source": {
+        "source": "tconstruct:molten_cobalt",
+        "flowing": "tconstruct:flowing_molten_cobalt",
+        "block": "tconstruct:molten_cobalt_fluid",
+        "bucket": "tconstruct:molten_cobalt_bucket",
+        "policy": {
+          "drop_off": 3,
+          "slope_distance": 3,
+          "tick_delay": 30,
+          "source_conversion": false
+        },
+        "visual": {
+          "still": "tconstruct:fluid/molten/ore/cobalt/still",
+          "flowing": "tconstruct:fluid/molten/ore/cobalt/flowing",
+          "tint": 16777215,
+          "emission": 8,
+          "fog": {
+            "start": 0.25,
+            "end": 2,
+            "calculate_color": true
+          },
+          "camera": {
+            "texture": "tconstruct:fluid/molten/ore/cobalt/camera",
+            "opacity": 0.1
+          }
+        },
+        "interaction": {
+          "travel": {
+            "acceleration": 0.02,
+            "horizontal_drag": 0.800000011920929,
+            "vertical_drag": 0.800000011920929,
+            "gravity_scale": 0.0625,
+            "jump": 0.03999999910593033
+          },
+          "motion_scale": 0.0023333333333333335,
+          "can_swim": false,
+          "can_drown": false,
+          "extinguishes": false,
+          "fall_distance_scale": 0.5,
+          "burn": {
+            "seconds": 10,
+            "damage": 6
+          }
+        },
+        "path_type": "lava"
+      }
+    }
+  ]
+}

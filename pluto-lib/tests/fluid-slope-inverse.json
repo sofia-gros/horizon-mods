@@ -1,0 +1,136 @@
+{
+  "schema": "fluid_slope_inverse_v1",
+  "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "files": {
+    "pluto-lib/mixins/pluto_native_creative/api/src/fluid.rs": {
+      "before_sha256": "4d1026bd95c479c0415a8c21b5cf2d8b28d1be6e1629fa7bf3e90ea4cd27978d",
+      "before_git_blob": "6d8666e3067bd6f490de30aa6d37fd5905f99551",
+      "after_sha256": "81224d156744bd2c0b84db9082889d3082dcbeeaf3d36a84542a0a1216755757",
+      "edits": [
+        {
+          "before": "mod declaration;\n",
+          "after": "mod declaration;\nmod slope;\npub use slope::SlopeDistance;\n"
+        },
+        {
+          "before": "    renders: BTreeMap<String, Arc<RenderDefinition>>,\n    revision: RegistryRevision,",
+          "after": "    renders: BTreeMap<String, Arc<RenderDefinition>>,\n    slopes: BTreeMap<String, SlopeDistance>,\n    revision: RegistryRevision,"
+        },
+        {
+          "before": "            renders: BTreeMap::new(),\n",
+          "after": "            renders: BTreeMap::new(),\n            slopes: BTreeMap::new(),\n"
+        },
+        {
+          "before": "    let mut candidate = all.definitions.clone();\n    let mut renders = all.renders.clone();\n    for (definition, render) in entries {",
+          "after": "    register_entries_with_slope(all, entries.into_iter().map(|(d, r)| (d, r, None)).collect())\n}\nfn register_entries_with_slope(\n    all: &mut Registry,\n    entries: Vec<(Definition, Option<RenderDefinition>, Option<SlopeDistance>)>,\n) -> Result<(), String> {\n    let mut candidate = all.definitions.clone();\n    let mut renders = all.renders.clone();\n    let mut slopes = all.slopes.clone();\n    for (definition, render, slope) in entries {"
+        },
+        {
+          "before": "            continue;\n        }\n        if candidate",
+          "after": "            if let Some(slope) = slope {\n                if slopes.get(&definition.id) != Some(&slope) {\n                    return Err(\"fluid already has another slope policy\".into());\n                }\n            }\n            continue;\n        }\n        if candidate"
+        },
+        {
+          "before": "        renders.insert(definition.id.clone(), Arc::new(render));",
+          "after": "        renders.insert(definition.id.clone(), Arc::new(render));\n        if let Some(slope) = slope {\n            slopes.insert(definition.id.clone(), slope);\n        }"
+        },
+        {
+          "before": "        all.renders = renders;",
+          "after": "        all.renders = renders;\n        all.slopes = slopes;"
+        },
+        {
+          "before": "    renders: BTreeMap<String, Arc<RenderDefinition>>,\n}\nimpl RegistrySnapshot",
+          "after": "    renders: BTreeMap<String, Arc<RenderDefinition>>,\n    slopes: BTreeMap<String, SlopeDistance>,\n}\nimpl RegistrySnapshot"
+        },
+        {
+          "before": "impl RegistrySnapshot {\n",
+          "after": "impl RegistrySnapshot {\n    /// Explicit bounded horizontal routing policy from this same snapshot.\n    /// None keeps the original all-directions behavior, not a water default.\n    pub fn slope_distance(&self, id: &str) -> Option<SlopeDistance> {\n        self.slopes.get(id).copied()\n    }\n"
+        },
+        {
+          "before": "    let (by_id, renders, revision) = {",
+          "after": "    let (by_id, renders, slopes, revision) = {"
+        },
+        {
+          "before": "            registry.renders.clone(),\n",
+          "after": "            registry.renders.clone(),\n            registry.slopes.clone(),\n"
+        },
+        {
+          "before": "        renders,\n    })",
+          "after": "        renders,\n        slopes,\n    })"
+        },
+        {
+          "before": "pub fn get(id: &str) -> Option<Arc<Definition>> {",
+          "after": "/// Resolve the immutable registered routing choice. An absent policy is the\n/// legacy all-directions mode. Unknown identity and poisoned owner are errors,\n/// never a silent downgrade from an explicit policy.\npub fn registered_slope_distance(id: &str) -> Result<Option<SlopeDistance>, String> {\n    let all = registry().read().map_err(|_| \"fluid registry poisoned\")?;\n    if !all.definitions.contains_key(id) {\n        return Err(\"fluid is not registered\".into());\n    }\n    Ok(all.slopes.get(id).copied())\n}\n\npub fn get(id: &str) -> Option<Arc<Definition>> {"
+        },
+        {
+          "before": "pub fn tick(world: &mut impl World, pos: Position, definition: &Definition) {",
+          "after": "pub fn tick(world: &mut impl World, pos: Position, definition: &Definition) {\n    tick_inner(world, pos, definition, None);\n}\n/// Explicit bounded slope routing. Other flow, writes and scheduling retain\n/// the existing finite downward kernel. No contact or native FluidKind is added.\npub fn tick_with_slope(\n    world: &mut impl World, pos: Position, definition: &Definition, distance: SlopeDistance,\n) {\n    tick_inner(world, pos, definition, Some(distance));\n}\nfn tick_inner(\n    world: &mut impl World, pos: Position, definition: &Definition, distance: Option<SlopeDistance>,\n) {"
+        },
+        {
+          "before": "    for d in HORIZONTAL {\n        let Some(p) = offset(pos, d) else { continue };",
+          "after": "    let selected = match distance {\n        None => [true; 4],\n        Some(distance) => match slope::select(world, pos, definition, next, distance) {\n            Some(selected) => selected,\n            None => {\n                world.schedule(pos, definition.tick_delay);\n                return;\n            }\n        },\n    };\n    for (index, d) in HORIZONTAL.into_iter().enumerate() {\n        if !selected[index] { continue; }\n        let Some(p) = offset(pos, d) else { continue };"
+        }
+      ]
+    },
+    "pluto-lib/mixins/pluto_native_creative/api/src/fluid/declaration.rs": {
+      "before_sha256": "a784bb429ef677221b5376a0b75f7a60a6af238cf61463a7368919f60613fa0f",
+      "before_git_blob": "75d9db55e6caa6ac66059d08a6c25ac293645f84",
+      "after_sha256": "bc6e0574af397f429f5acccf3f3c8f3f57f7b391b6060cb85fcda9c4a718a58a",
+      "edits": [
+        {
+          "before": "use super::{Definition, RenderDefinition};",
+          "after": "use super::{Definition, RenderDefinition, SlopeDistance};"
+        },
+        {
+          "before": "    render: RenderDefinition,\n}",
+          "after": "    render: RenderDefinition,\n    slope_distance: Option<SlopeDistance>,\n}"
+        },
+        {
+          "before": "        Ok(Self { definition, render })",
+          "after": "        Ok(Self { definition, render, slope_distance: None })"
+        },
+        {
+          "before": "    pub fn definition(&self) -> &Definition {",
+          "after": "    /// Opt in to bounded nearest-drop routing before the first registration.\n    /// This cannot retrofit a live definition or change its other flow facts.\n    pub fn with_slope_distance(mut self, distance: SlopeDistance) -> Self {\n        self.slope_distance = Some(distance);\n        self\n    }\n\n    pub fn slope_distance(&self) -> Option<SlopeDistance> {\n        self.slope_distance\n    }\n\n    pub fn definition(&self) -> &Definition {"
+        },
+        {
+          "before": "    super::register_all_with_render(\n        declarations.into_iter().map(|entry| (entry.definition, entry.render)),\n    )",
+          "after": "    let entries = declarations.into_iter().map(|entry| {\n        // Keep registration validation identical even though the fields are private.\n        entry.definition.validate()?;\n        entry.render.validate()?;\n        Ok((entry.definition, Some(entry.render), entry.slope_distance))\n    }).collect::<Result<Vec<_>, String>>()?;\n    if entries.is_empty() { return Ok(()); }\n    let mut all = super::registry().write().map_err(|_| \"fluid registry poisoned\")?;\n    super::register_entries_with_slope(&mut all, entries)"
+        }
+      ]
+    },
+    "pluto-lib/mixins/pluto_native_creative/world-fluid.rs": {
+      "before_sha256": "95cf6ad124917db642c443a2ecb00156f730ca0ebd391f801df91794c16c970d",
+      "before_git_blob": "74a3ef01879119fce7462f4d8481abb207b6b596",
+      "after_sha256": "57270a215911652ef5cbe58047d1603a255246f9708c147e4c919bd74af5d562",
+      "edits": [
+        {
+          "before": "    fluid::tick(\n        &mut Adapter {\n            level,\n            ticks,\n            spreading_from: Some(p),\n        },\n        [p.x, p.y, p.z],\n        &d,\n    );",
+          "after": "    // Definition and optional policy are immutable within the same registry.\n    // Poison/missing identity must not silently fall back from explicit routing.\n    let Ok(distance) = fluid::registered_slope_distance(&d.id) else { return; };\n    let mut world = Adapter { level, ticks, spreading_from: Some(p) };\n    match distance {\n        Some(distance) => fluid::tick_with_slope(&mut world, [p.x, p.y, p.z], &d, distance),\n        None => fluid::tick(&mut world, [p.x, p.y, p.z], &d),\n    }"
+        }
+      ]
+    }
+  },
+  "official_algorithm_source": {
+    "repository": "horizon-rust/horizon",
+    "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "path": "crates/horizon-world/src/level/fluids.rs",
+    "sha256": "89aa85c9cc738c864bc5aa77e5eb6e6b3a5d53f2aab20a2fed3717ba1c820139",
+    "source_spans": "slope_distance / spread_targets / is_water_hole: concepts reused, no native method copied or invoked by this candidate"
+  },
+  "prepared_rust_tests": [
+    "distance_is_explicit_bounded_and_read_only",
+    "direct_drop_wins_and_tied_drops_keep_native_iteration_order",
+    "shorter_route_wins_but_equal_shortest_routes_are_kept",
+    "distance_counts_steps_after_the_first_neighbor",
+    "no_reachable_drop_preserves_all_eligible_directions",
+    "sources_foreign_fluid_falling_and_stronger_neighbors_are_not_written",
+    "unloaded_route_or_floor_defers_horizontal_writes_and_schedules_retry",
+    "coordinates_at_the_integer_boundary_never_wrap",
+    "bounded_search_has_no_writes_and_at_most_968_reads",
+    "denied_commit_cannot_publish_selected_fluid",
+    "legacy_tick_still_spreads_all_sides_while_explicit_tick_selects",
+    "vertical_priority_is_unchanged",
+    "atomic_registry_owns_slope_and_preserves_it_on_legacy_repeat",
+    "adding_policy_to_existing_legacy_definition_is_rejected"
+  ],
+  "rust_execution": "NOT RUN",
+  "native_execution": "NOT RUN"
+}

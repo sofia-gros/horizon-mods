@@ -1,6 +1,6 @@
 //! One validated content/display pair reused for generation and registration.
 //! This is owned declaration data, not an installed asset or registration receipt.
-use super::{Definition, RenderDefinition};
+use super::{Definition, RenderDefinition, SlopeDistance};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 pub struct Declaration {
     definition: Definition,
     render: RenderDefinition,
+    slope_distance: Option<SlopeDistance>,
 }
 
 impl Declaration {
@@ -18,7 +19,18 @@ impl Declaration {
     pub fn new(definition: Definition, render: RenderDefinition) -> Result<Self, String> {
         definition.validate()?;
         render.validate()?;
-        Ok(Self { definition, render })
+        Ok(Self { definition, render, slope_distance: None })
+    }
+
+    /// Opt in to bounded nearest-drop routing before the first registration.
+    /// This cannot retrofit a live definition or change its other flow facts.
+    pub fn with_slope_distance(mut self, distance: SlopeDistance) -> Self {
+        self.slope_distance = Some(distance);
+        self
+    }
+
+    pub fn slope_distance(&self) -> Option<SlopeDistance> {
+        self.slope_distance
     }
 
     pub fn definition(&self) -> &Definition {
@@ -50,9 +62,15 @@ impl Declaration {
 pub fn register_declarations(
     declarations: impl IntoIterator<Item = Declaration>,
 ) -> Result<(), String> {
-    super::register_all_with_render(
-        declarations.into_iter().map(|entry| (entry.definition, entry.render)),
-    )
+    let entries = declarations.into_iter().map(|entry| {
+        // Keep registration validation identical even though the fields are private.
+        entry.definition.validate()?;
+        entry.render.validate()?;
+        Ok((entry.definition, Some(entry.render), entry.slope_distance))
+    }).collect::<Result<Vec<_>, String>>()?;
+    if entries.is_empty() { return Ok(()); }
+    let mut all = super::registry().write().map_err(|_| "fluid registry poisoned")?;
+    super::register_entries_with_slope(&mut all, entries)
 }
 
 #[cfg(test)]

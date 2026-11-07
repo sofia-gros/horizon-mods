@@ -87,15 +87,14 @@ pub(super) fn tick(
         return;
     };
     *handled = true;
-    fluid::tick(
-        &mut Adapter {
-            level,
-            ticks,
-            spreading_from: Some(p),
-        },
-        [p.x, p.y, p.z],
-        &d,
-    );
+    // Definition and optional policy are immutable within the same registry.
+    // Poison/missing identity must not silently fall back from explicit routing.
+    let Ok(distance) = fluid::registered_slope_distance(&d.id) else { return; };
+    let mut world = Adapter { level, ticks, spreading_from: Some(p) };
+    match distance {
+        Some(distance) => fluid::tick_with_slope(&mut world, [p.x, p.y, p.z], &d, distance),
+        None => fluid::tick(&mut world, [p.x, p.y, p.z], &d),
+    }
 }
 pub(super) fn neighbor(level: &GameLevel<'_>, ticks: &mut Ticks, p: BlockPos, state: BlockStateId) {
     if !level.native_authoritative {
