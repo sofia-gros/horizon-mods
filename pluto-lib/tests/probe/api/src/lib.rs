@@ -8,7 +8,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
     ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
-    ServerPlayConnectionEvents::JOIN.register(|p| println!("PLUTO-PROBE join name={}", p.name));
+    ServerPlayConnectionEvents::JOIN.register(|p| {
+        println!("PLUTO-PROBE join name={}", p.name);
+        let said = p.player.send_message("PlutoLib says hello");
+        let left = p.player.give_item("minecraft:stick", 1);
+        println!("PLUTO-PROBE player send_message={said} give_left={left}");
+    });
     ServerChunkEvents::CHUNK_LOAD.register(|c| {
         static ONCE: AtomicBool = AtomicBool::new(false);
         if !ONCE.swap(true, Ordering::Relaxed) {

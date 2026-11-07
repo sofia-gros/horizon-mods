@@ -8,4 +8,5 @@ pub mod item_api_v1;
 pub mod lifecycle_events_v1;
 pub mod loot_api_v2;
 pub mod networking_api_v1;
+pub mod player_api;
 pub mod resource_loader_v0;
