@@ -18,6 +18,8 @@ p.add_argument('--seed', action='append', default=[], help='injection id to keep
 p.add_argument('--keep-module-name', action='append', default=[], help='keep modules with this name (repeatable; for cross-bundle deps)')
 p.add_argument('--tokens-out', type=Path, help='write identifiers used by the kept sources, for another bundle')
 p.add_argument('--all-except', action='append', default=None, metavar='ID', help='keep every injection except these ids (repeatable; pass --all-except NONE for no exclusions)')
+p.add_argument('--avoid-file', action='append', default=[], metavar='HOST_FILE',
+               help='drop every injection whose helpers need a module that edits this Horizon source file (repeatable)')
 p.add_argument('--out', type=Path, required=True, help='fresh bundle directory to write')
 a = p.parse_args()
 if a.out.exists():
@@ -30,6 +32,16 @@ if a.all_except is not None:
     a.seed = [i for i in sd.inj if i not in a.all_except]
 seeds = list(a.seed) + [i for i in sd.inj if any(i.startswith(x) for x in a.keep_prefix)]
 module_ids = [m['id'] for m in sd.T['module'] if any(m['id'].startswith(x) for x in a.keep_prefix) or m['name'] in a.keep_module_name]
+if a.avoid_file:
+    files_of = {}
+    for m in sd.T['module']:
+        files_of.setdefault(m['name'], set()).add(m['file'])
+    def touches(ident):
+        _, mods, _, _ = sd.closure([ident])
+        return any(f in a.avoid_file for n in mods for f in files_of.get(n, ()))
+    dropped_inj = [i for i in seeds if touches(i)]
+    seeds = [i for i in seeds if i not in dropped_inj]
+    print(f'avoiding {len(a.avoid_file)} host file(s): dropped {len(dropped_inj)} injection(s)')
 if not seeds and not module_ids:
     sys.exit('nothing selected: pass --seed or --keep-prefix')
 keep_i, keep_m, keep_s, tokens = sd.closure(seeds, module_ids)

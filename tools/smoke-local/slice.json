@@ -19,5 +19,10 @@
     "pluto_transport_3a-", "pluto_tool_rules-", "pluto_component_display_3a-",
     "pluto_component_bar-", "pluto_items_b2-"
   ],
-  "pluto_guards": ["protection"]
+  "pluto_guards": ["protection"],
+  "launcher_unsafe_files": [
+    "crates/horizon-world/src/worldgen/structure/start.rs",
+    "crates/horizon-world/src/worldgen/feature_graph.rs",
+    "crates/horizon-world/src/worldgen/placement.rs"
+  ]
 }

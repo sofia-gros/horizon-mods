@@ -100,6 +100,11 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 | 2026-11-08 | N2 done: `[api]` + `[dependencies]` works with the official launcher (two experimental bundles linked). Slice 1 adopts it. Our Mixins-CLI pipeline stays as a fast development gate; the launcher's `native-build` becomes the authoritative build for PlutoLib and Tinkers. | Measured, see the spec. |
 | 2026-11-08 | If the overnight items finish before the owner wakes, continue with the long-term plan (§1) in order instead of stopping. | Owner instruction. |
 | 2026-11-08 | Owner widened the run: all existing documents may be deleted and rewritten; local verification replaces waiting for CI; release tags, releases, force-push, issues and repository settings are allowed (settings only if indispensable). | Owner instruction at roadmap review. |
+| 2026-11-08 | N1 to N8 status: N1, N2, N3, N5, N5t (first pass), N7, N8 done; N4 done except making Tinkers a PlutoLib dependant; N6 started (first four modules merged). Continuing with the long-term plan. | Progress record. |
+| 2026-11-08 | PlutoLib events are fed from Horizon's native hook points (`native-hooks.json`, each annotated with its NeoForge event) through one file, `hooks.rs`; Fabric members the host cannot serve are stubs in the support matrix. | Stable surface; less Mixins churn. |
+| 2026-11-08 | Windows CRLF problem fixed at the root: `.gitattributes` forces LF, `check_line_endings.py`, and a lint rule for Python `write_text` without `newline=`. | Owner reported four repeats. |
+| 2026-11-08 | The official launcher drops a whole mod when Mixins refuses any hook, and Mixins breaks `0. ..=1.` in some Horizon files. The shipped Tinkers package is therefore built from the slice (`package_hnmod.py`) and also leaves out every injection that edits those files (`launcher_unsafe_files` in `slice.json`: slime islands, trees, saplings, 17 injections) until Mixins is fixed. | Measured with `native-build`; otherwise users get no Tinkers at all. |
+| 2026-11-08 | Old open PRs: the 250 left are classified (A 9, B 189, C 50, X 2); the A ones are stacked on unmerged B PRs and wait with their chains; B and C are rewritten onto PlutoLib after the modules exist. #832 and #840 were already part of main and are closed. | Roadmap step 5 ordering. |
 
 ## 3. Documentation track
 
