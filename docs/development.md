@@ -34,11 +34,13 @@ Working rules (PlutoLib only, one PR per verification unit, at most 5 open PRs) 
 
 Verified on a Windows PC against Horizon `ebcfa226` and Mixins `5a64af93` (upstream HEAD that day):
 
-- The vertical slice stages (Mixins plan and the PlutoLib `protection` guard pass), builds, launches into a test world with the mod loaded, and in survival mode the inventory crafting grid turns flint and sticks into the three parts and then a flint pickaxe through data recipes (`SMOKE PASS`). See [the Part Builder gap](migration/part-builder-plutolib-gap.md).
+- 287 of 290 TConstruct injections (all but three the pinned Mixins CLI rejects) plus the PlutoLib features whose guards pass stage (Mixins plan, PlutoLib `protection` guard), pass `cargo check`, build, and launch into a test world with the mod loaded. `tools/smoke-local/smoke.py` prints SMOKE PASS: survival crafting through data recipes yields a flint pickaxe, and the real Part Builder block opens a container screen with slots. See [the Part Builder gap](migration/part-builder-plutolib-gap.md).
 
 Not verified / not working:
 
-- Only 1 of 290 TConstruct injections is enabled (the content loader). The rest are parked until re-absorbed. There is no Part Builder block or screen yet: PlutoLib lacks a station-menu API (see the gap document), and the pickaxe is still a template item, not a material-driven tool.
+- The three rejected injections are parked: mining speed (`source-host-mining-context`, `source-client-mining-context`) and Tinkers Chest pick color (`tinkers-chest-pick-color`). Their targets changed upstream.
+- Most enabled hooks are the legacy direct-host hooks, tolerated by the lint baseline. They work at plan and compile level but are not PlutoLib based, and nothing beyond the two smoke assertions was exercised in game (no Part Builder crafting, no mining, no save/reload, no LAN).
+- The staging copy of Horizon is patched in one formatting spot (`0. ..=1.` becomes `0.0..=1.`, same meaning) because Horizon Mixins re-prints edited files from a token stream and produces invalid `0...=1.` (see `staging-normalizations.txt` in the stage output). Five helper sources were adapted to Horizon API changes (`ModelQuad`, `PotionCloud`, `Breath`, `open_container`).
 - 10 of PlutoLib's 11 composition guards fail against this Horizon (advancement, cloud, current_book, equipment, matching, payload, placement, station, terrain, wire_snapshot). The hooks they protect are excluded from the slice and need per-feature re-review.
 - CI changes (pull_request trigger, slice check, weekly upstream drift) have not run on GitHub yet.
 - The tests under `tconstruct/tests` were not green when last run (32 failures, 5 errors of 458); causes not yet triaged.

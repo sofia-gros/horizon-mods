@@ -17,6 +17,7 @@ p.add_argument('--keep-prefix', action='append', default=[], help='keep every in
 p.add_argument('--seed', action='append', default=[], help='injection id to keep (repeatable)')
 p.add_argument('--keep-module-name', action='append', default=[], help='keep modules with this name (repeatable; for cross-bundle deps)')
 p.add_argument('--tokens-out', type=Path, help='write identifiers used by the kept sources, for another bundle')
+p.add_argument('--all-except', action='append', default=None, metavar='ID', help='keep every injection except these ids (repeatable; pass --all-except NONE for no exclusions)')
 p.add_argument('--out', type=Path, required=True, help='fresh bundle directory to write')
 a = p.parse_args()
 if a.out.exists():
@@ -25,6 +26,8 @@ sd.load(a.src)
 missing = [x for x in a.seed if x not in sd.inj]
 if missing:
     sys.exit(f'unknown injection id(s): {missing}')
+if a.all_except is not None:
+    a.seed = [i for i in sd.inj if i not in a.all_except]
 seeds = list(a.seed) + [i for i in sd.inj if any(i.startswith(x) for x in a.keep_prefix)]
 module_ids = [m['id'] for m in sd.T['module'] if any(m['id'].startswith(x) for x in a.keep_prefix) or m['name'] in a.keep_module_name]
 if not seeds and not module_ids:

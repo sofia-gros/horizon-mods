@@ -1,6 +1,10 @@
 {
-  "_comment": "Vertical slice kept enabled while upstream Horizon/Mixins reject the rest. Everything not listed is parked, not deleted: the full manifests are unchanged.",
-  "tconstruct_seeds": ["prepare-station-resources"],
+  "_comment": "Slice kept enabled. TConstruct: every injection except the ones the pinned Mixins CLI rejects on this Horizon (see tools/probe_injections.py). PlutoLib: only the features whose composition guards pass.",
+  "tconstruct_all_except": [
+    "source-host-mining-context",
+    "source-client-mining-context",
+    "tinkers-chest-pick-color"
+  ],
   "pluto_seeds": [
     "pluto_native_creative-protection-player-scope",
     "pluto_native_creative-protection-arm",

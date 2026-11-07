@@ -90,6 +90,20 @@ extract_git_tar(proc.stdout, original)
 if proc.wait():
     raise SystemExit('git archive failed')
 (original / '.horizon-revision').write_text(compat['horizon_revision'] + '\n')
+# Horizon Mixins re-prints every Rust file it edits from a token stream, which drops the space in
+# `0. ..=1.` and yields the invalid `0...=1.`. Rewrite that formatting hazard (same meaning) in the
+# staged copy only; the upstream repository and the pinned revision are untouched.
+import re
+hazard = re.compile(r'(\d)\. (\.\.)')
+normalized = []
+for source_file in sorted((original / 'crates').rglob('*.rs')):
+    text = source_file.read_text(encoding='utf-8')
+    fixed = hazard.sub(r'\g<1>.0\g<2>', text)
+    if fixed != text:
+        source_file.write_text(fixed, encoding='utf-8', newline='')
+        normalized.append(source_file.relative_to(original).as_posix())
+(output / 'staging-normalizations.txt').write_text('\n'.join(normalized) + ('\n' if normalized else ''), encoding='utf-8')
+print(f'Normalized float-range formatting in {len(normalized)} staged file(s)', flush=True)
 # Build only exported committed source, never a possibly modified working tree.
 source.mkdir()
 proc = subprocess.Popen(['git', '-C', str(a.mixins), 'archive', '--format=tar', revision], stdout=subprocess.PIPE)

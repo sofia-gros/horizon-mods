@@ -7,8 +7,9 @@ non-zero and says which step failed. Nothing here claims more than it executed.
 
 Steps: (1) pin check, (2) launch offscreen into a fresh test world, (3) wait for
 the control endpoint and world readiness (= game started, mod hooks loaded),
-(4) one assertion: in survival, the mod's data recipes turn 1 flint + 4 sticks into
-the three TConstruct parts and then a flint pickaxe (inventory crafting grid), (5) clean quit.
+(4) two assertions: in survival, the mod's data recipes turn 1 flint + 4 sticks into the
+three TConstruct parts and then a flint pickaxe (inventory crafting grid); and the real Part Builder
+block opens a container screen, (5) clean quit.
 """
 import argparse, json, os, subprocess, sys, tempfile, time
 from pathlib import Path
@@ -82,6 +83,14 @@ try:
     counts = ctl('inventory')['counts']
     assert counts.get('tconstruct:flint_pickaxe') == 1, counts
     assert not any(counts.get(x) for x in ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')), counts
+    step = 'assertion: Part Builder opens'
+    # The real Part Builder block (mod hooks): placing it and right-clicking must open a container screen with slots.
+    ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(1)
+    ctl('look-at-block', '0', '71', '2'); opened = ctl('interact', '0', '71', '2'); time.sleep(2)
+    screen = ctl('screen')
+    assert opened.get('screen') == 'container' and screen['screen'] == 'container', (opened.get('screen'), screen['screen'])
+    assert len([x for x in screen['slots'] if x['slot'] >= 300]) >= 9, 'Part Builder container has no station slots'
+    ctl('close'); time.sleep(.5)
     step = 'quit'
     ctl('quit'); proc.wait(timeout=60)
     assert proc.returncode == 0, f'exit code {proc.returncode}'
