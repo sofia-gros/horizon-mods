@@ -7,8 +7,8 @@ non-zero and says which step failed. Nothing here claims more than it executed.
 
 Steps: (1) pin check, (2) launch offscreen into a fresh test world, (3) wait for
 the control endpoint and world readiness (= game started, mod hooks loaded),
-(4) one assertion: the TConstruct `/tconstruct parts` command, injected by the
-mod, turns 1 flint + 2 sticks into three TConstruct part items, (5) clean quit.
+(4) one assertion: in survival, the mod's data recipes turn 1 flint + 4 sticks into
+the three TConstruct parts and then a flint pickaxe (inventory crafting grid), (5) clean quit.
 """
 import argparse, json, os, subprocess, sys, tempfile, time
 from pathlib import Path
@@ -60,18 +60,32 @@ try:
         time.sleep(.3)
     step = 'world ready'
     ctl('wait-ready', '120', timeout=125)
-    step = 'assertion: /tconstruct parts'
-    for c in ('clear @s', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2'):
+    step = 'assertion: craft flint pickaxe from parts'
+    # Data recipes only (no mod command): flint -> pick head, 2 sticks (vertical) -> handle,
+    # 2 sticks (horizontal) -> binding, then the three parts -> flint pickaxe.
+    for c in ('clear @s', 'gamemode survival @s', 'give @s minecraft:flint 1', 'give @s minecraft:stick 4'):
         ctl('command', c)
-    ctl('chat', '/tconstruct parts'); time.sleep(1.5)
+    time.sleep(1)
+    held = ctl('inventory')
+    hotbar = {s['item']: i for i, s in enumerate(held['hotbar']) if s}
+    flint_slot, stick_slot = hotbar['minecraft:flint'], hotbar['minecraft:stick']
+    ctl('open-inventory'); time.sleep(.5)
+    def click(*a): ctl('click-slot', *map(str, a)); time.sleep(.2)
+    def craft(into):                      # take the result, store it in an inventory slot
+        click(200); click(into)
+    click(flint_slot); click(100); craft(9)                 # pick head
+    click(stick_slot); click(100, 'right'); click(102, 'right'); click(stick_slot); craft(10)   # handle (vertical); put the other 2 sticks back first
+    click(stick_slot); click(100, 'right'); click(101, 'right'); craft(11)     # binding (horizontal)
+    click(9); click(100); click(10); click(101); click(11); click(102)  # the three parts
+    craft(12)                                                # flint pickaxe
+    ctl('close'); time.sleep(.5)
     counts = ctl('inventory')['counts']
-    wanted = ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')
-    assert all(counts.get(x) == 1 for x in wanted), counts
-    assert not counts.get('minecraft:flint') and not counts.get('minecraft:stick'), counts
+    assert counts.get('tconstruct:flint_pickaxe') == 1, counts
+    assert not any(counts.get(x) for x in ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')), counts
     step = 'quit'
     ctl('quit'); proc.wait(timeout=60)
     assert proc.returncode == 0, f'exit code {proc.returncode}'
-    print(json.dumps({'result': 'SMOKE PASS', 'run': str(run), 'parts': counts}, indent=2))
+    print(json.dumps({'result': 'SMOKE PASS', 'run': str(run), 'inventory': counts}, indent=2))
 except BaseException as error:
     print(f'SMOKE FAIL at step "{step}": {error!r}\nlog: {run / "game.log"}', file=sys.stderr)
     sys.exit(1)

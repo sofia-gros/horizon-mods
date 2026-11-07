@@ -1,6 +1,6 @@
 {
   "_comment": "Vertical slice kept enabled while upstream Horizon/Mixins reject the rest. Everything not listed is parked, not deleted: the full manifests are unchanged.",
-  "tconstruct_seeds": ["command", "prepare-station-resources"],
+  "tconstruct_seeds": ["prepare-station-resources"],
   "pluto_seeds": [
     "pluto_native_creative-protection-player-scope",
     "pluto_native_creative-protection-arm",

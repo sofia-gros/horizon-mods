@@ -34,11 +34,11 @@ Working rules (PlutoLib only, one PR per verification unit, at most 5 open PRs) 
 
 Verified on a Windows PC against Horizon `ebcfa226` and Mixins `5a64af93` (upstream HEAD that day):
 
-- The vertical slice stages (Mixins plan and the PlutoLib `protection` guard pass), builds, launches into a test world with the mod loaded, and `/tconstruct parts` yields the three flint-pickaxe parts (`SMOKE PASS`).
+- The vertical slice stages (Mixins plan and the PlutoLib `protection` guard pass), builds, launches into a test world with the mod loaded, and in survival mode the inventory crafting grid turns flint and sticks into the three parts and then a flint pickaxe through data recipes (`SMOKE PASS`). See [the Part Builder gap](migration/part-builder-plutolib-gap.md).
 
 Not verified / not working:
 
-- Only 2 of 290 TConstruct injections are enabled. The rest are parked until re-absorbed; the Part Builder as it exists hooks Horizon UI internals directly and will be rebuilt on PlutoLib.
+- Only 1 of 290 TConstruct injections is enabled (the content loader). The rest are parked until re-absorbed. There is no Part Builder block or screen yet: PlutoLib lacks a station-menu API (see the gap document), and the pickaxe is still a template item, not a material-driven tool.
 - 10 of PlutoLib's 11 composition guards fail against this Horizon (advancement, cloud, current_book, equipment, matching, payload, placement, station, terrain, wire_snapshot). The hooks they protect are excluded from the slice and need per-feature re-review.
 - CI changes (pull_request trigger, slice check, weekly upstream drift) have not run on GitHub yet.
 - The tests under `tconstruct/tests` were not green when last run (32 failures, 5 errors of 458); causes not yet triaged.
