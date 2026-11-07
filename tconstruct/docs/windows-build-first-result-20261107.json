@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "head": "44f0f7af1ab966bbcb03e14621dd63bac104fb3c",
+  "integration_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "run_id": 42334259441,
+  "job_id": 128287521041,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334259441",
+  "final_receipt_utc": "2026-11-07T03:30:19.3333121Z",
+  "passed": false,
+  "verified": true,
+  "error": "ValueError: Runner rustup differs from reviewed standard version",
+  "pure": {
+    "failed": 0,
+    "names": [
+      "test_component_manifest_hash_and_installed_set_are_exact",
+      "test_exact_release_host_and_no_self_update_install",
+      "test_existing_phase_and_child_status_are_not_reimplemented",
+      "test_fresh_ordinary_build_is_once_and_help_is_later",
+      "test_isolated_offline_env_discards_rustup_and_build_overrides",
+      "test_link_result_requires_exact_mode_hash_and_contained_output",
+      "test_low_disk_refuses_and_restores_resource_guard",
+      "test_low_ram_refuses_and_restores_resource_guard",
+      "test_official_checkout_is_four_owned_commands_only",
+      "test_official_lock_preserved_and_only_plan_local_packages_added",
+      "test_owned_job_process_cap_and_pid_buffer_match",
+      "test_pe_rejects_truncation_and_wrong_machine",
+      "test_phase_budgets_restore_on_failure",
+      "test_unknown_download_never_opens_network",
+      "test_unready_contract_cannot_start_any_phase",
+      "test_winlibs_fresh_safe_prefix_and_complete_files",
+      "test_winlibs_unsafe_case_and_link_rejected_before_writing"
+    ],
+    "passed": 17,
+    "skipped": 0,
+    "tests": 17
+  },
+  "phases": [
+    {
+      "name": "pure",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 2297,
+      "log_sha256": "73e923b131ae25dbd9acdd2c7d363120838bca02f0a2b2288ce6baa9b6f32739"
+    },
+    {
+      "name": "checkout-identity",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 41,
+      "log_sha256": "13442b7da88044d9ecf66cf861bcef407efa999977bf955b57e161289967e8ff"
+    },
+    {
+      "name": "checkout-clean",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "rustup-version",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 158,
+      "log_sha256": "fcf775d815ba7380e3f7fd1ef1513d75c8b5ea7b9cda208dda1d18e9135ceebb"
+    },
+    {
+      "name": "checkout-final-head",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 41,
+      "log_sha256": "13442b7da88044d9ecf66cf861bcef407efa999977bf955b57e161289967e8ff"
+    },
+    {
+      "name": "checkout-final-clean",
+      "exit": 0,
+      "raw_returncode": 0,
+      "job_empty": true,
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "resources": {
+    "filesystems": {
+      "C:\\": {
+        "minimum_free_bytes": 33450332160,
+        "total_bytes": 160939618304
+      },
+      "D:\\": {
+        "minimum_free_bytes": 157743054848,
+        "total_bytes": 161059172352
+      }
+    },
+    "memory_first": {
+      "available_pagefile": 17627410432,
+      "available_physical": 14185066496,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_last": {
+      "available_pagefile": 17620393984,
+      "available_physical": 14169980928,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_samples": 47,
+    "minimum_available_physical_bytes": 14159241216
+  },
+  "log": {
+    "bytes": 19671,
+    "sha256": "7041ce5639c647211543ef0845d33d8a0e6d08b64a7f062c38d5833193c7a070"
+  },
+  "image": {
+    "version": "20261103.298.1",
+    "name": "windows-2025-vs2026",
+    "reported_rustup": "1.29.3",
+    "source": "https://github.com/actions/runner-images/blob/win25-vs2026/20261103.298/images/windows/Windows2025-VS2026-Readme.md"
+  },
+  "limits": [
+    "Actual rustup version output bytes were hashed but not printed; its exact first line remains unobserved.",
+    "No toolchain installation, official source fetch, Cargo fetch, fresh plan, apply, compilation, PE inspection or help reached.",
+    "No automatic retry."
+  ]
+}
