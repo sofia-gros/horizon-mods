@@ -12,7 +12,10 @@ import argparse, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick')
+EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
+            'PLUTO-PROBE loot_modify')
+# reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
+OPTIONAL = ('PLUTO-PROBE client_resources_reloaded',)
 
 p = argparse.ArgumentParser()
 p.add_argument('--launcher', type=Path, required=True)
@@ -64,3 +67,4 @@ if missing:
 print('PROBE PASS')
 for l in lines:
     print(' ', l)
+print('optional events not seen:', [e for e in OPTIONAL if not any(e in l for l in lines)] or 'none')

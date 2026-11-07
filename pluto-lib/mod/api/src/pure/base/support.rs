@@ -65,6 +65,18 @@ pub const MATRIX: &[SupportEntry] = &[
         behaviour: "callbacks are accepted and never invoked; ALLOW_DAMAGE works",
         unblocked_by: "mapping Horizon's mob_killed / player_died hook points (not yet done)",
     },
+    SupportEntry {
+        api: "resource_loader_v0::ResourceType::ServerData",
+        support: Support::Stub,
+        behaviour: "listeners are accepted and never invoked; ClientResources works",
+        unblocked_by: "a Horizon hook point that reports a data reload (recipes, loot tables, tags)",
+    },
+    SupportEntry {
+        api: "item_api_v1::ItemTooltipCallback (reading or editing the lines already there)",
+        support: Support::Stub,
+        behaviour: "callbacks can add lines but do not see the existing ones",
+        unblocked_by: "a PlutoLib text type that can be read back from Horizon's Text (add-only works today)",
+    },
 ];
 
 /// Rows for a given support class.

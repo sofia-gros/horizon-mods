@@ -5,6 +5,9 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 
+[dependencies]
+serde_json = "1"
+
 [lib]
 path = "../../mod/api/src/pure/mod.rs"
 

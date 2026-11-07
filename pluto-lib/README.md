@@ -31,10 +31,13 @@ In `mod/` (built with Horizon's official launcher):
 - `networking_api_v1`: `ServerPlayConnectionEvents` (`JOIN`, `DISCONNECT`).
 - `events_interaction_v0`: `UseItemCallback`, `UseBlockCallback`, `AttackEntityCallback`, `PlayerBlockBreakEvents::BEFORE` (a veto cancels the break).
 - `entity_events_v1`: `ServerEntityEvents` (`ENTITY_LOAD`, `ENTITY_UNLOAD`), `ServerLivingEntityEvents::ALLOW_DAMAGE`.
+- `loot_api_v2`: `LootTableEvents::MODIFY` (edit a loading loot table's JSON).
+- `resource_loader_v0`: `ResourceManagerHelper` reload listeners for client resources.
+- `item_api_v1`: `ItemTooltipCallback` (add tooltip lines).
 
 Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
 
-**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `CHUNK_LOAD`, `JOIN` and `END_SERVER_TICK` in the game log. The other events compile and follow the same path but have not been seen firing yet.
+**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `CHUNK_LOAD`, `JOIN`, `END_SERVER_TICK` and `LootTableEvents::MODIFY` in the game log. The other events compile and follow the same path but have not been seen firing yet (the client-resources reload did not fire in the offscreen test run).
 The old unified bundle in `mixins/` (creative tabs, inventory, fluids, protection, tool rules and more) still ships and is migrated into `mod/` module by module.
 Of its eleven composition guards only `protection` passes on the current Horizon; the rest need re-review ([docs/migration/](../docs/migration/)).
 
