@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "ordinary_base": "3a5a12e357564f744b460a033d512ce1ebc30a51",
+  "source_pr": 737,
+  "source_head": "486995af9353a56598bf6217b9a381b3db3d321d",
+  "files": {
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang": {
+      "before": "c8e7ea5bb5de045ce96205af13a3886245779f1f730ef0941aa8e98fec2a65d3",
+      "before_blob": "8f7accad1bd0afa0ee6b739254531aa4b80c1bc6",
+      "after": "aad8f4c5d410ab2a2458e0ced1e8e2cadc59f477472a850bdd5a6a8764851be7",
+      "after_blob": "d7968b014f3cbcbec6c84e946db2212d2cc2c9ed",
+      "replacements": [
+        [
+          "\ntools.partial=Broad Tools (Partial)\ntools.partial.notice_title=About This Section\ntools.partial.notice=Selected registered broad tools and advice pages are shown. Javelins and the tank page remain omitted, and the material tip icon mentioned here is not available in this reader. Tool descriptions and properties are source reference information, not verified Horizon effect coverage. Assembly previews use current definitions and recipes; material acquisition and complete tool behavior remain incomplete or unverified.\ntools.partial.tool_notice=Source reference: listed capabilities may be incomplete in Horizon. Standard broad-tool assembly uses a Tinker's Anvil. The component preview is not a guarantee that every material or effect is available.\n\nsmeltery.partial=Smeltery Basics (Partial)",
+          "\ntools.partial=Broad Tools (Partial)\ntools.partial.notice_title=About This Section\ntools.partial.notice=Selected registered broad tools and advice pages are shown. Javelins and external tool additions remain omitted, and the material tip icon mentioned here is not available in this reader. Tool Tanks describes limited port transfers instead of the original illustrated GUI. Tool descriptions and properties are source reference information, not verified Horizon effect coverage. Assembly previews use current definitions and recipes; material acquisition and complete tool behavior remain incomplete or unverified.\ntools.partial.tool_notice=Source reference: listed capabilities may be incomplete in Horizon. Standard broad-tool assembly uses a Tinker's Anvil. The component preview is not a guarantee that every material or effect is available.\n\nsmeltery.partial=Smeltery Basics (Partial)"
+        ]
+      ]
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json": {
+      "before": null,
+      "after": "a89a831b906316e80135d2acb05a008a9ffd09a549f9b7f0716ae659e3136962",
+      "after_blob": "eeb5a090855bc231cc07b8fa3495d3b4553a181e",
+      "pr_blob": "eeb5a090855bc231cc07b8fa3495d3b4553a181e",
+      "pr_adaptation": [],
+      "replacements": []
+    },
+    "tconstruct/docs/materials-and-you.md": {
+      "before": "2493145579490ef138979169bad508b86979f4af2a4d4a0e1747019bd88e859e",
+      "before_blob": "ee18b8c458d2dddd5941c2ce0a6854ed66cf836d",
+      "after": "f1c2ffc6ede79db1cd660f03b163c71dd78875d31e22ac2c4db59d60207fbc59",
+      "after_blob": "e59ace02b15b8d1b7aff6ab1114452f9a8b69fdf",
+      "replacements": [
+        [
+          "Javelin, external tool additions and the tank advice page remain omitted.",
+          "Javelin and external tool additions remain omitted. Tool Tanks uses a separate\nport-adapted page rather than the original screenshot."
+        ],
+        [
+          "",
+          "\n\n## Tool-tank instructions and capacity loss warning\n\nMighty's previously omitted Tool Tanks entry now has a port-adapted text page.\nIt explains the existing 1,000 mB-per-level Tank and supported fluid-ability\ncapacity contribution, controller container slots and direction modes, cursor\nfill/empty actions, and held-tool interactions with supported tank blocks.\nThe page distinguishes fluid identity/metadata, output-space requirements and\nthe unsupported tagged-fluid LAN path.\n\nIt also warns players to empty a tool before reducing its capacity: the current\nStation rebuild clamps excess fluid to the new capacity and removes contents\nwhen the final handler is removed. This documents existing behavior rather\nthan changing it. The original source screenshot is not used because its\nnumbered controls do not describe the port UI; source modifier examples are\nnot presented as implemented effects.\n\nThe pinned source page is retained as a fixture with attribution. This is\nthe own-delta intake of PR #737 onto 3a5a12e; no stacked branch snapshot or\nnew fluid mechanics are adopted. Existing Pluto stack-fluid read/write/resize\nremain the only storage implementation. Current index-based local/guest transfer\nbranches replace the historical test spelling without removing its directional\nassertion. Exact source/inverse checks are recorded in\nintegration/guide-intake-20261107/tool-tanks.json. Rust, package, host, actual\nGUI interactions, save/reload and LAN remain unverified for this delta."
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book-index.rs": {
+      "before": "21ad591851046c911db446eb6362cc1060e314ee96fd31dfafbc2b7142bf1941",
+      "before_blob": "22c99ac0b1ae3073294c122ac271cc654a4d192e",
+      "after": "26bbc17ae25be6aef4ad51f5bea3826e917f0f247cd99772981ee37ba7248e4a",
+      "after_blob": "946f094e535f541e3401b24b8d1e174d12d09d53",
+      "replacements": [
+        [
+          "    ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)\n}\n\n// Mighty exposes bounded broad-tool pages and static advice. The tank page\n// remains omitted until its display and operation are supported.\npub(super) fn mighty_advice_page(name: &str) -> bool {\n    matches!(name, \"group_general\" | \"group_ranged\" | \"group_info\" | \"tips\" | \"designing\")\n}\n\n// These source pages describe existing broad-tool families, not complete\n",
+          "    ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)\n}\n\n// Mighty exposes bounded broad-tool pages, static advice and the adapted\n// tool-tank page. The original screenshot and unsupported effects stay omitted.\npub(super) fn mighty_advice_page(name: &str) -> bool {\n    matches!(name, \"group_general\" | \"group_ranged\" | \"group_info\" | \"tanks\" | \"tips\" | \"designing\")\n}\n\n// These source pages describe existing broad-tool families, not complete\n"
+        ],
+        [
+          "        assert!(!mighty_advice_ready([Some(\"Partial\"), Some(\" \"), Some(\"Details\")]));\n    }\n    #[test]\n    fn mighty_advice_includes_bounded_groups_but_excludes_tank_page() {\n        for name in [\"group_general\", \"group_ranged\", \"group_info\", \"tips\", \"designing\"] { assert!(mighty_advice_page(name)); }\n        for name in [\"tanks\", \"unknown\"] { assert!(!mighty_advice_page(name)); }\n    }\n    #[test]\n    fn mighty_tool_pages_require_known_registered_tools_inputs_and_matching_source() {",
+          "        assert!(!mighty_advice_ready([Some(\"Partial\"), Some(\" \"), Some(\"Details\")]));\n    }\n    #[test]\n    fn mighty_advice_includes_bounded_groups_and_adapted_tank_page() {\n        for name in [\"group_general\", \"group_ranged\", \"group_info\", \"tanks\", \"tips\", \"designing\"] { assert!(mighty_advice_page(name)); }\n        for name in [\"unknown\"] { assert!(!mighty_advice_page(name)); }\n    }\n    #[test]\n    fn mighty_tool_pages_require_known_registered_tools_inputs_and_matching_source() {"
+        ]
+      ]
+    },
+    "tconstruct/tests/fixtures/mighty_tool_tanks_source.json": {
+      "before": null,
+      "after": "4d3856c8b060908d94aa654a4befc476a155a4b9e480deae2add34bf4f906ec6",
+      "after_blob": "7655880dc9720898dd4f0e2c35c84ec0a2ed81f6",
+      "pr_blob": "7655880dc9720898dd4f0e2c35c84ec0a2ed81f6",
+      "pr_adaptation": [],
+      "replacements": []
+    },
+    "tconstruct/tests/test_mighty_broad_tools.py": {
+      "before": "85916bc6715920c770c17e584b00459dd45f90e9fefec17f0928eafd5af18672",
+      "before_blob": "56f9f0894b1986e4e4ee0a03668611f29843a377",
+      "after": "526f0fa6e3191186d58bed2e6a453bc62404b879e13ae7b8269ea3fefc4ae1bc",
+      "after_blob": "4d3e61b9ad011b07e0eb9819ba003fb498742d08",
+      "replacements": [
+        [
+          "        self.assertEqual(labels['tools.partial'], 'Broad Tools (Partial)')\n        for name in ['tools.partial.notice_title', 'tools.partial.notice', 'tools.partial.tool_notice']:\n            self.assertTrue(labels[name].strip())\n        self.assertIn('Javelins and the tank page remain omitted', labels['tools.partial.notice'])\n        self.assertIn('not verified Horizon effect coverage', labels['tools.partial.notice'])\n        self.assertIn('component preview is not a guarantee', labels['tools.partial.tool_notice'])\n",
+          "        self.assertEqual(labels['tools.partial'], 'Broad Tools (Partial)')\n        for name in ['tools.partial.notice_title', 'tools.partial.notice', 'tools.partial.tool_notice']:\n            self.assertTrue(labels[name].strip())\n        self.assertIn('Javelins and external tool additions remain omitted', labels['tools.partial.notice'])\n        self.assertIn('not verified Horizon effect coverage', labels['tools.partial.notice'])\n        self.assertIn('component preview is not a guarantee', labels['tools.partial.tool_notice'])\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_mighty_tool_tanks.py": {
+      "before": null,
+      "after": "71931debb7df5d7c62d41ea844b1250569f6845d9ca8203ba0427f0e97a5433a",
+      "after_blob": "157afe1462bcd0dd002f1f001159d773094b0c0a",
+      "pr_blob": "eab2a4e5a3e3b0d846a2da229613a9fd671af0cb",
+      "pr_adaptation": [
+        [
+          "        self.assertIn('if selected.is_some() { Direction::FillItem } else { Direction::EmptyItem }', direct)",
+          "        self.assertEqual(direct.count('let transferred = if let Some(index) = selected {'), 2)\n        self.assertEqual(direct.count('containers::fill_from_index_with_color(&mut state.tank, &mut slots, index,'), 2)\n        self.assertEqual(direct.count('containers::transfer_selected_with_color(&mut state.tank, &mut slots, Direction::EmptyItem, None,'), 2)"
+        ]
+      ],
+      "replacements": []
+    },
+    "tconstruct/third_party/NOTICE.md": {
+      "before": "5dbd9973e2af36b90fc072cd4644e1e45e2b59f9ee9034c07f5c1b66547432b3",
+      "before_blob": "f2acbc79297b61bcb04602bcfaba652fb530d3a6",
+      "after": "8a03c78fa7400049e62d33a8d6c7c2a466b6fb275e6516b114d034315165000a",
+      "after_blob": "1bd906342b605de624701559b9c8a8e128ddf5a1",
+      "replacements": [
+        [
+          "",
+          "\n\n`tests/fixtures/mighty_tool_tanks_source.json` copies the original Tool Tanks\npage from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json).\nCopyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.\nThe displayed `en_us/tools/tanks.json` is a port adaptation; the original image\nand numbered GUI instructions are deliberately omitted."
+        ]
+      ]
+    },
+    "tconstruct/tests/test_broad_tools_intake.py": {
+      "before": "e62f1cf4164ca38c228a36b9ea882b5e8cb9574b4c340cc397f2b0410f84b79c",
+      "before_blob": "33d223481ec5f8309c79fbf8426c60ff906734ca",
+      "after": "2ac7238f4a5b3e64756a2bdcee02829dce90db0726d89302c61a563ed9128c9a",
+      "after_blob": "571cada68598cc60339d359b49b4272c1af6b56f",
+      "replacements": [
+        [
+          "                raw = (ROOT / path).read_bytes()\n                self.assertEqual(sha(raw), facts['after'])",
+          "                raw = (ROOT / path).read_bytes()\n                layer = json.loads((ROOT / 'integration/guide-intake-20261107/tool-tanks.json').read_bytes())\n                self.assertEqual(layer['ordinary_base'], '3a5a12e357564f744b460a033d512ce1ebc30a51')\n                if path in layer['files']:\n                    later = layer['files'][path]\n                    self.assertEqual(sha(raw), later['after'])\n                    projected = raw.decode('utf-8')\n                    for old, new in reversed(later['replacements']):\n                        self.assertEqual(projected.count(new), 1)\n                        projected = projected.replace(new, old, 1)\n                    raw = projected.encode()\n                    self.assertEqual(sha(raw), later['before'])\n                self.assertEqual(sha(raw), facts['after'])"
+        ]
+      ]
+    }
+  },
+  "unchanged_implementation_inputs": {
+    "tconstruct/mixins/tconstruct/source-station-world.rs": {
+      "git_blob": "4a654e7a0bf771301da26a6ea75500b8fe6129d9",
+      "sha256": "483accb647e3dc2433ff86b66a1067c2b2a7797baaf614c11f985a688ce3a840"
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-container.rs": {
+      "git_blob": "6e7d916733911c5b25bf3fb235069ce276d8032c",
+      "sha256": "3c28f5386fbdd2a7b7f024addfbfb3eb80248b704840e989f36ef7f5fee1c4f5"
+    },
+    "tconstruct/mixins/tconstruct/source-smeltery-pointer.rs": {
+      "git_blob": "16953f755ac7e57c1ee82baf19bf5c9b5498c785",
+      "sha256": "c4bdba99c9b9c24cfa2559c10abefb1dc8e5be689d91ddf0a7e2a7e891d120aa"
+    },
+    "tconstruct/mixins/tconstruct/source-fluid-direct.rs": {
+      "git_blob": "b113049744b6bb237f2072b19017ff7a8489dd1c",
+      "sha256": "838f68c5cfa69005bf43e1c60d884c1ed3a02f271c505916564a9add8f1e1aff"
+    },
+    "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs": {
+      "git_blob": "2f3f2aa0625a392d7b0c9f382a2a3b418472730d",
+      "sha256": "892b6b2d6cf9b56b1c795bf19cbbdcd8a2a3ce4a6fd14ecd4cb1b587e9219d2d"
+    }
+  },
+  "scope": "TC instruction page and page admission only; reuse existing Pluto stack-fluid and current native consumer.",
+  "validation": {
+    "python": {
+      "passed": 15,
+      "failed": 0,
+      "scope": "original tank3 + source/inverse3 + preserved broad group9; no Rust or transfer execution"
+    },
+    "rust": "not run",
+    "package": "not run",
+    "host": "not run",
+    "ui_lan": "not run"
+  }
+}

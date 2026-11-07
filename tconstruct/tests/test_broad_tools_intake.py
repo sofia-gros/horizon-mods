@@ -36,6 +36,17 @@ class BroadToolsIntake(unittest.TestCase):
         for path, facts in receipt['files'].items():
             with self.subTest(path=path):
                 raw = (ROOT / path).read_bytes()
+                layer = json.loads((ROOT / 'integration/guide-intake-20261107/tool-tanks.json').read_bytes())
+                self.assertEqual(layer['ordinary_base'], '3a5a12e357564f744b460a033d512ce1ebc30a51')
+                if path in layer['files']:
+                    later = layer['files'][path]
+                    self.assertEqual(sha(raw), later['after'])
+                    projected = raw.decode('utf-8')
+                    for old, new in reversed(later['replacements']):
+                        self.assertEqual(projected.count(new), 1)
+                        projected = projected.replace(new, old, 1)
+                    raw = projected.encode()
+                    self.assertEqual(sha(raw), later['before'])
                 self.assertEqual(sha(raw), facts['after'])
                 self.assertEqual(blob(raw), facts['after_blob'])
                 if facts['before'] is None:

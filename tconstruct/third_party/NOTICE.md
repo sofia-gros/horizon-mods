@@ -177,3 +177,9 @@ Mighty Smelting's seven broad-tool page files under
 are copied verbatim from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools).
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
 The partial-coverage notices and bounded reader eligibility checks are port adaptations.
+
+`tests/fixtures/mighty_tool_tanks_source.json` copies the original Tool Tanks
+page from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools/tanks.json).
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+The displayed `en_us/tools/tanks.json` is a port adaptation; the original image
+and numbered GUI instructions are deliberately omitted.

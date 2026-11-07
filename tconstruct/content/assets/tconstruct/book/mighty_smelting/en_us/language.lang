@@ -40,7 +40,7 @@ defense.group_special=Special
 
 tools.partial=Broad Tools (Partial)
 tools.partial.notice_title=About This Section
-tools.partial.notice=Selected registered broad tools and advice pages are shown. Javelins and the tank page remain omitted, and the material tip icon mentioned here is not available in this reader. Tool descriptions and properties are source reference information, not verified Horizon effect coverage. Assembly previews use current definitions and recipes; material acquisition and complete tool behavior remain incomplete or unverified.
+tools.partial.notice=Selected registered broad tools and advice pages are shown. Javelins and external tool additions remain omitted, and the material tip icon mentioned here is not available in this reader. Tool Tanks describes limited port transfers instead of the original illustrated GUI. Tool descriptions and properties are source reference information, not verified Horizon effect coverage. Assembly previews use current definitions and recipes; material acquisition and complete tool behavior remain incomplete or unverified.
 tools.partial.tool_notice=Source reference: listed capabilities may be incomplete in Horizon. Standard broad-tool assembly uses a Tinker's Anvil. The component preview is not a guarantee that every material or effect is available.
 
 smeltery.partial=Smeltery Basics (Partial)
