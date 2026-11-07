@@ -18,6 +18,18 @@ class ToolTanksIntake(unittest.TestCase):
         for path,item in receipt['files'].items():
             with self.subTest(path=path):
                 raw=(ROOT/path).read_bytes()
+                incremental = json.loads((ROOT / 'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())
+                self.assertEqual(incremental['ordinary_base'], '7c4f846e3988e9d6494bc8b078728acfe98d27c2')
+                if path in incremental['files']:
+                    item707 = incremental['files'][path]
+                    self.assertEqual(sha(raw), item707['after'])
+                    projected = raw.decode('utf-8')
+                    for before707, after707 in reversed(item707['replacements']):
+                        self.assertEqual(projected.count(after707), 1)
+                        projected = projected.replace(after707, before707, 1)
+                    raw = projected.encode()
+                    self.assertEqual(sha(raw), item707['before'])
+
                 ordinary = json.loads((ROOT / 'integration/guide-intake-20261107/ordinary-modifiers.json').read_bytes())
                 self.assertEqual(ordinary['ordinary_base'], '33878a2167b3733135b680dea7990187c6cf7efb')
                 if path in ordinary['files']:

@@ -1040,3 +1040,58 @@ fn slurping_override_guide_and_station_share_resolved_charge_tag_gate() {
     tags.remove("tconstruct:modifiable/interactable/charge");
     assert!(rows(&tags).is_empty()); assert!(plan(&tags).is_none());
 }
+
+#[test]
+fn incremental_guide_matches_source_amounts_targets_and_runtime_limits() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let mut recipes: BTreeMap<String, Vec<u8>> = fixture["incremental_recipes"].as_object().unwrap().iter()
+        .map(|(id,value)| (id.clone(),serde_json::to_vec(value).unwrap())).collect();
+    let registry = tconstruct_source_upgrade_rules::incremental_guide_registry();
+    let modifiers: Vec<_> = ["haste","sharpness","quick_charge","hydraulic"].iter().map(|id|format!("tconstruct:{id}")).collect();
+    let items = ["minecraft:redstone","minecraft:quartz","minecraft:magma_cream","minecraft:prismarine_shard"].map(str::to_owned);
+    let tools = ["tconstruct:pickaxe","tconstruct:sword","tconstruct:crossbow","tconstruct:longbow"].map(str::to_owned);
+    let tags: HashMap<String,HashSet<String>> = [
+        ("forge:dusts/redstone",vec!["minecraft:redstone"]), ("forge:gems/quartz",vec!["minecraft:quartz"]),
+        ("forge:dusts/prismarine",vec!["minecraft:prismarine_shard"]),
+        ("tconstruct:modifiable/harvest",vec!["tconstruct:pickaxe"]),
+        ("tconstruct:modifiable/melee",vec!["tconstruct:sword"]),
+        // Deliberately broaden the datapack selector: native Quick Charge still
+        // supports only crossbows, and the guide must share that restriction.
+        ("tconstruct:modifiable/ranged/quick_charge",vec!["tconstruct:crossbow","tconstruct:longbow"]),
+    ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();
+    let rows = |recipes: &BTreeMap<String,Vec<u8>>| tconstruct_modifier_snapshot::incremental_guide_recipes(
+        recipes,&modifiers,&registry,&items,&tools,
+        |v,id|tconstruct_source_upgrade_rules::ingredient_matches(v,id,&tags),
+        |id,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,&tags),
+        tconstruct_source_upgrade_rules::incremental_limits_supported);
+    let entries = rows(&recipes);
+    assert_eq!(entries.len(),4);
+    assert_eq!(entries.iter().map(|row|(row.needed,row.maximum,row.upgrade_cost)).collect::<Vec<_>>(),[(45,5,1),(36,5,1),(5,4,1),(36,5,1)]);
+    assert_eq!(entries[2].tools,["tconstruct:crossbow"]);
+    let plan = |recipes: &BTreeMap<String,Vec<u8>>, tool, item, count| tconstruct_source_upgrade_rules::plan(
+        recipes,&tags,&ItemStack::new(tool,1),&[Some(ItemStack::new(item,count))],1);
+    assert_eq!(plan(&recipes,"tconstruct:pickaxe","minecraft:redstone",45).unwrap().amount,45);
+    assert_eq!(plan(&recipes,"tconstruct:crossbow","minecraft:magma_cream",5).unwrap().amount,5);
+    assert!(plan(&recipes,"tconstruct:longbow","minecraft:magma_cream",5).is_none());
+    let hydraulic = "data/tconstruct/recipes/tools/modifiers/upgrade/hydraulic_from_shard.json";
+    let mut changed = fixture["incremental_recipes"][hydraulic].clone();
+    changed["level"]["max"] = serde_json::json!(6);
+    recipes.insert(hydraulic.into(),serde_json::to_vec(&changed).unwrap());
+    assert!(!rows(&recipes).iter().any(|row|row.modifier=="tconstruct:hydraulic"));
+    assert!(plan(&recipes,"tconstruct:pickaxe","minecraft:prismarine_shard",36).is_none());
+    changed["level"]["max"] = serde_json::json!(5);
+    changed["needed_per_level"] = serde_json::json!(37);
+    recipes.insert(hydraulic.into(),serde_json::to_vec(&changed).unwrap());
+    assert!(!rows(&recipes).iter().any(|row|row.modifier=="tconstruct:hydraulic"));
+    assert!(plan(&recipes,"tconstruct:pickaxe","minecraft:prismarine_shard",36).is_none());
+    // A supported override updates the actual page cap rather than showing a
+    // pinned value. Removing a recipe removes its guide entry on the next read.
+    let quick = "data/tconstruct/recipes/tools/modifiers/upgrade/quick_charge.json";
+    let mut changed = fixture["incremental_recipes"][quick].clone(); changed["level"]["max"] = serde_json::json!(2);
+    recipes.insert(quick.into(),serde_json::to_vec(&changed).unwrap());
+    assert_eq!(rows(&recipes).iter().find(|row|row.modifier=="tconstruct:quick_charge").unwrap().maximum,2);
+    recipes.remove(quick);
+    assert!(!rows(&recipes).iter().any(|row|row.modifier=="tconstruct:quick_charge"));
+}

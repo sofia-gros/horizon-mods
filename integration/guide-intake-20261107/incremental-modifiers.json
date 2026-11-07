@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "ordinary_base": "7c4f846e3988e9d6494bc8b078728acfe98d27c2",
+  "source_pr": 707,
+  "source_head": "c20813dcbdd1a1a18e60bbedc7d2741324b44e88",
+  "source_own_base": "a17b0566acd81d584bfaec84caf8ca2558482c76",
+  "files": {
+    "tconstruct/docs/materials-and-you.md": {
+      "before": "fb7c1c8535e55d3a59572820173e421026a971a52d9cf09d865240fd745427fd",
+      "before_blob": "74b0debd9722d5cc5ac436442c08dea019875506",
+      "after": "ac1dced2e0c005ac27796861ddfb3e9ff7f62290edd370681d65a5d005a1cbde",
+      "after_blob": "03a5848eb2bdfbac78fa55694dbc3e56d365c722",
+      "replacements": [
+        [
+          "\nThe source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024\u00d7512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.\n\nThe modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot and ordinary upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.\n\nPuny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.\n\n",
+          "\nThe source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024\u00d7512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.\n\nThe modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot, ordinary and single-point incremental upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.\n\nPuny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.\n\n"
+        ],
+        [
+          "\nChanging tag replacement/removal, recipes or item availability affects the\nnext open/request through the existing reader and LAN response. The displayed\ntool types do not override checks against an existing tool's state. Incremental\nrecipes, level ranges, stack-sensitive/container ingredients, additional\nrequirements and unknown slot types are still omitted. Source registry,\nredirect and external-registration completeness is not claimed. In-game\npagination and LAN visual validation remain outstanding.\n",
+          "\nChanging tag replacement/removal, recipes or item availability affects the\nnext open/request through the existing reader and LAN response. The displayed\ntool types do not override checks against an existing tool's state. Other incremental recipe shapes, level ranges, stack-sensitive/container ingredients, additional\nrequirements and unknown slot types are still omitted. Source registry,\nredirect and external-registration completeness is not claimed. In-game\npagination and LAN visual validation remain outstanding.\n\n## Supported single-point incremental upgrades\n\nPuny's Upgrades chapter also generates incremental recipe pages from its source\ngroup tags and current world snapshots. The selected gameplay registry excludes\nprovisionally disabled modifiers. Each displayed recipe must use a plain item\nor tag input worth one progress point, the gameplay registry's fixed\npoints-per-level denominator, an explicit positive level cap and an explicit\none-upgrade-slot cost. Other or omitted costs are excluded because runtime\noccupancy remains one slot per started incremental level. Shared Station tool and recipe-limit gates apply, including\nQuick Charge's crossbow restriction and Hydraulic's fixed denominator/cap.\n\nPages show current input alternatives, points per level, maximum level,\nupgrade cost and eligible tools. They explain that partial progress can span\noperations and each operation stops at the next completed level. Pinned source\nfixtures exercise Haste, Sharpness, Quick Charge and Hydraulic; supported\nrecipe and tag overrides affect the next open/request. A removed recipe or\nunavailable input does not leave a static placeholder.\n\nThis is still a partial port-supported view. Recipes worth multiple points per\nitem, leftover-producing recipes, crystal alternatives, absent/default level\ncaps, changed effect denominators and additional requirements are omitted.\nFull source registry/redirect parity and in-game/LAN visual checks remain\noutstanding. These pages do not change modifier acquisition or effect rules."
+        ],
+        [
+          "",
+          "\n\nPR #707 intake onto 7c4f846e uses the same existing Pluto snapshot/tag owners.\nThe new incremental projection is TConstruct policy, not a generic serializer.\nTwo pure Station limit checks are factored without altering acceptance; their\nfull-body inverse and finite truth matrix are recorded in\nintegration/guide-intake-20261107/incremental-modifiers.json. Rust tests are\nretained but unrun. No manifest, transport, navigation, native open or shared\nlibrary is changed. Held-page language refresh and full payload size remain\nunverified, independently of source/resource regression success.\n"
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/modifier-snapshot.rs": {
+      "before": "e4284ebbecd0af5f702b718941014eff85cacce661026fe35ad400abcac1482c",
+      "before_blob": "ff8eb44489eb2cb067593f6c5df465f1654b9a1f",
+      "after": "abf46e949024295abfb1cfa5224da21f0fea414fe6d32a5ef4e0b0c80b08035d",
+      "after_blob": "7f139a43c372fa71a7259854d9a2fb7ca62ba0dd",
+      "replacements": [
+        [
+          "    result\n}\n\n/// Authoritative results of evaluating the highest-priority JSON resource.\n/// Producing these results requires the source condition context and modifier\n/// deserializer; this module intentionally does not guess them from file names.\n",
+          "    result\n}\n\n#[derive(Debug, PartialEq, Eq)]\npub(super) struct IncrementalGuideRecipe {\n    pub recipe: String,\n    pub modifier: String,\n    pub inputs: Vec<String>,\n    pub tools: Vec<String>,\n    pub needed: i32,\n    pub maximum: i32,\n    pub upgrade_cost: i32,\n}\n\n/// Show only single-progress-unit item/tag inputs with known gameplay\n/// denominators, explicit maximum levels and the source one-upgrade-slot cost.\n/// Block-value/leftover recipes and unknown shapes remain outside this view.\npub(super) fn incremental_guide_recipes(\n    recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],\n    registry: &BTreeMap<String, i32>, items: &[String], tools: &[String],\n    matches: impl Fn(&serde_json::Value, &str) -> bool,\n    supported_tool: impl Fn(&str, &str) -> bool,\n    supported_limits: impl Fn(&str, i32, i32) -> bool,\n) -> Vec<IncrementalGuideRecipe> {\n    let mut rows = Vec::new();\n    let mut seen = HashSet::new();\n    for modifier in modifiers {\n        if !seen.insert(modifier) { continue; }\n        let Some(expected) = registry.get(modifier) else { continue; };\n        for (recipe, bytes) in recipes {\n            let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };\n            let Some(object) = value.as_object() else { continue; };\n            if object.keys().any(|key| !matches!(key.as_str(), \"type\" | \"result\" | \"input\" | \"tools\" | \"level\" | \"allow_crystal\" | \"amount_per_item\" | \"needed_per_level\" | \"slots\"))\n                || value.get(\"type\").and_then(|v| v.as_str()) != Some(\"tconstruct:incremental_modifier\")\n                || value.get(\"result\").and_then(|v| v.as_str()) != Some(modifier.as_str())\n                || value.get(\"amount_per_item\").and_then(|v| v.as_i64()) != Some(1)\n                || value.get(\"allow_crystal\").is_some_and(|v| !v.is_boolean()) { continue; }\n            let Some(needed) = value.get(\"needed_per_level\").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0 && v == expected) else { continue; };\n            let Some(level) = value.get(\"level\").and_then(|v| v.as_object()).filter(|v| v.len() == 1) else { continue; };\n            let Some(maximum) = level.get(\"max\").and_then(|v| v.as_i64()).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };\n            if needed.checked_mul(maximum).is_none() || !supported_limits(modifier, needed, maximum) { continue; }\n            // Runtime occupancy is one slot per started incremental level,\n            // regardless of recipe overrides. Only advertise that exact cost.\n            if value.get(\"slots\").and_then(|v| v.as_object()).is_none_or(|slots|\n                slots.len() != 1 || slots.get(\"upgrades\").and_then(|v| v.as_i64()) != Some(1)) { continue; }\n            let upgrade_cost = 1;\n            let Some(input) = value.get(\"input\").filter(|v| v.as_object().is_some_and(|v| v.len() == 1 && v.iter().all(|(k,v)| matches!(k.as_str(), \"item\" | \"tag\") && v.is_string()))) else { continue; };\n            let Some(tool_filter) = value.get(\"tools\") else { continue; };\n            let mut inputs: Vec<_> = items.iter().filter(|id| matches(input, id)).cloned().collect();\n            let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();\n            inputs.sort(); inputs.dedup(); tools.sort(); tools.dedup();\n            if !inputs.is_empty() && !tools.is_empty() {\n                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, maximum, upgrade_cost });\n            }\n        }\n    }\n    rows\n}\n\n/// Authoritative results of evaluating the highest-priority JSON resource.\n/// Producing these results requires the source condition context and modifier\n/// deserializer; this module intentionally does not guess them from file names.\n"
+        ],
+        [
+          "#[cfg(test)]\nmod tests {\n    use super::*;\n    #[test]\n    fn ordinary_guide_preserves_five_slots_and_rejects_unknown_costs_and_shapes() {\n        let recipe = serde_json::json!({\"type\":\"tconstruct:modifier\", \"result\":\"x:known\", \"level\":1,",
+          "#[cfg(test)]\nmod tests {\n    use super::*;\n    #[test]\n    fn incremental_pages_refuse_unknown_shapes_denominators_and_unavailable_items() {\n        let recipe = serde_json::json!({\"type\":\"tconstruct:incremental_modifier\",\"result\":\"x:known\",\"input\":{\"item\":\"x:a\"},\"tools\":{\"item\":\"x:tool\"},\"amount_per_item\":1,\"needed_per_level\":45,\"level\":{\"max\":5},\"slots\":{\"upgrades\":1}});\n        let modifiers = vec![\"x:known\".into(),\"x:known\".into()];\n        let registry = BTreeMap::from([(\"x:known\".into(),45)]);\n        let items = vec![\"x:a\".into(),\"x:a\".into()]; let tools = vec![\"x:tool\".into()];\n        let matches = |v: &serde_json::Value,id:&str|v[\"item\"].as_str()==Some(id);\n        let rows = |value:&serde_json::Value|incremental_guide_recipes(&BTreeMap::from([(\"x:recipe\".into(),serde_json::to_vec(value).unwrap())]),&modifiers,&registry,&items,&tools,matches,|_,_|true,|_,_,_|true);\n        assert_eq!(rows(&recipe).len(),1);\n        for (key,value) in [\n            (\"amount_per_item\",serde_json::json!(4)), (\"needed_per_level\",serde_json::json!(44)),\n            (\"level\",serde_json::json!({\"max\":0})), (\"level\",serde_json::json!({\"max\":2147483647})),\n            (\"level\",serde_json::json!({\"min\":1,\"max\":5})), (\"level\",serde_json::json!(null)),\n            (\"slots\",serde_json::json!({\"abilities\":1})), (\"slots\",serde_json::json!({\"upgrades\":-1})),\n            (\"slots\",serde_json::json!({\"upgrades\":0})), (\"slots\",serde_json::json!({\"upgrades\":2})),\n            (\"slots\",serde_json::json!({})),\n            (\"input\",serde_json::json!({\"item\":\"x:missing\"})), (\"input\",serde_json::json!([{\"item\":\"x:a\"}])),\n            (\"input\",serde_json::json!({\"type\":\"tconstruct:no_container\",\"item\":\"x:a\"})),\n            (\"leftover\",serde_json::json!(\"x:a\")), (\"requirements\",serde_json::json!({})),\n            (\"conditions\",serde_json::json!([])), (\"allow_crystal\",serde_json::json!(1)),\n        ] { let mut changed=recipe.clone(); changed[key]=value; assert!(rows(&changed).is_empty(),\"{key}\"); }\n        let mut missing_cost = recipe.clone(); missing_cost.as_object_mut().unwrap().remove(\"slots\");\n        assert!(rows(&missing_cost).is_empty());\n        let recipes=BTreeMap::from([(\"x:recipe\".into(),serde_json::to_vec(&recipe).unwrap())]);\n        assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&[],&tools,matches,|_,_|true,|_,_,_|true).is_empty());\n        assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&items,&tools,matches,|_,_|false,|_,_,_|true).is_empty());\n        assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&items,&tools,matches,|_,_|true,|_,_,_|false).is_empty());\n    }\n\n    #[test]\n    fn ordinary_guide_preserves_five_slots_and_rejects_unknown_costs_and_shapes() {\n        let recipe = serde_json::json!({\"type\":\"tconstruct:modifier\", \"result\":\"x:known\", \"level\":1,"
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": {
+      "before": "e862834f06b91094d07da24ed96e719c7c5c2391e9e6496a74c26bb82c952dc6",
+      "before_blob": "34a20b9f499d9702b81bb2ed11663bf4d4d96bf8",
+      "after": "3bf6a41dda505d15f6403d6280e53890ed2b9022982f5075070ef8104a301e40",
+      "after_blob": "714c60786c159e7b1e440fe53949f30868dff4e7",
+      "replacements": [
+        [
+          "fn dynamic_materials(",
+          "fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text> {\n    let Some(raw) = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };\n    let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref() else { return Vec::new(); };\n    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };\n    let Some(rest) = game.res.rest.get() else { return Vec::new(); };\n    let registry = crate::game::tconstruct_source_upgrade_rules::incremental_guide_registry();\n    let supported = registry.keys().cloned().collect();\n    let mut modifiers = Vec::new();\n    for tag in source_tags {\n        if let Ok(ids) = crate::game::tconstruct_modifier_snapshot::supported_guide_tag(raw, tag, &supported) { modifiers.extend(ids); }\n    }\n    let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();\n    let tools: Vec<String> = tags.get(\"tconstruct:modifiable\").into_iter().flatten()\n        .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();\n    let entries = crate::game::tconstruct_modifier_snapshot::incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools,\n        |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags),\n        |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags),\n        crate::game::tconstruct_source_upgrade_rules::incremental_limits_supported);\n    let mut pages = Vec::new();\n    for entry in entries {\n        let (namespace, name) = entry.modifier.split_once(':').unwrap_or((\"tconstruct\", &entry.modifier));\n        let title = game.translate(&format!(\"modifier.{namespace}.{name}\"), name);\n        let item_name = |id: &str| {\n            let (namespace, name) = id.split_once(':').unwrap_or((\"minecraft\", id));\n            game.translate(&format!(\"item.{namespace}.{name}\"), &game.translate(&format!(\"block.{namespace}.{name}\"), id))\n        };\n        let mut text = String::from(\"Supported incremental recipe (partial guide).\\n\\n\");\n        let description = game.translate(&format!(\"modifier.{namespace}.{name}.description\"), \"\");\n        if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str(\"\\n\\n\"); }\n        text.push_str(&format!(\"Each item adds 1 progress point. {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\\n\\nPartial progress can be added over multiple Station operations. One operation stops at the next completed level.\\n\\nInput alternatives: {}.\\n\\nEligible tool types: {}.\\n\\nRecipe: {}\\n\\nOnly single-point item recipes are shown. Block-value and crystal alternatives are not shown. Existing modifier and tool state still affect application.\",\n            entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(\" OR \"),\n            entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(\", \"), entry.recipe));\n        for part in split_styled(game, &Text::literal(text), 182.0, 15) {\n            let mut page = Text::styled(&title, horizon_client::text::Style { insertion:Some(\"tconstruct:book-title\".into()), underlined:Some(true), ..Default::default() });\n            page.push(\"\\n\\n\"); page.push(part); pages.push(page);\n        }\n    }\n    pages\n}\n\nfn dynamic_materials("
+        ],
+        [
+          "        if !ordinary_tags.is_empty() { chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags)); }\n",
+          "        if !ordinary_tags.is_empty() {\n            chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags));\n            if puny && key == \"upgrades\" { chapter_pages.extend(incremental_modifier_pages(game, &ordinary_tags)); }\n        }\n"
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-upgrade-rules.rs": {
+      "before": "74fedf50551bb65b30f4ec269aa7f257c627255e17078a53c6d0f0a29f13d686",
+      "before_blob": "9ae4a1300be339b4f1e6b2e071f167a1ef5eeaf8",
+      "after": "7d8e9b46062445b9b1e98ba0299a5883df85d90edf5eb00da4b57e3466507d87",
+      "after_blob": "5b179c02274b265b3f63e3e5b1dbd7f3731164e9",
+      "replacements": [
+        [
+          "        .map(|(id, _)| (*id).to_owned()).collect()\n}\n\n/// Item- and tag-dependent eligibility shared by Station planning and guides.\n/// A recipe's tool selector cannot bypass these gameplay restrictions.\npub(super) fn tool_supported_with_tags(id: &str, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {\n",
+          "        .map(|(id, _)| (*id).to_owned()).collect()\n}\n\npub(super) fn incremental_guide_registry() -> BTreeMap<String, i32> {\n    UPGRADES.iter().filter(|(id, needed)| *needed > 1 && provisional_upgrade_enabled(id))\n        .map(|(id, needed)| ((*id).to_owned(), *needed)).collect()\n}\n\n/// These two effects encode fixed denominators/ranges in their runtime hooks.\n/// Keep the same acceptance boundary in Station transactions and guide pages.\npub(super) fn incremental_limits_supported(id: &str, needed: i32, maximum: i32) -> bool {\n    (id != \"tconstruct:blasting\" || needed == 20)\n        && (id != \"tconstruct:hydraulic\" || (needed == 36 && maximum == 5))\n}\n\n/// Item- and tag-dependent eligibility shared by Station planning and guides.\n/// A recipe's tool selector cannot bypass these gameplay restrictions.\npub(super) fn tool_supported_with_tags(id: &str, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {\n"
+        ],
+        [
+          "        else {\n            continue;\n        };\n        // The dynamic snapshots encode fixed source increments. Reject a\n        // changed denominator instead of consuming inputs for a wrong effect.\n        if (id == \"tconstruct:blasting\" && needed != 20) || (id == \"tconstruct:hydraulic\" && needed != 36) { continue; }\n        let Some(per_item) = value\n            .get(\"amount_per_item\")\n            .and_then(Value::as_i64)\n",
+          "        else {\n            continue;\n        };\n        let Some(per_item) = value\n            .get(\"amount_per_item\")\n            .and_then(Value::as_i64)\n"
+        ],
+        [
+          "            None if id == \"tconstruct:blindshot\" && value.get(\"level\").is_none() => i16::MAX as i32,\n            None => continue,\n        };\n        if id == \"tconstruct:hydraulic\" && max != 5 { continue; }\n        let cost = value\n            .pointer(\"/slots/upgrades\")\n            .and_then(Value::as_i64)",
+          "            None if id == \"tconstruct:blindshot\" && value.get(\"level\").is_none() => i16::MAX as i32,\n            None => continue,\n        };\n        if !incremental_limits_supported(id, needed, max) { continue; }\n        let cost = value\n            .pointer(\"/slots/upgrades\")\n            .and_then(Value::as_i64)"
+        ]
+      ]
+    },
+    "tconstruct/tests/fixtures/ordinary-modifier-guides.json": {
+      "before": "d0e08919a23f31d07f052a7ac35bf0ec453ee184e3010f3913183209e21a5fd6",
+      "before_blob": "acd569aafeea1c46aeb0ec9182326878c0e19fa5",
+      "after": "5f25d3d4b1244875a1a917b35a1a9c9a097790aadff12e028536ef26d9840bbc",
+      "after_blob": "bd7e31a03356ce9b631d45f3015ce150353f9918",
+      "replacements": [
+        [
+          "        \"tconstruct:glowing\"\n      ]\n    }\n  }\n}",
+          "        \"tconstruct:glowing\"\n      ]\n    }\n  },\n  \"incremental_recipes\": {\n    \"data/tconstruct/recipes/tools/modifiers/upgrade/haste_from_dust.json\": {\n      \"type\": \"tconstruct:incremental_modifier\",\n      \"allow_crystal\": true,\n      \"amount_per_item\": 1,\n      \"input\": {\n        \"tag\": \"forge:dusts/redstone\"\n      },\n      \"level\": {\n        \"max\": 5\n      },\n      \"needed_per_level\": 45,\n      \"result\": \"tconstruct:haste\",\n      \"slots\": {\n        \"upgrades\": 1\n      },\n      \"tools\": [\n        {\n          \"tag\": \"tconstruct:modifiable/harvest\"\n        },\n        {\n          \"tag\": \"tconstruct:modifiable/armor/chestplate\"\n        }\n      ]\n    },\n    \"data/tconstruct/recipes/tools/modifiers/upgrade/sharpness_from_shard.json\": {\n      \"type\": \"tconstruct:incremental_modifier\",\n      \"allow_crystal\": true,\n      \"amount_per_item\": 1,\n      \"input\": {\n        \"tag\": \"forge:gems/quartz\"\n      },\n      \"level\": {\n        \"max\": 5\n      },\n      \"needed_per_level\": 36,\n      \"result\": \"tconstruct:sharpness\",\n      \"slots\": {\n        \"upgrades\": 1\n      },\n      \"tools\": {\n        \"tag\": \"tconstruct:modifiable/melee\"\n      }\n    },\n    \"data/tconstruct/recipes/tools/modifiers/upgrade/quick_charge.json\": {\n      \"type\": \"tconstruct:incremental_modifier\",\n      \"allow_crystal\": true,\n      \"amount_per_item\": 1,\n      \"input\": {\n        \"item\": \"minecraft:magma_cream\"\n      },\n      \"level\": {\n        \"max\": 4\n      },\n      \"needed_per_level\": 5,\n      \"result\": \"tconstruct:quick_charge\",\n      \"slots\": {\n        \"upgrades\": 1\n      },\n      \"tools\": {\n        \"tag\": \"tconstruct:modifiable/ranged/quick_charge\"\n      }\n    },\n    \"data/tconstruct/recipes/tools/modifiers/upgrade/hydraulic_from_shard.json\": {\n      \"type\": \"tconstruct:incremental_modifier\",\n      \"allow_crystal\": true,\n      \"amount_per_item\": 1,\n      \"input\": {\n        \"tag\": \"forge:dusts/prismarine\"\n      },\n      \"level\": {\n        \"max\": 5\n      },\n      \"needed_per_level\": 36,\n      \"result\": \"tconstruct:hydraulic\",\n      \"slots\": {\n        \"upgrades\": 1\n      },\n      \"tools\": {\n        \"tag\": \"tconstruct:modifiable/harvest\"\n      }\n    }\n  }\n}"
+        ]
+      ]
+    },
+    "tconstruct/tests/rust/ranged_upgrades.rs": {
+      "before": "e9e57e2087c3c562b67237232f9623751722673054a4e796a6c18f7d2ff075cb",
+      "before_blob": "ee4b0f81561f61244a002b1fcfc174fc0b5c8256",
+      "after": "5e27aa3d952015547cab9c0713b79924662646ead7c92dce9af3494e5fa662dd",
+      "after_blob": "a6148caa3f48fd782d427db15e36ded18fc576c7",
+      "replacements": [
+        [
+          "",
+          "\n\n#[test]\nfn incremental_guide_matches_source_amounts_targets_and_runtime_limits() {\n    use std::collections::{BTreeMap, HashMap, HashSet};\n    use horizon_items::items::ItemStack;\n    let fixture: serde_json::Value = serde_json::from_str(include_str!(\"../fixtures/ordinary-modifier-guides.json\")).unwrap();\n    let mut recipes: BTreeMap<String, Vec<u8>> = fixture[\"incremental_recipes\"].as_object().unwrap().iter()\n        .map(|(id,value)| (id.clone(),serde_json::to_vec(value).unwrap())).collect();\n    let registry = tconstruct_source_upgrade_rules::incremental_guide_registry();\n    let modifiers: Vec<_> = [\"haste\",\"sharpness\",\"quick_charge\",\"hydraulic\"].iter().map(|id|format!(\"tconstruct:{id}\")).collect();\n    let items = [\"minecraft:redstone\",\"minecraft:quartz\",\"minecraft:magma_cream\",\"minecraft:prismarine_shard\"].map(str::to_owned);\n    let tools = [\"tconstruct:pickaxe\",\"tconstruct:sword\",\"tconstruct:crossbow\",\"tconstruct:longbow\"].map(str::to_owned);\n    let tags: HashMap<String,HashSet<String>> = [\n        (\"forge:dusts/redstone\",vec![\"minecraft:redstone\"]), (\"forge:gems/quartz\",vec![\"minecraft:quartz\"]),\n        (\"forge:dusts/prismarine\",vec![\"minecraft:prismarine_shard\"]),\n        (\"tconstruct:modifiable/harvest\",vec![\"tconstruct:pickaxe\"]),\n        (\"tconstruct:modifiable/melee\",vec![\"tconstruct:sword\"]),\n        // Deliberately broaden the datapack selector: native Quick Charge still\n        // supports only crossbows, and the guide must share that restriction.\n        (\"tconstruct:modifiable/ranged/quick_charge\",vec![\"tconstruct:crossbow\",\"tconstruct:longbow\"]),\n    ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();\n    let rows = |recipes: &BTreeMap<String,Vec<u8>>| tconstruct_modifier_snapshot::incremental_guide_recipes(\n        recipes,&modifiers,&registry,&items,&tools,\n        |v,id|tconstruct_source_upgrade_rules::ingredient_matches(v,id,&tags),\n        |id,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,&tags),\n        tconstruct_source_upgrade_rules::incremental_limits_supported);\n    let entries = rows(&recipes);\n    assert_eq!(entries.len(),4);\n    assert_eq!(entries.iter().map(|row|(row.needed,row.maximum,row.upgrade_cost)).collect::<Vec<_>>(),[(45,5,1),(36,5,1),(5,4,1),(36,5,1)]);\n    assert_eq!(entries[2].tools,[\"tconstruct:crossbow\"]);\n    let plan = |recipes: &BTreeMap<String,Vec<u8>>, tool, item, count| tconstruct_source_upgrade_rules::plan(\n        recipes,&tags,&ItemStack::new(tool,1),&[Some(ItemStack::new(item,count))],1);\n    assert_eq!(plan(&recipes,\"tconstruct:pickaxe\",\"minecraft:redstone\",45).unwrap().amount,45);\n    assert_eq!(plan(&recipes,\"tconstruct:crossbow\",\"minecraft:magma_cream\",5).unwrap().amount,5);\n    assert!(plan(&recipes,\"tconstruct:longbow\",\"minecraft:magma_cream\",5).is_none());\n    let hydraulic = \"data/tconstruct/recipes/tools/modifiers/upgrade/hydraulic_from_shard.json\";\n    let mut changed = fixture[\"incremental_recipes\"][hydraulic].clone();\n    changed[\"level\"][\"max\"] = serde_json::json!(6);\n    recipes.insert(hydraulic.into(),serde_json::to_vec(&changed).unwrap());\n    assert!(!rows(&recipes).iter().any(|row|row.modifier==\"tconstruct:hydraulic\"));\n    assert!(plan(&recipes,\"tconstruct:pickaxe\",\"minecraft:prismarine_shard\",36).is_none());\n    changed[\"level\"][\"max\"] = serde_json::json!(5);\n    changed[\"needed_per_level\"] = serde_json::json!(37);\n    recipes.insert(hydraulic.into(),serde_json::to_vec(&changed).unwrap());\n    assert!(!rows(&recipes).iter().any(|row|row.modifier==\"tconstruct:hydraulic\"));\n    assert!(plan(&recipes,\"tconstruct:pickaxe\",\"minecraft:prismarine_shard\",36).is_none());\n    // A supported override updates the actual page cap rather than showing a\n    // pinned value. Removing a recipe removes its guide entry on the next read.\n    let quick = \"data/tconstruct/recipes/tools/modifiers/upgrade/quick_charge.json\";\n    let mut changed = fixture[\"incremental_recipes\"][quick].clone(); changed[\"level\"][\"max\"] = serde_json::json!(2);\n    recipes.insert(quick.into(),serde_json::to_vec(&changed).unwrap());\n    assert_eq!(rows(&recipes).iter().find(|row|row.modifier==\"tconstruct:quick_charge\").unwrap().maximum,2);\n    recipes.remove(quick);\n    assert!(!rows(&recipes).iter().any(|row|row.modifier==\"tconstruct:quick_charge\"));\n}"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_book_showcase_tags.py": {
+      "before": "bb56ffe6c2c7b297ddddf1677fb1c50b766bea4f395b4fb56561c7e78e52bd07",
+      "before_blob": "3d1e2ef61cab1df2f3fd877dad785944516f9af5",
+      "after": "d8aaabde79bd763dcf0c4d59f87a4513dc1d7eb0049a59b4d2a1d4b22074a4cf",
+      "after_blob": "7963a1e779b66696f335370221540bd69b7c69c0",
+      "replacements": [
+        [
+          "        import zipfile\n        fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())\n        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:\n            for path, recipe in fixture['recipes'].items():\n                self.assertEqual(recipe, json.loads(archive.read(path)), path)\n        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:\n            for path, tag in fixture['modifier_tags'].items():\n",
+          "        import zipfile\n        fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())\n        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:\n            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {})}.items():\n                self.assertEqual(recipe, json.loads(archive.read(path)), path)\n        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:\n            for path, tag in fixture['modifier_tags'].items():\n"
+        ],
+        [
+          "if __name__ == '__main__':\n    unittest.main()\n",
+          "class IncrementalModifierGuideWiring(unittest.TestCase):\n    def test_partial_incremental_pages_use_current_snapshots_and_shared_limits(self):\n        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()\n        start = source.index('fn incremental_modifier_pages(')\n        body = source[start:source.index('fn dynamic_materials(', start)]\n        for text in ('modifier_resource_snapshot()', 'recipe_snapshot()', 'resolved_item_tags()',\n                     'incremental_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',\n                     'incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools',\n                     'tool_supported_with_tags(modifier, item, tags)', 'incremental_limits_supported',\n                     'entry.needed, entry.maximum, entry.upgrade_cost', 'split_styled(game,', 'partial guide'):\n            self.assertIn(text, body)\n        self.assertIn('if puny && key == \"upgrades\" { chapter_pages.extend(incremental_modifier_pages', source)\n        rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()\n        self.assertIn('if !incremental_limits_supported(id, needed, max) { continue; }', rules)\n        self.assertIn('*needed > 1 && provisional_upgrade_enabled(id)', rules)\n\nif __name__ == '__main__':\n    unittest.main()\n"
+        ]
+      ]
+    },
+    "tconstruct/third_party/NOTICE.md": {
+      "before": "4a7a4760a368070c867675ebf76470304827bea14b6b7b06dbe46606c458a7d1",
+      "before_blob": "349258cb3c590751ebcf1b5f405d696a5d812428",
+      "after": "bffbcb68a86b2ecb7d34dddf8d86ff7da6c23ffab4db73d584b03c2a46abde69",
+      "after_blob": "3693176bf123e0da78463470d5f12990e262e17f",
+      "replacements": [
+        [
+          "\nMighty Smelting's `sections/abilities.json` is copied verbatim from\n[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/sections/abilities.json).\nThe ordinary modifier guide fixture copies four recipes and three modifier\ntags from the same pinned source archives; exact paths are recorded in `tests/fixtures/ordinary-modifier-guides.json`.\nCopyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.\nThe partial labels and generated recipe text are port adaptations.",
+          "\nMighty Smelting's `sections/abilities.json` is copied verbatim from\n[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/sections/abilities.json).\nThe ordinary modifier guide fixture copies eight recipes and three modifier\ntags from the same pinned source archives; exact paths are recorded in `tests/fixtures/ordinary-modifier-guides.json`.\nCopyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.\nThe partial labels and generated recipe text are port adaptations."
+        ]
+      ]
+    },
+    "tconstruct/tests/test_broad_tools_intake.py": {
+      "before": "a1267432484f6cb398ab4ef7a7b590ed6a1615469067423882cf543dc6a4773f",
+      "before_blob": "fa5e48b044153f1522bc07f8a657e684e8adc25a",
+      "after": "30c2f872bd6fc7c05e71649a085da63c86e64f281ee458958b293258b804caa0",
+      "after_blob": "1458bee328bd0c619e74449fabcb4804c771c72e",
+      "replacements": [
+        [
+          "                raw = (ROOT / path).read_bytes()",
+          "                raw = (ROOT / path).read_bytes()\n                incremental = json.loads((ROOT / 'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())\n                self.assertEqual(incremental['ordinary_base'], '7c4f846e3988e9d6494bc8b078728acfe98d27c2')\n                if path in incremental['files']:\n                    item707 = incremental['files'][path]\n                    self.assertEqual(sha(raw), item707['after'])\n                    projected = raw.decode('utf-8')\n                    for before707, after707 in reversed(item707['replacements']):\n                        self.assertEqual(projected.count(after707), 1)\n                        projected = projected.replace(after707, before707, 1)\n                    raw = projected.encode()\n                    self.assertEqual(sha(raw), item707['before'])\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_tool_tanks_intake.py": {
+      "before": "d2c0671c1b6a87191d0d1065aff2f659ec2d9cd05e0c488b1c6c03681bf112ea",
+      "before_blob": "bfd89ef1a813affa03e3ac69a486908a91d9bd40",
+      "after": "3c6c3f3bc6a3307580aa10d4167398aee5a9a3590f8aaecbf9b0fd06f63723ea",
+      "after_blob": "b499f5c9be25e1b2afc886fcad7d3c8d7162f7b8",
+      "replacements": [
+        [
+          "                raw=(ROOT/path).read_bytes()",
+          "                raw=(ROOT/path).read_bytes()\n                incremental = json.loads((ROOT / 'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())\n                self.assertEqual(incremental['ordinary_base'], '7c4f846e3988e9d6494bc8b078728acfe98d27c2')\n                if path in incremental['files']:\n                    item707 = incremental['files'][path]\n                    self.assertEqual(sha(raw), item707['after'])\n                    projected = raw.decode('utf-8')\n                    for before707, after707 in reversed(item707['replacements']):\n                        self.assertEqual(projected.count(after707), 1)\n                        projected = projected.replace(after707, before707, 1)\n                    raw = projected.encode()\n                    self.assertEqual(sha(raw), item707['before'])\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_bonus_guide_intake.py": {
+      "before": "b7e3465dc6dc06be6cfab386572c81faab7afbdb1552371dde9c628122395e1f",
+      "before_blob": "874a364c73a900676ac0d23b0c28d69c6dee491e",
+      "after": "35d9994c5a24e985050ee1a77f080f6481383ec579c59b8e3e15553a463ae840",
+      "after_blob": "c0eb1fcfca81d86de551ffd0f1a66508e8f638a5",
+      "replacements": [
+        [
+          "                raw=(ROOT/path).read_bytes()",
+          "                raw=(ROOT/path).read_bytes()\n                incremental = json.loads((ROOT / 'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())\n                self.assertEqual(incremental['ordinary_base'], '7c4f846e3988e9d6494bc8b078728acfe98d27c2')\n                if path in incremental['files']:\n                    item707 = incremental['files'][path]\n                    self.assertEqual(sha(raw), item707['after'])\n                    projected = raw.decode('utf-8')\n                    for before707, after707 in reversed(item707['replacements']):\n                        self.assertEqual(projected.count(after707), 1)\n                        projected = projected.replace(after707, before707, 1)\n                    raw = projected.encode()\n                    self.assertEqual(sha(raw), item707['before'])\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_ordinary_guide_intake.py": {
+      "before": "2f0bf0b1cff0c996205b68f51694705b680ddf117dca96c40640f0e95171fd21",
+      "before_blob": "11d07f9a348adf13c555a7f9e7400855aefa6609",
+      "after": "b189ef6089703c58f98976fb2cb9808674d2d980774bca834bf3abed10881eca",
+      "after_blob": "048b016e7629e1dedb828c21312c85007561ad7f",
+      "replacements": [
+        [
+          "def invert(path):",
+          "def previous_bytes(path):\n    raw=(ROOT/path).read_bytes()\n    receipt=json.loads((ROOT/'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())\n    assert receipt['ordinary_base']=='7c4f846e3988e9d6494bc8b078728acfe98d27c2'\n    if path in receipt['files']:\n        entry=receipt['files'][path];assert sha(raw)==entry['after'];text=raw.decode('utf-8')\n        for old,new in reversed(entry['replacements']):\n            assert text.count(new)==1;text=text.replace(new,old,1)\n        raw=text.encode();assert sha(raw)==entry['before']\n    return raw\n\ndef invert(path):"
+        ],
+        [
+          "    text=(ROOT/path).read_text(encoding='utf-8')",
+          "    text=previous_bytes(path).decode('utf-8')"
+        ],
+        [
+          "                raw=(ROOT/path).read_bytes()",
+          "                raw=previous_bytes(path)"
+        ],
+        [
+          "before=invert(path);after=(ROOT/path).read_text(encoding='utf-8')",
+          "before=invert(path);after=previous_bytes(path).decode('utf-8')"
+        ],
+        [
+          "docs=(ROOT/'tconstruct/docs/materials-and-you.md').read_text(encoding='utf-8')",
+          "docs=previous_bytes('tconstruct/docs/materials-and-you.md').decode('utf-8')"
+        ]
+      ]
+    }
+  },
+  "scope": "Puny single-point incremental recipe projection through existing Pluto resource/tag owners and exact Station limit gates.",
+  "validation": {
+    "python": {
+      "passed": 34,
+      "finite_limit_cases": 224,
+      "description": "Old29 + source wiring1 + intake4; native-launching test excluded explicitly."
+    },
+    "rust": "not run",
+    "package": "not run",
+    "host": "not run",
+    "ui_lan": "not run"
+  },
+  "preparation_history": [
+    "One in-memory assertion rejected an earlier test file lacking its final newline before any candidate output was created. Applied the own added test suffix without changing old body."
+  ]
+}

@@ -147,5 +147,88 @@
         "tconstruct:glowing"
       ]
     }
+  },
+  "incremental_recipes": {
+    "data/tconstruct/recipes/tools/modifiers/upgrade/haste_from_dust.json": {
+      "type": "tconstruct:incremental_modifier",
+      "allow_crystal": true,
+      "amount_per_item": 1,
+      "input": {
+        "tag": "forge:dusts/redstone"
+      },
+      "level": {
+        "max": 5
+      },
+      "needed_per_level": 45,
+      "result": "tconstruct:haste",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": [
+        {
+          "tag": "tconstruct:modifiable/harvest"
+        },
+        {
+          "tag": "tconstruct:modifiable/armor/chestplate"
+        }
+      ]
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/sharpness_from_shard.json": {
+      "type": "tconstruct:incremental_modifier",
+      "allow_crystal": true,
+      "amount_per_item": 1,
+      "input": {
+        "tag": "forge:gems/quartz"
+      },
+      "level": {
+        "max": 5
+      },
+      "needed_per_level": 36,
+      "result": "tconstruct:sharpness",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/melee"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/quick_charge.json": {
+      "type": "tconstruct:incremental_modifier",
+      "allow_crystal": true,
+      "amount_per_item": 1,
+      "input": {
+        "item": "minecraft:magma_cream"
+      },
+      "level": {
+        "max": 4
+      },
+      "needed_per_level": 5,
+      "result": "tconstruct:quick_charge",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/ranged/quick_charge"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/hydraulic_from_shard.json": {
+      "type": "tconstruct:incremental_modifier",
+      "allow_crystal": true,
+      "amount_per_item": 1,
+      "input": {
+        "tag": "forge:dusts/prismarine"
+      },
+      "level": {
+        "max": 5
+      },
+      "needed_per_level": 36,
+      "result": "tconstruct:hydraulic",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/harvest"
+      }
+    }
   }
 }

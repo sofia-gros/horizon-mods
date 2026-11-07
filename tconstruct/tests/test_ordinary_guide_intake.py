@@ -10,9 +10,20 @@ SOURCE=ROOT/'tconstruct/mixins/tconstruct'
 RECEIPT=ROOT/'integration/guide-intake-20261107/ordinary-modifiers.json'
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 def blob(raw):return hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+def previous_bytes(path):
+    raw=(ROOT/path).read_bytes()
+    receipt=json.loads((ROOT/'integration/guide-intake-20261107/incremental-modifiers.json').read_bytes())
+    assert receipt['ordinary_base']=='7c4f846e3988e9d6494bc8b078728acfe98d27c2'
+    if path in receipt['files']:
+        entry=receipt['files'][path];assert sha(raw)==entry['after'];text=raw.decode('utf-8')
+        for old,new in reversed(entry['replacements']):
+            assert text.count(new)==1;text=text.replace(new,old,1)
+        raw=text.encode();assert sha(raw)==entry['before']
+    return raw
+
 def invert(path):
     item=json.loads(RECEIPT.read_bytes())['files'][path]
-    text=(ROOT/path).read_text(encoding='utf-8')
+    text=previous_bytes(path).decode('utf-8')
     for old,new in reversed(item['replacements']):
         assert text.count(new)==1
         text=text.replace(new,old,1)
@@ -32,7 +43,7 @@ class OrdinaryGuideIntake(unittest.TestCase):
         self.assertEqual(len(receipt['files']),15)
         for path,item in receipt['files'].items():
             with self.subTest(path=path):
-                raw=(ROOT/path).read_bytes()
+                raw=previous_bytes(path)
                 self.assertEqual((sha(raw),blob(raw)),(item['after'],item['after_blob']))
                 if item['before'] is None:self.assertEqual(blob(raw),item['pr_blob'])
                 else:
@@ -41,7 +52,7 @@ class OrdinaryGuideIntake(unittest.TestCase):
 
     def test_station_refactor_preserves_complete_old_planner_and_predicate_bodies(self):
         path='tconstruct/mixins/tconstruct/source-upgrade-rules.rs'
-        before=invert(path);after=(ROOT/path).read_text(encoding='utf-8')
+        before=invert(path);after=previous_bytes(path).decode('utf-8')
         for name in ('supported','provisional_upgrade_enabled','ingredient_matches','stack_ingredient_matches'):
             self.assertEqual(function(before,name),function(after,name),name)
         old=function(before,'plan_with_traits');new=function(after,'plan_with_traits')
@@ -103,7 +114,7 @@ class OrdinaryGuideIntake(unittest.TestCase):
         self.assertIn("subprocess.run(['rustc'",test)
         receipt=json.loads(RECEIPT.read_bytes())
         for field in ('rust','host','package','ui_lan'):self.assertEqual(receipt['validation'][field],'not run')
-        docs=(ROOT/'tconstruct/docs/materials-and-you.md').read_text(encoding='utf-8')
+        docs=previous_bytes('tconstruct/docs/materials-and-you.md').decode('utf-8')
         for text in ('one to five ordinary input slots','Repeated ingredients retain separate slots',
                      'Incremental','held-page language refresh','No manifest'):
             self.assertIn(text,docs)
