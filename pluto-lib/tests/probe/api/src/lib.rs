@@ -1,6 +1,9 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
-use pluto_lib::{ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents, ServerTickEvents};
+use pluto_lib::{
+    Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    ServerTickEvents,
+};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
@@ -18,6 +21,21 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE end_server_tick");
         }
     });
+    LootTableEvents::MODIFY.register(|c| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE loot_modify id={}", c.id);
+        }
+    });
+    ResourceManagerHelper::get(ResourceType::ClientResources).register_reload_listener(
+        Identifier::new("pluto_probe", "reload").expect("valid id"),
+        || {
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE client_resources_reloaded");
+            }
+        },
+    );
     Box::new(Probe)
 }
 

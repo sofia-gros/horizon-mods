@@ -22,4 +22,7 @@ pub use crate::pure::events_interaction_v0::{
 pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,
 };
+pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, TooltipLine};
+pub use crate::pure::loot_api_v2::{self, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents};
+pub use crate::pure::resource_loader_v0::{self, ResourceManagerHelper, ResourceType};

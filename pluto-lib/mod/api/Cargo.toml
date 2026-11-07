@@ -6,5 +6,6 @@ description = "PlutoLib: Horizon's Fabric API"
 license = "MIT"
 
 [dependencies]
+serde_json = "1"
 # The launcher points this at the Horizon source it builds the game from.
 horizon-client = { git = "https://github.com/horizon-rust/horizon" }

@@ -4,13 +4,13 @@
 //! `Flow::Cancel` when the PlutoLib callbacks say so.
 
 use horizon_client::mod_api::{
-    AttackEntityEvent, ChunkLoadEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
+    AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
-use crate::pure::{events_interaction_v0, lifecycle_events_v1, networking_api_v1};
+use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
@@ -88,6 +88,21 @@ impl Hooks for PlutoHooks {
 
     fn destroy_block(&self, _host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
         cancel_if(!events_interaction_v0::before_block_break(event.pos))
+    }
+
+    fn tooltip(&self, _host: &dyn Host, event: &mut TooltipEvent<'_>) {
+        for line in item_api_v1::item_tooltip(&event.stack.item, event.stack.count) {
+            event.lines.push((Text::literal(line.text), line.color));
+        }
+    }
+
+    fn loot_table_load(&self, event: &mut LootTableLoadEvent<'_>) {
+        let edited = loot_api_v2::modify(event.id, event.table.clone());
+        *event.table = edited;
+    }
+
+    fn client_resources_reloaded(&self, _host: &mut dyn Host, _event: &mut ClientResourcesReloadedEvent) {
+        resource_loader_v0::client_resources_reloaded();
     }
 
     fn living_incoming_damage(&self, event: &mut LivingIncomingDamageEvent<'_>) -> Flow {
