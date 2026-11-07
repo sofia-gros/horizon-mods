@@ -3,7 +3,7 @@
 // its private PotionCloud fields do not require a new shared host framework.
 use crate::game::Game;
 use crate::game::dragon::Breath;
-use super::PotionCloud;
+use super::{CloudSettings, PotionCloud};
 
 pub(in crate::game) fn spawn(game: &mut Game<'_>, at: [f64; 3], effects: Vec<(&'static str, i32, i32)>) {
     let color = horizon_client_core::potions::effects_color(effects.iter().map(|(id, _, amplifier)| (*id, *amplifier)));
@@ -13,11 +13,13 @@ pub(in crate::game) fn spawn(game: &mut Game<'_>, at: [f64; 3], effects: Vec<(&'
     let effects = effects.into_iter().map(|(id, time, amplifier)| (id, time * 4, amplifier)).collect();
     let id = game.take_entity_id();
     game.breath_clouds.push(Breath {
-        id, at, radius: 1.0, age: 0, duration: 600, from_dragon: false,
+        id, at, radius: 1.0, age: 0, duration: 600, from_dragon: false, victims: Vec::new(),
         potion: Some(PotionCloud {
+            settings: CloudSettings::lingering(),
             effects, hidden: Vec::new(), ambient: Vec::new(),
             radius_per_tick: -1.0 / 600.0, color, victims: Vec::new(),
             source: horizon_client::text::Text::translate("entity.minecraft.area_effect_cloud", &[]),
+            owner: None, guest: None,
         }),
     });
 }

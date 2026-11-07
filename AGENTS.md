@@ -35,8 +35,10 @@ to change them, then rebuild with the slice pipeline. `.github/workflows/upstrea
 against upstream HEAD weekly to detect breaking changes early.
 
 ## The vertical slice
-Upstream moves fast and rejects some hook targets, so only a slice is built and launched:
-`tools/smoke-local/slice.json` lists what stays enabled; `tools/slice_manifest.py` generates reduced
+Upstream moves fast and rejects some hook targets, so a slice is built and launched. Today it is every
+TConstruct injection except the three the pinned Mixins CLI rejects, plus the PlutoLib features whose
+guards pass. `tools/smoke-local/slice.json` lists what stays enabled; `tools/probe_injections.py` re-measures
+which injections the current Horizon accepts; `tools/slice_manifest.py` generates reduced
 Mixins bundles from the full manifests (which stay untouched) and `stage.py --pluto-guards` runs only the
 PlutoLib guards of kept features. Everything else is **parked, not deleted**: restore a feature by adding
 its injection id to `slice.json`, then fix whatever the plan/guards/compile report. Do not edit the full

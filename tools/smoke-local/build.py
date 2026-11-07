@@ -15,6 +15,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--horizon', type=Path, required=True, help='checkout at compatibility.json horizon_revision')
 p.add_argument('--mixins', type=Path, required=True, help='checkout at compatibility.json mixins_revision')
 p.add_argument('--base-resources', type=Path, help='prepared Horizon 26.3 resource folder (required unless --ci)')
+p.add_argument('--slice-config', type=Path, default=Path(__file__).with_name('slice.json'), help='slice definition (default: slice.json)')
 p.add_argument('--ci', action='store_true', help='stage + cargo check only: no client build, no resources (CI has no Minecraft assets)')
 p.add_argument('--work', type=Path, default=root / '.local/smoke-build')
 p.add_argument('--target-dir', type=Path, default=root / '.local/cargo-target-modded')
@@ -22,7 +23,7 @@ a = p.parse_args()
 if not a.ci and not a.base_resources:
     p.error('--base-resources is required unless --ci')
 compat = json.loads((root / 'tconstruct/compatibility.json').read_text())
-cfg = json.loads((Path(__file__).with_name('slice.json')).read_text())
+cfg = json.loads(a.slice_config.read_text())
 
 def run(*cmd, **kw):
     print('+', ' '.join(map(str, cmd)), flush=True)
@@ -49,7 +50,9 @@ run(py, root / 'tconstruct/tools/extract_pluto.py', '--horizon', a.horizon, '--p
 full = a.work / 'pluto-installed/pluto_native_creative/mixins/pluto_native_creative'
 pluto_slice = a.work / 'pluto-slice'
 args = [py, root / 'tools/slice_manifest.py', '--out', a.work / 'mods/tconstruct', '--tokens-out', a.work / 'tconstruct-tokens.txt']
-for s in cfg['tconstruct_seeds']: args += ['--seed', s]
+for s in cfg.get('tconstruct_seeds', []): args += ['--seed', s]
+if 'tconstruct_all_except' in cfg:
+    for x in (cfg['tconstruct_all_except'] or ['NONE']): args += ['--all-except', x]
 run(*args)
 # TConstruct sources call PlutoLib modules by name; keep those too.
 import tomllib
