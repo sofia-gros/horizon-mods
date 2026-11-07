@@ -14,7 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
             'PLUTO-PROBE loot_modify', 'PLUTO-PROBE player send_message=true give_left=0',
-            'PLUTO-PROBE attachment stored=true now=')
+            'PLUTO-PROBE attachment stored=true now=',
+            'PLUTO-PROBE config_loading pluto_probe-common.toml text=')
 # reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
 OPTIONAL = ('PLUTO-PROBE client_resources_reloaded',)
 

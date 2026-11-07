@@ -6,6 +6,7 @@
 use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
@@ -13,6 +14,7 @@ use horizon_client::mod_api::{
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
+use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
@@ -83,7 +85,43 @@ fn cancel_if(handled: bool) -> Flow {
     if handled { Flow::Cancel } else { Flow::Continue }
 }
 
+fn model_config(file: &NativeConfigFile) -> ModConfig {
+    let kind = match file.kind {
+        NativeConfigKind::Client => ConfigKind::Client,
+        NativeConfigKind::Common => ConfigKind::Common,
+        NativeConfigKind::Server => ConfigKind::Server,
+    };
+    ModConfig { mod_id: file.mod_id.clone(), kind, file: file.file.clone(), text: file.text.clone() }
+}
+
 impl Hooks for PlutoHooks {
+    fn register_configs(&self, _host: &mut dyn Host, event: &mut RegisterConfigsEvent<'_>) {
+        for spec in config_api::registered() {
+            let kind = match spec.kind {
+                ConfigKind::Client => NativeConfigKind::Client,
+                ConfigKind::Common => NativeConfigKind::Common,
+                ConfigKind::Server => NativeConfigKind::Server,
+            };
+            let config = NativeConfig::new(&spec.mod_id, kind, &spec.default_text);
+            event.configs.push(match &spec.file {
+                Some(file) => config.file(file),
+                None => config,
+            });
+        }
+    }
+
+    fn config_loading(&self, _host: &mut dyn Host, event: &mut ConfigLoadingEvent<'_>) {
+        config_api::loading(model_config(event.config));
+    }
+
+    fn config_reloading(&self, _host: &mut dyn Host, event: &mut ConfigReloadingEvent<'_>) {
+        config_api::reloading(model_config(event.config));
+    }
+
+    fn config_unloading(&self, _host: &mut dyn Host, event: &mut ConfigUnloadingEvent<'_>) {
+        config_api::unloading(model_config(event.config));
+    }
+
     fn server_about_to_start(&self, _host: &mut dyn Host, event: &mut ServerAboutToStartEvent) {
         lifecycle_events_v1::server_starting(event.dedicated);
     }
