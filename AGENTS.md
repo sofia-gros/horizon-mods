@@ -15,6 +15,8 @@ PlutoLib absorbs the differences between Horizon and Horizon Mixins. Upstream is
 `horizon-rust/horizon` and `horizon-rust/horizon-mixins` (default branches). We do **not** control
 either and never edit them. The owner's old personal fork of horizon is not a dependency.
 
+The order of work is in [docs/roadmap.md](docs/roadmap.md) (owner-defined, with agreed adjustments).
+
 ## Hard rules
 1. **PlutoLib only.** TConstruct code uses PlutoLib APIs (Fabric-API-shaped; if one is missing, add it to
    PlutoLib first). The ~290 legacy direct injections in `tconstruct/` are an interim state to be replaced. It must not call the fork, Horizon internals
