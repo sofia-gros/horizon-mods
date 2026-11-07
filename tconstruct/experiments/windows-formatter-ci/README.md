@@ -1,99 +1,82 @@
-# Windows1.99 formatter: bounded source candidate
+# Windows 1.99 formatter with its matching rustc runtime
 
-Retry source only, not a Windows build or a current complete-composition check.
-Runtime dependency base is aebe7a5d5e778efe273ae1afc2236ff8c3046274, plus the
-three stat-reader changes in 3adea9919061e3546b85a4c6668af8fa1547c3c8. The two
-existing guards and all Rust helper bodies/metadata are unchanged. The earlier
-Linux1.95 guard replay on17f passed damage and both terrain guards; it does not
-prove this Windows1.99 formatter produces the same exact strings.
+Source-only follow-up to 9846. No new archive, Windows attempt, installer or native
+execution has occurred for this candidate. The independent static investigation
+is recorded in docs/windows-rustfmt-dependencies-20261107. Actual run42329829285
+returned direct formatter status0xC0000135 (wrapper4294967295), before version or
+any helper regeneration. Its failure is preserved, not rewritten as a success.
 
-Three native gates only: official pinned archive/layout/executable admission;
-actual formatter version; then the unchanged damage verify_source and terrain
-verify_regeneration functions. Damage performs exactly three sequential formatter
-calls and terrain four. The parent validates observed Popen argv, count and result.
-No substitutions or formatting-difference tolerance are added to either guard.
+## One additional pinned component
 
-The historical7139236d complete plan is retained only to compare exact damage
-helper source. Its immutable four-file artifact is hash/size checked before and
-after. This does not run check_order, the complete-plan terrain check, the other
-ten guards, a new planner, apply, Cargo, rustc, link, assets or a game. Current
-composition success remains a separate prerequisite to the existing BuildOnly
-entry. A formatting mismatch is a real failure to investigate, never auto-fixed.
+The only new network input is the official rustc1.99.1 Windows GNU archive from
+2026-10-15, SHA43b17e9a… as fixed in official Horizon41f launcher/rust_toolchain.rs.
+No Cargo, rust-std, rust-mingw, WinLibs, rustup or alternative source is obtained.
+The existing rustfmt archive/executable and four41f source pins stay unchanged.
 
-The successful5e14 Windows source-CI phase and strict parser are included byte
-unchanged. Its private phase timeout is explicitly120seconds rather than40.
-The JobObject code differs only in documented active-process/query capacity2→3:
-barrier worker, guard Python, one sequential rustfmt. Assignment precedes barrier
-release. Normal and exceptional completion terminate only that own Job and require
-it to become empty. Permission/assignment/startup failure is not skipped. Logs
-remain bounded128KiB, every writer filesystem retains10GiB+128MiB, and preparation
-requires an additional1GiB reserve. Standard public Windows job timeout12minutes;
-known phase step9minutes. No service, registry, privilege or global PATH change.
+Rustfmt's exact PE imports name rustc_driver-737f10a507f50706.dll,
+std-f903e3d16df36da5.dll and libgcc_s_seh-1.dll. Its own archive contains no DLL.
+The exact58cf compiler distribution source copies compiler runtime libraries into
+rustc/bin and adds libgcc plus libwinpthread. This candidate retains the complete
+rustc component payload, including its entire bin DLL set, in one fresh prefix;
+it does not selectively replace DLLs or execute the component installer. It
+requires these four DLLs, rustc.exe/rustdoc.exe and the exact compiler commit.
+Actual archive member layout and transitive PE closure are still unobserved.
+Presence of those files is not reported as a successful Windows loader test.
 
-Archive download occurs only in a later released CI: the fixed1.99.1 WindowsGNU
-rustfmt tar.gz SHA488f4cdc is checked before bounded safe tar inspection. Only its
-one exact executable is copied into a fresh temporary formatter/bin. No installer
-or system toolchain is used. The four native source files use exact official41f
-URLs/hashes and2MiB each. Unknown source, redirects, archive/member/hash/size drift
-reject. The download worker remains under the same ownJob/timeout/disk monitor.
+Download and unpack are two separate owned phases, each at most120seconds with
+128KiB console output. Download is fixed-origin/no-redirect, exclusive-create,
+streamed, hashed and read back. The archive is verified again before parsing.
+The compressed budget is512MiB, payload/declared expansion2GiB, individual file
+1GiB and member count20,000. The decompressed stream, including headers/padding,
+has the additional fixed20,000*4096-byte overhead allowance. These are rejection
+caps, not observed archive sizes, growth estimates or a promise it fits them.
+Paths reject links, reparse/special entries, sparse members, traversal, reserved
+Windows names, casefold duplicates and foreign components. The fresh output is
+read back with stable path/handle identity and streaming hashes. The original
+rustfmt is exclusively created alongside the DLLs, never replacing an existing
+file. A bounded local2MiB manifest holds every extracted file's size/hash. Logs
+retain its digest/counts, not the complete map. All retained files and both
+archives are rechecked after execution; rustc seals are checked even if the later
+formatter preparation fails. This is ordinary drift detection, not adversarial
+filesystem race isolation.
 
-First run42253259752/controller38e1 passed20pure but rejected the cross-API
-lstat/fstat comparison of rustfmt.exe before any formatter execution. Its false
-result is preserved in571b10f8. The reached code implies archive/layout admission,
-but no completed preparation receipt was emitted. Loader dependencies, version
-and regeneration remain unobserved. If another DLL/component is needed, this probe
-fails at startup and records it; it will not search other Rust installations or
-download extra components. Child PATH is only the fresh formatter/bin, selected
-Python directory and Windows System32. PYTHONUTF8=1/PYTHONIOENCODING=utf-8 are
-process-local. The small known historical artifact action runs between preflight
-and post-download validation with2minute step timeout, not inside this ownJob.
+## Existing gates and limits
 
-Whole checkout, artifact and prepared input seals are rechecked. Failure receipts
-retain reached phases/error; missing later gates remain absent, completed=false.
-No raw Rust source or credential is emitted. No artifact upload/cache is added.
-The native executable's actual hash/version and seven argv records are retained
-only if reached. The original guarded source is never regenerated or overwritten.
+Order: existing33controller tests,12stat tests,16new pure/runtime tests; rustc
+download; rustc unpack/admission; unchanged rustfmt/source preparation; actual
+rustfmt version; unchanged damage3 and terrain4 regeneration calls. The old
+run/probe/test changes invert to their complete9846 byte hashes. The two guard
+executables, Rust payloads, metadata and immutable historical7139236d artifact
+are unchanged. Version uses the one original attempt and raw-child status path.
+There is no added process wrapper or second diagnostic execution.
 
-Thirty-three controller plus twelve stat-model regressions are required separately,
-under the same owned phase, before any preparation download. Both complete merged
-verbose streams passed the unchanged strict named validator. They exercise inverse provenance,
-ctypes layout, three-process capacity, barrier order, assignment refusal, normal
-cleanup, timeout ownJob cleanup, bounds, pins, strict names and admission. They do
-not execute Windows APIs, downloads, formatter or Rust. Independent review and
-explicit serial release are required before the existing dedicated trigger is
-updated. No automatic retry or resource-limit relaxation is included.
+The existing Job assignment/barrier and normal/exceptional ownJob teardown remain
+byte-identical. At most3processes means worker -> guard Python -> one sequential
+rustfmt. It is sufficient for this gate, not a Cargo build budget. Standard public
+Windows job12minutes and step9minutes remain unchanged. Every watched writer
+filesystem retains10GiB+128MiB; preflight now additionally requires4GiB for the
+fixed preparation caps. The same phase monitor records aggregate observed free
+space by volume and Windows GlobalMemoryStatusEx values, with512MiB available
+physical RAM floor. Those are measurements and a floor, not a group memory cap.
+No privileges, system PATH, registry, installed software or settings are changed.
 
+The previous receipt did not record numeric free space or RAM, so no heavy build
+capacity can be inferred from it. Missing layout, budget, DLL/version, permission
+or formatter output causes failure without fallback or an automatic retry.
 
-## Child status observation follow-up (source only)
+## Proof boundary
 
-The eb19 retry reached preparation but its version phase produced 0 output bytes
-and worker exit 4294967295. That did not preserve the actual subprocess returncode
-before CPython sys.exit conversion, so a DLL/loader diagnosis remains unproven.
-The prior false evidence is preserved separately at 427f53d3.
+The historical artifact is for exact helper regeneration comparison only. This
+gate does not run a new planner, check_order, all12guards, apply, Cargo, rustc,
+link, assets or a game. The original helper source is not rewritten. Only actual
+version and all7matching outputs can make the formatter gate pass. The measured
+capacity and successful formatter, if obtained, still do not prove latest complete
+composition or BuildOnly readiness. A later build needs the full same-release
+official toolchain/WinLibs plus a fresh ordinary stage plan, all guards and apply.
 
-This follow-up keeps the successful shared source-CI phase byte-for-byte. The
-formatter controller routes each call through child_status.phase, temporarily
-selecting a minimal replacement of the same existing barrier worker. There is no
-additional process or formatter attempt. Worker -> guard Python -> sequential
-rustfmt remains at most three processes in the same existing Job, with the same
-120-second and 128-KiB limits. The old assignment/barrier/teardown path still owns
-the lifetime. Its original worker path is restored even after failure.
-
-After the single known child returns, that worker writes a fresh, fsynced JSON
-sidecar of at most 1 KiB in its current phase directory. It records only argv SHA,
-exact returned integer and schema/kind; spawn errors instead record numeric errno
-and winerror without inventing an exit status. The control variable is stripped
-from the child's environment. The parent reads only after the phase has unwound,
-checks exact fields, argv identity, bounded regular-file bytes and stable file
-identity, and adds child_status to the same phase receipt. Stdout remains unchanged.
-The old worker sys.exit behavior is preserved and reported separately, without
-interpreting a Windows status as a particular failure cause.
-
-Missing/invalid sidecar cannot produce success. A failed or timed-out phase keeps
-its original failure as well as any status-read error, rather than claiming an
-observation. No setup/archive/DLL is added; exact archive, formatter selection,
-seven regeneration calls, guard input, Job limit and workflow remain unchanged.
-Pure mocks cover large unsigned statuses, spawn error, barrier rejection, same
-worker restoration, missing/wrong/truncated/oversized status and no extra process.
-No Windows API, download, formatter, retry or native build has been run for this
-follow-up. It requires independent review and a separate explicit serial release.
+The shared source-CI phase, child-status observer,3process Job and strict named
+validator are unmodified. Pure tests use tiny synthetic tarballs, mocked network
+and memory calls, exact inverse hashes, missing/changed DLL/commit/path/budget
+failures, and original cleanup/barrier regressions. Actual rustc archive layout,
+Windows API execution, DLL loading and7formatter outputs remain unexecuted for
+this source until independent review and an explicit serial release.

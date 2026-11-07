@@ -1,0 +1,68 @@
+{
+  "probe.py": [
+    {
+      "before": "import urllib.request\n",
+      "after": "import urllib.request\nimport rustc_runtime\n"
+    },
+    {
+      "before": "toolchain=work/'formatter';(toolchain/'bin').mkdir(parents=True)",
+      "after": "toolchain=work/'formatter';rustc_runtime.seal(toolchain)\n    if not (toolchain/'bin').is_dir():raise ValueError('Pinned rustc runtime preparation is required')"
+    },
+    {
+      "before": "executable=toolchain/'bin/rustfmt.exe';executable.write_bytes(binary)",
+      "after": "executable=toolchain/'bin/rustfmt.exe'\n    with executable.open('xb') as output:output.write(binary)"
+    }
+  ],
+  "run.py": [
+    {
+      "before": "import child_status\n",
+      "after": "import child_status\nimport rustc_runtime\n"
+    },
+    {
+      "before": "REQUIRED={'pure','stat-pure','archive','version','damage','terrain-cell'}",
+      "after": "REQUIRED={'pure','stat-pure','runtime-pure','rustc-download','rustc-runtime','archive','version','damage','terrain-cell'}"
+    },
+    {
+      "before": "base.FLOOR+1024**3 for p in paths):raise ValueError('One GiB preparation reserve missing')",
+      "after": "base.FLOOR+rustc_runtime.RESERVE for p in paths):raise ValueError('Four GiB bounded preparation reserve missing')"
+    },
+    {
+      "before": "        result=phase_json('prepare'",
+      "after": "        raw=child_status.phase(base,'runtime-pure',[sys.executable,str(HERE/'test_runtime.py'),'-v'],work,env,receipt)\n        receipt['gates']['runtime-pure']=validation.suite(raw,c['runtime_test_names'])\n        result=phase_json('rustc-download',[sys.executable,str(HERE/'rustc_runtime.py'),'download',str(work)],work,env,receipt)\n        if result!=rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT) or result['sha256']!=rustc_runtime.SHA256:raise ValueError('Rustc download witness differs')\n        receipt['gates']['rustc-download']=result\n        result=phase_json('rustc-runtime',[sys.executable,str(HERE/'rustc_runtime.py'),'unpack',str(work)],work,env,receipt)\n        raw=probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2)\n        saved=json.loads(raw)\n        if result.get('manifest')!={'bytes':len(raw),'sha256':base.sha(raw)} or result!={**{k:v for k,v in saved.items() if k!='files'},'manifest':result['manifest']}:raise ValueError('Rustc runtime manifest differs')\n        if (saved.get('archive')!=receipt['gates']['rustc-download'] or saved.get('compiler_commit')!=rustc_runtime.COMMIT or saved.get('required_dlls')!=list(rustc_runtime.REQUIRED_DLLS) or saved.get('files')!=rustc_runtime.seal(work/'formatter')):raise ValueError('Rustc runtime seal differs')\n        receipt['gates']['rustc-runtime']=result\n        result=phase_json('prepare'"
+    },
+    {
+      "before": "inputs_before={'formatter':base.snapshot(work/'formatter'),'official':base.snapshot(work/'official'),'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT))}",
+      "after": "inputs_before=prepared_inputs(work)"
+    },
+    {
+      "before": "after={'formatter':base.snapshot(work/'formatter'),'official':base.snapshot(work/'official'),'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT))}",
+      "after": "after=prepared_inputs(work)"
+    },
+    {
+      "before": "def main():\n",
+      "after": "def prepared_inputs(work):\n    return {'formatter':rustc_runtime.seal(work/'formatter'),'official':base.snapshot(work/'official'),\n            'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT)),\n            'rustc_archive':rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT),\n            'runtime_manifest':base.sha(probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2))}\ndef main():\n"
+    },
+    {
+      "before": "    try:execute(receipt)\n",
+      "after": "    try:\n        with rustc_runtime.observed_guard(base,receipt):execute(receipt)\n"
+    },
+    {
+      "before": "    inputs_before=None\n",
+      "after": "    inputs_before=None;runtime_before=None\n"
+    },
+    {
+      "before": "        receipt['gates']['rustc-runtime']=result\n",
+      "after": "        receipt['gates']['rustc-runtime']=result\n        runtime_before=saved\n"
+    },
+    {
+      "before": "        if inputs_before is not None:\n",
+      "after": "        if 'rustc-download' in receipt['gates']:\n            if rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT)!=receipt['gates']['rustc-download']:raise ValueError('Final rustc archive changed')\n        if runtime_before is not None:\n            runtime_after=rustc_runtime.seal(work/'formatter');runtime_after.pop('bin/rustfmt.exe',None)\n            if runtime_after!=runtime_before['files'] or json.loads(probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2))!=runtime_before:raise ValueError('Final rustc runtime changed')\n            receipt['rustc_runtime_verified']=True\n        if inputs_before is not None:\n"
+    }
+  ],
+  "test_runner.py": [
+    {
+      "before": "        source=(HERE/'run.py').read_text(encoding='utf-8')\n        self.assertEqual(source.count('import child_status\\n'),1)",
+      "after": "        source=(HERE/'run.py').read_text(encoding='utf-8')\n        for row in reversed(json.loads((HERE/'runtime-inverse.json').read_bytes())['run.py']):\n            self.assertEqual(source.count(row['after']),1);source=source.replace(row['after'],row['before'],1)\n        self.assertEqual(source.count('import child_status\\n'),1)"
+    }
+  ]
+}

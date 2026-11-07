@@ -2,7 +2,7 @@
   "schema": 1,
   "runtime_base": "aebe7a5d5e778efe273ae1afc2236ff8c3046274",
   "branch": "checkpoint/windows-formatter-199-ci-20261106",
-  "status": "Source-only child returncode observation; Windows/download/native/retry unexecuted.",
+  "status": "Source-only matching rustc runtime addition; no new component download, Windows execution or retry.",
   "test_names": [
     "test_actual_invocation_is_one_fixed_formatter",
     "test_adapter_adds_no_process_or_formatter_attempt",
@@ -102,17 +102,20 @@
     ".github/workflows/windows-formatter-wip.yml": "478cff41aac6c6cd5cea94407af77ae0cc8bb6aca87606a88294e36694ea0093",
     "tconstruct/experiments/windows-source-ci/validate.py": "df68efa169116dd431cfede9f0f4096feecf0f5f393b0eb43c037004016a3584",
     "tconstruct/experiments/windows-source-ci/run.py": "1d6f6a9b0122033cb7a4dbeeaa1e24cd9ad2385a762eb3c2d75b1ab3083ea3fa",
-    "tconstruct/experiments/windows-formatter-ci/README.md": "6796df59edc3af1724f570afea4418ea193fc753506ab1efaf117b5331379610",
-    "tconstruct/experiments/windows-formatter-ci/test_runner.py": "37c08a9f09461309c831269a132738ac7f7cada517b6ae5f269c76359786368c",
-    "tconstruct/experiments/windows-formatter-ci/run.py": "a99ec5bacf2b477918af25202a595b431c01a349477a15e0d0062ec325ba4f01",
-    "tconstruct/experiments/windows-formatter-ci/probe.py": "e15d6b817e6e01bb1c295faf109b3096cb9832632e7361cf0286c7575a101527",
+    "tconstruct/experiments/windows-formatter-ci/README.md": "b12e48add67eda04b99f026112778ae438caccaf00cf4e481bf8c26576a39c2c",
+    "tconstruct/experiments/windows-formatter-ci/test_runner.py": "f60afa405607d6a91e0f7955f4ff55b1e273b5339f6a053fbd3e4be4887ee452",
+    "tconstruct/experiments/windows-formatter-ci/run.py": "1e2fe7e240034c2669312c035e4d4d552a063ee3b5b921905c3d74bf07037d39",
+    "tconstruct/experiments/windows-formatter-ci/probe.py": "12e6049db58e923a99e1d3958eed542844fbfbb26e017fb26e0bda597c39d70f",
     "tconstruct/experiments/windows-formatter-ci/winjob.py": "75f1dab1c00db8efdb4c672655a141d5572c400f427e2aa571e536484520a2fe",
     "tconstruct/tools/play_windows_latest.py": "36503f7ca6ca20f8113081648ecddf6ee01b67c2bddbb68b046e53592efd8149",
     "tconstruct/tools/prepare_playtest_bundles.py": "f7a081599c26091393a1dd09037d10ea675a7daf40d9a866547767f83a72f4d7",
     "tconstruct/tests/test_windows_stat_compat.py": "6a778a8b43377da90038c4e6f61bb75ee8087202cfb270d64dd1a7466b2402f7",
     "tconstruct/experiments/windows-stat-compat/inputs.json": "49e2e8d53426f2328d113f6f090aa1b7229dedd44f018961ef4f52c635b8d9d7",
     "tconstruct/experiments/windows-stat-compat/README.md": "82378fafc28c040500b7d4c307a7f25ba90633d7c6dcef48e181812b6d581583",
-    "tconstruct/experiments/windows-formatter-ci/child_status.py": "15a14909bc35caf53300f3ce82b8f846346bace06ac8a1bc8c034198df89b380"
+    "tconstruct/experiments/windows-formatter-ci/child_status.py": "15a14909bc35caf53300f3ce82b8f846346bace06ac8a1bc8c034198df89b380",
+    "tconstruct/experiments/windows-formatter-ci/rustc_runtime.py": "5e2f5fa243011d28937ba490730811ba65c9d93adda1bcb241dc95b75fdea7a2",
+    "tconstruct/experiments/windows-formatter-ci/test_runtime.py": "ac823de0d23fab349d08cc3b7dd485a88b24c57f3e7b9dd9f71df176c26038c7",
+    "tconstruct/experiments/windows-formatter-ci/runtime-inverse.json": "1d7bfac93d2bb0ceae42d68ee0d65909a96e9fa82f425017a989dfba08a82289"
   },
   "runtime_stat_delta": "3adea9919061e3546b85a4c6668af8fa1547c3c8",
   "prior_failure": "571b10f86d99666e6f8b247b951418a4ab166d39",
@@ -135,5 +138,29 @@
     "tests": 33,
     "bytes": 3757,
     "sha256": "a0a089ae1abc313b1451d1a0948e49a85c024db5804730d35f61665ac2736e20"
-  }
+  },
+  "runtime_component": {
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustc-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+    "sha256": "43b17e9a9134ea72562bfbb23728a830f671ea9be1db6a72597a8d240e986b35",
+    "supplier_source": "e313aa03e1c6a3dc17d53e200ae8bb2ff748bdeb",
+    "prior_run": 42329829285
+  },
+  "runtime_test_names": [
+    "test_actual_numeric_resource_minima_are_bounded_aggregate",
+    "test_decompressed_headers_are_bounded_too",
+    "test_digest_rejected_before_unpack",
+    "test_download_has_one_fixed_origin_and_hash_readback",
+    "test_download_origin_and_size_fail_closed",
+    "test_duplicate_case_parent_and_symlink_rejected",
+    "test_exact_rustc_source_pin_and_only_one_new_component",
+    "test_expansion_and_individual_file_limits",
+    "test_fresh_destination_and_parent_links_rejected",
+    "test_full_component_payload_and_all_dlls_are_preserved",
+    "test_memory_layout_and_floor_restores_original_guard",
+    "test_missing_dependency_and_compiler_commit_rejected",
+    "test_original_probe_and_controller_whole_bytes_invert",
+    "test_runtime_precedes_formatter_and_original_limits_stay",
+    "test_streaming_record_empty_and_budget_and_link",
+    "test_windows_reserved_paths_and_count_bounds"
+  ]
 }

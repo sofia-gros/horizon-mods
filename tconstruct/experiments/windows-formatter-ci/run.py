@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import child_status
+import rustc_runtime
 import sys
 
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[2]
@@ -17,7 +18,7 @@ probe=load('formatter_probe',HERE/'probe.py')
 # Only the reviewed per-phase elapsed limit differs from the40-second pure suite.
 base.TIMEOUT=120
 BRANCH='checkpoint/windows-formatter-199-ci-20261106'
-REQUIRED={'pure','stat-pure','archive','version','damage','terrain-cell'}
+REQUIRED={'pure','stat-pure','runtime-pure','rustc-download','rustc-runtime','archive','version','damage','terrain-cell'}
 def config():return json.loads((HERE/'inputs.json').read_bytes())
 def verify_sources(c):
     before=base.snapshot(ROOT)
@@ -32,7 +33,7 @@ def preflight(c):
     verify_sources(c)
     paths=[ROOT,Path(os.environ['RUNNER_TEMP']),Path(ROOT.anchor),Path(sys.executable).parent]
     base.disk_guard(paths)
-    if any(shutil.disk_usage(p).free<base.FLOOR+1024**3 for p in paths):raise ValueError('One GiB preparation reserve missing')
+    if any(shutil.disk_usage(p).free<base.FLOOR+rustc_runtime.RESERVE for p in paths):raise ValueError('Four GiB bounded preparation reserve missing')
 def artifact(c,path):
     expected={p:v['sha256'] for p,v in c['artifact']['files'].items()}
     if {p.name for p in path.iterdir()}!=set(expected):raise ValueError('Historical artifact file set differs')
@@ -51,7 +52,7 @@ def execute(receipt):
     artifact_root=Path(os.environ['RUNNER_TEMP'])/'windows-formatter-plan'
     artifact_before=artifact(c,artifact_root)
     work=Path(os.environ['RUNNER_TEMP'])/('windows-formatter-'+os.environ['GITHUB_SHA']);work.mkdir()
-    inputs_before=None
+    inputs_before=None;runtime_before=None
     env={k:v for k,v in os.environ.items() if k.upper() not in {'PLUTO_GUARD_RUSTFMT','PYTHONUTF8','PYTHONIOENCODING','PYTHONPATH','PYTHONHOME','PATH'}}
     env.update(TEMP=str(work),TMP=str(work),TMPDIR=str(work),PYTHONDONTWRITEBYTECODE='1',PYTHONUTF8='1',PYTHONIOENCODING='utf-8',
                PATH=os.pathsep.join([str(work/'formatter/bin'),str(Path(sys.executable).parent),str(Path(os.environ['SystemRoot'])/'System32')]),
@@ -61,12 +62,24 @@ def execute(receipt):
         receipt['gates']['pure']=validation.suite(raw,c['test_names'])
         raw=child_status.phase(base,'stat-pure',[sys.executable,str(ROOT/'tconstruct/tests/test_windows_stat_compat.py'),'-v'],work,env,receipt)
         receipt['gates']['stat-pure']=validation.suite(raw,c['stat_test_names'])
+        raw=child_status.phase(base,'runtime-pure',[sys.executable,str(HERE/'test_runtime.py'),'-v'],work,env,receipt)
+        receipt['gates']['runtime-pure']=validation.suite(raw,c['runtime_test_names'])
+        result=phase_json('rustc-download',[sys.executable,str(HERE/'rustc_runtime.py'),'download',str(work)],work,env,receipt)
+        if result!=rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT) or result['sha256']!=rustc_runtime.SHA256:raise ValueError('Rustc download witness differs')
+        receipt['gates']['rustc-download']=result
+        result=phase_json('rustc-runtime',[sys.executable,str(HERE/'rustc_runtime.py'),'unpack',str(work)],work,env,receipt)
+        raw=probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2)
+        saved=json.loads(raw)
+        if result.get('manifest')!={'bytes':len(raw),'sha256':base.sha(raw)} or result!={**{k:v for k,v in saved.items() if k!='files'},'manifest':result['manifest']}:raise ValueError('Rustc runtime manifest differs')
+        if (saved.get('archive')!=receipt['gates']['rustc-download'] or saved.get('compiler_commit')!=rustc_runtime.COMMIT or saved.get('required_dlls')!=list(rustc_runtime.REQUIRED_DLLS) or saved.get('files')!=rustc_runtime.seal(work/'formatter')):raise ValueError('Rustc runtime seal differs')
+        receipt['gates']['rustc-runtime']=result
+        runtime_before=saved
         result=phase_json('prepare',[sys.executable,str(HERE/'probe.py'),'prepare',str(work)],work,env,receipt)
         admitted=probe.fmt.admit(work/'formatter',work/'rustfmt.tar.gz')
         if result.get('kind')!='preparation' or result.get('formatter')!=admitted or set(result.get('sources',{}))!=set(probe.source_map()):raise ValueError('Preparation witness differs')
         for p,h in probe.source_map().items():
             if base.sha(probe.fmt.bounded_file(work/'official'/p,probe.MAX_SOURCE))!=h:raise ValueError('Prepared official source drift')
-        inputs_before={'formatter':base.snapshot(work/'formatter'),'official':base.snapshot(work/'official'),'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT))}
+        inputs_before=prepared_inputs(work)
         receipt['gates']['archive']=result
         raw=child_status.phase(base,'version',[str(work/'formatter/bin/rustfmt.exe'),'--version'],work,env,receipt)
         version=raw.decode('utf-8').strip();probe.fmt.validate_version(version)
@@ -83,16 +96,28 @@ def execute(receipt):
         receipt['completed']=True
     finally:
         if base.snapshot(ROOT)!=before or artifact(c,artifact_root)!=artifact_before:raise ValueError('Source/artifact changed')
+        if 'rustc-download' in receipt['gates']:
+            if rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT)!=receipt['gates']['rustc-download']:raise ValueError('Final rustc archive changed')
+        if runtime_before is not None:
+            runtime_after=rustc_runtime.seal(work/'formatter');runtime_after.pop('bin/rustfmt.exe',None)
+            if runtime_after!=runtime_before['files'] or json.loads(probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2))!=runtime_before:raise ValueError('Final rustc runtime changed')
+            receipt['rustc_runtime_verified']=True
         if inputs_before is not None:
-            after={'formatter':base.snapshot(work/'formatter'),'official':base.snapshot(work/'official'),'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT))}
+            after=prepared_inputs(work)
             if after!=inputs_before:raise ValueError('Prepared input changed')
             receipt['prepared_input_seal']=base.sha(json.dumps(after,sort_keys=True).encode())
         base.disk_guard([ROOT,work,Path(ROOT.anchor),Path(sys.executable).parent]);receipt['verified']=True
+def prepared_inputs(work):
+    return {'formatter':rustc_runtime.seal(work/'formatter'),'official':base.snapshot(work/'official'),
+            'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT)),
+            'rustc_archive':rustc_runtime.file_record(work/'rustc.tar.gz',rustc_runtime.ARCHIVE_LIMIT),
+            'runtime_manifest':base.sha(probe.fmt.bounded_file(work/'rustc-runtime.json',2*1024**2))}
 def main():
     receipt={'schema':1,'completed':False,'verified':False,'passed':False,'gates':{},'phases':[],
              'scope':'Windows1.99 formatter regeneration only; historical full-plan helper comparison',
              'latest_composition_verified':False,'apply_executed':False,'game_build_executed':False}
-    try:execute(receipt)
+    try:
+        with rustc_runtime.observed_guard(base,receipt):execute(receipt)
     except Exception as exc:receipt['error']=type(exc).__name__+': '+str(exc)
     receipt['passed']=receipt['completed'] and receipt['verified'] and 'error' not in receipt
     print('FINAL_RECEIPT '+json.dumps(receipt,sort_keys=True),flush=True)

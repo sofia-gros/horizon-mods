@@ -110,6 +110,8 @@ class Tests(unittest.TestCase):
             network.assert_not_called()
     def test_controller_delta_inverts_to_exact_eb19(self):
         source=(HERE/'run.py').read_text(encoding='utf-8')
+        for row in reversed(json.loads((HERE/'runtime-inverse.json').read_bytes())['run.py']):
+            self.assertEqual(source.count(row['after']),1);source=source.replace(row['after'],row['before'],1)
         self.assertEqual(source.count('import child_status\n'),1)
         source=source.replace('import child_status\n','',1).replace('child_status.phase(base,','base.phase(')
         self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),'8ffb0a369a9204d5bee6ed8ea1e636b0ec3ef40b3e8b3d7a00e33d0570aa9121')

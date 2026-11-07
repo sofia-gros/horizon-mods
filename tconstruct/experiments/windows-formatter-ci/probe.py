@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import subprocess
 import urllib.request
+import rustc_runtime
 
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
@@ -52,8 +53,10 @@ def prepare(work):
     archive=work/'rustfmt.tar.gz'
     record=download(fmt.URL,archive,fmt.ARCHIVE_SHA256,fmt.ARCHIVE_LIMIT)
     binary=fmt.archive_binary(fmt.bounded_file(archive,fmt.ARCHIVE_LIMIT))
-    toolchain=work/'formatter';(toolchain/'bin').mkdir(parents=True)
-    executable=toolchain/'bin/rustfmt.exe';executable.write_bytes(binary)
+    toolchain=work/'formatter';rustc_runtime.seal(toolchain)
+    if not (toolchain/'bin').is_dir():raise ValueError('Pinned rustc runtime preparation is required')
+    executable=toolchain/'bin/rustfmt.exe'
+    with executable.open('xb') as output:output.write(binary)
     admitted=fmt.admit(toolchain,archive)
     sources={}
     for path,digest in source_map().items():
