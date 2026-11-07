@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42255794408",
+  "run_id": 42255794408,
+  "job_id": 128022509253,
+  "head": "eb19d445ab8d8e152218022c1d22cb2896e16ac0",
+  "terminal": "failure",
+  "completed_at": "2026-11-06T16:49:01Z",
+  "console": {
+    "decoded_bytes": 22054,
+    "sha256": "8562061289482e84500df0bf75edd9e8b60ad699855435bfceffaef50295f91d",
+    "recovered_with": "normal workflow job logs connector",
+    "recovery_date": "2026-11-07",
+    "full_console_published": false
+  },
+  "passed": false,
+  "verified": true,
+  "error": "RuntimeError: version failed",
+  "pure": {
+    "formatter": 20,
+    "stat": 12,
+    "failed": 0,
+    "skipped": 0
+  },
+  "preparation": {
+    "archive": {
+      "bytes": 4941389,
+      "sha256": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa"
+    },
+    "formatter": {
+      "archive_bytes": 4941389,
+      "archive_sha256": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa",
+      "archive_url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+      "executable_bytes": 9723329,
+      "executable_sha256": "537a30b76250a6c5f3c46dae538f8428fc53041385f5731320d4ff6703a60b2a",
+      "package_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+      "package_version": "1.10.0"
+    },
+    "kind": "preparation",
+    "sources": {
+      "crates/horizon-client-render/src/mesher.rs": {
+        "bytes": 89342,
+        "sha256": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19"
+      },
+      "crates/horizon-client/src/game.rs": {
+        "bytes": 1032243,
+        "sha256": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e"
+      },
+      "crates/horizon-client/src/game/creatures.rs": {
+        "bytes": 383916,
+        "sha256": "3b4e83cb752575fb47821a37575dc9dd277ceb3630b0fc6a00c2e621c9e54cef"
+      },
+      "crates/horizon-client/src/game/explosion.rs": {
+        "bytes": 58573,
+        "sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19"
+      }
+    }
+  },
+  "phases": [
+    {
+      "name": "pure",
+      "exit": 0,
+      "job_empty": true,
+      "log_bytes": 2128,
+      "log_sha256": "528ef345fcf42ed6cf47d7f7eff74c0ec9207f31e23e7c0810cb3d08a81e251d",
+      "seconds": 0.6090000000000089
+    },
+    {
+      "name": "stat-pure",
+      "exit": 0,
+      "job_empty": true,
+      "log_bytes": 1590,
+      "log_sha256": "65197f3e9ede3a7c9fdd2b6b05b4336516c8497847ac84002a8d50bf9cacab69",
+      "seconds": 0.4689999999999941
+    },
+    {
+      "name": "prepare",
+      "exit": 0,
+      "job_empty": true,
+      "log_bytes": 1154,
+      "log_sha256": "420adcf1f2b35b846206957f1e07234ce91dd60816b6f3f5811806e8a5af0d47",
+      "seconds": 2.2649999999999864
+    },
+    {
+      "name": "version",
+      "exit": 4294967295,
+      "job_empty": true,
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 0.09399999999999409
+    }
+  ],
+  "prepared_input_seal": "35ec3e119bc1f3c48cfb09569aec2444dad731a33e92f90ac6f4224f022934bd",
+  "source_before_sha256": "182570bbde9f6e55ebc4a367400dae474f1a0d028628333b722e128fd00f1961",
+  "version_observed": false,
+  "formatter_regeneration_calls": 0,
+  "formatter_regeneration_expected": 7,
+  "cause": "Unresolved. The wrapper exit is not proof of the formatter process's raw Windows status or a missing DLL.",
+  "scope": "Preparation succeeded; version phase failed with no output. No helper regeneration, current composition proof, apply, Windows link or game execution.",
+  "new_download_or_retry_on_recovery": false
+}
