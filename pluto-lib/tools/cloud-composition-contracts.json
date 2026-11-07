@@ -11,9 +11,23 @@
     "candidate_c977_plan_observed": false
   },
   "candidate": "c97771ccb2af0a5fa9e0bf5129ce1f9c065e0a60",
-  "candidate_runtime_commit": "6ec43252746dfe905a40b6c9f8cb857d087affb8",
-  "candidate_observation": null,
-  "notes": "Source-reviewed candidate with one unobserved placement. Null is a mandatory rejection, not a wildcard. No actual Game/type/gameplay claim.",
+  "candidate_runtime_commit": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+  "candidate_observation": {
+    "runtime_commit": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+    "runtime_tree": "afb6ac2ff3e824828cdde94e6e4686e0ffbe2094",
+    "controller_commit": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+    "run": 42328100345,
+    "plan_sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+    "plan_bytes": 6431102,
+    "artifact_manifest_sha256": "cb4be26cc97e07c03bec9a9287ece0eb85b94cbb585c3badf50e342f4dd56df4",
+    "receipt_sha256": "4e065cddbddd5bf8ed7a7214be42e0d4a3b60f86de547e8a7df6efd10c9e7304",
+    "package_maps_sha256": "a4bf579358e71e8c8179bc2bc0f8fce569b9d4c59ff9a3ebecfc350215376002",
+    "evidence_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4",
+    "native_type_verified": false,
+    "game_tests_executed": false,
+    "gameplay_verified": false
+  },
+  "notes": "Actual e907 complete-plan observation recorded. Historical observed_plan remains the earlier 9cc1 evidence. Checker algorithms, source/IR contracts and hook order are unchanged; no actual Game/type/gameplay claim.",
   "modules": [
     {
       "mod_id": "tconstruct_native",
@@ -142,7 +156,7 @@
       "file": "crates/horizon-client/src/game.rs",
       "name": "tconstruct_source_fluid_cloud",
       "visibility": "pub",
-      "fingerprint": null,
+      "fingerprint": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042",
       "source_sha256": "45d5f330a0e54422ce0beb60a9c4fd8f893fbc5cf96ffa9ea51de005d361f212"
     },
     {

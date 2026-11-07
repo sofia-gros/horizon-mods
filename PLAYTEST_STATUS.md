@@ -2,6 +2,18 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Actual complete-plan observations, 2026-11-07
+
+[Run 42328100345](https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345) completed at 02:24:49 UTC. The fixed e907 ordinary composition produced an accepted complete plan in 460.676 seconds. All twelve guards ran: eight passed and four refused. Its four-file artifact and separate official Index observations were recovered and checked. The [small result record](pluto-lib/docs/playtest-next-plan-result-20261107.json) preserves that original outcome.
+
+This intake records only the actual constructor/module/payload observations. The crafting module visibility correction follows official serialization of the unchanged pub(crate) default; it does not change visibility. Checker algorithms, Rust payloads and manifests are unchanged. Recipe 43, cloud 38 and payload 15 source/synthetic/evidence checks passed; cloud and payload full Python checks passed against the saved actual plan and pristine official source subsets. These are not applied host or gameplay tests. The combined archive-backed twelve-guard replay remains pending.
+
+The later stage tools change TConstruct's support ZIP. Any replay must keep the old plan data and new support bytes separate and is native guard diagnostics only, not apply authorization. Actual stage/apply/build must use a fresh plan from the current packages.
+
+Windows diagnostic [42329829285](https://github.com/sofia-gros/horizon-mods/actions/runs/42329829285) identified rustfmt's raw child status as 0xC0000135 (STATUS_DLL_NOT_FOUND), distinct from the wrapper exit. The missing DLL is not identified yet; version emitted no bytes and all seven regeneration calls remain unexecuted. No current native build, link or startup success is claimed. Main is unchanged.
+
+Historical intake notes below describe their original cutoffs; pending observations and caller omissions described there are superseded by this section and the stage connection section.
+
 ## Complete stage caller connection, 2026-11-07
 
 The Windows launcher, ordinary Mixins workflow and isolated stage fixture now pass both actual package archive paths and their receipt SHA256 values. The stage verifies all expanded members, calls the shared full-composition contract writer, supplies the third guard argument, and rechecks the contract/archives before apply. The original guard failure remains fatal.

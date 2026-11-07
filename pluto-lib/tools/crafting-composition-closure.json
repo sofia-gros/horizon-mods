@@ -124,7 +124,7 @@
           "module_id": "pluto_native_creative-recipe-transactions",
           "file": "crates/horizon-client/src/game/recipe_book.rs",
           "name": "pluto_transactions",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2"
         }
       ],
@@ -248,7 +248,7 @@
           "module_id": "pluto_native_creative-recipe-transactions",
           "file": "crates/horizon-client/src/game/recipe_book.rs",
           "name": "pluto_transactions",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2"
         },
         {
@@ -257,7 +257,7 @@
           "module_id": "crafting-stored-deny-policies",
           "file": "crates/horizon-client/src/crafting.rs",
           "name": "tconstruct_crafting_deny_policies",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02"
         },
         {
@@ -266,7 +266,7 @@
           "module_id": "crafting-shared-bootstrap",
           "file": "crates/horizon-client/src/crafting.rs",
           "name": "tconstruct_crafting_bootstrap",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "382ca263fa9510f6df5adb2c98c474b6cc7d25672735a29577ab0ca68ec93a65"
         },
         {
@@ -275,7 +275,7 @@
           "module_id": "overslime-derivation",
           "file": "crates/horizon-client/src/crafting.rs",
           "name": "tconstruct_overslime_derivation",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f"
         },
         {
@@ -284,7 +284,7 @@
           "module_id": "station-transaction",
           "file": "crates/horizon-client/src/game/recipe_book.rs",
           "name": "tconstruct_station_transaction",
-          "visibility": "pub(crate)",
+          "visibility": null,
           "source_sha256": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9"
         }
       ],

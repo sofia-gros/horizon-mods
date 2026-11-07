@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Source integration restored and strict crafting/placement package contracts adopted. Cloud, payload and constructor observations deliberately remain null until a fresh complete plan. No current apply, full host type check, Windows game build or launch has completed.",
+  "stage": "The current ordinary Rust composition has an actual accepted e907 complete plan and official Index observation. Reviewed metadata now records the observed constructor, module and payload identities without changing checker algorithms, Rust or manifests. The original run passed eight guards and refused four; a new all-guard replay and actual apply/default build/startup checks remain pending.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -28,19 +28,19 @@
   "pending": [
     {
       "subject": "Guide LAN response",
-      "reason": "All three caller migrations and the strict private-module payload guard are integrated. Observation and poll_remote fingerprint remain null and fail closed. Fresh complete plan plus official Index observation, then all guards, Game types and LAN execution are still required."
+      "reason": "Actual sole RETURN, noncancellable callers, private module and official poll_remote identity are recorded. Unchanged full payload checker passes the saved complete plan and pristine source subset; all-guard replay, Game types and real LAN behavior remain pending."
     },
     {
       "subject": "Crafting composition",
-      "reason": "The reviewed strict package contract and six-target full-composition guards are integrated. Two constructor identities remain null and intentionally reject. Fresh plan, actual identity update, full guard replay, bootstrap/pair/Game types and station behavior remain required."
+      "reason": "Actual constructor nodes/fingerprints and omitted default crate visibility are recorded. All 43 source/synthetic tests pass; actual archive-backed guard replay, bootstrap/pair/Game typing and station behavior remain pending."
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Historical fixed 17f replay passed 7/12 guards. Wire and current strict guard source updates are integrated, but ordinary runtime has changed and needs a fresh complete plan. Linux 1.95 regeneration success does not prove Windows 1.99.1."
+      "reason": "Actual e907 run reached all twelve guards: eight passed, four refused. Exact metadata-only observations address those refusals but the combined replay is pending. Stage-tool changes alter only the support ZIP; old plan data must remain unchanged and a fresh stage plan is required before apply."
     },
     {
       "subject": "Windows execution validation",
-      "reason": "All known ordinary stage callers now pass the explicit full-package contract and the selected 92 source/mock tests pass. The eb19 formatter retry still stopped at version with no output; seven regeneration calls were not reached and cause is unconfirmed. Raw-child-status follow-up is separately reviewed but unrun. Actual guards/apply/default build/link/startup remain required."
+      "reason": "All ordinary stage callers are connected and selected 92 source/mock tests pass. Actual rustfmt child status is STATUS_DLL_NOT_FOUND (0xC0000135); the missing DLL is not yet identified. Version emitted no bytes and seven regeneration calls were not reached. Actual default build/link/startup remain pending."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -51,7 +51,7 @@
     },
     {
       "subject": "Validate integrated native item-cloud repair",
-      "reason": "Strict source-reviewed composition guard is integrated. Its candidate observation and moved-module fingerprint remain null and reject every unobserved composition. Fresh full plan, reviewed actual identities, all guards, actual Game 6+3 tests, types and publication checks remain."
+      "reason": "Actual full saved-plan check and 38 source/synthetic checks pass after recording the exact moved-module identity. Checker, 19 modules, 27 hooks, 45 states and 16 hook-order contracts are retained. All-guard replay, actual Game9 typing/value tests and live publication checks remain pending."
     }
   ],
   "excluded_activation": [
@@ -70,8 +70,8 @@
     },
     "gates": {
       "git_blob_composition": "passed",
-      "complete_latest_plan": "Accepted only for reference 9cc1. Current cloud, payload and crafting/station source requires a fresh complete plan.",
-      "composition_guards": "Actual fixed17f all12 CLI reached:7PASS/5refuse, including1.95 formatter regeneration. Current cloud/payload delta requires fresh fullplan and allguards.",
+      "complete_latest_plan": "Actual e907 ordinary Rust composition accepted in run42328100345, 6,431,102 bytes. Later stage/support packaging differs and requires a new stage plan before apply.",
+      "composition_guards": "Original e907 diagnostic: eight pass, four refuse. Observed metadata source/full-plan checks pass individually; combined archive-backed twelve-guard replay is pending.",
       "native_build": "not run on this branch",
       "windows_link": "not run",
       "game_start": "not run",
@@ -399,8 +399,58 @@
       "run": 42328100345,
       "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345",
       "started_at": "2026-11-07T02:12:59Z",
-      "result_pending_at_intake": true,
-      "scope": "Fixed primary complete-plan and twelve-guard diagnostic; uploaded primary artifact before separate Index. No apply or game build."
+      "result_pending_at_intake": false,
+      "scope": "Fixed primary complete-plan and twelve-guard diagnostic; uploaded primary artifact before separate Index. No apply or game build.",
+      "completed_at": "2026-11-07T02:24:49Z",
+      "diagnostic_result": "success",
+      "plan_accepted": true,
+      "plan_seconds": 460.676,
+      "plan_sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+      "plan_bytes": 6431102,
+      "artifact": 13556955569,
+      "guard_passed": 8,
+      "guard_refused": 4,
+      "compatibility": false,
+      "index_completed": true,
+      "index_error": null,
+      "poll_remote_node": [
+        44,
+        41
+      ],
+      "poll_remote_fingerprint": "e1b7b4869ed3ffcebf6acf7e70cd9acfd66acfbe2363e46abf901a6489a80aac",
+      "record": "pluto-lib/docs/playtest-next-plan-result-20261107.json",
+      "evidence_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4"
+    },
+    "observed_metadata": {
+      "recipe": "3dc4b9dcd541dd239f52bb4756b026a8353f3625",
+      "cloud": "73530c6a53cea028370cc331fb889a18570cb174",
+      "payload": "8ac3aec1209fc5ea30cd8506c3683f35a1d4e52e",
+      "ordinary_metadata_paths": 4,
+      "checker_algorithms_changed": false,
+      "rust_or_manifest_changed": false,
+      "recipe_source_checks": 43,
+      "cloud_source_checks": 38,
+      "payload_source_checks": 15,
+      "all_guard_replay_complete": false,
+      "apply": false,
+      "host_type": false
+    },
+    "windows_formatter_status": {
+      "source": "9846c1d38083b791efb809d9156c8a1e5cf539e6",
+      "run": 42329829285,
+      "job": 128273554364,
+      "completed_at": "2026-11-07T02:33:49Z",
+      "result": "failure",
+      "raw_child_status": 3221225781,
+      "status_hex": "0xC0000135",
+      "status_name": "STATUS_DLL_NOT_FOUND",
+      "wrapper_status": 4294967295,
+      "version_output_bytes": 0,
+      "regeneration_calls_reached": 0,
+      "missing_dll_identified": false,
+      "source_verified": true,
+      "owned_jobs_empty": true,
+      "record_commit": "0a1436b2337ccc4b05be1fdef108c219fa10550c"
     }
   },
   "safety": {
@@ -410,7 +460,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Collect fixed e907 full-plan/guard/Index evidence from run42328100345; review actual identities and adapt only exact pending metadata, then replay all guards against sealed source/package inputs. The later stage/tooling changes do not alter Rust payloads but must be included in subsequent package/tool seals. Resolve formatter startup status before Windows default build/error checks.",
+  "next": "Run the reviewed native guard replay using the immutable dc4f plan, explicit actual archive contract and new observed metadata. Keep old plan support data and new support ZIP separately identified: this replay cannot authorize apply. Resolve the Windows formatter DLL dependency, then use the ordinary latest stage for a fresh complete plan, all guards, apply and default Windows build/error checks before any main merge.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -808,6 +858,18 @@
       "source_mock_tests": 92,
       "whole_repository_suite": false,
       "main_merge_ready": false
+    },
+    {
+      "name": "Record actual complete-plan and Index observations",
+      "base": "767500e61799eb463e0d38c8688347e8fa76702b",
+      "sources": [
+        "3dc4b9dcd541dd239f52bb4756b026a8353f3625",
+        "73530c6a53cea028370cc331fb889a18570cb174",
+        "8ac3aec1209fc5ea30cd8506c3683f35a1d4e52e"
+      ],
+      "ordinary_metadata_paths": 4,
+      "checker_rust_manifest_changes": false,
+      "full_build_or_gameplay": false
     }
   ],
   "guide_limits": [

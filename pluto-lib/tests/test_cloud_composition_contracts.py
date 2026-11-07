@@ -137,11 +137,35 @@ class Contracts(unittest.TestCase):
 
     def test_published_pending_placement_is_not_a_wildcard(self):
         c = json.loads((ROOT / 'tools/cloud-composition-contracts.json').read_text())
+        delta = json.loads((ROOT / 'tests/cloud-plan-observation-delta.json').read_text())
+        self.assertEqual(hashlib.sha256((ROOT / 'tools/cloud-composition-contracts.json').read_bytes()).hexdigest(), delta['observed_contract_sha256'])
+        for edit in reversed(delta['changes']):
+            obj = c
+            for key in edit['path'][:-1]: obj = obj[key]
+            self.assertEqual(obj[edit['path'][-1]], edit['after'])
+            obj[edit['path'][-1]] = edit['before']
+        prior = (json.dumps(c, indent=2, ensure_ascii=True) + '\n').encode()
+        self.assertEqual(hashlib.sha256(prior).hexdigest(), '19f1c7a36f50f12805caeaaf99c2a3e33f8e273abc619f696fa52b5e648a70c8')
         self.assertIsNone(c['candidate_observation'])
         row = next(r for r in c['modules'] if r['module_id'] == 'source-fluid-cloud')
         self.assertIsNone(row['fingerprint'])
         with self.assertRaisesRegex(ValueError, 'actual-plan observation'):
             validate_contracts(synthetic()[0], c)
+
+    def test_actual_observation_is_only_four_metadata_leaves(self):
+        delta = json.loads((ROOT / 'tests/cloud-plan-observation-delta.json').read_text())
+        c = json.loads((ROOT / 'tools/cloud-composition-contracts.json').read_text())
+        index = next(i for i, row in enumerate(c['modules']) if row['module_id'] == 'source-fluid-cloud')
+        self.assertEqual([e['path'] for e in delta['changes']], [
+            ['candidate_runtime_commit'], ['candidate_observation'], ['notes'], ['modules', index, 'fingerprint']])
+        self.assertEqual(c['candidate_runtime_commit'], 'e9073648b3c4cf4d49f27bc2e1ed60997f430586')
+        self.assertEqual(c['candidate_observation']['plan_sha256'], 'dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b')
+        self.assertEqual(c['modules'][index]['fingerprint'], '540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042')
+        self.assertEqual([len(c[k]) for k in ('modules', 'injections', 'states', 'hook_order')], [19, 27, 45, 16])
+        for name, digest in delta['unchanged_file_sha256'].items():
+            self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
+        for key in ('native_type_verified', 'game_tests_executed', 'gameplay_verified'):
+            self.assertIs(c['candidate_observation'][key], False)
 
     def test_unobserved_fingerprint_still_rejects_with_receipt_fields(self):
         p, c = synthetic()

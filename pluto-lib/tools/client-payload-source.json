@@ -33,7 +33,7 @@
       "value": "packet"
     }
   ],
-  "coverage": "Candidate only: native_client_packet body then sole RETURN snapshot/read-only observe/trusted current-View update, BEFORE remaining handle_packet body. No durable identity, actor authority or UI/LAN proof. poll_remote fingerprint and candidate observation remain missing.",
+  "coverage": "Actual complete-plan and official Index identity observed at 41f/5a64. native_client_packet body then sole RETURN snapshot/read-only observe/trusted current-View update, BEFORE remaining handle_packet body. No applied Game type, durable identity, actor authority or UI/LAN proof.",
   "location": {
     "file": "crates/horizon-client/src/game/native_hooks.rs",
     "node": [
@@ -43,9 +43,14 @@
   },
   "caller_fingerprints": {
     "horizon_client::game::remote::Game<'_>::handle_packet": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
-    "horizon_client::game::remote::Game<'_>::poll_remote": null
+    "horizon_client::game::remote::Game<'_>::poll_remote": "e1b7b4869ed3ffcebf6acf7e70cd9acfd66acfbe2363e46abf901a6489a80aac"
   },
-  "candidate_observation": null,
+  "candidate_observation": {
+    "horizon_revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "plan_sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+    "index_result_sha256": "7f3180ff5ed8c00d65820684fd179cfa684e07144ffd37dd7806b971bb9cf205",
+    "evidence_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4"
+  },
   "internal_updates": {
     "module_id": "client-payload-updates",
     "file": "crates/horizon-client/src/game.rs",

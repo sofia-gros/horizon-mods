@@ -89,8 +89,11 @@
       "injection_id": "crafting-shared-empty-startup",
       "file": "crates/horizon-client/src/crafting.rs",
       "bindings": [],
-      "function_fingerprint": null,
-      "node": null,
+      "function_fingerprint": "1e84c586bff87f44d88440bc32d0bb8f72a140325977f61a302e893dbcc4729c",
+      "node": [
+        42,
+        0
+      ],
       "helper": "source-crafting-empty-startup.rs",
       "source_path": "tconstruct/mixins/tconstruct/source-crafting-empty-startup.rs",
       "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
@@ -110,8 +113,11 @@
       "injection_id": "crafting-shared-sources-startup",
       "file": "crates/horizon-client/src/crafting.rs",
       "bindings": [],
-      "function_fingerprint": null,
-      "node": null,
+      "function_fingerprint": "10979e222d48a73a212516bb5f05b977d4ee9fedf4a4c840a27eb2ec10b8dd7b",
+      "node": [
+        42,
+        4
+      ],
       "helper": "source-crafting-sources-startup.rs",
       "source_path": "tconstruct/mixins/tconstruct/source-crafting-sources-startup.rs",
       "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",

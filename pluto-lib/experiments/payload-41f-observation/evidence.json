@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "scope": "Metadata-only actual plan/source replay, not applied host or LAN proof",
+  "source_before_commit": "5b197bc2d910d2e530b6e8167f48eda6b2790c52",
+  "evidence_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4",
+  "evidence_path": "pluto-lib/docs/playtest-next-plan-result-20261107.json",
+  "run_id": 42328100345,
+  "controller_commit": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+  "integration_commit": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+  "artifacts": {
+    "manifest.json": {
+      "bytes": 575,
+      "sha256": "cb4be26cc97e07c03bec9a9287ece0eb85b94cbb585c3badf50e342f4dd56df4"
+    },
+    "package-maps.json": {
+      "bytes": 179225,
+      "sha256": "a4bf579358e71e8c8179bc2bc0f8fce569b9d4c59ff9a3ebecfc350215376002"
+    },
+    "plan.json": {
+      "bytes": 6431102,
+      "sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b"
+    },
+    "receipt.json": {
+      "bytes": 235405,
+      "sha256": "4e065cddbddd5bf8ed7a7214be42e0d4a3b60f86de547e8a7df6efd10c9e7304"
+    }
+  },
+  "index_receipt": {
+    "bytes": 5326,
+    "sha256": "9783bc6013fa8600f75f3f77aea82a0cf634e10a415e1b92ce803f45eb7f0a6e"
+  },
+  "index_result": {
+    "schema": 1,
+    "targets": [
+      {
+        "file": "crates/horizon-client/src/game/native_hooks.rs",
+        "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
+        "node": [
+          40,
+          349
+        ],
+        "resolved_id": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet"
+      },
+      {
+        "file": "crates/horizon-client/src/game/remote.rs",
+        "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+        "node": [
+          44,
+          68
+        ],
+        "resolved_id": "horizon_client::game::remote::Game<'_>::handle_packet",
+        "target": "horizon_client::game::remote::Game<'_>::handle_packet"
+      },
+      {
+        "file": "crates/horizon-client/src/game/remote.rs",
+        "function_fingerprint": "e1b7b4869ed3ffcebf6acf7e70cd9acfd66acfbe2363e46abf901a6489a80aac",
+        "node": [
+          44,
+          41
+        ],
+        "resolved_id": "horizon_client::game::remote::Game<'_>::poll_remote",
+        "target": "horizon_client::game::remote::Game<'_>::poll_remote"
+      }
+    ]
+  },
+  "raw_index_stdout_recovered": false,
+  "canonical_result_reconstruction_matches_phase_hash": true,
+  "guard_sha256": "9f02c5f4c3d068a110b1fc9afbab312d3de43e05d1438907f593c5910e9887c9",
+  "metadata_before_sha256": "e5c5f7bcc953865a89d105f5f5b14aa82dfc16f534cc7debb3903258bbce31de",
+  "metadata_after_sha256": "8b0fe7467fe384c43e292e33152d32d6639b4c3e3aa67e995501d94564819236",
+  "coverage_before": "Candidate only: native_client_packet body then sole RETURN snapshot/read-only observe/trusted current-View update, BEFORE remaining handle_packet body. No durable identity, actor authority or UI/LAN proof. poll_remote fingerprint and candidate observation remain missing.",
+  "ordinary_changed_paths": [
+    "pluto-lib/tools/client-payload-source.json"
+  ],
+  "unchanged_runtime": true,
+  "checks": {
+    "actual_complete_plan": "PASS with unchanged full checker",
+    "four_official_source_hashes": "PASS",
+    "observation_regressions": 4,
+    "existing_synthetic_tests": 11,
+    "packaged_unit_test": "not run"
+  },
+  "not_proven": [
+    "apply",
+    "Game type",
+    "internal Game6 tests",
+    "actor/opening lifetime",
+    "live UI/language reload",
+    "LAN delivery"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "prior_contract_commit": "0412bd0f4fb11770e2b563aaf9f27e29093f963d",
+  "publication_parent": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+  "prior_contract_sha256": "19f1c7a36f50f12805caeaaf99c2a3e33f8e273abc619f696fa52b5e648a70c8",
+  "observed_contract_sha256": "14d1bd1e79c7014eeeda184b4ef7a7761dc01c9d994df3db5f69bf706fe5ae7a",
+  "changes": [
+    {
+      "path": [
+        "candidate_runtime_commit"
+      ],
+      "before": "6ec43252746dfe905a40b6c9f8cb857d087affb8",
+      "after": "e9073648b3c4cf4d49f27bc2e1ed60997f430586"
+    },
+    {
+      "path": [
+        "candidate_observation"
+      ],
+      "before": null,
+      "after": {
+        "runtime_commit": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+        "runtime_tree": "afb6ac2ff3e824828cdde94e6e4686e0ffbe2094",
+        "controller_commit": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+        "run": 42328100345,
+        "plan_sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+        "plan_bytes": 6431102,
+        "artifact_manifest_sha256": "cb4be26cc97e07c03bec9a9287ece0eb85b94cbb585c3badf50e342f4dd56df4",
+        "receipt_sha256": "4e065cddbddd5bf8ed7a7214be42e0d4a3b60f86de547e8a7df6efd10c9e7304",
+        "package_maps_sha256": "a4bf579358e71e8c8179bc2bc0f8fce569b9d4c59ff9a3ebecfc350215376002",
+        "evidence_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4",
+        "native_type_verified": false,
+        "game_tests_executed": false,
+        "gameplay_verified": false
+      }
+    },
+    {
+      "path": [
+        "notes"
+      ],
+      "before": "Source-reviewed candidate with one unobserved placement. Null is a mandatory rejection, not a wildcard. No actual Game/type/gameplay claim.",
+      "after": "Actual e907 complete-plan observation recorded. Historical observed_plan remains the earlier 9cc1 evidence. Checker algorithms, source/IR contracts and hook order are unchanged; no actual Game/type/gameplay claim."
+    },
+    {
+      "path": [
+        "modules",
+        12,
+        "fingerprint"
+      ],
+      "before": null,
+      "after": "540e1e6e0eacd338678a6e6a981a5496eabb927cbe4a20d7713830339677b042"
+    }
+  ],
+  "unchanged_file_sha256": {
+    "tools/check_cloud_insertion_plan.py": "f83bed433b2660b40e0b81d2535a970719a64d4bd23b365491b21c627d2cf38e",
+    "tools/cloud_composition_contracts.py": "4753d4fb2d328beae65cefcbdde9508fa46767746fb7b504c1b5085cb70ae2cc",
+    "tools/cloud-insertion-boundaries.json": "cd1a7f50510755f529153114a2cd1b3d8fb680a7b7cd75ef2b1ffa693295af4f",
+    "mixins/pluto_native_creative/cloud-descriptor.rs": "7fc3a21853418403549d7c0267710d4f237a59aea870ff2ad5018de5405b9b64",
+    "mixins/pluto_native_creative/potion-facts.rs": "556109f53c45803dfaf69c27312e37d89d3637200821ab23bd1325e3e60d8f14",
+    "mixins/pluto_native_creative/cloud-factory.rs": "5e9e0a365a8595e69b92bd1315552f044d59fe7962e509594a478f4f7694f45d",
+    "mixins/pluto_native_creative/lifecycle-readiness.rs": "d55de930fa4c9e9dd9eb293e5b919b2d8f57f76d879a57130bc0473dd59d5819",
+    "mixins/pluto_native_creative/cloud-insertion.rs": "d666334cf1bd11cc09723026069e91e2c35830fef050a5327b9ba352d2b38e4c"
+  },
+  "comparison": {
+    "modules": 19,
+    "injections": 27,
+    "states": 45,
+    "hook_order_sites": 16,
+    "changed_ir_leaves": [
+      [
+        "modules",
+        12,
+        "fingerprint"
+      ]
+    ],
+    "official_inputs": 21,
+    "packaged_cloud_helpers": 5,
+    "original_complete_check": "rejected: Candidate cloud placement has no reviewed actual-plan observation",
+    "candidate_complete_check": "PASS against full dc4f plan and immutable official 21-file subset; Python checker only"
+  },
+  "crafting_dependency_review": {
+    "station_open_added_line": "    crate::game::recipe_book::tconstruct_station_transaction::ensure();\n",
+    "station_old_packaged_source_sha256": "856254d2095de426d3c84fa52c7de6c2aafc533756cb96b0e09db275f45902c0",
+    "station_new_packaged_source_sha256": "5ec29ae1512bd8b487697e08a9f464c451a772ee01e2547b3955e9c8c4b4a2e7",
+    "station_full_inverse_equal": true,
+    "actual_module_source_sha256": {
+      "source-crafting-station": "5ec29ae1512bd8b487697e08a9f464c451a772ee01e2547b3955e9c8c4b4a2e7",
+      "source-crafting-lan": "4566ece19df3d2256a2df283ffffc11667ab7ea8b8cd7ec3c15908b152409f7b",
+      "station-transaction": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9",
+      "crafting-shared-bootstrap": "382ca263fa9510f6df5adb2c98c474b6cc7d25672735a29577ab0ca68ec93a65",
+      "crafting-stored-deny-policies": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+      "overslime-derivation": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+      "pluto_native_creative-recipe-transactions": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2"
+    },
+    "meaning": "Station ensure is after the guest early return and before local station mutation. It registers a transaction, does not invoke its handle, and takes no Game argument. The unchanged guest opener and cloud publication tail do not contain the new registration. Recipes startup stores two static registrations before constructor bodies, not actor/Ready/ID mutation. Registration may fail/panic and is not claimed a no-op or rollback. Other crafting behavior belongs to its own exact composition guard."
+  },
+  "scope": "Source/complete-plan guard observation only. No Rust, apply, Game9, UI, LAN, gameplay or whole-suite compatibility proof."
+}
