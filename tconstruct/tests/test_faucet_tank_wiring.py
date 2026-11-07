@@ -7,6 +7,14 @@ class FaucetTankWiring(unittest.TestCase):
         self.assertIn('tconstruct_source_faucet_tank::activate(game, pos, source, target, faucet.clone())',source)
         self.assertIn('tconstruct_source_faucet_tank::tick(game, pos, source, target, faucet.clone())',source)
 
+    def test_casting_tank_output_dispatch_precedes_generic_missing_source_route(self):
+        code = (ROOT/'mixins/tconstruct/source-machine-runtime.rs').read_text()
+        for action, terminal in [('activate_faucet', 'tick_faucet'), ('tick_faucet', 'tick_casting')]:
+            body = code[code.index('pub(super) fn '+action+'('):code.index('pub(super) fn '+terminal+'(')]
+            generic = 'tconstruct_source_faucet_tank::' + ('activate(' if action == 'activate_faucet' else 'tick(')
+            self.assertLess(body.index('casting_tank_to_tank('), body.index(generic))
+
+
 class LegacyMelterWiring(unittest.TestCase):
     def test_legacy_reservation_and_tick_patch_only_tank(self):
         source=(ROOT/'mixins/tconstruct/source-machine-runtime.rs').read_text()

@@ -1372,6 +1372,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if let Some(handled) = casting_tank_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = smeltery_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1422,6 +1423,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
+    if casting_tank_to_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_casting_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if smeltery_to_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
@@ -1520,4 +1522,61 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input; slots[1] = casting.output;
     }
+}
+
+/// Casting Tank output to the eight built-in fuel/ingot tanks and gauges.
+/// Reserve and reprocess on copies, then publish fluid and container changes
+/// together. An unreadable source is handled here rather than treated as gone.
+fn casting_tank_to_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
+    let source_state = game.world.block(source.0, source.1, source.2);
+    if &*game.res.facts().get(source_state).name != "tconstruct:seared_casting_tank" { return None; }
+    let target_state = game.world.block(target.0, target.1, target.2);
+    let faucet_state = game.world.block(pos.0, pos.1, pos.2);
+    let (key, capacity) = super::tconstruct_source_faucet_tank::tank_kind(&game.res.facts().get(target_state).name)?;
+    if source == target || source == pos || target == pos { return Some(false); }
+    if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
+    let Some(mut input) = casting_tank_at(game, source) else { return Some(false); };
+    let Some(raw_source) = store::read(&game.world, source, "tconstruct:casting_tank") else { return Some(false); };
+    if input.to_nbt() != raw_source { return Some(false); }
+    if !matches!(game.world.block_entities.get(&target), Some(BlockEntity::Chest(_))) { return Some(false); }
+    let Some(raw_output) = store::read(&game.world, target, key) else { return Some(false); };
+    let Some(mut output) = Tank::from_nbt(&raw_output, capacity) else { return Some(false); };
+    if output.to_nbt() != raw_output { return Some(false); }
+    let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
+    if faucet.to_nbt() != raw_faucet { return Some(false); }
+    // Permit only untagged fluids or the existing wire-safe vanilla base
+    // potion identity. A newly refilled source must not block an old packet.
+    if !faucet_network_tag_safe(&output) || !faucet_network_tag_safe(&faucet.pending)
+        || ((starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet))
+            && !faucet_network_tag_safe(&input.tank)) { return Some(false); }
+    let source_amount = input.tank.amount;
+    let source_strength = input.comparator();
+    if starting && !faucet.activate(&mut input.tank, &output) { return Some(true); }
+    let needs_packet = !starting && faucet.pending.amount == 0;
+    faucet.tick(&mut input.tank, Some(&mut output));
+    if needs_packet && faucet.pending.amount > 0 { faucet.tick(&mut input.tank, Some(&mut output)); }
+    let processed = input.tank.amount < source_amount && process_casting_tank(game, &mut input);
+    if !input.lossless() { return Some(false); }
+    // Container processing can refresh world data. Reject stale snapshots,
+    // slot changes, block replacement/rotation and unloaded chunks before save.
+    if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4)))
+        || game.world.block(source.0, source.1, source.2) != source_state
+        || game.world.block(target.0, target.1, target.2) != target_state
+        || game.world.block(pos.0, pos.1, pos.2) != faucet_state
+        || store::read(&game.world, source, "tconstruct:casting_tank").as_ref() != Some(&raw_source)
+        || !casting_tank_at(game, source).is_some_and(|state| state.to_nbt() == raw_source)
+        || !matches!(game.world.block_entities.get(&target), Some(BlockEntity::Chest(_)))
+        || store::read(&game.world, target, key).as_ref() != Some(&raw_output)
+        || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet) { return Some(false); }
+    if !store::write_many(&mut game.world, &[(source, "tconstruct:casting_tank", input.to_nbt()),
+        (target, key, output.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]) { return Some(false); }
+    if processed {
+        if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&source) {
+            slots[0] = input.slots[0].clone(); slots[1] = input.slots[1].clone();
+        }
+        game.container_changed(source);
+    }
+    notify_casting_comparator(game, source, source_strength, input.comparator());
+    if output.to_nbt() != raw_output { game.container_changed(target); }
+    Some(true)
 }
