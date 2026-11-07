@@ -43,7 +43,9 @@ Each item is finished (PR, local gate green, merged) or parked (see §2.4) befor
 | N7 | **Docs track D3: write the new documents from scratch** (§3). | Merged. |
 | N8 | Re-run the classification of open PRs against the new `main` and update `docs/migration/pr-classification.md`; take A/B PRs that now apply cleanly through the gate. Close an original only after its content is on `main`. | Updated plan merged; batches merged. |
 
-If an item is parked, the agent continues with the next one it can do safely and returns later. If everything is parked or done, it writes the morning report and stops.
+If an item is parked, the agent continues with the next one it can do safely and returns later.
+
+**When N1 to N8 are done or parked, the agent does not stop.** It carries on with the long-term plan (§1) in order, from the first step that is not finished (steps 3 to 9), cutting each step into slices and pull requests under the same permissions, defaults, gate policy and stop rules, until the owner is back. Release (step 7) happens only when its criteria are met, never to fill time. If a long-term step needs a decision the owner has not delegated (§2.3), the step is parked and the next one is taken.
 
 ### 2.2 Permissions granted for the run (given by the owner)
 
@@ -87,7 +89,7 @@ part of the plan and is done when it unblocks something.
 
 ### 2.5 Morning report
 
-When done or when the owner returns: one message listing, per item, merged / parked / not started, the PR numbers, the local gate results, each decision taken from §2.3, and the questions that still need the owner. The decision log below carries the same facts for the repository.
+Whenever a turn ends and when the owner returns: one message listing, per item, merged / parked / not started, the PR numbers, the local gate results, each decision taken from §2.3, and the questions that still need the owner. The decision log below carries the same facts for the repository.
 
 ### Decision log
 
@@ -95,6 +97,7 @@ When done or when the owner returns: one message listing, per item, merged / par
 |---|---|---|
 | 2026-11-08 | Tag scheme `<directory>-v<semver>` (hyphen, not slash). | Unambiguous release URLs and non-overlapping trigger globs. |
 | 2026-11-08 | Spec module names stay as drafted. | Owner delegated; refine per slice. |
+| 2026-11-08 | If the overnight items finish before the owner wakes, continue with the long-term plan (§1) in order instead of stopping. | Owner instruction. |
 | 2026-11-08 | Owner widened the run: all existing documents may be deleted and rewritten; local verification replaces waiting for CI; release tags, releases, force-push, issues and repository settings are allowed (settings only if indispensable). | Owner instruction at roadmap review. |
 
 ## 3. Documentation track
