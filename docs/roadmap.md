@@ -29,49 +29,60 @@ The agent keeps working without stopping until the owner is back. It decides for
 
 ### 2.1 Order of work
 
-Each item is finished (PR, CI green, merged) or parked (see §2.4) before the next starts. Up to three items may be in flight; at most five of the agent's PRs are open.
+Each item is finished (PR, local gate green, merged) or parked (see §2.4) before the next starts. Up to three items may be in flight; at most five of the agent's PRs are open.
 
 | Order | Item | Exit criterion |
 |---|---|---|
 | N1 | Merge the PlutoLib specification PR (#952) when CI is green. | Spec on `main`. |
 | N2 | **Prove the dependency mechanism.** Build two experimental bundles (an `[api]` PlutoLib-shaped mod and a mod that declares `pluto_lib = "^1"`) with the launcher's `native-build --server-output`; run the result if possible. Record the outcome in the spec (works / what must change). | Spec states the verified mechanism, or the exact failure and the fallback. |
-| N3 | **Docs track D1: inventory and policy** (see §3), as a PR containing only the plan and tooling. | Plan merged; nothing deleted yet. |
+| N3 | **Docs track D1:** find every test, CI step and tool that reads a document, so deleting documents cannot break them (§3). | List in the PR; tests that guard prose identified. |
 | N4 | **Slice 1: foundation and packaging.** `Event<T>`, event phases, `Identifier`, `ActionResult`, support matrix; PlutoLib restructured as a trait mod with an `[api]` package; Tinkers made a trait mod depending on it; per-product release workflows (not triggered, tags are never pushed overnight). | PlutoLib builds as its own bundle; Tinkers builds against it; `tools/smoke-local` green; CI green; merged. |
-| N5 | **Docs track D2: remove obsolete and per-implementation documents** as defined in §3 (history kept by an archive tag). | CI green (tests that read documents updated), merged. |
+| N5 | **Docs track D2: delete all existing documents** (archive tag keeps them) and fix the tests that read them. | Local tests green, merged. |
 | N6 | **Slice 2: modules on native hook points** (`resource_loader_v0` and `loot_api_v2`, `item_api_v1`, `events_interaction_v0`, `object_builder_api_v1` block behaviour). Each module: API, tests, support-matrix entry, one Tinkers group moved onto it with its direct injections removed, lint baseline lowered, smoke green. Stubs for anything the pinned Mixins rejects. | As many modules as time allows, each merged separately. |
-| N7 | **Docs track D3: rewrite** README and the kept guides (§3). | Merged. |
+| N7 | **Docs track D3: write the new documents from scratch** (§3). | Merged. |
 | N8 | Re-run the classification of open PRs against the new `main` and update `docs/migration/pr-classification.md`; take A/B PRs that now apply cleanly through the gate. Close an original only after its content is on `main`. | Updated plan merged; batches merged. |
 
 If an item is parked, the agent continues with the next one it can do safely and returns later. If everything is parked or done, it writes the morning report and stops.
 
-### 2.2 Permissions granted for the run (given by the owner at roadmap approval)
+### 2.2 Permissions granted for the run (given by the owner)
 
 Allowed, without asking:
 
-1. Create branches and push them (never force-push; never rewrite history of `main` or of a branch someone else uses).
-2. Open, update and **merge its own pull requests** when CI is green and the local gate passed (merge commits, as before).
-3. **Close an original PR with a pointer comment** after its content landed on `main`. Never delete a PR, issue or branch of the owner's.
-4. Edit, move and delete files in this repository through pull requests (documents included, §3); an archive tag `archive/pre-docs-cleanup` keeps the old tree.
-5. Install development tools with `mise` and run long builds/tests on this PC at normal priority; keep at least 10 GB free on `A:` by cleaning the agent's own caches under `.local/`.
+1. Create branches and push them. Force-push is allowed when it is the right tool, but prefer a merge or a new commit; for `main` only after an archive tag and a decision-log entry.
+2. Open, update and **merge its own pull requests** once the local gate passed (§2.6); CI is a follow-up check, not a precondition.
+3. **Close an original PR with a pointer comment** after its content landed on `main`.
+4. Edit, move and **delete any file in this repository, documents included** (§3), through pull requests; an archive tag keeps the old tree.
+5. Install development tools with `mise`; run long builds and tests on this PC at normal priority; keep at least 10 GB free on `A:` by cleaning the agent's own caches under `.local/`.
 6. Run the Horizon launcher's `native-build --trust-native-code` on bundles written in this repository or under `.local/` only.
-7. Comment on the agent's own PRs.
+7. **Push release tags and create GitHub releases**, but only when the release criteria of step 7 are met; a release is never made to "have something".
+8. **Create, comment on, label and close issues and pull requests** to resolve them (the agent is responsible for clearing them): close with an explanation, never silently, and link the PR that resolved it.
+9. **Change repository settings** (for example branch protection, required checks, default branch behaviour, Actions permissions) only when the agent judges it indispensable for the work; record each change, the reason and how to undo it in the decision log.
 
-Not allowed (these wait for the owner): pushing release tags or creating GitHub releases; force-pushes; deleting or editing the owner's other repositories and `/a/Project/horizon` (the old fork); changing repository settings, secrets, branch protection or GitHub permissions; opening or closing **issues** (triage lists them in a report only); any spending or account action; touching anything outside this repository and `.local/`.
+Not allowed: touching the old fork `/a/Project/horizon` or any other repository; acting outside this repository, its GitHub repository and `.local/`; spending money; account-level changes (profile, billing, other repositories' access, personal tokens, SSO).
 
 ### 2.3 Defaults for decisions the owner would otherwise make
 
-- Prefer the option that keeps history and can be reverted (a PR over a direct push, a stub over a missing API, an archive tag over deletion).
+- Prefer the option that keeps history and can be reverted (a PR over a direct push, a stub over a missing API, an archive tag over deletion). Irreversible actions (releases, closing issues in bulk, settings) need a written reason in the decision log.
 - API shape: follow Fabric API; where Rust forces a difference, use the idiomatic Rust form and note it.
 - Names (modules, crates): the spec's names; if wrong, rename in a later slice rather than blocking.
-- Language of documents: user-facing README and play guides in English with a Japanese edition; developer documents in English; the agent file (`AGENTS.md`) in English.
+- Language of documents: user-facing README and play guide in English with a Japanese edition; developer documents in English; the agent file (`AGENTS.md`) in English.
 - Unknown host behaviour: measure it (build, run, smoke) before documenting it; write "unverified" otherwise.
 
 ### 2.4 Stop and park rules
 
-- **Same CI failure three times**, or a fix that would need an owner decision outside §2.3: park the branch (leave the PR open as a draft with a comment saying why) and move on.
+- **Same failure three times** (CI or local), or a fix that would need an owner decision outside §2.3: park the branch (leave the PR open as a draft with a comment saying why) and move on.
 - **Disk below 10 GB free on `A:`** after cleaning caches: stop starting builds; docs-only work continues.
-- **Anything that would break a rule in §2.2 "Not allowed"**: skip it and list it in the morning report.
+- **Anything listed under §2.2 "Not allowed"**: skip it and list it in the morning report.
 - **Do not claim "verified" without running it.** Every PR states what was run and what was not.
+
+### 2.6 Gate policy: local first, CI second
+
+CI is slow (about 25 minutes). Whatever can be verified on the owner's PC is verified there and does not wait for CI:
+`python tools/lint_forbidden_api.py`, `python -m unittest discover -s tests`, the Python tests the change touches, `tools/smoke-local/build.py`
+and `smoke.py`, cargo checks. A pull request is merged when this local gate passed and its description says exactly what was run. CI then
+runs on `main` and on the PR as a second, independent check; a CI failure after merge is fixed forward with the next commit. Where CI
+cannot add information (documentation only) it is skipped. Work to make CI faster or lighter (smaller job, cached builds, path filters) is
+part of the plan and is done when it unblocks something.
 
 ### 2.5 Morning report
 
@@ -83,14 +94,17 @@ When done or when the owner returns: one message listing, per item, merged / par
 |---|---|---|
 | 2026-11-08 | Tag scheme `<directory>-v<semver>` (hyphen, not slash). | Unambiguous release URLs and non-overlapping trigger globs. |
 | 2026-11-08 | Spec module names stay as drafted. | Owner delegated; refine per slice. |
+| 2026-11-08 | Owner widened the run: all existing documents may be deleted and rewritten; local verification replaces waiting for CI; release tags, releases, force-push, issues and repository settings are allowed (settings only if indispensable). | Owner instruction at roadmap review. |
 
 ## 3. Documentation track
 
-Problem: the repository has hundreds of markdown files written per implementation unit (about 100 under `pluto-lib/docs`, about 260 under `tconstruct/docs`, validation receipts, reference dumps), old and new mixed, not readable as a project. Goal: few documents, current, written for people; per-feature detail lives in code (rustdoc, tests), not in prose.
+Problem: hundreds of markdown files were written per implementation unit (about 100 under `pluto-lib/docs`, about 260 under `tconstruct/docs`, plus
+validation receipts and reference dumps), old and new mixed, not readable as a project. The owner's decision: **every existing document may go; start fresh.**
+The new set is small, current and written for people; per-feature detail lives in code (rustdoc, tests), not in prose.
 
 | Step | What |
 |---|---|
-| D1 | **Inventory and policy.** A script lists every `.md`/receipt file with size, last change and who references it (tests, CI, other documents); a policy decides keep / merge / rewrite / archive for each class. Target structure: `README.md` (what it is, status, how to run); `docs/` with `architecture.md`, `development.md`, `releasing.md`, `roadmap.md`, `migration/` (plan and PR classification); `pluto-lib/README.md` + `pluto-lib/docs/` (design principles, specification, support matrix, generated hook map); `tconstruct/README.md` + one play guide; API reference generated by rustdoc. |
-| D2 | **Remove.** Per-implementation notes, validation receipts and superseded design notes leave the tree (still in the archive tag `archive/pre-docs-cleanup`). Tests that read documents are changed to read the thing they really check, or removed if they only guard prose. |
-| D3 | **Rewrite** the kept documents for a human reader: current facts only, short sections, no history, English with a Japanese edition for the user-facing ones. |
-| D4 | **Keep it small.** CI check that no new per-implementation markdown appears (a size/count budget for `docs/` and `*/docs/`). |
+| D1 | Find every test, CI step, tool and package script that reads a document (so removal cannot break them). |
+| D2 | Tag `archive/pre-docs-cleanup`, then delete all existing `.md`, receipts and reference dumps (images kept only if the new documents use them). Fix or remove the tests that guarded prose. |
+| D3 | Write from scratch: `README.md` (what it is, status, how to run; English and Japanese); `docs/architecture.md`; `docs/development.md` (build, local gate, CI); `docs/releasing.md`; `docs/roadmap.md`; `docs/migration/` (plan and PR classification, regenerated); `pluto-lib/README.md` and `pluto-lib/docs/` (design principles, specification, support matrix, generated hook map); `tconstruct/README.md` with one play guide; `AGENTS.md` / `CLAUDE.md`; API reference generated by rustdoc. |
+| D4 | Keep it small: a CI/local check that fails when new per-implementation markdown appears (a count/size budget for the documentation directories). |
