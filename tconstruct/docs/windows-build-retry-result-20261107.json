@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "controller_head": "89de9ee5b49c8a9c04a58fc985624e2f182c5a61",
+  "ordinary_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "run_id": 42334764929,
+  "job_id": 128289070532,
+  "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929",
+  "final_receipt_utc": "2026-11-07T04:05:50.8620354Z",
+  "passed": false,
+  "verified": true,
+  "error": "RuntimeError: build-only failed",
+  "completed_gates": [
+    "archives",
+    "components",
+    "formatter",
+    "official_sources",
+    "ordinary_source",
+    "pure",
+    "rustup",
+    "selected_tools",
+    "winlibs"
+  ],
+  "pure": {
+    "failed": 0,
+    "names": [
+      "test_component_manifest_hash_and_installed_set_are_exact",
+      "test_exact_release_host_and_no_self_update_install",
+      "test_existing_phase_and_child_status_are_not_reimplemented",
+      "test_fresh_ordinary_build_is_once_and_help_is_later",
+      "test_isolated_offline_env_discards_rustup_and_build_overrides",
+      "test_link_result_requires_exact_mode_hash_and_contained_output",
+      "test_low_disk_refuses_and_restores_resource_guard",
+      "test_low_ram_refuses_and_restores_resource_guard",
+      "test_official_checkout_is_four_owned_commands_only",
+      "test_official_lock_preserved_and_only_plan_local_packages_added",
+      "test_owned_job_process_cap_and_pid_buffer_match",
+      "test_pe_rejects_truncation_and_wrong_machine",
+      "test_phase_budgets_restore_on_failure",
+      "test_rustup_known_info_order_and_single_exact_version",
+      "test_rustup_raw_observation_precedes_bounded_admission",
+      "test_unknown_download_never_opens_network",
+      "test_unready_contract_cannot_start_any_phase",
+      "test_winlibs_fresh_safe_prefix_and_complete_files",
+      "test_winlibs_unsafe_case_and_link_rejected_before_writing"
+    ],
+    "passed": 19,
+    "skipped": 0,
+    "tests": 19
+  },
+  "toolchain": {
+    "rustup": {
+      "executable": {
+        "bytes": 12839424,
+        "sha256": "38027d51d69a5d05493627a0634dbea52d6cd793c8f072d2373d3f4163eec7db"
+      },
+      "version": "rustup 1.29.3 (edbc831ce 2026-11-02)"
+    },
+    "components": {
+      "component_gzip_sha256": {
+        "cargo": "57e54617be4420dbb967ca8293f5ace7168104ac12efa9dc7c5c3bda112f8b36",
+        "rust-mingw": "30263d7bb4fd0bf63a153afe36d7fc102f929a7d42781651c6b3a03a414ba428",
+        "rust-std": "6546651238a3ac092b763511be524ca6eda6103e5d47342416923be1b3ce837c",
+        "rustc": "43b17e9a9134ea72562bfbb23728a830f671ea9be1db6a72597a8d240e986b35",
+        "rustfmt-preview": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa"
+      },
+      "components": [
+        "cargo-x86_64-pc-windows-gnu",
+        "rust-mingw-x86_64-pc-windows-gnu",
+        "rust-std-x86_64-pc-windows-gnu",
+        "rustc-x86_64-pc-windows-gnu",
+        "rustfmt-x86_64-pc-windows-gnu"
+      ],
+      "manifest": {
+        "bytes": 1086673,
+        "sha256": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c"
+      }
+    },
+    "formatter": {
+      "archive_bytes": 4941389,
+      "archive_sha256": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa",
+      "archive_url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+      "executable_bytes": 9723329,
+      "executable_sha256": "537a30b76250a6c5f3c46dae538f8428fc53041385f5731320d4ff6703a60b2a",
+      "package_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+      "package_version": "1.10.0"
+    },
+    "selected": {
+      "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: x86_64-pc-windows-gnu\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.21.0-DEV (sys:0.4.90+curl-8.21.0 vendored ssl:Schannel)\nos: Windows 10.0.26100 (Windows 11 ServerDatacenter) [64-bit]",
+      "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-pc-windows-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+      "tree_sha256": "4b798ea54739466cb75cea20a9638fc42f0482f0a06783a16fcba96589a45ee8"
+    },
+    "winlibs": {
+      "archive": {
+        "bytes": 277203392,
+        "sha256": "62af32ea58acdea1318ea5dd8eb7017eaee694dd40b269d52a59c769dcfefb82"
+      },
+      "expanded_bytes": 969630245,
+      "files": 11874,
+      "tree_sha256": "9f265eba860c74f5ba0eb4af53fdd6663e2409ea01509fa68315118c40eb6018"
+    }
+  },
+  "phases": {
+    "total": 51,
+    "all_owned_jobs_empty": true,
+    "failed": [
+      {
+        "name": "build-only",
+        "seconds": 1671.859,
+        "exit": 1,
+        "raw_returncode": 1,
+        "log_bytes": 10546,
+        "log_sha256": "a6f2ba61bb94a711d9537b702b40f1c9d5036a660cd2605cac79fc625d261419"
+      }
+    ]
+  },
+  "ordinary_actual": {
+    "fresh_plan": {
+      "status": "ok",
+      "seconds": 584.7862279,
+      "injections": 320,
+      "modules": 329,
+      "states": 111,
+      "crates": 3,
+      "bridges": 3,
+      "data": 1,
+      "post_build": 0
+    },
+    "guard_message": "Complete Pluto native plan, ordering and reviewed host adapters verified.",
+    "apply": {
+      "status": "ok",
+      "seconds": 586.734046,
+      "stage_changed": true
+    },
+    "client_compile_started": true,
+    "client_cargo_exit": 101,
+    "compile_failure": {
+      "package": "horizon-world",
+      "file": "crates/horizon-world/src/worldgen/structure/start.rs",
+      "line": 454,
+      "applied_excerpt": "if !(0...=1.).contains(&frequency) {",
+      "diagnostics": [
+        "unexpected token: `...`",
+        "unexpected `=` after inclusive range"
+      ]
+    },
+    "official_source": {
+      "head": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+      "line": 448,
+      "excerpt": "if !(0. ..=1.).contains(&frequency) {",
+      "bytes": 72769,
+      "sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d"
+    }
+  },
+  "resources": {
+    "filesystems": {
+      "C:\\": {
+        "minimum_free_bytes": 30082490368,
+        "total_bytes": 160939618304
+      },
+      "D:\\": {
+        "minimum_free_bytes": 231696187392,
+        "total_bytes": 236205371392
+      }
+    },
+    "memory_first": {
+      "available_pagefile": 17539354624,
+      "available_physical": 14158426112,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_last": {
+      "available_pagefile": 17236983808,
+      "available_physical": 14290505728,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_samples": 34252,
+    "minimum_available_physical_bytes": 11810942976
+  },
+  "raw_log": {
+    "bytes": 66885,
+    "sha256": "2d262c5214f4e6fab8d755c825e01ccb7e279c8b1d1dfc0e07ee8a98330a6cb6"
+  },
+  "receipt_file": {
+    "bytes": 50616,
+    "sha256": "a5edd0fcd74ed64344eea809aeba908f1a584245542db0e30d45747a8f19a596"
+  },
+  "unproved": [
+    "The fresh plan and applied source files were ephemeral; only the printed summaries and bounded failure tail were recovered.",
+    "Independent applied-lock verification runs after successful BuildOnly and was not reached.",
+    "No complete client link, executable receipt, PE/import inspection, help, GUI/assets or gameplay test succeeded.",
+    "The exact transformation responsible for losing the float/range separator is under source investigation; no guard weakening or source patch was applied.",
+    "No automatic retry."
+  ]
+}
