@@ -1,7 +1,7 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
 use pluto_lib::{
-    Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    AttachmentRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
     ServerTickEvents,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,6 +13,10 @@ pub fn hooks() -> Box<dyn Hooks> {
         let said = p.player.send_message("PlutoLib says hello");
         let left = p.player.give_item("minecraft:stick", 1);
         println!("PLUTO-PROBE player send_message={said} give_left={left}");
+        let visits = AttachmentRegistry::create(Identifier::new("pluto_probe", "visits").unwrap(), || 0u32);
+        let before = p.player.get_attached(&visits);
+        let stored = p.player.set_attached(&visits, before + 1);
+        println!("PLUTO-PROBE attachment stored={stored} now={}", p.player.get_attached(&visits));
     });
     ServerChunkEvents::CHUNK_LOAD.register(|c| {
         static ONCE: AtomicBool = AtomicBool::new(false);

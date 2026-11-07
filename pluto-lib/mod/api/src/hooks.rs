@@ -6,6 +6,7 @@
 use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
@@ -32,6 +33,50 @@ impl PlayerOps for HostOps<'_> {
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
         self.0.give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
     }
+
+    fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
+        let kind = json_attachment(id)?;
+        match kind.get_existing(&mut *self.0, Holder::Player(player)) {
+            Ok(Some(json)) if !json.is_empty() => Some(json),
+            _ => None,
+        }
+    }
+
+    fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
+        match json_attachment(id) {
+            Some(kind) => kind.set(&mut *self.0, Holder::Player(player), json.to_owned()).is_ok(),
+            None => false,
+        }
+    }
+}
+
+/// Horizon wants attachment keys as `'static` strs and a codec made of plain functions, while PlutoLib attachments are created at run time.
+/// So each id gets one leaked `AttachmentType<String>` (made once, kept for the process) whose value is the JSON text in a string tag.
+fn json_attachment(id: &str) -> Option<&'static AttachmentType<String>> {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static KINDS: OnceLock<Mutex<HashMap<String, &'static AttachmentType<String>>>> = OnceLock::new();
+    let (namespace, name) = id.split_once(':')?;
+    let mut kinds = KINDS.get_or_init(Default::default).lock().ok()?;
+    if let Some(kind) = kinds.get(id) {
+        return Some(*kind);
+    }
+    let kind: &'static AttachmentType<String> = Box::leak(Box::new(AttachmentType {
+        namespace: Box::leak(namespace.to_owned().into_boxed_str()),
+        name: Box::leak(name.to_owned().into_boxed_str()),
+        default: String::new,
+        codec: Some(AttachmentCodec {
+            encode: |json: &String| Ok([("json".into(), Tag::String(json.as_str().into()))].into()),
+            decode: |data: &Compound| match data.get(&"json".into()) {
+                Some(Tag::String(s)) => Ok(s.to_string_lossy()),
+                _ => Err(AttachmentError::Decode),
+            },
+        }),
+        copy_on_death: false,
+        sync: false,
+    }));
+    kinds.insert(id.to_owned(), kind);
+    Some(kind)
 }
 
 fn cancel_if(handled: bool) -> Flow {
