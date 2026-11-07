@@ -28,10 +28,8 @@ jobs:
           git clone --depth 1 https://github.com/horizon-rust/horizon-mixins.git ../mixins-head
           echo "horizon=$(git -C ../horizon-head rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "mixins=$(git -C ../mixins-head rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Stage and check client against upstream HEAD
+      - name: Rewrite pins to upstream HEAD (throwaway workspace)
         run: |
-          mkdir -p "$RUNNER_TEMP/pluto-source"
-          python3 pluto-lib/tools/package_native.py "$RUNNER_TEMP/pluto-source/plutolib.hnmod"
-          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-head --package "$RUNNER_TEMP/pluto-source/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
-          python3 tconstruct/tools/stage.py --horizon ../horizon-head --mixins ../mixins-head --mixins-revision "$(git -C ../mixins-head rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
-          cargo check --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          python3 tools/bump_upstream.py --horizon "$(git -C ../horizon-head rev-parse HEAD)" --mixins "$(git -C ../mixins-head rev-parse HEAD)"
+      - name: Stage the slice and check the client against upstream HEAD
+        run: python3 tools/smoke-local/build.py --ci --horizon ../horizon-head --mixins ../mixins-head --work "$RUNNER_TEMP/slice-build"

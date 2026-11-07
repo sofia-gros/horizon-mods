@@ -14,10 +14,13 @@ py = sys.executable
 p = argparse.ArgumentParser()
 p.add_argument('--horizon', type=Path, required=True, help='checkout at compatibility.json horizon_revision')
 p.add_argument('--mixins', type=Path, required=True, help='checkout at compatibility.json mixins_revision')
-p.add_argument('--base-resources', type=Path, required=True, help='prepared Horizon 26.3 resource folder')
+p.add_argument('--base-resources', type=Path, help='prepared Horizon 26.3 resource folder (required unless --ci)')
+p.add_argument('--ci', action='store_true', help='stage + cargo check only: no client build, no resources (CI has no Minecraft assets)')
 p.add_argument('--work', type=Path, default=root / '.local/smoke-build')
 p.add_argument('--target-dir', type=Path, default=root / '.local/cargo-target-modded')
 a = p.parse_args()
+if not a.ci and not a.base_resources:
+    p.error('--base-resources is required unless --ci')
 compat = json.loads((root / 'tconstruct/compatibility.json').read_text())
 cfg = json.loads((Path(__file__).with_name('slice.json')).read_text())
 
@@ -61,6 +64,10 @@ run(*args)
 run(py, root / 'tconstruct/tools/stage.py', '--horizon', a.horizon, '--mixins', a.mixins, '--mods', a.work / 'mods',
     '--pluto-bundle', pluto_slice, '--pluto-guards', ','.join(cfg['pluto_guards']))
 manifest = stage_out / 'modded/Cargo.toml'
+if a.ci:
+    run('cargo', 'check', '--locked', '--manifest-path', manifest, '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features')
+    print(json.dumps({'result': 'CI CHECK OK (stage + cargo check only; not launched)'}))
+    sys.exit(0)
 env = dict(__import__('os').environ, CARGO_TARGET_DIR=str(a.target_dir))
 run('cargo', 'build', '--manifest-path', manifest, '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', env=env)
 run('cargo', 'build', '--manifest-path', manifest, '-p', 'horizon-client-lib', '--bin', 'horizon-ctl', '--no-default-features', '--profile', 'fast', env=env)

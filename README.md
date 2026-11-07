@@ -12,6 +12,8 @@ Explore Tinkers’ Construct for Horizon and PlutoLib, a Rust library for buildi
 
 PlutoLib’s Rust APIs are in development; the current Creative-tab tooling is Python.
 
+> **Status: under recovery.** The project is being rebuilt on PlutoLib against the latest official Horizon and Horizon Mixins. Only a small vertical slice currently builds and launches; most Tinkers’ Construct features are parked until they are re-absorbed. See [Current status](docs/development.md#current-status-2026-11-07) and the [working rules](AGENTS.md) before relying on any feature described below.
+
 [![Horizon](https://img.shields.io/badge/Horizon-Mods-547da5)](https://github.com/horizon-rust/horizon)
 [![Horizon Mixins](https://img.shields.io/badge/Horizon-Mixins-6d8498)](https://github.com/horizon-rust/horizon-mixins)
 
