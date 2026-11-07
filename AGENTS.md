@@ -3,13 +3,21 @@
 Agents (Codex, Claude Code, others) and humans follow this file. `CLAUDE.md` points here.
 
 ## What this repository is
-Tinkers' Construct for Horizon (`tconstruct/`) built on PlutoLib (`pluto-lib/`), a library that
-absorbs the differences between Horizon and Horizon Mixins. Upstream is the official
+Tinkers' Construct for Horizon (`tconstruct/`) built on PlutoLib (`pluto-lib/`).
+
+**PlutoLib is Horizon's Fabric API**: an independent, general-purpose mod that mimics Fabric API's
+names, features and behaviour (Horizon Mixins is expected to offer the NeoForge-like API, so the two
+do not overlap), released once per Horizon version, so that mods (Tinkers now; multi-page chests,
+Create- or Mekanism-like mods later, by anyone) need almost no change when Horizon changes. Only the
+parts Tinkers uses are built first. Read [pluto-lib/docs/design-principles.md](pluto-lib/docs/design-principles.md)
+before changing PlutoLib or adding a hook; do not change this direction without the owner's decision.
+PlutoLib absorbs the differences between Horizon and Horizon Mixins. Upstream is the official
 `horizon-rust/horizon` and `horizon-rust/horizon-mixins` (default branches). We do **not** control
 either and never edit them. The owner's old personal fork of horizon is not a dependency.
 
 ## Hard rules
-1. **PlutoLib only.** TConstruct code uses PlutoLib APIs. It must not call the fork, Horizon internals
+1. **PlutoLib only.** TConstruct code uses PlutoLib APIs (Fabric-API-shaped; if one is missing, add it to
+   PlutoLib first). The ~290 legacy direct injections in `tconstruct/` are an interim state to be replaced. It must not call the fork, Horizon internals
    or Mixins internals directly. `python3 tools/lint_forbidden_api.py` enforces this in CI: fork
    references and non-official git dependencies are always errors; legacy host references are frozen by
    `tools/forbidden_api_baseline.json` (they may shrink, never grow). If PlutoLib lacks an API, add it
