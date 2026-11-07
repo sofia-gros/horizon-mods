@@ -351,7 +351,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         if encyclopedia && key != "intro" { continue; }
         if encyclopedia && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
         if foundry && !matches!(key, "intro" | "foundry") { continue; }
-        // Mighty exposes selected source material chapters and the partial advice section.
+        // Mighty exposes selected source material chapters and partial broad-tool guidance.
         let mighty_advice = mighty && key == "tools";
         let mighty_smeltery = mighty && key == "smeltery";
         if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials") { continue; }
@@ -534,7 +534,22 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     for id in tools {
                         let file = format!("{root}en_us/{tool_path}/{}.json", id.replace(':', "_"));
                         let Some(raw) = read(path, &file) else { continue; };
-                        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
+                        let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
+                        if mighty_advice {
+                            let Some(note) = labels.get("tools.partial.tool_notice").filter(|note| !note.trim().is_empty()) else { continue; };
+                            let Some(rest) = game.res.rest.get() else { continue; };
+                            let registered = |item: &str| rest.items.items.contains_key(item);
+                            let inputs = tool_inputs(game, id);
+                            let inputs_available = !inputs.is_empty() && inputs.iter().all(|input| {
+                                if let Some(part) = input.get("part").and_then(|v| v.as_str()) { return registered(part); }
+                                input.get("choices").and_then(|v| v.as_array()).is_some_and(|choices|
+                                    !choices.is_empty() && choices.iter().all(|choice| choice.as_str().is_some_and(&registered)))
+                            });
+                            if !super::tconstruct_materials_book_index::mighty_tool_guide_ready(id, registered(id), inputs_available,
+                                value.get("tool").and_then(|v| v.as_str())) { continue; }
+                            let Some(text) = value.get_mut("text").and_then(|v| v.as_array_mut()) else { continue; };
+                            text.insert(0, serde_json::json!({"text":format!("{note}\n\n")}));
+                        }
                         let fallback = id.split(':').next_back().unwrap_or(id);
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", fallback));
                         let title = game.translate(&format!("item.{namespace}.{name}"), fallback);

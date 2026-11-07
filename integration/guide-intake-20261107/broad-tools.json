@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "ordinary_base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "source_pr": 732,
+  "source_head": "9567553edd0c932d9ceca32524ef44b008904771",
+  "scope": "Only seven bounded Mighty broad-tool pages; own delta, not inherited branch tree.",
+  "runtime_paths": [
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_broad_axe.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_cleaver.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_excavator.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_longbow.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_scythe.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_sledge_hammer.json",
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_vein_hammer.json",
+    "tconstruct/mixins/tconstruct/source-materials-book-index.rs",
+    "tconstruct/mixins/tconstruct/source-materials-book.rs"
+  ],
+  "files": {
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/language.lang": {
+      "before": "afe44d975c8cf2a5884a16c3035c516346f43f98e835b426679b39a8987be2ca",
+      "before_blob": "05368ba8ff7797b6aa40c5b709c5dc950dfab8aa",
+      "after": "c8e7ea5bb5de045ce96205af13a3886245779f1f730ef0941aa8e98fec2a65d3",
+      "after_blob": "8f7accad1bd0afa0ee6b739254531aa4b80c1bc6",
+      "replacements": [
+        [
+          "defense.group_protection=Protection\ndefense.group_special=Special\n\ntools.partial=Tool Advice (Partial)\ntools.partial.notice_title=About This Section\ntools.partial.notice=Only the advice pages are shown. The broad-tool list and tank page are omitted, and the material tip icon mentioned here is not available in this reader. Some tool features may be incomplete.\n\nsmeltery.partial=Smeltery Basics (Partial)\nsmeltery.partial.notice_title=About This Section",
+          "defense.group_protection=Protection\ndefense.group_special=Special\n\ntools.partial=Broad Tools (Partial)\ntools.partial.notice_title=About This Section\ntools.partial.notice=Selected registered broad tools and advice pages are shown. Javelins and the tank page remain omitted, and the material tip icon mentioned here is not available in this reader. Tool descriptions and properties are source reference information, not verified Horizon effect coverage. Assembly previews use current definitions and recipes; material acquisition and complete tool behavior remain incomplete or unverified.\ntools.partial.tool_notice=Source reference: listed capabilities may be incomplete in Horizon. Standard broad-tool assembly uses a Tinker's Anvil. The component preview is not a guarantee that every material or effect is available.\n\nsmeltery.partial=Smeltery Basics (Partial)\nsmeltery.partial.notice_title=About This Section"
+        ]
+      ]
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_broad_axe.json": {
+      "before": null,
+      "after": "b0b1ca11aa56dc995e90ed7b409a2d3507ed7543cf3b8f5de5bedb819e4d631c",
+      "after_blob": "47d81ecf2e5b4bfcb53e100168e415f1658cd293",
+      "pr_blob": "47d81ecf2e5b4bfcb53e100168e415f1658cd293",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_cleaver.json": {
+      "before": null,
+      "after": "0647b25db0ee235cb44d1fefe99e055682d3d506425980ffe9a00e6be475e7ec",
+      "after_blob": "c9d570a6bece5beace402ef55614bfa0667e20f8",
+      "pr_blob": "c9d570a6bece5beace402ef55614bfa0667e20f8",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_excavator.json": {
+      "before": null,
+      "after": "b439e96b4da9910b6975e12b1ad92ab850ddc8388577b5068bd9b695fe6b65a1",
+      "after_blob": "f39eb438c139f24f67cd99cc4363e468de68bc68",
+      "pr_blob": "f39eb438c139f24f67cd99cc4363e468de68bc68",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_longbow.json": {
+      "before": null,
+      "after": "584df1e518b80b02f66a078a320442e7914b6ced726a2f2af19650b86969f4a0",
+      "after_blob": "83052ac97a7c8e55d6b68ccbb5bbc8b6ce85526b",
+      "pr_blob": "83052ac97a7c8e55d6b68ccbb5bbc8b6ce85526b",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_scythe.json": {
+      "before": null,
+      "after": "bec9efa551065f61126fd082aaafbfc1b32afced510e30d95058e47776beba39",
+      "after_blob": "8ce80d74bd5d6a29f4bb7854f2b9a9e5424994b2",
+      "pr_blob": "8ce80d74bd5d6a29f4bb7854f2b9a9e5424994b2",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_sledge_hammer.json": {
+      "before": null,
+      "after": "0d4fbb3cff0289b658dacca36261713a03ab8239b766019575836c6d2d6712e2",
+      "after_blob": "7a8f2912ea51693bc5ebf1466b7812f4f65b4772",
+      "pr_blob": "7a8f2912ea51693bc5ebf1466b7812f4f65b4772",
+      "replacements": []
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_vein_hammer.json": {
+      "before": null,
+      "after": "f6406b72c7888b301d2eda64a87e182a7e7358305cd793d3a4f44d7e228cff02",
+      "after_blob": "d1d8810ccd6fb45f7cf2474867de02ff57e63422",
+      "pr_blob": "d1d8810ccd6fb45f7cf2474867de02ff57e63422",
+      "replacements": []
+    },
+    "tconstruct/docs/materials-and-you.md": {
+      "before": "f08217380907eea59a9df4d3c6ba6c2bc0b5575bdd52b829de8d1638bcb1ae36",
+      "before_blob": "0beae5e59774c645cf1a37adb679a5fdea262879",
+      "after": "2493145579490ef138979169bad508b86979f4af2a4d4a0e1747019bd88e859e",
+      "after_blob": "ee18b8c458d2dddd5941c2ce0a6854ed66cf836d",
+      "replacements": [
+        [
+          "",
+          "\n\n## Mighty broad-tool pages\n\nMighty Smelting's partial Broad Tools chapter now reads the source general\nand ranged broad-tool groups. It includes Sledge Hammer, Vein Hammer,\nExcavator, Broad Axe, Scythe, Cleaver and Longbow only when the current tool\nitem and all displayed component choices are registered, the current\nrecipe/definition yields inputs, and the loaded source page names that tool.\nCurrent tag membership controls inclusion; source text is not a tool registry.\nJavelin, external tool additions and the tank advice page remain omitted.\n\nSeven pinned source descriptions/properties use the existing tool/part preview,\ntext overflow, group headings and chapter-index path. The required chapter\nnotice and a per-tool notice identify source capabilities as reference material,\nnot verified Horizon effect coverage. Missing per-tool notice suppresses those\npages. Normal broad-tool construction uses a Tinker's Anvil; the preview does\nnot prove every material's acquisition route or complete gameplay support.\n\nThis section is the bounded PR #732 intake onto 9e032ef5 (2026-11-07),\nnot adoption of its stacked branch. The resource and source-wiring checks,\nwhole-file inverse checks and finite eligibility oracle are recorded separately\nin integration/guide-intake-20261107/broad-tools.json. Existing Pluto navigation,\nselected-line queries, BookId, modifier anchors and private LAN reply bridge\nremain unchanged. No new generic registry or API is needed for these\nTConstruct-specific source pages. Rust eligibility tests are added but not run.\nHost compilation, in-game layout, actual assembly, save/reload, localization\nrefresh and LAN remain unverified for this delta."
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book-index.rs": {
+      "before": "24189c1870efd5504ce6ba268abcdf197489c59ff624fb6c15b26bb2b474d1f2",
+      "before_blob": "2fbe9323f16384eff72175d9396136e4a8425f5f",
+      "after": "21ad591851046c911db446eb6362cc1060e314ee96fd31dfafbc2b7142bf1941",
+      "after_blob": "22c99ac0b1ae3073294c122ac271cc654a4d192e",
+      "replacements": [
+        [
+          "    ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)\n}\n\n// Mighty has static advice only; omit dynamic groups and the tank page until\n// their displays and operation are supported.\npub(super) fn mighty_advice_page(name: &str) -> bool {\n    matches!(name, \"tips\" | \"designing\")\n}\n\n// Expose source pages whose described basics have an existing limited path.\n",
+          "    ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)\n}\n\n// Mighty exposes bounded broad-tool pages and static advice. The tank page\n// remains omitted until its display and operation are supported.\npub(super) fn mighty_advice_page(name: &str) -> bool {\n    matches!(name, \"group_general\" | \"group_ranged\" | \"group_info\" | \"tips\" | \"designing\")\n}\n\n// These source pages describe existing broad-tool families, not complete\n// effect parity. Javelins and external additions are deliberately omitted.\npub(super) fn mighty_tool_guide_ready(id: &str, registered: bool, inputs_available: bool, source_tool: Option<&str>) -> bool {\n    registered && inputs_available && source_tool == Some(id)\n        && matches!(id, \"tconstruct:sledge_hammer\" | \"tconstruct:vein_hammer\" | \"tconstruct:excavator\"\n            | \"tconstruct:broad_axe\" | \"tconstruct:scythe\" | \"tconstruct:cleaver\" | \"tconstruct:longbow\")\n}\n\n// Expose source pages whose described basics have an existing limited path.\n"
+        ],
+        [
+          "        assert!(!mighty_advice_ready([Some(\"Partial\"), Some(\" \"), Some(\"Details\")]));\n    }\n    #[test]\n    fn mighty_advice_excludes_dynamic_groups_and_tank_page() {\n        for name in [\"tips\", \"designing\"] { assert!(mighty_advice_page(name)); }\n        for name in [\"group_general\", \"group_ranged\", \"group_info\", \"tanks\", \"unknown\"] { assert!(!mighty_advice_page(name)); }\n    }\n    #[test]\n    fn puny_melee_whitestone_exception_is_narrow_and_tier_bound() {",
+          "        assert!(!mighty_advice_ready([Some(\"Partial\"), Some(\" \"), Some(\"Details\")]));\n    }\n    #[test]\n    fn mighty_advice_includes_bounded_groups_but_excludes_tank_page() {\n        for name in [\"group_general\", \"group_ranged\", \"group_info\", \"tips\", \"designing\"] { assert!(mighty_advice_page(name)); }\n        for name in [\"tanks\", \"unknown\"] { assert!(!mighty_advice_page(name)); }\n    }\n    #[test]\n    fn mighty_tool_pages_require_known_registered_tools_inputs_and_matching_source() {\n        for name in [\"sledge_hammer\", \"vein_hammer\", \"excavator\", \"broad_axe\", \"scythe\", \"cleaver\", \"longbow\"] {\n            let id = format!(\"tconstruct:{name}\");\n            assert!(super::mighty_tool_guide_ready(&id, true, true, Some(&id)));\n            assert!(!super::mighty_tool_guide_ready(&id, false, true, Some(&id)));\n            assert!(!super::mighty_tool_guide_ready(&id, true, false, Some(&id)));\n            assert!(!super::mighty_tool_guide_ready(&id, true, true, Some(\"tconstruct:other\")));\n            assert!(!super::mighty_tool_guide_ready(&id, true, true, None));\n        }\n        for id in [\"tconstruct:javelin\", \"tconstruct:pickaxe\", \"other:longbow\"] {\n            assert!(!super::mighty_tool_guide_ready(id, true, true, Some(id)));\n        }\n    }\n    #[test]\n    fn puny_melee_whitestone_exception_is_narrow_and_tier_bound() {"
+        ]
+      ]
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book.rs": {
+      "before": "3cec1b81f40c4f657348ad56e8681a1d68d88149400e59a648460caff0f6a36f",
+      "before_blob": "1e667efa4263e2750c4fbc68b64112c9cd04d373",
+      "after": "514e886ac0baf063fc90f6db4f26b77d91cae9357c59cf5b169763207f43b183",
+      "after_blob": "4de773fa44ebd4cb230b82e9db2a6204fc83eba1",
+      "replacements": [
+        [
+          "// Mighty exposes selected source material chapters and the partial advice section.",
+          "// Mighty exposes selected source material chapters and partial broad-tool guidance."
+        ],
+        [
+          "                    for id in tools {\n                        let file = format!(\"{root}en_us/{tool_path}/{}.json\", id.replace(':', \"_\"));\n                        let Some(raw) = read(path, &file) else { continue; };\n                        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };\n                        let fallback = id.split(':').next_back().unwrap_or(id);\n                        let (namespace, name) = id.split_once(':').unwrap_or((\"tconstruct\", fallback));\n                        let title = game.translate(&format!(\"item.{namespace}.{name}\"), fallback);",
+          "                    for id in tools {\n                        let file = format!(\"{root}en_us/{tool_path}/{}.json\", id.replace(':', \"_\"));\n                        let Some(raw) = read(path, &file) else { continue; };\n                        let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };\n                        if mighty_advice {\n                            let Some(note) = labels.get(\"tools.partial.tool_notice\").filter(|note| !note.trim().is_empty()) else { continue; };\n                            let Some(rest) = game.res.rest.get() else { continue; };\n                            let registered = |item: &str| rest.items.items.contains_key(item);\n                            let inputs = tool_inputs(game, id);\n                            let inputs_available = !inputs.is_empty() && inputs.iter().all(|input| {\n                                if let Some(part) = input.get(\"part\").and_then(|v| v.as_str()) { return registered(part); }\n                                input.get(\"choices\").and_then(|v| v.as_array()).is_some_and(|choices|\n                                    !choices.is_empty() && choices.iter().all(|choice| choice.as_str().is_some_and(&registered)))\n                            });\n                            if !super::tconstruct_materials_book_index::mighty_tool_guide_ready(id, registered(id), inputs_available,\n                                value.get(\"tool\").and_then(|v| v.as_str())) { continue; }\n                            let Some(text) = value.get_mut(\"text\").and_then(|v| v.as_array_mut()) else { continue; };\n                            text.insert(0, serde_json::json!({\"text\":format!(\"{note}\\n\\n\")}));\n                        }\n                        let fallback = id.split(':').next_back().unwrap_or(id);\n                        let (namespace, name) = id.split_once(':').unwrap_or((\"tconstruct\", fallback));\n                        let title = game.translate(&format!(\"item.{namespace}.{name}\"), fallback);"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_materials_book_source.py": {
+      "before": "4f4c1c3955df9b91fe9c1ac94252c5de6c15bfea516b84d2c7057be96d9f74c0",
+      "before_blob": "79e9bb21a317c25a33f0cd3cfc1c195c67123eb3",
+      "after": "bcab2b7d115658fb60fade30f4e5404206c1902d3851b395a4ace443bf429d6f",
+      "after_blob": "baa5a0fff2b6839d74332d6589f0948a3ff07604",
+      "replacements": [
+        [
+          "        section = json.loads((root / 'sections/tools.json').read_text())\n        self.assertEqual([page['name'] for page in section], ['group_general', 'group_ranged', 'group_info', 'tanks', 'tips', 'designing'])\n        language = (root / 'en_us/language.lang').read_text()\n        self.assertIn('tools.partial=Tool Advice (Partial)', language)\n        self.assertIn('material tip icon mentioned here is not available', language)\n        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()\n        self.assertIn('mighty_advice_page', reader)",
+          "        section = json.loads((root / 'sections/tools.json').read_text())\n        self.assertEqual([page['name'] for page in section], ['group_general', 'group_ranged', 'group_info', 'tanks', 'tips', 'designing'])\n        language = (root / 'en_us/language.lang').read_text()\n        self.assertIn('tools.partial=Broad Tools (Partial)', language)\n        self.assertIn('material tip icon mentioned here is not available', language)\n        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()\n        self.assertIn('mighty_advice_page', reader)"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_mighty_broad_tools.py": {
+      "before": null,
+      "after": "85916bc6715920c770c17e584b00459dd45f90e9fefec17f0928eafd5af18672",
+      "after_blob": "56f9f0894b1986e4e4ee0a03668611f29843a377",
+      "pr_blob": "56f9f0894b1986e4e4ee0a03668611f29843a377",
+      "replacements": []
+    },
+    "tconstruct/third_party/NOTICE.md": {
+      "before": "b0c34e5d5ab2dcce04909ae325fec79b50d83ba8fc4d1585522e6b59fcba1dec",
+      "before_blob": "b7f20fcdcb67c8baaab3764c10b914413f77c38b",
+      "after": "5dbd9973e2af36b90fc072cd4644e1e45e2b59f9ee9034c07f5c1b66547432b3",
+      "after_blob": "f2acbc79297b61bcb04602bcfaba652fb530d3a6",
+      "replacements": [
+        [
+          "",
+          "\n\nMighty Smelting's seven broad-tool page files under\n`assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_*.json`\n(Broad Axe, Cleaver, Excavator, Longbow, Scythe, Sledge Hammer and Vein Hammer)\nare copied verbatim from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools).\nCopyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.\nThe partial-coverage notices and bounded reader eligibility checks are port adaptations."
+        ]
+      ]
+    }
+  },
+  "unchanged_inputs": {
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/sections/tools.json": {
+      "sha256": "bcd211ad7c6d16af45e6a970f452d50f4730a755d706c38b3bc92966c97b6776",
+      "git_blob": "793d15d696add96370727a247b4d52d566b0ec59"
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/tips.json": {
+      "sha256": "aab154ebe44640a619c2e3a16646abe508b8c9af32c2879712e1db4098ee6fe7",
+      "git_blob": "fc04b018d35a689015f34d045dfdfef095d45fdd"
+    },
+    "tconstruct/content/assets/tconstruct/book/mighty_smelting/en_us/tools/designing.json": {
+      "sha256": "cad4ea5e7d982f52479672387603ef589bf54be5573f0ef42a27176ad245ad4a",
+      "git_blob": "6c0ada56181a2083df5729814193858d1a392cda"
+    },
+    "tconstruct/mixins/tconstruct/source-materials-book-request.rs": {
+      "sha256": "f9117c9290cdab963b938fea30d445b49fbe22b4d5d9e2690f8cf3713bee073f",
+      "git_blob": "13f06d5c1f90f74b6d88855772f005cbff6c74f2"
+    }
+  },
+  "validation": {
+    "python": {
+      "passed": 9,
+      "failed": 0,
+      "eligibility_oracle_cases": 160,
+      "eligible": 7,
+      "scope": "3 original source/resource + 5 intake source/inverse/oracle + 1 adapted existing method; not Rust execution"
+    },
+    "rust": "not run",
+    "package": "not run",
+    "host": "not run",
+    "ui_lan": "not run"
+  }
+}

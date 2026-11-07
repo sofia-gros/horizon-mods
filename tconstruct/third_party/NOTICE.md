@@ -169,3 +169,11 @@ from Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, under
 Native advancements adapt only recipe IDs, the host recipe criterion key and
 telemetry flag. SHA-256 hashes are in `tests/fixtures/scorched_recipe_unlocks/sha256.json`.
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+
+
+Mighty Smelting's seven broad-tool page files under
+`assets/tconstruct/book/mighty_smelting/en_us/tools/tconstruct_*.json`
+(Broad Axe, Cleaver, Excavator, Longbow, Scythe, Sledge Hammer and Vein Hammer)
+are copied verbatim from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/tools).
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+The partial-coverage notices and bounded reader eligibility checks are port adaptations.
