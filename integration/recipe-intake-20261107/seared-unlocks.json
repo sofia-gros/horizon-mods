@@ -1,0 +1,893 @@
+{
+  "schema": 1,
+  "repository": "sofia-gros/horizon-mods",
+  "ordinary_base": "18c2d21059ae55549391388991306343b6ca3617",
+  "ordinary_tree": "ffe5f79e62b523465712e945a5bd878e9bf250f4",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "source_pr": {
+    "number": 735,
+    "head": "b3d99db71003966ca83b1c9cee910571667836ef",
+    "branch": "feat/seared-decoration-unlocks-379",
+    "own_delta_base": "6d980fa32cf9295c54845946d56ba2340c10a327",
+    "own_patch_sha256": "678f226db128d68f4cc49c1014dfc5ec0f685f456cb3813b5a6a392815397293",
+    "own_paths": 44,
+    "adopted_paths": 44,
+    "unadopted_own_features": [],
+    "already_included": "Twenty native recipes and registered output blocks are outside this PR own delta and unchanged in the current base."
+  },
+  "production_paths": [
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_slab.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_stairs.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_wall.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_slab.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_stairs.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_wall.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_fancy_bricks_crafting.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_ladder.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_slab.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_stairs.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_soul_glass.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_slab.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_stairs.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_tinted_glass.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_bricks_from_brick.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_glass.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_glass_pane.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_lantern.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_soul_glass_pane.json",
+    "tconstruct/content/data/tconstruct/advancement/recipes/redstone/seared_casting_tank.json"
+  ],
+  "files": {
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_slab.json": {
+      "before": null,
+      "git_blob": "4a1f6046a13109016cfc1b312ccf37ba6bf6e4bb",
+      "sha256": "596a5a8e6414c1ef1d66479c2c7b0fb108b36c0b60a4bf330c080d248ad7647b",
+      "bytes": 646,
+      "source_pr_blob": "4a1f6046a13109016cfc1b312ccf37ba6bf6e4bb",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_stairs.json": {
+      "before": null,
+      "git_blob": "cb2a87cc98df6ea65fd1976adb7a2e645fde254c",
+      "sha256": "82bab1f02b18a29a57eda85f2cd15429a6ffd431ae7fe0766cd6e7d52db9a53b",
+      "bytes": 650,
+      "source_pr_blob": "cb2a87cc98df6ea65fd1976adb7a2e645fde254c",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_wall.json": {
+      "before": null,
+      "git_blob": "99f8714440ee4c52c68a1a93ba83a9b23c64ea4f",
+      "sha256": "e42a91be2527777d4234568979d173101f06b1c61758f07e08354606100fdd27",
+      "bytes": 646,
+      "source_pr_blob": "99f8714440ee4c52c68a1a93ba83a9b23c64ea4f",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_slab.json": {
+      "before": null,
+      "git_blob": "53b6c49d37555eebc2eee2de650e743283e10a65",
+      "sha256": "917fc950fac12cd2804f81b0c17054fe33cb91e104ddb651c05054a281a027eb",
+      "bytes": 646,
+      "source_pr_blob": "53b6c49d37555eebc2eee2de650e743283e10a65",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_stairs.json": {
+      "before": null,
+      "git_blob": "dd0c185820b975a3aa190c601a7212ee0883217d",
+      "sha256": "6be42658aacd7b1e635857b342fdc53fe894f38fc1faa25fa73f3efaf2813a0a",
+      "bytes": 650,
+      "source_pr_blob": "dd0c185820b975a3aa190c601a7212ee0883217d",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cobble_wall.json": {
+      "before": null,
+      "git_blob": "314fcc2697a022b0a445aae28fc4197828d72c28",
+      "sha256": "3c4fa7ad87dec4db3e8890b89d49241a5ab22fabd1c8f6b6e1795e2270a8ef9f",
+      "bytes": 646,
+      "source_pr_blob": "314fcc2697a022b0a445aae28fc4197828d72c28",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_fancy_bricks_crafting.json": {
+      "before": null,
+      "git_blob": "22d2810b7c03160c82666b6681cf61a8304ce4be",
+      "sha256": "b6a8dd82c57d7dd0eac58d8d79e28b276eaf2d0f7f4ae962d0400e330392abfe",
+      "bytes": 671,
+      "source_pr_blob": "22d2810b7c03160c82666b6681cf61a8304ce4be",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_ladder.json": {
+      "before": null,
+      "git_blob": "c8f58d40f9e08e16da6c7297e902ffbc2a622b53",
+      "sha256": "f4fa28efeed78d8921319634bb2c51b1db72d92d5c87260d3ca84a0772ceb8ee",
+      "bytes": 635,
+      "source_pr_blob": "c8f58d40f9e08e16da6c7297e902ffbc2a622b53",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_slab.json": {
+      "before": null,
+      "git_blob": "7adffaa2ab001cec9379dbd77d43db20bac2ddb4",
+      "sha256": "b82f4a63790311cb8f744506396321bb347954c11bf61b702c3965fae3837ac1",
+      "bytes": 643,
+      "source_pr_blob": "7adffaa2ab001cec9379dbd77d43db20bac2ddb4",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_stairs.json": {
+      "before": null,
+      "git_blob": "0cda99521a32de48bf510cd9811ac8e05e555e6c",
+      "sha256": "998fe7ef415963afd7a8a03c4d11657d0266030bed761a28f7583da8ac297ce0",
+      "bytes": 647,
+      "source_pr_blob": "0cda99521a32de48bf510cd9811ac8e05e555e6c",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_soul_glass.json": {
+      "before": null,
+      "git_blob": "e6c63d8b65a22ac3bcb6c84bbd75ef0ad0c3a334",
+      "sha256": "6d45ba01a2fecef9952b4fd6802cc1e5feefc3fe999efabe1e7c80c10837642f",
+      "bytes": 643,
+      "source_pr_blob": "e6c63d8b65a22ac3bcb6c84bbd75ef0ad0c3a334",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_slab.json": {
+      "before": null,
+      "git_blob": "eb627025158c0adaa0a5f521fd6e1a9f484f31b2",
+      "sha256": "63d262c6786bc439aa377300eccf5be9b79b66ba51984242ec1af186cb76494d",
+      "bytes": 643,
+      "source_pr_blob": "eb627025158c0adaa0a5f521fd6e1a9f484f31b2",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_stairs.json": {
+      "before": null,
+      "git_blob": "186fe1ff033093c8d97d3b8c228503e438190f8f",
+      "sha256": "f8cc25eb7dba843359e3987583327f5f0f8b60314a335844e68023e6f0bf02d2",
+      "bytes": 647,
+      "source_pr_blob": "186fe1ff033093c8d97d3b8c228503e438190f8f",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_tinted_glass.json": {
+      "before": null,
+      "git_blob": "3cfc340ad6a6969f682464dba88d6ce7f1f44d17",
+      "sha256": "352dfd33419f961579399345bee27d175c06ff7e6a33249d26c01540436872f0",
+      "bytes": 647,
+      "source_pr_blob": "3cfc340ad6a6969f682464dba88d6ce7f1f44d17",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_bricks_from_brick.json": {
+      "before": null,
+      "git_blob": "caa094d28493f8baa4554b4b1267d80c3e269e73",
+      "sha256": "2eb11df34d1c4fd4dc569519815df715978de676d0ee2073b0f56972c0791801",
+      "bytes": 689,
+      "source_pr_blob": "caa094d28493f8baa4554b4b1267d80c3e269e73",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_glass.json": {
+      "before": null,
+      "git_blob": "40fea8c3dc80c9d2aeae91e52bc47c85a5440fc5",
+      "sha256": "fb39db7baeddc68768710c35bf28f59d176504a0752f71c162cd54731e930d2b",
+      "bytes": 665,
+      "source_pr_blob": "40fea8c3dc80c9d2aeae91e52bc47c85a5440fc5",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_glass_pane.json": {
+      "before": null,
+      "git_blob": "42690e4a12d0fc28b47e3d1db1d4771ad1234543",
+      "sha256": "08320f613b5971db746974e25e7391ce3edcb55aab66fe1fadf1f8588a8d2d08",
+      "bytes": 643,
+      "source_pr_blob": "42690e4a12d0fc28b47e3d1db1d4771ad1234543",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_lantern.json": {
+      "before": null,
+      "git_blob": "f061b01978b519143acc988b94c3dae75151681d",
+      "sha256": "f36b36302c404075060a5be7ff0562614b03297e4459e9004594016d6ba0ed0f",
+      "bytes": 637,
+      "source_pr_blob": "f061b01978b519143acc988b94c3dae75151681d",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/seared_soul_glass_pane.json": {
+      "before": null,
+      "git_blob": "7b3c1d59cfe556f4658bb5b0427cf1975069b47d",
+      "sha256": "dafe0501f890bbeb0c0adb0fadf0b3abfd8da0acaab61ab5c060575ac316b28c",
+      "bytes": 658,
+      "source_pr_blob": "7b3c1d59cfe556f4658bb5b0427cf1975069b47d",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/redstone/seared_casting_tank.json": {
+      "before": null,
+      "git_blob": "6464e62cff4b02980171a2fdbcb7ee47b6cb82b1",
+      "sha256": "d2a9c7d16376b5fd7356660e449d9c6790f461299a4cea0eb032ab567adf2e18",
+      "bytes": 647,
+      "source_pr_blob": "6464e62cff4b02980171a2fdbcb7ee47b6cb82b1",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/docs/seared-decoration-unlocks.md": {
+      "before": null,
+      "git_blob": "07dd21ec6ec8b6fe0c1e54bd8d0c35398045bf7d",
+      "sha256": "8c428f793266f35d3e1a0610a6e3be5d210735825c062270afb46870d44b7bcc",
+      "bytes": 4388,
+      "source_pr_blob": "6df48ac47c372420caef906ef4762cfe1d53bf4d",
+      "unchanged_from_pr": false
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/README.md": {
+      "before": null,
+      "git_blob": "f5d67324ebb4d87d7db406e2628fe6865229ea41",
+      "sha256": "59f70b7051c7c0b53ba90396d528afc5ce482a8d81bc7e8228484039b60f0811",
+      "bytes": 750,
+      "source_pr_blob": "f5d67324ebb4d87d7db406e2628fe6865229ea41",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/lantern.json": {
+      "before": null,
+      "git_blob": "2f48bd1db186400368b26a883c1737f7e25a0cf3",
+      "sha256": "0234213333df2b243c943797db1eab3189242b4192ea4cf5eda6dc2a2dd3a55f",
+      "bytes": 653,
+      "source_pr_blob": "2f48bd1db186400368b26a883c1737f7e25a0cf3",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_bricks_from_brick.json": {
+      "before": null,
+      "git_blob": "7e175a4cc4a236541f1e2510b2fe99c1d31805b7",
+      "sha256": "0580b11d1799379e38c57d482f092cc5b7e46a06c1cab79cd7a6bdb974d22359",
+      "bytes": 687,
+      "source_pr_blob": "7e175a4cc4a236541f1e2510b2fe99c1d31805b7",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_bricks_slab.json": {
+      "before": null,
+      "git_blob": "3753cbb38ad580a2e55ad6eaf2e678192e311707",
+      "sha256": "43d2eabc6e5169769eef651ad1dbb3fb30dd4711a49c4d12d7f4da1d10e60263",
+      "bytes": 676,
+      "source_pr_blob": "3753cbb38ad580a2e55ad6eaf2e678192e311707",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_bricks_stairs.json": {
+      "before": null,
+      "git_blob": "c5285bcb6a1a856ddeb36631aae9fbc7891b03e3",
+      "sha256": "d2d12252f6b7f71582109320284c1301f45f325b823b9b1fe9c067250b8ec478",
+      "bytes": 680,
+      "source_pr_blob": "c5285bcb6a1a856ddeb36631aae9fbc7891b03e3",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_bricks_wall.json": {
+      "before": null,
+      "git_blob": "3e0fa2776872cc857a80480d08c1a4cf751a2880",
+      "sha256": "68d2d1e0610ac6bdacb83721e04092332f761440ebc078a0c6368d076ecd9431",
+      "bytes": 676,
+      "source_pr_blob": "3e0fa2776872cc857a80480d08c1a4cf751a2880",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_casting_tank.json": {
+      "before": null,
+      "git_blob": "c5129cf8ebd85a79a8429f55b9dd816e9ea2e166",
+      "sha256": "c0bf29153bcf531ca96a0873b10be15917c495fdcd990456dfe55c645c1ba8b0",
+      "bytes": 677,
+      "source_pr_blob": "c5129cf8ebd85a79a8429f55b9dd816e9ea2e166",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_cobble_slab.json": {
+      "before": null,
+      "git_blob": "2595d190440ff7e26aa0d4c90d4e8dc320a806c4",
+      "sha256": "e58baaa9f0b75fa078bf3e5ff9d0b61ed1020078e29774e621714ef54fc75436",
+      "bytes": 676,
+      "source_pr_blob": "2595d190440ff7e26aa0d4c90d4e8dc320a806c4",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_cobble_stairs.json": {
+      "before": null,
+      "git_blob": "a2c98a76dcfb65f820aa5b58ab856d04f2af23c8",
+      "sha256": "81e21ed92774ce8a2a2b88cfcb86caa088a10ce005406d2e1b42608ba91e3e3e",
+      "bytes": 680,
+      "source_pr_blob": "a2c98a76dcfb65f820aa5b58ab856d04f2af23c8",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_cobble_wall.json": {
+      "before": null,
+      "git_blob": "872b48a7e7a1daf911633d9dcc7041f7366aeeaf",
+      "sha256": "ef6824787e46c5d5168aafd2591fdc704e571c9477fcfb7acc574693de36975a",
+      "bytes": 676,
+      "source_pr_blob": "872b48a7e7a1daf911633d9dcc7041f7366aeeaf",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_fancy_bricks_crafting.json": {
+      "before": null,
+      "git_blob": "65c57ed78aa7c7cdc5a0c843a1a978b28ceaf557",
+      "sha256": "80a22b12c175f63885c615b262a4efed60260cce119094635d79c241d9a113e8",
+      "bytes": 701,
+      "source_pr_blob": "65c57ed78aa7c7cdc5a0c843a1a978b28ceaf557",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_glass.json": {
+      "before": null,
+      "git_blob": "f846697f1f3e54dcece8025fea93e56666da8f5d",
+      "sha256": "ad27fb73da552265d3fe81011cc80d63c03eca505524114a0ea7ea8286086c7d",
+      "bytes": 663,
+      "source_pr_blob": "f846697f1f3e54dcece8025fea93e56666da8f5d",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_glass_pane.json": {
+      "before": null,
+      "git_blob": "98c881b404a4a58895308e59436554159bafedca",
+      "sha256": "3204edf19ef15f26d92dd32d2e82e588eeda5990499d00a8cfdbd83b4541b8de",
+      "bytes": 673,
+      "source_pr_blob": "98c881b404a4a58895308e59436554159bafedca",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_ladder.json": {
+      "before": null,
+      "git_blob": "b8cf128266a511f7e7d88ab8862260c8a68a395d",
+      "sha256": "161c2e7c121cc4be6c84d4edc0a2fa192d82cbd01a6b0f8535b1eb0b98e5d537",
+      "bytes": 665,
+      "source_pr_blob": "b8cf128266a511f7e7d88ab8862260c8a68a395d",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_paver_slab.json": {
+      "before": null,
+      "git_blob": "b8330645bbbe492e82c263e5b62b0980ae91cf6b",
+      "sha256": "26be701cd6a7c181c22ccfaa141ee2961fe6cf95107153eb3bc921b4b8f6e8d5",
+      "bytes": 673,
+      "source_pr_blob": "b8330645bbbe492e82c263e5b62b0980ae91cf6b",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_paver_stairs.json": {
+      "before": null,
+      "git_blob": "b8c2afdaa4b75b95a5f35796cb05a68f77f51dce",
+      "sha256": "024a777b4501b48d26ad720cb4f2d8053ea9620aca5b71f2491932ed8e05e684",
+      "bytes": 677,
+      "source_pr_blob": "b8c2afdaa4b75b95a5f35796cb05a68f77f51dce",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_soul_glass.json": {
+      "before": null,
+      "git_blob": "26d2186c89ddd41037ce6cdd9a7203ace751a87a",
+      "sha256": "8d3662cb1576987ffff3e9d4fe7d2770dfb03c6127ee239ed7a67dc1095ac983",
+      "bytes": 673,
+      "source_pr_blob": "26d2186c89ddd41037ce6cdd9a7203ace751a87a",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_soul_glass_pane.json": {
+      "before": null,
+      "git_blob": "680e03c6528d814e7b59b7cb0ecb00f74d7834ec",
+      "sha256": "6d7dd277e8eaf288644bb0cc972797e1c499f48e38ea389763756e2740bac214",
+      "bytes": 688,
+      "source_pr_blob": "680e03c6528d814e7b59b7cb0ecb00f74d7834ec",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_stone_slab.json": {
+      "before": null,
+      "git_blob": "facb437b2d968d3abe260493baa1a78494a5e5ef",
+      "sha256": "46df0a09639d734130996b3c30b0066f0bd46571989c00222343bc761ea3d1b9",
+      "bytes": 673,
+      "source_pr_blob": "facb437b2d968d3abe260493baa1a78494a5e5ef",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_stone_stairs.json": {
+      "before": null,
+      "git_blob": "f88da07e81378bd16649aff95a3fcf10512fcea7",
+      "sha256": "ee6bdc811d6addd1e477a8a9d824a63c0bb9043e477328554f1e894bb739890a",
+      "bytes": 677,
+      "source_pr_blob": "f88da07e81378bd16649aff95a3fcf10512fcea7",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/seared_tinted_glass.json": {
+      "before": null,
+      "git_blob": "9a6376fbbb48051527435e101a3c6bf199023a64",
+      "sha256": "1105fbc3ed3f6a54807a03af010994031ce5bc847d98658a9323dd03cc52e192",
+      "bytes": 677,
+      "source_pr_blob": "9a6376fbbb48051527435e101a3c6bf199023a64",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/fixtures/seared_decoration_unlocks/sha256.json": {
+      "before": null,
+      "git_blob": "0c8c5d3354e0bd5414ff1beddff7794fbee8b82b",
+      "sha256": "ddf5980055a3c2e9d5318ec6075b05277b48461fdf01a406c0eb6db85b763cd3",
+      "bytes": 1845,
+      "source_pr_blob": "0c8c5d3354e0bd5414ff1beddff7794fbee8b82b",
+      "unchanged_from_pr": true
+    },
+    "tconstruct/tests/test_seared_decoration_unlocks.py": {
+      "before": null,
+      "git_blob": "d8805ab088b6387906c341a4d6bd0a85274f4a4f",
+      "sha256": "bf936b09fd8d526cbf5fb6afbd01675f6998b85736362586bfb32480e105dcab",
+      "bytes": 4808,
+      "source_pr_blob": "8696b214034848457f11dcff08b2639ab1e7f8e4",
+      "unchanged_from_pr": false
+    }
+  },
+  "unchanged_inputs": {
+    "tconstruct/content/data/tconstruct/horizon/block/seared_bricks.json": {
+      "git_blob": "babf1d7bab1a414badebb402679f3152166661c0",
+      "sha256": "72fffe5ff8b0e7358cc385750a3a5ce9cde988e8b2fe9eb7d4c4dd3cd7d68e91",
+      "bytes": 141
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_bricks_slab.json": {
+      "git_blob": "f6889d04bf0e6b44a087c5f0734f005b5e66e5c1",
+      "sha256": "a1edebc59c4d49480c40c2959ae069cdca1d5ca612d5c4271ed0f3bfda842cd4",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_bricks_stairs.json": {
+      "git_blob": "20cf57471916bb78830c8c33aa88d92de6144ace",
+      "sha256": "0c3e1c34563fa4b838c74d9ec0db57b73b24a23e1253ecb265387be16d46efad",
+      "bytes": 154
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_bricks_wall.json": {
+      "git_blob": "9764b9144c4062482584900cff83a5decb638e4c",
+      "sha256": "1a8219ab5994b8953e1aad3778b25b8874a7966d40df09f4404932aa431edd6d",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_casting_tank.json": {
+      "git_blob": "817816c33783d39a14e55b0253c732f029c66149",
+      "sha256": "e905f37f870ab43c7ddee56cc4312fa9e3c44f4c00803d6fddfd039ef93d374b",
+      "bytes": 169
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_cobble_slab.json": {
+      "git_blob": "f6889d04bf0e6b44a087c5f0734f005b5e66e5c1",
+      "sha256": "a1edebc59c4d49480c40c2959ae069cdca1d5ca612d5c4271ed0f3bfda842cd4",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_cobble_stairs.json": {
+      "git_blob": "20cf57471916bb78830c8c33aa88d92de6144ace",
+      "sha256": "0c3e1c34563fa4b838c74d9ec0db57b73b24a23e1253ecb265387be16d46efad",
+      "bytes": 154
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_cobble_wall.json": {
+      "git_blob": "9764b9144c4062482584900cff83a5decb638e4c",
+      "sha256": "1a8219ab5994b8953e1aad3778b25b8874a7966d40df09f4404932aa431edd6d",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_fancy_bricks.json": {
+      "git_blob": "babf1d7bab1a414badebb402679f3152166661c0",
+      "sha256": "72fffe5ff8b0e7358cc385750a3a5ce9cde988e8b2fe9eb7d4c4dd3cd7d68e91",
+      "bytes": 141
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_glass.json": {
+      "git_blob": "aa368ebc4335a765cb482e249f47ae2fb0818ff8",
+      "sha256": "40607ad1b4bc51a93dce90c692329c0eae330717cda61d8b3e2f9bacae64da01",
+      "bytes": 136
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_glass_pane.json": {
+      "git_blob": "ad10f52c3556f5be2aa488d2df29a3a8a053d0c3",
+      "sha256": "c89b214f4c8db8b609a3ec4b4398821c2a7dcd5b77c32b5b5c02d563f5868caf",
+      "bytes": 141
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_ladder.json": {
+      "git_blob": "b45c3d26a48cfc82e32671da109e0445c694b9c1",
+      "sha256": "2bdfa1877d5f8f27b0d51e399761ace30b6c28f0c97ac33d74818166cf192974",
+      "bytes": 137
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_lantern.json": {
+      "git_blob": "6588e62529243f8ce87dd1885e64133acf1f0e0b",
+      "sha256": "d325596124cdb399b313f1735d0c8231586a23273e5de811885de52e9ae4ddb2",
+      "bytes": 147
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_paver_slab.json": {
+      "git_blob": "f6889d04bf0e6b44a087c5f0734f005b5e66e5c1",
+      "sha256": "a1edebc59c4d49480c40c2959ae069cdca1d5ca612d5c4271ed0f3bfda842cd4",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_paver_stairs.json": {
+      "git_blob": "20cf57471916bb78830c8c33aa88d92de6144ace",
+      "sha256": "0c3e1c34563fa4b838c74d9ec0db57b73b24a23e1253ecb265387be16d46efad",
+      "bytes": 154
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_soul_glass.json": {
+      "git_blob": "aa368ebc4335a765cb482e249f47ae2fb0818ff8",
+      "sha256": "40607ad1b4bc51a93dce90c692329c0eae330717cda61d8b3e2f9bacae64da01",
+      "bytes": 136
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_soul_glass_pane.json": {
+      "git_blob": "ad10f52c3556f5be2aa488d2df29a3a8a053d0c3",
+      "sha256": "c89b214f4c8db8b609a3ec4b4398821c2a7dcd5b77c32b5b5c02d563f5868caf",
+      "bytes": 141
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_stone_slab.json": {
+      "git_blob": "f6889d04bf0e6b44a087c5f0734f005b5e66e5c1",
+      "sha256": "a1edebc59c4d49480c40c2959ae069cdca1d5ca612d5c4271ed0f3bfda842cd4",
+      "bytes": 152
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_stone_stairs.json": {
+      "git_blob": "20cf57471916bb78830c8c33aa88d92de6144ace",
+      "sha256": "0c3e1c34563fa4b838c74d9ec0db57b73b24a23e1253ecb265387be16d46efad",
+      "bytes": 154
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/seared_tinted_glass.json": {
+      "git_blob": "4b4066fa5adacc5848aed7cc977bb643e3c26b43",
+      "sha256": "2d85670b8b07a6f741ed7037e68fd23f27f3aa39c2af6b37eade7a1779ed4dcc",
+      "bytes": 143
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_bricks_slab.json": {
+      "git_blob": "891613b3902cec418c1ede3d8bfa835f93f0aa21",
+      "sha256": "9374ddb6510ef3b38d0e4b296eaa24d08867f5a19b14c221f3e2c08d01e7a716",
+      "bytes": 271
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_bricks_stairs.json": {
+      "git_blob": "f46d4eb1a5f036120088292daf46a9130722d2ec",
+      "sha256": "5dcd8c953ba5cd432a6be140a04f6eee820b2226cbc0a6d740c660eb2aaf6e45",
+      "bytes": 297
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_bricks_wall.json": {
+      "git_blob": "03f9912ca1029f29ea269b7fbaa4ff19c52d4b17",
+      "sha256": "5cc4f4cca4432eb095e6f3e9560a6d5a5bf14c913a6dc23e3a0cf9efec62e99d",
+      "bytes": 282
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_casting_tank.json": {
+      "git_blob": "d98277ca838e4702becbc839c3efe04113c57817",
+      "sha256": "ab915f636ca16d2957ccd43ead0fbd47437e758f768594e98c1a9d69d9597db7",
+      "bytes": 240
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_cobble_slab.json": {
+      "git_blob": "05cbdfb8704156b5d65b0a2d64338b50e04dafdb",
+      "sha256": "f9a6a0b7e3fee8a5109cb319b2b8c2b4fac7c67e90f8979b563c715c844203e3",
+      "bytes": 271
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_cobble_stairs.json": {
+      "git_blob": "2882e27e95d5d8259ee10f53a2604eb105060a64",
+      "sha256": "1063a71ae2d261d1f415d0260463cb2d1c6b83ef13a82c68bd1c01e72518f035",
+      "bytes": 297
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_cobble_wall.json": {
+      "git_blob": "1f3bd5293b8a4cdeff91640d3a6877528380c7a7",
+      "sha256": "ebac88f7fa2d78414a3715cb6749ecd2adf4ecb09caa0a4f8789482f96a33fc3",
+      "bytes": 282
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_fancy_bricks_crafting.json": {
+      "git_blob": "12262a27255ca1a969f5de0b96436c68498d67c7",
+      "sha256": "a195282ee7ade0e47498dba536bc34b6acee32115f9f76986e47fa556431fb06",
+      "bytes": 224
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_glass_pane.json": {
+      "git_blob": "d68f4d273fddd98dd2222c220959204276aabbdc",
+      "sha256": "9d9c64a861bb1a332facbdd73600687af5f28cf3b52b612cc48e3b695bfcf6a6",
+      "bytes": 233
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_ladder.json": {
+      "git_blob": "e245ae4528c07cf7e450534fcccc852a7e5c7c21",
+      "sha256": "8e97e86e5aa6fa1bb8f9f215d281bcaa67abf46c65e2c55d8f7745a85422f637",
+      "bytes": 281
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_lantern.json": {
+      "git_blob": "b93061a957035804c95612d38f4fd7a593666096",
+      "sha256": "165fb291e5793414b2f2a15a31b2f6d825ec54e305dc150c48a8e85d9ea47593",
+      "bytes": 238
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_paver_slab.json": {
+      "git_blob": "af1de86f5f5737ed865d82034dbf9f418d278e20",
+      "sha256": "c86066734c5bdf2ae25519c85c5764d4f73086b04b23aeb61c3b4ebc1f38a027",
+      "bytes": 268
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_paver_stairs.json": {
+      "git_blob": "b572cc636db0158d24e84dd9b5ae1819d387d777",
+      "sha256": "c83a975cd151809a7ecc3cd6b4f0a58f3162fd5b460aac83c0d78f28ba04676b",
+      "bytes": 294
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_soul_glass.json": {
+      "git_blob": "0da44a568102db933ed453c60cc431dbcb811b83",
+      "sha256": "6e725b5e8f43c827f95803aef113f22244ad6bf70cf512f71f82866d46a9ecb3",
+      "bytes": 265
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_soul_glass_pane.json": {
+      "git_blob": "9a804480568b8759e50c4545d991ceb239af1d5f",
+      "sha256": "a51a4b1d5cc54284fa3e3fef33a2b6dabed773db016833544c604aeafd990c1a",
+      "bytes": 243
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_stone_slab.json": {
+      "git_blob": "5ace890c435354dfabc955e1af85f1da7f18ac4e",
+      "sha256": "d368ce5f2e3bdc4c5d989a8446f912df12e5352e4a7beea71c0ce432d06dd9d4",
+      "bytes": 268
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_stone_stairs.json": {
+      "git_blob": "5543a28a7edde0a20aaedeb2ee748abfc6c5fe9d",
+      "sha256": "d468f3b0e1f9667c07207a56af7063b83ba2a568f66e8b2ddf5a525671e03967",
+      "bytes": 294
+    },
+    "tconstruct/content/data/tconstruct/recipe/seared_tinted_glass.json": {
+      "git_blob": "c2f6e0e37450d8647da27eef2f76626cc26a7d78",
+      "sha256": "402d2ea4ce559ea7debe0ca67da1a5aef3d5d34e536c091fde7070fbd2c5897d",
+      "bytes": 294
+    },
+    "tconstruct/content/data/tconstruct/recipe/survival_seared_seared_bricks_from_brick.json": {
+      "git_blob": "3388eaf22c8a71d10cfb8d8ddc7fd1570b0727cf",
+      "sha256": "3aca3916b6bd7cd3f6247a70304fb6b32fb3d99aa4309eb2d98cffd713c3a3e5",
+      "bytes": 214
+    },
+    "tconstruct/content/data/tconstruct/recipe/survival_seared_seared_glass.json": {
+      "git_blob": "db148dda47ff28fec9976f21ef29555e16dca5ab",
+      "sha256": "8d76f80e94afd37163e3ae4e5b1a1a170a73edc748ac7a3eb7ab08e58f57cdeb",
+      "bytes": 261
+    },
+    "tconstruct/content/reference/tconstruct-recipes.zip": {
+      "git_blob": "38e2546f7e30f348b1db0383486bbad50ac3fc9d",
+      "sha256": "d84f5da24c464af5d6b158ddf324c0de0f2b27a5cdeb8737cace6d6ab4699951",
+      "bytes": 1140336
+    }
+  },
+  "prior_advancement_rewards": {
+    "checked": 64,
+    "duplicates": [],
+    "exact_blobs": [
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/foundry/fantastic_foundry.json",
+        "git_blob": "31e08d6f2f357c22a470cce43834b6562ac0147a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/foundry/plate_armor.json",
+        "git_blob": "4a400601d288292e5ae54db8e0e61373e1e13587"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/internal/starting_book.json",
+        "git_blob": "fe033e1d2e704251d9d9b8386c38e716cb16bd7d"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_bricks_crafting.json",
+        "git_blob": "df15341c880a608b3c10baeec3c7102998a09b41"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_lamp.json",
+        "git_blob": "c6da050be20c42e2e47331d62543ae05ab1ba5f3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_road_smelting.json",
+        "git_blob": "8b9cc4ef0e21cd6817170707bf44152399b427cf"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_crafting.json",
+        "git_blob": "206a90b040b04c4b9a1f9b0b46c5dc09d4cf1cd7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cracked_bricks_smelting.json",
+        "git_blob": "a0fe739ba829bae160238204bf4f0c0798953108"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_lamp.json",
+        "git_blob": "f8be8537a8b1dbb855375ce031f20661c5e0f1dc"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_smelting.json",
+        "git_blob": "dd1a089c665cdd376b2402553ae10c73ce7f15e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_smelting.json",
+        "git_blob": "76f03800fd1d0bd661269d4dd29135efe9baf0e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_nether_grout.json",
+        "git_blob": "6b6d5e664ba859626e86ff0e1d4f99e4f77935fb"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_nether_grout_multiple.json",
+        "git_blob": "5118afa49d121e87158201cc25cf1b025673cb75"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_scorched_brick.json",
+        "git_blob": "02cd7a531e0dcac8e4912b99ad245fd91ef65bbc"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_scorched_glass.json",
+        "git_blob": "b5138a28c86087fd712a576cbfc720b8c0531348"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_grout.json",
+        "git_blob": "06dd5b25ead870ff0d1c5de6dc4d284bf76d5ea1"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_grout_multiple.json",
+        "git_blob": "9883c5ca0a41d7f85b957c7393d110a2b0f09f54"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_brick.json",
+        "git_blob": "be7ba9a488acdad35f0af3d5f8cfeb3098fa15d7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/crafting_station.json",
+        "git_blob": "8d39c084979f566c2b5c0ab54c48477ee63fcb48"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/part_builder.json",
+        "git_blob": "94233e1529e8276e4f87f45bf12a1a497e0e8ba5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/part_chest.json",
+        "git_blob": "fdf50a80370f316a2ab9d2c2d8dfd665d823d5b5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_basin.json",
+        "git_blob": "06a536573d4c7bb0ec4202d435c1f159c1b91835"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_glass_pane.json",
+        "git_blob": "a5a24709545f3f766bfa73ea26751881a81ab605"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_lantern.json",
+        "git_blob": "79654a0ea647cde62eac9e865ee413e8e7916c87"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_table.json",
+        "git_blob": "4f081504ca7d0a8bb9e43a7ee93729f790a41552"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_basin.json",
+        "git_blob": "5f0d83218fc68fc21d59c4ed3e6bba7e07c8d4e6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_heater.json",
+        "git_blob": "f1fb2520153994869cef71e64ec55a4709564a8a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_melter.json",
+        "git_blob": "0a4da38f04e4a5711f10280f4ee68f3317dbe90c"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_table.json",
+        "git_blob": "55a7ddb868a7c2202eb6484bfdf784d1094fb414"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/tinker_station.json",
+        "git_blob": "ff5ca27b95aa2df88cc7c1bfc41b1bc41f5ab5af"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/earth_slimeball_from_congealed.json",
+        "git_blob": "c73226d7b3419048fde28157f34649cc88b2d8d4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/ender_slimeball_from_congealed.json",
+        "git_blob": "44498347917fa1d5c1f24c3f994226e60fde7a4e"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/fantastic_foundry.json",
+        "git_blob": "6ea2cdd32ed77fd55da0c7b40d5ce9354db50b5f"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/ichor_slimeball_from_congealed.json",
+        "git_blob": "7646b8436255f13974ad74d28100cd0c62ddc9e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/puny_smelting.json",
+        "git_blob": "81d94e5ae9487dcb1e4c4143fb164625a2321cc9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/sky_slimeball_from_congealed.json",
+        "git_blob": "38325cffdb1ecad9ec47e551822b4a8e7a1c9987"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/scorched_faucet.json",
+        "git_blob": "dd10e7726d34a950f982a18a6be45722f30eb36e"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_chute.json",
+        "git_blob": "91dda7a905ea5a846e74adc84dd540baea911c03"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_drain.json",
+        "git_blob": "63d42404813dc0a846a90f79716dfb72ec7182c5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_fuel_gauge.json",
+        "git_blob": "5cea156a185683260d82d3b08225fc6eb4545940"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_fuel_tank.json",
+        "git_blob": "e392a1683ab7898e843004fdcae0f1ed6d6dcb20"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_ingot_gauge.json",
+        "git_blob": "0bf459590ff933a9fbab73c98bce47ae03cb93b8"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_ingot_tank.json",
+        "git_blob": "2cccd26723954b9d061ded1a550239b97fbca6e6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_chute.json",
+        "git_blob": "1b3dd6bae7886464c8832225c127be255e6dcdc6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_drain.json",
+        "git_blob": "05b348391dd56625289d0d710f0aff18ed20d0c7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_faucet.json",
+        "git_blob": "03cc6c7a5c3723177115fcd54e0db8fda2e1b4ae"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_fuel_gauge.json",
+        "git_blob": "340709a0e0a73f1b981ec4277c521e8bcc37cf9f"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_fuel_tank.json",
+        "git_blob": "71b415a222e9b882dfd0ffa45a69971f55e23b29"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_ingot_gauge.json",
+        "git_blob": "5cd5fbe043368be91a33d516240f06e86be1bd80"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_ingot_tank.json",
+        "git_blob": "c253f841ab1cd050ddc40568d22dd5b1ab0fbaa9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/cast_collector.json",
+        "git_blob": "f6231bd219ce08fcf2665f076444a09de59427d9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/melter.json",
+        "git_blob": "9c3bed900d6be9437a7648db77f81d3deacd05b3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/mighty_smelting.json",
+        "git_blob": "c5b5b228d4913a8e382f0e6d68589fa71f21bacf"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/puny_smelting.json",
+        "git_blob": "9eb4562ef21fbbf03e65dcff5144a2e2ad91a304"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/tinkers_anvil.json",
+        "git_blob": "6c061ebe70a6d3087510bbbd5b123424b12ee392"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/tool_forge.json",
+        "git_blob": "8a8199254db045f0fabaf2cd981d15077e3a2ff9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/materials_and_you.json",
+        "git_blob": "9da5a6829e61057b1586cddf8d54d58b0c3e914a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/part_builder.json",
+        "git_blob": "9e3b02746a712bdc020c7f0dacbb4d567a5faeec"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/tinker_station.json",
+        "git_blob": "31d861719e63dcaba004d53b390efdaaa87a1f77"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/tool_smith.json",
+        "git_blob": "5d589b9b580da98b69a0ce3ddaa0281a785f0211"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/travelers_gear.json",
+        "git_blob": "0a9a0a280ce45c13fa5644e7ebb8af1dd12c1e73"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/ancient_tools.json",
+        "git_blob": "4443b78616527e9c3e22e148a867a682b3d16af3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/slimesuit.json",
+        "git_blob": "f4aeeb011412e86cd1cf64be9407e8fd8307708d"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/tinkers_gadgetry.json",
+        "git_blob": "ba40633378822d714dc2c7d1730aedbc3479f084"
+      }
+    ]
+  },
+  "shared_responsibility": {
+    "Pluto": "Existing generic advancement/recipe APIs and native compatibility remain unchanged. No new API is necessary for these item-ID resource predicates.",
+    "TConstruct": "Twenty item predicates, source/native ID mapping, hidden OR criteria and recipe rewards."
+  },
+  "checks": {
+    "resource_tests_passed": 2,
+    "resource_tests_failed": 0,
+    "retained_full_package_test_executed": false,
+    "test_assertion_preserving_inverse": true,
+    "exact_pr_files": 42,
+    "current_recipe_and_registration_blobs": true,
+    "rust": false,
+    "cargo": false,
+    "plan": false,
+    "apply": false,
+    "game": false,
+    "ci": false
+  },
+  "workflow": {
+    "original_pr_updated": false,
+    "pr_closed": false,
+    "main_merged": false,
+    "reason": "Coordinator requested checkpoint first while original-PR work-branch integration policy is unified; existing branch and PR remain unchanged."
+  },
+  "remaining_gates": [
+    "full content package inclusion test in the integrated tracked tree",
+    "native acquisition/recipe reward events and recipe-book UI",
+    "crafting/resource reload/save/LAN",
+    "current ordinary build/no-error gate before main and PR closure"
+  ]
+}
