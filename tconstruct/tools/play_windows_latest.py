@@ -141,7 +141,7 @@ def build_environment(original, toolchain, home):
                PLUTO_GUARD_RUSTFMT=str(toolchain/'bin/rustfmt.exe'),
                CARGO=str(toolchain/'bin/cargo.exe'), RUSTC=str(toolchain/'bin/rustc.exe'), RUSTDOC=str(toolchain/'bin/rustdoc.exe'),
                CARGO_HOME=str(home/'cargo-home-latest-gnu'), CARGO_NET_OFFLINE='true',
-               CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
+               CARGO_BUILD_JOBS='1', CARGO_TARGET_DIR=str(home/'cargo-target-latest-gnu'),
                TMP=str(home/'tmp-latest-gnu'), TEMP=str(home/'tmp-latest-gnu'),
                TMPDIR=str(home/'tmp-latest-gnu'), PYTHONDONTWRITEBYTECODE='1',
                PYTHONUTF8='1', PYTHONIOENCODING='utf-8',

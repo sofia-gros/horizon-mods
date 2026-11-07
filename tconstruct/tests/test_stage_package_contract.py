@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT/'tools'))
 import stage_package_contract as c
 import prepare_playtest_bundles as b
 from test_windows_playtest_bundles import package, archive
+from windows_source_layers import before_jobs_one
 
 
 class Tests(unittest.TestCase):
@@ -143,7 +144,7 @@ class Tests(unittest.TestCase):
     def test_production_changes_inverse_to_exact_c1b54_and_stage_pin(self):
         inv=json.loads((ROOT/'experiments/windows-stage-package-contract/inverse.json').read_text(encoding='utf-8'))
         for rel,meta in inv['files'].items():
-            raw=(ROOT.parent/rel).read_bytes();self.assertEqual(b.sha(raw),meta['after_sha256']);text=raw.decode('utf-8')
+            raw=before_jobs_one(rel.removeprefix('tconstruct/'),(ROOT.parent/rel).read_bytes());self.assertEqual(b.sha(raw),meta['after_sha256']);text=raw.decode('utf-8')
             for before,after in reversed(meta['edits']):self.assertEqual(text.count(after),1);text=text.replace(after,before,1)
             self.assertEqual(b.sha(text.encode('utf-8')),meta['before_sha256'])
         import play_windows_latest as launcher

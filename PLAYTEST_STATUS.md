@@ -2,23 +2,29 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Windows formatter verified, 2026-11-07
+
+[Run 42332291954](https://github.com/sofia-gros/horizon-mods/actions/runs/42332291954) completed successfully at 03:05:18 UTC. The exact official Rust1.99.1 runtime and pinned formatter passed version execution and all seven damage/terrain helper regenerations. All 61 pure checks, nine phases, source/input seals and owned-Job cleanup passed. The [small result record](tconstruct/docs/windows-rustc-runtime-result-20261107.json) retains the bounds and measured resource minima. Earlier failures remain recorded below as history.
+
+The launcher now sets Cargo jobs1 explicitly after removing inherited overrides. Central and independent source review preserve the original guard, feature and locked-build ordering; 97 selected pure/mock tests passed. This is not a total descendant-process limit and does not prove a native build. The next required step is the ordinary latest-package fresh plan, all guards, official apply and default Windows BuildOnly under a separately reviewed heavy-build resource budget. No current game build, link or startup has run, and main is unchanged.
+
 ## All twelve native guards passed, 2026-11-07
 
 [Run 42331005478](https://github.com/sofia-gros/horizon-mods/actions/runs/42331005478) finished at 02:48:55 UTC. Against fixed integration f2fef1be, all twelve guards exited zero; all ten gates, 27 phases and final seals passed. The 659 native members, package headers and all 5,214 official inputs matched. The [small result record](pluto-lib/docs/playtest-next-guard-replay-result-20261107.json) preserves the exact scope.
 
 The support ZIP has changed, while the old accepted plan's data remains unchanged. This was native guard diagnosis only: compatibility remains null, no plan was regenerated, and apply/build were not performed. A normal fresh stage plan from the latest packages and all guards are still required before apply. Main is unchanged.
 
-The formatter failure is narrowed to missing runtime dependencies: its pinned PE imports three non-system DLLs absent from the standalone rustfmt archive. Exact official Rust source identifies the same-release rustc/bin as their supplier. Actual rustc archive/transitive dependency verification and a corrected Windows execution are pending; see [dependency diagnosis](tconstruct/docs/windows-rustfmt-dependencies-20261107.md). Direct staging documentation now supplies both same-checkout archives and receipt hashes; the old extra-observer fixture is explicitly historical, not a way around the full package contract.
+The earlier formatter failure was narrowed to runtime DLLs absent from the standalone component. The corrected exact-release execution above now passes; [dependency diagnosis](tconstruct/docs/windows-rustfmt-dependencies-20261107.md) remains the historical source record. Independent complete transitive PE closure is not claimed. Direct staging documentation now supplies both same-checkout archives and receipt hashes; the old extra-observer fixture is explicitly historical, not a way around the full package contract.
 
 ## Actual complete-plan observations, 2026-11-07
 
 [Run 42328100345](https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345) completed at 02:24:49 UTC. The fixed e907 ordinary composition produced an accepted complete plan in 460.676 seconds. All twelve guards ran: eight passed and four refused. Its four-file artifact and separate official Index observations were recovered and checked. The [small result record](pluto-lib/docs/playtest-next-plan-result-20261107.json) preserves that original outcome.
 
-This intake records only the actual constructor/module/payload observations. The crafting module visibility correction follows official serialization of the unchanged pub(crate) default; it does not change visibility. Checker algorithms, Rust payloads and manifests are unchanged. Recipe 43, cloud 38 and payload 15 source/synthetic/evidence checks passed; cloud and payload full Python checks passed against the saved actual plan and pristine official source subsets. These are not applied host or gameplay tests. The combined archive-backed twelve-guard replay remains pending.
+This intake records only the actual constructor/module/payload observations. The crafting module visibility correction follows official serialization of the unchanged pub(crate) default; it does not change visibility. Checker algorithms, Rust payloads and manifests are unchanged. Recipe 43, cloud 38 and payload 15 source/synthetic/evidence checks passed; cloud and payload full Python checks passed against the saved actual plan and pristine official source subsets. These are not applied host or gameplay tests. The subsequent combined archive-backed twelve-guard replay is recorded above; this paragraph preserves the original metadata-intake scope.
 
 The later stage tools change TConstruct's support ZIP. Any replay must keep the old plan data and new support bytes separate and is native guard diagnostics only, not apply authorization. Actual stage/apply/build must use a fresh plan from the current packages.
 
-Windows diagnostic [42329829285](https://github.com/sofia-gros/horizon-mods/actions/runs/42329829285) identified rustfmt's raw child status as 0xC0000135 (STATUS_DLL_NOT_FOUND), distinct from the wrapper exit. The missing DLL is not identified yet; version emitted no bytes and all seven regeneration calls remain unexecuted. No current native build, link or startup success is claimed. Main is unchanged.
+Windows diagnostic [42329829285](https://github.com/sofia-gros/horizon-mods/actions/runs/42329829285) identified rustfmt's raw child status as 0xC0000135 (STATUS_DLL_NOT_FOUND), distinct from the wrapper exit. At that failed attempt, version emitted no bytes and all seven regeneration calls were unexecuted; the corrected successful run is recorded above. No current native build, link or startup success is claimed. Main is unchanged.
 
 Historical intake notes below describe their original cutoffs; pending observations and caller omissions described there are superseded by this section and the stage connection section.
 

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "The exact ordinary Rust composition has an accepted complete plan, official Index observations and a successful twelve-guard native replay. The replay preserves old support-data identity and is not apply admission. Actual latest-package stage/apply, default Windows build/link and available startup checks remain incomplete.",
+  "stage": "The ordinary Rust composition has an accepted complete plan, official Index observations and twelve passing native guards. Official Rust1.99.1 formatter execution and all seven Windows helper regenerations now pass. Current-package fresh stage/apply and default Windows build/link remain incomplete.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -40,7 +40,7 @@
     },
     {
       "subject": "Windows execution validation",
-      "reason": "All ordinary stage callers are connected and selected 92 source/mock tests pass. Actual rustfmt child status is STATUS_DLL_NOT_FOUND (0xC0000135); the missing DLL is not yet identified. Version emitted no bytes and seven regeneration calls were not reached. Actual default build/link/startup remain pending."
+      "reason": "Official Rust1.99.1 formatter and seven exact helper regenerations passed on Windows Server2025. Launcher now explicitly sets Cargo jobs1 after clearing inherited overrides; 97 selected pure/mock checks pass. Actual current-package stage/apply and default build/link/CLI loader checks remain pending."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -83,7 +83,8 @@
       "outer_tank_source": "12 pure checks; exact historical postimages, unchanged helper dependency and complete three-hunk inverse verified",
       "crafting_candidate_source": "Actual run 42247376045 passed API 153 and finite native 16 tests at source 86617, with all names, compiler witnesses and seals verified. Constructor bootstrap, pure pair, station and full Game are unverified.",
       "windows_source": "actual Windows Server2025 PowerShell parser+43 source tests passed on exact5e14,run42233831944; noCargo/game",
-      "metadata_adaptation": "All5 adapted guards passed actual fullCLI on fixed17f; advancement,damage,current-book,terrain-binding,terrain-cell. No Windows1.99.1/apply/type proof."
+      "metadata_adaptation": "All5 adapted guards passed actual fullCLI on fixed17f; advancement,damage,current-book,terrain-binding,terrain-cell. No Windows1.99.1/apply/type proof.",
+      "windows_formatter": "Actual run42332291954 with official Rust1.99.1 runtime passed version and damage3/terrain4 exact regeneration; 61 pure and nine owned-Job phases passed. Historical helper comparison only, not a latest composition build."
     },
     "current_chest_probe": {
       "source": "40a0ee25e73aa7fd641b2bc0fa50a677d457e072",
@@ -155,7 +156,9 @@
       "repeat_plan_identical_to_first": true,
       "repeat_guard_results_identical": true,
       "current_runtime_changed_after_reference_plan": true,
-      "current_runtime_change": "Cloud c977, payload 46fee and crafting/station ordinary delegation are included. The old 9cc1 plan is reference-only."
+      "current_runtime_change": "Cloud c977, payload 46fee and crafting/station ordinary delegation are included. The old 9cc1 plan is reference-only.",
+      "reference_only": true,
+      "superseded_by": "fresh_plan_run and native_guard_replay, each with its recorded scope; not current apply authorization"
     },
     "windows_source_ci": {
       "source": "c93675e0921c9a2b01bf612a4c6ce4aa45da7f55",
@@ -452,7 +455,8 @@
       "owned_jobs_empty": true,
       "record_commit": "0a1436b2337ccc4b05be1fdef108c219fa10550c",
       "dependency_diagnosis_commit": "e313aa03e1c6a3dc17d53e200ae8bb2ff748bdeb",
-      "dependency_scope": "Static exact-PE imports and official compiler source identify rustc/bin as supplier of three direct non-system DLLs. Actual rustc archive/transitive dependency verification and corrected execution are pending."
+      "dependency_scope": "Static direct dependencies were subsequently supplied by the exact official rustc1.99.1 component. Corrected execution passed in run42332291954; independent full transitive-PE closure is not claimed.",
+      "superseded_by": "windows_formatter_runtime; prior failure retained as history"
     },
     "native_guard_replay": {
       "controller": "fb4ec03bf5f920af3ba498e6bcf1c0f65930f425",
@@ -480,6 +484,30 @@
       "receipt_sha256": "770a7901e6bfcdb47008ca214d50bd98e92185856ccb9a503936784baf99b40d",
       "receipt_bytes": 632068,
       "record": "pluto-lib/docs/playtest-next-guard-replay-result-20261107.json"
+    },
+    "windows_formatter_runtime": {
+      "source": "5748c187cbb90c560ec6de552c3c8cf7c2154a2a",
+      "run": 42332291954,
+      "job": 128281309970,
+      "completed_at": "2026-11-07T03:05:18Z",
+      "passed": true,
+      "verified": true,
+      "version": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+      "regeneration_calls": 7,
+      "phases": 9,
+      "pure_checks": 61,
+      "all_child_and_wrapper_exits_zero": true,
+      "owned_jobs_empty": true,
+      "record": "tconstruct/docs/windows-rustc-runtime-result-20261107.json",
+      "evidence_commit": "cee64eeab35849c784aaedcf3d1d2ed5a7af6934",
+      "minimum_free_bytes": {
+        "C": 30361784320,
+        "D": 235145580544
+      },
+      "minimum_available_physical_bytes": 14177046528,
+      "latest_composition_verified": false,
+      "apply_executed": false,
+      "game_build_executed": false
     }
   },
   "safety": {
@@ -489,7 +517,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Complete the official Rust1.99.1 formatter runtime dependency preparation and the seven Windows regeneration checks. Then run the ordinary current-package stage: fresh complete plan, all guards, official apply with locked dependency completion, and default Windows BuildOnly plus available startup error checks. Do not merge main on native guard replay alone.",
+  "next": "Use the existing ordinary BuildOnly path with a separately reviewed bounded Windows driver and isolated official toolchain/cache: current packages, fresh complete plan, all guards, official apply with locked dependency completion, default build/link and bounded PE/import/CLI loader checks. Main remains unchanged until actual build and applicable error checks pass.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -905,6 +933,16 @@
       "base": "f2fef1be8493364467d96649450a0476aed2dc5f",
       "documentation_only": true,
       "actual_build_or_startup": false
+    },
+    {
+      "name": "Record successful Windows formatter execution and set Cargo jobs1",
+      "base": "5265ce25fac98f690eeb5b0c36df94caf3a85454",
+      "source": "21f6183862c5bb4c27c34b31f421270b515ae0be",
+      "ordinary_code_change": "Only explicit CARGO_BUILD_JOBS=1 after environment scrub; stage and client inherit the same environment.",
+      "selected_pure_mock_checks": 97,
+      "whole_repository_suite": false,
+      "independent_review": "Recipe exact source/inverse and central97checks; six published blobs match local bytes.",
+      "actual_cargo_or_game_build": false
     }
   ],
   "guide_limits": [
