@@ -26,7 +26,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/ci_scope.py
       - name: Forbidden-API lint
-        run: python3 tools/lint_forbidden_api.py
+        run: |
+          python3 tools/check_line_endings.py
+          python3 tools/lint_forbidden_api.py
       - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
         run: |
