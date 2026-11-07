@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "repository": "sofia-gros/horizon-mods",
+  "ordinary_base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "ordinary_tree": "691fe018f35b7b873dec27e293eb94ad0984bc89",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "intake": {
+    "pr": 751,
+    "head": "f39c02aed87fa19216b986976c5be6acb3c597d7",
+    "own_delta_base": "6d980fa32cf9295c54845946d56ba2340c10a327",
+    "own_patch_sha256": "2d4c953de3f85a03dff7e8cbc938b3389b7896e3c0bb089308972eee9e95b76f",
+    "decision": "adopt four missing native resource unlocks and retained source fixtures/tests; no inherited branch tree or hooks",
+    "production_paths": [
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/blank_red_sand_cast.json",
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/blank_sand_cast.json",
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/book_substitute.json",
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/materials_and_you.json"
+    ],
+    "files": {
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/blank_red_sand_cast.json": {
+        "before": null,
+        "git_blob": "f8e887cce25518a7b8ff161e18564c12fa581303",
+        "sha256": "bd455764821c0f901e12a48caaf47775c9e7647f200925ed52e61e3b4d3654d8",
+        "bytes": 653,
+        "source_pr_blob": "f8e887cce25518a7b8ff161e18564c12fa581303",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/blank_sand_cast.json": {
+        "before": null,
+        "git_blob": "cddd1d88cf1e4b7575def3325b2dbc64d8a24ca9",
+        "sha256": "422cd5b99e72778facdb64822c83934e7c26ded21643cc16cd11db376278a855",
+        "bytes": 645,
+        "source_pr_blob": "cddd1d88cf1e4b7575def3325b2dbc64d8a24ca9",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/book_substitute.json": {
+        "before": null,
+        "git_blob": "ac16dd4ef7d4cdec1272aea2de94dae26b52d364",
+        "sha256": "bdf1d48b98c80fe6dc778ff8359bc0cc5e6b0eb67bfdf06aee25b9d116b9eea9",
+        "bytes": 634,
+        "source_pr_blob": "ac16dd4ef7d4cdec1272aea2de94dae26b52d364",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/content/data/tconstruct/advancement/recipes/misc/materials_and_you.json": {
+        "before": null,
+        "git_blob": "55e8b6b45eb46c34581df77d4bc62d6b1188efff",
+        "sha256": "6c83b9334099373f0ce6a8c7d4c5b752b2e5faffb418bf2745c41dfe73697be1",
+        "bytes": 638,
+        "source_pr_blob": "55e8b6b45eb46c34581df77d4bc62d6b1188efff",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/docs/early-recipe-unlocks.md": {
+        "before": null,
+        "git_blob": "e888ea5ac9fc1a389c71a87d2361e2ae9939714b",
+        "sha256": "8e3b3806aad46da76e531179b6812e86d04c141b9a834af16d68f1119df9d338",
+        "bytes": 3716,
+        "source_pr_blob": "f4bbf9b14f3baf09c8442efc6102d99a83909cb9",
+        "unchanged_from_pr": false
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/README.md": {
+        "before": null,
+        "git_blob": "06489875a30b04c3f369745e95e7f250905ea957",
+        "sha256": "e951b2955114d6388788e04eaf479cf0fa6e4f2deb86e1da484a886ef39d9d2b",
+        "bytes": 697,
+        "source_pr_blob": "06489875a30b04c3f369745e95e7f250905ea957",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/book_substitute.json": {
+        "before": null,
+        "git_blob": "5a526bee1cb9855b4965c23e4956e6a17b1ac850",
+        "sha256": "2a03229a7afef2a1896c402a00716541e3dd93501939f8e6ed0b91c8053909d0",
+        "bytes": 646,
+        "source_pr_blob": "5a526bee1cb9855b4965c23e4956e6a17b1ac850",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/materials_and_you.json": {
+        "before": null,
+        "git_blob": "4f5b4ca745f155eb4e0eb93c690a0be7b2a784f3",
+        "sha256": "9a024c28860669ce1cb8eeb8584e48e8cf45c6807b2ffe102d9b788c13a91d5b",
+        "bytes": 650,
+        "source_pr_blob": "4f5b4ca745f155eb4e0eb93c690a0be7b2a784f3",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/red_sand_cast.json": {
+        "before": null,
+        "git_blob": "ff1f60bfa4f45e4f6100a3bd031ddc27ab20d080",
+        "sha256": "95142dce23bf61e93917f4f0470c500e43b9eaef569d0f2ff2e449ab2df0fbe1",
+        "bytes": 657,
+        "source_pr_blob": "ff1f60bfa4f45e4f6100a3bd031ddc27ab20d080",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/sand_cast.json": {
+        "before": null,
+        "git_blob": "e09c2ee990534a67d6c5eec8b2b55f67d7b3efd7",
+        "sha256": "51a12761b9ead699d5950f1a8535541e66c54541222ad96f70da7306f0b82427",
+        "bytes": 649,
+        "source_pr_blob": "e09c2ee990534a67d6c5eec8b2b55f67d7b3efd7",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/fixtures/early_recipe_unlocks/sha256.json": {
+        "before": null,
+        "git_blob": "657c280ece11118a9d0da4c9c258d99119909407",
+        "sha256": "95a82e5fe592e0c2bd88a565691ac01bef5217d86f166345819b8ddf768541a6",
+        "bytes": 353,
+        "source_pr_blob": "657c280ece11118a9d0da4c9c258d99119909407",
+        "unchanged_from_pr": true
+      },
+      "tconstruct/tests/test_early_recipe_unlocks.py": {
+        "before": null,
+        "git_blob": "7f57c03888e453cb1dcaeb7ef172a709e45f0717",
+        "sha256": "1a5c219e605454a1541a8da170c9b2604c0b6c488993c66ea9c0968b1919b572",
+        "bytes": 3619,
+        "source_pr_blob": "4cf974fd4573f109890aa216ed92790538f1ebc2",
+        "unchanged_from_pr": false
+      }
+    }
+  },
+  "unchanged_recipe_inputs": {
+    "tconstruct/content/reference/tconstruct-recipes.zip": {
+      "git_blob": "38e2546f7e30f348b1db0383486bbad50ac3fc9d",
+      "sha256": "d84f5da24c464af5d6b158ddf324c0de0f2b27a5cdeb8737cace6d6ab4699951",
+      "bytes": 1140336
+    },
+    "tconstruct/content/data/tconstruct/recipe/blank_red_sand_cast.json": {
+      "git_blob": "537b98ec7ed552cafd42c6dc8d8b89aae352b7b4",
+      "sha256": "058ecb805563be49b1073105fdc0fcf4a7f1f53f764149bde01b14323d689364",
+      "bytes": 191
+    },
+    "tconstruct/content/data/tconstruct/recipe/blank_sand_cast.json": {
+      "git_blob": "f6a1308fb804cc90e98b1e7acb9ab46b76557260",
+      "sha256": "500530861a850f0d134f52adea8cdadb9e7fa33768fff8904f238d4c302176bc",
+      "bytes": 193
+    },
+    "tconstruct/content/data/tconstruct/recipe/book_substitute.json": {
+      "git_blob": "2b593fb802992283320eac8b9b90eaa645bf46a0",
+      "sha256": "fde09e8e01757e6fa5730418b28164374c5efca7064805731124e1833ea32f76",
+      "bytes": 282
+    },
+    "tconstruct/content/data/tconstruct/recipe/materials_and_you.json": {
+      "git_blob": "c16c48cd8eba41f5023e39a410232788146bfdd2",
+      "sha256": "92927a05ba97cdd31ab4a70ed1bb00a6b9f22c9bcbab0780b0a9f22326370b39",
+      "bytes": 169
+    }
+  },
+  "existing_advancement_no_duplicate_reward": {
+    "count": 64,
+    "files": [
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/foundry/fantastic_foundry.json",
+        "git_blob": "31e08d6f2f357c22a470cce43834b6562ac0147a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/foundry/plate_armor.json",
+        "git_blob": "4a400601d288292e5ae54db8e0e61373e1e13587"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/internal/starting_book.json",
+        "git_blob": "fe033e1d2e704251d9d9b8386c38e716cb16bd7d"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_bricks_crafting.json",
+        "git_blob": "df15341c880a608b3c10baeec3c7102998a09b41"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_lamp.json",
+        "git_blob": "c6da050be20c42e2e47331d62543ae05ab1ba5f3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_road_smelting.json",
+        "git_blob": "8b9cc4ef0e21cd6817170707bf44152399b427cf"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_bricks_crafting.json",
+        "git_blob": "206a90b040b04c4b9a1f9b0b46c5dc09d4cf1cd7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_cracked_bricks_smelting.json",
+        "git_blob": "a0fe739ba829bae160238204bf4f0c0798953108"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_lamp.json",
+        "git_blob": "f8be8537a8b1dbb855375ce031f20661c5e0f1dc"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_paver_smelting.json",
+        "git_blob": "dd1a089c665cdd376b2402553ae10c73ce7f15e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/seared_stone_smelting.json",
+        "git_blob": "76f03800fd1d0bd661269d4dd29135efe9baf0e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_nether_grout.json",
+        "git_blob": "6b6d5e664ba859626e86ff0e1d4f99e4f77935fb"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_nether_grout_multiple.json",
+        "git_blob": "5118afa49d121e87158201cc25cf1b025673cb75"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_scorched_brick.json",
+        "git_blob": "02cd7a531e0dcac8e4912b99ad245fd91ef65bbc"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_scorched_glass.json",
+        "git_blob": "b5138a28c86087fd712a576cbfc720b8c0531348"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_grout.json",
+        "git_blob": "06dd5b25ead870ff0d1c5de6dc4d284bf76d5ea1"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_grout_multiple.json",
+        "git_blob": "9883c5ca0a41d7f85b957c7393d110a2b0f09f54"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_seared_seared_brick.json",
+        "git_blob": "be7ba9a488acdad35f0af3d5f8cfeb3098fa15d7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/crafting_station.json",
+        "git_blob": "8d39c084979f566c2b5c0ab54c48477ee63fcb48"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/part_builder.json",
+        "git_blob": "94233e1529e8276e4f87f45bf12a1a497e0e8ba5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/part_chest.json",
+        "git_blob": "fdf50a80370f316a2ab9d2c2d8dfd665d823d5b5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_basin.json",
+        "git_blob": "06a536573d4c7bb0ec4202d435c1f159c1b91835"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_glass_pane.json",
+        "git_blob": "a5a24709545f3f766bfa73ea26751881a81ab605"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_lantern.json",
+        "git_blob": "79654a0ea647cde62eac9e865ee413e8e7916c87"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_table.json",
+        "git_blob": "4f081504ca7d0a8bb9e43a7ee93729f790a41552"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_basin.json",
+        "git_blob": "5f0d83218fc68fc21d59c4ed3e6bba7e07c8d4e6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_heater.json",
+        "git_blob": "f1fb2520153994869cef71e64ec55a4709564a8a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_melter.json",
+        "git_blob": "0a4da38f04e4a5711f10280f4ee68f3317dbe90c"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/survival_seared_table.json",
+        "git_blob": "55a7ddb868a7c2202eb6484bfdf784d1094fb414"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/decorations/tinker_station.json",
+        "git_blob": "ff5ca27b95aa2df88cc7c1bfc41b1bc41f5ab5af"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/earth_slimeball_from_congealed.json",
+        "git_blob": "c73226d7b3419048fde28157f34649cc88b2d8d4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/ender_slimeball_from_congealed.json",
+        "git_blob": "44498347917fa1d5c1f24c3f994226e60fde7a4e"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/fantastic_foundry.json",
+        "git_blob": "6ea2cdd32ed77fd55da0c7b40d5ce9354db50b5f"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/ichor_slimeball_from_congealed.json",
+        "git_blob": "7646b8436255f13974ad74d28100cd0c62ddc9e4"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/puny_smelting.json",
+        "git_blob": "81d94e5ae9487dcb1e4c4143fb164625a2321cc9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/misc/sky_slimeball_from_congealed.json",
+        "git_blob": "38325cffdb1ecad9ec47e551822b4a8e7a1c9987"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/scorched_faucet.json",
+        "git_blob": "dd10e7726d34a950f982a18a6be45722f30eb36e"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_chute.json",
+        "git_blob": "91dda7a905ea5a846e74adc84dd540baea911c03"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_drain.json",
+        "git_blob": "63d42404813dc0a846a90f79716dfb72ec7182c5"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_fuel_gauge.json",
+        "git_blob": "5cea156a185683260d82d3b08225fc6eb4545940"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_fuel_tank.json",
+        "git_blob": "e392a1683ab7898e843004fdcae0f1ed6d6dcb20"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_ingot_gauge.json",
+        "git_blob": "0bf459590ff933a9fbab73c98bce47ae03cb93b8"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_scorched_ingot_tank.json",
+        "git_blob": "2cccd26723954b9d061ded1a550239b97fbca6e6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_chute.json",
+        "git_blob": "1b3dd6bae7886464c8832225c127be255e6dcdc6"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_drain.json",
+        "git_blob": "05b348391dd56625289d0d710f0aff18ed20d0c7"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_faucet.json",
+        "git_blob": "03cc6c7a5c3723177115fcd54e0db8fda2e1b4ae"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_fuel_gauge.json",
+        "git_blob": "340709a0e0a73f1b981ec4277c521e8bcc37cf9f"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_fuel_tank.json",
+        "git_blob": "71b415a222e9b882dfd0ffa45a69971f55e23b29"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_ingot_gauge.json",
+        "git_blob": "5cd5fbe043368be91a33d516240f06e86be1bd80"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/recipes/redstone/survival_seared_ingot_tank.json",
+        "git_blob": "c253f841ab1cd050ddc40568d22dd5b1ab0fbaa9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/cast_collector.json",
+        "git_blob": "f6231bd219ce08fcf2665f076444a09de59427d9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/melter.json",
+        "git_blob": "9c3bed900d6be9437a7648db77f81d3deacd05b3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/mighty_smelting.json",
+        "git_blob": "c5b5b228d4913a8e382f0e6d68589fa71f21bacf"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/puny_smelting.json",
+        "git_blob": "9eb4562ef21fbbf03e65dcff5144a2e2ad91a304"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/tinkers_anvil.json",
+        "git_blob": "6c061ebe70a6d3087510bbbd5b123424b12ee392"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/smeltery/tool_forge.json",
+        "git_blob": "8a8199254db045f0fabaf2cd981d15077e3a2ff9"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/materials_and_you.json",
+        "git_blob": "9da5a6829e61057b1586cddf8d54d58b0c3e914a"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/part_builder.json",
+        "git_blob": "9e3b02746a712bdc020c7f0dacbb4d567a5faeec"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/tinker_station.json",
+        "git_blob": "31d861719e63dcaba004d53b390efdaaa87a1f77"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/tool_smith.json",
+        "git_blob": "5d589b9b580da98b69a0ce3ddaa0281a785f0211"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/tools/travelers_gear.json",
+        "git_blob": "0a9a0a280ce45c13fa5644e7ebb8af1dd12c1e73"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/ancient_tools.json",
+        "git_blob": "4443b78616527e9c3e22e148a867a682b3d16af3"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/slimesuit.json",
+        "git_blob": "f4aeeb011412e86cd1cf64be9407e8fd8307708d"
+      },
+      {
+        "path": "tconstruct/content/data/tconstruct/advancement/world/tinkers_gadgetry.json",
+        "git_blob": "ba40633378822d714dc2c7d1730aedbc3479f084"
+      }
+    ]
+  },
+  "mechanics": {
+    "already_available": "native advancement resource loader, inventory_changed item-ID predicates, recipe_unlocked and recipe rewards; existing Pluto fallback remains unchanged",
+    "consumer_policy": "Pattern unlocks two book recipes; Seared Casting Table unlocks two blank casts; OR recipe already-known alternative",
+    "new_pluto_api": false,
+    "new_hook_or_registry": false,
+    "tree_projection_for_new_ids": false
+  },
+  "partition_scope": {
+    "count": 51,
+    "groups": {
+      "static_recipe_unlocks": [
+        721,
+        727,
+        729,
+        735,
+        739,
+        741,
+        744,
+        748,
+        751,
+        754
+      ],
+      "tag_config_discovery": [
+        760,
+        763,
+        769,
+        771,
+        775,
+        778,
+        786,
+        790,
+        809,
+        814,
+        815,
+        926
+      ],
+      "metadata_acquisition": [
+        675,
+        818,
+        821,
+        823,
+        839,
+        843,
+        845,
+        847,
+        850,
+        855
+      ],
+      "machine_open_events": [
+        828,
+        831
+      ],
+      "crafting_index_policy": [
+        665,
+        713,
+        717,
+        781,
+        858,
+        861,
+        864,
+        868,
+        914,
+        919,
+        921,
+        924,
+        930,
+        935,
+        938,
+        941,
+        943
+      ]
+    },
+    "classification_basis": "fixed own-diff ledger review_group/changed_paths plus actual four-resource gap inspection; grouping is not semantic equivalence or migration proof",
+    "remaining_50": "not adopted or verified by this checkpoint; current resource/framework existence alone is not old-policy equivalence",
+    "pr751_status": "implemented data delta; two source/resource regressions passed; full package and runtime pending"
+  },
+  "checks": {
+    "resource_unit_tests": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "names": [
+        "test_source_inventory_conditions_and_or_native_recipe_rewards",
+        "test_existing_native_inputs_results_and_counts_match_source"
+      ]
+    },
+    "initial_command": "wrong working directory failed import before test execution; corrected invocation above passed",
+    "retained_full_package_test": {
+      "name": "test_package_contains_four_unlocks_and_native_recipes",
+      "executed": false,
+      "reason": "bounded sparse intake does not materialize unrelated full content/assets"
+    },
+    "exact_pr_files": 10,
+    "test_import_only_inverse": true,
+    "four_current_recipes_unchanged": true,
+    "rust": false,
+    "cargo": false,
+    "native_plan": false,
+    "apply": false,
+    "game": false,
+    "ci": false
+  },
+  "remaining_gates": [
+    "full content package inclusion test on integrated tracked tree",
+    "real inventory/recipe-book events and crafted output",
+    "reload/save/LAN behavior"
+  ],
+  "limits": [
+    "not full 51-PR audit completion",
+    "no implicit API migration or runtime correctness claim",
+    "ordinary four resource additions only; no Rust/manifests/recipe body changes"
+  ]
+}
