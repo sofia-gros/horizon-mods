@@ -50,6 +50,8 @@ Horizon already provides what a Fabric-API-like library needs; PlutoLib uses it 
    surface.
 4. **Mixins injections** remain for what no hook point covers; they pin an exact Horizon commit and are the fragile part.
 
+**Verified on 2026-11-08 (roadmap step N2).** Two experimental bundles were built with the official launcher (`horizon-launcher native-build <folder> --server-output <dir> --trust-native-code`) on Horizon nightly `2026-11-07-6560641`: `pluto_lib` (an `[api]` package with a Fabric-like `Event<T>` and `ServerPlayConnectionEvents::JOIN`, fed from the Horizon `player_logged_in` hook) and `tinkers_exp` (`[dependencies] pluto_lib = "^1"`, an `[api]` package whose `hooks()` registers a callback through `pluto_lib::ServerPlayConnectionEvents::JOIN`, with no injection and no Horizon internals). The launcher compiled both (`mod-pluto_lib`, then `mod-tinkers_exp`) into one server engine; the first build took 14 min 36 s. Not run in game: the callback firing on a real join is unverified. Practical notes: the launcher is a Windows GUI binary (start it with output redirected); the version must be installed (`install`) and prepared (`prepare`, about 80 s, reads the owner's Minecraft install) before `native-build` works; `--server-output` builds the dedicated-server engine, the client build goes through an instance.
+
 **Implementation order inside PlutoLib for every API:** (a) a native hook point or the `Hooks` trait if one exists; (b) else a Mixins injection
 inside PlutoLib; (c) else a stub plus a support-matrix entry. Mods never see the difference.
 
@@ -121,5 +123,4 @@ modules move ahead of lifecycle because they give the most stable value first.
 ## 6. Open questions for the owner
 
 1. **Are the module names acceptable** (Rust modules mirroring Fabric artifacts, §1)? They can be refined at each slice.
-2. **Making Tinkers a trait mod** (an `[api]` package with `hooks()`) is a structural change required by the dependency mechanism. Does the owner know of any
-   reason not to? (This is a finding from Horizon's docs; it has not been tried yet. It will be tried in slice 1 before anything is built on it.)
+2. ~~Making Tinkers a trait mod~~ Resolved: the mechanism was built and linked (see §2, "Verified"); slice 1 adopts it. Remaining risk: the callback firing in game.

@@ -97,6 +97,7 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 |---|---|---|
 | 2026-11-08 | Tag scheme `<directory>-v<semver>` (hyphen, not slash). | Unambiguous release URLs and non-overlapping trigger globs. |
 | 2026-11-08 | Spec module names stay as drafted. | Owner delegated; refine per slice. |
+| 2026-11-08 | N2 done: `[api]` + `[dependencies]` works with the official launcher (two experimental bundles linked). Slice 1 adopts it. Our Mixins-CLI pipeline stays as a fast development gate; the launcher's `native-build` becomes the authoritative build for PlutoLib and Tinkers. | Measured, see the spec. |
 | 2026-11-08 | If the overnight items finish before the owner wakes, continue with the long-term plan (§1) in order instead of stopping. | Owner instruction. |
 | 2026-11-08 | Owner widened the run: all existing documents may be deleted and rewritten; local verification replaces waiting for CI; release tags, releases, force-push, issues and repository settings are allowed (settings only if indispensable). | Owner instruction at roadmap review. |
 
