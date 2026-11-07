@@ -1,0 +1,826 @@
+{
+  "schema": 1,
+  "issue": {
+    "url": "https://github.com/sofia-gros/horizon-mods/issues/379",
+    "updated_at": "2026-11-05T14:41:42Z"
+  },
+  "base": {
+    "commit": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+    "tree": "691fe018f35b7b873dec27e293eb94ad0984bc89"
+  },
+  "scope": "Exclusive storage_machines partition; first implementation group only, not all 70 complete.",
+  "groups": {
+    "portable_casting_and_drop_preservation": {
+      "count": 2,
+      "prs": [
+        918,
+        922
+      ]
+    },
+    "machine_save_inventory_transactions": {
+      "count": 22,
+      "prs": [
+        631,
+        832,
+        834,
+        838,
+        840,
+        841,
+        844,
+        846,
+        848,
+        849,
+        852,
+        853,
+        856,
+        857,
+        859,
+        860,
+        863,
+        867,
+        869,
+        870,
+        872,
+        900
+      ]
+    },
+    "fluid_route_staging": {
+      "count": 31,
+      "prs": [
+        700,
+        719,
+        723,
+        728,
+        730,
+        736,
+        740,
+        747,
+        752,
+        756,
+        759,
+        762,
+        766,
+        770,
+        773,
+        779,
+        780,
+        785,
+        789,
+        792,
+        794,
+        795,
+        807,
+        810,
+        813,
+        816,
+        819,
+        820,
+        822,
+        826,
+        827
+      ]
+    },
+    "fuel_quantity_and_acquisition": {
+      "count": 5,
+      "prs": [
+        678,
+        680,
+        682,
+        685,
+        705
+      ]
+    },
+    "signals_and_comparators": {
+      "count": 3,
+      "prs": [
+        679,
+        688,
+        689
+      ]
+    },
+    "duct_filters": {
+      "count": 2,
+      "prs": [
+        695,
+        714
+      ]
+    },
+    "casting_input_and_repair_policy": {
+      "count": 5,
+      "prs": [
+        696,
+        701,
+        703,
+        704,
+        710
+      ]
+    }
+  },
+  "rows": [
+    {
+      "number": 631,
+      "title": "Guard player removal of opaque machine state",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/631",
+      "frozen_pr_head": "75531f4bd2f45d4a569ef923a61ca13631d5d95d",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 678,
+      "title": "Test production Melter fuel driver and commit boundaries",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/678",
+      "frozen_pr_head": "a7f2e207c2da18d494437ae84aabf6f405d6f836",
+      "group": "fuel_quantity_and_acquisition",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 679,
+      "title": "Restore Seared Melter comparator output",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/679",
+      "frozen_pr_head": "da95d7a9224bf1b7b3f58c0f5ee312af3536bede",
+      "group": "signals_and_comparators",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 680,
+      "title": "Supply soup fluids from ordinary food bowls",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/680",
+      "frozen_pr_head": "df0856097f0687543b4d6a3b9ddba18e872df1e8",
+      "group": "fuel_quantity_and_acquisition",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 682,
+      "title": "Respect selected Smeltery fuel temperature",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/682",
+      "frozen_pr_head": "a6ac9c17916f80ecef291ef063bf26a9fbacabb5",
+      "group": "fuel_quantity_and_acquisition",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 685,
+      "title": "Use persisted Heater temperature in fuel tooltip",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/685",
+      "frozen_pr_head": "6ce1fcc25233446066ff7ae599affe11004c83d8",
+      "group": "fuel_quantity_and_acquisition",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 688,
+      "title": "Restore fuel and ingot tank comparator signals",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/688",
+      "frozen_pr_head": "f213eb1b7b031c71af3a73464a5a56fb63af669f",
+      "group": "signals_and_comparators",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 689,
+      "title": "Restore Casting Table and Basin progress signals",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/689",
+      "frozen_pr_head": "7529a45967ef7f3552adf77cbe236a294f1d2cad",
+      "group": "signals_and_comparators",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 695,
+      "title": "Block unfiltered Duct faucet transfers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/695",
+      "frozen_pr_head": "56df22558d80a9aeaafe171ecae04d39d3048db6",
+      "group": "duct_filters",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 696,
+      "title": "feat(tconstruct): cast worn or named Elytra into fresh Slimelytra",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/696",
+      "frozen_pr_head": "3796b0dde80da99747205bdd1e66f19889e723fc",
+      "group": "casting_input_and_repair_policy",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 700,
+      "title": "Allow base potion Faucet reservations from Casting Tanks",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/700",
+      "frozen_pr_head": "bf0333ea11188a4009a2ed5cf25965fdcb88c575",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 701,
+      "title": "Support bounded broken iron helmet casting repair",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/701",
+      "frozen_pr_head": "2670648eb20697983e9d7b8d9f0c19d6d22d7c01",
+      "group": "casting_input_and_repair_policy",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 703,
+      "title": "Accept named heads in Slimeskull casting (#379)",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/703",
+      "frozen_pr_head": "e1c56d06fe1a77c444545165a67bad9bcce4fccd",
+      "group": "casting_input_and_repair_policy",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 704,
+      "title": "Apply repair factors to workstation part swaps",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/704",
+      "frozen_pr_head": "6ea90e36641cf36c56ac61b196e2bb9a956daec3",
+      "group": "casting_input_and_repair_policy",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 705,
+      "title": "Restore bounded Blaze melting and first Blazing Blood acquisition",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/705",
+      "frozen_pr_head": "d6ad95b0e58e4267cb186318d7f2bc0bb3514148",
+      "group": "fuel_quantity_and_acquisition",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 710,
+      "title": "Accept named material parts in consumed tool casting (#379)",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/710",
+      "frozen_pr_head": "e237df3ebf2820fb042bf7ff25ed666e554f0d63",
+      "group": "casting_input_and_repair_policy",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 714,
+      "title": "Implement guarded Duct container filters",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/714",
+      "frozen_pr_head": "dbfd2c632c33a971241f66c516658a88e97e17d4",
+      "group": "duct_filters",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 719,
+      "title": "Allow Casting Tank faucets to feed built-in tanks",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/719",
+      "frozen_pr_head": "44b9f8a8c0b46b2c6b1cbdbf3278ae37ce213d77",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 723,
+      "title": "Allow Casting Tank faucets to supply Fluid Cannon",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/723",
+      "frozen_pr_head": "4abf10da08db97c614b562316c7933717e2b89c1",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 728,
+      "title": "Connect Faucet transfers between Casting Tanks",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/728",
+      "frozen_pr_head": "87f6cccf85d959b4074b7b3926aeaeaecbe6cd1b",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 730,
+      "title": "Allow base-potion Faucet supply to Fluid Cannon",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/730",
+      "frozen_pr_head": "91828e36ddda97e0efac951d4191729bb8c84514",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 736,
+      "title": "Allow Faucet tank input through formed Smeltery Drains",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/736",
+      "frozen_pr_head": "041a15ab90d923329da4731fa1925544c003e7f3",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 740,
+      "title": "Feed formed Smeltery Drains from Seared Melters",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/740",
+      "frozen_pr_head": "be29e8ed903c0f2a372918c0b58437503220d59e",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 747,
+      "title": "Feed formed Smeltery Drains from Casting Tanks",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/747",
+      "frozen_pr_head": "2a9b7157e9c1ac98534a537267bab9478b5cdb12",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 752,
+      "title": "Transfer Faucet fluid between formed controller Drains",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/752",
+      "frozen_pr_head": "03d0fbd374b54849cc0044d1c9ffa9de7d807daf",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 756,
+      "title": "Preserve controller metadata when Drains supply Cannons",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/756",
+      "frozen_pr_head": "c42c247a76dd282a8bff838d83579aa5604d7725",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 759,
+      "title": "Stage Drain fills and Casting Tank container processing",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/759",
+      "frozen_pr_head": "79ac860df014f503ca9a600249189d6504d25ad8",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 762,
+      "title": "Route Melter Cannon supply through staged transfer guards",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/762",
+      "frozen_pr_head": "83147ab209e19d42790d902cc336f6fe545aa0ea",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 766,
+      "title": "Stage Melter supply into Casting Tank containers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/766",
+      "frozen_pr_head": "30ff170b90b79d151e0b767b775fa5e73dd13ef2",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 770,
+      "title": "Preserve Drain casting snapshots and controller metadata",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/770",
+      "frozen_pr_head": "ebc41e57f8e864cabe330adb9d644b56f3851f8e",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 773,
+      "title": "Guard Melter pours into Tables and Basins",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/773",
+      "frozen_pr_head": "4948cc842b1873e63de3f5e871c4011ba675abc0",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 779,
+      "title": "Allow Faucet tanks to fill Seared Melters",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/779",
+      "frozen_pr_head": "7c5054d9f028c5144908dbd9f4e269a475b7def7",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 780,
+      "title": "Fill Seared Melters from formed controller Drains",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/780",
+      "frozen_pr_head": "7caaa895d4cea52015048405cf53ed0c5e8ad4f7",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 785,
+      "title": "Stage Casting Tank Faucet input into Seared Melters",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/785",
+      "frozen_pr_head": "83ffb8e70f93f27a61e9b21418fba90c3338575e",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 789,
+      "title": "Allow guarded Faucet transfers between Seared Melters",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/789",
+      "frozen_pr_head": "46769bd9065e599ceb32432ced10c5f3515a3aa9",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 792,
+      "title": "Fill placed Seared and Scorched Lanterns through Faucets",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/792",
+      "frozen_pr_head": "f69c0c1fb1834e89b9d9b12b4bdddb4192d24fe9",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 794,
+      "title": "Drain placed Lanterns into Melters and Lanterns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/794",
+      "frozen_pr_head": "f1d894d9a77dfc3a6a6c01bd346d73be5fa6e855",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 795,
+      "title": "Feed built-in storage tanks from placed Lanterns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/795",
+      "frozen_pr_head": "97cd9252931feb8c0d1001c9b0dea8f578ee11b0",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 807,
+      "title": "Stage Lantern Faucet supply into Casting Tank containers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/807",
+      "frozen_pr_head": "38d5ef5aae36aac113d6b8d8b9f35689a1b05cf5",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 810,
+      "title": "Feed Seared Fluid Cannon from placed Lanterns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/810",
+      "frozen_pr_head": "1bdd4fbb7f7fd63307d4e328bee41ca159e5f87b",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 813,
+      "title": "Feed casting Tables and Basins from placed Lanterns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/813",
+      "frozen_pr_head": "b5546433c60934a589cba13263742013f186a8c5",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 816,
+      "title": "Feed formed Drains from placed Lanterns",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/816",
+      "frozen_pr_head": "dbf82153c1b90807dc78715fc994a9e13a88474a",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 819,
+      "title": "Drain Fluid Cannon into formed Smeltery and Foundry",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/819",
+      "frozen_pr_head": "ba875f8401c18b089222f4aa9fc72a226c310a73",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 820,
+      "title": "Feed eleven built-in tank destinations from Fluid Cannon",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/820",
+      "frozen_pr_head": "4fa6c2501d911265f5a454c84c68088f57c76eb3",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 822,
+      "title": "Feed casting Tables and Basins from Fluid Cannon",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/822",
+      "frozen_pr_head": "4457b401d5ede6824cfdf3f294585d76c16d38f6",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 826,
+      "title": "Stage Fluid Cannon supply into Casting Tank containers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/826",
+      "frozen_pr_head": "85e4545a6a6ea584e27417f15d2db3d6af98ce10",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 827,
+      "title": "Transfer Faucet fluid between Seared Fluid Cannons",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/827",
+      "frozen_pr_head": "89fe96d38b146448b94a7a4ab026eff0c703d4e6",
+      "group": "fluid_route_staging",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 832,
+      "title": "fix(tconstruct): preserve metadata during held casting container transfers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/832",
+      "frozen_pr_head": "a5f9e6c1313e6b2f2604f03d73c520227a0879dd",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 834,
+      "title": "fix(tconstruct): preserve portable Lantern tank extensions",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/834",
+      "frozen_pr_head": "d6b710fdd9b2376628a79081d582c6829dc501c2",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 838,
+      "title": "fix(tconstruct): reject lossy and opaque Copper Can rewrites",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/838",
+      "frozen_pr_head": "177a77db5edca965ae4da9fc813a8e0750646e77",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 840,
+      "title": "fix(tconstruct): preserve controller data during held Drain transfers",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/840",
+      "frozen_pr_head": "51a07aebb604414f8781b8ec8fb9f610f7d8f7c4",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 841,
+      "title": "fix(tconstruct): preserve Cannon data during held fluid exchange",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/841",
+      "frozen_pr_head": "7b55f4882ff03eea54b87530a2c255eaf02c77f4",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 844,
+      "title": "fix(tconstruct): preserve Cannon metadata across item saves",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/844",
+      "frozen_pr_head": "2d09578cc13ec8424f039b365e8ab0d69b78082b",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 846,
+      "title": "fix(tconstruct): preserve Casting Tank metadata and slots",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/846",
+      "frozen_pr_head": "8647bc5d2a6a92d9d7e08068cfa37c6ceed15852",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 848,
+      "title": "fix(tconstruct): guard Casting Tank interaction snapshots",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/848",
+      "frozen_pr_head": "50c0136a8a66dda5861bc93e5f30bac0f3743d20",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 849,
+      "title": "fix(tconstruct): guard Cannon hopper callback endpoints",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/849",
+      "frozen_pr_head": "e678dc43200eb5c3c3d155caf88e0d0293d40dbc",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 852,
+      "title": "fix(tconstruct): preserve native controller tank row metadata",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/852",
+      "frozen_pr_head": "698089600d55afd0352f0da72b619fb7c1c01deb",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 853,
+      "title": "fix(tconstruct): preserve controller metadata in fluid menu actions",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/853",
+      "frozen_pr_head": "839137ac92f7b603fbd57831afb7b23fefa03d10",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 856,
+      "title": "fix(tconstruct): preserve carried fluid clicks and exact layer identity",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/856",
+      "frozen_pr_head": "3cb745b58cfc012853c5164b57068b5bd50b1216",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 857,
+      "title": "fix(tconstruct): preserve direct Melter and fuel tank exchanges",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/857",
+      "frozen_pr_head": "6cff411a8b6b4d33e481558c6906cbaa514d0341",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 859,
+      "title": "fix(tconstruct): preserve metadata in fluid container slot commits",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/859",
+      "frozen_pr_head": "126af15fe2de50303827dd43e1fe3c857561b636",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 860,
+      "title": "fix(tconstruct): preserve staged melting slot inventory commits",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/860",
+      "frozen_pr_head": "298856c3e313b08599d0cf7af5b653d699a9b12d",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 863,
+      "title": "fix(tconstruct): guard Cannon item clicks against opaque inventory merges",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/863",
+      "frozen_pr_head": "b68616ab77ad9f05a8f354aa940ece64c5ed09f6",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 867,
+      "title": "fix(tconstruct): preserve held fuel tank exchanges across callbacks",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/867",
+      "frozen_pr_head": "9d2ba7fc0d2757a8899497a45c8a02edfa0a0e8b",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 869,
+      "title": "fix(tconstruct): preserve ambiguous tanks during liquid-fuel withdrawal",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/869",
+      "frozen_pr_head": "f3498ffb4e0d4327bf31e1e17fee5ecee3266f2b",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 870,
+      "title": "fix(tconstruct): guard casting item fallback after fluid probes",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/870",
+      "frozen_pr_head": "df7efd895da89e0a2dfeb32873b97eeb55397b10",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 872,
+      "title": "fix(tconstruct): guard Melter held transfers and menu fallback",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/872",
+      "frozen_pr_head": "6d8e058038f4b753eac3c991257a8d8d264ea3c2",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 900,
+      "title": "fix(tconstruct): stage lossless Heater fuel and remainder consumption",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/900",
+      "frozen_pr_head": "0f3aed6da7c1131774d7b3ffa0026b579b6dae49",
+      "group": "machine_save_inventory_transactions",
+      "status": "not_individually_reconciled",
+      "feature_completion_verified": false,
+      "notes": "Category/path inventory only. Historical whole-file drift does not establish missing functionality; localized semantic review remains."
+    },
+    {
+      "number": 918,
+      "title": "fix(tconstruct): preserve native tank payloads through drops and placement",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/918",
+      "frozen_pr_head": "1636a304a15725cbbe8139fdbcb727ef530a27aa",
+      "group": "portable_casting_and_drop_preservation",
+      "status": "included",
+      "feature_completion_verified": false,
+      "notes": "Three production additions retained: removal and placement files are exact PR-head blobs; copy_native_tank body is exact. Later Pluto codec delegation elsewhere in source-smeltery-fuel is not reverted."
+    },
+    {
+      "number": 922,
+      "title": "fix(tconstruct): preserve portable tank casting recipe metadata",
+      "url": "https://github.com/sofia-gros/horizon-mods/pull/922",
+      "frozen_pr_head": "1ba0c453ebf89eb0e696f09e5d5ff5d760bb8813",
+      "group": "portable_casting_and_drop_preservation",
+      "status": "changed-pending",
+      "feature_completion_verified": false,
+      "notes": "Existing portable tank/fill and world recipe routing are already included. This candidate replaces only two residual local codec checks with the existing Pluto-backed casting_item_save_safe; recursive opaque Wire refusal is new."
+    }
+  ],
+  "actual_native_executed": false,
+  "shared_boundaries": {
+    "Pluto": "encode_item_lossless, recursive contains_retained_wire, same_item_snapshot, NBT patch helpers, stage_updates are existing mechanisms; none commits or authorizes machine state.",
+    "TConstruct": "capacity, machine IDs, native/legacy aliases, fluid+tag identity, recipes, transfer order, save and notification remain consumer policy."
+  }
+}

@@ -113,8 +113,8 @@ pub(super) fn presentation_preserved(input: &ItemStack, output: &ItemStack) -> b
 pub(super) fn portable_tank(stack: &ItemStack, capacity: u32) -> Option<Tank> {
     if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some()
         || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
-    let decoded = item_from_nbt(&item_to_nbt(stack))?;
-    if decoded.count != stack.count || decoded.damage != stack.damage || !decoded.same_item_same_components(stack) { return None; }
+    // Reuse Pluto's recursive retained-Wire and native codec preservation gate.
+    if !casting_item_save_safe(stack) { return None; }
     let raw = match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
         None => return Some(Tank::new(capacity)),
         Some(Tag::Compound(custom)) => match custom.get(&"tconstruct:tank".into()) {
@@ -143,9 +143,7 @@ pub(super) fn fill_portable(stack: &ItemStack, mut tank: Tank, fluid: &str, tag:
     custom.insert("tconstruct:tank".into(), next);
     let mut result = stack.clone();
     result.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(custom)));
-    let decoded = item_from_nbt(&item_to_nbt(&result))?;
-    (decoded.count == result.count && decoded.damage == result.damage
-        && decoded.same_item_same_components(&result)).then_some(result)
+    casting_item_save_safe(&result).then_some(result)
 }
 
 pub(super) fn fill_portable_tagged(stack: &ItemStack, tank: Tank, fluid: &str, tag: &Tag, amount: u32) -> Option<ItemStack> {
@@ -1092,5 +1090,111 @@ mod compound_patch_tests {
         let saved = faucet.to_nbt();
         assert_eq!(saved.get("pending"), expected.get("pending"));
         assert_eq!(saved.get("future"), Some(&Tag::Int(3)));
+    }
+}
+
+#[cfg(test)]
+mod portable_recursive_storage_tests {
+    use super::*;
+    use horizon_items::item_data::Wire;
+    use std::sync::Arc;
+
+    fn backed(name: &str, stale: bool) -> ItemStack {
+        let mut item = ItemStack::new(name, 1);
+        item.data_mut().wire = Wire::new(item.clone(), Arc::<[u8]>::from([7, 11, 19]));
+        if stale {
+            item.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Changed".into())));
+            assert!(item.wire_patch().is_none());
+        } else {
+            assert!(item.wire_patch().is_some());
+        }
+        assert!(item.data().unwrap().wire.patch().is_some());
+        item
+    }
+
+    fn reject_without_mutation(stack: &ItemStack) {
+        let before = stack.clone();
+        let raw_before = item_to_nbt(stack);
+        assert!(portable_tank(stack, 50).is_none());
+        assert!(fill_portable(stack, Tank::new(50), "minecraft:water", None, 10).is_none());
+        assert_eq!(item_to_nbt(stack), raw_before);
+        assert!(horizon_client::pluto_stack_storage::same_item_snapshot(stack, &before));
+    }
+
+    #[test]
+    fn portable_storage_retains_root_wire_refusal() {
+        for stale in [false, true] {
+            let stack = backed("tconstruct:seared_lantern", stale);
+            reject_without_mutation(&stack);
+        }
+    }
+
+    #[test]
+    fn portable_storage_rejects_all_four_nested_wire_fields() {
+        for stale in [false, true] {
+            for field in 0..4 {
+                let child = backed("minecraft:stone", stale);
+                let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+                match field {
+                    0 => stack.data_mut().container.push((3, child)),
+                    1 => stack.data_mut().charged.push(child),
+                    2 => stack.data_mut().pot_decorations = Some(Box::new([None, Some(child), None, None])),
+                    3 => stack.data_mut().bundle_contents.push(child),
+                    _ => unreachable!(),
+                }
+                // The old local comparison did not inspect nested Wire.
+                let decoded = item_from_nbt(&item_to_nbt(&stack)).unwrap();
+                assert_eq!((decoded.count, decoded.damage), (stack.count, stack.damage));
+                assert!(decoded.same_item_same_components(&stack));
+                assert!(stack.wire_patch().is_none());
+                reject_without_mutation(&stack);
+            }
+        }
+    }
+
+    #[test]
+    fn portable_storage_rejects_wire_beyond_one_nesting_level() {
+        let mut middle = ItemStack::new("minecraft:bundle", 1);
+        middle.data_mut().bundle_contents.push(backed("minecraft:stone", true));
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        stack.data_mut().container.push((0, middle));
+        reject_without_mutation(&stack);
+    }
+
+    #[test]
+    fn portable_storage_keeps_plain_nested_items_and_unknown_utf16_data() {
+        use horizon_world::nbt::JavaString;
+        let opaque_key = JavaString(vec![0xd800]);
+        let opaque = Tag::List(vec![Tag::String(JavaString(vec![0xdc00])), Tag::Float(0x7fc01234)]);
+        let mut raw = Compound::new();
+        raw.insert("amount".into(), Tag::Int(0));
+        raw.insert(opaque_key.clone(), opaque.clone());
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        stack.data_mut().container.push((3, ItemStack::new("minecraft:stone", 2)));
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tconstruct:tank", Tag::Compound(raw)), ("unowned", Tag::Long(17)),
+        ])));
+        let before = stack.clone();
+        let output = fill_portable(&stack, portable_tank(&stack, 50).unwrap(), "minecraft:water", None, 10).unwrap();
+        assert_eq!(portable_tank(&output, 50).unwrap().amount, 10);
+        assert_eq!(output.data().unwrap().container, stack.data().unwrap().container);
+        let custom = output.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert_eq!(custom.get("unowned"), Some(&Tag::Long(17)));
+        let Tag::Compound(tank) = custom.get("tconstruct:tank").unwrap() else { panic!("tank"); };
+        assert_eq!(tank.get(&opaque_key), Some(&opaque));
+        assert!(casting_item_save_safe(&output));
+        assert!(horizon_client::pluto_stack_storage::same_item_snapshot(&stack, &before));
+    }
+
+    #[test]
+    fn portable_storage_keeps_existing_tag_and_capacity_policy() {
+        let stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        let metadata = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let result = fill_portable_tagged(&stack, Tank::new(50), "tconstruct:potion", &metadata, 50).unwrap();
+        let tank = portable_tank(&result, 50).unwrap();
+        assert_eq!((tank.amount, tank.tag.as_ref()), (50, Some(&metadata)));
+        assert!(fill_portable(&result, tank.clone(), "tconstruct:potion", None, 1).is_none());
+        assert!(fill_portable_tagged(&result, tank, "tconstruct:potion", &metadata, 1).is_none());
+        assert!(fill_portable(&stack, Tank::new(50), "minecraft:water", None, 0).is_none());
     }
 }
