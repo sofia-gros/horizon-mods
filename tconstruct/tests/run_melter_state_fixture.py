@@ -4,7 +4,7 @@ import pathlib, subprocess, sys, tempfile
 root=pathlib.Path(__file__).resolve().parents[2]
 if len(sys.argv)!=2: raise SystemExit(__doc__)
 host=pathlib.Path(sys.argv[1]).resolve()
-expected="624c4f6265c02296fbe8a80f029dd0d987fb94c0"
+expected="ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
 try:
     actual=subprocess.check_output(['git','-C',str(host),'rev-parse','HEAD'],text=True).strip()
 except subprocess.CalledProcessError as exc:

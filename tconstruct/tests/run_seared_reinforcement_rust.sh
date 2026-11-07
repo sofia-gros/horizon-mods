@@ -2,9 +2,9 @@
 # Compile the bounded source fixture against a compatible local Horizon host.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon 624c4f62 checkout or staged workspace}"
+: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon ebcfa226 checkout or staged workspace}"
 HORIZON_HOST=$(cd "$HORIZON_HOST" && pwd)
-EXPECTED=624c4f6265c02296fbe8a80f029dd0d987fb94c0
+EXPECTED=ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0
 ACTUAL=$(git -C "$HORIZON_HOST" rev-parse HEAD 2>/dev/null) || {
     echo 'HORIZON_HOST must be a verifiable Git checkout of the pinned host.' >&2; exit 1;
 }

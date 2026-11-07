@@ -4,7 +4,7 @@
 Touches only revision metadata: tconstruct/compatibility.json, pluto-lib/horizon-native.json
 and every pluto-lib/tconstruct horizon-mixin.toml. It does NOT make the code
 compatible; run tools/smoke-local/build.py afterwards (plan + guards + build).
-Usage: bump_upstream.py --horizon SHA --mixins SHA
+Usage: bump_upstream.py --horizon SHA --mixins SHA [--replace-stale OLD_SHA]
 """
 import argparse, json, re, sys
 from pathlib import Path
@@ -17,6 +17,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('--horizon', required=True)
     ap.add_argument('--mixins', required=True)
+    ap.add_argument('--replace-stale', action='append', default=[], metavar='SHA',
+                    help='also replace this older full SHA (e.g. one a previous bump missed); repeatable')
     a = ap.parse_args(argv)
     for name in ('horizon', 'mixins'):
         if not SHA.match(getattr(a, name)):
@@ -29,11 +31,15 @@ def main(argv=None):
     files = [compat_path, ROOT / 'pluto-lib/horizon-native.json']
     files += sorted((ROOT / 'pluto-lib').rglob('horizon-mixin.toml'))
     files += sorted((ROOT / 'tconstruct/mixins').rglob('horizon-mixin.toml'))
+    # Host-source harnesses hard-code the Horizon revision they were written against.
+    files += sorted((ROOT / 'tconstruct/tests').glob('run_*')) + sorted((ROOT / 'tconstruct/tests').glob('test_*.py'))
     for path in files:
         if '.local' in path.parts or 'target' in path.parts:
             continue
         text = path.read_text(encoding='utf-8')
         updated = text.replace(old['horizon'], new['horizon']).replace(old['mixins'], new['mixins'])
+        for stale in a.replace_stale:
+            updated = updated.replace(stale, new['horizon'])
         if updated != text:
             path.write_bytes(updated.encode('utf-8'))
             changed += 1

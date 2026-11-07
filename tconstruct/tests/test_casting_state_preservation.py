@@ -22,7 +22,7 @@ class CastingPreservation(unittest.TestCase):
         ci=(ROOT.parent/'.github/workflows/mixins.yml').read_text()
         self.assertIn('tconstruct/tests/run_casting_preservation_rust.sh',ci)
         runner=(ROOT/'tests/run_casting_preservation_rust.sh').read_text()
-        self.assertIn('624c4f6265c02296fbe8a80f029dd0d987fb94c0',runner)
+        self.assertIn('ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0',runner)
         self.assertIn('smeltery_nbt_store.rs',runner)
         self.assertIn('unchanged_opaque_items_survive_ticks_but_consumption_aborts_batch',runner)
 if __name__=='__main__':unittest.main()
