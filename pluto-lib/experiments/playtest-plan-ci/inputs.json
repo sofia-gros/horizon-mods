@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "status": "SOURCE PREPARATION ONLY: next ordinary integration cutoff and Index phase pending; no execution",
-  "ready_for_reviewed_execution": false,
+  "status": "FROZEN SOURCE: exact e907 integration; independent final review and separate serial release required; no execution yet",
+  "ready_for_reviewed_execution": true,
   "repository": "sofia-gros/horizon-mods",
   "branch": "checkpoint/tinkers-playtest-next-plan-ci-20261106",
   "collector_source": "8cfc1247a0c18d5c93bdd0c185fe1b2e797f2937",
@@ -18,9 +18,33 @@
     }
   },
   "integration": {
-    "head": null,
-    "tree": null,
-    "source_sha256": {}
+    "head": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+    "tree": "afb6ac2ff3e824828cdde94e6e4686e0ffbe2094",
+    "source_sha256": {
+      "pluto-lib/horizon-native.json": "586336288dc9167d36be1b92e80ad9bdcc4060b8ebc55c5c6314a55112d70bb4",
+      "pluto-lib/mixins/pluto_component_bar/horizon-mixin.toml": "23509d5abe6c2001764d4ef61dcc203b3efd89ba664e30b37b28bdf8422ba071",
+      "pluto-lib/mixins/pluto_component_display_3a/horizon-mixin.toml": "90f59d32e61e0fc4203bb343f28d1d12017868c713675a7b33942da927c27ffc",
+      "pluto-lib/mixins/pluto_items_b2/horizon-mixin.toml": "27a56e1c039ee9d63b3767cae3b76ed291a4a8fcf0503225a4cdfe1884d880e5",
+      "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": "f65da372b2c9fb6accf0cd5fa847990fe6c13d7bc3d8c1f9d9364ca7ba6c9e59",
+      "pluto-lib/mixins/pluto_tool_rules/horizon-mixin.toml": "db059882c99b105866681462bc5b07a7ba8919f204d183c709f800f4917c051c",
+      "pluto-lib/mixins/pluto_transport_3a/horizon-mixin.toml": "a6d7d7750ae52a799b746d7c6f9b711f405fd82fbad9f3fe0fae438ac35a5361",
+      "pluto-lib/tools/check_advancement_plan.py": "1221a0b6ad0ca2c3c2bf5f6cd7cf4db0d7d7518f84ddaf00b4534218f29b4b57",
+      "pluto-lib/tools/check_client_payload_plan.py": "9f02c5f4c3d068a110b1fc9afbab312d3de43e05d1438907f593c5910e9887c9",
+      "pluto-lib/tools/check_cloud_insertion_plan.py": "f83bed433b2660b40e0b81d2535a970719a64d4bd23b365491b21c627d2cf38e",
+      "pluto-lib/tools/check_crafting_match_plan.py": "1a41ab9d46c4a9bfebcb34e79f33fe42dbcc4b8cfef4ffec2dc86dda6ef12597",
+      "pluto-lib/tools/check_current_book_plan.py": "ec9c65d516d84d1bfaf17ce1163ce920ace9eb30c3d5a3e827042657741c4bdd",
+      "pluto-lib/tools/check_damage_equipment_plan.py": "9843dbe27c62bb1e3765f6cc70c2d1079c21cbccb092f8763dc05b32f72129e3",
+      "pluto-lib/tools/check_protection_plan.py": "f1ab24e632e751e3d9e4a65cb2f5a7c77e7f32f3ff0e7ce38a84958922a5fd91",
+      "pluto-lib/tools/check_recipe_placement_plan.py": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+      "pluto-lib/tools/check_station_ingredient_plan.py": "e8a2b287dc3d0bb130276c6613e720097b0fa5e0af8b79ff943d57b47ab907bb",
+      "pluto-lib/tools/check_terrain_binding_plan.py": "30e38d0cd0c22badd2457812bb78a1fccd67f05b6ca5c09ec35dba9282abbe27",
+      "pluto-lib/tools/check_terrain_cell_plan.py": "b8b551fb45d6a5b118fa6d14c964a7e908c61f64a70749d18457b92ec151df60",
+      "pluto-lib/tools/check_wire_snapshot_plan.py": "4323be93b2f8b773f747e3a982291c226eaf7f085b58a329eda4a59e4c89979b",
+      "pluto-lib/tools/package_native.py": "1b7888725401aebfe09185239ce9864e2d11e71b4b84b1ee42031dd7258c3e6e",
+      "tconstruct/compatibility.json": "7c7a9c8c5a9514356fa6c0c9f76a60bd13ecdc3f4d80112e932cf687d3589361",
+      "tconstruct/mixins/tconstruct/horizon-mixin.toml": "1888496f46e8c06411e2d06f1a41b477a8c42d7f600abafc516985671685fe95",
+      "tconstruct/tools/package_hnmod.py": "acaa42b7208136724ede1b7cc6bd3f3a248361ac35d45ebecf12c8f2ba88d6d7"
+    }
   },
   "official_contract": {
     "sources": [
@@ -145,7 +169,7 @@
   "source_sha256": {
     ".github/workflows/playtest-complete-plan-wip.yml": "df0984000cf28e1c2d70337d1a1891829918999e85f0933edf87c37015728135",
     "pluto-lib/experiments/playtest-plan-ci/INDEX_PROBE.md": "350fb6c6acc1a868c3bedb15395e8832c16f88e44836711822ed1ed3f8dbcc6d",
-    "pluto-lib/experiments/playtest-plan-ci/README.md": "b52c8db2e78d8b51bddd72cffee1f50d7bd0d69e18247467ee58d41fa848ab49",
+    "pluto-lib/experiments/playtest-plan-ci/README.md": "18e69275c3a69090572518428ad6669f4aac1a571ee4eeb45d6d32781d06a9d1",
     "pluto-lib/experiments/playtest-plan-ci/evidence.py": "d6af370322224088aa1bdac15e4718bf52fed6958e59fb7d5c29f42b223d3b44",
     "pluto-lib/experiments/playtest-plan-ci/guard_once.py": "fc9684cd7515e67c0fda8b28908e6f476fa14cccc67a6103e3b9a33ad629314b",
     "pluto-lib/experiments/playtest-plan-ci/index_probe.py": "57210aa3b0834aa4106e3abef60f02bfd4b84c616355f3a5cf0a10ad3397699f",

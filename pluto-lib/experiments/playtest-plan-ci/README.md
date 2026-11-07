@@ -1,6 +1,6 @@
-# Next ordinary integration complete-plan diagnostic: preparation only
+# Frozen ordinary integration complete-plan diagnostic
 
-The target head/tree are deliberately unset and ready_for_reviewed_execution=false. No trigger or execution is permitted until the coordinator freezes the next complete ordinary integration, all source pins match, two reviews finish, and a separate serial release is given. Historical cea160/9cc1 and888a/17f results are unchanged.
+The target is integration e9073648b3c4cf4d49f27bc2e1ed60997f430586, tree afb6ac2ff3e824828cdde94e6e4686e0ffbe2094. All 23 package/header/manifest/guard pins were independently read from this immutable commit and matched its Git blob identities. ready_for_reviewed_execution=true means the source cutoff is fixed, not that a run is authorized or compatibility is proved. The dedicated trigger remains uncreated until final independent review and a separate serial release. Historical cea160/9cc1 and888a/17f results are unchanged.
 
 This is a minimal derivative of the approved cea160 controller. It retains both actual packagers, bounded archive/member checks, one600-second official plan, known own-CLI CPU sampling, whole plan digest before interpretation,41f terrain observation, all12 independent unchanged guard algorithms, exact source/Git/lock/package seals, failure receipts, and the bounded four-file artifact. It does not apply or build Game. Normal guard refusal is recorded, not bypassed. Accepted plans and failures are preserved even if a later diagnostic fails.
 
@@ -12,7 +12,7 @@ After the original CLI tool build, metadata-only Cargo and version-only rustc wr
 
 The plan's own metadata witness is recorded before the Index phase. Index metadata calls must only append allowed calls, preserving the earlier prefix. The Index result supplies source identity, not caller order, transport, installed-host type or compatibility. Auxiliary failure keeps the earlier plan and main diagnostic receipt, sets a separate index_receipt incomplete/error, and makes the job fail without relabeling the already completed main diagnosis. Safety failures do not start further phases. The validated raw plan already exists and is sealed before auxiliary work; the primary four-file artifact is persisted and uploaded before the auxiliary workflow step starts. That baseline is never rewritten by Index.
 
-81controller pure regressions and20Index-helper synthetic regressions are prepared. Rust, Cargo, metadata, actual Index and the next plan are unrun. The first local added-test draft had a Python quote typo, corrected before these source tests. Readiness remains false. Publication of this source is not execution approval.
+81controller pure regressions and20Index-helper synthetic regressions are prepared. Rust, Cargo, metadata, actual Index and the next plan are unrun. The first local added-test draft had a Python quote typo, corrected before these source tests. The cutoff is now fixed; publication and readiness are not execution approval.
 
 Evidence retention remains the approved known four-file action artifact. Repository result reports will contain bounded project summaries; a previously refused raw/compressed CI-console publication is not retried or re-encoded through this work.
 
