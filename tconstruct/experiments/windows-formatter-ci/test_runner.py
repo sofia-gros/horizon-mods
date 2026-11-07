@@ -1,5 +1,9 @@
 """Pure/mock only. No downloads, Windows API, formatter or subprocess is run."""
 import ctypes
+import ast
+import io
+import os
+from types import SimpleNamespace
 import hashlib
 import importlib.util
 import json
@@ -84,7 +88,7 @@ class Tests(unittest.TestCase):
         self.assertIn("sys.addaudithook(audit)",s);self.assertIn("len(calls)>=COUNTS[kind]",s)
         self.assertIn('guard.verify_source(plan,official,guard.entries())',s);self.assertIn('guard.verify_regeneration(official,guard.metadata())',s)
         run=(HERE/'run.py').read_text(encoding='utf-8')
-        self.assertLess(run.index("base.phase('stat-pure'"),run.index("phase_json('prepare'"))
+        self.assertLess(run.index("child_status.phase(base,'stat-pure'"),run.index("phase_json('prepare'"))
         self.assertIn('stat-pure',r.REQUIRED)
         self.assertEqual(len(r.config()['stat_test_names']),12)
     def test_runtime_and_guard_sources_remain_pinned(self):
@@ -104,4 +108,110 @@ class Tests(unittest.TestCase):
         with patch.object(r.os,'name','posix'),patch.object(r.probe.urllib.request,'build_opener') as network:
             with self.assertRaisesRegex(ValueError,'Windows'):r.preflight({})
             network.assert_not_called()
+    def test_controller_delta_inverts_to_exact_eb19(self):
+        source=(HERE/'run.py').read_text(encoding='utf-8')
+        self.assertEqual(source.count('import child_status\n'),1)
+        source=source.replace('import child_status\n','',1).replace('child_status.phase(base,','base.phase(')
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),'8ffb0a369a9204d5bee6ed8ea1e636b0ec3ef40b3e8b3d7a00e33d0570aa9121')
+    def record(self,argv,code=0):return {'schema':1,'argv_sha256':r.child_status.argv_hash(argv),'kind':'exit','returncode':code}
+    def test_same_worker_retains_raw_unsigned_windows_code(self):
+        c=r.child_status;argv=['fixed-rustfmt.exe','--version']
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'version.child-status.json';env={c.STATUS_ENV:str(path),'PATH':'fixed'}
+            with patch.object(c.sys,'argv',['worker','--worker',*argv]),patch.object(c.sys,'stdin',SimpleNamespace(buffer=io.BytesIO(b'G'))),patch.object(c.Path,'cwd',return_value=Path(d)),patch.dict(c.os.environ,env,clear=True),patch.object(c.subprocess,'run',return_value=SimpleNamespace(returncode=0xc0000135)) as child:
+                self.assertEqual(c.worker(),0xc0000135)
+                child.assert_called_once_with(argv,env={'PATH':'fixed'},check=False)
+            self.assertEqual(c.read_status(path,argv)['result']['returncode'],0xc0000135)
+    def test_barrier_rejection_never_starts_child_or_status(self):
+        c=r.child_status
+        with patch.object(c.sys,'stdin',SimpleNamespace(buffer=io.BytesIO(b''))),patch.object(c.subprocess,'run') as child,patch.object(c,'write_status') as write:
+            self.assertEqual(c.worker(),97);child.assert_not_called();write.assert_not_called()
+    def test_spawn_error_is_separate_from_exit_status(self):
+        c=r.child_status;argv=['fixed'];failure=OSError(2,'not found')
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'x.child-status.json'
+            with patch.object(c.sys,'argv',['worker','--worker',*argv]),patch.object(c.sys,'stdin',SimpleNamespace(buffer=io.BytesIO(b'G'))),patch.object(c.Path,'cwd',return_value=Path(d)),patch.dict(c.os.environ,{c.STATUS_ENV:str(path)},clear=True),patch.object(c.subprocess,'run',side_effect=failure):
+                with self.assertRaises(OSError) as caught:c.worker()
+                self.assertIs(caught.exception,failure)
+            value=c.read_status(path,argv)['result'];self.assertEqual(value['kind'],'spawn_error');self.assertEqual(value['errno'],2);self.assertNotIn('returncode',value)
+    def test_status_path_is_fresh_fixed_and_same_work(self):
+        c=r.child_status
+        with tempfile.TemporaryDirectory() as d,patch.object(c.Path,'cwd',return_value=Path(d)):
+            root=Path(d);good=root/'phase.child-status.json';self.assertEqual(c.status_path(str(good)),good)
+            for bad in ['relative',str(root.parent/'phase.child-status.json'),str(root/'other.json')]:
+                with self.assertRaises(ValueError):c.status_path(bad)
+            good.write_bytes(b'{}')
+            with self.assertRaises(ValueError):c.status_path(str(good))
+            with self.assertRaises(FileExistsError):c.write_status(good,self.record(['a']))
+    def test_status_parser_exact_identity_fields_and_numeric_bounds(self):
+        c=r.child_status;argv=['a'];valid=self.record(argv)
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'x.child-status.json'
+            for code in (0,-1,-2**31,2**32-1):
+                c.write_status(p,self.record(argv,code));self.assertEqual(c.read_status(p,argv)['result']['returncode'],code);p.unlink()
+            for bad in [dict(valid,schema=True),dict(valid,extra=0),dict(valid,argv_sha256='0'*64),dict(valid,kind='unknown'),dict(valid,returncode=True),dict(valid,returncode=2**32),dict(valid,returncode=-2**31-1)]:
+                p.write_text(json.dumps(bad),encoding='utf-8')
+                with self.assertRaises(ValueError):c.read_status(p,argv)
+            for raw in [b'[]',b'{"schema":1,"schema":1}',b'{"returncode":1e999}',b'{"returncode":NaN}']:
+                p.write_bytes(raw)
+                with self.assertRaises(ValueError):c.read_status(p,argv)
+    def test_status_read_rejects_links_and_budget_before_open(self):
+        c=r.child_status
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'x.child-status.json';p.write_bytes(b'x'*(c.LIMIT+1));link=Path(d)/'link';link.symlink_to(p)
+            with patch.object(Path,'open',side_effect=AssertionError('must not read')):
+                for value in (p,link):
+                    with self.assertRaises(ValueError):c.read_status(value,['a'])
+    def fake_phase(self,work,argv,receipt,code=0,fail=None,write=True):
+        c=r.child_status;holder=SimpleNamespace(__file__='old-worker')
+        def phase(name,actual,w,env,report):
+            self.assertEqual(holder.__file__,c.__file__);self.assertEqual(actual,argv)
+            report['phases'].append({'name':name,'exit':0 if code==0 else 4294967295,'job_empty':True,'process_succeeded':code==0})
+            if write:c.write_status(Path(env[c.STATUS_ENV]),self.record(actual,code))
+            if fail is not None:raise fail
+            return b'exact stdout'
+        holder.phase=phase
+        return holder
+    def test_parent_success_preserves_stdout_and_restores_worker(self):
+        c=r.child_status;argv=['fixed'];receipt={'phases':[]};env={'PATH':'fixed',c.STATUS_ENV:'foreign'};before=env.copy()
+        with tempfile.TemporaryDirectory() as d:
+            base=self.fake_phase(Path(d),argv,receipt)
+            self.assertEqual(c.phase(base,'x',argv,Path(d),env,receipt),b'exact stdout')
+            self.assertEqual(base.__file__,'old-worker');self.assertEqual(env,before)
+            self.assertEqual(receipt['phases'][0]['child_status']['result']['returncode'],0)
+    def test_failure_retains_wrapper_and_raw_status_without_retry(self):
+        c=r.child_status;argv=['fixed'];receipt={'phases':[]};failure=RuntimeError('version failed')
+        with tempfile.TemporaryDirectory() as d:
+            base=self.fake_phase(Path(d),argv,receipt,code=0xc0000135,fail=failure)
+            with self.assertRaises(RuntimeError) as caught:c.phase(base,'version',argv,Path(d),{},receipt)
+            self.assertIs(caught.exception,failure);self.assertEqual(base.__file__,'old-worker')
+            self.assertEqual(len(receipt['phases']),1);self.assertEqual(receipt['phases'][0]['exit'],4294967295)
+            self.assertEqual(receipt['phases'][0]['child_status']['result']['returncode'],0xc0000135)
+    def test_missing_status_cannot_create_success(self):
+        c=r.child_status;argv=['fixed'];receipt={'phases':[]}
+        with tempfile.TemporaryDirectory() as d:
+            base=self.fake_phase(Path(d),argv,receipt,write=False)
+            with self.assertRaises(FileNotFoundError):c.phase(base,'x',argv,Path(d),{},receipt)
+            self.assertFalse(receipt['phases'][0]['process_succeeded']);self.assertIn('child_status_error',receipt['phases'][0]);self.assertEqual(base.__file__,'old-worker')
+    def test_timeout_keeps_original_failure_and_missing_observation(self):
+        c=r.child_status;argv=['fixed'];receipt={'phases':[]};failure=RuntimeError('Phase timeout')
+        with tempfile.TemporaryDirectory() as d:
+            base=self.fake_phase(Path(d),argv,receipt,fail=failure,write=False)
+            with self.assertRaises(RuntimeError) as caught:c.phase(base,'x',argv,Path(d),{},receipt)
+            self.assertIs(caught.exception,failure);self.assertIn('child_status_error',receipt['phases'][0]);self.assertEqual(base.__file__,'old-worker')
+    def test_nonzero_raw_status_cannot_be_reported_success(self):
+        c=r.child_status;argv=['fixed'];receipt={'phases':[]}
+        with tempfile.TemporaryDirectory() as d:
+            base=self.fake_phase(Path(d),argv,receipt,code=1)
+            with self.assertRaisesRegex(RuntimeError,'Raw child'):c.phase(base,'x',argv,Path(d),{},receipt)
+            self.assertFalse(receipt['phases'][0]['process_succeeded'])
+    def test_adapter_adds_no_process_or_formatter_attempt(self):
+        c=r.child_status;tree=ast.parse(Path(c.__file__).read_bytes())
+        calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess']
+        self.assertEqual([n.func.attr for n in calls],['run'])
+        source=(HERE/'run.py').read_text(encoding='utf-8')
+        self.assertEqual(source.count("child_status.phase(base,'version'"),1)
+        self.assertEqual(r.probe.COUNTS,{'damage':3,'terrain-cell':4});self.assertIn('info.basic.active=3',(HERE/'winjob.py').read_text(encoding='utf-8'))
+        self.assertEqual(r.base.TIMEOUT,120);self.assertEqual(r.base.LOG_LIMIT,128*1024)
+
 if __name__=='__main__':unittest.main()

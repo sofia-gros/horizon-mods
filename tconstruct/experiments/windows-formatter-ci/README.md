@@ -54,7 +54,7 @@ No raw Rust source or credential is emitted. No artifact upload/cache is added.
 The native executable's actual hash/version and seven argv records are retained
 only if reached. The original guarded source is never regenerated or overwritten.
 
-Twenty controller plus twelve stat-model regressions are required separately,
+Thirty-three controller plus twelve stat-model regressions are required separately,
 under the same owned phase, before any preparation download. Both complete merged
 verbose streams passed the unchanged strict named validator. They exercise inverse provenance,
 ctypes layout, three-process capacity, barrier order, assignment refusal, normal
@@ -62,3 +62,38 @@ cleanup, timeout ownJob cleanup, bounds, pins, strict names and admission. They 
 not execute Windows APIs, downloads, formatter or Rust. Independent review and
 explicit serial release are required before the existing dedicated trigger is
 updated. No automatic retry or resource-limit relaxation is included.
+
+
+## Child status observation follow-up (source only)
+
+The eb19 retry reached preparation but its version phase produced 0 output bytes
+and worker exit 4294967295. That did not preserve the actual subprocess returncode
+before CPython sys.exit conversion, so a DLL/loader diagnosis remains unproven.
+The prior false evidence is preserved separately at 427f53d3.
+
+This follow-up keeps the successful shared source-CI phase byte-for-byte. The
+formatter controller routes each call through child_status.phase, temporarily
+selecting a minimal replacement of the same existing barrier worker. There is no
+additional process or formatter attempt. Worker -> guard Python -> sequential
+rustfmt remains at most three processes in the same existing Job, with the same
+120-second and 128-KiB limits. The old assignment/barrier/teardown path still owns
+the lifetime. Its original worker path is restored even after failure.
+
+After the single known child returns, that worker writes a fresh, fsynced JSON
+sidecar of at most 1 KiB in its current phase directory. It records only argv SHA,
+exact returned integer and schema/kind; spawn errors instead record numeric errno
+and winerror without inventing an exit status. The control variable is stripped
+from the child's environment. The parent reads only after the phase has unwound,
+checks exact fields, argv identity, bounded regular-file bytes and stable file
+identity, and adds child_status to the same phase receipt. Stdout remains unchanged.
+The old worker sys.exit behavior is preserved and reported separately, without
+interpreting a Windows status as a particular failure cause.
+
+Missing/invalid sidecar cannot produce success. A failed or timed-out phase keeps
+its original failure as well as any status-read error, rather than claiming an
+observation. No setup/archive/DLL is added; exact archive, formatter selection,
+seven regeneration calls, guard input, Job limit and workflow remain unchanged.
+Pure mocks cover large unsigned statuses, spawn error, barrier rejection, same
+worker restoration, missing/wrong/truncated/oversized status and no extra process.
+No Windows API, download, formatter, retry or native build has been run for this
+follow-up. It requires independent review and a separate explicit serial release.

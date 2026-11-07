@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import child_status
 import sys
 
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[2]
@@ -42,7 +43,7 @@ def artifact(c,path):
         actual[p]=base.sha(raw)
     probe.verify_plan(path/'plan.json');return actual
 def phase_json(name,argv,work,env,receipt):
-    raw=base.phase(name,argv,work,env,receipt)
+    raw=child_status.phase(base,name,argv,work,env,receipt)
     return json.loads(raw.decode('utf-8'))
 def execute(receipt):
     c=config();preflight(c);before=verify_sources(c);receipt['head']=os.environ['GITHUB_SHA']
@@ -56,9 +57,9 @@ def execute(receipt):
                PATH=os.pathsep.join([str(work/'formatter/bin'),str(Path(sys.executable).parent),str(Path(os.environ['SystemRoot'])/'System32')]),
                PLUTO_GUARD_RUSTFMT=str(work/'formatter/bin/rustfmt.exe'))
     try:
-        raw=base.phase('pure',[sys.executable,str(HERE/'test_runner.py'),'-v'],work,env,receipt)
+        raw=child_status.phase(base,'pure',[sys.executable,str(HERE/'test_runner.py'),'-v'],work,env,receipt)
         receipt['gates']['pure']=validation.suite(raw,c['test_names'])
-        raw=base.phase('stat-pure',[sys.executable,str(ROOT/'tconstruct/tests/test_windows_stat_compat.py'),'-v'],work,env,receipt)
+        raw=child_status.phase(base,'stat-pure',[sys.executable,str(ROOT/'tconstruct/tests/test_windows_stat_compat.py'),'-v'],work,env,receipt)
         receipt['gates']['stat-pure']=validation.suite(raw,c['stat_test_names'])
         result=phase_json('prepare',[sys.executable,str(HERE/'probe.py'),'prepare',str(work)],work,env,receipt)
         admitted=probe.fmt.admit(work/'formatter',work/'rustfmt.tar.gz')
@@ -67,7 +68,7 @@ def execute(receipt):
             if base.sha(probe.fmt.bounded_file(work/'official'/p,probe.MAX_SOURCE))!=h:raise ValueError('Prepared official source drift')
         inputs_before={'formatter':base.snapshot(work/'formatter'),'official':base.snapshot(work/'official'),'archive':base.sha(probe.fmt.bounded_file(work/'rustfmt.tar.gz',probe.fmt.ARCHIVE_LIMIT))}
         receipt['gates']['archive']=result
-        raw=base.phase('version',[str(work/'formatter/bin/rustfmt.exe'),'--version'],work,env,receipt)
+        raw=child_status.phase(base,'version',[str(work/'formatter/bin/rustfmt.exe'),'--version'],work,env,receipt)
         version=raw.decode('utf-8').strip();probe.fmt.validate_version(version)
         receipt['gates']['version']={'version':version,**admitted}
         for kind in ('damage','terrain-cell'):
