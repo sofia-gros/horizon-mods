@@ -42,7 +42,7 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
             self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'tinkers_gadgetry', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'gold_platform', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
             self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
-            self.assertEqual(len(world['items']), 23)
+            self.assertEqual(len(world['items']), 26)
             self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:sky_slime_ball"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:necrotic_bone"}', world['items'])
