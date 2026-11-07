@@ -10,6 +10,8 @@ use horizon_client::mod_api::{
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+use crate::pure::player_api::{self, PlayerOps};
+use horizon_client::items::ItemStack;
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
@@ -18,6 +20,19 @@ pub fn hooks() -> Box<dyn Hooks> {
 }
 
 struct PlutoHooks;
+
+/// PlutoLib's player operations over Horizon's `Host`, open only while a callback that carries a player runs.
+struct HostOps<'a>(&'a mut dyn Host);
+
+impl PlayerOps for HostOps<'_> {
+    fn tell(&mut self, player: u128, line: &str) -> bool {
+        self.0.tell(player, Text::literal(line.to_owned()))
+    }
+
+    fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
+        self.0.give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
+    }
+}
 
 fn cancel_if(handled: bool) -> Flow {
     if handled { Flow::Cancel } else { Flow::Continue }
@@ -57,12 +72,14 @@ impl Hooks for PlutoHooks {
         lifecycle_events_v1::chunk_unloaded(event.dimension, event.chunk);
     }
 
-    fn player_logged_in(&self, _host: &mut dyn Host, event: &mut PlayerLoggedInEvent<'_>) {
-        networking_api_v1::player_joined(event.name.to_string());
+    fn player_logged_in(&self, host: &mut dyn Host, event: &mut PlayerLoggedInEvent<'_>) {
+        let (uuid, name) = (event.player, event.name.to_string());
+        player_api::with_ops(&mut HostOps(host), || networking_api_v1::player_joined(uuid, name));
     }
 
-    fn player_logged_out(&self, _host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
-        networking_api_v1::player_left(event.name.to_string());
+    fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
+        let (uuid, name) = (event.player, event.name.to_string());
+        player_api::with_ops(&mut HostOps(host), || networking_api_v1::player_left(uuid, name));
     }
 
     fn entity_join_level(&self, _host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {
