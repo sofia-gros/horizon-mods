@@ -35,7 +35,8 @@ The order of work is in [docs/roadmap.md](docs/roadmap.md) (owner-defined, with 
    the game actually started with the mod loaded.
 6. **No new features during recovery.** The goal is the foundation and re-absorbing existing work
    (see `docs/migration/` when present).
-7. **Never bypass a PlutoLib guard** (`pluto-lib/tools/check_*_plan.py`). They hash-pin official source
+7. **Line endings are LF, everywhere.** `.gitattributes` forces LF in the repository and in working trees whatever `core.autocrlf` is set to; never work around it (no `-c core.autocrlf=...`, no CRLF files). Write files with LF (for example `newline='\n'` in Python). `python3 tools/check_line_endings.py` fails when this breaks and CI runs it; if a working tree has CRLF, run `git rm --cached -r -q . && git reset -q --hard` (nothing uncommitted may be lost: commit first).
+8. **Never bypass a PlutoLib guard** (`pluto-lib/tools/check_*_plan.py`). They hash-pin official source
    on purpose. A guard that fails after an upstream bump means that feature needs re-review.
 
 ## Upstream pins
