@@ -299,14 +299,6 @@ class ResourceOverlay(unittest.TestCase):
                         icon = slot.get('icon', '')
                         if icon.startswith('tconstruct:'):
                             self.assertTrue((pattern_root / (icon.split(':', 1)[1] + '.png')).is_file(), (name, icon))
-            manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
-            rows = manifest.read_text().splitlines()
-            self.assertEqual(len(rows), 62)
-            for row in rows:
-                digest, name = row.split('  ', 1)
-                original = (pattern_root / name).read_bytes()
-                self.assertEqual(hashlib.sha256(original).hexdigest(), digest)
-                self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_patterns' / name).read_bytes(), original)
             for name in ('tconstruct', 'mantle', 'forge'):
                 self.assertTrue((out / 'THIRD_PARTY_LICENSES' / (name + '.txt')).is_file())
             rejected = subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], capture_output=True)

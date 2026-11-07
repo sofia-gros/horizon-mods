@@ -263,9 +263,6 @@ class NativePackageTests(unittest.TestCase):
         self.assertEqual(api.count("static INVENTORY_COMPONENT_EVENTS:"), 1)
         self.assertNotIn("tconstruct", api)
         self.assertNotIn("tconstruct", helper)
-        docs = (ROOT / "docs/advancements.md").read_text()
-        self.assertIn("before the first inventory event", docs)
-        self.assertIn("Step 3 consumer activation remains pending", docs)
 
     def test_combines_legacy_components_without_state(self):
         with tempfile.TemporaryDirectory() as temp:

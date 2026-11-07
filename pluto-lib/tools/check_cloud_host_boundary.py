@@ -9,7 +9,7 @@ from prepare_render_fixture import clean_official
 
 def check(horizon: Path):
     root = Path(__file__).resolve().parents[1]
-    proof = json.loads((root / 'docs/cloud-insertion-proof.json').read_text())
+    proof = json.loads((root / 'guards/cloud-insertion-proof.json').read_text())
     horizon = horizon.resolve()
     head = clean_official(horizon, proof['horizon_revision'])
     for relative, expected in proof['official_source_sha256'].items():
