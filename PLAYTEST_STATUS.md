@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Complete stage caller connection, 2026-11-07
+
+The Windows launcher, ordinary Mixins workflow and isolated stage fixture now pass both actual package archive paths and their receipt SHA256 values. The stage verifies all expanded members, calls the shared full-composition contract writer, supplies the third guard argument, and rechecks the contract/archives before apply. The original guard failure remains fatal.
+
+The two ordinary caller omissions found during review were repaired without dropping CI or fixture coverage. The two historical cache-test errors were repaired by exact inverse layers; PowerShell/runtime and the old assertions/witnesses remain unchanged. All 92 tests in the selected sparse source fixture passed, including the tiny Git/fake-CLI stage fixture. This is not the full repository suite, Windows execution or a native build.
+
+Fresh diagnostic run [42328100345](https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345) started on 2026-11-07 at 02:12:59 UTC with fixed input `e9073648b3c4cf4d49f27bc2e1ed60997f430586`. Its result was pending when this source intake was made. These later changes only affect tooling/tests/docs, not Rust payloads; subsequent package and tool seals still must account for them. The older note below that Windows stage is unconnected is superseded by this section. No main merge or build/launch success is claimed.
+
 ## Recovery and guard integration, 2026-11-07
 
 The 13 reviewed crafting/placement guard files were recovered byte-for-byte from existing Git blobs and adopted. Their 43 prior source/synthetic checks apply to these identical bytes; recovery is not a new native test. Explicit full-package mode and both archive identities are mandatory. Two constructor observations remain null and deliberately refuse validation until the next actual plan.

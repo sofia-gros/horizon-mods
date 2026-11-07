@@ -8,6 +8,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from windows_source_layers import before_package_contract
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,12 +92,13 @@ class Tests(unittest.TestCase):
         raw=(ROOT/'tools/stage.py').read_bytes();s=raw.decode('utf-8')
         self.assertEqual(hashlib.sha256(raw).hexdigest(),m.STAGE_SHA)
         self.assertEqual(s.encode('utf-8'),raw)
+        raw=before_package_contract('tools/stage.py',raw);s=raw.decode('utf-8')
         # Actual Windows default CP1252 decoding of the frozen UTF-8 comment
         # produced this false mismatch. Exact byte hashing must not use locale.
         self.assertEqual(hashlib.sha256(raw.decode('cp1252').encode('utf-8')).hexdigest(),
                          'd15ecca5ac8051c2419ca269ed4a952b580536b1e02c55ac7734e14776e7e260')
         self.assertNotEqual(hashlib.sha256(raw.decode('cp1252').encode('utf-8')).hexdigest(),m.STAGE_SHA)
-        self.assertEqual(m.STAGE_SHA,x['candidate_sha256'])
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),x['candidate_sha256'])
         self.assertLess(s.index("'plan', '--workspace'"),s.index('pluto-lib/tools/check_native_plan.py'))
         self.assertLess(s.index('pluto-lib/tools/check_native_plan.py'),s.index("'apply', '--workspace'"))
         for old,new in reversed(x['edits']):self.assertEqual(s.count(new),1);s=s.replace(new,old,1)

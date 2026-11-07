@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "base": "061911ffc3d4bebf3e3dbacbf5d361b56a65ec4b",
+  "source_sha256": {
+    ".github/workflows/mixins.yml": "eda829e6419c1dd98f326cb0f2cb0c43d68f551e1edcbb5d3cf7b3158a9c5f97",
+    "tconstruct/tests/test_stage.py": "811191db724e43dafea1f550b15d1ba48ca03b47a4b89f214ca7f5f726923059",
+    "tconstruct/tests/test_stage_callers.py": "c89b4e0b5e0b2023d6d6b90b2e3cd91654733be26a169c5f99e2c64c9e6c9ff0",
+    "tconstruct/experiments/windows-stage-package-contract/callers-inverse.json": "835844707dccdb3479ff38c996f9b070a77df16d08d6f8251c096f982b0c8e04",
+    "tconstruct/experiments/windows-stage-package-contract/CALLERS.md": "ddec03aff31bf3d88282699ff0facb008ea723bbb3e1b113860128961446acbf"
+  },
+  "unchanged_production_sha256": {
+    "tconstruct/tools/stage.py": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+    "tconstruct/tools/play_windows_latest.py": "718bf8352032e7d6ae01e37d5c2ec2c0f374da8092b308609415b342681753ab",
+    "tconstruct/tools/stage_package_contract.py": "21343afe98e184ccf7d238af8910a8ed3dfd17891fc32ef0ff9e3b18e143e4af"
+  },
+  "shared_checker_dependency": {
+    "path": "pluto-lib/tools/check_recipe_placement_plan.py",
+    "sha256": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+    "integration": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+    "copied_locally_for_tests_only": true
+  },
+  "tests": [
+    {
+      "file": "tconstruct/tests/test_stage_package_contract.py",
+      "tests": 13,
+      "names": [
+        "test_archive_digest_mismatch_precedes_shared_helper",
+        "test_archive_drift_after_contract_and_before_apply_rejects",
+        "test_complete_archive_members_and_shared_full_contract",
+        "test_exact_actual_recipe_helper_generates_full_contract",
+        "test_launcher_passes_receipt_hashes_and_same_prepared_archive_paths",
+        "test_links_and_budgets_reject_without_reading_payload",
+        "test_missing_extra_duplicate_relative_and_unknown_hash_reject",
+        "test_missing_extra_or_changed_copied_member_reject",
+        "test_missing_extra_or_changed_expanded_member_reject",
+        "test_production_changes_inverse_to_exact_c1b54_and_stage_pin",
+        "test_save_is_fresh_and_contract_drift_rejects",
+        "test_shared_helper_failure_or_wrong_identity_never_saves",
+        "test_stage_requires_four_inputs_and_guard_third_argument_before_apply"
+      ],
+      "exit": 0,
+      "output_bytes": 1899,
+      "output_sha256": "31a19807cb5aa351c875584e17885826eb50483eb35572c851201c149479ec1a"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_latest_launch.py",
+      "tests": 20,
+      "names": [
+        "test_cache_identity_all_dimensions",
+        "test_compatibility_only_official_two_revision_delta",
+        "test_declared_mods_and_exact_config",
+        "test_default_gameplay_without_nonexistent_mods",
+        "test_disjoint_inputs_output",
+        "test_environment_scrub_and_cli_selected_toolchain",
+        "test_input_tree_content_names_and_mtime",
+        "test_launch_order_no_fallback_or_automatic_fetch",
+        "test_link_parent_and_special_inputs_rejected",
+        "test_local_git_archive_attributes_rejected",
+        "test_official_pins_and_no_legacy_compat",
+        "test_parent_cargo_config_rejected",
+        "test_ps_is_connected_and_has_no_discovery_install",
+        "test_resource_budget_rejects",
+        "test_rust_host_and_release_exact",
+        "test_source_identity_requires_exact_origin_lock_and_clean_tree",
+        "test_stage_exact_two_edit_inverse_and_guard_order",
+        "test_toolchain_seal_precedes_version_execution",
+        "test_unexpected_default_features_rejected",
+        "test_windows_pe_architecture_check"
+      ],
+      "exit": 0,
+      "output_bytes": 2275,
+      "output_sha256": "c937d73b6b0afa755f0090c2a713bae8814b1dc9be73491afafa176ec3cfc56d"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_link_only.py",
+      "tests": 9,
+      "names": [
+        "test_exact_inverse_preserves_prior_runtime_outside_mode_changes",
+        "test_link_cache_rechecks_binary_and_never_becomes_playtest_ready",
+        "test_mocked_changed_source_after_link_rejects_receipt",
+        "test_mocked_guard_failure_never_reaches_link_or_receipt",
+        "test_mocked_link_failure_never_writes_receipt",
+        "test_mocked_link_has_guarded_stage_then_default_gnu_build_no_assets_or_game",
+        "test_mocked_normal_mode_retains_preparation_and_game_startup",
+        "test_modes_require_resources_only_for_game_and_reject_ambiguous_input",
+        "test_parser_and_powershell_route_explicit_build_only_without_asset_selector"
+      ],
+      "exit": 0,
+      "output_bytes": 1450,
+      "output_sha256": "e149c8b446cb902f6db5c1b7a0b092b80e0120fbeab535966ca8b5c868156c9b"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_stat_compat.py",
+      "tests": 12,
+      "names": [
+        "test_cross_api_keeps_every_other_identity_field",
+        "test_file_type_and_reparse_are_not_normalized",
+        "test_handle_after_execute_bits_change_still_rejects",
+        "test_handle_drift_nlink_and_reparse_still_reject",
+        "test_known_windows_extensions_only_add_filename_execute_bits",
+        "test_path_after_identity_drift_still_rejects",
+        "test_path_final_execute_bits_change_still_rejects",
+        "test_posix_preserves_exact_mode_comparison",
+        "test_regular_real_bounded_read_and_limits",
+        "test_source_changes_are_exactly_reversible",
+        "test_three_read_paths_accept_mode_difference_without_execution",
+        "test_unknown_extension_and_nonexecute_modes_reject"
+      ],
+      "exit": 0,
+      "output_bytes": 1573,
+      "output_sha256": "484e33b3e56f4fd858c120cafb45b597609fd35f8c3de76ee254cbf4eeadd581"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_python_utf8.py",
+      "tests": 7,
+      "names": [
+        "test_actual_official_source_observations_are_fixed",
+        "test_actual_unicode_lines_reproduce_cp1252_hash_drift",
+        "test_child_environment_overrides_both_encodings_case_insensitively",
+        "test_only_two_process_encoding_assignments_are_added",
+        "test_parent_process_environment_and_system_settings_are_not_changed",
+        "test_stage_and_guard_inherit_the_selected_child_environment",
+        "test_unchanged_damage_digest_requires_correct_decoding"
+      ],
+      "exit": 0,
+      "output_bytes": 1082,
+      "output_sha256": "a7dc7bf26871d321e312a8bcb03bb9453a5c9a74c1f189fb7dc9828448c55cf6"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_playtest_bundles.py",
+      "tests": 11,
+      "names": [
+        "test_budgets_and_bad_header_reject",
+        "test_combined_collision_rejected",
+        "test_duplicate_case_and_mode_rejected",
+        "test_external_bundle_requires_all_files_not_only_identity",
+        "test_fail_closed_packager_without_extracting_partial_files",
+        "test_nested_support_paths_and_budget",
+        "test_prepare_uses_both_packagers_and_cache_exactness",
+        "test_prepared_tc_data_and_archive_drift_reject",
+        "test_two_packages_keep_limits_and_complete_combined_seal",
+        "test_unsafe_windows_and_traversal_paths_rejected",
+        "test_wrong_revision_and_manifest_reject"
+      ],
+      "exit": 0,
+      "output_bytes": 1375,
+      "output_sha256": "9318c1764f00aa91291d8d085d3cf0a02358595aead25ce4dd12428aa65b5230"
+    },
+    {
+      "file": "tconstruct/tests/test_stage_callers.py",
+      "tests": 4,
+      "names": [
+        "test_every_fixture_stage_call_uses_explicit_archive_builder_and_copy_closure",
+        "test_exact_two_caller_inverse_preserves_all_other_workflow_and_fixture_code",
+        "test_workflow_package_or_verify_failure_never_stages",
+        "test_workflow_packages_verifies_then_passes_same_receipt_and_members"
+      ],
+      "exit": 0,
+      "output_bytes": 772,
+      "output_sha256": "a1142419675805434a42f8957c494f5b7ef12c17239a1a5252434c311a82de20"
+    },
+    {
+      "file": "tconstruct/tests/test_stage.py",
+      "tests": 1,
+      "names": [
+        "test_dirty_mixins_cli_source_is_not_built"
+      ],
+      "exit": 0,
+      "output_bytes": 543,
+      "output_sha256": "a2c38018a5d4119c0a545251d3f33be0e6721a287286fa24d017341adecd0e13",
+      "scope": "Temporary tiny local Git repositories and Python/shell fake Cargo/CLI only; no actual Cargo/planner/native."
+    }
+  ],
+  "passing_suite_total": 77,
+  "yaml_and_embedded_python_parse": true,
+  "legacy_cache_baseline": "Historical cache12 still has its two pre-existing stale inverse errors; not a full discover PASS. See source-verification.json.",
+  "actual_native": false,
+  "actual_cargo_or_planner": false,
+  "windows": false,
+  "workflow_execution": false,
+  "ordinary_guard_success": false
+}

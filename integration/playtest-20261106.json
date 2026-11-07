@@ -40,7 +40,7 @@
     },
     {
       "subject": "Windows execution validation",
-      "reason": "The eb19 retry passed archive/executable admission after the stat fix, but rustfmt --version exited with no output; seven regeneration calls were not reached. Cause is unconfirmed. The Windows stage caller still needs the explicit package contract third argument before apply/build."
+      "reason": "All known ordinary stage callers now pass the explicit full-package contract and the selected 92 source/mock tests pass. The eb19 formatter retry still stopped at version with no output; seven regeneration calls were not reached and cause is unconfirmed. Raw-child-status follow-up is separately reviewed but unrun. Actual guards/apply/default build/link/startup remain required."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -371,6 +371,36 @@
       "job_empty": true,
       "source_verified": true,
       "cause_unconfirmed": true
+    },
+    "windows_stage_package_contract": {
+      "source_cutoff": "8e7b9a63fe96349e92fb7019dc73f7b919909b40",
+      "previous_cutoffs": [
+        "061911ffc3d4bebf3e3dbacbf5d361b56a65ec4b",
+        "baa653fa3fbb6b0e547b209c9f15c45a9cde6570"
+      ],
+      "paths": 23,
+      "recipe_helper_sha256": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+      "selected_sparse_tests_passed": 92,
+      "ordinary_callers": [
+        "Windows launcher",
+        "Mixins validation workflow",
+        "isolated stage fixture"
+      ],
+      "whole_repository_suite": false,
+      "actual_windows": false,
+      "actual_packager_or_plan": false,
+      "native_build": false,
+      "baseline_cache_errors_resolved_by_test_only_layers": true
+    },
+    "fresh_plan_run": {
+      "controller": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+      "integration_head": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+      "integration_tree": "afb6ac2ff3e824828cdde94e6e4686e0ffbe2094",
+      "run": 42328100345,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345",
+      "started_at": "2026-11-07T02:12:59Z",
+      "result_pending_at_intake": true,
+      "scope": "Fixed primary complete-plan and twelve-guard diagnostic; uploaded primary artifact before separate Index. No apply or game build."
     }
   },
   "safety": {
@@ -380,7 +410,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Freeze this source head for Storage's fresh full-plan diagnostic with actual two-archive package contracts, primary artifact upload before the separate Index step, and twelve independent guards. Windows stage contract wiring continues separately and is mandatory before apply/build.",
+  "next": "Collect fixed e907 full-plan/guard/Index evidence from run42328100345; review actual identities and adapt only exact pending metadata, then replay all guards against sealed source/package inputs. The later stage/tooling changes do not alter Rust payloads but must be included in subsequent package/tool seals. Resolve formatter startup status before Windows default build/error checks.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -744,6 +774,40 @@
       "exact_bytes_recovered": true,
       "pending_actual_constructor_identity": true,
       "windows_stage_contract_pending": true
+    },
+    {
+      "name": "Connect full package contracts across stage callers",
+      "base": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+      "source": "8e7b9a63fe96349e92fb7019dc73f7b919909b40",
+      "paths": [
+        ".github/workflows/mixins.yml",
+        "tconstruct/experiments/windows-stage-package-contract/CACHE-LAYERS.md",
+        "tconstruct/experiments/windows-stage-package-contract/CALLERS.md",
+        "tconstruct/experiments/windows-stage-package-contract/README.md",
+        "tconstruct/experiments/windows-stage-package-contract/cache-layers-verification.json",
+        "tconstruct/experiments/windows-stage-package-contract/callers-inverse.json",
+        "tconstruct/experiments/windows-stage-package-contract/callers-verification.json",
+        "tconstruct/experiments/windows-stage-package-contract/inverse.json",
+        "tconstruct/experiments/windows-stage-package-contract/source-verification.json",
+        "tconstruct/tests/test_stage.py",
+        "tconstruct/tests/test_stage_callers.py",
+        "tconstruct/tests/test_stage_package_contract.py",
+        "tconstruct/tests/test_windows_cache_layers.py",
+        "tconstruct/tests/test_windows_latest_launch.py",
+        "tconstruct/tests/test_windows_link_only.py",
+        "tconstruct/tests/test_windows_pluto_cache.py",
+        "tconstruct/tests/test_windows_python_utf8.py",
+        "tconstruct/tests/test_windows_stat_compat.py",
+        "tconstruct/tests/windows-formatter-entry-inverse.json",
+        "tconstruct/tests/windows_source_layers.py",
+        "tconstruct/tools/play_windows_latest.py",
+        "tconstruct/tools/stage.py",
+        "tconstruct/tools/stage_package_contract.py"
+      ],
+      "rust_or_manifest_changes": false,
+      "source_mock_tests": 92,
+      "whole_repository_suite": false,
+      "main_merge_ready": false
     }
   ],
   "guide_limits": [

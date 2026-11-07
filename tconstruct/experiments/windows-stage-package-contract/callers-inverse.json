@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "base": "061911ffc3d4bebf3e3dbacbf5d361b56a65ec4b",
+  "files": {
+    ".github/workflows/mixins.yml": {
+      "before_sha256": "e824106bdddde25d2e005da34d7426962e059eca564d891c355465c5b7ced7f4",
+      "after_sha256": "eda829e6419c1dd98f326cb0f2cb0c43d68f551e1edcbb5d3cf7b3158a9c5f97",
+      "edits": [
+        [
+          "          mkdir -p \"$RUNNER_TEMP/pluto-source\"\n          python3 pluto-lib/tools/package_native.py \"$RUNNER_TEMP/pluto-source/plutolib.hnmod\"\n          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package \"$RUNNER_TEMP/pluto-source/plutolib.hnmod\" --output \"$RUNNER_TEMP/pluto-installed\"\n          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision \"$(git -C ../horizon-mixins rev-parse HEAD)\" --pluto-bundle \"$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative\"\n",
+          "          python3 - <<'PY_STAGE'\n          import os, subprocess, sys\n          from pathlib import Path\n          repo = Path.cwd()\n          sys.path.insert(0, str(repo / 'tconstruct/tools'))\n          import prepare_playtest_bundles as bundles\n          def run(argv, **kwargs):\n              return subprocess.run(argv, check=True, **kwargs)\n          tc_mods, pluto, receipt = bundles.prepare(\n              repo, Path(os.environ['RUNNER_TEMP']) / 'stage-packages',\n              run, sys.executable, repo, dict(os.environ))\n          bundles.verify_prepared(tc_mods, pluto, receipt)\n          revision = subprocess.check_output(\n              ['git', '-C', '../horizon-mixins', 'rev-parse', 'HEAD'], text=True).strip()\n          run([sys.executable, repo / 'tconstruct/tools/stage.py',\n               '--horizon', '../horizon-official', '--mixins', '../horizon-mixins',\n               '--mixins-revision', revision, '--mods', tc_mods, '--pluto-bundle', pluto,\n               '--tconstruct-archive', tc_mods.parent / 'tconstruct.hnmod',\n               '--pluto-archive', tc_mods.parent / 'plutolib.hnmod',\n               '--tconstruct-archive-sha256', receipt['packages'][0]['archive_sha256'],\n               '--pluto-archive-sha256', receipt['packages'][1]['archive_sha256']])\n          PY_STAGE\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_stage.py": {
+      "before_sha256": "3abba221be05c6c4271263771898d47f1da6a99e9829418aa08251c320470e74",
+      "after_sha256": "811191db724e43dafea1f550b15d1ba48ca03b47a4b89f214ca7f5f726923059",
+      "edits": [
+        [
+          "import json\n",
+          "import hashlib\nimport io\nimport json\nimport stat\nimport zipfile\n"
+        ],
+        [
+          "            shutil.copy(SCRIPT.parent / 'portable_archive.py', project / 'tools/portable_archive.py')",
+          "            for name in ('portable_archive.py', 'stage_package_contract.py',\n                         'prepare_playtest_bundles.py', 'playtest_pluto_inputs.py'):\n                shutil.copy(SCRIPT.parent / name, project / 'tools' / name)"
+        ],
+        [
+          "plan, workspace = map(pathlib.Path, sys.argv[1:])",
+          "plan, workspace, contract_path = map(pathlib.Path, sys.argv[1:])\ncontract = json.loads(contract_path.read_bytes())\nassert contract['mode'] == 'full-tconstruct'\nassert {p['mod_id'] for p in contract['packages']} == {'tconstruct_native', 'pluto_native_creative'}\nimport hashlib\nfor package in contract['packages']:\n    archive = pathlib.Path(package['archive'])\n    assert archive.is_absolute()\n    assert hashlib.sha256(archive.read_bytes()).hexdigest() == package['archive_sha256']"
+        ],
+        [
+          "            horizon_revision = git(repos[0], 'rev-parse', 'HEAD')\n",
+          "            horizon_revision = git(repos[0], 'rev-parse', 'HEAD')\n            # These isolated Git repositories deliberately use fixture revisions.\n            # Only the copied helpers' two revision constants change; production\n            # helpers and all admission/contract functions remain unchanged.\n            shared = SCRIPT.parents[2] / 'pluto-lib/tools/check_recipe_placement_plan.py'\n            for original, copied in (\n                (SCRIPT.parent / 'prepare_playtest_bundles.py', project / 'tools/prepare_playtest_bundles.py'),\n                (shared, guards / 'check_recipe_placement_plan.py'),\n            ):\n                text = original.read_text(encoding='utf-8')\n                for before, after in (\n                    ('41f822b659789780f58d32c63ddfb6887ea1b8bf', horizon_revision),\n                    ('5a64af938ec86b00d53d16a408aabc0038fb3e57', revision),\n                ):\n                    self.assertEqual(text.count(before), 1)\n                    text = text.replace(before, after, 1)\n                copied.write_text(text, encoding='utf-8')\n            def archive(files):\n                out = io.BytesIO()\n                with zipfile.ZipFile(out, 'w') as z:\n                    for name, value in sorted(files.items()):\n                        info = zipfile.ZipInfo(name); info.create_system = 3\n                        info.external_attr = (stat.S_IFREG | 0o644) << 16\n                        z.writestr(info, value)\n                return out.getvalue()\n            mods = project / 'tests/fixtures'\n            tc = mods / 'tconstruct_native'; (tc / 'data').mkdir(parents=True)\n            (tc / 'horizon-mixin.toml').write_text(\n                f'[mod]\\nid=\"tconstruct_native\"\\nversion=\"0.5.0\"\\n[compatibility]\\nhorizon_revision=\"{horizon_revision}\"\\n', encoding='utf-8')\n            (tc / 'data/tconstruct-support.zip').write_bytes(archive({'tconstruct/content/fixture.txt': b'fixture'}))\n            archives = root / 'archives'; archives.mkdir()\n            def stage_args():\n                values = []\n                for identity, expanded, name, flag, version in (\n                    ('tconstruct_native', tc, 'tconstruct.hnmod', 'tconstruct', '0.5.0'),\n                    ('pluto_native_creative', pluto, 'plutolib.hnmod', 'pluto', '0.1.0'),\n                ):\n                    files = {'horizon-native.json': json.dumps({\n                        'schema': 1, 'id': identity, 'version': version, 'game': '26.3',\n                        'horizon': horizon_revision, 'mixins': revision}).encode('utf-8')}\n                    files.update({'mixins/' + identity + '/' + p.relative_to(expanded).as_posix(): p.read_bytes()\n                                  for p in expanded.rglob('*') if p.is_file()})\n                    raw = archive(files); path = archives / name; path.write_bytes(raw)\n                    values.extend(['--' + flag + '-archive', str(path),\n                                   '--' + flag + '-archive-sha256', hashlib.sha256(raw).hexdigest()])\n                return [sys.executable, str(project / 'tools/stage.py'), *values]\n"
+        ],
+        [
+          "manifest = f'[mod]\\nid = \"pluto_native_creative\"\\n[compatibility]",
+          "manifest = f'[mod]\\nid = \"pluto_native_creative\"\\nversion = \"0.1.0\"\\n[compatibility]"
+        ],
+        {
+          "replace_all": [
+            "[sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle'",
+            "[*stage_args(), '--pluto-bundle'"
+          ],
+          "count": 12
+        }
+      ]
+    }
+  }
+}

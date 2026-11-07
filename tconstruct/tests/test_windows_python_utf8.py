@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from windows_source_layers import before_package_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -30,7 +31,7 @@ class Tests(unittest.TestCase):
         self.assertEqual([k for k in actual if k.upper() == 'PYTHONIOENCODING'], ['PYTHONIOENCODING'])
 
     def test_only_two_process_encoding_assignments_are_added(self):
-        raw = (ROOT / 'tools/play_windows_latest.py').read_bytes()
+        raw = before_package_contract('tools/play_windows_latest.py', (ROOT / 'tools/play_windows_latest.py').read_bytes(), before_stat=True)
         text = raw.decode('utf-8')
         inverse = json.loads((ROOT / 'tests/windows-link-only-inverse.json').read_text(encoding='utf-8'))['files']['tools/play_windows_latest.py']
         self.assertEqual(sha(raw), inverse['after_sha256'])
@@ -95,7 +96,7 @@ class Tests(unittest.TestCase):
         self.assertIn('sys.executable', args)
         for bypass in ["'-E'", "'-I'", "'utf8=0'"]: self.assertNotIn(bypass, args)
         raw = (ROOT / 'tools/stage.py').read_bytes()
-        self.assertEqual(sha(raw), EVIDENCE['unmodified_stage_sha256'])
+        self.assertEqual(sha(before_package_contract('tools/stage.py', raw)), EVIDENCE['unmodified_stage_sha256'])
         tree = ast.parse(raw)
         guard_calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)
                        and isinstance(n.func, ast.Attribute) and n.func.attr == 'run'

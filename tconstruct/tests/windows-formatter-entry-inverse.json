@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "scope": "Test-only exact formatter PS layer between existing link inverse and existing latest-entry inverse; no script execution.",
+  "files": {
+    "tools/play-windows.ps1": {
+      "after_sha256": "f456a1ff45bd770a3d2dbeb4c3b38405e71a01b3a497602a70a09f2b4f6a018b",
+      "before_sha256": "1c4271db22fb2be948c711805224705d5117fed7e5d7fc92ffd5111f17e16411",
+      "edits": [
+        [
+          "",
+          "    [string]$RustfmtArchive,\n"
+        ],
+        [
+          "",
+          "function Pick-RustfmtArchive {\n    Add-Type -AssemblyName System.Windows.Forms\n    $dialog = New-Object System.Windows.Forms.OpenFileDialog\n    $dialog.Title = 'Select the existing official Rust 1.99.1 Windows GNU rustfmt tar.gz (no automatic install)'\n    $dialog.Filter = 'Rustfmt archive (*.tar.gz)|*.tar.gz'\n    $dialog.CheckFileExists = $true\n    try {\n        if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required explicit rustfmt archive was not selected.' }\n        return $dialog.FileName\n    } finally { $dialog.Dispose() }\n}\n"
+        ],
+        [
+          "",
+          "    if (-not $RustfmtArchive) { $RustfmtArchive = Pick-RustfmtArchive }\n"
+        ],
+        [
+          "",
+          " --rustfmt-archive $RustfmtArchive"
+        ]
+      ]
+    }
+  }
+}

@@ -8,6 +8,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from windows_source_layers import before_package_contract
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -113,6 +114,7 @@ class Tests(unittest.TestCase):
         contract=json.loads((ROOT/'experiments/windows-stat-compat/inputs.json').read_bytes())
         for name,row in contract['files'].items():
             raw=(ROOT/'tools'/name).read_bytes()
+            raw=before_package_contract('tools/'+name,raw)
             self.assertEqual(hashlib.sha256(raw).hexdigest(),row['after_sha256'])
             text=raw.decode()
             for old,new in reversed(row['edits']):
