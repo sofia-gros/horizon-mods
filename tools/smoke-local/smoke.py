@@ -93,8 +93,8 @@ try:
     assert not any(counts.get(x) for x in ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')), counts
     step = 'assertion: Part Builder opens'
     # The real Part Builder block (mod hooks): placing it and right-clicking must open a container screen with slots.
-    ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(1)
-    ctl('look-at-block', '0', '71', '2'); opened = ctl('interact', '0', '71', '2'); time.sleep(2)
+    ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(2.5 if a.screenshots else 1)
+    ctl('look-at-block', '0', '71', '2'); time.sleep(.5); opened = ctl('interact', '0', '71', '2'); time.sleep(2)
     screen = ctl('screen')
     assert opened.get('screen') == 'container' and screen['screen'] == 'container', (opened.get('screen'), screen['screen'])
     assert len([x for x in screen['slots'] if x['slot'] >= 300]) >= 9, 'Part Builder container has no station slots'

@@ -1,46 +1,43 @@
 # PlutoLib
 
-**The Fabric API of Horizon: reusable Rust APIs for Horizon mods.**
+**The Fabric API of Horizon.** An independent mod that other mods call. It follows Fabric API's names, features and behaviour (Horizon Mixins is expected to
+offer the NeoForge-like API), is released once per Horizon version, and is general purpose: any mod can use it, not only Tinkers' Construct.
+Where Fabric API has nothing but a mod needs it (for example translations, guide-book screens), PlutoLib may add its own API.
 
-PlutoLib is an independent mod, installed beside the mods that use it. It mimics Fabric API's names, features and behaviour (Horizon Mixins is expected to offer the NeoForge-like API), is released once per Horizon version so mods need almost no change when Horizon changes, and is general purpose: future mods by anyone should be able to use it. Only the parts Tinkers' Construct needs are built first. See the [design principles](docs/design-principles.md); the text below describes what exists today, which is still short of that goal.
+Principles and what is decided: [docs/design-principles.md](docs/design-principles.md). The specification (modules, naming, packaging): [docs/fabric-api-design.md](docs/fabric-api-design.md).
+Which of today's Tinkers hooks each module will replace: [docs/fabric-api-hook-map.md](docs/fabric-api-hook-map.md) (generated).
 
-PlutoLib owns reusable APIs and their official Horizon/Mixins adapters; consuming
-mods own their content and gameplay policy. See the
-[shared API boundary](docs/shared-api-boundary.md) for the dependency contract
-and the current migration limits.
+## Using it
 
-Define items and blocks with a small Rust API, then make them available in the Creative inventory. Block declarations can override properties such as emitted light and sound templates. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
+A mod declares PlutoLib in its `horizon-mixin.toml` and calls the `[api]` crate:
 
-![The PlutoLib demo Creative tab in Horizon](docs/demo-tab.png)
-
-*Items and blocks registered by the PlutoLib demo, running in Horizon.*
-
-## What works today
-
-PlutoLib generates template-based item and block declarations and prepares Creative inventory data. For newer Horizon versions, the [single native library](docs/native-installation.md) provides [Creative preparation](docs/native-creative.md) using Horizon's own page controls; the [paging adapter](docs/creative-overflow.md) targets an older host.
-
-## Start with a small example
-
-```rust
-use pluto_lib::Registry;
-use std::path::Path;
-
-let mut registry = Registry::new("my_mod")?;
-registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
-registry.block("gem_block", "minecraft:amethyst_block")?;
-registry.write_to(Path::new("generated-content"))?;
-# Ok::<(), Box<dyn std::error::Error>>(())
+```toml
+[dependencies]
+pluto_lib = "^0.1"
 ```
 
-This writes content declarations for a gem that stacks to 16 and a block. Include them with your mod’s manifest and assets, as shown in the demo.
+```rust
+use pluto_lib::ServerPlayConnectionEvents;
 
-[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Native installation](docs/native-installation.md) · [Experimental item behaviors](docs/item-behaviors.md) · [Component transport prototype](docs/component-transport.md) · [Tool rules](docs/tool-rules.md) · [Inventory planning](docs/inventory.md) · [Combined native demo](experiments/unified-target/README.md)
+ServerPlayConnectionEvents::JOIN.register(|player| println!("{} joined", player.name));
+```
 
-## Compatibility
+## What exists today (0.1.0, unreleased)
 
-The unreleased `0.1.0` development version has been tested on Linux with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the verified combination, the initial demo's Mixins limitation, and development targets.
+In `mod/` (built with Horizon's official launcher, checked locally):
 
-The existing Python Creative helper remains available; see its [guide](docs/creative-tabs.md).
-# Native fluid reads
+- `base`: `Event` (phases, ordering, combiners), `Identifier`, `ActionResult`, and the support matrix: the list of calls that exist but do nothing yet because the host cannot do them.
+- `networking_api_v1`: `ServerPlayConnectionEvents::JOIN`, fed from Horizon's `player_logged_in` hook. It has been compiled and linked, not yet seen firing in game.
 
-The native creative bundle includes a read-only `pluto_fluid::first` helper for a block entity's first host-registered fluid tank on a given face. It reads the same `fluids` state and face mapping as the native host; it does not mutate fluid and does not resolve external capability systems or fluid tags. This candidate requires integration and host validation.
+The old unified bundle in `mixins/` (creative tabs, inventory, fluids, protection, tool rules and more) still ships and is migrated into `mod/` module by module.
+Of its eleven composition guards only `protection` passes on the current Horizon; the rest need re-review ([docs/migration/](../docs/migration/)).
+
+## Building and testing
+
+```sh
+cargo test --manifest-path pluto-lib/tests/base/Cargo.toml        # the host-independent core, seconds
+python -m unittest discover -s pluto-lib/tests                     # packaging and guard tests
+python tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod  # from the repository root
+```
+
+See [../docs/development.md](../docs/development.md) for the launcher build. Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

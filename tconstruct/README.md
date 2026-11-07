@@ -1,68 +1,30 @@
-<div align="center">
+# Tinkers' Construct for Horizon
 
-# Tinkers’ Construct for Horizon
+A port of [Tinkers' Construct](https://github.com/SlimeKnights/TinkersConstruct) to Horizon: build tools from parts, melt and cast metals, repair and modify your equipment.
+Not released yet (see [the status](../README.md#status-under-recovery)).
 
-**Build, repair, modify, melt, and cast.**
+## What has been run in a real game
 
-Bring Tinkers’ Construct’s tool-building and material progression to Horizon. Combine parts, maintain your equipment, and build a workshop around melting and casting.
+On Windows with Horizon `ebcfa226` and the PlutoLib features that currently pass their guards (`tools/smoke-local`):
 
-[![Horizon](https://img.shields.io/badge/Horizon-Mod-547da5)](https://github.com/horizon-rust/horizon)
-[![Horizon Mixins](https://img.shields.io/badge/Horizon-Mixins-6d8498)](https://github.com/horizon-rust/horizon-mixins)
+- The game starts and loads the mod's content.
+- In survival, the crafting grid turns flint into a pick head, two sticks into a handle or a binding, and those three parts into a flint pickaxe (data recipes in `content/data/tconstruct/recipe/`).
+- The Part Builder block, placed and right-clicked, opens its screen.
 
-[**Play Guide**](docs/playing.md) · [**Survival Route**](docs/survival-progression.md) · [**Linux Setup**](docs/linux.md) · [**Windows Setup**](docs/windows-playtest.md) · [**Progress**](docs/roadmap.md)
+## What exists but has not been run in a game
 
-<img src="docs/part-builder-source-preview.png" alt="A Part Builder making a tool handle" width="720">
+About 290 injections into Horizon (287 accepted by the pinned Horizon Mixins, all of them compile) and their helper code cover: the Part Builder, Tinker Station and anvils; the Melter, Smeltery,
+Foundry and casting; slime blocks, trees and islands; materials and traits; the guide book. They stage and compile, but nothing beyond the two checks above was exercised: no crafting through the Part Builder, no mining, no
+save/reload, no multiplayer. The pickaxe is a template item, not yet a material-driven tool.
 
-*Choose a pattern and material to make a tool part.*
+Parked because the pinned Mixins refuses the hook: mining speed (`source-host-mining-context`, `source-client-mining-context`) and the Tinkers Chest pick color (`tinkers-chest-pick-color`).
+Because of them the packaged `tconstruct.hnmod` does not build with the official launcher yet; the packaging will use the same slice as `tools/smoke-local/slice.json`.
 
-</div>
+## Direction
 
-> **v0.5 release target:** The formal release requires verification of the final main build and distribution. Some effects and synchronization paths remain unavailable or unverified, including durability prevention and armor wear; see [current limitations](docs/provisional.md) before playing.
+These injections are the first port, written before PlutoLib. They are frozen by the lint baseline and are replaced, feature group by feature group, by calls to [PlutoLib](../pluto-lib/README.md); see [docs/roadmap.md](../docs/roadmap.md). The open pull requests are classified in [docs/migration/pr-classification.md](../docs/migration/pr-classification.md).
 
-## What you can do
+## Layout
 
-- **Build tools from parts.** Make components at a Part Builder and assemble supported tools at a [Tinker Station or Anvil](docs/anvil-assembly.md).
-- **Repair, swap parts, and apply modifiers.** Maintain and customize supported equipment; the [play guide](docs/playing.md) describes tested examples.
-- **Melt materials, create alloys, and cast parts.** Start a workshop with [melting and casting](docs/melter-casting.md), then explore [Smeltery alloys](docs/smeltery.md).
-- **Store parts and materials beside your workstations.** Use the [Part Chest and Tinker’s Chest](docs/tinker-part-chests.md) beside a Part Builder. Local Crafting Station transactions have representative checks; representative Linux recipe-book placement and rejection checks passed locally and for a LAN guest after a prior item-loss failure; Windows and every click combination remain unverified.
-- **Browse recipes and materials in the in-game guide.** Open [Materials and You](docs/materials-and-you.md) for the original English first guide.
-- **Track guide acquisition.** The first two [guide advancements](docs/book-acquisition-advancements.md) and the initial [workstation advancements](docs/workstation-advancements.md) use source inventory criteria; the remaining progression is incomplete.
-
-<div align="center">
-<img src="docs/part-chest-builder-lan.png" alt="A Part Chest beside a Part Builder in a LAN test" width="720">
-
-*A LAN guest stores a part beside the Part Builder.*
-</div>
-
-## Start playing
-
-Follow the [Linux setup guide](docs/linux.md) or [Windows setup guide](docs/windows-playtest.md) to prepare Horizon and a separate test world. Windows gameplay remains unverified, and a reported startup error is unresolved.
-
-### Experimental native bundles
-
-A manually run Mixins validation workflow can produce an Actions artifact containing `tconstruct.hnmod` and `tconstruct.hmod`. Install the native bundle through a compatible desktop Horizon Launcher, and install and enable the content mod in the instance’s `horizon-mods/` directory. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md).
-
-**Native installation and startup resource preparation are experimental and unverified.** The current development branch also requires the matching unified PlutoLib native bundle; its installation alongside TConstruct has not yet been verified. See the [development guide](docs/development.md) for the bundle. See [PlutoLib native installation](../pluto-lib/docs/native-installation.md). The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
-
-## Compatibility
-
-The v0.5.0 packages target the Horizon and Mixins revisions in [compatibility.json](compatibility.json). Gameplay testing of v0.5.0 is incomplete. Earlier provisional Linux gameplay checks used development version `0.1.0` and a different Horizon revision; they do not verify v0.5.0. See [compatibility](docs/compatibility.md) for the exact scope and history.
-
-## Development status
-
-This port is under active development. See the [progress guide](docs/roadmap.md) for implemented features, known gaps, and verification coverage. The [slime island draft](docs/slime-islands.md) records its unfinished generation and material paths.
-
-For building and testing, see the [development guide](docs/development.md). The port reuses original TConstruct, Mantle and Forge assets under their respective licenses: [TConstruct](third_party/tconstruct/LICENSE), [Mantle](third_party/mantle/LICENSE), and [Forge](third_party/forge/LICENSE).
-
-### Advanced modifier IDs
-
-The client reads `config/tconstruct-client.toml` from the game directory. For modifier upgrade lines currently supported by the port, F3+H shows the modifier ID next to its name by default. Set the following option to `false` to hide those IDs while retaining the rest of the advanced tooltip:
-
-```toml
-[client]
-modifiersIDsInAdvancedTooltips = false
-```
-
-Restart the client after changing this file. Missing settings use the source default (`true`); an unreadable, invalid, symbolic-link, reparse-point, non-regular, or larger than 1 MiB config file hides the IDs. Symbolic links and reparse points in parent directories are not blocked. On Windows the file is opened synchronously, so a slow or unavailable filesystem can delay the first advanced tooltip. Windows handling has not yet been tested in game. This setting currently covers the upgrade lines already shown by the port, not material-trait or tool-part modifier lines. It is a client setting and does not depend on the server's config.
-
-Advanced tooltips (F3+H) show the material ID for supported built-in tool parts when the stack carries a valid material identity. This line is independent of the modifier-ID setting above and uses the stack's data in local and remote inventories. Display-only stacks and hidden tooltips omit the line; non-byte display flags are conservatively treated as display-only. Material-trait and part-modifier names are not yet shown by this path; their registry and remote synchronization are not complete.
+`content/` data and recipes · `assets/` resources · `mixins/tconstruct/` the bundle (`horizon-mixin.toml`, helpers) · `reference/` data read at run time · `tools/` resource preparation, packaging, staging · `tests/` Python tests · `third_party/` notices.
+Build and check: [../docs/development.md](../docs/development.md).

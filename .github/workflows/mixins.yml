@@ -28,6 +28,7 @@ jobs:
       - name: Forbidden-API lint
         run: |
           python3 tools/check_line_endings.py
+          python3 tools/check_docs_budget.py
           python3 tools/lint_forbidden_api.py
       - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
