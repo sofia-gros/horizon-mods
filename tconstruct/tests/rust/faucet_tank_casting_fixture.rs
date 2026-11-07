@@ -1,4 +1,5 @@
 extern crate self as horizon_client;
+#[path="__POTION_FACTS__"] pub mod pluto_potions;
 pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::items::ItemStack>>) } }
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-faucet-tank.rs"] mod tconstruct_source_faucet_tank;
@@ -104,6 +105,26 @@ fn portable_unknown_potion_and_opaque_fields_wait_without_consumption() {
         assert_eq!(activate_tank_casting(&mut game, pos, source, target, Faucet::new()), Some(false));
         assert_eq!(game.world.tags, before);
     }
+}
+#[test]
+fn shared_catalog_is_the_native_catalog_without_policy_expansion() {
+    for id in ["minecraft:water", "minecraft:awkward", "minecraft:swiftness", "swiftness", "minecraft:strong_luck", "unknown:swiftness"] {
+        let shared = horizon_client::pluto_potions::potion(id);
+        let native = horizon_client_core::potions::potion(id);
+        assert_eq!(shared.is_some(), native.is_some(), "{id}");
+        if let (Some(shared), Some(native)) = (shared, native) {
+            assert_eq!((shared.raw_id, shared.name_suffix, shared.effects), (native.id, native.name, native.effects));
+        }
+    }
+    assert!(horizon_client::pluto_potions::potion("minecraft:water").is_some());
+    assert!(horizon_client::pluto_potions::potion("minecraft:strong_luck").is_none());
+    let mut unknown = Tank::new(1000);
+    assert!(unknown.insert_tagged("tconstruct:potion", Some(&Tag::compound([("Potion", Tag::String("minecraft:strong_luck".into()))])), 250));
+    assert!(!faucet_network_tag_safe(&unknown));
+    // The catalog adapter does not decide TC's tag namespace or wire format.
+    let mut wrong_fluid = Tank::new(1000);
+    assert!(wrong_fluid.insert_tagged("other:potion", Some(&Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))])), 250));
+    assert!(!faucet_network_tag_safe(&wrong_fluid));
 }
 #[test]fn unknown_source_and_unloaded_refuse(){let(mut g,p,s,t)=super::fixture();let tag=g.world.tags.get_mut(&(s,"tconstruct:fuel_tank".into())).unwrap();if let Tag::Compound(fields)=tag{fields.insert("legacy".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);g.world.chunks.clear();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}
 }

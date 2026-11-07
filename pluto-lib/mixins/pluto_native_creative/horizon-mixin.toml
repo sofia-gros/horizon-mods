@@ -75,3 +75,10 @@ kind = "HEAD"
 helper = "landing-clear.rs"
 bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
 
+
+[[module]]
+id = "potion-facts"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_potions"
+source = "potion-facts.rs"
+visibility = "pub"

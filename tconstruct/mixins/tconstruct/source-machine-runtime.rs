@@ -1064,7 +1064,7 @@ fn faucet_network_tag_safe(tank: &Tank) -> bool {
     let horizon_world::nbt::Tag::Compound(fields) = tag else { return false; };
     tank.fluid.as_deref() == Some("tconstruct:potion") && fields.len() == 1
         && super::tconstruct_source_fluid_container::potion_tag(tag, false)
-            .is_some_and(|(id, _, _)| id.starts_with("minecraft:") && horizon_client_core::potions::potion(&id).is_some())
+            .is_some_and(|(id, _, _)| id.starts_with("minecraft:") && horizon_client::pluto_potions::potion(&id).is_some())
         && super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag)).is_some()
 }
 
