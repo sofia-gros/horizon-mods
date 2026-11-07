@@ -16,6 +16,8 @@ closed only after the batch merges, with a pointer to it.
   - 4 were independent (batch A-2: #717, #771, #809, #858).
 - `tools/classify_prs.py` now demotes `registered_fluid` data and PRs whose text references the personal fork.
 
+- **The hook layer is mostly alive.** `tools/probe_injections.py` asked the Mixins CLI about every injection one at a time on the current Horizon: 287 of 290 are accepted (rejected: mining speed x2, Tinkers Chest pick color). With eight mechanical API adaptations and a staging fix for a Mixins printing bug, the full set builds and launches, so class-B PRs that extend existing hooks no longer need those hooks parked; the open question is which of them need the three rejected targets or the PlutoLib features whose guards fail.
+
 ## Batches
 
 | Batch | Original PRs | Result |
