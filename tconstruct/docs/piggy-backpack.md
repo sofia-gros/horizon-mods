@@ -1,5 +1,0 @@
-# Piggybackpack: partial support
-
-The source Piggybackpack item and its icon are registered, and it is listed in the TConstruct Tools Creative tab. The existing source Casting Table recipe specifies a consumed saddle and 1,000 mB of sky slime. The item can be placed in the chest equipment slot using the host's standard equipment handling; a stack in inventory can hold up to 16. Its normal displayed name states, in each bundled language, that carrying is unavailable. The manual resource overlay uses the same translated name rather than an English-only item name. A custom name can replace this warning; an independent tooltip warning is not connected.
-
-This is a partial port. Picking up, carrying or putting down mobs, automatic armor exchange on a mob interaction, the carry effect and speed penalty, and a worn backpack model are not implemented. Manual chest-slot placement is a host-side convenience, not a replacement for source mob interaction. The source recipe, normal acquisition, equipment behavior, save/reload and LAN have not been verified in a running world.

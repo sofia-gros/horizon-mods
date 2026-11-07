@@ -151,7 +151,7 @@ for part in ('helmet', 'chestplate', 'leggings', 'boots'):
 # source layer. The original Forge loader is ported by the Mixins, rather than
 # making these original models look like vanilla models without their behavior.
 source_manifest = {}
-for row in (repository / 'docs/upstream-part-visuals.sha256').read_text().splitlines():
+for row in (repository / 'reference/upstream-part-visuals.sha256').read_text().splitlines():
     digest, name = row.split('  ', 1)
     if name in source_manifest:
         raise ValueError('duplicate part visual manifest path')
@@ -473,7 +473,7 @@ for name, template, title in entries:
 # Prepare source tool models and material sprites for the registered tools.
 # The shared renderer can add other tools as their real item registrations land.
 tool_manifest = {}
-for row in (repository / 'docs/upstream-tool-visuals.sha256').read_text().splitlines():
+for row in (repository / 'reference/upstream-tool-visuals.sha256').read_text().splitlines():
     digest, name = row.split('  ', 1)
     tool_manifest[name] = digest
 with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-visuals.zip') as archive:

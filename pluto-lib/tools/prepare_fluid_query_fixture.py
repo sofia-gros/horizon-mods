@@ -33,7 +33,7 @@ def api_inputs(api):
     paths = [api / 'Cargo.toml', *sorted((api / 'src').rglob('*.rs'))]
     if not (api / 'src/lib.rs').is_file() or any(p.is_symlink() for p in paths):
         raise ValueError('Require regular actual API sources')
-    return {str(p.relative_to(api)): digest(p) for p in paths}
+    return {p.relative_to(api).as_posix(): digest(p) for p in paths}
 
 
 def check_lock(host_lock, fixture_lock):

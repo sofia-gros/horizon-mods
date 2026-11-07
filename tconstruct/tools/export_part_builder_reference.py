@@ -10,7 +10,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 compat = json.loads((root / 'compatibility.json').read_text())
-with gzip.open(root / 'docs/upstream-recipes.json.gz', 'rt', encoding='utf-8') as f:
+with gzip.open(root / 'reference/upstream-recipes.json.gz', 'rt', encoding='utf-8') as f:
     catalog = json.load(f)
 if catalog['revision'] != compat['tconstruct_revision']:
     raise SystemExit('reference catalog revision does not match compatibility.json')

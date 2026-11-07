@@ -1,9 +1,0 @@
-# Smeltery fluid layers after capacity shrink
-
-The fixed source [GuiSmelteryTank.calcLiquidHeights](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/smeltery/client/screen/module/GuiSmelteryTank.java) passes `max(contained, capacity)` to its layer calculation. This matters when resizing a structure retains more liquid than the new capacity.
-
-The shared layout helper now uses that denominator, and the source float division-then-multiplication order before rounding. For 1800 mB and 200 mB stored in a 1000 mB tank, the 106-pixel display has layers of 95 and 11 pixels rather than 84 and 22. The minimum layer height, empty-space allowance and first-largest trimming order remain unchanged. A wide total avoids wrapping for unusually large native saved quantities; this is defensive behavior outside the source signed-int amount domain.
-
-Rendering, hover highlight, tooltip and click selection already share this geometry. No fluid quantities, capacity, selected-fluid protocol, persistence or machine transactions change. In-memory layer/hover tests cover the corrected overflow case, normal/empty tanks, minimum-height crowding and each pixel in representative displays. A separate literal source-algorithm oracle checks 3840 deterministic tank configurations against the optimized trimming implementation. This is a translated algorithm comparison, not execution of the original Java game.
-
-Run `python3 -m unittest discover -s tconstruct/tests -p test_smeltery_overflow_layout.py -v` with rustc available. It compiles the production helper and runs seven Rust cases, including four existing layout tests. Shared-call-site checks cover the three UI consumers. Actual rendering, window input, structure resizing, saves and LAN are not exercised by this fixture. The source comparison does not claim pixel-perfect GUI parity or verify other tank UI behavior.

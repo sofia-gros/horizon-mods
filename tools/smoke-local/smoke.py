@@ -20,6 +20,7 @@ p.add_argument('--game', type=Path, required=True, help='horizon-client executab
 p.add_argument('--ctl', type=Path, required=True, help='horizon-ctl executable')
 p.add_argument('--resources', type=Path, required=True, help='prepared Horizon 26.3 resource folder')
 p.add_argument('--run-dir', type=Path, default=root / '.local/smoke-runs')
+p.add_argument('--screenshots', type=Path, help='also save in-game screenshots of the checked steps into this folder')
 a = p.parse_args()
 
 compat = json.loads((root / 'tconstruct/compatibility.json').read_text())
@@ -39,7 +40,7 @@ env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TEL
 for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME'):
     folder = run / key.lower(); folder.mkdir(); env[key] = str(folder)
 cmd = [str(a.game.resolve()), '--resources', str(a.resources.resolve()), '--control-socket', str(endpoint), '--offscreen',
-       '--world', 'Probe', '--seed', '42', '--creative', '--test-terrain', '--render-distance', '2', '--width', '640', '--height', '360']
+       '--world', 'Probe', '--seed', '42', '--creative', '--test-terrain', '--render-distance', '2', '--width', *(('1280', '--height', '720') if a.screenshots else ('640', '--height', '360'))]
 log = (run / 'game.log').open('w')
 proc = subprocess.Popen(cmd, cwd=run, env=env, stdout=log, stderr=subprocess.STDOUT)
 
@@ -51,6 +52,12 @@ def ctl(*args, timeout=30):
     if value.get('error'):
         raise RuntimeError(str(value))
     return value
+
+def shot(name):
+    if a.screenshots:
+        a.screenshots.mkdir(parents=True, exist_ok=True)
+        time.sleep(.7)
+        ctl('screenshot', str((a.screenshots / name).resolve()))
 
 step = 'launch'
 try:
@@ -79,6 +86,7 @@ try:
     click(stick_slot); click(100, 'right'); click(101, 'right'); craft(11)     # binding (horizontal)
     click(9); click(100); click(10); click(101); click(11); click(102)  # the three parts
     craft(12)                                                # flint pickaxe
+    shot('crafted-flint-pickaxe.png')
     ctl('close'); time.sleep(.5)
     counts = ctl('inventory')['counts']
     assert counts.get('tconstruct:flint_pickaxe') == 1, counts
@@ -90,6 +98,7 @@ try:
     screen = ctl('screen')
     assert opened.get('screen') == 'container' and screen['screen'] == 'container', (opened.get('screen'), screen['screen'])
     assert len([x for x in screen['slots'] if x['slot'] >= 300]) >= 9, 'Part Builder container has no station slots'
+    shot('part-builder.png')
     ctl('close'); time.sleep(.5)
     step = 'quit'
     ctl('quit'); proc.wait(timeout=60)

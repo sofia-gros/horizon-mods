@@ -50,7 +50,7 @@ def main():
         for n, (ident, res) in enumerate(pool.map(lambda i: probe(a, i), ids), 1):
             result[ident] = res
             print(f'{n}/{len(ids)} {ident}: {res["status"]}', flush=True)
-            a.out.write_text(json.dumps(result, indent=1), encoding='utf-8')
+            a.out.write_text(json.dumps(result, indent=1), encoding='utf-8', newline='\n')
     counts = {}
     for v in result.values():
         counts[v['status']] = counts.get(v['status'], 0) + 1

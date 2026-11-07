@@ -44,7 +44,7 @@ class NativePackageTests(unittest.TestCase):
             for crate in package.CRATE_DIRECTORIES:
                 source = component / crate / "src/new_service/nested.rs"
                 source.parent.mkdir()
-                source.write_text("pub const CONTRACT_VERSION: u32 = 1;\n")
+                source.write_text("pub const CONTRACT_VERSION: u32 = 1;\n", newline="\n")
                 (component / crate / "src/notes.txt").write_text("not Rust source")
                 (component / crate / "target").mkdir()
                 (component / crate / "target/generated.rs").write_text("not API source")
@@ -263,9 +263,6 @@ class NativePackageTests(unittest.TestCase):
         self.assertEqual(api.count("static INVENTORY_COMPONENT_EVENTS:"), 1)
         self.assertNotIn("tconstruct", api)
         self.assertNotIn("tconstruct", helper)
-        docs = (ROOT / "docs/advancements.md").read_text()
-        self.assertIn("before the first inventory event", docs)
-        self.assertIn("Step 3 consumer activation remains pending", docs)
 
     def test_combines_legacy_components_without_state(self):
         with tempfile.TemporaryDirectory() as temp:

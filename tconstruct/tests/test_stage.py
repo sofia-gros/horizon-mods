@@ -13,6 +13,7 @@ def git(repo, *args):
     return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
 
 class StageExport(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt', 'builds a throwaway cargo workspace from a git archive; it only works with POSIX paths (runs in CI)')
     def test_dirty_mixins_cli_source_is_not_built(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
