@@ -18,7 +18,8 @@ Foundry and casting; slime blocks, trees and islands; materials and traits; the 
 save/reload, no multiplayer. The pickaxe is a template item, not yet a material-driven tool.
 
 Parked because the pinned Mixins refuses the hook: mining speed (`source-host-mining-context`, `source-client-mining-context`) and the Tinkers Chest pick color (`tinkers-chest-pick-color`).
-Because of them the packaged `tconstruct.hnmod` does not build with the official launcher yet; the packaging will use the same slice as `tools/smoke-local/slice.json`.
+The official launcher drops a whole mod when Mixins refuses one hook, so the packaged `tconstruct.hnmod` is built from the slice in `tools/smoke-local/slice.json`. It also leaves out the 17 injections that edit Horizon files which Mixins breaks when it rewrites them (slime islands, slime and ender trees, saplings) until Mixins is fixed.
+**Verified:** the official launcher builds this package together with the old PlutoLib package (27 minutes the first time), and `tools/smoke-local/smoke.py` passes on the game it produced.
 
 ## Direction
 
