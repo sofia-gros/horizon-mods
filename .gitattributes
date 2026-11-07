@@ -1,0 +1,23 @@
+# Line endings are LF in the repository AND in every working tree, on every OS, whatever the user's core.autocrlf is.
+# (Windows Git defaults to autocrlf=true, which turned working files into CRLF and broke byte-exact tests and tools.)
+* text=auto eol=lf
+
+# Windows batch files need CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ogg binary
+*.gz binary
+*.zip binary
+*.jar binary
+*.ttf binary
+*.nbt binary
+*.exe binary
+*.hnmod binary
+*.hmod binary
