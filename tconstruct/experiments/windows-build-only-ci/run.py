@@ -150,6 +150,89 @@ def linked_result(raw,home):
     return result,value
 
 
+def observe_float_repair(home, receipt, formatter=None):
+    """Retain the one small stage receipt even when the same build phase fails."""
+    observation={'status':'absent','scope':'Generated-file receipt and byte inverse; not Rust AST or build proof'}
+    receipt['float_range_repair']=observation
+    receipt['rust_syntax']={'status':'absent','scope':'Syntax receipt only; no type/link proof'}
+    try:
+        builds=Path(home)/'builds-latest-gnu'
+        if not builds.exists():
+            if builds.is_symlink():raise ValueError('Linked build root')
+            return
+        launch.directory(builds)
+        # A fresh driver home can contain only the one ordinary attempt.
+        entries=[]
+        for entry in builds.iterdir():
+            entries.append(entry)
+            if len(entries)>1:raise ValueError('Multiple ordinary build roots')
+        if not entries:return
+        entry=entries[0]
+        if not re.fullmatch('[0-9a-f]{64}',entry.name):raise ValueError('Unexpected ordinary build key')
+        launch.directory(entry)
+        stage=entry/'stage';path=stage/'float-range-repair-receipt.json'
+        if not stage.exists():
+            if stage.is_symlink():raise ValueError('Linked stage')
+            return
+        launch.directory(stage)
+        if not path.exists():
+            if path.is_symlink():raise ValueError('Linked repair receipt')
+            return
+        raw=launch.guard_format.bounded_file(path,8192);value=decode_json(raw)
+        json.dumps(value,allow_nan=False) # reject nested exponent overflow too
+        fixed={'schema':1,'kind':'known-float-range-token-boundary',
+          'target':'crates/horizon-world/src/worldgen/structure/start.rs',
+          'horizon':launch.HORIZON,'mixins':launch.MIXINS,'inserted_bytes':1,
+          'inverse_verified':True,'other_stage_entries_unchanged':True,
+          'original_and_locks_unchanged':True,'ast_verified':False,
+          'semantic_change':False,'repair_applied':True}
+        if not isinstance(value,dict) or any(type(value.get(k)) is not type(v) or value[k]!=v for k,v in fixed.items()):
+            raise ValueError('Repair receipt identity/status differs')
+        for name in ('before_sha256','after_sha256','plan_sha256','stage_before_seal_sha256','stage_after_seal_sha256'):
+            if not isinstance(value.get(name),str) or not re.fullmatch('[0-9a-f]{64}',value[name]):raise ValueError('Repair digest differs')
+        for name in ('before_bytes','after_bytes','offset'):
+            if type(value.get(name)) is not int or value[name]<0:raise ValueError('Repair length/offset differs')
+        data=launch.guard_format.bounded_file(stage/'modded'/fixed['target'],64*1024**2)
+        at=value['offset']
+        if (len(data)!=value['after_bytes'] or value['after_bytes']!=value['before_bytes']+1
+            or at>=len(data) or data[at:at+1]!=b' ' or base.sha(data)!=value['after_sha256']
+            or base.sha(data[:at]+data[at+1:])!=value['before_sha256']):raise ValueError('Repaired file/inverse differs')
+        if prepare.record(stage/'complete-plan.json',16*1024**2)['sha256']!=value['plan_sha256']:
+            raise ValueError('Repair plan differs')
+        observation.update(status='observed',path=str(path),bytes=len(raw),sha256=base.sha(raw),result=value)
+        observe_rust_syntax(stage,value,receipt,formatter)
+    except Exception as error:
+        # Preserve the original failed build exception; this is separate evidence.
+        observation.update(status='rejected',error=(type(error).__name__+': '+str(error))[:512])
+
+
+def observe_rust_syntax(stage, repair, receipt, formatter):
+    observation=receipt['rust_syntax']
+    try:
+        path=stage/'rust-syntax-receipt.json'
+        if not path.exists():
+            if path.is_symlink():raise ValueError('Linked syntax receipt')
+            return
+        raw=launch.guard_format.bounded_file(path,16384);value=decode_json(raw)
+        json.dumps(value,allow_nan=False)
+        fixed={'schema':1,'kind':'rustfmt-stdin-syntax','syntax_only':True,'type_checked':False,
+          'target':repair['target'],'input_sha256':repair['after_sha256'],'input_bytes':repair['after_bytes'],
+          'edition':'2024','stdin_nonrecursive':True,'emit':'stdout','writes_source':False,'timeout_seconds':30}
+        if not isinstance(value,dict) or any(type(value.get(k)) is not type(v) or value[k]!=v for k,v in fixed.items()):
+            raise ValueError('Syntax receipt identity/input differs')
+        if type(value.get('passed')) is not bool or value.get('formatter_sha256')!=receipt['gates']['formatter']['executable_sha256']:
+            raise ValueError('Syntax formatter/status differs')
+        if formatter is None or Path(value.get('formatter',''))!=Path(formatter):raise ValueError('Syntax formatter path differs')
+        if value['passed']:
+            if (type(value.get('returncode')) is not int or value['returncode']!=0 or type(value.get('stderr_bytes')) is not int or value['stderr_bytes']!=0
+                or value.get('source_unchanged') is not True or value.get('formatter_unchanged') is not True or 'error' in value):
+                raise ValueError('Syntax success evidence differs')
+        elif not isinstance(value.get('error'),str):raise ValueError('Missing syntax failure reason')
+        observation.update(status='observed',bytes=len(raw),sha256=base.sha(raw),result=value)
+    except Exception as error:
+        observation.update(status='rejected',error=(type(error).__name__+': '+str(error))[:512])
+
+
 def execute(receipt):
     global PREPARATION_DEADLINE
     c=decode_json((HERE/'inputs.json').read_bytes());check_config(c)
@@ -216,10 +299,16 @@ def execute(receipt):
         for name,path in [('horizon',horizon),('mixins',mixins)]:
             phase('fetch-'+name,[toolchain/'bin/cargo.exe','fetch','--locked','--manifest-path',path/'Cargo.toml','--target',launch.TARGET],'prepare',work,online,receipt)
         PREPARATION_DEADLINE=None
-        raw=phase('build-only',[sys.executable,ordinary/'tconstruct/tools/play_windows_latest.py',
-          '--horizon',horizon,'--mixins',mixins,'--toolchain',toolchain,'--home',work/'home',
-          '--rustfmt-archive',work/'rustfmt.tar.gz','--build-only'],'build',work,env,receipt)
+        try:
+            raw=phase('build-only',[sys.executable,ordinary/'tconstruct/tools/play_windows_latest.py',
+              '--horizon',horizon,'--mixins',mixins,'--toolchain',toolchain,'--home',work/'home',
+              '--rustfmt-archive',work/'rustfmt.tar.gz','--build-only'],'build',work,env,receipt)
+        finally:
+            observe_float_repair(work/'home',receipt,toolchain/'bin/rustfmt.exe')
+        if receipt['float_range_repair']['status']!='observed':raise ValueError('Successful link lacks valid repair evidence')
+        if receipt['rust_syntax']['status']!='observed' or receipt['rust_syntax']['result']['passed'] is not True:raise ValueError('Successful link lacks accepted syntax evidence')
         linked,detail=linked_result(raw,work/'home');stage=Path(linked['receipt']).parent/'stage'
+        if Path(receipt['float_range_repair']['path']).parent!=stage:raise ValueError('Repair and linked stage differ')
         receipt['gates']['ordinary_link']={**linked,'plan':prepare.record(stage/'complete-plan.json',16*1024**2),
           'applied_lock':verify_lock_diff(horizon/'Cargo.lock',stage/'modded/Cargo.lock',stage/'complete-plan.json')}
         receipt['gates']['imports']=decode_json(phase('imports',[sys.executable,HERE/'inspect_pe.py',linked['executable']],'inspect',work,env,receipt))

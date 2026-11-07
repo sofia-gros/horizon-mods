@@ -3,6 +3,8 @@
 import argparse, json, os, re, shutil, subprocess, sys, tempfile, tomllib
 from portable_archive import extract_git_tar
 import stage_package_contract as package_contract
+import stage_float_range_repair
+import stage_rust_syntax
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -125,3 +127,5 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original), str(contract_path)], check=True)
     package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)
+    stage_float_range_repair.repair(original, output / 'modded', source, plan, horizon_revision=head, mixins_revision=revision)
+    stage_rust_syntax.check_generated(output / 'modded', output)

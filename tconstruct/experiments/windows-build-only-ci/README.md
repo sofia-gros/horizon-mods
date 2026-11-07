@@ -1,6 +1,6 @@
 # Fresh Windows default-feature BuildOnly
 
-This is a source candidate rooted in integration 9e032ef5b013487ea08b997eb08df84825fb09ba. The reviewed source is fixed with `ready=true`; a separate explicit release is still required before creating its trigger. No Rustup, download, Cargo, formatter, Windows API, engine, or game execution has occurred for this candidate.
+This source candidate selects ordinary integration 44becb774eeea5742bddad878adada1b4f31b7b1, tree ed2a6c7237a30f7cad36e447e9b71a03b7bffb67, in a separate checkout. `ready=true` records this immutable source choice, not permission to execute. A separate explicit release is required. No new Windows build has occurred for this follow-up; the preceding 89de attempt reached real apply and Cargo before the generated float-range syntax failure.
 
 The controller imports the previously tested source-CI owned phase and raw-child-status worker unchanged. The only Job derivative changes the active-process cap and matching PID query buffer together to 64, and adds a 10 GiB group committed-memory cap. It does not create a new process supervisor. A separate clean checkout of the fixed integration head/tree supplies the ordinary launcher and both packages; CI files remain in their own checkout. The existing ordinary launcher is invoked once, without rewriting its plan, guards, apply, feature selection, or compiler command.
 
@@ -31,6 +31,46 @@ Total preparation deadline20 minutes, single ordinary stage/link phase90 minutes
 - Rust1.99.1 compiler58cf8f9c35b355199727627d07ae34a4e2846d67 build-manifest minimal profile includes rustc/cargo/rust-std/rust-mingw.
 - Official Horizon41f launcher/src/rust_toolchain.rs supplies component and WinLibs hashes. Official Mixins5a64 lockfile.rs completes and validates the applied lock.
 
-The 19 pure/mock source tests pass. They do not establish actual Rustup manifest format/layout, WinLibs archive layout, build resource sufficiency, new plan/apply, or link success. The Job/resource and ordinary/lock reviews found no additional blocker. The final bootstrap version/output correction awaits final review; source readiness does not mean execution approval.
+The original 19 pure/mock source tests are retained. They do not establish actual Rustup manifest format/layout, WinLibs archive layout, build resource sufficiency, new plan/apply, or link success. The Job/resource and ordinary/lock reviews found no additional blocker. The bootstrap version/output correction was exercised by the preceding 89de attempt. This does not prove the new generated repair/parser gates or link success.
 
 First attempt42334259441 passed17 Windows pure tests but refused Rustup version before installation. Its158-byte version stream was hashed, not retained, so the exact first line remains unknown. The follow-up retains at most4096 bytes before validation and requires one exact1.29.3 version line plus the two source-known info lines for a fresh RUSTUP_HOME, independent of merged-stream order. Unknown versions/lines, duplicates, non-UTF8 and oversized output still fail. It neither re-runs version nor changes Rust1.99.1, component hashes, WinLibs, Job, budgets, guards or ordinary source.
+
+## Narrow generated boundary repair evidence
+
+This follow-up uses the reviewed ordinary stage repair, not a different planner
+or compiler route. After the one build-only phase unwinds, including failure,
+the driver checks only the one fresh home/builds-latest-gnu/<64-hex>/stage
+receipt named float-range-repair-receipt.json (at most 8 KiB). It preserves the
+JSON plus byte/hash identity, and independently checks the staged target's
+after hash, single-space inverse, and complete-plan hash. No process is added.
+Missing evidence is recorded as absent and cannot make a successful link pass.
+Malformed, linked, multiple or drifting inputs are recorded as rejected. The
+original build exception is retained rather than overwritten by observation.
+Successful linking additionally requires the receipt's stage to be the linked
+stage. AST, the complete stage seal and Cargo success are not inferred merely
+from a receipt; its whole-stage claims originate in the ordinary helper.
+
+The five repair-observation regressions, three syntax-observation regressions and nineteen existing tests pass (27 total).
+The actual generated source and this repair remain untested on Windows.
+The immutable ordinary head/tree is fixed in inputs.json;
+source readiness does not authorize execution. Job, resource/time/log budgets,
+URLs, toolchain, feature selection, existing guards and the one build attempt
+remain unchanged.
+
+## Generated syntax receipt
+
+The same failed or successful build attempt also retains the fixed stage
+`rust-syntax-receipt.json` (at most 16 KiB). It checks the original parser
+scope, edition/stdin/emit settings, exact repaired target bytes and selected
+formatter path/hash. Successful linking requires parser exit0, no diagnostic,
+and unchanged target/formatter flags. An observed parser failure is retained
+without replacing the original build failure. Missing, malformed or mismatched
+syntax evidence cannot be promoted to link success. No second build/parser
+attempt is introduced by collection.
+
+The ordinary syntax helper was already exercised locally with the official
+1.99.1 Linux parser on original-derived good/bad/repaired source: 0/1/0. That
+proof is not an actual generated Windows file, Rust type checking or linking.
+This follow-up must parse its own freshly generated staged file after repair.
+
+For this fixed head, the complete Git tree contains 508 regular TC native files. The unchanged normal packager adds one header and one nested support entry, giving 510 entries within the existing512 limit. This is source/count verification, not a substitute for actually packaging and checking all bytes in the job.
