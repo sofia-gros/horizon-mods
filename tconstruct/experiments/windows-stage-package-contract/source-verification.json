@@ -1,0 +1,183 @@
+{
+  "schema": 1,
+  "base": "c1b54ce8e1a66b087c43cdefd030ed998810e35c",
+  "source_sha256": {
+    "tconstruct/tools/stage.py": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+    "tconstruct/tools/play_windows_latest.py": "718bf8352032e7d6ae01e37d5c2ec2c0f374da8092b308609415b342681753ab",
+    "tconstruct/tools/stage_package_contract.py": "21343afe98e184ccf7d238af8910a8ed3dfd17891fc32ef0ff9e3b18e143e4af",
+    "tconstruct/tests/test_stage_package_contract.py": "ccabfa910517be7b9b3afeae817f010f92dd0c3b49858bd5e414343be6de666f",
+    "tconstruct/tests/windows_source_layers.py": "a16a755521830e4baa4c327f3ac8d1ac6cfbeeaf4fed878ce7383701257eb7c5",
+    "tconstruct/tests/test_windows_latest_launch.py": "0372a40ab6b44dd378da2d6fab38f0549c79359079cf101cc6bb08fa006faf87",
+    "tconstruct/tests/test_windows_link_only.py": "c3ef8f30d63e85e8690e759ffabacff94da43595d0b559cf2de66b6b7bbe5bb7",
+    "tconstruct/tests/test_windows_stat_compat.py": "0cba9cd6303f4d0602cefce3c413c8217eb0feddcdb6d0af666e90c05f2a211b",
+    "tconstruct/tests/test_windows_python_utf8.py": "7ab86cf92ff1161cd1caa30b47aaedafb64e84e9a322b97f14e30ee4d391150d",
+    "tconstruct/experiments/windows-stage-package-contract/inverse.json": "b50d7991d10c6ff2b01173067cfd9ebddbfc518cc61c9cc5d7b9f587c4f0fc23",
+    "tconstruct/experiments/windows-stage-package-contract/README.md": "976dfb1380d013d7e02e6b6309d56c5003567099a1358ed20ac37008b438c5a7"
+  },
+  "shared_checker_dependency": {
+    "path": "pluto-lib/tools/check_recipe_placement_plan.py",
+    "sha256": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+    "ordinary_delta_owner": "Recipe integration",
+    "copied_locally_for_tests_only": true
+  },
+  "tests": [
+    {
+      "file": "tconstruct/tests/test_stage_package_contract.py",
+      "tests": 13,
+      "names": [
+        "test_archive_digest_mismatch_precedes_shared_helper",
+        "test_archive_drift_after_contract_and_before_apply_rejects",
+        "test_complete_archive_members_and_shared_full_contract",
+        "test_exact_actual_recipe_helper_generates_full_contract",
+        "test_launcher_passes_receipt_hashes_and_same_prepared_archive_paths",
+        "test_links_and_budgets_reject_without_reading_payload",
+        "test_missing_extra_duplicate_relative_and_unknown_hash_reject",
+        "test_missing_extra_or_changed_copied_member_reject",
+        "test_missing_extra_or_changed_expanded_member_reject",
+        "test_production_changes_inverse_to_exact_c1b54_and_stage_pin",
+        "test_save_is_fresh_and_contract_drift_rejects",
+        "test_shared_helper_failure_or_wrong_identity_never_saves",
+        "test_stage_requires_four_inputs_and_guard_third_argument_before_apply"
+      ],
+      "exit": 0,
+      "output_bytes": 1899,
+      "output_sha256": "8331fc6da95468aff4b473934bbcf8224bf02a549f35e115c1852704885474ae"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_latest_launch.py",
+      "tests": 20,
+      "names": [
+        "test_cache_identity_all_dimensions",
+        "test_compatibility_only_official_two_revision_delta",
+        "test_declared_mods_and_exact_config",
+        "test_default_gameplay_without_nonexistent_mods",
+        "test_disjoint_inputs_output",
+        "test_environment_scrub_and_cli_selected_toolchain",
+        "test_input_tree_content_names_and_mtime",
+        "test_launch_order_no_fallback_or_automatic_fetch",
+        "test_link_parent_and_special_inputs_rejected",
+        "test_local_git_archive_attributes_rejected",
+        "test_official_pins_and_no_legacy_compat",
+        "test_parent_cargo_config_rejected",
+        "test_ps_is_connected_and_has_no_discovery_install",
+        "test_resource_budget_rejects",
+        "test_rust_host_and_release_exact",
+        "test_source_identity_requires_exact_origin_lock_and_clean_tree",
+        "test_stage_exact_two_edit_inverse_and_guard_order",
+        "test_toolchain_seal_precedes_version_execution",
+        "test_unexpected_default_features_rejected",
+        "test_windows_pe_architecture_check"
+      ],
+      "exit": 0,
+      "output_bytes": 2275,
+      "output_sha256": "c937d73b6b0afa755f0090c2a713bae8814b1dc9be73491afafa176ec3cfc56d"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_link_only.py",
+      "tests": 9,
+      "names": [
+        "test_exact_inverse_preserves_prior_runtime_outside_mode_changes",
+        "test_link_cache_rechecks_binary_and_never_becomes_playtest_ready",
+        "test_mocked_changed_source_after_link_rejects_receipt",
+        "test_mocked_guard_failure_never_reaches_link_or_receipt",
+        "test_mocked_link_failure_never_writes_receipt",
+        "test_mocked_link_has_guarded_stage_then_default_gnu_build_no_assets_or_game",
+        "test_mocked_normal_mode_retains_preparation_and_game_startup",
+        "test_modes_require_resources_only_for_game_and_reject_ambiguous_input",
+        "test_parser_and_powershell_route_explicit_build_only_without_asset_selector"
+      ],
+      "exit": 0,
+      "output_bytes": 1450,
+      "output_sha256": "a453c060ea252a1e12648dedc0544b3dd829d46f02ec73f54a72977e3e7a48f6"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_stat_compat.py",
+      "tests": 12,
+      "names": [
+        "test_cross_api_keeps_every_other_identity_field",
+        "test_file_type_and_reparse_are_not_normalized",
+        "test_handle_after_execute_bits_change_still_rejects",
+        "test_handle_drift_nlink_and_reparse_still_reject",
+        "test_known_windows_extensions_only_add_filename_execute_bits",
+        "test_path_after_identity_drift_still_rejects",
+        "test_path_final_execute_bits_change_still_rejects",
+        "test_posix_preserves_exact_mode_comparison",
+        "test_regular_real_bounded_read_and_limits",
+        "test_source_changes_are_exactly_reversible",
+        "test_three_read_paths_accept_mode_difference_without_execution",
+        "test_unknown_extension_and_nonexecute_modes_reject"
+      ],
+      "exit": 0,
+      "output_bytes": 1573,
+      "output_sha256": "081b89052615b883e7c952cb6d2e9f8d0feee3b6257967a19c9c50fad1d4beb9"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_python_utf8.py",
+      "tests": 7,
+      "names": [
+        "test_actual_official_source_observations_are_fixed",
+        "test_actual_unicode_lines_reproduce_cp1252_hash_drift",
+        "test_child_environment_overrides_both_encodings_case_insensitively",
+        "test_only_two_process_encoding_assignments_are_added",
+        "test_parent_process_environment_and_system_settings_are_not_changed",
+        "test_stage_and_guard_inherit_the_selected_child_environment",
+        "test_unchanged_damage_digest_requires_correct_decoding"
+      ],
+      "exit": 0,
+      "output_bytes": 1082,
+      "output_sha256": "a7dc7bf26871d321e312a8bcb03bb9453a5c9a74c1f189fb7dc9828448c55cf6"
+    },
+    {
+      "file": "tconstruct/tests/test_windows_playtest_bundles.py",
+      "tests": 11,
+      "names": [
+        "test_budgets_and_bad_header_reject",
+        "test_combined_collision_rejected",
+        "test_duplicate_case_and_mode_rejected",
+        "test_external_bundle_requires_all_files_not_only_identity",
+        "test_fail_closed_packager_without_extracting_partial_files",
+        "test_nested_support_paths_and_budget",
+        "test_prepare_uses_both_packagers_and_cache_exactness",
+        "test_prepared_tc_data_and_archive_drift_reject",
+        "test_two_packages_keep_limits_and_complete_combined_seal",
+        "test_unsafe_windows_and_traversal_paths_rejected",
+        "test_wrong_revision_and_manifest_reject"
+      ],
+      "exit": 0,
+      "output_bytes": 1375,
+      "output_sha256": "75fb2b99c455d93fb5c5407b1b3ac85f6b64d4ee704d0b4f42def0cca9f7dbe7"
+    }
+  ],
+  "passing_suite_total": 72,
+  "unchanged_legacy_cache_baseline": [
+    {
+      "side": "before",
+      "tests": 12,
+      "passed": 10,
+      "errors": [
+        "test_script_exact_inverse_keeps_other_behavior",
+        "test_selection_key_recheck_and_ready_order"
+      ],
+      "exit": 1,
+      "output_bytes": 3104,
+      "output_sha256": "1e2f33a5da9ffb43613f420ea62bca6386b9f55b988e2bc19adcf30fec958af8"
+    },
+    {
+      "side": "source",
+      "tests": 12,
+      "passed": 10,
+      "errors": [
+        "test_script_exact_inverse_keeps_other_behavior",
+        "test_selection_key_recheck_and_ready_order"
+      ],
+      "exit": 1,
+      "output_bytes": 3104,
+      "output_sha256": "64391f7b19ef46dd147823eece2e18c5674a1ce503f9d1007bcb8b429543d74e"
+    }
+  ],
+  "native_executed": false,
+  "windows_executed": false,
+  "plan_executed": false,
+  "guard_executed": false,
+  "scope": "Synthetic package admission and mocked caller tests only; no current composition/native/Windows/link proof."
+}

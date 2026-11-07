@@ -29,7 +29,7 @@ VERSION = '1.99.1'
 TARGET = 'x86_64-pc-windows-gnu'
 MODS_FEATURE = 'horizon-client/mods'
 PROFILE = 'fast'
-STAGE_SHA = 'c2d14a49bfc55caadb8159441e87ee6a21203586bf7a725b4648ecd653166092'
+STAGE_SHA = '64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414'
 # These are read budgets, not claims about maximum compiler/resource disk growth.
 MAX_FILES = 100000
 MAX_TOTAL = 64 * 1024**3
@@ -286,7 +286,11 @@ def execute(args):
         stage = build/'stage'
         run([sys.executable, repo/'tools/stage.py','--horizon',horizon,'--mixins',mixins,
              '--mixins-revision',MIXINS,'--mods',tc_mods,'--pluto-bundle',bundle,'--output-dir',stage,
-             '--cli-target-dir',home/'mixins-cli-latest-gnu'],cwd=cwd,env=env)
+             '--cli-target-dir',home/'mixins-cli-latest-gnu',
+             '--tconstruct-archive',tc_mods.parent/'tconstruct.hnmod',
+             '--pluto-archive',tc_mods.parent/'plutolib.hnmod',
+             '--tconstruct-archive-sha256',package_receipt['packages'][0]['archive_sha256'],
+             '--pluto-archive-sha256',package_receipt['packages'][1]['archive_sha256']],cwd=cwd,env=env)
         # stage.py owns the mandatory complete-plan guard and stops before apply on rejection.
         if feature_contract(stage/'modded') != initial['features']: raise ValueError('Applied gameplay features differ from admitted source contract')
         run(compile_args(toolchain/'bin/cargo.exe',stage/'modded',home/'cargo-target-latest-gnu'),cwd=cwd,env=env)

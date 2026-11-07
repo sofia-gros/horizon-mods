@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "base_commit": "c1b54ce8e1a66b087c43cdefd030ed998810e35c",
+  "files": {
+    "tconstruct/tools/stage.py": {
+      "before_sha256": "c2d14a49bfc55caadb8159441e87ee6a21203586bf7a725b4648ecd653166092",
+      "after_sha256": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+      "edits": [
+        [
+          "from portable_archive import extract_git_tar\n",
+          "from portable_archive import extract_git_tar\nimport stage_package_contract as package_contract\n"
+        ],
+        [
+          "p.add_argument('--output-dir',",
+          "p.add_argument('--tconstruct-archive', type=Path, required=True, help='absolute same-checkout TConstruct hnmod archive')\np.add_argument('--pluto-archive', type=Path, required=True, help='absolute same-checkout Pluto hnmod archive')\np.add_argument('--tconstruct-archive-sha256', required=True, help='expected SHA256 from the verified package receipt')\np.add_argument('--pluto-archive-sha256', required=True, help='expected SHA256 from the verified package receipt')\np.add_argument('--output-dir',"
+        ],
+        [
+          "original = output / 'original'\n",
+          "archives = {'tconstruct_native': a.tconstruct_archive, 'pluto_native_creative': a.pluto_archive}\narchive_hashes = {'tconstruct_native': a.tconstruct_archive_sha256, 'pluto_native_creative': a.pluto_archive_sha256}\ncontract_raw, contract_members = package_contract.prepare(\n    root.parent / 'pluto-lib/tools/check_recipe_placement_plan.py', archives, archive_hashes, mods, pluto)\ncontract_path = output / 'crafting-package-contract.json'\npackage_contract.save(contract_path, contract_raw)\noriginal = output / 'original'\n"
+        ],
+        [
+          "    plan = output / 'complete-plan.json'\n",
+          "    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)\n    plan = output / 'complete-plan.json'\n"
+        ],
+        [
+          "    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)\n",
+          "    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)\n    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original), str(contract_path)], check=True)\n    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)\n"
+        ]
+      ]
+    },
+    "tconstruct/tools/play_windows_latest.py": {
+      "before_sha256": "36503f7ca6ca20f8113081648ecddf6ee01b67c2bddbb68b046e53592efd8149",
+      "after_sha256": "718bf8352032e7d6ae01e37d5c2ec2c0f374da8092b308609415b342681753ab",
+      "edits": [
+        [
+          "STAGE_SHA = 'c2d14a49bfc55caadb8159441e87ee6a21203586bf7a725b4648ecd653166092'",
+          "STAGE_SHA = '64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414'"
+        ],
+        [
+          "             '--cli-target-dir',home/'mixins-cli-latest-gnu'],cwd=cwd,env=env)",
+          "             '--cli-target-dir',home/'mixins-cli-latest-gnu',\n             '--tconstruct-archive',tc_mods.parent/'tconstruct.hnmod',\n             '--pluto-archive',tc_mods.parent/'plutolib.hnmod',\n             '--tconstruct-archive-sha256',package_receipt['packages'][0]['archive_sha256'],\n             '--pluto-archive-sha256',package_receipt['packages'][1]['archive_sha256']],cwd=cwd,env=env)"
+        ]
+      ]
+    }
+  }
+}

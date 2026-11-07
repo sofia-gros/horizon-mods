@@ -2,6 +2,7 @@
 """Export pinned Horizon sources and apply a resolved Mixins revision."""
 import argparse, json, os, re, shutil, subprocess, sys, tempfile, tomllib
 from portable_archive import extract_git_tar
+import stage_package_contract as package_contract
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -12,6 +13,10 @@ p.add_argument('--mixins', type=Path, required=True)
 p.add_argument('--mixins-revision', help='full Mixins commit SHA; defaults to the revision in compatibility.json')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
+p.add_argument('--tconstruct-archive', type=Path, required=True, help='absolute same-checkout TConstruct hnmod archive')
+p.add_argument('--pluto-archive', type=Path, required=True, help='absolute same-checkout Pluto hnmod archive')
+p.add_argument('--tconstruct-archive-sha256', required=True, help='expected SHA256 from the verified package receipt')
+p.add_argument('--pluto-archive-sha256', required=True, help='expected SHA256 from the verified package receipt')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 p.add_argument('--cli-target-dir', type=Path, help='explicit isolated Mixins compiler output directory')
 a = p.parse_args()
@@ -80,6 +85,12 @@ if api_count != 1:
     p.error('PlutoLib unified bundle must provide exactly one pluto-api facade')
 if inventory_count != 1 or not any(entry.get('id') == 'pluto_native_creative-inventory-export' for entry in data.get('module', [])):
     p.error('PlutoLib unified bundle must provide exactly one inventory API and its public export')
+archives = {'tconstruct_native': a.tconstruct_archive, 'pluto_native_creative': a.pluto_archive}
+archive_hashes = {'tconstruct_native': a.tconstruct_archive_sha256, 'pluto_native_creative': a.pluto_archive_sha256}
+contract_raw, contract_members = package_contract.prepare(
+    root.parent / 'pluto-lib/tools/check_recipe_placement_plan.py', archives, archive_hashes, mods, pluto)
+contract_path = output / 'crafting-package-contract.json'
+package_contract.save(contract_path, contract_raw)
 original = output / 'original'
 source = output / 'mixins-source'
 if original.exists() or (output / 'modded').exists() or source.exists():
@@ -107,7 +118,10 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     # Validate the complete installed composition, not only Pluto's own hooks.
     # The guard uses this checkout's reviewed source and verifies the exact
     # copied helper bytes embedded in the plan before any source is applied.
+    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)
     plan = output / 'complete-plan.json'
     subprocess.run([str(cli), 'plan', '--workspace', str(original), '--mods', str(combined), '--out', str(plan)], check=True)
-    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
+    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)
+    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original), str(contract_path)], check=True)
+    package_contract.verify(contract_path, contract_raw, contract_members, archives, archive_hashes, mods, pluto, combined)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)

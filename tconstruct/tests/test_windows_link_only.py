@@ -12,6 +12,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from windows_source_layers import before_package_contract
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,7 +75,7 @@ class FakePreparedWindows:
             stack.enter_context(patch('shutil.which',return_value='/mocked/git'))
             stack.enter_context(patch.object(m.guard_format,'require_guard_routing',return_value=None))
             stack.enter_context(patch.object(m.guard_format,'admit',return_value={'mocked':'formatter'}))
-            stack.enter_context(patch.object(m.bundles,'prepare',return_value=(self.root/'mods',self.root/'bundle',{})))
+            stack.enter_context(patch.object(m.bundles,'prepare',return_value=(self.root/'mods',self.root/'bundle',{'packages':[{'archive_sha256':'a'*64},{'archive_sha256':'b'*64}]})))
             stack.enter_context(patch.object(m.bundles,'verify_prepared',return_value=None))
             output=io.StringIO()
             with redirect_stdout(output):m.execute(self.args)
@@ -94,7 +95,7 @@ class Tests(unittest.TestCase):
     def test_exact_inverse_preserves_prior_runtime_outside_mode_changes(self):
         spec=json.loads((ROOT/'tests/windows-link-only-inverse.json').read_text(encoding='utf-8'))
         for relative,row in spec['files'].items():
-            raw=(ROOT/relative).read_bytes();self.assertEqual(hashlib.sha256(raw).hexdigest(),row['after_sha256'])
+            raw=before_package_contract(relative,(ROOT/relative).read_bytes(),before_stat=True);self.assertEqual(hashlib.sha256(raw).hexdigest(),row['after_sha256'])
             text=raw.decode('utf-8')
             for old,new in reversed(row['edits']):
                 self.assertEqual(text.count(new),1);text=text.replace(new,old,1)
