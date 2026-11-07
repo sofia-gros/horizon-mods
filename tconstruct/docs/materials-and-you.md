@@ -28,7 +28,7 @@ New LAN guide requests carry a sequence number, and the client accepts a reply o
 
 The source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024×512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.
 
-The modifier chapter overviews do not resolve `tinkering/tags/modifiers` or render the tag-generated modifier pages. The current pack snapshot captures material tags, not modifier tags, and does not expose a complete modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
+The modifier chapter overviews remain incomplete. Puny now includes the supported bonus-slot projection described below; the remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
 
 Puny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.
 
@@ -201,3 +201,34 @@ branches replace the historical test spelling without removing its directional
 assertion. Exact source/inverse checks are recorded in
 integration/guide-intake-20261107/tool-tanks.json. Rust, package, host, actual
 GUI interactions, save/reload and LAN remain unverified for this delta.
+## Supported Puny bonus modifier pages
+
+Puny Smelting's Slotless chapter now appends a partial, dynamic bonus-slot
+view after the source overview pages. It projects the source bonus tag onto
+this port's existing Station bonus registry, then uses the current
+condition-filtered recipe snapshot, registered items, resolved item tags and
+Station ingredient matcher. Each ordinary one-input, level-one, no-slot-cost
+recipe shows its actual input alternatives, eligible tool types and gameplay
+slot bonus. Text uses the existing paginated reader, chapter index and LAN
+book response path. A missing snapshot or invalid required nested tag produces
+no fabricated entries. Opening/requesting the book again reads fresh snapshots
+after reload; a book already open is not refreshed in place.
+
+This is an explicitly partial projection, not complete source modifier
+registry resolution. Unimplemented modifier IDs are omitted even when a
+source tag marks them required. It does not model external registrations or
+redirect aliases. Unsupported recipe shapes, multi-input recipes, requirements
+and slot costs are omitted. The full Puny modifier groups, Mighty modifier
+pages, source modifier artwork and source recipe layouts remain incomplete.
+The displayed eligible types are not a promise that every existing tool state
+can accept the modifier. Full client, in-game pagination and LAN visual checks
+remain required.
+
+Current intake: PR #693 own delta onto 5dde8793, retaining the existing
+Pluto resources snapshot and tag-graph resolver. TConstruct owns serializer,
+condition-filtered inputs, Station eligibility, slot counts and book wording.
+The shared graph remains the only traversal implementation; no parallel
+registry or resolver is introduced. Existing available-block tag callers keep
+their exact function body and errors. Source tests and inverse evidence are
+recorded in integration/guide-intake-20261107/bonus-modifiers.json. Rust,
+full host, current-book refresh, complete response size and LAN are unrun.
