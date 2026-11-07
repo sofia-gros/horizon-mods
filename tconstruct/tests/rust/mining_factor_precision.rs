@@ -1,4 +1,4 @@
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-mining-math.rs"] mod mining;
 use mining::{Conditional,conditional_speed_with_water};
 fn run(loss:u32,multiplier:f32,modifiers:&[Conditional],effective:bool)->f32 {

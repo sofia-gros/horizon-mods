@@ -2,7 +2,7 @@
 extern crate horizon_items as horizon_client;
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-projectile-stats.rs"] pub(crate) mod projectile;
 #[path = "../../mixins/tconstruct/source-ranged-draw.rs"] pub(crate) mod draw;
 #[path = "../../mixins/tconstruct/source-ranged-wear.rs"] pub(crate) mod wear;

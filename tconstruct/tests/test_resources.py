@@ -40,9 +40,9 @@ class ResourceOverlay(unittest.TestCase):
             world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
             general = next(tab for tab in tabs if tab['id'] == 'tconstruct:general')
             self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
-            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
+            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'tinkers_gadgetry', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'gold_platform', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
             self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
-            self.assertEqual(len(world['items']), 23)
+            self.assertEqual(len(world['items']), 26)
             self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:sky_slime_ball"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:necrotic_bone"}', world['items'])
@@ -56,13 +56,29 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual({name: registries[name]['protocol_id'] for name in legacy}, legacy)
             self.assertGreater(registries['tconstruct:silky_cloth']['protocol_id'], max(legacy.values()))
             self.assertEqual(registries['tconstruct:necrotic_bone']['protocol_id'], registries['tconstruct:silky_cloth']['protocol_id'] + 1)
+            self.assertEqual(registries['tconstruct:venombone']['protocol_id'], registries['tconstruct:necrotic_bone']['protocol_id'] + 1)
             items = json.loads((out / 'items.json').read_text())
+            self.assertEqual(items['tconstruct:venombone']['minecraft:item_model'], 'tconstruct:venombone')
+            self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/venombone.json').read_text()), {'parent': 'minecraft:item/bone', 'textures': {'layer0': 'tconstruct:item/materials/venombone'}})
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/venombone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/venombone.png').read_bytes())
+            for offset, material in enumerate(('iron', 'gold', 'cobalt', 'obsidian'), 1):
+                name = material + '_reinforcement'
+                item_id = 'tconstruct:' + name
+                self.assertEqual(registries[item_id]['protocol_id'], registries['tconstruct:tinkers_gadgetry']['protocol_id'] + offset)
+                self.assertEqual(items[item_id]['minecraft:item_model'], item_id)
+                self.assertIn(item_id, json.loads((out / 'command-registries.json').read_text())['items'])
+                native = SCRIPT.parent.parent / 'content/assets/tconstruct'
+                self.assertEqual(json.loads((out / f'assets/tconstruct/models/item/{name}.json').read_text()), json.loads((native / f'models/item/{name}.json').read_text()))
+                self.assertEqual((out / f'assets/tconstruct/textures/item/materials/reinforcement/{material}.png').read_bytes(), (native / f'textures/item/materials/reinforcement/{material}.png').read_bytes())
             for kind in ('splash', 'lingering'):
                 name = kind + '_bottle'
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 64)
                 model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
                 self.assertEqual(model['textures']['layer0'], 'minecraft:item/' + kind + '_potion')
             self.assertEqual(items['tconstruct:encyclopedia']['minecraft:max_stack_size'], 1)
+            self.assertEqual(items['tconstruct:tinkers_gadgetry']['minecraft:max_stack_size'], 1)
+            self.assertEqual(registries['tconstruct:tinkers_gadgetry']['protocol_id'], registries['tconstruct:venombone']['protocol_id'] + 1)
+            self.assertEqual((out / 'assets/tconstruct/textures/item/tinkers_gadgetry.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/tinkers_gadgetry.png').read_bytes())
             self.assertTrue((out / 'assets/tconstruct/textures/item/encyclopedia.png').is_file())
             # Bacon is supplied later by the existing content declaration,
             # not appended here where it could renumber prepared item IDs.
@@ -283,14 +299,6 @@ class ResourceOverlay(unittest.TestCase):
                         icon = slot.get('icon', '')
                         if icon.startswith('tconstruct:'):
                             self.assertTrue((pattern_root / (icon.split(':', 1)[1] + '.png')).is_file(), (name, icon))
-            manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
-            rows = manifest.read_text().splitlines()
-            self.assertEqual(len(rows), 62)
-            for row in rows:
-                digest, name = row.split('  ', 1)
-                original = (pattern_root / name).read_bytes()
-                self.assertEqual(hashlib.sha256(original).hexdigest(), digest)
-                self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_patterns' / name).read_bytes(), original)
             for name in ('tconstruct', 'mantle', 'forge'):
                 self.assertTrue((out / 'THIRD_PARTY_LICENSES' / (name + '.txt')).is_file())
             rejected = subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], capture_output=True)

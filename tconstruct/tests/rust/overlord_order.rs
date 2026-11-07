@@ -1,4 +1,6 @@
-extern crate horizon_items as horizon_client;
+include!("pluto_storage_fixture.rs");
+include!("pluto_potion_fixture.rs");
+pub use horizon_items::items;
 #[path="../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
 #[path="../../mixins/tconstruct/source-material-effects.rs"] mod tconstruct_source_material_effects;
 #[path="../../../pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"] mod pluto_stack_fluid;

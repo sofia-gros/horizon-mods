@@ -1,6 +1,6 @@
 // Execute real helpers linked against Horizon item/world libraries.
 extern crate horizon_items as horizon_client;
-#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-projectile-stats.rs"] mod projectile;
 use horizon_client::items::ItemStack;
 use horizon_world::nbt::Tag;

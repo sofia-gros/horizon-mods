@@ -109,3 +109,63 @@ Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconst
 The Cheese Block model, blockstate and textures are copied from Tinkers' Construct
 [f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
 Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Venombone item texture and model are copied from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
+The model's vanilla parent is explicitly namespaced for Horizon.
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Mighty Smelting Seared Soul Glass identity and source fixture are from
+[Tinkers’ Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/smeltery/soul_glass.json).
+The displayed text is adapted to explain existing acquisition and port limits.
+Copyright (c) SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The multi-alloy cycle is adapted from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct),
+`smeltery/block/entity/module/alloying/MultiAlloyingModule.java` and
+`library/recipe/alloying/AlloyRecipe.java`. Copyright (c) 2022 SlimeKnights;
+MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The four early workstation recipe-unlock advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables).
+`docs/station-recipe-unlocks.md` lists source files and native adaptations.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`.
+
+The Fantastic Foundry acquisition and recipe-unlock advancements are adapted
+from Tinkers' Construct at
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements):
+`foundry/fantastic_foundry.json` and `recipes/misc/common/fantastic_foundry.json`.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`. The native port adapts the display
+icon key, recipe ID and recipe-unlocked predicate key.
+
+The Tinkers' Gadgetry item texture, cover/page images, book index, introduction,
+language labels, recipe and acquisition advancement are copied or adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2).
+Source paths are `src/main/resources/assets/tconstruct/book/tinkers_gadgetry`,
+`book/images/covers/gadgetry_*.png`, `textures/item/tinkers_gadgetry.png`, and
+`src/generated/resources/data/tconstruct/{recipes/common,advancements/world}/tinkers_gadgetry.json`.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`. Native icon/recipe formats and the
+partial-edition notice are port adaptations.
+
+The seven Grout/Nether Grout, brick-smelting and Puny Smelting recipe-unlock
+advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes).
+`docs/grout-recipe-unlocks.md` lists source paths and native adaptations.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`.
+
+Eleven Seared machinery recipe-unlock advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes).
+Exact source paths and native recipe-ID adaptations are listed in
+`docs/seared-recipe-unlocks.md`. Copyright (c) 2022 SlimeKnights; MIT license,
+see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The twelve Scorched machinery recipe-unlock advancement fixtures are copied
+from Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, under
+`src/generated/resources/data/tconstruct/advancements/recipes/{building_blocks,decorations,redstone}/smeltery/scorched/`.
+Native advancements adapt only recipe IDs, the host recipe criterion key and
+telemetry flag. SHA-256 hashes are in `tests/fixtures/scorched_recipe_unlocks/sha256.json`.
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.

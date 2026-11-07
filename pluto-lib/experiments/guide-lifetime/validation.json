@@ -1,0 +1,152 @@
+{
+  "status": "isolated_native_type_proof_pass_ui_lifetime_unproven",
+  "state_tests": {
+    "passed": 11,
+    "failed": 0,
+    "kind": "Pure actual candidate state source; lifecycle events are modeled calls, not native execution."
+  },
+  "guard_tests": {
+    "passed": 12,
+    "failed": 0,
+    "kind": "Synthetic plan contract tests, not actual installed-host proof."
+  },
+  "files_sha256": {
+    "check_plan.py": "37835d1cf9e6e1290da7c6f41db23231d7de9d7c90f4c62e1ab5759cafccd07c",
+    "test_guard.py": "f84fba3464ee517db9d61ca06e47d9ee440294ed17c91c370666b09ba50ae583",
+    "source.json": "5c9aaf6b0145f7a870b6e852623b0737d43c60cfd2ef15b20073e16b9e692179",
+    "README.md": "35b9916d2d133f91251188f9c89eca2c127327d57ea5b0cd95a51d7b423adf28",
+    "mods/pluto_guide_lifetime_experiment/game-invalidate.rs": "37ca73eb6977352b88539121dc01489b03e7fb6def63f8254d38b61a2847ceeb",
+    "mods/pluto_guide_lifetime_experiment/state.rs": "7627c38e05b77ae7779168dc69a9c8d9061a93e13a65aedcaa95e8cd9066454f",
+    "mods/pluto_guide_lifetime_experiment/horizon-mixin.toml": "7d02765ec5646338a94b3677b93425930bdde3643dc84d08c316043e1914fd16",
+    "mods/pluto_guide_lifetime_experiment/chunks-invalidate.rs": "c6daa2354afef5d1aea5bfad036c7e685628a605fdcb7011716cc71adf88c249",
+    "mods/pluto_guide_lifetime_experiment/native.rs": "891a1d2911ed462f4da309934308a87049f80087948c3b41a45b1eca90aca213"
+  },
+  "native_gameplay": "NOT RUN: no approved complete HORIZON_TEST_RESOURCES tree or actual Client+renderer fixture. No native activation/send/subscription/screen update exists. Pure tests are not real lifecycle/network execution.",
+  "actual_native_plan_apply_typecheck": {
+    "status": "pass",
+    "exit_code": 0,
+    "phases": [
+      {
+        "phase": "plan",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+          "plan",
+          "--workspace",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+          "--mods",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/library-package/mixins",
+          "--out",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/plan.json"
+        ],
+        "exit_code": 0,
+        "seconds": 24.258
+      },
+      {
+        "phase": "library-preflight",
+        "command": [
+          "python3",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/pluto-lib/tools/check_native_plan.py",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/plan.json",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon"
+        ],
+        "exit_code": 0,
+        "seconds": 0.201
+      },
+      {
+        "phase": "experiment-preflight",
+        "command": [
+          "python3",
+          "/workspace/scratch/c7b540ff3393/pluto-guide-boundaries-379/pluto-lib/experiments/guide-lifetime/check_plan.py",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/plan.json",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon"
+        ],
+        "exit_code": 0,
+        "seconds": 0.103
+      },
+      {
+        "phase": "apply",
+        "command": [
+          "/workspace/scratch/c7b540ff3393/.devtools/target-mixins-latest-official-20261105/release/horizon-mixins",
+          "apply",
+          "--workspace",
+          "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+          "--mods",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/library-package/mixins",
+          "--out",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged"
+        ],
+        "exit_code": 0,
+        "seconds": 26.759
+      },
+      {
+        "phase": "restore-times",
+        "command": [
+          "python3",
+          "/tmp/restore-unchanged-stage-times.py",
+          "/workspace/scratch/c7b540ff3393/.work/official-cleanup-evidence-20261105/grouped-v10b-stage-cleanup.json",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+          "/tmp/pluto-guide-lifetime-experiment-20261105/unchanged-source-timestamps.json",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v10b/stage-source-mtime-ns.json",
+          "902105fa9c787deaa80f0c982ce489753111a44d1475267e602208084701210f"
+        ],
+        "exit_code": 0,
+        "seconds": 1.503
+      },
+      {
+        "phase": "host-check",
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged/Cargo.toml",
+          "-p",
+          "horizon-client",
+          "--lib",
+          "--bin",
+          "horizon-client"
+        ],
+        "exit_code": 0,
+        "seconds": 66.056
+      }
+    ],
+    "minimum_free_bytes": 11187482624,
+    "floor_bytes": 10871635968,
+    "disk_guard_stopped": false,
+    "stage_file_count": 5041,
+    "library_cutoff": "529ad7229422121d6bda28e5b5c7af5279fa0c76",
+    "experiment_cutoff": "1d3eb02fc732a0219fe996e243b27ff4bf5e7cd8",
+    "scope": "Frozen library plus uninstalled invalidation/correlation experiment. No native activation or UI/network/gameplay proof."
+  },
+  "logs": [
+    "/tmp/pluto-guide-lifecycle-probe-20261105/state-tests.log",
+    "/tmp/pluto-guide-lifecycle-probe-20261105/guard-tests.log"
+  ],
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "library_archive_sha256": "3c769c1399095cea630b2de17dc14a6a520876aa27c6bd0735d2e07bbc9b7fed",
+  "proof_files_sha256": {
+    "/tmp/pluto-guide-lifetime-experiment-20261105/combined-source.json": "40ed566532b553b225a27416356b5110450f4c987cea5fa6cd5f7816a52d9cfe",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/plan.json": "6db3511978ea9a66e6543d592f4b4e53653bdcb6e992275a7959d45f2791156b",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/result.json": "a6570963422c939566049bc6b13d03427d89eaa37a52e5f01b66d8feb1860760",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/stage-source-sha256.json": "ee481118437c60f98fcea61b988caabd037cee339d7051175114204e1685f37f",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/unchanged-source-timestamps.json": "1bb22e8df191eba4924136bbb89ad6a9822c5adff18ebb60a358c3b0294b70bb",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/plan.log": "76c2434d8281370761278fac38d048e415448131d3f65c2bfe44d690b84045df",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/library-preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/experiment-preflight.log": "8a6cf2d57d8b94e3c6f789fed630b2c3bb0aaf52da22337e6cb7289bba040118",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/apply.log": "a41515fba122ac212f923408e5eb4f5fdca1c03c0d22613e17923b2ee8059385",
+    "/tmp/pluto-guide-lifetime-experiment-20261105/host-check.log": "5429226a7295647e5bfe67edbda9cf0dc1bb7d4a8aaa5b43f644b3a1e1368a5d"
+  },
+  "retained_rejections": [
+    {
+      "path": "/tmp/pluto-guide-lifetime-experiment-20261105/attempt1-module-attrs",
+      "reason": "E_MODULE: support module inner documentation attributes; stopped before apply. Only comment headers changed."
+    },
+    {
+      "path": "/tmp/pluto-guide-lifetime-experiment-20261105/attempt2-clear-composition",
+      "reason": "Experiment preflight rejected the additional saved-book-clear; reviewed exact disjoint implementation and pinned clear-state modules before retry."
+    }
+  ],
+  "review": "Bounded peer source review found no serious allocator, pending-consumption, hidden-reply, guard or native-invalidation issue. No reviewer tests or gameplay proof."
+}

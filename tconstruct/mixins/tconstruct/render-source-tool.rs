@@ -67,7 +67,7 @@ fn render_source_tool_gui(
             use crate::game::tconstruct_source_mantle_layer::Side;
             use horizon_assets::model::Direction;
             let facing = match quad.side { Side::Up => Direction::Up, Side::Down => Direction::Down, Side::West => Direction::West, Side::East => Direction::East, Side::North => Direction::North, Side::South => Direction::South };
-            horizon_assets::bake::ModelQuad { positions: quad.positions, uv: quad.uv, facing, cull: None, material: material.clone(), tint_index: 0, shade_direction_override: None, light_emission: luminosity }
+            horizon_assets::bake::ModelQuad { positions: quad.positions, uv: quad.uv, facing, cull: None, material: material.clone(), tint_index: 0, shade_direction_override: None, light_emission: luminosity, light: [luminosity, 0], color: None, ambient_occlusion: None, render_type: None, shade: true }
         }).collect();
         let extents: Vec<_> = mapped.iter().flat_map(|q| q.positions.iter().map(|p| glam::Vec3::from_array(*p))).collect();
         for layer in &mut state.layers {

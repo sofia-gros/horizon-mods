@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "tconstruct:flint_pick_head",
+    "tconstruct:wood_binding",
+    "tconstruct:wood_handle"
+  ],
+  "result": {
+    "id": "tconstruct:flint_pickaxe"
+  }
+}

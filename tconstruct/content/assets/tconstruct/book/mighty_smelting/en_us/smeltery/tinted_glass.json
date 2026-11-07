@@ -3,6 +3,7 @@
   "item": "tconstruct:seared_tinted_glass",
   "text": [
     {"text": "Tinted seared glass is transparent while blocking light. In the default smeltery rules it can form a wall, but not the floor.", "paragraph": true},
-    {"text": "Its ordinary crafting recipe is not yet available here. Light updates in existing worlds, the in-game appearance, and LAN behavior have not been verified.", "paragraph": true}
+    {"text": "Craft one block with four Seared Bricks around vanilla Tinted Glass or Clear Tinted Glass: place a brick above, below, left and right of the glass. The input uses the forge:glass/tinted tag, so datapacks may change the accepted glass.", "paragraph": true},
+    {"text": "Actual crafting, light updates in existing worlds, the in-game appearance, and LAN behavior have not been verified.", "paragraph": true}
   ]
 }

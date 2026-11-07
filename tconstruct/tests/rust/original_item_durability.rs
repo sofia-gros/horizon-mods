@@ -1,4 +1,4 @@
-#[path = "../../mixins/tconstruct/source-original-item-durability.rs"]
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"]
 mod source;
 
 #[test]

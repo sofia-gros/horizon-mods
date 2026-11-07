@@ -22,6 +22,15 @@ fn set_metadata_inner(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value:
                 },
                 None => value,
             }
+        } else if preserve_smeltery && matches!(key, "tconstruct:table" | "tconstruct:basin") {
+            match map.get(&key.into()) {
+                Some(previous) => match super::tconstruct_source_melter_state::Casting::from_nbt(&value)
+                    .and_then(|state| state.to_nbt_preserving(previous)) {
+                    Some(merged) => merged,
+                    None => return false,
+                },
+                None => value,
+            }
         } else { value };
         map.insert(key.into(), value);
     } else {
@@ -57,6 +66,15 @@ pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
         .and_then(|saved| saved.block_entity_sources.iter().find(|(at, _)| *at == pos))
         .and_then(|(_, tag)| tag.get("id"));
     if matches!(old, Some(Tag::String(id)) if id.to_string_lossy() != key) { clear(world, pos); }
+}
+
+/// Typed boundary for live casting interactions. Never encode opaque items
+/// before checking them: decoding an encoded candidate cannot recover wire.
+pub(super) fn write_casting(world: &mut World, pos: Pos, key: &str, state: &super::tconstruct_source_melter_state::Casting) -> bool {
+    if !matches!(key, "tconstruct:table" | "tconstruct:basin") || !state.items_save_safe() { return false; }
+    let Some(raw) = read(world, pos, key) else { return false; };
+    let Some(next) = state.to_nbt_preserving(&raw) else { return false; };
+    write(world, pos, key, next)
 }
 
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
@@ -172,16 +190,13 @@ mod tests {
 /// Stage every metadata edit before touching any chunk, so a transfer cannot
 /// drain the source when a destination chunk or entity cannot be updated.
 pub(super) fn write_many(world: &mut World, changes: &[(Pos, &str, Tag)]) -> bool {
-    let mut staged = std::collections::BTreeMap::new();
-    for (pos, key, value) in changes {
-        let chunk_pos = (pos.0 >> 4, pos.2 >> 4);
-        if !staged.contains_key(&chunk_pos) {
-            let Some(chunk) = world.chunks.get(&chunk_pos) else { return false; };
-            let sources = chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default();
-            staged.insert(chunk_pos, sources);
-        }
-        if !set_metadata(staged.get_mut(&chunk_pos).unwrap(), *pos, key, value.clone()) { return false; }
-    }
+    let Some(staged) = horizon_client::pluto_inventory::storage::stage_updates(
+        changes.iter(),
+        |(pos, _, _)| (pos.0 >> 4, pos.2 >> 4),
+        |chunk_pos| world.chunks.get(chunk_pos).map(|chunk|
+            chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default()),
+        |sources, (pos, key, value)| set_metadata(sources, *pos, key, value.clone()),
+    ) else { return false; };
     for (chunk_pos, sources) in staged {
         let Some(chunk) = world.chunks.get_mut(&chunk_pos) else { return false; };
         let chunk = std::sync::Arc::make_mut(chunk);

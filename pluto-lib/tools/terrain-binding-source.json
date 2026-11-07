@@ -1,0 +1,67 @@
+{
+  "target": "horizon_client::game::PackResources::assemble",
+  "function_fingerprint": "2fcf72bb3cbbd2de3ae8a45bd790cecf35be95f6ed1688791ab729e5acd87488",
+  "bindings": [
+    {
+      "name": "assets",
+      "ty": "&Arc<Assets>",
+      "value": "&assets"
+    },
+    {
+      "name": "render",
+      "ty": "&Arc<RenderAssets>",
+      "value": "&render"
+    },
+    {
+      "name": "tables",
+      "ty": "&Arc<MeshTables>",
+      "value": "&tables"
+    }
+  ],
+  "injection_id": "fluid-render-before-assemble",
+  "location": {
+    "file": "crates/horizon-client/src/game.rs",
+    "node": [
+      386,
+      2
+    ]
+  },
+  "helper": "fluid-render-before-assemble.rs",
+  "helper_sha256": "80be25bd7c82ff6cfc54aaceedd33cd91237679dee97961b425cc5ff44829c7e",
+  "source_sha256": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/mods.rs": "9bee92a0108eebf4077e446c22740e7b68930527f428ed874e1f4bff01076ffb",
+    "crates/horizon-client/src/game/packs.rs": "852d47d3e2bc3aaa251e89a8f0ce0f281b253b0a9f065f1cc05090fcacbcf0dc",
+    "crates/horizon-client-render/src/mesher.rs": "364bdbb89839984eaa9819b75170a3ccbe5c73476aec965835edd4eb7e280c19",
+    "crates/horizon-client-render/src/mesher/fluid.rs": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+    "crates/horizon-client-render/src/assets.rs": "3743db3f2abf1e4496ec81c9c42a8a527494c8f901e222f021a344929dad12f2",
+    "crates/horizon-client-render/src/streaming.rs": "bbba9e499dcb20edb54117dd194ac6e4255ee60eb25d14e7aebd43537af263bb"
+  },
+  "modules": [
+    {
+      "module_id": "terrain-binding-host",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_binding_host",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-binding-host.rs",
+      "sha256": "40d8868bc6c1ad752f873e1adda2e591a2e683ca363bbf6677a752612f8a86e2"
+    },
+    {
+      "module_id": "terrain-bindings",
+      "file": "crates/horizon-client-render/src/mesher.rs",
+      "name": "pluto_terrain_bindings",
+      "fingerprint": "eff17a79229c35badd00cf56bf5c0fff542a3761ede72d56c4f24b54dfd46297",
+      "source": "terrain-bindings.rs",
+      "sha256": "78505730a703d25a9b74ad4dc46230815287198cf4a57640e070c634a207145a"
+    },
+    {
+      "module_id": "fluid-render-prepare",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_fluid_render_prepare",
+      "fingerprint": "314ce4bc0108b8ac41dc95e98c67a8cb693a985060c1808aa9526274814ebe26",
+      "source": "fluid-render-prepare.rs",
+      "sha256": "eb9e2002b607a4130cee7d5a094d9980ddeabcb77857224b2a246ee2cd36c76d"
+    }
+  ],
+  "scope": "Exclusive preparation only. No native fluid coercion or chunk-mesher dispatch. Official source hashes pin loader/reload ownership evidence; they are not gameplay proof."
+}

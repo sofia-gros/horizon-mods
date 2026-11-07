@@ -53,7 +53,9 @@ class MainIntegrationGuards(unittest.TestCase):
         self.assertLess(event, snapshot)
         self.assertLess(snapshot, stage)
         self.assertLess(stage, write)
-        self.assertIn('item_from_nbt(&encoded)', body)
+        self.assertIn('encode_moving_item(&item)', body)
+        self.assertIn('pluto_stack_storage::encode_item_lossless as encode_moving_item', source)
+        self.assertIn('pluto_inventory::select_candidate(candidates,', body)
         self.assertIn('game.container_changed(target)', body)
 
 if __name__ == '__main__':

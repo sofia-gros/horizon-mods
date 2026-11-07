@@ -1,0 +1,37 @@
+name: Release Tinkers' Construct
+# Tag format: tconstruct-vMAJOR.MINOR.PATCH (optionally -rc.N).
+on:
+  push:
+    tags:
+      - 'tconstruct-v*'
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  validate:
+    uses: ./.github/workflows/mixins.yml
+  release:
+    needs: validate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+      - name: Build packages from the tagged commit
+        run: |
+          mkdir -p dist
+          python3 tconstruct/tools/package_hmod.py --output dist/tconstruct.hmod
+          python3 tconstruct/tools/package_hnmod.py --output dist/tconstruct.hnmod
+          python3 pluto-lib/tools/package_native.py dist/plutolib.hnmod
+          python3 tools/validate_release.py "$GITHUB_REF_NAME" dist
+          (cd dist && sha256sum tconstruct.hmod tconstruct.hnmod plutolib.hnmod > SHA256SUMS)
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            dist/tconstruct.hmod dist/tconstruct.hnmod dist/plutolib.hnmod dist/SHA256SUMS

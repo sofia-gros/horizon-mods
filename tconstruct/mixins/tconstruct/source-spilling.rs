@@ -120,8 +120,8 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
                 continue;
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
-                let Some(known) = horizon_client::brewing::effect(&id) else { return None; };
-                let id = horizon_client_core::potions::namespaced(known.id);
+                let Some(known) = horizon_client::pluto_potions::effect(&id) else { return None; };
+                let id = known.canonical_id;
                 if !ids.insert(id) { return None; }
                 if strength < 1.0 || !game.mobs[index].extra.effects.iter().any(|entry| entry.0 == id) { continue; }
                 // Poison has no removal-time attribute effects. Other removals
@@ -131,8 +131,8 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
                 continue;
             }
         };
-        let Some(known) = horizon_client::brewing::effect(&effect.id) else { return None; };
-        let id = horizon_client_core::potions::namespaced(known.id);
+        let Some(known) = horizon_client::pluto_potions::effect(&effect.id) else { return None; };
+        let id = known.canonical_id;
         if !ids.insert(id) || matches!(id, "minecraft:instant_health" | "minecraft:instant_damage") { return None; }
         // Vanilla undead reject poison and regeneration before addEffect.
         if undead && matches!(id, "minecraft:poison" | "minecraft:regeneration") { continue; }

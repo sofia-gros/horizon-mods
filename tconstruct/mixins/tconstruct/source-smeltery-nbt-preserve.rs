@@ -1,16 +1,16 @@
 // Preserve machine and tank compound extensions, not fluid entry fields.
-use horizon_world::nbt::Tag;
+use horizon_world::nbt::{JavaString, Tag};
 
 pub(super) fn merge_top(previous: &Tag, updated: &Tag) -> Option<Tag> {
     let (Tag::Compound(old), Tag::Compound(next)) = (previous, updated) else { return None; };
-    let mut merged = old.clone();
+    let mut updates: Vec<(JavaString, Option<Tag>)> = Vec::new();
     // Owned optional fields absent from the update must not be resurrected.
     for key in ["slots", "progress", "tank", "fuel", "fuel_quality", "fuel_view",
         "temperature", "rate", "fuel_cost", "phase", "entity_phase", "heat_codes",
         "slot_count", "heat_start", "heat_page"] {
-        merged.remove(&key.into());
+        updates.push((key.into(), None));
     }
-    for (key, value) in next { merged.insert(key.clone(), value.clone()); }
+    updates.extend(next.iter().map(|(key, value)| (key.clone(), Some(value.clone()))));
     if let Some(old_tank) = old.get(&"tank".into()) {
         let new_tank = next.get(&"tank".into())?;
         let (Tag::Compound(old_fields), Tag::Compound(new_fields)) = (old_tank, new_tank) else { return None; };
@@ -20,14 +20,15 @@ pub(super) fn merge_top(previous: &Tag, updated: &Tag) -> Option<Tag> {
             let lossy = rows.iter().any(|row| matches!(row.get("id"), Some(Tag::String(id)) if id.to_string().is_err()));
             if lossy && old_tank != new_tank { return None; }
         }
-        let mut tank = old_fields.clone();
+        let mut tank_updates: Vec<(JavaString, Option<Tag>)> = Vec::new();
         // Do not retain stale legacy aliases beside the current native fields.
         // Earlier writes replaced the tank wholesale and removed these keys.
-        for key in ["capacity", "fluids", "FluidName", "Amount", "Tag"] { tank.remove(&key.into()); }
-        for (key, value) in new_fields { tank.insert(key.clone(), value.clone()); }
-        merged.insert("tank".into(), Tag::Compound(tank));
+        for key in ["capacity", "fluids", "FluidName", "Amount", "Tag"] { tank_updates.push((key.into(), None)); }
+        tank_updates.extend(new_fields.iter().map(|(key, value)| (key.clone(), Some(value.clone()))));
+        let tank = horizon_client::pluto_nbt_storage::patch_compound(old_tank, tank_updates)?;
+        updates.push(("tank".into(), Some(tank)));
     }
-    Some(Tag::Compound(merged))
+    horizon_client::pluto_nbt_storage::patch_compound(previous, updates)
 }
 
 #[cfg(test)] mod tests {
@@ -92,6 +93,19 @@ pub(super) fn merge_top(previous: &Tag, updated: &Tag) -> Option<Tag> {
         let old = Tag::compound([("tank", Tag::compound([("capacity", Tag::Long(100))]))]);
         assert!(merge_top(&old, &Tag::compound([("tank", Tag::Int(1))])).is_none());
         assert!(merge_top(&old, &Tag::compound([("fuel", Tag::Long(1))])).is_none());
+    }
+    #[test] fn merge_keeps_exact_utf16_keys_and_proposal_overlay_order() {
+        let old_key = JavaString(vec![0xd800]); let new_key = JavaString(vec![0xdc00]);
+        let mut old = horizon_world::nbt::Compound::new();
+        old.insert(old_key.clone(), Tag::Int(7)); old.insert("heat_codes".into(), Tag::IntArray(vec![1]));
+        let mut next = horizon_world::nbt::Compound::new();
+        next.insert(new_key.clone(), Tag::String(JavaString(vec![0xd800])));
+        next.insert("heat_codes".into(), Tag::IntArray(vec![2]));
+        let saved = merge_top(&Tag::Compound(old), &Tag::Compound(next)).unwrap();
+        let Tag::Compound(fields) = saved else { panic!("compound"); };
+        assert_eq!(fields.get(&old_key), Some(&Tag::Int(7)));
+        assert_eq!(fields.get(&new_key), Some(&Tag::String(JavaString(vec![0xd800]))));
+        assert_eq!(fields.get(&"heat_codes".into()), Some(&Tag::IntArray(vec![2])));
     }
     #[test] fn malformed_values_never_produce_a_replacement() {
         let valid = Tag::compound([("fuel", Tag::Long(5))]);

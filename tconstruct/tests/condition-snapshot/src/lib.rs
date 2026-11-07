@@ -1,3 +1,11 @@
+extern crate self as horizon_client;
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
+// Use the real PlutoLib resource module without the native host bundle.
+extern crate self as pluto_api;
+#[path = "../../../../pluto-lib/mixins/pluto_native_creative/api/src/resources.rs"]
+pub mod resources;
 // Standalone harness for the production condition resolver. The legacy
 // condition parser is deliberately unavailable here: these tests exercise
 // Forge item/mod conditions and conservative unknown handling.
@@ -65,4 +73,130 @@ mod budding_snapshot_test {
         }
     }
 
+}
+
+#[path = "../../../mixins/tconstruct/source-scute-compat.rs"]
+mod tconstruct_source_scute_compat;
+
+#[cfg(test)]
+mod scute_compat_tests {
+    use super::tconstruct_source_scute_compat as compat;
+    use serde_json::json;
+
+    #[test]
+    fn preparation_is_bounded_idempotent_and_registry_gated() {
+        let dir = std::env::temp_dir().join(format!("tconstruct-scute-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let original = [
+            (compat::MATERIAL, json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:scute"}, "material":"tconstruct:turtle", "needed":1,"value":1})),
+            (compat::RECYCLING, json!({"type":"tconstruct:part_builder_recycling", "pattern":{"item":"tconstruct:venom_bottle"}, "tool":{"item":"minecraft:turtle_helmet"}, "results":{"tconstruct:scale":{"item":"minecraft:scute","count":5}}})),
+        ];
+        for (id, value) in &original {
+            let path = dir.join(format!("data/tconstruct/recipes/{id}.json"));
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
+        }
+        for registry in [json!(null), json!({}), json!({"minecraft:scute":{}}), json!({"minecraft:scute":{},"minecraft:turtle_scute":{}})] {
+            compat::prepare(&dir, &registry).unwrap();
+            for (id, value) in &original {
+                let read: serde_json::Value = serde_json::from_slice(&std::fs::read(dir.join(format!("data/tconstruct/recipes/{id}.json"))).unwrap()).unwrap();
+                assert_eq!(&read, value);
+            }
+        }
+        compat::prepare(&dir, &json!({"minecraft:turtle_scute":{}})).unwrap();
+        for (id, value) in &original {
+            let path = dir.join(format!("data/tconstruct/recipes/{id}.json"));
+            let saved = std::fs::read(&path).unwrap();
+            let read: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+            let mut expected = value.clone();
+            assert!(compat::adapt_recipe(id, &mut expected));
+            assert_eq!(read, expected);
+            compat::prepare(&dir, &json!({"minecraft:turtle_scute":{}})).unwrap();
+            assert_eq!(std::fs::read(path).unwrap(), saved);
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn unrelated_or_overridden_recipes_are_not_redirected() {
+        for (id, mut value) in [
+            ("other", json!({"type":"tconstruct:material","ingredient":{"item":"minecraft:scute"}})),
+            (compat::MATERIAL, json!({"type":"other","ingredient":{"item":"minecraft:scute"}})),
+            (compat::MATERIAL, json!({"type":"tconstruct:material","ingredient":{"tag":"forge:scutes"}})),
+            (compat::MATERIAL, json!({"type":"tconstruct:material","ingredient":{"item":"mod:custom_scute"}})),
+        ] {
+            let original = value.clone();
+            assert!(!compat::adapt_recipe(id, &mut value));
+            assert_eq!(value, original);
+        }
+    }
+}
+
+#[path = "../../../mixins/tconstruct/source-chain-compat.rs"]
+mod tconstruct_source_chain_compat;
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-melting-recipes.rs"]
+mod tconstruct_source_melting_recipes;
+
+#[cfg(test)]
+mod chain_compat_tests {
+    use super::{tconstruct_source_chain_compat as compat, tconstruct_source_melting_recipes::MeltingRecipe};
+    use serde_json::{json, Value};
+    const ORIGINAL: &[u8] = include_bytes!("../../fixtures/iron-chain-melting.json");
+
+    #[test]
+    fn native_chain_matches_production_melting_with_original_yield_heat_and_time() {
+        let legacy = MeltingRecipe::parse(ORIGINAL, &|_| true).unwrap();
+        assert!(!legacy.input.matches("minecraft:iron_chain", &|_, _| false));
+        let mut value: Value = serde_json::from_slice(ORIGINAL).unwrap();
+        assert!(compat::adapt_recipe(&mut value));
+        let adapted = MeltingRecipe::parse(&serde_json::to_vec(&value).unwrap(), &|_| true).unwrap();
+        assert!(adapted.input.matches("minecraft:iron_chain", &|_, _| false));
+        assert!(!adapted.input.matches("minecraft:chain", &|_, _| false));
+        assert!(!adapted.input.matches("minecraft:copper_chain", &|_, _| false));
+        assert_eq!(adapted.output, legacy.output);
+        assert_eq!((adapted.output.id.as_str(), adapted.output.tagged, adapted.output.amount), ("forge:molten_iron", true, 110));
+        assert_eq!((adapted.temperature, adapted.time), (800, 66));
+        value["conditions"] = json!([{"type":"test:disabled"}]);
+        assert!(MeltingRecipe::parse(&serde_json::to_vec(&value).unwrap(), &|_| false).is_none());
+    }
+
+    #[test]
+    fn preparation_is_registry_gated_repeatable_and_preserves_override_files() {
+        let dir = std::env::temp_dir().join(format!("tconstruct-chain-{}", std::process::id()));
+        let path = dir.join(format!("data/tconstruct/recipes/{}.json", compat::RECIPE));
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, ORIGINAL).unwrap();
+        let world_override = dir.join("world-override.json");
+        std::fs::write(&world_override, b"player supplied bytes").unwrap();
+        for registry in [json!(null), json!({}), json!({"minecraft:chain":{}}), json!({"minecraft:iron_chain":{},"minecraft:chain":{}})] {
+            compat::prepare(&dir, &registry).unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), ORIGINAL);
+        }
+        compat::prepare(&dir, &json!({"minecraft:iron_chain":{}})).unwrap();
+        let saved = std::fs::read(&path).unwrap();
+        let mut expected: Value = serde_json::from_slice(ORIGINAL).unwrap();
+        expected["ingredient"]["item"] = json!("minecraft:iron_chain");
+        assert_eq!(serde_json::from_slice::<Value>(&saved).unwrap(), expected);
+        compat::prepare(&dir, &json!({"minecraft:iron_chain":{}})).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), saved);
+        assert_eq!(std::fs::read(world_override).unwrap(), b"player supplied bytes");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn custom_types_ingredients_and_metadata_are_preserved() {
+        for mut value in [json!({"type":"other","ingredient":{"item":"minecraft:chain"}}), json!({"type":"tconstruct:melting","ingredient":{"tag":"forge:chains"}}), json!({"type":"tconstruct:melting","ingredient":{"item":"mod:chain"}})] {
+            let original = value.clone();
+            assert!(!compat::adapt_recipe(&mut value));
+            assert_eq!(value, original);
+        }
+        let mut value: Value = serde_json::from_slice(ORIGINAL).unwrap();
+        value["conditions"] = json!([{"type":"test:custom"}]);
+        value["extra"] = json!("minecraft:chain");
+        let mut expected = value.clone();
+        expected["ingredient"]["item"] = json!("minecraft:iron_chain");
+        assert!(compat::adapt_recipe(&mut value));
+        assert_eq!(value, expected);
+    }
 }

@@ -44,11 +44,34 @@ impl CastingTank {
         if self.tank.amount == 0 { 0 } else { 1 + (14 * self.tank.amount / self.tank.capacity) as i32 }
     }
     pub(super) fn lossless(&self) -> bool {
-        self.slots.iter().flatten().all(|stack| {
-            if stack.wire_patch().is_some() { return false; }
-            let raw = item_to_nbt(stack);
-            item_from_nbt(&raw).is_some_and(|decoded| decoded.count == stack.count && decoded.same_item_same_components(stack))
-        })
+        self.slots.iter().flatten().all(|stack| horizon_client::pluto_stack_storage::encode_item_lossless(stack).is_some())
+    }
+    /// Preserve native extensions and unchanged raw slots. Changing an opaque
+    /// saved item must wait rather than discard data omitted by its decoder.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        if !self.lossless() || Tank::from_nbt(&self.tank.to_nbt(), 4000).as_ref() != Some(&self.tank) { return None; }
+        let before = Self::from_nbt(raw)?;
+        for alias in ["Items", "Tank", "Fluid", "lastRedstone"] { if raw.get(alias).is_some() { return None; } }
+        let raw_tank = raw.get("tank")?;
+        for alias in ["FluidName", "Amount", "Tag"] { if raw_tank.get(alias).is_some() { return None; } }
+        if before.tank.to_nbt_preserving(raw_tank).as_ref() != Some(raw_tank) { return None; }
+        let tank = self.tank.to_nbt_preserving(raw_tank)?;
+        let Tag::List(mut slots) = raw.get("slots")?.clone() else { return None; };
+        for index in 0..2 {
+            let unchanged = match (&before.slots[index], &self.slots[index]) {
+                (None, None) => true,
+                (Some(old), Some(new)) => old.count == new.count && old.damage == new.damage && old.same_item_same_components(new),
+                _ => false,
+            };
+            if unchanged { continue; }
+            let old = before.slots[index].as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
+            if slots[index] != old { return None; }
+            slots[index] = self.slots[index].as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
+        }
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        fields.insert("tank".into(), tank); fields.insert("slots".into(), Tag::List(slots));
+        fields.insert("redstone".into(), Tag::Byte(self.redstone as i8));
+        Some(Tag::Compound(fields))
     }
     pub(super) fn to_nbt(&self) -> Tag {
         let slots = self.slots.iter().map(|slot| slot.as_ref().map(item_to_nbt)
@@ -69,7 +92,7 @@ impl CastingTank {
     /// transfer; failure leaves the input and tank untouched.
     pub(super) fn process(&mut self, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
         tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
-        if self.slots[0].as_ref().is_none_or(|stack| stack.count != 1 || stack.wire_patch().is_some()) || self.slots[1].is_some() { return false; }
+        if !self.lossless() || self.slots[0].as_ref().is_none_or(|stack| stack.count != 1) || self.slots[1].is_some() { return false; }
         super::tconstruct_source_fluid_container::transfer_single_with_color(&mut self.tank, &mut self.slots,
             super::tconstruct_source_fluid_container::Direction::Auto, known_item, known_fluid, tags, allow_color)
     }

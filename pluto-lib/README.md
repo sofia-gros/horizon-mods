@@ -1,39 +1,54 @@
 # PlutoLib
 
-**Reusable Rust APIs for Horizon mods.**
+**The Fabric API of Horizon.** An independent mod that other mods call. It follows Fabric API's names, features and behaviour (Horizon Mixins is expected to
+offer the NeoForge-like API), is released once per Horizon version, and is general purpose: any mod can use it, not only Tinkers' Construct.
+Where Fabric API has nothing but a mod needs it (for example translations, guide-book screens), PlutoLib may add its own API.
 
-Define items and blocks with a small Rust API, then make them available in the Creative inventory. Block declarations can override properties such as emitted light and sound templates. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
+Principles and what is decided: [docs/design-principles.md](docs/design-principles.md). The specification (modules, naming, packaging): [docs/fabric-api-design.md](docs/fabric-api-design.md).
+Which of today's Tinkers hooks each module will replace: [docs/fabric-api-hook-map.md](docs/fabric-api-hook-map.md) (generated).
 
-![The PlutoLib demo Creative tab in Horizon](docs/demo-tab.png)
+## Using it
 
-*Items and blocks registered by the PlutoLib demo, running in Horizon.*
+A mod declares PlutoLib in its `horizon-mixin.toml` and calls the `[api]` crate:
 
-## What works today
-
-PlutoLib generates template-based item and block declarations and prepares Creative inventory data. For newer Horizon versions, the [single native library](docs/native-installation.md) provides [Creative preparation](docs/native-creative.md) using Horizon's own page controls; the [paging adapter](docs/creative-overflow.md) targets an older host.
-
-## Start with a small example
-
-```rust
-use pluto_lib::Registry;
-use std::path::Path;
-
-let mut registry = Registry::new("my_mod")?;
-registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
-registry.block("gem_block", "minecraft:amethyst_block")?;
-registry.write_to(Path::new("generated-content"))?;
-# Ok::<(), Box<dyn std::error::Error>>(())
+```toml
+[dependencies]
+pluto_lib = "^0.1"
 ```
 
-This writes content declarations for a gem that stacks to 16 and a block. Include them with your mod’s manifest and assets, as shown in the demo.
+```rust
+use pluto_lib::ServerPlayConnectionEvents;
 
-[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Native installation](docs/native-installation.md) · [Experimental item behaviors](docs/item-behaviors.md) · [Component transport prototype](docs/component-transport.md) · [Tool rules](docs/tool-rules.md) · [Inventory planning](docs/inventory.md) · [Combined native demo](experiments/unified-target/README.md)
+ServerPlayConnectionEvents::JOIN.register(|player| println!("{} joined", player.name));
+```
 
-## Compatibility
+## What exists today (0.1.0, unreleased)
 
-The unreleased `0.1.0` development version has been tested on Linux with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the verified combination, the initial demo's Mixins limitation, and development targets.
+In `mod/` (built with Horizon's official launcher):
 
-The existing Python Creative helper remains available; see its [guide](docs/creative-tabs.md).
-# Native fluid reads
+- `base`: `Event` (phases, ordering, combiners), `Identifier`, `ActionResult`, and the support matrix: the list of calls that exist but do nothing yet because the host cannot do them.
+- `lifecycle_events_v1`: `ServerLifecycleEvents` (`SERVER_STARTING`, `SERVER_STOPPING`), `ServerTickEvents` (server and world tick start and end), `ServerChunkEvents` (`CHUNK_LOAD`, `CHUNK_UNLOAD`).
+- `networking_api_v1`: `ServerPlayConnectionEvents` (`JOIN`, `DISCONNECT`); callbacks receive a `ServerPlayer`.
+- `player_api`: `ServerPlayer` with `send_message` and `give_item`. The handle is plain data; its methods reach the game only while a callback that carries a player runs (outside, they do nothing and say so).
+- `data_attachment_api_v1`: `AttachmentRegistry::create(id, default)` and `has_attached` / `get_attached` / `get_attached_existing` / `set_attached` on `ServerPlayer`; values are serde types saved with the player. Players only so far; worlds, chunks, block entities and other entities follow.
+- `events_interaction_v0`: `UseItemCallback`, `UseBlockCallback`, `AttackEntityCallback`, `PlayerBlockBreakEvents::BEFORE` (a veto cancels the break).
+- `entity_events_v1`: `ServerEntityEvents` (`ENTITY_LOAD`, `ENTITY_UNLOAD`), `ServerLivingEntityEvents::ALLOW_DAMAGE`.
+- `loot_api_v2`: `LootTableEvents::MODIFY` (edit a loading loot table's JSON).
+- `resource_loader_v0`: `ResourceManagerHelper` reload listeners for client resources.
+- `item_api_v1`: `ItemTooltipCallback` (add tooltip lines).
 
-The native creative bundle includes a read-only `pluto_fluid::first` helper for a block entity's first host-registered fluid tank on a given face. It reads the same `fluids` state and face mapping as the native host; it does not mutate fluid and does not resolve external capability systems or fluid tags. This candidate requires integration and host validation.
+Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
+
+**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `CHUNK_LOAD`, `JOIN`, `END_SERVER_TICK` and `LootTableEvents::MODIFY` in the game log, and from the `JOIN` callback it sent the player a message and gave them an item (`send_message=true give_left=0`). The other events compile and follow the same path but have not been seen firing yet (the client-resources reload did not fire in the offscreen test run).
+The old unified bundle in `mixins/` (creative tabs, inventory, fluids, protection, tool rules and more) still ships and is migrated into `mod/` module by module.
+Of its eleven composition guards only `protection` passes on the current Horizon; the rest need re-review ([docs/migration/](../docs/migration/)).
+
+## Building and testing
+
+```sh
+cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml        # the host-independent part, seconds
+python -m unittest discover -s pluto-lib/tests                     # packaging and guard tests
+python tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod  # from the repository root
+```
+
+See [../docs/development.md](../docs/development.md) for the launcher build. Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

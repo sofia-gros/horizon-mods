@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package PlutoLib's verified native components as one Mixins bundle."""
+"""Package PlutoLib's native components as one Mixins bundle."""
 import argparse
 import json
 from pathlib import Path
@@ -16,8 +16,7 @@ COMPONENTS = (
     "pluto_component_bar",
     "pluto_items_b2",
 )
-API_FILES = ("api/Cargo.toml", "api/src/lib.rs", "api/src/creative.rs", "api/src/item.rs")
-INVENTORY_FILES = ("inventory-api/Cargo.toml", "inventory-api/src/lib.rs")
+CRATE_DIRECTORIES = ("api", "inventory-api")
 
 
 def _value(value):
@@ -48,6 +47,25 @@ def _relative(value: str) -> str:
     return path.as_posix()
 
 
+def _crate_sources(root: Path, relative: str) -> dict[str, bytes]:
+    """Include each public crate's Rust modules without copying build artifacts.
+
+    Keep the crate roots explicit. New API modules may be nested, but source
+    symlinks are rejected rather than followed or silently omitted. Non-source
+    resources require a separate, reviewed packaging contract.
+    """
+    crate = root / relative
+    files = {f"{relative}/Cargo.toml": _regular(crate / "Cargo.toml")}
+    # Both supported crates are libraries; fail early on an incomplete checkout.
+    _regular(crate / "src/lib.rs")
+    for path in sorted((crate / "src").rglob("*")):
+        if path.is_symlink():
+            raise ValueError(f"expected a regular source path: {path}")
+        if path.is_file() and path.suffix == ".rs":
+            files[path.relative_to(root).as_posix()] = _regular(path)
+    return files
+
+
 def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
     lines = ["[mod]", f'id = {_value(manifest["id"])}',
              f'version = {_value(manifest["version"])}', "priority = 100", "",
@@ -67,6 +85,8 @@ def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
             for original in mixin.get(section, []):
                 entry = dict(original)
                 constructors = entry.pop("constructor", []) if section == "state" else []
+                if section == "state" and not constructors:
+                    entry["constructor"] = []
                 if section != "state" or name != manifest["id"]:
                     entry["id"] = f'{name}-{entry["id"]}'
                 if section == "injection":
@@ -77,10 +97,10 @@ def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
                     rel = _relative(entry[key])
                     entry[key] = f"{name}/{rel}"
                     if key == "path":
-                        if name != "pluto_native_creative" or rel not in ("api", "inventory-api"):
+                        if name != "pluto_native_creative" or rel not in CRATE_DIRECTORIES:
                             raise ValueError(f"{name}: unsupported crate path {rel}")
-                        for item in API_FILES if rel == "api" else INVENTORY_FILES:
-                            files[f"{name}/{item}"] = _regular(root / item)
+                        for item, source in _crate_sources(root, rel).items():
+                            files[f"{name}/{item}"] = source
                     else:
                         files[f"{name}/{rel}"] = _regular(root / rel)
                 lines.append(f"[[{section}]]")

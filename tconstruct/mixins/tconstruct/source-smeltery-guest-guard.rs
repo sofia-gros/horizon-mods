@@ -43,7 +43,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                     crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
                         crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
                         &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref());
-                    if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                    if state.tank_to_nbt_preserving(&tag).is_some_and(|saved|
+                        crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery").as_ref() == Some(&tag)
+                            && crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", saved)) {
                         hub.guests[gi].inventory = inventory;
                         world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
                     } else { next = containers.clone(); }
@@ -60,7 +62,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
             crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
                 crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
                 &|id| rules.items().get(id).is_some(), &|id| known_fluids.contains(id), bottle_tags.as_ref());
-            if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+            if state.tank_to_nbt_preserving(&tag).is_some_and(|saved|
+                crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery").as_ref() == Some(&tag)
+                    && crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", saved)) {
                 hub.guests[gi].carried = carried;
                 world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
             }
@@ -69,6 +73,32 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
             .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
         hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &current));
         return Break(Vec::new());
+    }
+    // Keep vanilla's authority checks before this bounded custom mutation.
+    if packet.input == 0 && packet.button == 0 && (2..54).contains(&packet.slot)
+        && matches!(menu.slots, crate::lan::menu::Slots::Block(at) if at == pos)
+        && !hub.guests[gi].spectator() && menu.slots.still_valid(world, &hub.guests[gi], menu.pos)
+        && hub.guests.iter().filter(|guest| guest.menu.as_ref().is_some_and(|other| other.pos == Some(pos))).count() == 1
+        && !world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().contains_key(&pos) {
+        if let Some(index) = crate::tconstruct_source_smeltery_layout::melting_index(state.slots.len(), offset, packet.slot as usize) {
+            if let Some(held) = hub.guests[gi].carried.clone().filter(|held| held.count > 1 && held.data().is_none_or(|data| data.wire.patch().is_none())
+                && horizon_items::bundle::Contents::of(rules.items(), held).is_none()) {
+                if state.slots[index].is_none() {
+                    let expected = crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    if !crate::tconstruct_source_smeltery_page::sent_page_matches(&menu.sent, &expected) {
+                        hub.send_menu_content(gi, expected);
+                        return Break(Vec::new());
+                    }
+                    if let Some((next, one, rest)) = crate::tconstruct_source_smeltery_page::prepare_single_insert(&tag, index, &held) {
+                        if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", next) {
+                            state.slots[index] = Some(one); state.progress[index] = 0; hub.guests[gi].carried = Some(rest);
+                        }
+                    }
+                    hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
+                    return Break(Vec::new());
+                }
+            }
+        }
     }
     if packet.input == 1 {
         let mut inventory = hub.guests[gi].inventory.clone();
@@ -88,7 +118,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                     crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
                         crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
                         &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref());
-                    if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                    if state.tank_to_nbt_preserving(&tag).is_some_and(|saved|
+                        crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery").as_ref() == Some(&tag)
+                            && crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", saved)) {
                         inventory[index] = stack;
                         hub.guests[gi].inventory = inventory;
                         world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
@@ -100,6 +132,12 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                 return Break(Vec::new());
             }
         }
+        if state.inventory_to_nbt_preserving(&tag).as_ref() != Some(&tag)
+            || !crate::tconstruct_source_smeltery_page::no_retained_wire(&hub.guests[gi].inventory) {
+            hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
+            return Break(Vec::new());
+        }
+        let block = world.block(pos.0,pos.1,pos.2);
         let stack = container_index.and_then(|index| state.slots[index].clone())
             .or_else(|| player_index.and_then(|index| inventory[index].clone()));
         if let Some(stack) = stack {
@@ -124,7 +162,10 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                 };
                 if !same { state.progress[index] = 0; }
             }
-            if remaining.as_ref().map_or(0, |item| item.count) != before && crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+            if remaining.as_ref().map_or(0, |item| item.count) != before && state.inventory_to_nbt_preserving(&tag).is_some_and(|saved|
+                world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4)) && world.block(pos.0,pos.1,pos.2) == block
+                    && crate::tconstruct_source_melter_store::read(world,pos,"tconstruct:smeltery").as_ref() == Some(&tag)
+                    && crate::tconstruct_source_melter_store::write(world,pos,"tconstruct:smeltery",saved)) {
                 hub.guests[gi].inventory = inventory;
             }
         }

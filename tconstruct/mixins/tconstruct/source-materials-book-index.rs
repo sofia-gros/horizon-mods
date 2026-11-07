@@ -1,3 +1,8 @@
+// Never imply unsupported exploration acquisition routes are implemented.
+pub(super) fn gadgetry_exploration_page(name: &str) -> bool {
+    matches!(name, "cobalt_ore" | "cobalt_blasting")
+}
+
 // Keep long descriptions usable as index links without wrapping across entries.
 // The host tag snapshot is a set, so retain the pinned source's built-in
 // order explicitly. Unknown datapack additions follow in lexical order.
@@ -19,9 +24,9 @@ pub(super) fn mighty_advice_page(name: &str) -> bool {
 }
 
 // Expose source pages whose described basics have an existing limited path.
-// Other pages include unsupported or unverified operations.
+// Adapted pages explicitly distinguish missing operations from supported basics.
 pub(super) fn mighty_smeltery_page(name: &str) -> bool {
-    matches!(name, "features" | "controller" | "structurereq" | "alloying" | "blazing_blood_barter" | "sgui1" | "sgui2" | "seared_tanks" | "seared_chute" | "seared_ladder" | "seared_glass" | "tinted_glass")
+    matches!(name, "features" | "controller" | "structurereq" | "alloying" | "blazing_blood_barter" | "sgui1" | "sgui2" | "seared_tanks" | "seared_blocks" | "seared_chute" | "seared_ladder" | "seared_glass" | "tinted_glass" | "soul_glass" | "seared_drain" | "seared_duct")
 }
 
 // Never show source advice without the reader's partial-coverage notice.
@@ -84,11 +89,16 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout, mighty_advice_page, mighty_smeltery_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    use super::{gadgetry_exploration_page, label, layout, mighty_advice_page, mighty_smeltery_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    #[test]
+    fn gadgetry_exploration_excludes_unimplemented_sources() {
+        for name in ["cobalt_ore", "cobalt_blasting"] { assert!(gadgetry_exploration_page(name)); }
+        for name in ["index", "steel_shard", "cobalt_shard", "necrotic_bones", "dragon_scales", "grass_seeds", "skyslime_island", "ichor_geode", "unknown"] { assert!(!gadgetry_exploration_page(name)); }
+    }
     #[test]
     fn mighty_smeltery_only_exposes_selected_source_pages() {
-        for name in ["features", "controller", "structurereq", "alloying", "blazing_blood_barter", "sgui1", "sgui2", "seared_tanks", "seared_chute", "seared_ladder", "seared_glass", "tinted_glass"] { assert!(mighty_smeltery_page(name)); }
-        for name in ["structure", "seared_duct", "unknown"] {
+        for name in ["features", "controller", "structurereq", "alloying", "blazing_blood_barter", "sgui1", "sgui2", "seared_tanks", "seared_blocks", "seared_chute", "seared_ladder", "seared_glass", "tinted_glass", "soul_glass", "seared_drain", "seared_duct"] { assert!(mighty_smeltery_page(name)); }
+        for name in ["structure", "unknown"] {
             assert!(!mighty_smeltery_page(name));
         }
     }

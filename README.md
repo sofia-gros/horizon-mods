@@ -1,38 +1,46 @@
 <div align="center">
 
-<img src="docs/branding/horizon-mods-icon.png" alt="Horizon Mods project icon" width="120">
+<img src="docs/branding/horizon-mods-icon.png" alt="Horizon Mods icon" width="120">
 
 # Horizon Mods
 
 <img src="docs/branding/horizon-mods-banner.png" alt="Horizon Mods banner" width="900">
 
-**Mods and reusable libraries for Horizon.**
+**Mods and a Fabric-API-style library for [Horizon](https://github.com/horizon-rust/horizon).**
 
-Explore Tinkers’ Construct for Horizon and PlutoLib, a Rust library for building mods with reusable APIs.
-
-PlutoLib’s Rust APIs are in development; the current Creative-tab tooling is Python.
-
-[![Horizon](https://img.shields.io/badge/Horizon-Mods-547da5)](https://github.com/horizon-rust/horizon)
-[![Horizon Mixins](https://img.shields.io/badge/Horizon-Mixins-6d8498)](https://github.com/horizon-rust/horizon-mixins)
-
-[**Tinkers’ Construct**](tconstruct/README.md) · [**PlutoLib**](pluto-lib/README.md) · [**Getting Started**](tconstruct/docs/playing.md)
-
-<img src="tconstruct/docs/part-chest-builder-lan.png" alt="A Part Chest beside a Part Builder in a Horizon LAN test" width="760">
+English · [日本語](README.ja.md)
 
 </div>
 
-## Explore the projects
+## What is here
 
-### [Tinkers’ Construct](tconstruct/README.md)
+| | |
+|---|---|
+| **[PlutoLib](pluto-lib/README.md)** | Horizon's counterpart of the Fabric API: an independent mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
+| **[Tinkers' Construct for Horizon](tconstruct/README.md)** | A port of Tinkers' Construct: build tools from parts, smelt and cast metals, modify your equipment. |
 
-Build tools from parts, repair and modify your equipment, and turn molten materials into new creations.
+## Status: under recovery
 
-### [PlutoLib](pluto-lib/README.md)
+The project is being rebuilt on PlutoLib against the latest official Horizon and Horizon Mixins. There is **no release yet**.
+What has been run on a real game today (Windows, Horizon `ebcfa226`):
 
-Reusable Rust APIs for Horizon mod developers. Active development starts with item and block registration and creative inventory integration.
+- The game starts with the mod loaded, and a survival player can craft a flint pickaxe from its parts.
+- The Part Builder block opens its screen.
 
-## Start here
+<p align="center">
+  <img src="docs/images/part-builder.png" alt="The Part Builder screen in game" width="48%">
+  <img src="docs/images/crafted-flint-pickaxe.png" alt="A crafted flint pickaxe in the inventory" width="48%">
+</p>
 
-- **Playing:** Start with [Tinkers’ Construct](tconstruct/README.md) and its illustrated [play guide](tconstruct/docs/playing.md).
-- **Making mods:** See [PlutoLib](pluto-lib/README.md) and the [development guide](docs/development.md).
-- **Following progress:** See the [Tinkers’ Construct roadmap](tconstruct/docs/roadmap.md) and [PlutoLib’s current plans](pluto-lib/README.md).
+Most other features are present as code but have not been exercised in game. [Tinkers' Construct](tconstruct/README.md) lists what is and is not verified.
+
+## Where to go next
+
+- **Developers:** [docs/development.md](docs/development.md) (build, local checks, CI) and [docs/architecture.md](docs/architecture.md).
+- **Plans:** [docs/roadmap.md](docs/roadmap.md) and [docs/migration/](docs/migration/).
+- **Releases:** [docs/releasing.md](docs/releasing.md).
+- **Working rules for contributors and agents:** [AGENTS.md](AGENTS.md).
+
+## Licence
+
+See the licence files in each directory.

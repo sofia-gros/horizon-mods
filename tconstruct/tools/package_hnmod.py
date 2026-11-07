@@ -9,6 +9,8 @@ import io
 import json
 from pathlib import Path
 import subprocess
+import sys
+import tempfile
 import tomllib
 import zipfile
 
@@ -29,6 +31,24 @@ def tracked(*paths):
         if source.is_symlink() or not source.is_file():
             raise ValueError(f'not a regular tracked file: {rel}')
         yield rel, source
+
+
+def sliced_manifest():
+    """The Tinkers manifest without the injections the pinned Horizon Mixins refuses (tools/smoke-local/slice.json).
+
+    The official launcher drops a whole mod when Mixins rejects any of its hooks, so shipping the full manifest would ship nothing."""
+    config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
+    command = [sys.executable, str(ROOT / 'tools/slice_manifest.py')]
+    for ident in config['tconstruct_all_except']:
+        command += ['--all-except', ident]
+    # Mixins re-prints edited files and breaks `0. ..=1.` in these Horizon files; the launcher cannot work around it
+    # (our own stage.py does), so nothing that edits them ships until Mixins is fixed.
+    for host_file in config.get('launcher_unsafe_files', []):
+        command += ['--avoid-file', host_file]
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / 'tconstruct'
+        subprocess.run(command + ['--out', str(out)], check=True, capture_output=True)
+        return (out / 'horizon-mixin.toml').read_bytes()
 
 
 def write_zip_file(archive, name, payload):
@@ -65,12 +85,14 @@ def package(output):
             write_zip_file(archive, rel.as_posix(), source.read_bytes())
 
     files = [('horizon-native.json', (json.dumps(manifest, indent=2) + '\n').encode())]
+    manifest_payload = sliced_manifest()
     for rel, source in tracked('tconstruct/mixins/tconstruct'):
         inside = rel.relative_to('tconstruct/mixins/tconstruct')
         if source.suffix not in ('.rs', '.toml'):
             raise ValueError(f'unsupported native source: {rel}')
         # Generated accessors are namespaced by the native mod ID.
-        payload = source.read_bytes().replace(b'__horizon_mixins_tconstruct_', b'__horizon_mixins_tconstruct_native_')
+        payload = (manifest_payload if inside.as_posix() == 'horizon-mixin.toml' else source.read_bytes()).replace(
+            b'__horizon_mixins_tconstruct_', b'__horizon_mixins_tconstruct_native_')
         if inside.as_posix() == 'horizon-mixin.toml':
             payload = payload.replace(b'id = "tconstruct"', b'id = "tconstruct_native"', 1)
         files.append((f'mixins/{native_id}/{inside.as_posix()}', payload))

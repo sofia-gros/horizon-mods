@@ -2,11 +2,11 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
     use std::ops::ControlFlow::{Break, Continue};
     if game.remote.is_some() { return Continue(()); }
     let Some(hit) = hit else { return Continue(()); };
-    // Match the existing use-item ordering: sneaking with a held item lets
-    // that item act instead of opening the machine.
-    if game.keys.contains(&KeyCode::ShiftLeft) && (game.stack_in(game.selected).is_some() || game.offhand.is_some()) { return Continue(()); }
     let state = game.world.block(hit.pos[0], hit.pos[1], hit.pos[2]);
     let name = game.res.facts().get(state).name.clone();
+    if crate::game::tconstruct_source_machine_interaction::sneak_passthrough(
+        &name, game.keys.contains(&KeyCode::ShiftLeft),
+        game.stack_in(game.selected).is_some(), game.offhand.is_some()) { return Continue(()); }
     let pos = (hit.pos[0], hit.pos[1], hit.pos[2]);
     if &*name == "tconstruct:part_chest" {
         if let Some(stack)=game.inventory.get(game.selected).cloned().flatten() {
@@ -32,14 +32,64 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
             }
             crate::game::tconstruct_source_machine_runtime::interact_cannon(game,pos,tank)
         },
+        "tconstruct:seared_melter" => {
+            // Source TinyMultiblockControllerBlock tries the held container
+            // first, then opens its normal menu when no transfer is possible.
+            use crate::game::tconstruct_source_melter_store as store;
+            if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &name) { return Break(Ok(false)); }
+            let raw_before = store::read(&game.world, pos, "tconstruct:melter");
+            let held_before = game.held().cloned();
+            let creative = game.creative;
+            let local = (game.lan.is_none(), game.lan_acting_uuid.is_none());
+            let unchanged = |game: &crate::game::Game<'_>| {
+                game.remote.is_none() && game.world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4))
+                    && game.world.block(pos.0,pos.1,pos.2) == state
+                    && store::read(&game.world,pos,"tconstruct:melter") == raw_before
+                    && game.creative == creative && (game.lan.is_none(),game.lan_acting_uuid.is_none()) == local
+                    && match (game.held(),held_before.as_ref()) {
+                        (None,None) => true,
+                        (Some(now),Some(before)) => horizon_client::pluto_stack_storage::same_item_snapshot(before, now),
+                        _ => false,
+                    }
+            };
+            game.ensure_datapacks();
+            // A changed preparation snapshot must not transfer a new hand's
+            // contents or open a menu for a replacement block.
+            if !unchanged(game) { return Break(Ok(true)); }
+            let plan = game.held().and_then(|held| {
+                let raw = raw_before.as_ref()?;
+                let (fluids, _) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()?.as_ref().ok()?;
+                let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok());
+                crate::game::tconstruct_source_fluid_container::plan_melter_held(raw, held,
+                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags,
+                    game.lan.is_none() && game.lan_acting_uuid.is_none())
+            });
+            if !unchanged(game) { return Break(Ok(true)); }
+            if let Some(mut plan) = plan {
+                // A rejected save must not consume, give or drop any item.
+                if !store::write(&mut game.world, pos, "tconstruct:melter", plan.saved) { return Break(Ok(false)); }
+                if game.creative {
+                    if plan.drained { if let Some(result) = plan.result.take() { game.give_or_drop(result); } }
+                } else if let Some(rest) = plan.remaining.take() {
+                    *game.held_mut() = Some(rest);
+                    if let Some(result) = plan.result.take() { game.give_or_drop(result); }
+                } else {
+                    *game.held_mut() = plan.result.take();
+                }
+                game.container_changed(pos);
+            } else {
+                game.open_menu(hit.pos);
+            }
+            true
+        },
         "tconstruct:copper_gauge" => crate::game::tconstruct_source_gauge::interact(game, pos),
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
-        "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
+        "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
         "tconstruct:seared_drain" | "tconstruct:scorched_drain" => {
-            // A drain only consumes supported fluid transfers. If no transfer
-            // happened, let the held item act (for example, place a faucet).
+            // Supported containers consume the action even when no fluid can
+            // move. Noncontainers still act normally (for example, a faucet).
             if !crate::game::tconstruct_source_machine_runtime::interact_drain(game, pos) { return Continue(()); }
             true
         },

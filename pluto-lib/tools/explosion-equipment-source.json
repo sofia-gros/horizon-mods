@@ -1,0 +1,33 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "file": "crates/horizon-client/src/game/explosion.rs",
+  "file_sha256": "2c0504a86227e0b54b553d144f3860385828940d3626fced2267eca93f18ca19",
+  "start": "    fn explosion_hurt_player(\n",
+  "end": "\n\n    /// Where a blast",
+  "function_sha256": "1e2f583fe39cc7984cace0d21cd0fb41f25c27ca6ff463d081afb3a296934f14",
+  "target": "horizon_client::game::explosion::Game<'_>::explosion_hurt_player",
+  "injection_id": "equipment-explosion-replacement",
+  "declaration": "fn explosion_hurt_player(",
+  "helper": "explosion-equipment-head.rs",
+  "changes": [
+    {
+      "old": "        if let Some(p) = game.player.as_mut()\n",
+      "new": "        let equipment = crate::game::pluto_damage_equipment::capture(game);\n        if let Some(p) = game.player.as_mut()\n"
+    },
+    {
+      "old": "                && let Ok(o) = p.hurt_caused_by(\n",
+      "new": "                && let Ok(o) = horizon_client::health::pluto_protection::hurt_with_optional_equipment(\n                    p,\n"
+    },
+    {
+      "old": "                    attacker.map_or(0, |(id, _)| *id as i32),\n                )\n",
+      "new": "                    attacker.map_or(0, |(id, _)| *id as i32),\n                    equipment.as_ref(),\n                )\n"
+    },
+    {
+      "old": "            game.after_block(outcome, (None, false), source);",
+      "new": "            crate::game::pluto_block_feedback::dispatch(\n                game,\n                crate::game::pluto_block_feedback::Event { outcome, attacker: None, projectile: false, source },\n            );\n            game.after_block(outcome, (None, false), source);"
+    }
+  ],
+  "header": "// Adapted from horizon-rust/horizon 624c4f6265c02296fbe8a80f029dd0d987fb94c0,\n// crates/horizon-client/src/game/explosion.rs::Game::explosion_hurt_player.\n// Only receiver renaming, equipment capture, low-level damage dispatch and\n// final block feedback differ in `original`. Source/complete-plan guards are\n// required before applying this lowest-priority cancellable HEAD adapter.\n// MIT License\n//\n// Copyright (c) 2026 Ludovic Marie and the Horizon contributors\n//\n// Permission is hereby granted, free of charge, to any person obtaining a copy\n// of this software and associated documentation files (the \"Software\"), to deal\n// in the Software without restriction, including without limitation the rights\n// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n// copies of the Software, and to permit persons to whom the Software is\n// furnished to do so, subject to the following conditions:\n//\n// The above copyright notice and this permission notice shall be included in all\n// copies or substantial portions of the Software.\n//\n// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n// SOFTWARE.\nfn pluto_explosion_equipment(\n    game: &mut crate::game::Game<'_>,\n    context: &ExplosionHookContext<'_>,\n    radius: f32,\n    damage_type: &str,\n    exploding: Option<u32>,\n    attacker: Option<&(u32, Text)>,\n    cause: Option<&horizon_client::advancements::EntityView>,\n) -> std::ops::ControlFlow<Option<[f64; 3]>> {\n    if !horizon_client::health::pluto_protection::enabled()\n        && !crate::game::pluto_block_feedback::enabled()\n    {\n        return std::ops::ControlFlow::Continue(());\n    }\n",
+  "footer": "\n    std::ops::ControlFlow::Break(original(\n        game, context, radius, damage_type, exploding, attacker, cause,\n    ))\n}\n",
+  "function_fingerprint": "a234771d1f4ae507520ec4269a5b783e586e6cb7454870985b8af999521b9909"
+}

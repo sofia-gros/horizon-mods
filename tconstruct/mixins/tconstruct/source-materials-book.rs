@@ -331,6 +331,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         "tconstruct:fantastic_foundry" => ("assets/tconstruct/book/fantastic_foundry/", "Fantastic Foundry"),
         "tconstruct:puny_smelting" => ("assets/tconstruct/book/puny_smelting/", "Puny Smelting"),
         "tconstruct:mighty_smelting" => ("assets/tconstruct/book/mighty_smelting/", "Mighty Smelting"),
+        "tconstruct:tinkers_gadgetry" => ("assets/tconstruct/book/tinkers_gadgetry/", "Tinkers' Gadgetry"),
         "tconstruct:encyclopedia" => ("assets/tconstruct/book/encyclopedia/", "Encyclopedia"),
         "tconstruct:materials_and_you" => ("assets/tconstruct/book/materials_and_you/", "Materials & You"),
         _ => return None,
@@ -339,6 +340,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let puny = book == "tconstruct:puny_smelting";
     let mighty = book == "tconstruct:mighty_smelting";
     let encyclopedia = book == "tconstruct:encyclopedia";
+    let gadgetry = book == "tconstruct:tinkers_gadgetry";
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -347,6 +349,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
+        // Gadgetry exposes only bounded, explicitly qualified exploration guidance.
+        if gadgetry && !matches!(key, "intro" | "exploration") { continue; }
+        let gadgetry_exploration = gadgetry && key == "exploration";
+        if gadgetry_exploration && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("exploration.partial").copied(), labels.get("exploration.partial.notice_title").copied(), labels.get("exploration.partial.notice").copied()]) { continue; }
+        if gadgetry && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
         // Only the source introduction is supported for the Encyclopedia.
         if encyclopedia && key != "intro" { continue; }
         if encyclopedia && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
@@ -364,7 +371,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         // Modifier chapters currently expose static overview pages only;
         // dynamic modifier-tag pages and recipe layouts need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -509,6 +516,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
+            if gadgetry_exploration && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::gadgetry_exploration_page) { continue; }
             if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2" | "scorched_tanks")) { continue; }
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
             if mighty_smeltery && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_smeltery_page) { continue; }
@@ -584,6 +592,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                 })
                 .or_else(|| {
                     let item = value.get("item")?;
+                    if item.get("tag").is_some() {
+                        let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
+                        let known = game.world.chunks.__horizon_mixins_tconstruct_melter_known_items().as_ref();
+                        return super::tconstruct_materials_book_recipe::showcase_tag(item, tags, known);
+                    }
                     let id = super::tconstruct_materials_book_recipe::showcase_item(item)?;
                     if id == "tconstruct:creative_slot" {
                         let slot = item.pointer("/nbt/slot")?.as_str()?;
@@ -607,8 +620,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     let lines: Vec<_> = tooltip.iter().filter_map(|v| v.as_str().or_else(|| v.get("text").and_then(|s| s.as_str()))).take(16).collect();
                     if !lines.is_empty() { graphic["tooltip"] = serde_json::json!(lines); }
                 }
-                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
-                    let height = if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() { 40.0 }
+                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
+                    let height = if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() { 40.0 }
                         else if graphic.get("slots").is_some() { if graphic.get("grid").and_then(|v| v.as_u64()) == Some(2) { 78.0 } else { 114.0 } }
                         else { graphic.get("height").and_then(|v| v.as_u64()).unwrap_or(100).min(100) as f32 };
                     let rows = ((137.0 - height) / 9.0).floor().max(1.0) as usize;
@@ -635,8 +648,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
         }
         if !chapter_pages.is_empty() {
-            if mighty_advice || mighty_smeltery || encyclopedia {
-                let (title_key, note_key) = if encyclopedia { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
+            if mighty_advice || mighty_smeltery || encyclopedia || gadgetry {
+                let (title_key, note_key) = if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
                 if let (Some(title), Some(note)) = (labels.get(title_key), labels.get(note_key)) {
                     let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
                         let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
@@ -717,7 +730,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
     let book = &*stack.item;
-    if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:materials_and_you") { return false; }
+    if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:tinkers_gadgetry" | "tconstruct:materials_and_you") { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
         let Some(pages) = source_pages(game, &path, book) else { return false; };

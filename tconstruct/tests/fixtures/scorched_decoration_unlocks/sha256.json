@@ -1,0 +1,14 @@
+{
+  "chiseled_scorched_bricks_crafting": "e995240a561ed3204f1e3adaf34fa05654ccdd3996ad54422a7e233c0bd64fca",
+  "polished_scorched_stone_crafting": "c878017bfa79225d41e48533fec8b1be9d11a93509d5f3730cee8c3836075b36",
+  "scorched_bricks_fence": "a3de826138f8a54786289677f7a93dabcb427a176df9f0e7f06b62b9ba37e384",
+  "scorched_bricks_from_brick": "bdb81a2e3e9ff9c20eeed124cb1e23a098afc5900acb04d3fff3c69003f0c8b8",
+  "scorched_bricks_slab": "6ceb5bc95bb929eb2185ad6ea3b19a8b86553d452d04dba1c286a217978b226f",
+  "scorched_bricks_stairs": "a7ec982aaebd4844efaa9350cb8b43ce4c71b21b7d60b1f12a30d4de258988a8",
+  "scorched_ladder": "d1aa93fa9c933a9dc447bd197da67b87c1f27c635039de196abfd4dfe5b29c5b",
+  "scorched_road_slab": "291651af1617546e747768d9f133d74fbd76bc2912da98ab61b8afc607513877",
+  "scorched_road_stairs": "1bad6807f658e2f3a983a623369feb977345942ebc3364831c302ea01afecb36",
+  "scorched_soul_glass": "b343555f011154a90968f976a1c74c8fcbe18590ec7534218125c2f0d96563db",
+  "scorched_soul_glass_pane": "7562a6bf12feeab77d04614393d023b5cce925882778f8b4816127b2906a8e1f",
+  "scorched_tinted_glass": "579027d1df4680f2537e371f6c94c4dbbbfc580a2d9766ec92f645479c08c696"
+}

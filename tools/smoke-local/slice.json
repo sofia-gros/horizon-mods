@@ -1,0 +1,28 @@
+{
+  "_comment": "Slice kept enabled. TConstruct: every injection except the ones the pinned Mixins CLI rejects on this Horizon (see tools/probe_injections.py). PlutoLib: only the features whose composition guards pass.",
+  "tconstruct_all_except": [
+    "source-host-mining-context",
+    "source-client-mining-context",
+    "tinkers-chest-pick-color"
+  ],
+  "pluto_seeds": [
+    "pluto_native_creative-protection-player-scope",
+    "pluto_native_creative-protection-arm",
+    "pluto_native_creative-protection-project",
+    "pluto_native_creative-protection-kernel",
+    "pluto_native_creative-world-fluid-use",
+    "pluto_native_creative-world-fluid-tick",
+    "pluto_native_creative-world-fluid-neighbor",
+    "pluto_native_creative-landing-state-clear"
+  ],
+  "pluto_keep_prefixes": [
+    "pluto_transport_3a-", "pluto_tool_rules-", "pluto_component_display_3a-",
+    "pluto_component_bar-", "pluto_items_b2-"
+  ],
+  "pluto_guards": ["protection"],
+  "launcher_unsafe_files": [
+    "crates/horizon-world/src/worldgen/structure/start.rs",
+    "crates/horizon-world/src/worldgen/feature_graph.rs",
+    "crates/horizon-world/src/worldgen/placement.rs"
+  ]
+}

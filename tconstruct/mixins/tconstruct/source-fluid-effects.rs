@@ -64,18 +64,36 @@ pub(super) fn select(
 ) -> Option<Option<Value>> {
     for (id, layers) in layers {
         if !id.contains(":tinkering/fluid_effects/") { continue; }
-        let value: Value = serde_json::from_slice(layers.last()?).ok()?;
-        let spec = value.get("fluid")?.as_object()?;
+        // FluidEffectManager applies conditions before deserializing the
+        // definition. A disabled optional definition may name absent types.
+        // Invalid JSON/resources are isolated by the reload listener rather
+        // than poisoning every other fluid's selection.
+        let Some(bytes) = layers.last() else { continue; };
+        let Ok(value) = serde_json::from_slice::<Value>(bytes) else { continue; };
+        if !value.is_object() { continue; }
+        let condition = if let Some(raw) = value.get("conditions") {
+            let Some(raw) = raw.as_array() else { continue; };
+            conditions(raw)
+        } else { Some(true) };
+        if condition == Some(false) { continue; }
+        let Some(spec) = value.get("fluid") else { continue; };
+        // Complex/unknown ingredients remain unsupported, not silently absent.
+        let spec = spec.as_object()?;
         let matched = match (spec.get("fluid"), spec.get("tag")) {
-            (Some(id), None) => id.as_str()? == fluid,
-            (None, Some(tag)) => fluid_tags.get(tag.as_str()?).is_some_and(|items| items.contains(fluid)),
+            (Some(id), None) => {
+                let Some(id) = id.as_str() else { continue; };
+                id == fluid
+            },
+            (None, Some(tag)) => {
+                let Some(tag) = tag.as_str() else { continue; };
+                fluid_tags.get(tag).is_some_and(|items| items.contains(fluid))
+            },
             _ => return None,
         };
         if !matched { continue; }
-        if let Some(raw) = value.get("conditions") {
-            let condition = conditions(raw.as_array()?)?;
-            if !condition { continue; }
-        }
+        // Unknown source condition types remain unresolved for matching
+        // fluids; an unrelated definition must not disable this fluid.
+        condition?;
         return Some(Some(value));
     }
     Some(None)
@@ -159,7 +177,7 @@ pub(super) fn parse_tagged_entity(value: &Value, tag: Option<&horizon_world::nbt
     let Tag::String(id) = tag.get("Potion")? else { return None; };
     let id = id.to_string_lossy();
     if !id.starts_with("minecraft:") { return None; }
-    let potion = horizon_client::brewing::potion(&id)?;
+    let potion = horizon_client::pluto_potions::potion(&id)?;
     let bottle = tag.get("Bottle").and_then(|value| if let Tag::String(value) = value { Some(value.to_string_lossy().to_string()) } else { None });
     let mut chosen = None;
     for entry in entries {
@@ -179,8 +197,8 @@ pub(super) fn parse_tagged_entity(value: &Value, tag: Option<&horizon_world::nbt
     let amount = u32::try_from(value.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
     let mut entity = Vec::new();
     for &(id, time, amplifier) in potion.effects {
-        let effect = horizon_client::brewing::effect(id)?;
-        if effect.instant || horizon_client::brewing::is_mod_effect(effect.id) || time <= 0 { return None; }
+        let effect = horizon_client::pluto_potions::effect(id)?;
+        if effect.instant || horizon_client::pluto_potions::has_custom_namespace(effect.raw_id) || time <= 0 { return None; }
         entity.push(EntityEffect::Mob(MobEffect { id: id.to_owned(), time, amplifier, action: TimeAction::Set, time_scale: scale }));
     }
     Some(Effects { amount, entity })
@@ -213,4 +231,48 @@ mod tests {
         assert_eq!(resolve(&files, "tconstruct:venom", &tags, &|_| Some(true)), None);
         assert_eq!(resolve(&files, "minecraft:water", &tags, &|_| Some(true)), Some(None));
     }
+    fn valid_water() -> Vec<u8> {
+        br#"{"fluid":{"fluid":"minecraft:water","amount":50},"entity_effects":[]}"#.to_vec()
+    }
+    #[test]
+    fn malformed_resources_do_not_disable_other_fluids() {
+        for invalid in [b"{".to_vec(), b"null".to_vec(), b"[]".to_vec(),
+            br#"{"conditions":false}"#.to_vec(), b"{}".to_vec(),
+            br#"{"fluid":{"fluid":7}}"#.to_vec(), br#"{"fluid":{"tag":7}}"#.to_vec()] {
+            let files = BTreeMap::from([
+                ("x:tinkering/fluid_effects/a".into(), vec![invalid]),
+                ("x:tinkering/fluid_effects/z".into(), vec![valid_water()]),
+            ]);
+            assert_eq!(resolve(&files,"minecraft:water",&HashMap::new(),&|_|Some(true)).unwrap().unwrap().amount,50);
+        }
+    }
+    #[test]
+    fn disabled_conditions_precede_unsupported_ingredients_and_effects() {
+        let files = BTreeMap::from([
+            ("x:tinkering/fluid_effects/a".into(),vec![br#"{"conditions":[{"type":"forge:mod_loaded","modid":"absent"}],"fluid":[],"entity_effects":[{"type":"absent:custom"}]}"#.to_vec()]),
+            ("x:tinkering/fluid_effects/z".into(),vec![valid_water()]),
+        ]);
+        let condition = |values: &[Value]| Some(values.first().and_then(|v|v.get("modid")).and_then(Value::as_str) != Some("absent"));
+        assert_eq!(resolve(&files,"minecraft:water",&HashMap::new(),&condition).unwrap().unwrap().amount,50);
+        assert!(resolve(&files,"minecraft:water",&HashMap::new(),&|_|None).is_none());
+    }
+    #[test]
+    fn empty_layers_skip_and_invalid_top_layer_never_revives_lower_pack() {
+        let files = BTreeMap::from([
+            ("x:tinkering/fluid_effects/a".into(),Vec::new()),
+            ("x:tinkering/fluid_effects/b".into(),vec![valid_water(),b"{".to_vec()]),
+        ]);
+        assert_eq!(resolve(&files,"minecraft:water",&HashMap::new(),&|_|Some(true)),Some(None));
+    }
+
+    #[test]
+    fn unknown_condition_only_blocks_its_matching_fluid() {
+        let files = BTreeMap::from([
+            ("x:tinkering/fluid_effects/a".into(), vec![br#"{"conditions":[{"type":"x:unknown"}],"fluid":{"fluid":"minecraft:lava","amount":50}}"#.to_vec()]),
+            ("x:tinkering/fluid_effects/z".into(), vec![valid_water()]),
+        ]);
+        assert_eq!(resolve(&files,"minecraft:water",&HashMap::new(),&|_|None).unwrap().unwrap().amount,50);
+        assert!(resolve(&files,"minecraft:lava",&HashMap::new(),&|_|None).is_none());
+    }
+
 }

@@ -32,6 +32,8 @@ pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) 
 }
 fn bottle_fluid(item: &str) -> Option<&'static str> {
     match item {
+        // Pinned Mantle honey_bottle_empty: 250 mB and one glass bottle.
+        "minecraft:honey_bottle" => Some("tconstruct:honey"),
         "tconstruct:venom_bottle" => Some("tconstruct:venom"),
         "tconstruct:magma_bottle" => Some("tconstruct:magma"),
         "tconstruct:earth_slime_bottle" => Some("tconstruct:earth_slime"),
@@ -54,13 +56,16 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
     }
 }
 // Copper cans carry exactly 90 mB per item; fluid tags are part of identity.
+// Every caller shares the exact-ID/retained-wire boundary, including direct
+// setters, menus, casting, Melter plans, displays and remainder predicates.
 fn can_contents(stack: &ItemStack) -> Option<(Option<String>, Option<horizon_world::nbt::Tag>)> {
     use horizon_world::nbt::Tag;
-    if stack.item.as_ref() != "tconstruct:copper_can" || stack.damage != 0 || stack.count == 0 { return None; }
+    if stack.item.as_ref() != "tconstruct:copper_can" || stack.damage != 0 || stack.count == 0
+        || stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
     match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
         None => Some((None, None)),
         Some(Tag::Compound(data)) => {
-            let fluid = match data.get(&"fluid".into()) { None => None, Some(Tag::String(id)) => { let value = id.to_string_lossy(); if value == "minecraft:empty" { None } else { Some((!value.is_empty()).then_some(value)?) } }, _ => return None };
+            let fluid = match data.get(&"fluid".into()) { None => None, Some(Tag::String(id)) => { let value = id.to_string().ok()?; if value == "minecraft:empty" { None } else { Some((!value.is_empty()).then_some(value)?) } }, _ => return None };
             let tag = match data.get(&"fluid_tag".into()) { None => None, Some(tag @ Tag::Compound(_)) if fluid.is_some() => Some(tag.clone()), _ => return None };
             Some((fluid, tag))
         }
@@ -320,30 +325,36 @@ pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>, custom_
 // FluidTransferHelper. The item tank representation is shared with casting.
 fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_state::Tank> {
     use horizon_world::nbt::Tag;
-    if stack.count == 0 || stack.damage != 0 { return None; }
+    if stack.count == 0 || stack.damage != 0 || stack.wire_patch().is_some()
+        || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
     let capacity = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
     let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
     match custom {
         None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
         Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
             None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
-            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| { let name = key.to_string_lossy(); name == "fluid" || name == "amount" || name == "fluid_tag" }) =>
-                super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity),
+            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| {
+                let name = key.to_string_lossy();
+                matches!(name.as_str(), "fluid" | "amount" | "fluid_tag")
+                    || (lantern && !matches!(name.as_str(), "FluidName" | "Amount" | "Tag" | "Tank" | "Fluid"))
+            }) => {
+                let tank = super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)?;
+                // The decoded owned fields must be exact, even when native
+                // extensions are retained. Never normalize a lossy fluid ID.
+                (tank.to_nbt_preserving(tag).as_ref() == Some(tag)).then_some(tank)
+            },
             _ => None,
         },
         _ => None,
     }
 }
 
-/// Gate a new casting interaction before the lantern tank is rewritten.
+/// Lantern transfer patches its native tank fields while retaining extensions.
 /// Other supported item types use their own component-preserving transfer paths.
 pub(super) fn casting_portable_rewrite_safe(stack: &ItemStack) -> bool {
     if !matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { return true; }
-    let Some(tank) = lantern_tank(stack) else { return false; };
-    match stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tconstruct:tank")) {
-        None => true,
-        Some(raw) => tank.to_nbt() == *raw,
-    }
+    lantern_tank(stack).is_some()
 }
 
 /// Read only supported, untagged portable tank contents for tooltip display.
@@ -508,6 +519,26 @@ pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 
     transfer_selected(tank, slots, direction, None, known_item, known_fluid)
 }
 
+/// Fill from one exact UI-selected row, even when another row shares its ID.
+/// Isolate the selected fluid for container planning, then apply only its debit
+/// back to the original tank so layer order and unrelated quantities stay put.
+pub(super) fn fill_from_index_with_color(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], index: usize,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
+    if SmelteryTank::from_nbt(&tank.to_nbt()).as_ref() != Some(&*tank) { return false; }
+    let Some(source) = tank.fluids.get(index).cloned() else { return false; };
+    let mut selected = SmelteryTank { capacity: tank.capacity, fluids: vec![source.clone()] };
+    let mut planned = slots.clone();
+    if !transfer_selected_with_color(&mut selected, &mut planned, Direction::FillItem, None,
+        known_item, known_fluid, item_tags, allow_color) { return false; }
+    if selected.fluids.iter().any(|fluid| fluid.id != source.id || fluid.tag != source.tag) { return false; }
+    let Some(amount) = source.amount.checked_sub(selected.total()).filter(|amount| *amount > 0) else { return false; };
+    let mut next = tank.clone();
+    if !next.take_tagged(&source.id, source.tag.as_ref(), amount) { return false; }
+    *tank = next; *slots = planned;
+    true
+}
+
 pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     transfer_selected_with_tags(tank, slots, direction, selected, known_item, known_fluid, None)
@@ -610,8 +641,14 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
         let mut custom = match input.data().and_then(|data| data.other("minecraft:custom_data")) {
             None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return false,
         };
-        if portable.amount == 0 { custom.remove(&"tconstruct:tank".into()); }
-        else { custom.insert("tconstruct:tank".into(), portable.to_nbt()); }
+        let saved_tank = match custom.get(&"tconstruct:tank".into()) {
+            Some(raw) => { let Some(saved) = portable.to_nbt_preserving(raw) else { return false; }; saved },
+            None => portable.to_nbt(),
+        };
+        // Keep an empty compound when it still carries extension data. Only
+        // the ordinary empty tank has the source no-tank representation.
+        if portable.amount == 0 && saved_tank == portable.to_nbt() { custom.remove(&"tconstruct:tank".into()); }
+        else { custom.insert("tconstruct:tank".into(), saved_tank); }
         let mut output = input.clone(); output.count = 1;
         output.data_mut().set_other("minecraft:custom_data", (!custom.is_empty()).then_some(Tag::Compound(custom)));
         let mut remaining = input.clone(); remaining.count -= 1;
@@ -713,6 +750,51 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
     true
 }
 
+/// Stage a single native tank exchange without canonicalizing its extensions.
+/// Legacy aliases and opaque carried representations must wait, not be migrated.
+pub(super) fn plan_single_tank_container(raw: &horizon_world::nbt::Tag, capacity: u32,
+    carried: &Option<ItemStack>, direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool)
+    -> Option<(horizon_world::nbt::Tag, [Option<ItemStack>; 2])> {
+    let item = carried.as_ref()?;
+    if item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some())
+        || !casting_portable_rewrite_safe(item) { return None; }
+    for alias in ["FluidName", "Amount", "Tag", "Tank", "Fluid"] { if raw.get(alias).is_some() { return None; } }
+    let mut tank = super::tconstruct_source_melter_state::Tank::from_nbt(raw, capacity)?;
+    if tank.to_nbt_preserving(raw).as_ref() != Some(raw) { return None; }
+    let mut slots = [carried.clone(), None];
+    if !transfer_single_with_color(&mut tank, &mut slots, direction, known_item, known_fluid, item_tags, allow_color) { return None; }
+    Some((tank.to_nbt_preserving(raw)?, slots))
+}
+
+/// Stage a direct Melter interaction without touching authoritative inventory.
+/// Only the tank field is rewritten; machine and item extension data survives.
+/// The caller must persist `saved` before applying either inventory result.
+pub(super) struct MelterTransfer {
+    pub saved: horizon_world::nbt::Tag,
+    pub remaining: Option<ItemStack>,
+    pub result: Option<ItemStack>,
+    pub drained: bool,
+}
+pub(super) fn plan_melter_held(raw: &horizon_world::nbt::Tag, held: &ItemStack,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    allow_color: bool) -> Option<MelterTransfer> {
+    use horizon_world::nbt::Tag;
+    if held.data().is_some_and(|data| data.wire.patch().is_some())
+        || !casting_portable_rewrite_safe(held) { return None; }
+    let melter = super::tconstruct_source_melter_state::Melter::from_nbt(raw)?;
+    for alias in ["Tank", "Fluid"] { if raw.get(alias).is_some() { return None; } }
+    let (tank, mut slots) = plan_single_tank_container(raw.get("tank")?, melter.tank.capacity,
+        &Some(held.clone()), Direction::Auto, known_item, known_fluid, item_tags, allow_color)?;
+    let drained = super::tconstruct_source_melter_state::Tank::from_nbt(&tank,melter.tank.capacity)?.amount < melter.tank.amount;
+    let Tag::Compound(mut saved) = raw.clone() else { return None; };
+    saved.insert("tank".into(), tank);
+    Some(MelterTransfer { saved: Tag::Compound(saved), remaining: slots[0].take(),
+        result: slots[1].take(), drained })
+}
+
 /// Apply the same bucket rules to the Melter's single-fluid tank.
 pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
@@ -743,7 +825,7 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 #[cfg(test)]
 mod tests {
     #[test]
-    fn casting_lantern_rejects_unknown_and_lossy_tank_without_changing_stack() {
+    fn casting_lantern_accepts_extensions_but_rejects_lossy_tank_without_changing_stack() {
         use horizon_world::nbt::{JavaString, Tag};
         let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
         assert!(casting_portable_rewrite_safe(&stack));
@@ -753,7 +835,180 @@ mod tests {
         assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:tank"), Some(&invalid));
         let extra = Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(10)), ("future", Tag::Int(1))]);
         stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", extra)])));
-        assert!(!casting_portable_rewrite_safe(&stack));
+        assert!(casting_portable_rewrite_safe(&stack));
+    }
+    #[test]
+    fn lantern_native_extensions_survive_fill_partial_and_full_drain() {
+        use horizon_world::nbt::Tag;
+        for item in ["tconstruct:seared_lantern", "tconstruct:scorched_lantern"] {
+            for potion in [false, true] {
+                let fluid = if potion { "tconstruct:potion" } else { "minecraft:water" };
+                let tag = potion.then(|| Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]));
+                let mut held = ItemStack::new(item, 2);
+                held.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Keepsake".into())));
+                held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                    ("outside", Tag::Long(7)), ("tconstruct:tank", Tag::compound([
+                        ("amount", Tag::Int(0)), ("future", Tag::Long(8)),
+                    ])),
+                ])));
+                assert!(casting_portable_rewrite_safe(&held));
+                let mut tank = SmelteryTank::new(100);
+                assert!(tank.insert_tagged(fluid, tag.as_ref(), 100));
+                let mut slots = [Some(held.clone()), None];
+                assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, None, &known, &known));
+                let mut expected = held.clone(); expected.count = 1;
+                assert_eq!(slots[0], Some(expected));
+                assert_eq!(tank.total(), 50);
+                let mut output = slots[1].take().unwrap();
+                assert_eq!(lantern_tank(&output).unwrap().amount, 50);
+                assert_eq!(lantern_tank(&output).unwrap().tag, tag);
+                for amount in [20, 30] {
+                    let mut drained = SmelteryTank::new(amount);
+                    slots = [Some(output), None];
+                    assert!(transfer_selected(&mut drained, &mut slots, Direction::EmptyItem, None, &known, &known));
+                    assert_eq!(drained.total(), amount); assert_eq!(drained.fluids[0].tag, tag);
+                    output = slots[1].take().unwrap();
+                    assert_eq!(output.data().unwrap().other("minecraft:custom_name"), held.data().unwrap().other("minecraft:custom_name"));
+                    let custom = output.data().unwrap().other("minecraft:custom_data").unwrap();
+                    assert_eq!(custom.get("outside"), Some(&Tag::Long(7)));
+                    assert_eq!(custom.get("tconstruct:tank").unwrap().get("future"), Some(&Tag::Long(8)));
+                }
+                assert_eq!(lantern_tank(&output).unwrap().amount, 0);
+                // The extension-only empty payload remains usable on refill.
+                slots = [Some(output), None];
+                assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, None, &known, &known));
+                assert_eq!(tank.total(), 0);
+                assert_eq!(lantern_tank(slots[1].as_ref().unwrap()).unwrap().amount, 50);
+            }
+        }
+        // Preserve the previous no-payload representation for ordinary empties.
+        let mut tank = SmelteryTank::new(50); assert!(tank.insert("minecraft:water", 50));
+        let mut slots = [Some(ItemStack::new("tconstruct:seared_lantern", 1)), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, None, &known, &known));
+        slots = [slots[1].take(), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::EmptyItem, None, &known, &known));
+        assert!(slots[1].as_ref().unwrap().data().and_then(|data| data.other("minecraft:custom_data")).is_none());
+    }
+    #[test]
+    fn lantern_preserving_transfer_rejects_aliases_malformed_and_wire_without_mutation() {
+        use horizon_world::nbt::{JavaString, Tag};
+        use horizon_items::item_data::Wire;
+        for item in ["tconstruct:seared_lantern", "tconstruct:scorched_lantern"] {
+            let mut invalid = vec![Tag::Int(1), Tag::compound([("amount", Tag::Int(51)), ("fluid", Tag::String("minecraft:water".into()))]),
+                Tag::compound([("amount", Tag::String("0".into()))]),
+                Tag::compound([("amount", Tag::Int(1)), ("fluid", Tag::String(JavaString(vec![0xd800])))]),
+                Tag::compound([("amount", Tag::Int(0)), ("fluid_tag", Tag::compound([("extra", Tag::Int(1))]))])];
+            for alias in ["FluidName", "Amount", "Tag", "Tank", "Fluid"] {
+                invalid.push(Tag::compound([("amount", Tag::Int(0)), (alias, Tag::Int(1))]));
+            }
+            for raw in invalid {
+                let mut held = ItemStack::new(item, 1);
+                held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", raw)])));
+                let mut tank = SmelteryTank::new(100); assert!(tank.insert("minecraft:water", 50));
+                let mut slots = [Some(held), None]; let before = (tank.clone(), slots.clone());
+                assert!(!casting_portable_rewrite_safe(slots[0].as_ref().unwrap()));
+                assert!(!transfer_selected(&mut tank, &mut slots, Direction::Auto, None, &known, &known));
+                assert_eq!((tank, slots), before);
+            }
+            for stale in [false, true] {
+                let mut held = ItemStack::new(item, 1);
+                held.data_mut().wire = Wire::new(held.clone(), std::sync::Arc::<[u8]>::from([1, 2, 3]));
+                if stale { held.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Changed".into()))); }
+                let mut tank = SmelteryTank::new(50); assert!(tank.insert("minecraft:water", 50));
+                let mut slots = [Some(held), None]; let before = (tank.clone(), slots.clone());
+                assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, None, &known, &known));
+                assert_eq!((tank, slots), before);
+            }
+        }
+    }
+    #[test]
+    fn melter_held_lantern_plan_preserves_item_extensions_without_mutating_inputs() {
+        use horizon_world::nbt::Tag;
+        use super::super::tconstruct_source_melter_state::Melter;
+        let raw = Melter::new().to_nbt();
+        let mut held = ItemStack::new("tconstruct:scorched_lantern", 2);
+        held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([
+            ("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(50)), ("future", Tag::Int(7)),
+        ]))])));
+        let before = (raw.clone(), held.clone());
+        let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+        assert!(!plan.drained); assert_eq!(plan.remaining.as_ref().unwrap().count, 1);
+        assert_eq!(Melter::from_nbt(&plan.saved).unwrap().tank.amount, 50);
+        let result = plan.result.as_ref().unwrap(); assert_eq!(lantern_tank(result).unwrap().amount, 0);
+        assert_eq!(result.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:tank").unwrap().get("future"), Some(&Tag::Int(7)));
+        assert_eq!((raw, held), before);
+    }
+    #[test]
+    fn copper_can_lossy_ids_refuse_all_transfer_and_remainder_entrypoints() {
+        use horizon_world::nbt::{JavaString, Tag};
+        use super::super::tconstruct_source_melter_state::Melter;
+        let mut can = ItemStack::new("tconstruct:copper_can", 2);
+        can.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("fluid", Tag::String(JavaString(vec![0xd800]))), ("future", Tag::Int(7)),
+        ])));
+        let original = can.clone();
+        assert!(can_contents(&can).is_none()); assert!(can_fluid(&can).is_none());
+        assert_eq!(no_crafting_remainder(&can), None);
+        assert!(!accepts_with_color(&can, &known, true));
+        assert!(can_set_fluid(&can, None).is_none());
+        assert!(can_set_fluid(&can, Some("minecraft:water")).is_none());
+        assert_eq!(can_display_fluid(&can, &known), None);
+        let mut tank = SmelteryTank::new(1000); let mut slots = [Some(can.clone()), None];
+        let before = (tank.clone(), slots.clone());
+        // A permissive registry must not authorize converting U+D800 to U+FFFD.
+        assert!(!transfer_selected_with_color(&mut tank, &mut slots, Direction::EmptyItem, None, &known, &known, None, true));
+        assert_eq!((tank, slots), before);
+        assert!(plan_melter_held(&Melter::new().to_nbt(), &can, &known, &known, None, true).is_none());
+        assert_eq!(can, original);
+    }
+    #[test]
+    fn copper_can_current_and_stale_wire_refuse_fill_drain_and_rewrite() {
+        use horizon_world::nbt::Tag;
+        use horizon_items::item_data::Wire;
+        for filled in [false, true] { for stale in [false, true] {
+            let mut can = ItemStack::new("tconstruct:copper_can", 2);
+            if filled { can = can_set_fluid(&can, Some("minecraft:water")).unwrap(); can.count = 2; }
+            can.data_mut().wire = Wire::new(can.clone(), std::sync::Arc::<[u8]>::from([1, 2, 3]));
+            if stale { can.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Changed".into()))); }
+            assert_eq!(can.wire_patch().is_none(), stale);
+            assert!(can.data().unwrap().wire.patch().is_some());
+            assert!(can_contents(&can).is_none()); assert!(can_set_fluid(&can, None).is_none());
+            assert_eq!(no_crafting_remainder(&can), None);
+            assert!(!accepts(&can, &known)); assert!(!can_display_empty(&can));
+            let mut tank = SmelteryTank::new(180);
+            if !filled { assert!(tank.insert("minecraft:water", 90)); }
+            let mut slots = [Some(can), None]; let before = (tank.clone(), slots.clone());
+            assert!(!transfer_selected(&mut tank, &mut slots, if filled { Direction::EmptyItem } else { Direction::FillItem }, None, &known, &known));
+            assert_eq!((tank, slots), before);
+        }}
+    }
+    #[test]
+    fn copper_can_valid_extensions_stack_and_exact_tag_identity_survive_roundtrip() {
+        use horizon_world::nbt::Tag;
+        let mut can = ItemStack::new("tconstruct:copper_can", 3);
+        can.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Named can".into())));
+        can.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("future", Tag::Long(7))])));
+        assert_eq!(no_crafting_remainder(&can), Some(true));
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        let other = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let mut tank = SmelteryTank::new(270); assert!(tank.insert_tagged("tconstruct:potion", Some(&tag), 180));
+        let mut slots = [Some(can.clone()), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:potion"), &known, &known));
+        let mut remaining = can.clone(); remaining.count = 2; assert_eq!(slots[0], Some(remaining));
+        let filled = slots[1].take().unwrap();
+        assert_eq!(can_contents(&filled), Some((Some("tconstruct:potion".into()), Some(tag.clone()))));
+        assert_eq!(no_crafting_remainder(&filled), Some(false));
+        assert_eq!(filled.data().unwrap().other("minecraft:custom_name"), can.data().unwrap().other("minecraft:custom_name"));
+        assert_eq!(filled.data().unwrap().other("minecraft:custom_data").unwrap().get("future"), Some(&Tag::Long(7)));
+        slots = [Some(filled), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::EmptyItem, None, &known, &known));
+        let empty = slots[1].take().unwrap(); let mut expected = can.clone(); expected.count = 1;
+        assert_eq!(empty, expected); assert_eq!(tank.total(), 180);
+        assert_eq!(tank.fluids[0].tag, Some(tag));
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&other), 90));
+        slots = [Some(empty), None]; let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:potion"), &known, &known));
+        assert_eq!((tank, slots), before);
     }
     #[test]
     fn numeric_potion_colors_preserve_original_item_tags() {
@@ -1976,5 +2231,245 @@ mod tests {
         assert_eq!(tank.fluids[0].id, "minecraft:water");
         assert_eq!(tank.amount("minecraft:lava"), 1000);
         assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:lava_bucket");
+    }
+    #[test]
+    fn melter_held_bucket_roundtrip_preserves_non_tank_metadata() {
+        use horizon_world::nbt::Tag;
+        let mut melter = super::super::tconstruct_source_melter_state::Melter::new();
+        melter.slots[0] = Some(ItemStack::new("minecraft:iron_ore", 2));
+        melter.progress = [17, 0, 0]; melter.fuel = 20;
+        let Tag::Compound(mut fields) = melter.to_nbt() else { panic!() };
+        fields.insert("future".into(), Tag::Long(99));
+        if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(7)); }
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("minecraft:water_bucket", 2);
+        let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+        assert!(!plan.drained);
+        assert_eq!(plan.remaining.unwrap().count, 1);
+        assert_eq!(plan.result.unwrap().item.as_ref(), "minecraft:bucket");
+        assert_eq!(plan.saved.get("tank").unwrap().get("amount"), Some(&Tag::Int(1000)));
+        assert_eq!(plan.saved.get("tank").unwrap().get("extension"), Some(&Tag::Byte(7)));
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate", "future"] {
+            assert_eq!(plan.saved.get(key), raw.get(key), "{key}");
+        }
+        assert_eq!(held.count, 2);
+        assert_eq!(raw.get("tank").unwrap().get("amount"), Some(&Tag::Int(0)));
+        let drained = plan_melter_held(&plan.saved, &ItemStack::new("minecraft:bucket", 1), &known, &known, None, false).unwrap();
+        assert!(drained.drained); assert!(drained.remaining.is_none());
+        assert_eq!(drained.result.unwrap().item.as_ref(), "minecraft:water_bucket");
+        assert_eq!(drained.saved, raw);
+    }
+    #[test]
+    fn melter_held_rejects_full_mismatch_unknown_and_opaque_inputs() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert("minecraft:water", 2000));
+        let raw = melter.to_nbt();
+        for item in ["minecraft:water_bucket", "minecraft:lava_bucket", "minecraft:stone"] {
+            assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
+        }
+        let empty = Melter::new().to_nbt();
+        let bucket = ItemStack::new("minecraft:water_bucket", 1);
+        assert!(plan_melter_held(&empty, &bucket, &|_| false, &known, None, false).is_none());
+        assert!(plan_melter_held(&empty, &bucket, &known, &|_| false, None, false).is_none());
+        let mut named = bucket.clone();
+        named.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("opaque", Tag::Int(1))])));
+        assert!(plan_melter_held(&empty, &named, &known, &known, None, false).is_none());
+        assert!(plan_melter_held(&Tag::Int(1), &bucket, &known, &known, None, false).is_none());
+        assert_eq!(melter.to_nbt(), raw);
+    }
+    #[test]
+    fn melter_held_rejects_lossy_saved_fluid_id_without_rewriting() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::{JavaString, Tag};
+        let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
+        fields.insert("tank".into(), Tag::compound([
+            ("amount", Tag::Int(90)), ("fluid", Tag::String(JavaString(vec![0xd800]))),
+        ]));
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("tconstruct:copper_can", 1);
+        // Even a registry accepting the lossy ID cannot authorize rewriting it.
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        assert_eq!(raw.get("tank").unwrap().get("fluid"), Some(&Tag::String(JavaString(vec![0xd800]))));
+    }
+    #[test]
+    fn melter_held_rejects_retained_wire_and_noncanonical_lanterns() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_items::item_data::Wire;
+        use horizon_world::nbt::{JavaString, Tag};
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert("minecraft:water", 1000));
+        let raw = melter.to_nbt();
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().wire = Wire::new(held.clone(), std::sync::Arc::from([7u8]));
+        assert!(held.wire_patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        held.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Named".into())));
+        assert!(held.wire_patch().is_none());
+        assert!(held.data().unwrap().wire.patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tconstruct:tank", Tag::compound([
+                ("amount", Tag::Int(50)), ("fluid", Tag::String(JavaString(vec![0xd800]))),
+            ])),
+        ])));
+        let empty = Melter::new().to_nbt();
+        assert!(plan_melter_held(&empty, &held, &|_| true, &|_| true, None, false).is_none());
+    }
+    #[test]
+    fn melter_held_keeps_tagged_fluids_separate() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert_tagged("minecraft:water", Some(&Tag::compound([("variant", Tag::Int(1))])), 1000));
+        let raw = melter.to_nbt();
+        for item in ["minecraft:water_bucket", "minecraft:bucket"] {
+            assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
+        }
+    }
+
+    #[test]
+    fn honey_bottle_empties_one_item_and_roundtrips_exactly_250_mb() {
+        for direction in [Direction::Auto, Direction::EmptyItem] {
+            let mut tank = SmelteryTank::new(1000);
+            let mut slots = [Some(ItemStack::new("minecraft:honey_bottle", 3)), None];
+            assert!(accepts(slots[0].as_ref().unwrap(), &known));
+            assert!(transfer(&mut tank, &mut slots, direction, &known, &known));
+            assert_eq!(tank.amount("tconstruct:honey"), 250);
+            assert_eq!(slots[0], Some(ItemStack::new("minecraft:honey_bottle", 2)));
+            assert_eq!(slots[1], Some(ItemStack::new("minecraft:glass_bottle", 1)));
+            slots = [slots[1].take(), None];
+            assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!(tank.total(), 0);
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1], Some(ItemStack::new("minecraft:honey_bottle", 1)));
+        }
+    }
+
+    #[test]
+    fn honey_bottle_input_click_and_shift_respect_stack_limit() {
+        for quick in [false, true] {
+            let mut slots = [None, None];
+            let mut held = Some(ItemStack::new("minecraft:honey_bottle", 20));
+            if quick { assert!(quick_input(&mut slots, &mut held, &known)); }
+            else { assert!(click(&mut slots, &mut held, 0, false, &known)); }
+            assert_eq!(slots[0], Some(ItemStack::new("minecraft:honey_bottle", 16)));
+            assert_eq!(held, Some(ItemStack::new("minecraft:honey_bottle", 4)));
+        }
+    }
+
+    #[test]
+    fn honey_bottle_failure_paths_do_not_mutate_slots_or_tank() {
+        use horizon_world::nbt::Tag;
+        for case in 0..9 {
+            let mut tank = SmelteryTank::new(if case == 0 { 249 } else { 1000 });
+            let mut input = ItemStack::new("minecraft:honey_bottle", 2);
+            if case == 5 { input.damage = 1; }
+            if case == 6 { input.count = 0; }
+            if case == 7 { input.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Keep me".into()))); }
+            if case == 8 { input.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("unknown", Tag::Int(7))]))); }
+            let mut slots = [Some(input), (case == 1).then(|| ItemStack::new("minecraft:glass_bottle", 1))];
+            let before = (tank.clone(), slots.clone());
+            let direction = if case == 2 { Direction::FillItem } else { Direction::Auto };
+            assert!(!transfer(&mut tank, &mut slots, direction,
+                &|id| case != 3 || id != "minecraft:glass_bottle", &|_| case != 4), "case {case}");
+            assert_eq!((tank, slots), before, "case {case}");
+        }
+    }
+
+    #[test]
+    fn honey_bottle_single_tank_rejects_mismatched_fluid() {
+        use super::super::tconstruct_source_melter_state::Tank;
+        let mut tank = Tank::new(1000);
+        assert!(tank.insert("minecraft:water", 1));
+        let mut slots = [Some(ItemStack::new("minecraft:honey_bottle", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!((tank, slots), before);
+    }
+
+    #[test]
+    fn honey_bottle_melter_plan_preserves_machine_metadata_and_inputs() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
+        fields.insert("future".into(), Tag::Long(99));
+        if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(7)); }
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("minecraft:honey_bottle", 2);
+        let before = (raw.clone(), held.clone());
+        let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+        assert!(!plan.drained);
+        assert_eq!(plan.remaining, Some(ItemStack::new("minecraft:honey_bottle", 1)));
+        assert_eq!(plan.result, Some(ItemStack::new("minecraft:glass_bottle", 1)));
+        let tank = plan.saved.get("tank").unwrap();
+        assert_eq!(tank.get("amount"), Some(&Tag::Int(250)));
+        assert_eq!(tank.get("fluid"), Some(&Tag::String("tconstruct:honey".into())));
+        assert_eq!(tank.get("extension"), Some(&Tag::Byte(7)));
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate", "future"] {
+            assert_eq!(plan.saved.get(key), raw.get(key), "{key}");
+        }
+        assert_eq!((raw, held), before);
+    }
+
+}
+
+
+#[cfg(test)]
+mod indexed_fill_tests {
+    use super::*;
+    use horizon_world::nbt::Tag;
+    fn potion(id:&str)->Tag{Tag::compound([("Potion",Tag::String(id.into()))])}
+    #[test]
+    fn indexed_fill_distinguishes_same_id_potion_layers_without_reordering(){
+        let first=potion("minecraft:healing");let second=potion("minecraft:swiftness");
+        let mut tank=SmelteryTank::new(4000);assert!(tank.insert_tagged("tconstruct:potion",Some(&first),1000));assert!(tank.insert_tagged("tconstruct:potion",Some(&second),1000));
+        let mut slots=[Some(ItemStack::new("minecraft:glass_bottle",2)),None];
+        assert!(fill_from_index_with_color(&mut tank,&mut slots,1,&|_|true,&|_|true,None,false));
+        assert_eq!(tank.fluids[0].tag,Some(first));assert_eq!(tank.fluids[0].amount,1000);assert_eq!(tank.fluids[1].tag,Some(second));assert_eq!(tank.fluids[1].amount,750);
+        assert_eq!(slots[0].as_ref().unwrap().count,1);assert_eq!(potion_data(slots[1].as_ref().unwrap(),false).unwrap().0,"minecraft:swiftness");
+    }
+    #[test]
+    fn indexed_fill_preserves_local_color_and_network_restriction(){
+        let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into())),("CustomPotionColor",Tag::Int(0x123456))]);
+        for allow in [false,true]{let mut tank=SmelteryTank::new(1000);assert!(tank.insert_tagged("tconstruct:potion",Some(&tag),500));let before=tank.clone();
+            let mut slots=[Some(ItemStack::new("minecraft:glass_bottle",1)),None];let previous=slots.clone();
+            assert_eq!(fill_from_index_with_color(&mut tank,&mut slots,0,&|_|true,&|_|true,None,allow),allow);
+            if allow{assert_eq!(tank.total(),250);assert_eq!(potion_data(slots[1].as_ref().unwrap(),true).unwrap().1,Some(0x123456));}else{assert_eq!(tank,before);assert_eq!(slots,previous);}
+        }
+    }
+    #[test]
+    fn indexed_fill_invalid_selection_or_incompatible_container_is_atomic(){
+        for mode in 0..4{let mut tank=SmelteryTank::new(4000);assert!(tank.insert("minecraft:water",1000));assert!(tank.insert_tagged("tconstruct:potion",Some(&potion("minecraft:healing")),250));
+            let mut slots=[Some(ItemStack::new(if mode==2{"minecraft:water_bucket"}else{"minecraft:bucket"},1)),None];if mode==3{slots[1]=Some(ItemStack::new("minecraft:stone",1));}
+            let before=tank.clone();let previous=slots.clone();let index=if mode==0{9}else if mode==1{1}else{0};
+            assert!(!fill_from_index_with_color(&mut tank,&mut slots,index,&|_|true,&|_|true,None,false));assert_eq!(tank,before);assert_eq!(slots,previous);
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod single_tank_plan_tests {
+    use super::*;
+    use horizon_world::nbt::Tag;
+    #[test]
+    fn native_single_tank_plan_keeps_extensions_and_potion_boundary(){
+        let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into())),("CustomPotionColor",Tag::Int(0x123456))]);
+        let raw=Tag::compound([("fluid",Tag::String("tconstruct:potion".into())),("fluid_tag",tag), ("amount",Tag::Int(500)),("future_tank",Tag::Int(7))]);
+        for allow in [false,true]{let carried=Some(ItemStack::new("minecraft:glass_bottle",1));let result=plan_single_tank_container(&raw,2000,&carried,Direction::FillItem,&|_|true,&|_|true,None,allow);
+            if allow{let(saved,slots)=result.unwrap();assert_eq!(saved.get("amount"),Some(&Tag::Int(250)));assert_eq!(saved.get("future_tank"),Some(&Tag::Int(7)));assert_eq!(saved.get("fluid_tag"),raw.get("fluid_tag"));assert_eq!(potion_data(slots[1].as_ref().unwrap(),true).unwrap().1,Some(0x123456));}else{assert!(result.is_none());}
+        }
+    }
+    #[test]
+    fn native_single_tank_plan_refuses_aliases_lossy_ids_and_bad_owned_fields(){
+        let normal=Tag::compound([("fluid",Tag::String("minecraft:water".into())),("amount",Tag::Int(1000))]);
+        let carried=Some(ItemStack::new("minecraft:bucket",1));
+        for key in ["FluidName","Amount","Tag","Tank","Fluid"]{let Tag::Compound(mut fields)=normal.clone() else{panic!()};fields.insert(key.into(),Tag::Int(1));assert!(plan_single_tank_container(&Tag::Compound(fields),4000,&carried,Direction::FillItem,&|_|true,&|_|true,None,false).is_none());}
+        for mode in 0..2{let Tag::Compound(mut fields)=normal.clone() else{panic!()};if mode==0{fields.insert("fluid".into(),Tag::String(horizon_world::nbt::JavaString(vec![0xd800])));}else{fields.insert("amount".into(),Tag::Long(1000));}
+            assert!(plan_single_tank_container(&Tag::Compound(fields),4000,&carried,Direction::FillItem,&|_|true,&|_|true,None,false).is_none());
+        }
     }
 }

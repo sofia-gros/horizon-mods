@@ -1,0 +1,42 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "plan_schema": 6,
+  "policy": "exclusive target ownership for conditional full-body replacements",
+  "boundaries": [
+    {
+      "target": "horizon_client::game::advancements::Game<'_>::inventory_index",
+      "priority": 100,
+      "function_fingerprint": "6ad410eb60d3c2901ac3f3eba95b7f513f121491cd4fddb34c5711c97300d401",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        }
+      ],
+      "injection_id": "advancement-tag-index",
+      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "helper": "advancement-tag-index.rs",
+      "helper_sha256": "30cbcea5ede2cbbb46da65c35630d233cf8aa4bdb7015a240272a3a3e5532379"
+    },
+    {
+      "target": "horizon_client::game::advancements::Game<'_>::check_inventory_trigger",
+      "priority": 100,
+      "function_fingerprint": "04e809ecd447bdf18afb79d105e170190a056e2e85849476b87e6c7df205d018",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        }
+      ],
+      "injection_id": "inventory-advancement-components",
+      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "helper": "inventory-advancements.rs",
+      "helper_sha256": "5728349cc5513bf22f7628d9887a84b73482775eccfe30766f6ea388cf1459bc"
+    }
+  ]
+}

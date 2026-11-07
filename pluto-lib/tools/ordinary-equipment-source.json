@@ -1,0 +1,25 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "file": "crates/horizon-client/src/game/creatures.rs",
+  "file_sha256": "b5a2e3f52ac802182855251d2b67dec975b228550aaaaf3a0582560dee8ba90b",
+  "start": "    pub(super) fn hurt_player_from(",
+  "end": "    /// `LivingEntity.knockback` on the player:",
+  "function_sha256": "79097d236b65f70ebe349b03139fd1187bca2af6a9614e23ad6c4228b104d470",
+  "header": "// Adapted from official horizon-rust/horizon 624c4f6265c02296fbe8a80f029dd0d987fb94c0.\n// Copyright (c) 2026 Ludovic Marie and the Horizon contributors. MIT.\n// See HORIZON-DAMAGE-LICENSE.txt. Regenerate/review on every native body change.\n// MIT License\n//\n// Copyright (c) 2026 Ludovic Marie and the Horizon contributors\n//\n// Permission is hereby granted, free of charge, to any person obtaining a copy\n// of this software and associated documentation files (the \"Software\"), to deal\n// in the Software without restriction, including without limitation the rights\n// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n// copies of the Software, and to permit persons to whom the Software is\n// furnished to do so, subject to the following conditions:\n//\n// The above copyright notice and this permission notice shall be included in all\n// copies or substantial portions of the Software.\n//\n// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n// SOFTWARE.\nfn pluto_equipment_ordinary(\n    game: &mut crate::game::Game<'_>,\n    amount: f32,\n    from: Option<[f64; 3]>,\n    damage_type: &str,\n    known: Option<Option<u32>>,\n) -> std::ops::ControlFlow<bool> {\n    if !horizon_client::health::pluto_protection::enabled()\n        && !crate::game::pluto_block_feedback::enabled()\n    {\n        return std::ops::ControlFlow::Continue(());\n    }\n",
+  "footer": "\n    std::ops::ControlFlow::Break(original(game, amount, from, damage_type, known))\n}\n",
+  "target": "horizon_client::game::creatures::Game<'_>::hurt_player_from",
+  "injection_id": "equipment-ordinary-replacement",
+  "declaration": "pub(super) fn hurt_player_from(",
+  "helper": "ordinary-equipment-head.rs",
+  "changes": [
+    {
+      "old": "        if let Some(player) = game.player.as_mut()\n            && let Some(id) = game.health_resources.damage.id(damage_type)\n            && let Ok(o) = player.hurt_caused_by(\n                &game.health_resources,\n                game.world.health_rules,\n                id,\n                amount,\n                blocking,\n                living_cause,\n                causing,\n            )",
+      "new": "        let equipment = crate::game::pluto_damage_equipment::capture(game);\n        if let Some(player) = game.player.as_mut()\n            && let Some(id) = game.health_resources.damage.id(damage_type)\n            && let Ok(o) = horizon_client::health::pluto_protection::hurt_with_optional_equipment(\n                player,\n                &game.health_resources,\n                game.world.health_rules,\n                id,\n                amount,\n                blocking,\n                living_cause,\n                causing,\n                equipment.as_ref(),\n            )"
+    },
+    {
+      "old": "            game.after_block(outcome, (attacker, projectile), source);",
+      "new": "            crate::game::pluto_block_feedback::dispatch(\n                game,\n                crate::game::pluto_block_feedback::Event { outcome, attacker, projectile, source },\n            );\n            game.after_block(outcome, (attacker, projectile), source);"
+    }
+  ],
+  "function_fingerprint": "1d0aa093d60a70b903e4cab049b2d7a8e9fc999083df95ce11d9440f3d2e8214"
+}

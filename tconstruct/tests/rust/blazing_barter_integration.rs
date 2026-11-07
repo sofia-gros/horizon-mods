@@ -1,3 +1,7 @@
+include!("pluto_storage_fixture.rs");
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
 // Integration fixture: compile against a host staged with this mod and its native loot hook.
 use horizon_world::loot::LootStack;
 #[path = "../../../pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"]

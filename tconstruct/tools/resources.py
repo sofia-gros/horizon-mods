@@ -114,16 +114,19 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
-seared_reinforcement_sprite = mod_assets / 'textures/item/materials/reinforcement/seared.png'
-seared_reinforcement_sprite.parent.mkdir(parents=True, exist_ok=True)
-shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png', seared_reinforcement_sprite)
+for material in ('seared', 'iron', 'gold', 'cobalt', 'obsidian'):
+    sprite = mod_assets / ('textures/item/materials/reinforcement/' + material + '.png')
+    sprite.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement' / (material + '.png'), sprite)
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/tinkers_gadgetry.png', mod_assets / 'textures/item/tinkers_gadgetry.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/blazing_bone.png', mod_assets / 'textures/item/materials/blazing_bone.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/silky_cloth.png', mod_assets / 'textures/item/materials/silky_cloth.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/necrotic_bone.png', mod_assets / 'textures/item/materials/necrotic_bone.png')
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/venombone.png', mod_assets / 'textures/item/materials/venombone.png')
 piggy_sprite = mod_assets / 'textures/item/gadgets/piggy_backpack.png'
 piggy_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/gadgets/piggy_backpack.png', piggy_sprite)
@@ -148,7 +151,7 @@ for part in ('helmet', 'chestplate', 'leggings', 'boots'):
 # source layer. The original Forge loader is ported by the Mixins, rather than
 # making these original models look like vanilla models without their behavior.
 source_manifest = {}
-for row in (repository / 'docs/upstream-part-visuals.sha256').read_text().splitlines():
+for row in (repository / 'reference/upstream-part-visuals.sha256').read_text().splitlines():
     digest, name = row.split('  ', 1)
     if name in source_manifest:
         raise ValueError('duplicate part visual manifest path')
@@ -328,6 +331,13 @@ entries.append(('tconstruct:piggy_backpack', 'minecraft:flint', 'Piggybackpack (
 entries.append(('tconstruct:blazing_bone', 'minecraft:bone', 'Blazing Bone'))
 entries.append(('tconstruct:silky_cloth', 'minecraft:flint', 'Silky Cloth'))
 entries.append(('tconstruct:necrotic_bone', 'minecraft:bone', 'Necrotic Bone'))
+# Append new material items so existing prepared item IDs stay unchanged.
+entries.append(('tconstruct:venombone', 'minecraft:bone', source_names['item.tconstruct.venombone']))
+entries.append(('tconstruct:tinkers_gadgetry', 'minecraft:book', "Tinkers' Gadgetry"))
+# Append only: prepared worlds retain every existing protocol ID.
+for material in ('iron', 'gold', 'cobalt', 'obsidian'):
+    short = material + '_reinforcement'
+    entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -358,9 +368,11 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/silky_cloth'}}
     elif short == 'necrotic_bone':
         native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/materials/necrotic_bone'}}
+    elif short == 'venombone':
+        native_model = {'parent': 'minecraft:item/bone', 'textures': {'layer0': 'tconstruct:item/materials/venombone'}}
     elif short == 'blazing_bone':
         native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/materials/blazing_bone'}}
-    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement'):
+    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement', 'iron_reinforcement', 'gold_reinforcement', 'cobalt_reinforcement', 'obsidian_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
         texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
@@ -423,7 +435,7 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
-    if short == 'encyclopedia':
+    if short in ('encyclopedia', 'tinkers_gadgetry'):
         item['minecraft:max_stack_size'] = 1
     if short == 'meat_soup':
         # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
@@ -461,7 +473,7 @@ for name, template, title in entries:
 # Prepare source tool models and material sprites for the registered tools.
 # The shared renderer can add other tools as their real item registrations land.
 tool_manifest = {}
-for row in (repository / 'docs/upstream-tool-visuals.sha256').read_text().splitlines():
+for row in (repository / 'reference/upstream-tool-visuals.sha256').read_text().splitlines():
     digest, name = row.split('  ', 1)
     tool_manifest[name] = digest
 with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-visuals.zip') as archive:

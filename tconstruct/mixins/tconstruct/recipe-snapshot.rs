@@ -9,18 +9,18 @@ pub(super) fn merge_pack(
     files: impl IntoIterator<Item = String>,
     read: impl Fn(&str) -> Option<Vec<u8>>,
 ) {
-    for file in files {
-        let Some(rest) = file.strip_prefix("data/") else { continue; };
-        let Some((namespace, path)) = rest.split_once('/') else { continue; };
-        let Some(path) = path.strip_prefix("recipes/").and_then(|p| p.strip_suffix(".json")) else { continue; };
-        if namespace.is_empty() || path.is_empty()
-            || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
-            || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
-            || path.split('/').any(|part| part == "." || part == ".." || part.is_empty()) { continue; }
-        if let Some(bytes) = read(&file) {
-            recipes.insert(format!("{namespace}:{path}"), bytes);
-        }
-    }
+    // This loader historically ignores unreadable files. Keep that policy
+    // separate from the strict modifier snapshot, and retain raw last-wins data.
+    let _ = pluto_api::resources::visit_json_pack_with_policy(
+        files,
+        read,
+        |resource| {
+            let path = resource.path.strip_prefix("recipes/")?;
+            Some(format!("{}:{path}", resource.namespace))
+        },
+        |id, _, bytes| { recipes.insert(id, bytes); },
+        pluto_api::resources::UnreadablePolicy::Skip,
+    );
 }
 
 #[cfg(test)]
@@ -43,5 +43,32 @@ mod tests {
         assert_eq!(first.get("tconstruct:tools/materials/flint/flint"), Some(&b"override".to_vec()));
         assert_eq!(second.get("tconstruct:tools/materials/flint/flint"), Some(&b"base".to_vec()));
         assert_eq!(first.len(), 1);
+    }
+    #[test]
+    fn unreadable_override_preserves_prior_recipe_and_continues() {
+        let first = "data/x/recipes/first.json";
+        let second = "data/x/recipes/second.json";
+        let mut recipes = BTreeMap::new();
+        merge_pack(&mut recipes, [first.into()], |_| Some(b"base".to_vec()));
+        merge_pack(&mut recipes, [first.into(), second.into()], |file| {
+            (file == second).then(|| b"not JSON".to_vec())
+        });
+        assert_eq!(recipes["x:first"], b"base");
+        assert_eq!(recipes["x:second"], b"not JSON");
+        merge_pack(&mut recipes, [first.into()], |_| Some(b"malformed override".to_vec()));
+        assert_eq!(recipes["x:first"], b"malformed override");
+    }
+    #[test]
+    fn invalid_and_unrelated_paths_never_reach_the_reader() {
+        let mut recipes = BTreeMap::new();
+        merge_pack(&mut recipes, [
+            "data/x/recipes/../bad.json",
+            "data/x/recipes/.json",
+            "data/x/recipes//bad.json",
+            "data/x/Recipes/bad.json",
+            "data/x/tags/items/good.json",
+            "assets/x/recipes/good.json",
+        ].map(str::to_owned), |_| panic!("invalid or unselected path was read"));
+        assert!(recipes.is_empty());
     }
 }

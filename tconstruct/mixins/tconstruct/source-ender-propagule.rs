@@ -25,7 +25,7 @@ fn advance(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state: Bloc
     if !growth_chunks_loaded(level, pos) { return; }
     let tall=level.world.random.next_float()<0.85;
     let b=level.behaviours;
-    let replacement=b.legacy_block(b.fluid(state));
+    let replacement=horizon_client::pluto_fluid_facts::replacement_after_removal(b, state);
     b.set_block(level,ticks,pos,replacement,4);
     if !horizon_world::level::tconstruct_ender_live_place::place(b,level,ticks,pos,tall) {
         b.set_block(level,ticks,pos,state,4);

@@ -1,0 +1,47 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+  "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
+  "injection_id": "client-payload-observed",
+  "helper": "client-payload-observed.rs",
+  "helper_sha256": "c609e3e80f0a1d59474b1f3604d0d2c3de2c0803e6e77e2b83cef442838569f9",
+  "source_sha256": {
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd"
+  },
+  "callers": [
+    "horizon_client::game::remote::Game<'_>::handle_packet",
+    "horizon_client::game::remote::Game<'_>::poll_remote"
+  ],
+  "bindings": [
+    {
+      "name": "value",
+      "ty": "()",
+      "value": "$value"
+    },
+    {
+      "name": "game",
+      "ty": "&Game<'_>",
+      "value": "&*self"
+    },
+    {
+      "name": "packet",
+      "ty": "&ClientboundPlayPacket",
+      "value": "packet"
+    }
+  ],
+  "coverage": "Only CustomPayload packets that reach this play-phase observer, after native dispatch, before handle_packet processing. Protocol-thread and configuration traffic remain excluded.",
+  "location": {
+    "file": "crates/horizon-client/src/game/native_hooks.rs",
+    "node": [
+      40,
+      339
+    ]
+  },
+  "caller_fingerprints": {
+    "horizon_client::game::remote::Game<'_>::handle_packet": "17b740523a4ed99467cbfcdd62a3f7632f0a8e957c890b07f31bf7c809e6cd5c",
+    "horizon_client::game::remote::Game<'_>::poll_remote": "794701f78c243580476c95e5c619e97b9615ad758189aa878f4df89770268844"
+  }
+}
