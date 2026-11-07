@@ -14,6 +14,10 @@ pub trait PlayerOps {
     fn tell(&mut self, player: u128, line: &str) -> bool;
     /// Gives items to the player; returns how many did not fit.
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32;
+    /// The JSON stored under the attachment `id` for the player, if any (does not create it).
+    fn attachment_get(&mut self, player: u128, id: &str) -> Option<String>;
+    /// Stores JSON under the attachment `id` for the player; false if it could not be stored.
+    fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool;
 }
 
 thread_local! {
@@ -41,7 +45,7 @@ pub fn with_ops<R>(ops: &mut dyn PlayerOps, f: impl FnOnce() -> R) -> R {
     f()
 }
 
-fn with_current<R>(default: R, f: impl FnOnce(&mut dyn PlayerOps) -> R) -> R {
+pub(super) fn with_current<R>(default: R, f: impl FnOnce(&mut dyn PlayerOps) -> R) -> R {
     match OPS.with(Cell::get) {
         // SAFETY: see `with_ops`: the pointer is valid for as long as it is stored.
         Some(raw) => f(unsafe { &mut *raw }),
@@ -76,6 +80,7 @@ mod tests {
     struct Recorder {
         told: Vec<(u128, String)>,
         given: Vec<(u128, String, u32)>,
+        attached: std::collections::HashMap<(u128, String), String>,
     }
 
     impl PlayerOps for Recorder {
@@ -86,6 +91,13 @@ mod tests {
         fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
             self.given.push((player, item.to_owned(), count));
             count.saturating_sub(2) // pretend only two fit
+        }
+        fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
+            self.attached.get(&(player, id.to_owned())).cloned()
+        }
+        fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
+            self.attached.insert((player, id.to_owned()), json.to_owned());
+            true
         }
     }
 
