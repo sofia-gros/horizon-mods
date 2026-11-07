@@ -47,7 +47,47 @@ class Tests(unittest.TestCase):
  def test_full_inputs_and_packages_before_guards(self):
   s=(HERE/'run.py').read_text();self.assertLess(s.index("report['gates']['official_inputs']=verify_inputs"),s.index('guards=prior.attempt_guards'));self.assertLess(s.index("report['gates']['full_plan_contract']=package.verify_plan"),s.index('guards=prior.attempt_guards'));self.assertIn("source/'plan.json',official,integration",s)
  def test_fixed_artifact_workflow(self):
-  w=(r.ROOT/'.github/workflows/playtest-guard-replay-wip.yml').read_text();self.assertIn('actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093',w);self.assertIn("artifact-ids: '13513252348'",w);self.assertIn('run-id: 42236543685',w);self.assertLess(w.index('--preflight'),w.index('actions/download-artifact@'));self.assertIn('actions: read',w)
+  w=(r.ROOT/'.github/workflows/playtest-guard-replay-wip.yml').read_text();self.assertIn('actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093',w);self.assertIn("artifact-ids: '13556955569'",w);self.assertIn('run-id: 42328100345',w);self.assertLess(w.index('--preflight'),w.index('actions/download-artifact@'));self.assertIn('actions: read',w)
  def test_original_artifact_identity(self):
-  a=r.inputs()['artifact'];self.assertEqual(a['source_head'],'cea160c079c8a3f008939fad5986046372d6f69f');self.assertEqual(set(a['files']),{'manifest.json','plan.json','receipt.json','package-maps.json'});self.assertEqual(a['files']['plan.json']['sha256'],'7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b')
+  a=r.inputs()['artifact'];self.assertEqual(a['source_head'],'7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c');self.assertEqual(set(a['files']),{'manifest.json','plan.json','receipt.json','package-maps.json'});self.assertEqual(a['files']['plan.json']['sha256'],'dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b')
+ def package_pair(self):
+  value={'id':'tconstruct_native','members':3,'header':{'id':'tconstruct_native'},'file_mode':'0644','archive_sha256':'a'*64,'archive_bytes':100,'unpacked_bytes':200,'member_sha256':{r.SUPPORT:'a'*64,'horizon-native.json':'h','mixins/tconstruct_native/x.rs':'r'},'support':{'members':1,'unpacked_bytes':2},'support_seal_sha256':'s'}
+  old=copy.deepcopy(value);old['passed']=True
+  plan={'data':[{'mod_id':'tconstruct_native','files':{'tconstruct-support.zip':'a'*64}}]}
+  return value,old,plan
+ def test_support_data_separated(self):
+  actual,old,plan=self.package_pair();actual['member_sha256'][r.SUPPORT]='b'*64;actual['archive_sha256']='c'*64;actual['archive_bytes']=105;actual['unpacked_bytes']=205;actual['support_seal_sha256']='t'
+  result=r.native_package_equality(actual,old,plan);self.assertTrue(result['native_members_equal']);self.assertFalse(result['archive_equal']);self.assertTrue(result['support_changed']);self.assertIn('No apply',result['scope'])
+ def test_support_unchanged_is_explicit(self):
+  actual,old,plan=self.package_pair();result=r.native_package_equality(actual,old,plan);self.assertTrue(result['archive_equal']);self.assertFalse(result['support_changed'])
+ def test_native_member_changed_denied(self):
+  actual,old,plan=self.package_pair();actual['member_sha256']['mixins/tconstruct_native/x.rs']='new'
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_native_member_removed_denied(self):
+  actual,old,plan=self.package_pair();del actual['member_sha256']['mixins/tconstruct_native/x.rs']
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_header_changed_denied(self):
+  actual,old,plan=self.package_pair();actual['header']['id']='changed'
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_unknown_tc_field_denied(self):
+  actual,old,plan=self.package_pair();actual['newfield']=True
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_old_plan_data_drift_denied(self):
+  actual,old,plan=self.package_pair();plan['data'][0]['files']['tconstruct-support.zip']='b'*64
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_extra_plan_data_denied(self):
+  actual,old,plan=self.package_pair();plan['data'].append({'mod_id':'extra','files':{}})
+  with self.assertRaises(ValueError):r.native_package_equality(actual,old,plan)
+ def test_combined_support_only_allowed(self):
+  old={'headers':[{'id':'tconstruct_native'}],'members':2,'unpacked_bytes':2,'member_sha256':{r.COMBINED_SUPPORT:'a','x.rs':'same'},'members_seal_sha256':'before'};actual=copy.deepcopy(old);actual['member_sha256'][r.COMBINED_SUPPORT]='b';actual['members_seal_sha256']='after';actual['unpacked_bytes']=3
+  self.assertEqual(r.native_combined_equality(actual,old)['native_members'],1)
+  actual['member_sha256']['x.rs']='bad'
+  with self.assertRaises(ValueError):r.native_combined_equality(actual,old)
+ def test_contract_precedes_guards(self):
+  text=(HERE/'run.py').read_text();self.assertLess(text.index("report['gates']['full_plan_contract']=package.verify_plan"),text.index('contract=prior.write_package_contract'));self.assertLess(text.index('contract=prior.write_package_contract'),text.index('guards=prior.attempt_guards'));self.assertIn("source/'plan.json',official,integration,contract_path",text);self.assertIn("'crafting_package'",text)
+ def test_final_contract_archive_seals(self):
+  text=(HERE/'run.py').read_text();self.assertIn("'Crafting contract changed'",text);self.assertIn("'Admitted package changed'",text)
+ def test_ready_false_blocks_admission(self):
+  c=r.inputs();c['ready']=False
+  with self.assertRaisesRegex(ValueError,'not ready'):r.validate(c)
 if __name__=='__main__':unittest.main()

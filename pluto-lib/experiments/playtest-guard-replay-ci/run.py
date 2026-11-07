@@ -6,14 +6,15 @@ def load(name,path):
  s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
 prior=load('reviewed_plan_runner',HERE.parent/'playtest-plan-ci/run.py')
 common=prior.common;package=prior.package;evidence=prior.evidence;Runner=prior.Runner;sha=common.sha
-BRANCH='checkpoint/tinkers-playtest-guard-replay-ci-20261106'
-HEAD='17f44dc36fc2df28547328aa8554286ae965b208'
-TREE='34642d22ef46cbc1dc804916e2a99c7809a7df1b'
-TESTS=20
+BRANCH='checkpoint/tinkers-playtest-next-guard-replay-ci-20261107'
+HEAD=None
+TREE=None  # Final metadata-only integration cutoff requires review before admission.
+TESTS=32
 OWN={'pluto-lib/experiments/playtest-guard-replay-ci/'+n for n in ('run.py','test_runner.py','README.md')}|{'.github/workflows/playtest-guard-replay-wip.yml'}
-REQUIRED={'runner','artifact','fixed_checkouts','official_inputs','package_headers','package_equality','full_plan_contract','formatter','complete_guards'}
+REQUIRED={'runner','artifact','fixed_checkouts','official_inputs','package_headers','package_equality','full_plan_contract','formatter','crafting_package','complete_guards'}
 def inputs():return json.loads((HERE/'inputs.json').read_text())
 def validate(c):
+ if c.get('ready') is not True or not HEAD or not TREE:raise ValueError('Replay cutoff is not ready')
  if (c['integration']['head'],c['integration']['tree'],c['branch'])!=(HEAD,TREE,BRANCH):raise ValueError('Wrong replay cutoff')
  if set(c['source_sha256'])!=OWN:raise ValueError('Replay source set changed')
  for name,digest in c['source_sha256'].items():
@@ -51,6 +52,32 @@ def verify_inputs(plan,actual):
 def same_package(actual,old):
  expected={k:v for k,v in old.items() if k!='passed'}
  if actual!=expected:raise ValueError('Repackaged header/member/archive differs from original plan evidence')
+SUPPORT='mixins/tconstruct_native/data/tconstruct-support.zip'
+COMBINED_SUPPORT=SUPPORT.removeprefix('mixins/')
+def native_package_equality(actual,old,plan):
+ # One explicitly separated non-code data entry. Never claim archive/data equivalence.
+ previous={k:v for k,v in old.items() if k!='passed'}
+ if set(actual)!=set(previous):raise ValueError('TConstruct package evidence schema changed')
+ for key in ('id','members','header','file_mode'):
+  if actual[key]!=previous[key]:raise ValueError('TConstruct header/member count changed')
+ before=previous['member_sha256'];after=actual['member_sha256']
+ if set(before)!=set(after) or SUPPORT not in before:raise ValueError('TConstruct member set changed')
+ if {k:v for k,v in before.items() if k!=SUPPORT}!={k:v for k,v in after.items() if k!=SUPPORT}:raise ValueError('TConstruct native member drift')
+ if plan.get('data')!=[{'mod_id':'tconstruct_native','files':{'tconstruct-support.zip':before[SUPPORT]}}]:raise ValueError('Original plan data identity differs')
+ return {'passed':True,'native_members_equal':True,'headers_equal':True,'archive_equal':actual['archive_sha256']==previous['archive_sha256'],
+  'support_changed':after[SUPPORT]!=before[SUPPORT], 'support_before_sha256':before[SUPPORT],'support_after_sha256':after[SUPPORT],
+  'archive_before_sha256':previous['archive_sha256'],'archive_after_sha256':actual['archive_sha256'],
+  'archive_before_bytes':previous['archive_bytes'],'archive_after_bytes':actual['archive_bytes'],
+  'support_before':previous['support'],'support_after':actual['support'],
+  'support_before_map_sha256':previous['support_seal_sha256'],'support_after_map_sha256':actual['support_seal_sha256'],
+  'scope':'Only native members and headers are equal. Current support data is independently verified against the fixed integration checkout; old plan data is not replaced. No apply or full archive equivalence.'}
+def native_combined_equality(actual,old):
+ previous={k:v for k,v in old.items() if k!='passed'}
+ if set(actual)!=set(previous) or actual['headers']!=previous['headers'] or actual['members']!=previous['members']:raise ValueError('Combined evidence/header/count differs')
+ before=previous['member_sha256'];after=actual['member_sha256']
+ if set(before)!=set(after) or COMBINED_SUPPORT not in before:raise ValueError('Combined member set differs')
+ if {k:v for k,v in before.items() if k!=COMBINED_SUPPORT}!={k:v for k,v in after.items() if k!=COMBINED_SUPPORT}:raise ValueError('Combined native member drift')
+ return {'passed':True,'native_members':len(after)-1,'native_map_sha256':sha(json.dumps({k:v for k,v in after.items() if k!=COMBINED_SUPPORT},sort_keys=True).encode()),'old_complete_map_sha256':previous['members_seal_sha256'],'current_complete_map_sha256':actual['members_seal_sha256']}
 def forbidden_tools(directory):
  directory.mkdir()
  for name in ('cargo','rustc'):
@@ -81,11 +108,11 @@ def execute(report):
   report['gates']['package_headers']={'passed':True,**package.validate_headers(integration)}
   tc=work/'tconstruct.hnmod';pluto=work/'plutolib.hnmod'
   runner.run('tconstruct-package',[sys.executable,str(integration/'tconstruct/tools/package_hnmod.py'),'--output',str(tc)],cwd=integration)
-  tc_value=package.verify_tconstruct(integration,tc);tc_value['support'].pop('member_sha256');same_package(tc_value,old['gates']['tconstruct_bundle'])
+  tc_value=package.verify_tconstruct(integration,tc);tc_value['support'].pop('member_sha256');tc_equality=native_package_equality(tc_value,old['gates']['tconstruct_bundle'],plan)
   runner.run('pluto-package',[sys.executable,str(integration/'pluto-lib/tools/package_native.py'),str(pluto)],cwd=integration)
   pluto_value=package.verify_pluto(integration,pluto);same_package(pluto_value,old['gates']['pluto_bundle'])
-  mods=work/'combined-mods';combined=package.compose(tc,pluto,mods);same_package(combined,old['gates']['combined_payload']);snapshots[str(mods)]=common.checkout_seal(mods)
-  report['gates']['package_equality']={'passed':True,'tconstruct_archive_sha256':tc_value['archive_sha256'],'pluto_archive_sha256':pluto_value['archive_sha256'],'combined_members':combined['members'],'combined_map_sha256':combined['members_seal_sha256']}
+  mods=work/'combined-mods';combined=package.compose(tc,pluto,mods);combined_equality=native_combined_equality(combined,old['gates']['combined_payload']);snapshots[str(mods)]=common.checkout_seal(mods)
+  report['gates']['package_equality']={'passed':True,'tconstruct_archive_sha256':tc_value['archive_sha256'],'pluto_archive_sha256':pluto_value['archive_sha256'],'combined_members':combined['members'],'combined_map_sha256':combined['members_seal_sha256'],'tconstruct':tc_equality,'combined':combined_equality,'scope':'Native guard replay only; support data difference is not apply admission'}
   report['gates']['full_plan_contract']=package.verify_plan(source/'plan.json',mods,plan['inputs'])
   runner.run('formatter-install',['rustup','toolchain','install','1.95.0','--profile','minimal','--component','rustfmt'],timeout=600)
   formatter=Path(runner.run('formatter-path',['rustup','which','--toolchain','1.95.0','rustfmt']).strip()).resolve()
@@ -94,7 +121,12 @@ def execute(report):
   report['gates']['formatter']={'passed':True,'path':str(formatter),'sha256':sha(formatter.read_bytes()),'version':runner.run('formatter-version',[str(formatter),'--version']).strip(),'scope':'Existing Linux1.95 guard normalization only; not latest Windows formatter proof'}
   wrappers=work/'no-compile';forbidden_tools(wrappers);snapshots[str(wrappers)]=common.checkout_seal(wrappers)
   env.update(CARGO=str(wrappers/'cargo'),RUSTC=str(wrappers/'rustc'),PATH=str(wrappers)+os.pathsep+str(formatter.parent)+os.pathsep+env['PATH'])
-  guards=prior.attempt_guards(runner,source/'plan.json',official,integration);report['gates']['complete_guards']=guards
+  contract_path=work/'crafting-package-contract.json'
+  expected_archives={'tconstruct_native':tc_value['archive_sha256'],'pluto_native_creative':pluto_value['archive_sha256']}
+  contract=prior.write_package_contract(integration,{'tconstruct_native':tc,'pluto_native_creative':pluto},expected_archives,contract_path)
+  report['gates']['crafting_package']=contract
+  archive_seals={tc:expected_archives['tconstruct_native'],pluto:expected_archives['pluto_native_creative']}
+  guards=prior.attempt_guards(runner,source/'plan.json',official,integration,contract_path);report['gates']['complete_guards']=guards
   report['compatibility']=False if not guards['passed'] else None
   if set(report['gates'])!=REQUIRED:raise ValueError('Missing replay gate')
   report['diagnostic_complete']=True
@@ -107,6 +139,10 @@ def execute(report):
    for p,v in git_snapshots.items():
     common.assert_git_clean(Path(p))
     if package.git_state(Path(p))!=v:raise ValueError('Checkout Git state drift')
+   if 'crafting_package' in report['gates']:
+    if sha(package.regular(contract_path,prior.guard_once.MAX_CONTRACT))!=report['gates']['crafting_package']['sha256']:raise ValueError('Crafting contract changed')
+    for p,digest in archive_seals.items():
+     if sha(package.regular(p,package.MAX_ARCHIVE))!=digest:raise ValueError('Admitted package changed')
    if 'formatter' in report['gates'] and sha(Path(report['gates']['formatter']['path']).read_bytes())!=report['gates']['formatter']['sha256']:raise ValueError('Formatter changed')
    runner.guard();report['source_verified']=True
   except BaseException as exc:common.record_error(report,exc,'final verification: ')
