@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "head": "5748c187cbb90c560ec6de552c3c8cf7c2154a2a",
+  "run_id": 42332291954,
+  "job_id": 128281309970,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42332291954",
+  "receipt_time": "2026-11-07T03:05:15.4088142Z",
+  "passed": true,
+  "verified": true,
+  "scope": "Windows1.99 formatter regeneration only; historical full-plan helper comparison",
+  "pure_counts": {
+    "controller": 33,
+    "stat": 12,
+    "runtime": 16
+  },
+  "rustc_archive": {
+    "bytes": 161274138,
+    "sha256": "43b17e9a9134ea72562bfbb23728a830f671ea9be1db6a72597a8d240e986b35"
+  },
+  "rustc_runtime": {
+    "archive": {
+      "bytes": 161274138,
+      "sha256": "43b17e9a9134ea72562bfbb23728a830f671ea9be1db6a72597a8d240e986b35"
+    },
+    "compiler_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+    "component": "rustc",
+    "expanded_bytes": 639559568,
+    "manifest": {
+      "bytes": 6636,
+      "sha256": "a4545c4dcb0e1b678b35e67dabb2dd522147ff858ae3ef193dd03a1c9a356583"
+    },
+    "members": 75,
+    "required_dlls": [
+      "rustc_driver-737f10a507f50706.dll",
+      "std-f903e3d16df36da5.dll",
+      "libgcc_s_seh-1.dll",
+      "libwinpthread-1.dll"
+    ],
+    "transitive_pe_closure_verified": false
+  },
+  "formatter": {
+    "archive_bytes": 4941389,
+    "archive_sha256": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa",
+    "archive_url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+    "executable_bytes": 9723329,
+    "executable_sha256": "537a30b76250a6c5f3c46dae538f8428fc53041385f5731320d4ff6703a60b2a",
+    "package_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+    "package_version": "1.10.0",
+    "version": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)"
+  },
+  "calls": {
+    "damage": 3,
+    "terrain_cell": 4
+  },
+  "phases": [
+    {
+      "name": "pure",
+      "seconds": 0.5149999999999864,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "2949fbd101dbee8ff29a7931b6af86802c548943e71b907e27123796f241594a",
+      "log_bytes": 3795
+    },
+    {
+      "name": "stat-pure",
+      "seconds": 0.3130000000000166,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "c965891b1518cb035dfb42e7fe8620465be20cb69d12f03436c8e0ac104473a5",
+      "log_bytes": 1590
+    },
+    {
+      "name": "runtime-pure",
+      "seconds": 0.29699999999999704,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "2aae267d3ab2c67bb813c86176fdae2b50665a4d0032eeb65a0014f5012612fa",
+      "log_bytes": 2082
+    },
+    {
+      "name": "rustc-download",
+      "seconds": 2.328000000000003,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "4b971a5c6afa5205b55ecdc92229829fffa6e754dd61a6d584a9b58c860feda1",
+      "log_bytes": 100
+    },
+    {
+      "name": "rustc-runtime",
+      "seconds": 4.4529999999999745,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "b4f5c483e4d76fa73df14095da083eca33ec154b0590458611f233c24ea8a075",
+      "log_bytes": 519
+    },
+    {
+      "name": "prepare",
+      "seconds": 2.1880000000000166,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "420adcf1f2b35b846206957f1e07234ce91dd60816b6f3f5811806e8a5af0d47",
+      "log_bytes": 1154
+    },
+    {
+      "name": "version",
+      "seconds": 0.11000000000001364,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "5599925a145edaa750ffdd40d2dc1adb031362d0932dd5935e20440a5f51d2be",
+      "log_bytes": 46
+    },
+    {
+      "name": "damage",
+      "seconds": 0.35900000000000887,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "0770afd60b9ca0a9a2dd05871dd1bcffbb830e2e9fd7e8b8f95d9c8e0d5cf530",
+      "log_bytes": 1224
+    },
+    {
+      "name": "terrain-cell",
+      "seconds": 0.35899999999998045,
+      "wrapper_exit": 0,
+      "child_returncode": 0,
+      "job_empty": true,
+      "log_sha256": "00c772205f18f1e59935c55e845a5f31ee6b8d38448e6463bc276617720ab567",
+      "log_bytes": 1564
+    }
+  ],
+  "resources": {
+    "filesystems": {
+      "C:\\": {
+        "minimum_free_bytes": 30361784320,
+        "total_bytes": 160939618304
+      },
+      "D:\\": {
+        "minimum_free_bytes": 235145580544,
+        "total_bytes": 236205371392
+      }
+    },
+    "memory_first": {
+      "available_pagefile": 17696993280,
+      "available_physical": 14311919616,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_last": {
+      "available_pagefile": 17699569664,
+      "available_physical": 14339280896,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_samples": 244,
+    "minimum_available_physical_bytes": 14177046528
+  },
+  "source_seal": "6af3ceabce41ad6939c8ac096fd3a5d2b3821b2fb4c599be567e20ad2c90b99a",
+  "prepared_input_seal": "8c007cca051aa92e664ae3d01f331c165d4b857e55ebecb06b19ada09526165c",
+  "latest_composition_verified": false,
+  "apply_executed": false,
+  "game_build_executed": false,
+  "console": {
+    "bytes": 30247,
+    "sha256": "6ff9a72e2b5bead2278ef19b35a22161b7bff1d9efacee190767efe7c45a2a23",
+    "published": false
+  }
+}
