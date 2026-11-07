@@ -776,3 +776,11 @@ kind = "HEAD"
 cancellable = true
 helper = "crafting-pure-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
+
+
+[[module]]
+id = "health-attributes"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_health_attributes"
+source = "health-attributes.rs"
+visibility = "pub(crate)"

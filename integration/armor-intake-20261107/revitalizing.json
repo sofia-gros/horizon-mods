@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "source_pr": 697,
+  "source_head": "787911c89a828e17a1726e77c9144248ea5bf6a3",
+  "own_delta_base": "19378cf3d5d63bfac50fed3d68599fdf1c800dee",
+  "ordinary_base": "8360105dc27ee056df191db873853206b4dd3dc9",
+  "shared_responsibility": "One Game-private native additive max-health publication and final non-healing clamp; no saved state or callback. Duplicate IDs/nonfinite values reject before mutation; native setter failures are not rolled back.",
+  "tconstruct_responsibility": "Canonical definition, worn class slot, unbroken and material-trait-only Revitalizing projection. Original Gold Guard projection and simultaneous swap order preserved.",
+  "source_checks": {
+    "passed": 11
+  },
+  "rust_syntax": {
+    "official_release": "1.99.1",
+    "parser": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+    "executable_sha256": "68cb47a2a38daa8ff2ec6d623a2374b0a165d77ec74f1f654216665018c04598",
+    "stdin": true,
+    "writes_source": false,
+    "type_checked": false,
+    "cases": [
+      {
+        "path": "pluto-lib/mixins/pluto_native_creative/health-attributes.rs",
+        "input_sha256": "ea434fcba0ef82af5fd206acc3ee5dc1c30c9293cec3cfd642556ea6bfb0a184",
+        "input_bytes": 1751,
+        "returncode": 0,
+        "stderr_bytes": 0,
+        "source_unchanged": true,
+        "seconds": 0.042458400974282995
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/gold-guard-world.rs",
+        "input_sha256": "b8db94d59791025b5022a0696234d6591d9441813a88465cc2d3a32cc1d3f875",
+        "input_bytes": 4712,
+        "returncode": 0,
+        "stderr_bytes": 0,
+        "source_unchanged": true,
+        "seconds": 0.022198388003744185
+      },
+      {
+        "path": "tconstruct/mixins/tconstruct/source-gold-guard.rs",
+        "input_sha256": "9965571a85d4ae8bf1b46dacfe9c4f163691ae450cc3c76465b6f29e2b3784d6",
+        "input_bytes": 3950,
+        "returncode": 0,
+        "stderr_bytes": 0,
+        "source_unchanged": true,
+        "seconds": 0.02407745600794442
+      },
+      {
+        "path": "tconstruct/tests/rust/gold_guard_runtime.rs",
+        "input_sha256": "09652899640f494f6764c90d0d48d7611a7b23bb9fe9085f06340ca960b02e9e",
+        "input_bytes": 16725,
+        "returncode": 0,
+        "stderr_bytes": 0,
+        "source_unchanged": true,
+        "seconds": 0.022785192006267607
+      }
+    ]
+  },
+  "rust_adapter_tests": {
+    "shared_added": 3,
+    "pr_revitalizing_retained": 4,
+    "executed": false
+  },
+  "actual_host_type": false,
+  "native_plan": false,
+  "main_merged": false,
+  "pr_closed": false,
+  "limits": [
+    "Held-tool Revitalizing update-health semantics were outside original PR697 scope and are not added.",
+    "No real Game, live equipment change, save/load or LAN behavior was tested.",
+    "All six original PR paths are retained/adapted; common module manifest and source are new."
+  ],
+  "files": {
+    "tconstruct/docs/revitalizing-health.md": {
+      "bytes": 2636,
+      "sha256": "68dff4c325fc2ac736721416b15877f2f0605a0bc25579496890bbaf1a60c296",
+      "git_blob": "47f152b0063057b1ab80d9bd696cbfde8004210a",
+      "before_git_blob": null
+    },
+    "tconstruct/mixins/tconstruct/gold-guard-world.rs": {
+      "bytes": 4712,
+      "sha256": "b8db94d59791025b5022a0696234d6591d9441813a88465cc2d3a32cc1d3f875",
+      "git_blob": "980f0bfae1f6f9b85327fea106bb14367e230793",
+      "before_git_blob": "b82ed80d465742f0f281cd3ea5412fbb55ac80dc"
+    },
+    "tconstruct/mixins/tconstruct/source-gold-guard.rs": {
+      "bytes": 3950,
+      "sha256": "9965571a85d4ae8bf1b46dacfe9c4f163691ae450cc3c76465b6f29e2b3784d6",
+      "git_blob": "06663e64b6d36b53ea5d8ed8f3cca7d9928ea85b",
+      "before_git_blob": "0c9fc6439d3d455450a0f5099e53342faea91d31"
+    },
+    "tconstruct/tests/run_gold_guard.py": {
+      "bytes": 3544,
+      "sha256": "853fcce43cb23b71fed23aada220b6d3ff5d3cdcade7c8b39e3b39976e3bb2b6",
+      "git_blob": "cd8258d72bf5464fa12ff972ed54a23c5e9bd321",
+      "before_git_blob": "ec14c0e839e1d8957ab92e25ea4bd7b846388496"
+    },
+    "tconstruct/tests/rust/gold_guard_runtime.rs": {
+      "bytes": 16725,
+      "sha256": "09652899640f494f6764c90d0d48d7611a7b23bb9fe9085f06340ca960b02e9e",
+      "git_blob": "e973ca16f65a7c2ee258ab4e54ba6144a7124860",
+      "before_git_blob": "389a9706289fd81a210a1b6a179f8c7a0db91021"
+    },
+    "tconstruct/tests/test_gold_guard.py": {
+      "bytes": 4255,
+      "sha256": "5f2d42a0e29d346e4d21439922e4ea7d138b68f30a5b7a5b2afa352dc8c9f5ac",
+      "git_blob": "5dbc8683396ecb3391b2e5a800e4489c8efc5dab",
+      "before_git_blob": "14d7cf22889ac73d1e44bb1b0bf057e534e8e9cd"
+    },
+    "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml": {
+      "bytes": 24196,
+      "sha256": "711bad91ccd7dd46ac2c2b372de64330df3fda6f7102d1e9ae41b1652c2f1f70",
+      "git_blob": "8f758dd4e911d50f710cf3fce46f3f70e5962b96",
+      "before_git_blob": "6d30ec264eff1d59b5e73670ef5a23f4327d0307"
+    },
+    "pluto-lib/mixins/pluto_native_creative/health-attributes.rs": {
+      "bytes": 1751,
+      "sha256": "ea434fcba0ef82af5fd206acc3ee5dc1c30c9293cec3cfd642556ea6bfb0a184",
+      "git_blob": "3522bd27c08f17c72eaf9158590f9f53028a6ab5",
+      "before_git_blob": null
+    },
+    "tconstruct/tests/test_revitalizing_intake.py": {
+      "bytes": 4004,
+      "sha256": "5b4d4fb764a4fc05c3fe5a30de9b15d4b98eda5a871936bb43d969330131cfd0",
+      "git_blob": "a0052029626cd1ec27f8dde062f16e6309261f5e",
+      "before_git_blob": null
+    }
+  }
+}

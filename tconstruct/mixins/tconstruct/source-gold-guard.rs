@@ -50,3 +50,15 @@ mod tests {
         assert!(known_guard(Some(guard)));
     }
 }
+
+// Revitalizing's ordinary Jeweled Hide armor path. Hand bonus damage is separate.
+pub(crate) const REVITALIZING: &str = "tconstruct:revitalizing";
+pub(crate) fn known_revitalizing(bytes: Option<&[u8]>) -> bool {
+    bytes.and_then(|b|serde_json::from_slice::<Value>(b).ok()).is_some_and(|v|v==json!({
+        "level_display":"tconstruct:default", "modules":[
+            {"type":"tconstruct:attribute","attribute":"minecraft:generic.max_health","each_level":2.0,"operation":"addition","slots":["mainhand","offhand","feet","legs","chest","head"],"tooltip_style":"boost"},
+            {"type":"tconstruct:update_health","slots":["feet","legs","chest","head"]},
+            {"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"]}
+        ]
+    }))
+}
