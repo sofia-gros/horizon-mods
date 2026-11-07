@@ -19,7 +19,14 @@ def undo(raw, row):
     return original
 
 
+def before_rust_syntax(relative, raw):
+    delta = json.loads((ROOT/'experiments/stage-rust-syntax/inverse.json').read_bytes())
+    row = delta['files'].get(relative)
+    return undo(raw, row) if row is not None else raw
+
+
 def before_float_range(relative, raw):
+    raw = before_rust_syntax(relative, raw)
     delta = json.loads((ROOT/'experiments/stage-float-range/inverse.json').read_bytes())
     row = delta['files'].get(relative)
     return undo(raw, row) if row is not None else raw

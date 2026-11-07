@@ -74,6 +74,13 @@ def repair(original, generated, source, plan, *, horizon_revision, mixins_revisi
         json.dump({'fixture_only': True, 'after_apply': True}, stream)
     return {'fixture_only': True}
 """, encoding='utf-8')
+            # Fake CLI fixtures never launch a real Rust parser.
+            (project / 'tools/stage_rust_syntax.py').write_text("""import json
+def check_generated(generated, output):
+    assert json.loads((output / 'float-range-repair-receipt.json').read_bytes()) == {'fixture_only': True, 'after_apply': True}
+    assert generated == output / 'modded'
+    (output / 'rust-syntax-receipt.json').write_text(json.dumps({'fixture_only': True, 'after_repair': True}))
+""", encoding='utf-8')
             revision = git(repos[1], 'rev-parse', 'HEAD')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_repository=str(repos[1]), mixins_revision=revision)))
             horizon_revision = git(repos[0], 'rev-parse', 'HEAD')
@@ -169,12 +176,14 @@ chmod +x "$2/release/horizon-mixins"
             self.assertEqual((project / 'target/mixins-revision.txt').read_text().strip(), revision)
             self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')
             self.assertEqual(json.loads((project / 'target/float-range-repair-receipt.json').read_bytes()), {'fixture_only': True, 'after_apply': True})
+            self.assertEqual(json.loads((project / 'target/rust-syntax-receipt.json').read_bytes()), {'fixture_only': True, 'after_repair': True})
             rejected_output = project / 'guard-rejected'
             rejected_guard = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(rejected_output)], env=dict(env, FIXTURE_REJECT_PREFLIGHT='1'), capture_output=True)
             self.assertNotEqual(rejected_guard.returncode, 0)
             self.assertTrue((rejected_output / 'complete-plan.json').is_file())
             self.assertFalse((rejected_output / 'modded').exists())
             self.assertFalse((rejected_output / 'float-range-repair-receipt.json').exists())
+            self.assertFalse((rejected_output / 'rust-syntax-receipt.json').exists())
             failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
