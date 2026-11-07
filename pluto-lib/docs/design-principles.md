@@ -28,6 +28,14 @@ patch Horizon itself.
   parts the ported mods currently use are built. Start with what Tinkers needs, keep each module's boundary
   and naming where Fabric API would put it.
 
+## The API is always complete, even where the host cannot do it yet
+
+Horizon and Horizon Mixins are under development and have limits. A limit is **never** a reason to omit or reshape a PlutoLib API. If the host cannot express a hook today, PlutoLib still exposes the Fabric-API-shaped call (event, callback, registry entry), and its implementation is a stub: a no-op, `false`, or the documented default. When Horizon Mixins gains support, only PlutoLib's internals change; mods keep calling the same API and need no update. Every stub is recorded in a support matrix (what, why, which host change unblocks it) so behaviour is never silently missing.
+
+## APIs are never designed around one feature
+
+PlutoLib has no API that exists for a single feature of a single mod (for example the Part Builder). Features are built by consumers on top of general Fabric-API-shaped modules; a feature is only the first consumer used to test a module.
+
 ## What a mod looks like on PlutoLib
 
 A mod declares a dependency on PlutoLib, registers content through PlutoLib's builders and registries, and

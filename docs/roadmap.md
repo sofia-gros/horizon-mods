@@ -17,10 +17,10 @@ Principles: [PlutoLib design principles](../pluto-lib/docs/design-principles.md)
 
 ## Adjustments to the order
 
-- **Steps 1 to 4 are iterated in thin vertical slices, not run as waterfalls.** Specify one module, build it, move one Tinkers feature group onto it, run the smoke test, then take the next. The first slice is the Part Builder to flint pickaxe path. Late integration would only reveal API mistakes at step 4.
+- **Steps 1 to 4 are iterated in thin vertical slices, not run as waterfalls.** Specify one module, build it, move one Tinkers feature group onto it, run the smoke test, then take the next. Slices follow **Fabric API modules** (for example lifecycle and tick events, item and block settings, interaction callbacks, screen handlers), never one Tinkers feature: a Tinkers feature is only the first consumer used to test a module. PlutoLib never gets an API that exists for a single feature such as the Part Builder. Late integration would only reveal API mistakes at step 4.
 - **Packaging and versioning belong in steps 1 and 3**, before step 4: PlutoLib as its own mod, a version scheme tied to the Horizon revision, and a compatibility table.
 - **Step 8's inventory is also used lightly in step 2** so the API shapes do not have to be redone when the missing features arrive.
-- **Mixins limits are tracked, not worked around.** Hooks the pinned Horizon Mixins cannot express (today: mining speed, Tinkers Chest pick color) are listed as blocked; the API exposes them when Mixins allows.
+- **A Mixins limit never removes an API.** Where the pinned Horizon Mixins cannot express a hook yet (today: mining speed, Tinkers Chest pick color), PlutoLib still provides the full Fabric-API-shaped call; its body is a stub (a no-op, or `false` / the default value) until Mixins allows the real implementation. Mods are written once against the API and never change when the stub is filled in. A support matrix in the PlutoLib docs lists every stubbed call and why.
 - **During steps 1 to 3 the tree is frozen:** no new features, no new direct injections (lint ratchet), and no mass PR merging that would have to be rewritten at step 5. Existing legacy hooks stay as the working baseline for smoke tests.
 
 ## Release criteria (step 7)
