@@ -114,7 +114,7 @@
     "tconstruct/experiments/windows-stat-compat/README.md": "82378fafc28c040500b7d4c307a7f25ba90633d7c6dcef48e181812b6d581583",
     "tconstruct/experiments/windows-formatter-ci/child_status.py": "15a14909bc35caf53300f3ce82b8f846346bace06ac8a1bc8c034198df89b380",
     "tconstruct/experiments/windows-formatter-ci/rustc_runtime.py": "5e2f5fa243011d28937ba490730811ba65c9d93adda1bcb241dc95b75fdea7a2",
-    "tconstruct/experiments/windows-formatter-ci/test_runtime.py": "ac823de0d23fab349d08cc3b7dd485a88b24c57f3e7b9dd9f71df176c26038c7",
+    "tconstruct/experiments/windows-formatter-ci/test_runtime.py": "d80dd9f85aeb6021b4896149dee8a58c3cd13e3c4b3ec9f5653bcec8a71270e4",
     "tconstruct/experiments/windows-formatter-ci/runtime-inverse.json": "1d7bfac93d2bb0ceae42d68ee0d65909a96e9fa82f425017a989dfba08a82289"
   },
   "runtime_stat_delta": "3adea9919061e3546b85a4c6668af8fa1547c3c8",
@@ -162,5 +162,12 @@
     "test_runtime_precedes_formatter_and_original_limits_stay",
     "test_streaming_record_empty_and_budget_and_link",
     "test_windows_reserved_paths_and_count_bounds"
-  ]
+  ],
+  "prior_runtime_pure_failure": {
+    "head": "d91738acf90553c8c4fb6e0d02dea283959d6714",
+    "run": 42331766258,
+    "passed": 15,
+    "errors": 1,
+    "reason": "POSIX-only filesystem-key assertion on Windows; archive download not reached"
+  }
 }

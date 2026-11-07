@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "head": "d91738acf90553c8c4fb6e0d02dea283959d6714",
+  "run": 42331766258,
+  "job": 128279689996,
+  "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42331766258",
+  "passed": false,
+  "verified": true,
+  "error": "RuntimeError: runtime-pure failed",
+  "pure": {
+    "controller": 33,
+    "stat": 12,
+    "runtime": {
+      "tests": 16,
+      "passed": 15,
+      "errors": 1,
+      "error": "KeyError: '/' in test_actual_numeric_resource_minima_are_bounded_aggregate"
+    }
+  },
+  "resources": {
+    "filesystems": {
+      "C:\\": {
+        "minimum_free_bytes": 33488343040,
+        "total_bytes": 160939618304
+      },
+      "D:\\": {
+        "minimum_free_bytes": 157730607104,
+        "total_bytes": 161059172352
+      }
+    },
+    "memory_first": {
+      "available_pagefile": 17670123520,
+      "available_physical": 14221836288,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_last": {
+      "available_pagefile": 17660162048,
+      "available_physical": 14207856640,
+      "total_pagefile": 20261367808,
+      "total_physical": 17174360064
+    },
+    "memory_samples": 43,
+    "minimum_available_physical_bytes": 14179172352
+  },
+  "raw_child_exit": 1,
+  "wrapper_exit": 1,
+  "all_owned_jobs_empty": true,
+  "log": {
+    "bytes": 27156,
+    "sha256": "2480b197a1dccf7b48ee55041466d5282b3ebb7766d2bac180c55a909e854074"
+  },
+  "unreached": [
+    "rustc-download",
+    "rustc-runtime",
+    "formatter preparation",
+    "version",
+    "damage3",
+    "terrain4"
+  ],
+  "fix": "Use the supplied Path('/tmp').anchor for the test dictionary key, preserving every other test assertion. Runtime, budgets, Job, URLs and native inputs are unchanged.",
+  "build_capacity": "Observed idle/test capacity only; not measured compiler growth or heavy-build admission."
+}

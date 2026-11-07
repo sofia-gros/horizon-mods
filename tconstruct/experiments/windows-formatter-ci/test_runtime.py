@@ -125,7 +125,7 @@ class Tests(unittest.TestCase):
         with patch.object(r,'memory',side_effect=samples),patch.object(r.shutil,'disk_usage',side_effect=[SimpleNamespace(total=100,free=90),SimpleNamespace(total=100,free=80)]):
             with r.observed_guard(base,receipt):base.disk_guard([Path('/tmp')]);base.disk_guard([Path('/tmp')])
         self.assertEqual(receipt['resources']['minimum_available_physical_bytes'],1024**3)
-        self.assertEqual(receipt['resources']['filesystems']['/']['minimum_free_bytes'],80)
+        self.assertEqual(receipt['resources']['filesystems'][str(Path('/tmp').anchor)]['minimum_free_bytes'],80)
         self.assertEqual(original.call_count,2)
 
     def test_original_probe_and_controller_whole_bytes_invert(self):
