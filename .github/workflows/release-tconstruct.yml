@@ -1,8 +1,9 @@
-name: Release packages
+name: Release Tinkers' Construct
+# Tag format: tconstruct-vMAJOR.MINOR.PATCH (optionally -rc.N).
 on:
   push:
     tags:
-      - 'v0.5.0'
+      - 'tconstruct-v*'
 permissions:
   contents: read
   actions: read
@@ -32,5 +33,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" \
-            --notes-file docs/release-notes-v0.5.0.md \
+            --generate-notes \
             dist/tconstruct.hmod dist/tconstruct.hnmod dist/plutolib.hnmod dist/SHA256SUMS
