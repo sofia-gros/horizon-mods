@@ -20,7 +20,7 @@ jobs:
         run: |
           python3 tools/lint_forbidden_api.py
           python3 -m unittest discover -s tests
-          cargo test --manifest-path pluto-lib/tests/base/Cargo.toml
+          cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml
           mkdir -p dist
           python3 tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod
           python3 tools/validate_release.py "$GITHUB_REF_NAME" dist

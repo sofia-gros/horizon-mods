@@ -22,7 +22,7 @@ Horizon (official)  <-- injections --  mod bundle (horizon-mixin.toml, Rust help
 - **Horizon Mixins** applies the bundles to Horizon's source. We never edit Horizon or Mixins.
 - **Native hook points** are Horizon's own stable, only-ever-added functions (`native_*`). Hooking only these lets a mod name the hook API version it needs instead of pinning a commit.
 - **PlutoLib** (`pluto-lib/mod`) is a trait mod. Mods declare it under `[dependencies]` in their `horizon-mixin.toml` and call its `[api]` crate; the official launcher links everything. Verified on the pinned Horizon with an experimental pair of mods.
-- `pluto-lib/mod/api/src/base/` is host-independent (events with phases, `Identifier`, `ActionResult`, the support matrix of stubs) and tested alone.
+- `pluto-lib/mod/api/src/pure/` is host-independent (`base`: events with phases, `Identifier`, `ActionResult`, the support matrix of stubs; and the Fabric-like modules built on it) and tested alone; `hooks.rs` is the only file that names Horizon types and turns Horizon's hook points into those events.
 
 ## Layout
 
