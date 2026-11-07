@@ -20,6 +20,9 @@ import json, os
 from pathlib import Path
 host = Path(os.environ['HORIZON_HOST'])
 root = Path(os.environ['ROOT'])
+import sys
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import add_inventory_api
 work = Path(os.environ['WORK'])
 for crate in ('horizon-world', 'horizon-items'):
     if not (host / 'crates' / crate / 'Cargo.toml').is_file():
@@ -38,6 +41,7 @@ serde_json = "1"
 path = {quoted(root / 'tconstruct/tests/rust/survival_helper_chain.rs')}
 '''
 (work / 'Cargo.toml').write_text(manifest)
+add_inventory_api(work / 'Cargo.toml', root)
 PY
 export SURVIVAL_RECIPES="$WORK/recipes"
 python3 - <<'PYRECIPES'
@@ -78,6 +82,12 @@ test = tomllib.loads((Path(os.environ['WORK']) / 'Cargo.lock').read_text())
 def identity(p):
     return tuple(p.get(k) for k in ('name', 'version', 'source', 'checksum'))
 allowed = {identity(p) for p in host['package']}
+import sys
+from pathlib import Path as _P
+root = _P(os.environ['ROOT'])
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import inventory_api_identity
+allowed.add(inventory_api_identity(root))
 unknown = [identity(p) for p in test['package'] if p['name'] != 'survival-chain-fixture' and identity(p) not in allowed]
 if unknown:
     raise SystemExit(f'fixture dependencies differ from the pinned host lock: {unknown}')
