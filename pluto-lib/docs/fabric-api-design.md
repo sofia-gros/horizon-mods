@@ -61,8 +61,11 @@ commands). The first group is cheap and stable; the second is where PlutoLib mus
 
 - **One repository, several products.** PlutoLib stays in this repository (`pluto-lib/`), as do the mods (`tconstruct/`, later others).
   Each product has its own version and its own release; GitHub Actions builds several files in one run.
-- **Tags are per product**, for example `pluto-lib-v1.0.0` and `tconstruct-v1.1.0`. A tag triggers only that product's release workflow, which
-  validates, builds that product's files and publishes them (`pluto-lib.hnmod`, `tconstruct.hnmod` + `tconstruct.hmod`).
+- **Tags are per product and named `<directory>-v<semver>`** (decided by the engineering side on the owner's delegation): `pluto-lib-v1.0.0`,
+  `tconstruct-v1.1.0`, pre-releases `pluto-lib-v1.1.0-rc.1`. The prefix is the product's directory name, so a tag identifies its product at a glance;
+  a hyphen is used instead of a slash so release URLs stay unambiguous and the trigger globs (`pluto-lib-v*`, `tconstruct-v*`) cannot overlap.
+  A tag triggers only that product's release workflow, which validates, builds that product's files and publishes them
+  (`pluto-lib.hnmod`; `tconstruct.hnmod` + `tconstruct.hmod`). The release check fails unless the tag's version equals the product's `[mod] version`.
 - **Each artifact states what it needs:** `pluto-lib.hnmod` declares its Horizon (`hooks: N` where it only uses native hook points, else the
   exact Horizon and Mixins commits) in `horizon-native.json`; `tconstruct.hnmod` declares `pluto_lib = "^1"` in `[dependencies]`.
 - **Versioning.** Each product uses semantic versioning. PlutoLib's API is stable within a major version; a Horizon update that PlutoLib can
@@ -118,6 +121,5 @@ modules move ahead of lifecycle because they give the most stable value first.
 ## 6. Open questions for the owner
 
 1. **Are the module names acceptable** (Rust modules mirroring Fabric artifacts, §1)? They can be refined at each slice.
-2. **Tag scheme**: `pluto-lib-v1.0.0` / `tconstruct-v1.1.0` (§3). OK?
-3. **Making Tinkers a trait mod** (an `[api]` package with `hooks()`) is a structural change required by the dependency mechanism. Does the owner know of any
+2. **Making Tinkers a trait mod** (an `[api]` package with `hooks()`) is a structural change required by the dependency mechanism. Does the owner know of any
    reason not to? (This is a finding from Horizon's docs; it has not been tried yet. It will be tried in slice 1 before anything is built on it.)
