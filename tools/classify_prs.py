@@ -141,7 +141,7 @@ def write_md(path, rows):
          'Rules: at most 5 open PRs at once; one PR = one verification unit (CI green + `tools/smoke-local`); batches of about 10 PRs per series, in stack order. Order:', '',
          '1. **Class A first** (data/logic): cheapest, no host risk. Batch them by series.',
          '2. **Class B** by series, largest dependency chains last. Each PR is rewritten onto PlutoLib APIs; add the missing PlutoLib API in its own PR first.',
-         '3. **Class C** only after PlutoLib has the station-menu/screen API (see `part-builder-plutolib-gap.md`).',
+         '3. **Class C** only after PlutoLib has the station-menu/screen API (the `screen_handler_api_v1` module in `pluto-lib/docs/fabric-api-design.md`).',
          '4. Class X: close with a note.', '']
     L += ['## Series', '', '| Series (root) | PRs | A | B | C | X | fork? | forkref | first PR title |', '|---|---|---|---|---|---|---|---|---|']
     for root_n, v in sorted(by.items(), key=lambda kv: (-len(kv[1]), kv[0])):
