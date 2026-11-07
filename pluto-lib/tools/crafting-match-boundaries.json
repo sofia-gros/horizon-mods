@@ -1,0 +1,30 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "boundaries": [
+    {
+      "target": "horizon_client_lib::crafting::Recipes::assemble_if_matches",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "input",
+          "ty": "&Input<'_>",
+          "value": "input"
+        },
+        {
+          "name": "recipe",
+          "ty": "&Recipe",
+          "value": "recipe"
+        }
+      ],
+      "function_fingerprint": "4df48b30b17f2c4d735e45b54ae2e5c7d23f679c993b3d942c07f5aaecbf401c",
+      "injection_id": "crafting-match-veto",
+      "helper": "crafting-match-veto.rs",
+      "file_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+      "helper_sha256": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2"
+    }
+  ]
+}

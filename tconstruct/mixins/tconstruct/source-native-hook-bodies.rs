@@ -7,7 +7,6 @@ pub(super) fn tconstruct_casting_comparator_present(level: &crate::game::GameLev
 
 pub(super) fn tconstruct_geode_random_tick(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
     use horizon_core::random::RandomSource;
-    use horizon_world::fluid::FluidKind;
     let Some(source) = level.registry.state(state).map(|s| s.name.clone()) else { return; };
     if !matches!(source.as_str(), "tconstruct:budding_sky_slime_crystal" | "tconstruct:budding_earth_slime_crystal" | "tconstruct:budding_ichor_slime_crystal" | "tconstruct:budding_ender_slime_crystal") { return; }
     *handled = true;
@@ -19,14 +18,14 @@ pub(super) fn tconstruct_geode_random_tick(level: &mut GameLevel<'_>, ticks: &mu
     let target = BlockPos::new(x, y, z);
     let old = level.block_state(target);
     let Some(old_name) = level.registry.state(old).map(|s| s.name.as_str()) else { return; };
-    let fluid = level.behaviours.fluid(old);
+    let fluid = horizon_client::pluto_fluid_facts::block(level.behaviours, old);
     let air = level.behaviours.is_air(old);
-    let full_water = !air && super::tconstruct_source_geode_growth::can_start(false, old_name == "minecraft:water", fluid.is_full());
+    let full_water = !air && super::tconstruct_source_geode_growth::can_start(false, old_name == "minecraft:water", fluid.full);
     let Some(next) = super::tconstruct_source_geode_growth::next(&source, old_name, air, full_water) else { return; };
     let Some(default) = level.registry.default_state(&next) else { return; };
     let Some(mut next_state) = level.registry.state(default).cloned() else { return; };
     next_state.properties.insert("facing".into(), facing.into());
-    next_state.properties.insert("waterlogged".into(), (fluid.kind() == FluidKind::Water).to_string().into());
+    next_state.properties.insert("waterlogged".into(), (fluid.id == "minecraft:water").to_string().into());
     let Ok(next_state) = level.registry.resolve(&next_state) else { return; };
     let behaviours = level.behaviours;
     behaviours.set_block(level, ticks, target, next_state, 3);
@@ -77,7 +76,7 @@ pub(super) fn tconstruct_slimy_grass_tick(level: &mut GameLevel<'_>, ticks: &mut
         let info = level.registry.state(above);
         if !nylium {
             if info.is_some_and(|v| v.name == "minecraft:snow" && v.properties.get("layers").is_some_and(|n| n == "1")) { return true; }
-            if behaviors.fluid(above).is_full() { return false; }
+            if horizon_client::pluto_fluid_facts::block(behaviors, above).full { return false; }
         }
         let occludes = |s| behaviors.facts(s).flags & (CAN_OCCLUDE | SHAPE_OCCLUSION) == (CAN_OCCLUDE | SHAPE_OCCLUSION);
         let from_full = occludes(state) && behaviors.shape_info(state).full_faces & (1 << Direction::Up as u8) != 0;
@@ -107,12 +106,12 @@ pub(super) fn tconstruct_slimy_grass_tick(level: &mut GameLevel<'_>, ticks: &mut
         // or unresolved, do not spread speculatively.
         let tags = level.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags()
             .as_ref().and_then(|result| result.as_ref().ok());
-        let id = behaviors.fluid(top).kind().name();
+        let id = horizon_client::pluto_fluid_facts::block(behaviors, top).id;
         let is_water = super::tconstruct_source_tags::resolved_member(tags, "minecraft:water", id)
             .or_else(|| {
                 let raw = level.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot().as_ref()?;
-                let known = horizon_world::fluid::FluidKind::ALL.into_iter()
-                    .map(|kind| kind.name().to_owned()).collect();
+                let known = horizon_client::pluto_fluid_facts::native_ids()
+                    .map(str::to_owned).collect();
                 super::tconstruct_source_tags::local_tag_member(raw, &known, "minecraft:water", id)
             });
         let Some(is_water) = is_water else { continue; };

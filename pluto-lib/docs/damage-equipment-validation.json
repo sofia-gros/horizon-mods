@@ -1,0 +1,61 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "runtime_source_commit": "2b32def7da6e211ec7581d1ff96d27486bba72bc",
+  "group_base": "2d66190a352ccf25294d0afaddfbf88d755044c2",
+  "plan": {
+    "injections": 6,
+    "modules": 5,
+    "states": 0,
+    "scope": "isolated grouped protection/equipment service, not full PlutoLib/TConstruct bundle"
+  },
+  "checks": {
+    "official_apply": "passed",
+    "source_body_and_ordering_guards": "passed on post-apply plan",
+    "host_check": {
+      "status": "passed",
+      "exit_code": 0,
+      "command": "cargo check --locked --offline -p horizon-client-lib --lib -p horizon-client --bin horizon-client",
+      "elapsed": "1m12s"
+    },
+    "python_guard_tests": {
+      "status": "passed",
+      "count": 12
+    },
+    "native_packaging_tests": {
+      "status": "passed",
+      "count": 2
+    },
+    "native_equipment_snapshot_tests": {
+      "command": "cargo test --locked --offline -p horizon-client-lib --lib pluto_equipment -- --test-threads=1",
+      "exit_code": 130,
+      "status": "interrupted_before_execution",
+      "reason": "Stopped before coordinator 10 GiB free-space floor; last observed free bytes11245608960. Compilation reached horizon-client-lib; no test results.",
+      "source_commit": "2b32def7da6e211ec7581d1ff96d27486bba72bc"
+    }
+  },
+  "logs": {
+    ".devtools/equipment-context-proof-20261105/plan.log": "18cabaaf5afecdd0b7c766ac49047a66d0195a444a17de8ced8aefc86635be60",
+    ".devtools/equipment-context-proof-20261105/apply-final.log": "f20d5aa4abf38855c8b9fd0afdb65859c94429712a9e4d5eba883214bc31f19c",
+    ".devtools/equipment-context-proof-20261105/host-check-final.log": "2b2aefec5c57cbd24fd8f24d42d55e3fd955e1a58edfcc94b3c83b7d4e549870",
+    ".devtools/equipment-context-proof-20261105/python-tests.log": "fb83dd3d650968678cb1887d8e487a6be9a8644a8796e42dcd980ece026e34e3",
+    ".devtools/equipment-context-proof-20261105/equipment-tests.log": "2425591066302de91586db303f95ac09eba36fa640303e2216b9ee2422053f00",
+    ".devtools/equipment-context-proof-20261105/equipment-tests-terminal.json": "8668de8f63df0bba93f98ee7054125f7acbf682e646a7f53cdc8b504039b1980"
+  },
+  "not_verified": [
+    "Native equipment snapshot test execution (disk interrupted compilation).",
+    "Live provider-to-player hit and ordinary/explosion gameplay parity.",
+    "LAN guest, world/respawn/save/reload, prediction/replay integration.",
+    "Complete combined PlutoLib/TConstruct package, TConstruct consumer migration."
+  ],
+  "requirements": [
+    "Run both guard tools on complete combined plan before apply via common stage.py preflight. Direct raw launcher application without guards is unsupported.",
+    "Retain official MIT attribution and refresh source/body fingerprints with every official source change."
+  ],
+  "coverage": [
+    "Lossless native ItemStack snapshots for four armor and two hand slots.",
+    "Explicit borrowed snapshot delivered to protection providers; no ambient snapshot registry/state.",
+    "Exact official ordinary-hit and explosion callers adapted with owned local snapshot and source-guarded copied bodies.",
+    "Unadapted and client/replay paths provide None; native no-provider fallback remains unchanged."
+  ]
+}

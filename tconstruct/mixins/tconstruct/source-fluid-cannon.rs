@@ -11,10 +11,7 @@ impl Cannon {
         if self.tank.amount == 0 { 0 } else { 1 + (14 * self.tank.amount / self.tank.capacity) as i32 }
     }
     pub(super) fn lossless(&self) -> bool {
-        self.item.as_ref().is_none_or(|item| {
-            if item.count == 0 || item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
-            item_from_nbt(&item_to_nbt(item)).is_some_and(|decoded| decoded.count == item.count && decoded.damage == item.damage && decoded.same_item_same_components(item))
-        })
+        self.item.as_ref().is_none_or(|item| horizon_client::pluto_stack_storage::encode_item_lossless(item).is_some())
     }
     /// A fluid-only operation must preserve the raw item and all unrelated
     /// machine/tank extensions. Never turn this into an inventory update.

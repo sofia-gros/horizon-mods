@@ -29,7 +29,7 @@ class MelterHeldContainer(unittest.TestCase):
         self.assertLess(branch.index('if !unchanged(game)'), branch.index('plan_melter_held'))
         self.assertEqual(branch.count('if !unchanged(game)'), 2)
         self.assertLess(branch.rindex('if !unchanged(game)'), branch.index('game.open_menu'))
-        for check in ('game.remote.is_none()', 'contains_key(&(pos.0 >> 4', '== state', '== raw_before', '== creative', '== local', 'now.wire_patch() == before.wire_patch()', 'data.wire.patch()'):
+        for check in ('game.remote.is_none()', 'contains_key(&(pos.0 >> 4', '== state', '== raw_before', '== creative', '== local', 'horizon_client::pluto_stack_storage::same_item_snapshot(before, now)'):
             self.assertIn(check, branch)
 
     def test_plan_rewrites_only_tank_and_stays_non_mutating(self):

@@ -9,7 +9,7 @@ class SlimeGrassWaterTag(unittest.TestCase):
         self.assertIn('__horizon_mixins_tconstruct_resolved_fluid_tags()',body)
         self.assertIn('resolved_member(',body)
         self.assertIn('local_tag_member(',body)
-        self.assertIn('FluidKind::ALL',body)
+        self.assertIn('pluto_fluid_facts::native_ids()',body)
         self.assertIn('minecraft:water',body)
         self.assertIn('else { continue; }',body)
         self.assertNotIn('FluidKind::FlowingWater',body)

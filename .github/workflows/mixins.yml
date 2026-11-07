@@ -1,5 +1,6 @@
 name: Mixins validation
 on:
+  pull_request:
   workflow_dispatch:
   workflow_call:
 concurrency:
@@ -24,6 +25,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/ci_scope.py
+      - name: Forbidden-API lint
+        run: python3 tools/lint_forbidden_api.py
       - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
         run: |
@@ -31,6 +34,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
           rustup toolchain install 1.95.0 --profile minimal
           rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -48,7 +52,7 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 -m unittest discover -s tconstruct/tests -v
-          python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
+          PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/glass-crafting/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
@@ -100,54 +104,11 @@ jobs:
           MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
           git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
-      - name: Apply Mixins and check client
+      - name: Stage the vertical slice and check the client
         if: steps.scope.outputs.docs_only != 'true'
-        run: |
-          mkdir -p "$RUNNER_TEMP/pluto-source"
-          python3 pluto-lib/tools/package_native.py "$RUNNER_TEMP/pluto-source/plutolib.hnmod"
-          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
-          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
-          cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_station_recipes::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_recipes::foundry_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimelytra_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimeskull_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::first_material_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tool_fluid_swap_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::slimeskull_part_swap_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::swap_presentation_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::first_material_input_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::slimelytra_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::tipped_clearing_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tip_clearing::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mining_stack::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_source_mining_rules::haste_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_source::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_wire::tests
-          cargo test --locked --manifest-path tconstruct/tests/haste-wire-fixture/Cargo.toml
-          python3 tconstruct/tests/run_gold_guard.py --horizon ../horizon-official
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_gold_guard::tests -- --nocapture | tee "$RUNNER_TEMP/gold-guard-tests.log"
-          grep -Fq "test game::tconstruct_gold_guard::tests::count_neutral_slots_once_not_modifier_levels ... ok" "$RUNNER_TEMP/gold-guard-tests.log"
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_render::fluid_light_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::casting_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tagged_portable_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_state::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_fuel::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_fluid_container::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::part_swap_predicate_tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_recipe_order::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_stat_types::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_render_info::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests
-          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_material_id_host_tests::tests
+        # Only the slice in tools/smoke-local/slice.json is built while upstream
+        # rejects the rest (see AGENTS.md). This does not launch the game.
+        run: python3 tools/smoke-local/build.py --ci --horizon ../horizon-official --mixins ../horizon-mixins --work "$RUNNER_TEMP/slice-build"
       - name: Test fluid effect selection isolation
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_fluid_effect_selection_rust.sh
@@ -157,6 +118,9 @@ jobs:
       - name: Test Cannon and Casting Tank preservation outcomes
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_cannon_held.py
+      - name: Test shared inventory transaction guards
+        if: steps.scope.outputs.docs_only != 'true'
+        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_inventory_transaction_guards.py
       - name: Test lossless casting state transactions
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_casting_preservation_rust.sh

@@ -1,0 +1,85 @@
+{
+  "feature": "Explicit current RecipeIndex compare-and-apply",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "base_mod": "4eda85a0b4f1b447156cadcfebc745463435e0c7",
+  "source_scope": {
+    "api_modules": 1,
+    "native_support_modules": 1,
+    "new_hooks": 0,
+    "new_owned_state": 0,
+    "registries": 0,
+    "consumer_activation": false
+  },
+  "completed_checks": [
+    {
+      "kind": "std-only exact-fragment fixture",
+      "passed": 15,
+      "breakdown": {
+        "pure_api": 11,
+        "native_index_adapter_and_modeled_outer_publication": 4
+      },
+      "log": "/tmp/pluto-recipe-index-fixture-v2/tests.log",
+      "detail": "Exact official RecipeIndex/Known declarations and lookup methods; production adapter/API. Native load and Game are excluded. Outer crafting/meta publication payloads modeled."
+    },
+    {
+      "kind": "source/package unittest",
+      "passed": 4,
+      "log": "/tmp/pluto-recipe-index-fixture-v2/source-tests.log"
+    },
+    {
+      "kind": "fixture hash/source verification",
+      "result": "pass",
+      "manifest": "/tmp/pluto-recipe-index-fixture-v2/fixture-sources.json"
+    },
+    {
+      "kind": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "kind": "independent bounded source review",
+      "result": "no serious issue reported in allocation/atomicity at reviewed source; no reviewer tests/build claimed"
+    },
+    {
+      "kind": "complete installed native package",
+      "result": "pass",
+      "cutoff_mod": "c55f4985001999b7ea9aa34f7470e8725a5684af",
+      "archive_sha256": "47dcc0d20c79beb6a592db4385b729e1019e87de0c752cac4430a658ea4e4f61",
+      "stages": [
+        "official plan",
+        "all composition/source guards",
+        "official apply",
+        "actual lib and bin cargo check"
+      ],
+      "log_root": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v8",
+      "exit_code": 0,
+      "typecheck_seconds": 84,
+      "source_seal_files": 5039,
+      "combined_python_tests_passed": 130,
+      "combined_api_tests_passed": 93,
+      "detail": "Combined counts include other services, not only this index slice. No runtime/world publication or persistent identity proof."
+    }
+  ],
+  "official_source_sha256": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+  "fixture_fragments": [
+    {
+      "start": "#[derive(Clone, Debug, Default)]\npub struct RecipeIndex",
+      "end": "/// `RecipeDisplay.craftingStation` of a recipe type.",
+      "sha256": "b87f66c23a883cf66ff428a8ddf01a08c086fe75f8816d2b3fb81f2b0b3ddcc2"
+    },
+    {
+      "start": "    pub fn contains(&self, id: &str) -> bool {",
+      "end": "/// The recipe ids a knowledge book names:",
+      "sha256": "e78353d023673a3e0bc23c27e4e6b448aac030f3c647ac43d24fc0b447394364"
+    }
+  ],
+  "pending": [],
+  "not_proven": [
+    "Persistent ownership or byte-identical reload detection",
+    "Live world load/reload or gameplay",
+    "TConstruct caller migration",
+    "LAN/remote recipe display or content synchronization",
+    "Actual Recipes/Game multi-field publication runtime"
+  ],
+  "caller_precondition": "Stage cloned crafting/meta/index and all validation before a no-fail synchronous publication tail. Old mutate-first family refreshes cannot call this fallible operation unchanged."
+}

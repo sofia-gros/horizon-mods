@@ -22,6 +22,8 @@ fn tconstruct_chute_controller(game: &crate::game::Game<'_>, chute: (i32, i32, i
     Some((controller, dx.checked_mul(dy)?.checked_mul(dz)?))
 }
 
+use horizon_client::pluto_stack_storage::encode_item_lossless as encode_moving_item;
+
 // Callbacks may mutate either inventory; never commit a stale plan.
 fn chute_snapshots_match(
     before: &[Option<horizon_items::items::ItemStack>],
@@ -29,7 +31,8 @@ fn chute_snapshots_match(
     saved: &horizon_world::nbt::Tag,
     current_saved: Option<&horizon_world::nbt::Tag>,
 ) -> bool {
-    before == current && current_saved == Some(saved)
+    horizon_client::pluto_stack_storage::inventory_snapshot_matches(before, Some(current))
+        && horizon_client::pluto_inventory::snapshot_matches(saved, current_saved)
 }
 
 fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, chute: (i32, i32, i32), push: bool) -> bool {
@@ -114,9 +117,7 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
     state.progress[m] = 0;
     // Preserve every unrelated raw slot and machine field. The transferred
     // item must survive the host's saved-item codec before either side moves.
-    let encoded = horizon_items::item_nbt::item_to_nbt(&moving);
-    let Some(decoded) = horizon_items::item_nbt::item_from_nbt(&encoded) else { return false; };
-    if !moving.same_item_same_components(&decoded) || moving.count != decoded.count { return false; }
+    if encode_moving_item(&moving).is_none() { return false; }
     let Tag::Compound(mut fields) = saved else { return false; };
     let Some(Tag::List(raw_slots)) = fields.get_mut(&"slots".into()) else { return false; };
     let Some(raw_slot) = raw_slots.get_mut(m) else { return false; };
@@ -200,7 +201,7 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
 // three after callbacks so no unrelated stack or saved field is overwritten.
 fn casting_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32,i32,i32), push: bool) -> bool {
     use horizon_client::{containers::BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};
-    use horizon_items::{item_nbt::{item_from_nbt, item_to_nbt}, items::ItemStack};
+    use horizon_items::{item_nbt::item_to_nbt, items::ItemStack};
     if hopper.kind != Kind::Hopper || hopper.parts.len() != 1 || hopper.len() != 5 { return false; }
     let hopper_pos = hopper.parts[0].0;
     let hopper_block = game.world.block(hopper_pos.0, hopper_pos.1, hopper_pos.2);
@@ -246,13 +247,13 @@ fn casting_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i3
     // Insertion offers each source slot to the callback separately, as the
     // host does. Extraction has one source slot, so cancellation ends it.
     let candidates = if push { candidates } else { candidates.into_iter().take(1).collect() };
-    let choice = crate::game::tconstruct_source_melter_state::select_casting_candidate(candidates, |_, item| {
+    let choice = horizon_client::pluto_inventory::select_candidate(candidates, |_, item| {
         let mut cancel = false;
         game.native_inventory_move_item([from.0,from.1,from.2], [to.0,to.1,to.2], &item.item, &mut cancel);
         if game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2) != hopper_block
             || game.world.block(target.0,target.1,target.2) != target_block
-            || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before_hopper)
-            || !matches!(game.world.block_entities.get(&target), Some(BlockEntity::Chest(slots)) if *slots == before_target)
+            || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if horizon_client::pluto_stack_storage::inventory_snapshot_matches(&before_hopper, Some(slots)))
+            || !matches!(game.world.block_entities.get(&target), Some(BlockEntity::Chest(slots)) if horizon_client::pluto_stack_storage::inventory_snapshot_matches(&before_target, Some(slots)))
             || crate::game::tconstruct_source_melter_store::read(&game.world, target, kind).as_ref() != Some(&saved) { return None; }
         Some(!cancel)
     });
@@ -264,8 +265,7 @@ fn casting_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i3
         if plan_between(snapshot(&state.output), snapshot(&before_hopper[index]), 1, |_,_| max, |_,_| true, |a,b| a.same_item_same_components(b)).ok().flatten().is_none() { return false; }
     }
     item.count = 1;
-    let encoded = item_to_nbt(&item);
-    if item_from_nbt(&encoded).is_none_or(|decoded| decoded.count != 1 || !decoded.same_item_same_components(&item)) { return false; }
+    if encode_moving_item(&item).is_none() { return false; }
     let Some((after_hopper, next_state)) = state.hopper_transfer(&before_hopper, index, push) else { return false; };
     let mut after_target = before_target.clone();
     let (key, before_slot, after_slot) = if push { ("input", &state.input, &next_state.input) } else { ("output", &state.output, &next_state.output) };
@@ -331,7 +331,7 @@ fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32
         || game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2) != hopper_block
         || game.world.block(target.0,target.1,target.2) != target_block
         || crate::game::tconstruct_source_melter_store::read(&game.world,target,"tconstruct:fluid_cannon").as_ref() != Some(&saved)
-        || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
+        || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if horizon_client::pluto_stack_storage::inventory_snapshot_matches(&before, Some(slots))
             && slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item)))
         || crate::game::tconstruct_source_machine_runtime::cannon_at(game,target).is_none_or(|state| state.to_nbt() != machine_before) { return false; }
     let mut after = before.clone(); item.count = 1;
@@ -399,7 +399,7 @@ fn casting_tank_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target
     let mut cancel = false;
     game.native_inventory_move_item([from.0,from.1,from.2], [to.0,to.1,to.2], &item.item, &mut cancel);
     if cancel { return false; }
-    if !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
+    if !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if horizon_client::pluto_stack_storage::inventory_snapshot_matches(&before, Some(slots))
             && slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item)))
         || crate::game::tconstruct_source_machine_runtime::casting_tank_at(game, target).is_none_or(|state| state.to_nbt() != before_machine) { return false; }
     let mut after = before.clone(); item.count = 1;
@@ -419,7 +419,7 @@ fn casting_tank_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target
         || !game.world.chunks.contains_key(&(target.0 >> 4,target.2 >> 4))
         || game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2) != hopper_block
         || game.world.block(target.0,target.1,target.2) != target_block
-        || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
+        || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if horizon_client::pluto_stack_storage::inventory_snapshot_matches(&before, Some(slots))
             && slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item)))
         || crate::game::tconstruct_source_machine_runtime::casting_tank_at(game, target).is_none_or(|state| state.to_nbt() != before_machine) { return false; }
     let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&hopper_pos) else { return false; };

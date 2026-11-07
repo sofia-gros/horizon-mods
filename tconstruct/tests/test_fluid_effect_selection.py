@@ -13,7 +13,8 @@ class FluidEffectSelection(unittest.TestCase):
     def test_real_module_and_ci_runner(self):
         fixture = (ROOT/'tests/rust/fluid_effect_selection.rs').read_text()
         self.assertIn('source-fluid-effects.rs',fixture)
-        self.assertIn('horizon_client_core::potions',fixture)
+        self.assertIn('pluto-lib/mixins/pluto_native_creative/potion-facts.rs',fixture)
+        self.assertIn('pub mod pluto_potions;',fixture)
         ci = (ROOT.parent/'.github/workflows/mixins.yml').read_text()
         self.assertIn('tconstruct/tests/run_fluid_effect_selection_rust.sh',ci)
 if __name__=='__main__': unittest.main()

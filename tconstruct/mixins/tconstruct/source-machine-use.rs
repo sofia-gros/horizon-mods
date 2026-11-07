@@ -48,9 +48,7 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
                     && game.creative == creative && (game.lan.is_none(),game.lan_acting_uuid.is_none()) == local
                     && match (game.held(),held_before.as_ref()) {
                         (None,None) => true,
-                        (Some(now),Some(before)) => now.count == before.count && now.damage == before.damage
-                            && now.same_item_same_components(before) && now.wire_patch() == before.wire_patch()
-                            && now.data().and_then(|data| data.wire.patch()) == before.data().and_then(|data| data.wire.patch()),
+                        (Some(now),Some(before)) => horizon_client::pluto_stack_storage::same_item_snapshot(before, now),
                         _ => false,
                     }
             };

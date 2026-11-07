@@ -1,0 +1,23 @@
+{
+  "reference_commit": "c428c16f202fb7a1e8763f3396c5ca59783bc75b",
+  "old_draw_sha256": "5d10e3b4aa5ccc453d9428049bcb76ba071c254568bfccba1b97764b52a44281",
+  "new_draw_sha256": "5b491e67a01a2713e9620b002f1b807f5e5f00bbbb38b6c0f62a731fff1f34a2",
+  "oracle_sha256": "c32c6bcc3dfce05ac2872aacc7130fd5f1904dc554a4fad7321ff551ac395144",
+  "crop_blocks": [
+    "worktable",
+    "part",
+    "cover",
+    "name_field",
+    "button",
+    "empty_icons",
+    "scroll",
+    "region"
+  ],
+  "adaptations": [
+    "Extract exact eight old/new crop blocks and generic region closure.",
+    "Replace atlas lookup with HashMap of actual official Rect values, retaining texture keys and missing-entry behavior.",
+    "Supply selection, hover, scrollbar availability/progress and empty-slot flags as explicit inputs; original Game policy remains in the consumer.",
+    "Shared crop implementation and official HUD types are real, not mocked."
+  ],
+  "non_crop_policy_sha256": "e7e0d85465084251b63a945f3b58f8a158536a2d0c753cc7ec87754cd0b67908"
+}

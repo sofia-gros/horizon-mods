@@ -1,3 +1,7 @@
+extern crate self as horizon_client;
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
 #[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
 #[path = "../../mixins/tconstruct/source-melting-recipes.rs"] mod tconstruct_source_melting_recipes;
 #[path = "../../mixins/tconstruct/source-melting-lookup.rs"] mod tconstruct_source_melting_lookup;

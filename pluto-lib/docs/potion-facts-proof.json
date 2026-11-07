@@ -1,0 +1,41 @@
+{
+  "source_commit": "7b4d6f42fa9262ef09f01db1e7e53ed43648030f",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_checks_passed": 27,
+  "source_check_breakdown": {
+    "catalog_boundary": 4,
+    "rendering_and_identity_regression": 14,
+    "selected_existing_consumers": 9
+  },
+  "official_dependency_identity": "passed_before_and_after_run",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "potion-facts.rs": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f",
+    "tests.rs": "1829ee4767e3173e91b1890355028a6e88513b6501838b65e287dbce8019ea47",
+    "Cargo.toml": "45b0282a2eac367d17213cdeee454efd7ce661a95a85bd0d5fbcba291e5e5667",
+    "lib.rs": "56e5ce96375491a720aeef6df55a0ef605e5e730ba5e69db4378344e4ca98d51"
+  },
+  "native_catalog": {
+    "status": "passed",
+    "tests_passed": 5,
+    "tests_failed": 0,
+    "elapsed_seconds": 0.5011358261108398,
+    "end_free_bytes": 11082674176,
+    "log_sha256": "7cb5b8e4b700317074a3aaee0146c7dd0e57b15dba25c5d061464cf8a313f328",
+    "scope": "Actual production adapter against every built-in official effect/potion, aliases, raw/canonical identity, color/instant facts, empty/unknown outcomes, tuple order/values and one fixture-only registered custom effect."
+  },
+  "consumer_policy_evidence": "../tests/potion-catalog-consumer-sources.json",
+  "shared_package_composition": {
+    "commit": "d039d95c634851bc2ee30c2aa11180e58b43a314",
+    "source_sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f",
+    "status": "Official plan/preflight/apply and host lib+bin checks passed, reported by integration coordinator; shared source hash independently matched.",
+    "scope": "Complete Pluto package only, not consumer gameplay."
+  },
+  "consumer_complete_bundle_check": "not_run",
+  "effect_application_or_gameplay": "not_run",
+  "dependent_storage_fixture_wiring": {
+    "commit": "f7455d77a36506d2b511e03d5419bc0b8bef30ac",
+    "status": "Actual source wiring reviewed; integration reported separate 474-case storage fixture coverage, not rerun by this worker."
+  }
+}

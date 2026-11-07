@@ -1,3 +1,11 @@
+extern crate self as horizon_client;
+// Real PlutoLib graph engine under the native library export name.
+#[path = "../../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"]
+pub mod pluto_tag_graph;
+// Use the real PlutoLib resource module without the native host bundle.
+extern crate self as pluto_api;
+#[path = "../../../../pluto-lib/mixins/pluto_native_creative/api/src/resources.rs"]
+pub mod resources;
 // Standalone harness for the production condition resolver. The legacy
 // condition parser is deliberately unavailable here: these tests exercise
 // Forge item/mod conditions and conservative unknown handling.

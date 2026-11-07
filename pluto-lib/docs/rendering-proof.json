@@ -1,0 +1,66 @@
+{
+  "source_commit": "f651889e2fe88afb3a43093a8c54bc82dba70fc3",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_checks": {
+    "passed": 17,
+    "scope": "Six shared boundary/identity tests and eleven selected existing consumer source tests."
+  },
+  "official_dependency_identity": "passed_before_and_after_attempt",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "oracle.rs": "60de4f438ee2394f77c144adcef393c4482c345d2f69e1c39c08f1e25b7c5476",
+    "tests.rs": "4b7b10c3ee207413f25893e8217c5c00396bcedda585b19fdf5ab9c1cc9381a4",
+    "Cargo.toml": "89dfebc2ec74a98ed143033dbc68614232f21e4a301d758c8f3b9416e9b4b6c4",
+    "lib.rs": "0161cc25c8306f06ea85b20bc8e637a2d63bd4fffe121a08746b72552c347d66"
+  },
+  "native_equivalence": {
+    "status": "passed",
+    "tests_passed": 8,
+    "tests_failed": 0,
+    "test_names": [
+      "crop_preserves_mask_extent_even_with_non_16_logical_sprite",
+      "face_selection_keeps_order_and_all_fields",
+      "every_packed_light_and_legal_minimum_matches_old_formula",
+      "invalid_crop_and_mesh_are_atomic",
+      "single_column_callers_match_without_added_offset_rounding",
+      "cuboid_vertices_match_frozen_oracle_including_zero_height_and_prefix",
+      "invalid_and_over_budget_tiling_never_appends",
+      "tiled_vertices_match_frozen_float32_oracle"
+    ],
+    "light_pairs": 4096,
+    "elapsed_seconds": 38.5182580947876,
+    "end_free_bytes": 11106922496,
+    "process_returncode": 0,
+    "log_sha256": "77b14fc85b11b822431a616d82315b9499b53aca9bbc10353ccb7c0657d1aca5",
+    "scope": "Exact adapter source compiled and executed with real official renderer types. HUD/mesh field comparisons include f32 bits. No GPU or full consumer/gameplay run.",
+    "previous_attempt": {
+      "status": "not_executed",
+      "compilation_status": "stopped_disk_guard",
+      "elapsed_seconds": 43.550451040267944,
+      "guard_free_bytes": 10871635968,
+      "end_free_bytes": 10862927872,
+      "process_returncode": -2,
+      "log_sha256": "1b188f6d45a5b01d9b5f120cb29555b3e369e06af9a628d3cd262bacf6ba70b7",
+      "limitation": "Dependency compilation reached horizon-client-render, then the continuous disk guard stopped the dedicated process group before test execution. No Rust failure or equivalence result was observed."
+    }
+  },
+  "package_source_inclusion": "rendering.rs included exactly once with exact bytes; not planner/type proof",
+  "official_package_apply_type_check": {
+    "status": "passed",
+    "candidate": "0dd927ef",
+    "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "phases": [
+      "plan",
+      "preflight",
+      "apply",
+      "host_library_check",
+      "host_binary_check"
+    ],
+    "source_sha256": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "scope": "Complete shared Pluto package, confirmed by coordinated integration. Consumer-only crop follow-up is outside this cutoff."
+  },
+  "gameplay_visual": "not_run"
+}

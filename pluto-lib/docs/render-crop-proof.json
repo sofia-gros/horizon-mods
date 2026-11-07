@@ -1,0 +1,46 @@
+{
+  "source_commit": "032045e9b81a13588eb9664444e9ddaf6301fb15",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_checks_passed": 19,
+  "official_dependency_identity": "passed_before_and_after_run",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "rendering.rs": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "oracle.rs": "60de4f438ee2394f77c144adcef393c4482c345d2f69e1c39c08f1e25b7c5476",
+    "crop-oracle.rs": "5290ff34fa8d67b47ef379da2388dd5b0db645758661e98bf25df08364c1b981",
+    "tests.rs": "abb4ee5e3acc0307bf0b4834a642978727d1b4bfa1edfa783c77cea29da4fd5d",
+    "Cargo.toml": "89dfebc2ec74a98ed143033dbc68614232f21e4a301d758c8f3b9416e9b4b6c4",
+    "lib.rs": "ba5ef433a99553b729726bd7e739d177b0b9659dac3cd45c82e17312d49683da"
+  },
+  "native_equivalence": {
+    "status": "passed",
+    "tests_passed": 10,
+    "tests_failed": 0,
+    "added_tests": [
+      "heat_and_fire_crops_match_frozen_bodies",
+      "panel_and_both_gauges_match_frozen_bodies"
+    ],
+    "elapsed_seconds": 1.50205397605896,
+    "end_free_bytes": 10963062784,
+    "log_sha256": "af08a73a6e2412fdf56db69ee308dde43228210f903e3f42797a27da00eb94d4"
+  },
+  "shared_package": {
+    "status": "passed",
+    "candidate": "0dd927ef",
+    "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+    "phases": [
+      "plan",
+      "preflight",
+      "apply",
+      "host_library_check",
+      "host_binary_check"
+    ],
+    "source_sha256": "f70281677db4280f54e182a6183147e2f87445faea1b4445fe4336b2af2dccab",
+    "scope": "Complete shared Pluto package, confirmed by coordinated integration. Consumer-only crop follow-up is outside this cutoff."
+  },
+  "consumer_complete_bundle_check": "not_run_for_this_followup",
+  "gameplay_visual": "not_run",
+  "scope": "Five existing heat/fire/panel/gauge crop blocks use unchanged shared drawing API. Pixel/layout policy and hooks remain local."
+}

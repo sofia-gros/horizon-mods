@@ -1,0 +1,19 @@
+{
+  "_comment": "Vertical slice kept enabled while upstream Horizon/Mixins reject the rest. Everything not listed is parked, not deleted: the full manifests are unchanged.",
+  "tconstruct_seeds": ["prepare-station-resources"],
+  "pluto_seeds": [
+    "pluto_native_creative-protection-player-scope",
+    "pluto_native_creative-protection-arm",
+    "pluto_native_creative-protection-project",
+    "pluto_native_creative-protection-kernel",
+    "pluto_native_creative-world-fluid-use",
+    "pluto_native_creative-world-fluid-tick",
+    "pluto_native_creative-world-fluid-neighbor",
+    "pluto_native_creative-landing-state-clear"
+  ],
+  "pluto_keep_prefixes": [
+    "pluto_transport_3a-", "pluto_tool_rules-", "pluto_component_display_3a-",
+    "pluto_component_bar-", "pluto_items_b2-"
+  ],
+  "pluto_guards": ["protection"]
+}

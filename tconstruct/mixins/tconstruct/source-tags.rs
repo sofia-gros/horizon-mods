@@ -67,23 +67,18 @@ fn valid_id(id: &str) -> bool {
 pub(super) fn definitely_absent(
     tag: &str, item: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>,
 ) -> Result<bool, String> {
-    fn canonical(id: &str) -> String {
-        if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
-    }
-    fn visit(tag: &str, item: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>, visiting: &mut Vec<String>) -> Result<bool, String> {
-        if visiting.iter().any(|id| id == tag) { return Err(format!("cyclic tag {tag}")); }
-        let Some(files) = tags.get(tag) else { return Ok(true); };
-        visiting.push(tag.to_owned());
-        for entry in merge_tag_files(files).into_iter().filter(|entry| !entry.remove) {
-            let absent = if let Some(nested) = entry.id.strip_prefix('#') {
-                visit(&canonical(nested), item, tags, visiting)?
-            } else { canonical(&entry.id) != item };
-            if !absent { visiting.pop(); return Ok(false); }
-        }
-        visiting.pop();
-        Ok(true)
-    }
-    visit(&canonical(tag), &canonical(item), tags, &mut Vec::new())
+    use horizon_client::pluto_tag_graph::Target;
+    horizon_client::pluto_tag_graph::reaches_value(&canonical_id(tag), &canonical_id(item), |tag| {
+        // Source policy: removals cannot add a possible member. Missing groups
+        // and ignored invalid files add no edges; required flags do not prove
+        // actual membership here. local_tag_member validates its root separately.
+        tags.get(tag).map(|files| merge_tag_files(files).into_iter()
+            .filter(|entry| !entry.remove)
+            .map(|entry| match entry.id.strip_prefix('#') {
+                Some(nested) => Target::Group(canonical_id(nested)),
+                None => Target::Value(canonical_id(&entry.id)),
+            }).collect()).unwrap_or_default()
+    }).map(|reachable| !reachable).map_err(|error| graph_error(error, "tag"))
 }
 
 /// Reconstruct the ordered merge inputs by namespaced tag ID. Values are
@@ -155,36 +150,40 @@ pub(super) fn resolve_available_blocks(
     tags: &BTreeMap<String, Vec<Vec<u8>>>,
     registry: &std::collections::HashSet<String>,
 ) -> Result<Vec<String>, String> {
-    fn canonical(id: &str) -> String {
-        if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
+    horizon_client::pluto_tag_graph::resolve(
+        &canonical_id(id),
+        |id| normalized_group(id, tags),
+        |value| registry.contains(value),
+        horizon_client::pluto_tag_graph::MissingValues::Ignore,
+    ).map_err(|error| graph_error(error, "block tag"))
+}
+
+// Byte format, default namespace, and registry/error policy remain TConstruct's.
+fn canonical_id(id: &str) -> String {
+    if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
+}
+
+fn normalized_group(id: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>) -> horizon_client::pluto_tag_graph::Group {
+    use horizon_client::pluto_tag_graph::{Entry, Group, Operation, Target};
+    let Some(files) = tags.get(id) else { return Group::Missing; };
+    if !files.iter().any(|file| parse_file(file).is_some()) { return Group::Invalid; }
+    Group::Entries(merge_tag_files(files).into_iter().map(|entry| Entry {
+        target: match entry.id.strip_prefix('#') {
+            Some(group) => Target::Group(canonical_id(group)),
+            None => Target::Value(canonical_id(&entry.id)),
+        },
+        operation: if entry.remove { Operation::Remove } else { Operation::Add { required: entry.required } },
+    }).collect())
+}
+
+fn graph_error(error: horizon_client::pluto_tag_graph::Error, kind: &str) -> String {
+    use horizon_client::pluto_tag_graph::Error;
+    match error {
+        Error::Cycle(id) => format!("cyclic {kind} {id}"),
+        Error::MissingGroup(id) => format!("missing {kind} {id}"),
+        Error::InvalidGroup(id) => format!("invalid {kind} {id}"),
+        Error::MissingValue(id) => format!("missing item {id}"),
     }
-    fn resolve(id: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>, registry: &std::collections::HashSet<String>, visiting: &mut Vec<String>) -> Result<Vec<String>, String> {
-        if visiting.iter().any(|value| value == id) { return Err(format!("cyclic block tag {id}")); }
-        let files = tags.get(id).ok_or_else(|| format!("missing block tag {id}"))?;
-        if !files.iter().any(|file| parse_file(file).is_some()) { return Err(format!("invalid block tag {id}")); }
-        visiting.push(id.to_owned());
-        let mut result = Vec::new();
-        for entry in merge_tag_files(files) {
-            let values = if let Some(tag) = entry.id.strip_prefix('#') {
-                match resolve(&canonical(tag), tags, registry, visiting) {
-                    Ok(values) => values,
-                    Err(error) if error.starts_with("cyclic block tag ") => { visiting.pop(); return Err(error); }
-                    Err(_) if entry.remove || !entry.required => continue,
-                    Err(error) => { visiting.pop(); return Err(error); }
-                }
-            } else {
-                let block = canonical(&entry.id);
-                if registry.contains(&block) { vec![block] } else { Vec::new() }
-            };
-            for value in values {
-                if entry.remove { result.retain(|existing| existing != &value); }
-                else if !result.contains(&value) { result.push(value); }
-            }
-        }
-        visiting.pop();
-        Ok(result)
-    }
-    resolve(&canonical(id), tags, registry, &mut Vec::new())
 }
 
 /// Resolve an acyclic tag against the current registry. Missing required
@@ -196,43 +195,12 @@ pub fn resolve_tag(
     tags: &BTreeMap<String, Vec<Vec<u8>>>,
     registry: &std::collections::HashSet<String>,
 ) -> Result<Vec<String>, String> {
-    fn canonical(id: &str) -> String {
-        if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
-    }
-    fn resolve(
-        id: &str,
-        tags: &BTreeMap<String, Vec<Vec<u8>>>,
-        registry: &std::collections::HashSet<String>,
-        visiting: &mut Vec<String>,
-    ) -> Result<Vec<String>, String> {
-        if visiting.iter().any(|v| v == id) { return Err(format!("cyclic tag {id}")); }
-        let files = tags.get(id).ok_or_else(|| format!("missing tag {id}"))?;
-        if !files.iter().any(|file| parse_file(file).is_some()) { return Err(format!("invalid tag {id}")); }
-        visiting.push(id.to_owned());
-        let mut result: Vec<String> = Vec::new();
-        for entry in merge_tag_files(files) {
-            let found = if let Some(tag) = entry.id.strip_prefix('#') {
-                resolve(&canonical(tag), tags, registry, visiting)
-            } else {
-                let item = canonical(&entry.id);
-                if registry.contains(&item) { Ok(vec![item]) } else { Err(format!("missing item {item}")) }
-            };
-            let values = match found {
-                Ok(values) => values,
-                // A cyclic dependency is not safely resolved by treating it as optional.
-                Err(error) if error.starts_with("cyclic tag ") => { visiting.pop(); return Err(error); },
-                Err(_) if entry.remove || !entry.required => continue,
-                Err(error) => { visiting.pop(); return Err(error); },
-            };
-            for value in values {
-                if entry.remove { result.retain(|v| v != &value); }
-                else if !result.contains(&value) { result.push(value); }
-            }
-        }
-        visiting.pop();
-        Ok(result)
-    }
-    resolve(&canonical(id), tags, registry, &mut Vec::new())
+    horizon_client::pluto_tag_graph::resolve(
+        &canonical_id(id),
+        |id| normalized_group(id, tags),
+        |value| registry.contains(value),
+        horizon_client::pluto_tag_graph::MissingValues::Reject,
+    ).map_err(|error| graph_error(error, "tag"))
 }
 
 /// Resolve item tags against one world's actual item registry. Like the
@@ -394,6 +362,31 @@ mod tests {
         assert_eq!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pattern", &tags), Ok(false));
         tags.insert("tconstruct:casts/gold".into(), vec![br##"{"values":["#tconstruct:patterns/reusable"]}"##.to_vec()]);
         assert!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pattern", &tags).is_err());
+    }
+    #[test]
+    fn negative_search_keeps_source_remove_missing_and_invalid_file_policies() {
+        let tags = BTreeMap::from([
+            ("minecraft:root".into(), vec![
+                br##"{"values":["#missing","#broken"],"remove":["needle","#root"]}"##.to_vec(),
+            ]),
+            ("minecraft:broken".into(), vec![b"not JSON".to_vec()]),
+        ]);
+        assert_eq!(definitely_absent("root", "needle", &tags), Ok(true));
+        // The shortcut must not turn a missing or wholly malformed root into
+        // a membership answer for a real registry consumer.
+        assert_eq!(local_tag_member(&tags, &Default::default(), "minecraft:missing", "minecraft:needle"), None);
+        assert_eq!(local_tag_member(&tags, &Default::default(), "minecraft:broken", "minecraft:needle"), None);
+    }
+    #[test]
+    fn reachable_optional_value_is_only_a_possibility_not_proven_membership() {
+        let mut tags = BTreeMap::from([("minecraft:root".into(), vec![
+            br#"{"values":[{"id":"needle","required":false}]}"#.to_vec(),
+        ])]);
+        assert_eq!(definitely_absent("root", "needle", &tags), Ok(false));
+        assert_eq!(local_tag_member(&tags, &Default::default(), "minecraft:root", "minecraft:needle"), Some(false));
+        tags.get_mut("minecraft:root").unwrap().push(br##"{"replace":true,"values":["needle","#root"]}"##.to_vec());
+        assert_eq!(definitely_absent("root", "needle", &tags), Ok(false));
+        assert_eq!(local_tag_member(&tags, &Default::default(), "minecraft:root", "minecraft:needle"), None);
     }
     #[test]
     fn material_tags_resolve_against_materials_in_pack_order() {

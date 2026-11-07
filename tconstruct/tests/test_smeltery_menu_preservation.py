@@ -24,8 +24,10 @@ class SmelteryMenuPreservation(unittest.TestCase):
         body = source.split('pub(super) fn tank_to_nbt_preserving(', 1)[1].split('pub(super) fn from_nbt(', 1)[0]
         self.assertIn('unchanged.to_nbt() != before.to_nbt()', body)
         self.assertIn('self.tank.to_nbt_preserving(raw.get("tank")?)', body)
-        self.assertIn('raw.clone()', body)
-        self.assertIn('fields.insert("tank".into(), tank)', body)
+        self.assertIn('patch_compound(raw, [("tank", Some(tank))])', body)
+        self.assertIn('("slots", Some(Tag::List(slots)))', body)
+        self.assertIn('("progress", Some(Tag::IntArray(self.progress.clone())))', body)
+        self.assertNotIn('fields.insert(', body)
 
 
 if __name__ == '__main__':

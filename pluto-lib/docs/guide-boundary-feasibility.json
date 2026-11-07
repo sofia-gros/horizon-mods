@@ -1,0 +1,41 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "game_owned_state": {
+    "status": "rejected",
+    "code": "E_BRIDGE_TARGET",
+    "message": "generic bridge owner types are unsupported",
+    "target": "horizon_client::game::Game",
+    "limits": "This does not prove a constructor-control-flow failure. No constructor copy or unrelated native state carrier was installed."
+  },
+  "no_state_probe": {
+    "status": "plan_passed",
+    "exit_code": 0,
+    "plan_sha256": "667c538e2299cfd770f7e6737f411adb79654ebeec2d24ec293f26f3aae93497",
+    "injections": [
+      {
+        "target": "horizon_client::game::books::Game<'_>::open_book",
+        "kind": "HEAD",
+        "function_fingerprint": "022fc49e5c20e505e9aea8d2d0e6b127ae45954f2b4b9a13e66946cfcc08f38f"
+      },
+      {
+        "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+        "kind": "RETURN",
+        "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f"
+      }
+    ],
+    "limits": "No-op feasibility helpers only. No apply, host build, packet callback execution or live UI proof."
+  },
+  "installed_scope": "Portable bounded guide document codec and native semantic Text conversion only. No guide screen/session/input/packet hooks or registries installed.",
+  "text_fixture": {
+    "status": "passed",
+    "tests": 3,
+    "exit_code": 0,
+    "actual_native_text": true,
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "helper_sha256": "d3598c136159567310c221b4423be638a0891cd390fe55835ed3bbeb624f896c",
+    "fixture_sources_sha256": "2d5ce03c251e301b41dbcb822fd24980bc0388e0e1b81efe0d563e57c3d2e006",
+    "minimum_free_bytes": 11079659520,
+    "limits": "Actual native Text and production codec/converter only; no full package apply, screen/session/input/packet or LAN runtime proof."
+  }
+}

@@ -9,8 +9,10 @@ class PotionGaugeNames(unittest.TestCase):
         gauge = (ROOT / 'source-gauge.rs').read_text()
         self.assertIn('if fluid == "tconstruct:potion"', gauge)
         self.assertIn('potion_fluid_name(tank.tag.as_ref())', gauge)
-        self.assertIn('pluto_fluid::first(&game.world, at, facing).is_some()', gauge)
-        self.assertIn('(!native).then(||', gauge)
+        self.assertIn('pluto_fluid::first_snapshot(world, pos, face)', gauge)
+        self.assertIn('native.metadata_complete', gauge)
+        self.assertNotIn('pluto_fluid::first(&game.world, at, facing)', gauge)
+        self.assertIn('metadata_complete.then(||', gauge)
         self.assertIn('unwrap_or_else(|| "fluid.tconstruct.potion".into())', gauge)
         self.assertIn('Text::translate(&key, &[])', gauge)
 
@@ -23,7 +25,8 @@ class PotionGaugeNames(unittest.TestCase):
         self.assertIn('unwrap_or_else(|| "Milk".to_owned())', render)
 
     def test_host_harness_module_is_in_ci(self):
-        workflow = (ROOT.parents[2] / '.github' / 'workflows' / 'mixins.yml').read_text()
+        github = ROOT.parents[2] / '.github'
+        workflow = (github / 'workflows' / 'mixins.yml').read_text() + (github / 'parked' / 'mixins-full-checks.yml').read_text()
         self.assertIn('tconstruct_source_smeltery_fuel::tests', workflow)
 
 if __name__ == '__main__':

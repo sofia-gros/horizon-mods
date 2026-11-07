@@ -1,3 +1,4 @@
+include!("pluto_storage_fixture.rs");
 #[path = "../../mixins/tconstruct/source-melter-state.rs"] mod state;
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;

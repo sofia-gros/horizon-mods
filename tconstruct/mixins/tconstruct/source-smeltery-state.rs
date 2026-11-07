@@ -96,17 +96,15 @@ impl Smeltery {
             ("temperature", Tag::Long(i64::from(self.temperature))), ("rate", Tag::Long(i64::from(self.rate))),
             ("fuel_cost", Tag::Long(i64::from(self.fuel_cost))), ("phase", Tag::Int(i32::from(self.phase))), ("entity_phase", Tag::Int(i32::from(self.entity_phase)))])
     }
-    /// A tank-only controller update must not serialize its inventory, fuel,
-    /// progress or unknown fields. Reject callers that also changed other state.
+    /// A tank-only update must not replace saved inventory, fuel, progress or
+    /// unknown fields. Reject callers that also changed other decoded state.
     pub(super) fn tank_to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
         let before = Self::from_nbt(raw)?;
         let mut unchanged = self.clone(); unchanged.tank = before.tank.clone();
         if unchanged.to_nbt() != before.to_nbt() { return None; }
         for alias in ["Tank", "Fluids"] { if raw.get(alias).is_some() { return None; } }
         let tank = self.tank.to_nbt_preserving(raw.get("tank")?)?;
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        fields.insert("tank".into(), tank);
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [("tank", Some(tank))])
     }
 
     /// Inventory-only menu commit. A page projection cannot carry unknown raw
@@ -124,19 +122,19 @@ impl Smeltery {
             let old = before.slots[index].as_ref().map(item_to_nbt).unwrap_or_else(empty);
             if raw_slots[index] != old { return None; }
             let next = if let Some(item) = slot {
-                if item.count == 0 || item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
-                let encoded = item_to_nbt(item); let decoded = item_from_nbt(&encoded)?;
-                if decoded.count != item.count || decoded.damage != item.damage || !decoded.same_item_same_components(item)
-                    || item_to_nbt(&decoded) != encoded { return None; }
+                // Saving must preserve nested stacks too; native component
+                // equality alone omits their retained opaque wire backing.
+                let encoded = horizon_client::pluto_stack_storage::encode_item_lossless(item)?;
+                horizon_client::pluto_stack_storage::decode_item_canonical(&encoded)?;
                 encoded
             } else { empty() };
             if self.progress[index] != before.progress[index] && self.progress[index] != 0 { return None; }
             slots.push(next);
         }
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        fields.insert("slots".into(), Tag::List(slots));
-        fields.insert("progress".into(), Tag::IntArray(self.progress.clone()));
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [
+            ("slots", Some(Tag::List(slots))),
+            ("progress", Some(Tag::IntArray(self.progress.clone()))),
+        ])
     }
 
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {

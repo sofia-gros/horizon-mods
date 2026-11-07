@@ -1,6 +1,9 @@
-//! Host-independent Creative and short-use item APIs for native mods.
+//! Host-independent Creative, item-use and experimental world-fluid APIs for native mods.
 pub mod creative;
 pub mod item;
+pub mod resources;
+pub mod fluid;
+pub mod effects;
 
 #[cfg(test)]
 mod public_api_tests {

@@ -1,3 +1,4 @@
+include!("pluto_storage_fixture.rs");
 #[path = "../../mixins/tconstruct/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path = "../../mixins/tconstruct/source-channel-plan.rs"] mod tconstruct_source_channel_plan;
 #[path = "../../mixins/tconstruct/source-channel-state.rs"] mod tconstruct_source_channel_state;

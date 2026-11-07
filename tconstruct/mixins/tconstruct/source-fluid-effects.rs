@@ -177,7 +177,7 @@ pub(super) fn parse_tagged_entity(value: &Value, tag: Option<&horizon_world::nbt
     let Tag::String(id) = tag.get("Potion")? else { return None; };
     let id = id.to_string_lossy();
     if !id.starts_with("minecraft:") { return None; }
-    let potion = horizon_client::brewing::potion(&id)?;
+    let potion = horizon_client::pluto_potions::potion(&id)?;
     let bottle = tag.get("Bottle").and_then(|value| if let Tag::String(value) = value { Some(value.to_string_lossy().to_string()) } else { None });
     let mut chosen = None;
     for entry in entries {
@@ -197,8 +197,8 @@ pub(super) fn parse_tagged_entity(value: &Value, tag: Option<&horizon_world::nbt
     let amount = u32::try_from(value.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
     let mut entity = Vec::new();
     for &(id, time, amplifier) in potion.effects {
-        let effect = horizon_client::brewing::effect(id)?;
-        if effect.instant || horizon_client::brewing::is_mod_effect(effect.id) || time <= 0 { return None; }
+        let effect = horizon_client::pluto_potions::effect(id)?;
+        if effect.instant || horizon_client::pluto_potions::has_custom_namespace(effect.raw_id) || time <= 0 { return None; }
         entity.push(EntityEffect::Mob(MobEffect { id: id.to_owned(), time, amplifier, action: TimeAction::Set, time_scale: scale }));
     }
     Some(Effects { amount, entity })

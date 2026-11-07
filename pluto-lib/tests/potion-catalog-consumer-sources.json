@@ -1,0 +1,52 @@
+{
+  "reference_commit": "d6fba7eb328b4f0bea7525ba945c2921f5e43a0e",
+  "normalization": "Only catalog paths, equivalent fact field names, canonical-id projection and syntax-only custom namespace function. All remaining policy bytes preserved. The named exact shared_recursive_lossless_item_codec replacement is separately accepted for composition; all surrounding policy bytes remain guarded.",
+  "sources": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-melter-render.rs",
+      "old_sha256": "d5bd9c21123fd853b981c7440307f7a11c68c0fd5fd7f538a5256d895869bc48",
+      "new_sha256": "f525eff6e163f2d504c1488c22ffd3aa39a7811a520f2c7a599a4530a43e26fc",
+      "policy_sha256": "37144eab9d392c7fc762fb44e24dabb57c11bc3b621ee16ce35284cf8b74b7bd"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-fuel.rs",
+      "old_sha256": "631ed0170349fb58452488aae146b0fd81ae4055b46fa8f4f4e4aca17a37addf",
+      "new_sha256": "4daf0400949ece9929d38ce809f9dc7be86f9385dab34bd188c7d8d7f3c0b27e",
+      "policy_sha256": "290e54b873ee9b832a905d6467ac00efb6785c5b1235da3c0e7f1324f829888f",
+      "permitted_composition_deltas": [
+        {
+          "name": "shared_recursive_lossless_item_codec",
+          "reference_commit": "7b4d6f42fa9262ef09f01db1e7e53ed43648030f",
+          "integrated_commit": "e4cccad852492fec5d9137dbb469e4da152afc8e",
+          "scope": "Only exact heater_stack_save_safe body delegates to the separately verified shared codec. No other fuel, potion, transaction or policy text is excluded.",
+          "before": "pub(super) fn heater_stack_save_safe(item: &horizon_items::items::ItemStack) -> bool {\n    use horizon_items::item_nbt::{item_from_nbt, item_to_nbt};\n    item.count > 0 && item.wire_patch().is_none()\n        && !item.data().is_some_and(|data| data.wire.patch().is_some())\n        && item_from_nbt(&item_to_nbt(item)).is_some_and(|saved| saved.count == item.count\n            && saved.damage == item.damage && saved.same_item_same_components(item))\n}",
+          "after": "pub(super) fn heater_stack_save_safe(item: &horizon_items::items::ItemStack) -> bool {\n    horizon_client::pluto_stack_storage::encode_item_lossless(item).is_some()\n}"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-fluid-effects.rs",
+      "old_sha256": "06d629dda6c7c9e37a4aad6b44d9113d4cffff8218a33449f2faeb0c645e2ba7",
+      "new_sha256": "e16a348b50e3554e3eed8a1d95b44aa0443789466df762d3ec1a67d9cdd399fd",
+      "policy_sha256": "d1b871131cf3b96c11c37371c53697c9ee44e111c5d9576fdf774caa44c21d05"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-slurping.rs",
+      "old_sha256": "51de49a963556bedcd203d3bba3d497e30ed138ce761e1bf1c4a8812bc4f53f8",
+      "new_sha256": "669df43c0403dbf6387b0dd54273ba3d748f8796546cfc6b4144672da2e7f3e9",
+      "policy_sha256": "245326191cb01c5fca18eb67ffd520f3ea4ae781d411c39ecf9fe711352fd16b"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-spilling.rs",
+      "old_sha256": "e7b588bb4ba2f971050b92a6921c32cfa743561be5faaf351a2aa1d23cf715a5",
+      "new_sha256": "48019296b4a7106324e5a19fde11eb48ac4f85312837396ad44a0140b5009e8e",
+      "policy_sha256": "dbb9a03fe52916c8fdc091631f2cb97577fd93577a92eb4e55e8900220bcd37c"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-splashing.rs",
+      "old_sha256": "2c63a0a829f4252064be94c23e6cd103be871e3f9af272e7fd8ba791cc916f2e",
+      "new_sha256": "e56cab690999023a7d9a2d159a9d3c9854dcf26ec2b09ff296a9d318c3630ea3",
+      "policy_sha256": "7a2d1a7c64b1851446ca0e858e0131069cfdcd13a837097332e2e75834085be9"
+    }
+  ]
+}

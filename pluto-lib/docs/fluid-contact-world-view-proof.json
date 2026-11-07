@@ -1,0 +1,68 @@
+{
+  "source_commit": "b9949dcd7bf194be03185ba4f59d5c3c3ece2a91",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_lock_sha256": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+  "fixture_sources_sha256": {
+    "world-fluid-query.rs": "43391b140327450d08c861e8deeab51945b1258631cfb3b0efddd706147c844a",
+    "Cargo.toml": "16f4d6741c922a207908d20116f76a0ea3d8a0d1b6bb3ad335c415eef7a5272d",
+    "lib.rs": "24cd07d85658373ee8cef2f728b01c60ee6c675702378c4be5f539c46cefdf33",
+    "world-fluid-view.rs": "eca0eea450d67bf6abce338497b89c5c69d16ca25308707d33d9af504194055f",
+    "required-blocks.json": "bbb47fa7f3d8c0d13434a4c83916c93440a90f527774f7be6acab68d6eb72fae"
+  },
+  "actual_api_sources_sha256": {
+    "Cargo.toml": "f41304fa15e979d13c316208dd72b450318063176615bee63ed4fa2e943db33f",
+    "src/creative.rs": "fc40168d28ea53947cf1477eb3a5757e0698018332740c677e8ec589014bce73",
+    "src/fluid/contact.rs": "b11a30cf8d0a1e523d67cd5eb3d251eb2c6571323c5125035b2ccfc48b10aebb",
+    "src/fluid.rs": "395158ab85a49aa703805607a8fe44414491fa47f746e7e306ea7d67dbed7da6",
+    "src/item.rs": "df0089940cd82573dff4ccf7481442d04066204aa9842c8105654e7504144198",
+    "src/lib.rs": "a10ba1d65b3965ceed1d7533834c33daee85afd4b1b309179fa9b5f6cdfa96b8"
+  },
+  "official_fixture_builder_inputs": {
+    "crates/horizon-world/src/level/data.rs": "dc7fdc38e0baaca9a67ac2e27ba1eae10016901376ef117e4819ae9501a152e3",
+    "crates/horizon-world/tests/collision_data.rs": "af3d2545d4cab4fa776e538a9a2c3cda318687ec29fbd340ee8e26adbdd962d1"
+  },
+  "native_tests": {
+    "status": "passed",
+    "tests_passed": 8,
+    "decoder_tests": 3,
+    "minimal_resource_view_tests": 5,
+    "failed": 0,
+    "ignored": 0,
+    "exit_code": 0,
+    "elapsed_seconds": 1.502021312713623,
+    "end_free_bytes": 10933178368,
+    "disk_guard_floor_bytes": 10871635968,
+    "disk_guard_stopped": false,
+    "source_api_and_lock_guards": "passed_before_and_after",
+    "log_sha256": "d269ac20c8143b83c4ad6aa3e79a65c7dc9efc844b692a9f0725aa25773966a6"
+  },
+  "generated_resources": {
+    "provenance": "Synthetic bounded fixture inputs through actual BlockRegistry/BlockTableFile/collision/Behaviours loaders. Required native block names extracted from exact official declaration; collision schema from official test source. No production asset reuse or fetching.",
+    "named_native_block_identities": 126,
+    "total_block_identities": 129,
+    "states": 175,
+    "collision_shapes": 1,
+    "custom_fluid_families": 2,
+    "empty_fluid_tag_directory_present": true,
+    "files_sha256": {
+      "block-behaviours.json": "5887f92a7766d4bc54c33926bfadb9ac931d86885fe6356c601a69724023c837",
+      "block-tags.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "cached-collision.nbt": "06a34832e5f24094fb9a47f526f12546792f1ef19fb97d0eea399df396813c7c",
+      "gameplay-facts.json": "6679b57b5de5ae81e95149b1fbf0b0e41e3cb9bd6d97f07888a40fb1f4c4fc06"
+    }
+  },
+  "coverage": [
+    "Actual shape bounds rather than widened native chunk storage",
+    "Negative loaded chunks and missing chunk state remain distinct",
+    "Native nondefault AIR variants",
+    "Registered custom families/all levels, unknown/native-fluid blocks remain outside custom catalog",
+    "Surface tangency, grouped volumes, unloaded completeness and bounded query errors",
+    "World revision, membership, time, dirty/modified/pending markers and sampled storage unchanged"
+  ],
+  "production_game_assets": "not_verified",
+  "game_wrapper_runtime": "not_run",
+  "gameplay_effects_or_movement": "not_activated_or_tested",
+  "world_renderer": "not_implemented_by_this_extraction",
+  "fork_access": "none"
+}

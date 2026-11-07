@@ -43,3 +43,7 @@ Light is 0–15; an explicit 0 emits no light, while `None` inherits the templat
 This is preparation-time registration, not Fabric's runtime registry or a runtime tab event. Template registration does not attach runtime behavior; the experimental [Tool rules adapter](tool-rules.md) is separate. Vanilla templates and available properties are determined by the target Horizon version. The demo's Creative overlay must be installed separately from its content mod.
 
 For more tabs than the screen has positions, see the experimental [Creative paging API](creative-overflow.md). It requires the bundled Mixins adapter and uses the pinned Horizon item parser to populate search; unlike `add_creative_tabs`, it checks the supplied stack syntax.
+
+## Experimental world fluids
+
+`pluto_api::fluid` owns reusable fluid definitions, conditional source transactions and finite flow. The private official-host adapter stays in PlutoLib; consumers supply their own content. See [world fluids](world-fluids.md) for the supported slice and explicit limits.

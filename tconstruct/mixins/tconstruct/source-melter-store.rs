@@ -190,16 +190,13 @@ mod tests {
 /// Stage every metadata edit before touching any chunk, so a transfer cannot
 /// drain the source when a destination chunk or entity cannot be updated.
 pub(super) fn write_many(world: &mut World, changes: &[(Pos, &str, Tag)]) -> bool {
-    let mut staged = std::collections::BTreeMap::new();
-    for (pos, key, value) in changes {
-        let chunk_pos = (pos.0 >> 4, pos.2 >> 4);
-        if !staged.contains_key(&chunk_pos) {
-            let Some(chunk) = world.chunks.get(&chunk_pos) else { return false; };
-            let sources = chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default();
-            staged.insert(chunk_pos, sources);
-        }
-        if !set_metadata(staged.get_mut(&chunk_pos).unwrap(), *pos, key, value.clone()) { return false; }
-    }
+    let Some(staged) = horizon_client::pluto_inventory::storage::stage_updates(
+        changes.iter(),
+        |(pos, _, _)| (pos.0 >> 4, pos.2 >> 4),
+        |chunk_pos| world.chunks.get(chunk_pos).map(|chunk|
+            chunk.saved.as_deref().map(|saved| saved.block_entity_sources.clone()).unwrap_or_default()),
+        |sources, (pos, key, value)| set_metadata(sources, *pos, key, value.clone()),
+    ) else { return false; };
     for (chunk_pos, sources) in staged {
         let Some(chunk) = world.chunks.get_mut(&chunk_pos) else { return false; };
         let chunk = std::sync::Arc::make_mut(chunk);

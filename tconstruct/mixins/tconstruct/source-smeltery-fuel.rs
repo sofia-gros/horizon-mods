@@ -59,8 +59,8 @@ pub(super) fn potion_fluid_name(tag: Option<&horizon_world::nbt::Tag>) -> Option
     if !matches!(base, "water" | "mundane" | "thick" | "awkward" | "night_vision" | "invisibility" |
         "leaping" | "fire_resistance" | "swiftness" | "slowness" | "turtle_master" | "water_breathing" |
         "healing" | "harming" | "poison" | "regeneration" | "strength" | "weakness" | "luck" | "slow_falling") { return None; }
-    let potion = horizon_client_core::potions::potion(&id)?;
-    Some(format!("item.minecraft.potion.effect.{}", potion.name))
+    let potion = horizon_client::pluto_potions::potion(&id)?;
+    Some(format!("item.minecraft.potion.effect.{}", potion.name_suffix))
 }
 
 /// Return the replacement container after a complete bucket transfer. The
@@ -146,11 +146,7 @@ mod tests {
 /// Heater count changes must not invalidate retained network data or lose
 /// item fields through the native save codec.
 pub(super) fn heater_stack_save_safe(item: &horizon_items::items::ItemStack) -> bool {
-    use horizon_items::item_nbt::{item_from_nbt, item_to_nbt};
-    item.count > 0 && item.wire_patch().is_none()
-        && !item.data().is_some_and(|data| data.wire.patch().is_some())
-        && item_from_nbt(&item_to_nbt(item)).is_some_and(|saved| saved.count == item.count
-            && saved.damage == item.damage && saved.same_item_same_components(item))
+    horizon_client::pluto_stack_storage::encode_item_lossless(item).is_some()
 }
 
 /// Consume one solid-fuel item on copies. The caller resolves burn duration,

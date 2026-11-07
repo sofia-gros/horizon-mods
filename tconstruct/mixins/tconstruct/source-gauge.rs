@@ -14,8 +14,9 @@ fn direction(value: &str) -> Option<Direction> {
 fn adjacent(pos: BlockPos, direction: Direction) -> Option<(i32,i32,i32)> {
     let [x,y,z] = direction.normal(); Some((pos.x.checked_add(x)?, pos.y.checked_add(y)?, pos.z.checked_add(z)?))
 }
+// Contents and metadata completeness come from the same selected provider read.
 fn tank(world: &super::tconstruct_world::World, facts: &horizon_items::blocks::BlockFacts,
-    registry: &horizon_world::registry::BlockRegistry, block: &str, pos: (i32,i32,i32), face: Direction) -> Option<super::tconstruct_source_melter_state::Tank> {
+    registry: &horizon_world::registry::BlockRegistry, block: &str, pos: (i32,i32,i32), face: Direction) -> Option<(super::tconstruct_source_melter_state::Tank, bool)> {
     use super::{tconstruct_source_melter_state::{Melter, Tank}, tconstruct_source_melter_store as store};
     if !world.loaded(pos.0, pos.2) { return None; }
     if matches!(block, "tconstruct:seared_drain" | "tconstruct:scorched_drain") {
@@ -35,24 +36,24 @@ fn tank(world: &super::tconstruct_world::World, facts: &horizon_items::blocks::B
         if state.tank.capacity != capacity { return None; }
         let remaining = state.tank.capacity.checked_sub(state.tank.total())?;
         return match state.tank.fluids.first() {
-            Some(fluid) => Some(Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: fluid.amount.saturating_add(remaining) }),
-            None if remaining > 0 => Some(Tank::new(remaining)),
+            Some(fluid) => Some((Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: fluid.amount.saturating_add(remaining) }, true)),
+            None if remaining > 0 => Some((Tank::new(remaining), true)),
             _ => None,
         };
     }
-    if let Some(native) = horizon_client::pluto_fluid::first(world, pos, face) {
-        let capacity = u32::try_from(native.capacity).ok()?;
-        let amount = u32::try_from(native.amount).ok()?;
-        if capacity == 0 || amount > capacity { return None; }
-        let fluid = if amount == 0 { None } else { Some(native.fluid?) };
-        return Some(Tank { fluid, tag: None, amount, capacity });
+    // An invalid exposed native tank must not fall through to a local provider.
+    match horizon_client::pluto_fluid::first_snapshot(world, pos, face) {
+        Ok(Some(native)) => return Some((Tank { fluid: native.fluid, tag: None,
+            amount: native.amount, capacity: native.capacity }, native.metadata_complete)),
+        Err(_) => return None,
+        Ok(None) => {},
     }
     if !world.block_entities.contains_key(&pos) { return None; }
     if block == "tconstruct:seared_melter" {
-        return Some(Melter::from_nbt(&store::read(world, pos, "tconstruct:melter")?)?.tank);
+        return Some((Melter::from_nbt(&store::read(world, pos, "tconstruct:melter")?)?.tank, true));
     }
     let kind = super::tconstruct_source_machine_runtime::kind(block)?;
-    super::tconstruct_source_smeltery_fuel::gauge_tank(block, &store::read(world, pos, kind)?)
+    super::tconstruct_source_smeltery_fuel::gauge_tank(block, &store::read(world, pos, kind)?).map(|tank| (tank, true))
 }
 fn supported(level: &super::GameLevel<'_>, pos: BlockPos, facing: Direction) -> bool {
     let Some(at) = adjacent(pos, facing.opposite()) else { return false; };
@@ -108,7 +109,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
     let Some(facing) = facing else { return true; };
     let Some(at) = adjacent(BlockPos::new(pos.0,pos.1,pos.2), facing.opposite()) else { return true; };
     let block = &game.res.facts().get(game.world.block(at.0,at.1,at.2)).name;
-    let Some(tank) = tank(&game.world, game.res.facts(), game.pack.assets.registry, block, at, facing) else { return true; };
+    let Some((tank, metadata_complete)) = tank(&game.world, game.res.facts(), game.pack.assets.registry, block, at, facing) else { return true; };
     let comma = |number: u32| {
         let value = number.to_string();
         value.chars().enumerate().fold(String::new(), |mut out, (index, ch)| {
@@ -121,11 +122,9 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
         let display_fluid = super::tconstruct_source_fluid_display::display_id(&fluid);
         let (namespace, name) = display_fluid.split_once(':').unwrap_or(("minecraft", display_fluid));
         let key = if fluid == "tconstruct:potion" {
-            // Native fluid snapshots omit metadata; an absent tag there does
-            // not mean the potion itself has no tag.
-            let native = !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:scorched_drain")
-                && horizon_client::pluto_fluid::first(&game.world, at, facing).is_some();
-            (!native).then(|| super::tconstruct_source_smeltery_fuel::potion_fluid_name(tank.tag.as_ref())).flatten()
+            // Carry completeness from the selected read; omitted native tags
+            // must not be interpreted as a known untagged potion.
+            metadata_complete.then(|| super::tconstruct_source_smeltery_fuel::potion_fluid_name(tank.tag.as_ref())).flatten()
                 .unwrap_or_else(|| "fluid.tconstruct.potion".into())
         } else if namespace == "minecraft" { format!("block.minecraft.{name}") } else { format!("fluid.{namespace}.{name}") };
         let fluid_text = if display_fluid == "minecraft:milk" {

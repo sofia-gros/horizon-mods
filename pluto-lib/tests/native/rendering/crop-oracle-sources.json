@@ -1,0 +1,23 @@
+{
+  "reference_commit": "a10de5e02377d8ccb5dd5d67611562e8e95886e1",
+  "source_files": [
+    {
+      "path": "tconstruct/mixins/tconstruct/part-draw.rs",
+      "sha256": "667465f517796c38da9f8e603976ecbf27a2d996c8f364256a456be16b216742"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-draw.rs",
+      "sha256": "77b8b018df7c0a99b22f0e6f01e351254966d69639ab9ab498ce0e0730544b02"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-melter-render.rs",
+      "sha256": "a97f85b61f79a6792a744c7e3b3af231d522ed89bbe53560b24f7f3c21eb63f8"
+    }
+  ],
+  "adaptations": [
+    "Existing atlas lookup is replaced by a Rect argument; missing-sprite logic remains in the consumer.",
+    "Fire takes the already-computed height; fire_height arithmetic remains unchanged in the consumer.",
+    "The five UV and batch emission bodies remain unchanged."
+  ],
+  "oracle_sha256": "5290ff34fa8d67b47ef379da2388dd5b0db645758661e98bf25df08364c1b981"
+}

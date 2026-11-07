@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
 
 [[crate]]
 id = "source-config-parser"

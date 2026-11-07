@@ -1,0 +1,59 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/native_lifecycle.rs": "ca881b8411b33c91a466dff3bc29736da401f540e162e7e7370698b585adac86",
+    "crates/horizon-client/src/game/native_entity_refs.rs": "9d29cf0555db6cd720455ad55d5a572f140730c83c690d464875a4af60d80c1f",
+    "crates/horizon-client/src/game/native_level_refs.rs": "a0da592b7190a354d67742df1bb859aaed2509c0bdcfd9755a58e75b1feb70c3",
+    "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+    "crates/horizon-client/src/game/commands/players.rs": "aad65b843c3eb2b88da00bf421c8eaeec6af46d5dd65e0b5da34bdad1be29cc3",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/lan_entities.rs": "462f44b8e1a1930f2dba072c3238fd29400777f2e717203469f34d61f429b6a7",
+    "crates/horizon-client/src/mod_api.rs": "d362b451014b1ed650a8c3fd0fc9ea2fcc1477686b88ee7b5d5cf040e22db643"
+  },
+  "status": "complete official package plan, composition preflight, apply and host library/binary type check passed; native insertion execution unproved",
+  "native_tests_prepared": {
+    "lifecycle_real_state": 2,
+    "insertion_pure_rejections": 2
+  },
+  "native_tests_executed": false,
+  "package_plan_apply_check": {
+    "status": "passed",
+    "mod_cutoff": "3ba060dfca5e567bf9ff0b4853f429a221564c25",
+    "archive_sha256": "e42240e75471359eb9b3c82486e30a1940ba5308c1688fccda25bc83acd22890",
+    "runtime_source_commit": "20369d9f5aab96241cc7b1eb994393dc1bcaf1ed",
+    "guard_source_commit": "84555fe8645ed91ef9b855bb358c2399f98ce85e",
+    "plan_seconds": 20.045087877,
+    "apply_seconds": 21.412302497,
+    "host_lib_bin_check_seconds": 64,
+    "guard_groups": 11,
+    "package_counts": {
+      "crates": 2,
+      "modules": 61,
+      "hooks": 33,
+      "states": 3
+    },
+    "sealed_applied_source_files": 5042,
+    "minimum_free_bytes": 11120369664,
+    "disk_guard_stopped": false,
+    "local_evidence_location": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v11b",
+    "independent_recheck": "Archive SHA256, all five cloud module hashes at exact cutoff, complete-plan cloud guard, and all 5042 applied-source hashes reverified."
+  },
+  "limitations": [
+    "No TConstruct caller activation",
+    "No resources-backed Game insertion test",
+    "Active guest with detached LAN hub is rejected",
+    "Current level only; unloaded center rejected",
+    "Lookup validates current presence, not action causation or permission",
+    "No contact effects or Forge immersion/cadence equivalence",
+    "Existing native tracking, persistence and later owner disconnect semantics not newly verified"
+  ],
+  "validation": {
+    "cloud_python_guards": 18,
+    "whole_group_python_tests_reported": 187,
+    "actual_api_tests_reported": 106,
+    "real_host_private_tests_executed": false,
+    "scope": "The counts above are batch log observations, not gameplay or new private test execution."
+  },
+  "private_test_harness_limit": "NativeLifecycle/OpenAttempt/OpenState are private in the gameplay crate; their file also implements private Game lifecycle methods. An external fixture would require fake parent/Game or extracted declarations. Honest execution requires the actual applied horizon-client library unit-test harness, deferred near the disk floor."
+}

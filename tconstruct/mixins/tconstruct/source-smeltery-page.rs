@@ -11,13 +11,9 @@ pub(super) fn project(slots: &[Option<ItemStack>], offset: usize) -> Vec<Option<
 }
 
 pub(super) fn project_with_containers(slots: &[Option<ItemStack>], offset: usize, containers: &[Option<ItemStack>; 2]) -> Vec<Option<ItemStack>> {
-    let mut view = vec![None; MENU_SIZE];
+    let mut view = super::tconstruct_inventory_api::project_slots(slots,
+        (0..MENU_SIZE).map(|menu_slot| layout::melting_index(slots.len(), offset, menu_slot)));
     view[..2].clone_from_slice(containers);
-    for (menu_slot, item) in view.iter_mut().enumerate() {
-        if let Some(index) = layout::melting_index(slots.len(), offset, menu_slot) {
-            *item = slots[index].clone();
-        }
-    }
     view
 }
 
@@ -46,7 +42,7 @@ pub(super) fn commit_with_containers(slots: &mut [Option<ItemStack>], offset: us
 /// Equality ignores retained wire bytes, including after a stack was edited.
 /// Do not infer a lossless or current page from equality when those bytes exist.
 pub(super) fn no_retained_wire(page: &[Option<ItemStack>]) -> bool {
-    page.iter().flatten().all(|stack| stack.data().is_none_or(|data| data.wire.patch().is_none()))
+    page.iter().flatten().all(|stack| !super::tconstruct_inventory_api::contains_retained_wire(stack))
 }
 pub(super) fn sent_page_matches(sent: &[Option<ItemStack>], expected: &[Option<ItemStack>]) -> bool {
     expected.len() == MENU_SIZE && sent.get(..MENU_SIZE).is_some_and(|page|
@@ -58,20 +54,18 @@ pub(super) fn sent_page_matches(sent: &[Option<ItemStack>], expected: &[Option<I
 pub(super) fn prepare_single_insert(raw: &horizon_world::nbt::Tag, index: usize, held: &ItemStack)
     -> Option<(horizon_world::nbt::Tag, ItemStack, ItemStack)> {
     use horizon_world::nbt::Tag;
-    if held.count <= 1 || held.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
+    if held.count <= 1 || super::tconstruct_inventory_api::contains_retained_wire(held) { return None; }
     let mut one = held.clone(); one.count = 1;
     let encoded = horizon_items::item_nbt::item_to_nbt(&one);
-    let decoded = horizon_items::item_nbt::item_from_nbt(&encoded)?;
-    if decoded.count != 1 || !one.same_item_same_components(&decoded)
-        || horizon_items::item_nbt::item_to_nbt(&decoded) != encoded { return None; }
+    let decoded = super::tconstruct_inventory_api::decode_item_canonical(&encoded)?;
+    if decoded.count != 1 || !one.same_item_same_components(&decoded) { return None; }
     let Tag::Compound(mut fields) = raw.clone() else { return None; };
     let Some(Tag::List(slots)) = fields.get_mut(&"slots".into()) else { return None; };
     // The local path reprojects the page. An opaque saved item elsewhere
     // must not be turned into a lossy live representation by this click.
     for raw_slot in slots.iter() {
         if matches!(raw_slot, Tag::Compound(map) if map.is_empty()) { continue; }
-        let decoded = horizon_items::item_nbt::item_from_nbt(raw_slot)?;
-        if horizon_items::item_nbt::item_to_nbt(&decoded) != *raw_slot { return None; }
+        super::tconstruct_inventory_api::decode_item_canonical(raw_slot)?;
     }
     let slot = slots.get_mut(index)?;
     if !matches!(slot, Tag::Compound(map) if map.is_empty()) { return None; }

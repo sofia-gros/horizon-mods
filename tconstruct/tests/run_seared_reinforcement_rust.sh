@@ -2,9 +2,9 @@
 # Compile the bounded source fixture against a compatible local Horizon host.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon 0c7b5b61 checkout or staged workspace}"
+: "${HORIZON_HOST:?Set HORIZON_HOST to a local Horizon ebcfa226 checkout or staged workspace}"
 HORIZON_HOST=$(cd "$HORIZON_HOST" && pwd)
-EXPECTED=0c7b5b61a5e746d621afffba919b12aeccf9c0fa
+EXPECTED=ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0
 ACTUAL=$(git -C "$HORIZON_HOST" rev-parse HEAD 2>/dev/null) || {
     echo 'HORIZON_HOST must be a verifiable Git checkout of the pinned host.' >&2; exit 1;
 }
@@ -20,6 +20,9 @@ import json, os
 from pathlib import Path
 host = Path(os.environ['HORIZON_HOST'])
 root = Path(os.environ['ROOT'])
+import sys
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import add_inventory_api
 work = Path(os.environ['WORK'])
 for crate in ('horizon-world', 'horizon-items'):
     if not (host / 'crates' / crate / 'Cargo.toml').is_file():
@@ -38,6 +41,7 @@ serde_json = "1"
 path = {quoted(root / 'tconstruct/tests/rust/source_seared_reinforcement.rs')}
 '''
 (work / 'Cargo.toml').write_text(manifest)
+add_inventory_api(work / 'Cargo.toml', root)
 PY
 cd "$ROOT"
 # Seed resolution with the pinned host's lockfile, adding only this local
@@ -65,6 +69,11 @@ test = tomllib.loads((Path(os.environ['WORK']) / 'Cargo.lock').read_text())
 def identity(p):
     return tuple(p.get(k) for k in ('name', 'version', 'source', 'checksum'))
 allowed = {identity(p) for p in host['package']}
+import sys
+root = Path(os.environ['ROOT'])
+sys.path.insert(0, str(root / 'tconstruct/tests'))
+from fixture_pluto_dependency import inventory_api_identity
+allowed.add(inventory_api_identity(root))
 unknown = [identity(p) for p in test['package'] if p['name'] != 'seared-reinforcement-fixture' and identity(p) not in allowed]
 if unknown:
     raise SystemExit(f'fixture dependencies differ from the pinned host lock: {unknown}')

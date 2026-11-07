@@ -1,0 +1,34 @@
+{
+  "reference_commit": "1e870214749b65b3f2c226761e2947a13b29d35f",
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins_revision": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_files": [
+    {
+      "path": "tconstruct/mixins/tconstruct/part-draw.rs",
+      "sha256": "fd0e358700a2470009a1ffa2a452cd315c2e784ee5f4049c8151264779542a4e"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-smeltery-draw.rs",
+      "sha256": "22689ea6ccd26e5355a763579f8be140b2b114d49f4e1aeb3c80812351000cf1"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/render-copper-can.rs",
+      "sha256": "c8e7618729e06559d57ed92626c3cbfad52fcb81e831c50286e01840aa4903ba"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-geometry.rs",
+      "sha256": "b6fcea4a82fc0fd446ed0c2baa372fc7f117ed140928601f6c5f56738c08b8aa"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-melter-render.rs",
+      "sha256": "47821a8ee7472503c7e4d82a65f9c377c202be509431bfd520245dfdcb442d7e"
+    }
+  ],
+  "adaptations": [
+    "Function parameters replace Game, atlas lookup, tank policy and UI constants.",
+    "Tiling oracle parameterizes widths 12/16/52/106; narrow fuel paths are retained separately.",
+    "Mesh receives already-computed final bounds and origin; float32 corner/UV emission body is unchanged.",
+    "Light oracle receives the source-selected minimum instead of calling the source luminosity table."
+  ],
+  "oracle_sha256": "60de4f438ee2394f77c144adcef393c4482c345d2f69e1c39c08f1e25b7c5476"
+}

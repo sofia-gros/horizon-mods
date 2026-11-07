@@ -1,7 +1,7 @@
 // Raw modifier resources for a future book renderer.
 use std::collections::{BTreeMap, HashSet};
 
-pub(super) type Layers = BTreeMap<String, Vec<Vec<u8>>>;
+pub(super) type Layers = pluto_api::resources::Layers;
 pub(super) type Raw = (Layers, Layers); // definitions, then modifier tags
 
 /// Merge in increasing pack priority. A listed but unreadable file makes the
@@ -11,29 +11,30 @@ pub(super) fn merge_pack(
     files: impl IntoIterator<Item = String>,
     read: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Result<(), String> {
-    for file in files {
-        let Some(rest) = file.strip_prefix("data/") else { continue; };
-        let Some((namespace, path)) = rest.split_once('/') else { continue; };
-        let Some(path) = path.strip_suffix(".json") else { continue; };
-        if namespace.is_empty() || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
-            || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
-            || path.split('/').any(|part| part.is_empty() || part == "." || part == "..") { continue; }
-        let is_definition = path.starts_with("tinkering/modifiers/");
-        let is_tag = path.starts_with("tinkering/tags/modifiers/");
-        if !is_definition && !is_tag { continue; }
-        let bytes = read(&file).ok_or_else(|| format!("unreadable modifier resource {file}"))?;
-        let id = format!("{namespace}:{path}");
-        if is_tag { snapshot.1.entry(id).or_default().push(bytes); }
-        else { snapshot.0.entry(id).or_default().push(bytes); }
-    }
-    Ok(())
+    pluto_api::resources::visit_json_pack(
+        files,
+        read,
+        |resource| {
+            if resource.path.starts_with("tinkering/modifiers/") {
+                Some(false)
+            } else if resource.path.starts_with("tinkering/tags/modifiers/") {
+                Some(true)
+            } else {
+                None
+            }
+        },
+        |is_tag, id, bytes| {
+            let layers = if is_tag { &mut snapshot.1 } else { &mut snapshot.0 };
+            layers.entry(id).or_default().push(bytes);
+        },
+    ).map_err(|error| format!("unreadable modifier resource {}", error.file))
 }
 
 /// Source dynamic definitions select the highest-priority file; retaining the
 /// layers also lets a future consumer diagnose or re-evaluate conditions.
 #[allow(dead_code)]
 pub(super) fn highest_definition<'a>(snapshot: &'a Raw, id: &str) -> Option<&'a [u8]> {
-    snapshot.0.get(id)?.last().map(Vec::as_slice)
+    pluto_api::resources::highest(&snapshot.0, id)
 }
 
 /// Resolve one tag only with a complete authoritative modifier registry. A

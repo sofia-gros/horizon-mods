@@ -69,17 +69,17 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
     for effect in recipe.entity {
         let (action, used_scale) = match effect {
             super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => {
-                let known = horizon_client::brewing::effect(&effect.id)?;
-                if !targeted.insert(known.id) { return None; }
-                let existing = game.potions.effects.get(known.id).map(|current| (current.duration, current.amplifier));
+                let known = horizon_client::pluto_potions::effect(&effect.id)?;
+                if !targeted.insert(known.raw_id) { return None; }
+                let existing = game.potions.effects.get(known.raw_id).map(|current| (current.duration, current.amplifier));
                 let Some((duration, used_scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, level as f32, existing) else { continue; };
-                (PlayerAction::Mob(known.id, duration, effect.amplifier), used_scale)
+                (PlayerAction::Mob(known.raw_id, duration, effect.amplifier), used_scale)
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
-                let known = horizon_client::brewing::effect(&id)?;
-                if !targeted.insert(known.id) { return None; }
-                if strength < 1.0 || game.potions.effects.get(known.id).is_none() { continue; }
-                (PlayerAction::Remove(known.id), 1.0)
+                let known = horizon_client::pluto_potions::effect(&id)?;
+                if !targeted.insert(known.raw_id) { return None; }
+                if strength < 1.0 || game.potions.effects.get(known.raw_id).is_none() { continue; }
+                (PlayerAction::Remove(known.raw_id), 1.0)
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => return None,
             super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => {
@@ -102,7 +102,7 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
                 }
                 if matches!(effect, super::tconstruct_source_fluid_effects::EntityEffect::Calcified) { continue; }
                 if strength < 1.0 || game.potions.effects.list.is_empty() { continue; }
-                if game.potions.effects.list.iter().any(|entry| horizon_client::brewing::is_mod_effect(entry.id)) { return None; }
+                if game.potions.effects.list.iter().any(|entry| horizon_client::pluto_potions::has_custom_namespace(entry.id)) { return None; }
                 (PlayerAction::CureMilk, 1.0)
             }
             // Vanilla players are not water-sensitive; their source damage

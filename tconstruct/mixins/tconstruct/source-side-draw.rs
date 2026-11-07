@@ -7,13 +7,11 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     let width = columns as f32 * 18.0 + if scrollable { 10.0 } else { 0.0 };
     let slots_height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0;
     let height = slots_height + 10.0;
-    if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {
+    if let Some(sprite) = horizon_client::pluto_render::sprite(atlas, "gui/tconstruct_generic") {
         let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
-            let mut r = sprite;
-            let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
-            r.u0 += sx * du; r.v0 += sy * dv;
-            r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
-            batch.rect_uv(ox + left + x, oy + y, w, h, r, u32::MAX);
+            let _ = horizon_client::pluto_render::crop(batch, sprite,
+                [sx, sy, sw, sh], sprite.logical_size(),
+                [ox + left + x, oy + y, w, h], u32::MAX);
         };
         for (sx, sy, x, y) in [(0.0, 0.0, 0.0, 0.0), (57.0, 0.0, width + 7.0, 0.0),
             (0.0, 57.0, 0.0, height + 7.0), (57.0, 57.0, width + 7.0, height + 7.0)] {

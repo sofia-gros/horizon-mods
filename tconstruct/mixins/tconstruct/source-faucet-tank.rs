@@ -11,29 +11,20 @@ fn patch_tank(raw: &Tag, tank: &Tank) -> Option<Tag> {
     // This path owns only a parsed tank view; never rewrite an ID that was
     // decoded lossily, including a faucet's reserved pending packet.
     if let Some(Tag::String(id)) = raw.get("fluid") { id.to_string().ok()?; }
-    let Tag::Compound(mut fields) = raw.clone() else { return None; };
-    let Tag::Compound(next) = tank.to_nbt() else { return None; };
-    for key in ["fluid", "fluid_tag", "amount"] {
-        fields.remove(&key.into());
-        if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
-    }
-    Some(Tag::Compound(fields))
+    horizon_client::pluto_nbt_storage::patch_owned_fields(raw, &tank.to_nbt(), &["fluid", "fluid_tag", "amount"])
 }
 /// A faucet changes only the Melter's fluid tank. Preserve the entire raw
 /// machine compound, including unrecognized slot/item fields, verbatim.
 pub(super) fn patch_melter_tank(raw: &Tag, tank: &Tank) -> Option<Tag> {
-    let Tag::Compound(mut fields) = raw.clone() else { return None; };
-    let next = tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
-    fields.insert("tank".into(), next);
-    Some(Tag::Compound(fields))
+    let next = tank.to_nbt_preserving(raw.get("tank")?)?;
+    horizon_client::pluto_nbt_storage::patch_compound(raw, [("tank", Some(next))])
 }
 fn patch_faucet(raw: &Tag, faucet: &Faucet) -> Option<Tag> {
-    let Tag::Compound(mut fields) = raw.clone() else { return None; };
-    let pending = patch_tank(fields.get(&"pending".into())?, &faucet.pending)?;
-    fields.insert("pending".into(), pending);
-    fields.insert("active".into(), Tag::Byte(i8::from(faucet.active)));
-    fields.insert("stop".into(), Tag::Byte(i8::from(faucet.stop_after_packet)));
-    Some(Tag::Compound(fields))
+    let pending = patch_tank(raw.get("pending")?, &faucet.pending)?;
+    horizon_client::pluto_nbt_storage::patch_compound(raw, [
+        ("pending", Some(pending)), ("active", Some(Tag::Byte(i8::from(faucet.active)))),
+        ("stop", Some(Tag::Byte(i8::from(faucet.stop_after_packet)))),
+    ])
 }
 pub(super) enum Source { Melter(Melter, Tag), Tank(&'static str, Tank, Tag) }
 impl Source {

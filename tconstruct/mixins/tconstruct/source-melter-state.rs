@@ -44,13 +44,7 @@ impl Tank {
         // into a different identifier while patching this tank.
         if let Some(Tag::String(id)) = raw.get("fluid") { id.to_string().ok()?; }
         Self::from_nbt(raw, self.capacity)?;
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        let Tag::Compound(next) = self.to_nbt() else { return None; };
-        for key in ["fluid", "fluid_tag", "amount"] {
-            fields.remove(&key.into());
-            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
-        }
-        Some(Tag::Compound(fields))
+        horizon_client::pluto_nbt_storage::patch_owned_fields(raw, &self.to_nbt(), &["fluid", "fluid_tag", "amount"])
     }
     /// Preserve native fuel data; aliases are ambiguous, not disposable.
     pub(super) fn to_nbt_preserving_fuel(&self, raw: &Tag) -> Option<Tag> {
@@ -215,14 +209,13 @@ impl Melter {
     /// governed by the host item codec and is not an opaque-item migration.
     pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
         Self::from_nbt(raw)?;
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
-        let tank = self.tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
-        let Tag::Compound(next) = self.to_nbt() else { return None; };
-        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate"] {
-            fields.insert(key.into(), next.get(&key.into())?.clone());
-        }
-        fields.insert("tank".into(), tank);
-        Some(Tag::Compound(fields))
+        let tank = self.tank.to_nbt_preserving(raw.get("tank")?)?;
+        let next = self.to_nbt();
+        let keys = ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate"];
+        let mut updates = keys.into_iter().map(|key| Some((key, Some(next.get(key)?.clone()))))
+            .collect::<Option<Vec<_>>>()?;
+        updates.push(("tank", Some(tank)));
+        horizon_client::pluto_nbt_storage::patch_compound(raw, updates)
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
@@ -341,18 +334,17 @@ impl Faucet {
         }
     }
     pub(super) fn to_nbt(&self) -> Tag {
-        let mut fields = match &self.original { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
-        let mut pending = match fields.get(&"pending".into()) { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
-        if let Tag::Compound(next) = self.pending.to_nbt() {
-            for key in ["fluid", "fluid_tag", "amount"] {
-                pending.remove(&key.into());
-                if let Some(value) = next.get(&key.into()) { pending.insert(key.into(), value.clone()); }
-            }
-        }
-        fields.insert("active".into(), Tag::Byte(self.active as i8));
-        fields.insert("stop".into(), Tag::Byte(self.stop_after_packet as i8));
-        fields.insert("pending".into(), Tag::Compound(pending));
-        Tag::Compound(fields)
+        // The source serializer's empty-record fallback is local policy;
+        // the shared patch API itself rejects non-compound records.
+        let empty = Tag::Compound(Compound::new());
+        let raw = match &self.original { Some(value @ Tag::Compound(_)) => value, _ => &empty };
+        let pending_raw = match raw.get("pending") { Some(value @ Tag::Compound(_)) => value, _ => &empty };
+        let pending = horizon_client::pluto_nbt_storage::patch_owned_fields(pending_raw, &self.pending.to_nbt(), &["fluid", "fluid_tag", "amount"])
+            .expect("normalized pending record and tank serializer are compounds");
+        horizon_client::pluto_nbt_storage::patch_compound(raw, [
+            ("active", Some(Tag::Byte(self.active as i8))),
+            ("stop", Some(Tag::Byte(self.stop_after_packet as i8))), ("pending", Some(pending)),
+        ]).expect("normalized faucet record is a compound")
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         // These are owned fields in the fixed source Faucet format, not
@@ -581,25 +573,10 @@ pub(super) struct Casting {
     pub consumes_cast: bool, pub switch_slots: bool, pub redstone: bool,
 }
 
-/// Continue after a canceled candidate, but abort the whole attempt if a
-/// callback changed a snapshot. The callback runs before any staged commit.
-pub(super) fn select_casting_candidate<T>(candidates: Vec<(usize, T)>, mut check: impl FnMut(usize, &T) -> Option<bool>) -> Option<(usize, T)> {
-    for (index, item) in candidates {
-        match check(index, &item) {
-            Some(true) => return Some((index, item)),
-            Some(false) => continue,
-            None => return None,
-        }
-    }
-    None
-}
-
 /// Check before serialization: the NBT codec cannot represent retained wire,
 /// including stale backing whose public wire_patch() is already None.
 pub(super) fn casting_item_save_safe(item: &ItemStack) -> bool {
-    if item.count == 0 || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
-    let Some(decoded) = item_from_nbt(&item_to_nbt(item)) else { return false; };
-    decoded.count == item.count && decoded.damage == item.damage && decoded.same_item_same_components(item)
+    horizon_client::pluto_stack_storage::encode_item_lossless(item).is_some()
 }
 
 /// Patch just one slot while keeping unknown machine fields byte-for-byte.
@@ -634,25 +611,23 @@ impl Casting {
         if !self.items_save_safe() { return None; }
         let before = Self::from_nbt(raw)?;
         if let Some(Tag::String(id)) = raw.get("recipe") { id.to_string().ok()?; }
-        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let Tag::Compound(fields) = raw else { return None; };
         // These source/Forge aliases are not native extension metadata. Their
         // relationship with the owned native fields is not yet interpreted.
         for alias in ["Items", "Tank", "Fluid", "Recipe", "coolingTime", "lastRedstone"] {
             if fields.contains_key(&alias.into()) { return None; }
         }
-        let Tag::Compound(mut tank) = raw.get("tank")?.clone() else { return None; };
+        let raw_tank = raw.get("tank")?;
+        let Tag::Compound(tank) = raw_tank else { return None; };
         if let Some(Tag::String(id)) = tank.get(&"fluid".into()) { id.to_string().ok()?; }
         for alias in ["FluidName", "Amount", "Tag"] {
             if tank.contains_key(&alias.into()) { return None; }
         }
         // Capacity may shrink to zero on completion; validate old data using
         // the old capacity, then patch only the three native tank fields.
-        let Tag::Compound(next_tank) = self.tank.to_nbt() else { return None; };
-        for key in ["fluid", "fluid_tag", "amount"] {
-            tank.remove(&key.into());
-            if let Some(value) = next_tank.get(&key.into()) { tank.insert(key.into(), value.clone()); }
-        }
+        let tank = horizon_client::pluto_nbt_storage::patch_owned_fields(raw_tank, &self.tank.to_nbt(), &["fluid", "fluid_tag", "amount"])?;
         let Tag::Compound(next) = self.to_nbt() else { return None; };
+        let mut updates = Vec::new();
         for (key, old_item, item) in [("input", &before.input, &self.input), ("output", &before.output, &self.output), ("result", &before.result, &self.result)] {
             let unchanged = match (old_item, item) {
                 (Some(old), Some(new)) => old.count == new.count && old.damage == new.damage && old.same_item_same_components(new),
@@ -668,15 +643,13 @@ impl Casting {
                 let decoded = item_from_nbt(&encoded)?;
                 if item.wire_patch().is_some() || decoded.count != item.count || decoded.damage != item.damage || !decoded.same_item_same_components(item) { return None; }
             }
-            fields.remove(&key.into());
-            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+            updates.push((key, next.get(&key.into()).cloned()));
         }
         for key in ["recipe", "capacity", "timer", "cooling", "consume", "switch", "redstone"] {
-            fields.remove(&key.into());
-            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+            updates.push((key, next.get(&key.into()).cloned()));
         }
-        fields.insert("tank".into(), Tag::Compound(tank));
-        Some(Tag::Compound(fields))
+        updates.push(("tank", Some(tank)));
+        horizon_client::pluto_nbt_storage::patch_compound(raw, updates)
     }
     /// The existing serializer replaces the compound. Do not introduce a new
     /// interaction when that rewrite would discard or normalize saved data.
@@ -818,23 +791,6 @@ mod casting_tests {
         assert!(c.input.is_none()); assert_eq!(c.tank.amount, 0);
         let materials = c.output.as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("tic_materials").unwrap();
         assert_eq!(materials, &Tag::List(vec![Tag::String("tconstruct:bone".into()), Tag::String("tconstruct:earthslime".into())]));
-    }
-    #[test]
-    fn canceled_hopper_candidate_tries_next_but_snapshot_change_aborts() {
-        let mut visited = Vec::new();
-        let choice = select_casting_candidate(vec![(0, "first"), (1, "second")], |index, _| {
-            visited.push(index); Some(index == 1)
-        });
-        assert_eq!(choice, Some((1, "second"))); assert_eq!(visited, vec![0, 1]);
-        visited.clear();
-        assert_eq!(select_casting_candidate(vec![(0, "first"), (1, "second")], |index, _| {
-            visited.push(index); if index == 0 { None } else { Some(true) }
-        }), None);
-        assert_eq!(visited, vec![0]);
-        let untouched = [Some(ItemStack::new("minecraft:stone", 3)), Some(ItemStack::new("minecraft:book", 4))];
-        let snapshot = untouched.clone();
-        assert_eq!(select_casting_candidate(vec![(0, "first"), (1, "second")], |_, _| Some(false)), None);
-        assert_eq!(untouched, snapshot);
     }
     #[test]
     fn hopper_only_inserts_one_empty_input_and_extracts_idle_output() {
@@ -1103,5 +1059,38 @@ mod swap_presentation_tests {
         assert!(!same_pristine_with_presentation(&damaged, &pristine));
         let mut stacked = input; stacked.count = 2;
         assert!(!same_pristine_with_presentation(&stacked, &pristine));
+    }
+}
+
+
+#[cfg(test)]
+mod compound_patch_tests {
+    use super::*;
+    use horizon_world::nbt::JavaString;
+
+    #[test]
+    fn tank_patch_preserves_opaque_extension_keys_and_removes_emptied_owned_fields() {
+        let mut tank = Tank::new(90); assert!(tank.insert("example:fluid", 90));
+        let mut raw = tank.to_nbt();
+        let key = JavaString(vec![0xd800]);
+        let opaque = Tag::String(JavaString(vec![0xdc00]));
+        if let Tag::Compound(fields) = &mut raw { fields.insert(key.clone(), opaque.clone()); }
+        assert_eq!(tank.take(90).as_deref(), Some("example:fluid"));
+        let saved = tank.to_nbt_preserving(&raw).unwrap();
+        assert!(saved.get("fluid").is_none()); assert_eq!(saved.get("amount"), Some(&Tag::Int(0)));
+        let Tag::Compound(fields) = saved else { panic!("compound"); };
+        assert_eq!(fields.get(&key), Some(&opaque));
+        assert!(raw.get("fluid").is_some());
+    }
+
+    #[test]
+    fn faucet_keeps_its_explicit_empty_record_fallback() {
+        let expected = Faucet::new().to_nbt();
+        let mut faucet = Faucet::new(); faucet.original = Some(Tag::Int(9));
+        assert_eq!(faucet.to_nbt(), expected);
+        faucet.original = Some(Tag::compound([("pending", Tag::Int(9)), ("future", Tag::Int(3))]));
+        let saved = faucet.to_nbt();
+        assert_eq!(saved.get("pending"), expected.get("pending"));
+        assert_eq!(saved.get("future"), Some(&Tag::Int(3)));
     }
 }

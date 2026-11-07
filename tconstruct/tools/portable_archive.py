@@ -14,6 +14,10 @@ def extract_git_tar(stream, destination):
         return member
     with tarfile.open(fileobj=stream, mode='r|') as archive:
         archive.extractall(root, filter=safe_filter)
+    # tarfile stops at the end-of-archive marker; drain the trailing padding so
+    # the producing `git archive` can exit instead of blocking on a full pipe.
+    while stream.read(1 << 20):
+        pass
     for member in symlinks:
         dest = root / member.name
         source = (dest.parent / member.linkname).resolve(strict=True)

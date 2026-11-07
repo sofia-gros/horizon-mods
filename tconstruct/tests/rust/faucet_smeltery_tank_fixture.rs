@@ -1,4 +1,5 @@
-extern crate self as horizon_client;
+include!("__MIXINS__/../../tests/rust/pluto_storage_fixture.rs");
+include!("__MIXINS__/../../tests/rust/pluto_potion_fixture.rs");
 pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::items::ItemStack>>) } }
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-smeltery-tank.rs"] mod tconstruct_source_smeltery_tank;

@@ -1,9 +1,10 @@
 """Run the focused Melter-state fixture: pass the pinned Horizon checkout path."""
+from fixture_pluto_dependency import add_inventory_api
 import pathlib, subprocess, sys, tempfile
 root=pathlib.Path(__file__).resolve().parents[2]
 if len(sys.argv)!=2: raise SystemExit(__doc__)
 host=pathlib.Path(sys.argv[1]).resolve()
-expected="0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+expected="ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
 try:
     actual=subprocess.check_output(['git','-C',str(host),'rev-parse','HEAD'],text=True).strip()
 except subprocess.CalledProcessError as exc:
@@ -22,5 +23,6 @@ edition="2021"
 horizon-world={{path="{quote(host/'crates/horizon-world')}"}}
 horizon-items={{path="{quote(host/'crates/horizon-items')}"}}
 ''')
-    (tmp/'src/lib.rs').write_text(f'#[path = "{quote(root/"tconstruct/tests/rust/melter_state_preservation.rs")}"] mod fixture;\n')
+    add_inventory_api(tmp / 'Cargo.toml', root)
+    (tmp/'src/lib.rs').write_text(f'include!("{quote(root/"tconstruct/tests/rust/pluto_storage_fixture.rs")}");\n#[path = "{quote(root/"tconstruct/tests/rust/melter_state_preservation.rs")}"] mod fixture;\n')
     subprocess.run(['cargo','test','--manifest-path',str(tmp/'Cargo.toml')],check=True)

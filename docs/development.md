@@ -23,13 +23,22 @@ See [pluto lib](../pluto-lib/README.md) for the Creative tab registration API.
 
 ## Validate a change
 
-After preparing a branch, run the full Mixins checks once for its final commit:
+1. `python3 tools/lint_forbidden_api.py` and `python3 -m unittest discover -s tests` (also run by CI on every pull request).
+2. CI (`mixins.yml`) additionally stages the vertical slice against the pinned Horizon/Mixins and runs `cargo check`. It never launches the game.
+3. For gameplay-affecting changes, run the local gate on a machine with the game resources:
+   `tools/smoke-local/build.py` then `tools/smoke-local/smoke.py` (see [AGENTS.md](../AGENTS.md)). Paste its `SMOKE PASS` output in the PR.
 
-```sh
-gh workflow run mixins.yml --ref BRANCH
-gh run list --workflow mixins.yml --branch BRANCH
-```
+Working rules (PlutoLib only, one PR per verification unit, at most 5 open PRs) are in [AGENTS.md](../AGENTS.md).
 
-Check that the run's head SHA matches the commit being reviewed and that the
-run succeeds before merging. A later commit needs its own validation. The
-workflow runs on request, so ordinary pushes do not start a build.
+## Current status (2026-11-07)
+
+Verified on a Windows PC against Horizon `ebcfa226` and Mixins `5a64af93` (upstream HEAD that day):
+
+- The vertical slice stages (Mixins plan and the PlutoLib `protection` guard pass), builds, launches into a test world with the mod loaded, and in survival mode the inventory crafting grid turns flint and sticks into the three parts and then a flint pickaxe through data recipes (`SMOKE PASS`). See [the Part Builder gap](migration/part-builder-plutolib-gap.md).
+
+Not verified / not working:
+
+- Only 1 of 290 TConstruct injections is enabled (the content loader). The rest are parked until re-absorbed. There is no Part Builder block or screen yet: PlutoLib lacks a station-menu API (see the gap document), and the pickaxe is still a template item, not a material-driven tool.
+- 10 of PlutoLib's 11 composition guards fail against this Horizon (advancement, cloud, current_book, equipment, matching, payload, placement, station, terrain, wire_snapshot). The hooks they protect are excluded from the slice and need per-feature re-review.
+- CI changes (pull_request trigger, slice check, weekly upstream drift) have not run on GitHub yet.
+- The tests under `tconstruct/tests` were not green when last run (32 failures, 5 errors of 458); causes not yet triaged.

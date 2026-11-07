@@ -1,0 +1,169 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_sha256": {
+    "pluto-lib/mixins/pluto_native_creative/inventory-api/src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+    "pluto-lib/mixins/pluto_native_creative/recipe-book-preview.rs": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964",
+    "pluto-lib/mixins/pluto_native_creative/recipe-book-preview-cells.rs": "046d8fab0bdf3b20c5813f4e13a9988dc1d95e6e139c570d114216ca899b24dc"
+  },
+  "fixture_identity": {
+    "official_source": "/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105",
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "official_sha256": {
+      "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+      "crates/horizon-client/src/recipe_book.rs": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+      "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31"
+    },
+    "fragments": [
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug)]\npub struct Ingredient",
+        "end": "impl Ingredient {",
+        "destination": "crafting.rs",
+        "sha256": "f359441dcb3708d7b3833ba1bfc4080bdd1a338240e315a6e80813c87a1e98b4"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug, Default)]\npub struct Placement",
+        "end": "impl Placement {",
+        "destination": "crafting.rs",
+        "sha256": "01eb588127f69aa68fa8b76d5991a4ecedc9aa5e52e7ea7da280aab80f4107b0"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]\npub enum BookType",
+        "end": "impl BookType {",
+        "destination": "recipe_book.rs",
+        "sha256": "2447bd4fe51facc20577fcf6472e7fb8a18518705b59cfc1b7af8b52f6b1ddff"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]\npub enum Category",
+        "end": "impl Category {",
+        "destination": "recipe_book.rs",
+        "sha256": "ba0a8c71f138b9cce7b5354470c63c68a19174d907fe4386610b9fbcfcc7c65f"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Debug)]\npub enum Display",
+        "end": "/// A group of recipes shown as one button",
+        "destination": "recipe_book.rs",
+        "sha256": "7fd74ce914252f96c015d131e645ceb96eb20f173a6c4d900891f260cfcd4ce2"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Default)]\npub struct Book",
+        "end": "pub(crate) fn crafting_category",
+        "destination": "recipe_book.rs",
+        "sha256": "cd891dd34edaf1c31b04427454cf48a79aa4f9660702d9b636bad07447c0b05d"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "    pub fn items_of(&self, ingredient: &Ingredient) -> Vec<String> {",
+        "end": "    /// `RecipeBookComponent.fillGhostRecipe`",
+        "destination": "recipe_book.rs",
+        "sha256": "fbf959209f0e8c4ae1d8b0cfbaed6c81ea4ef3c3ac58f4b928d2ea69956ec2e6"
+      }
+    ],
+    "files_sha256": {
+      "stack-storage.rs": "2317420b47749a25678fec6c65ccf922264c85453155570958af6b8bc004114e",
+      "preview.rs": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964",
+      "preview-cells.rs": "046d8fab0bdf3b20c5813f4e13a9988dc1d95e6e139c570d114216ca899b24dc",
+      "lib.rs": "9a144a0c7142620efb8359bec46a2899bc1e53bf567b39e8210076fa734a71da",
+      "crafting.rs": "90fc286254a251ef2042aa489008c02cd4db88068251a0b8fa19442cdad466ef",
+      "recipe_book.rs": "5c5915dc0a6ca154f244bb16bfaeab16cc56e63adffbae9abdf41bc5d3538e4b",
+      "Cargo.toml": "cf7a970a7d8ea08300e04e18b0c44031a91dc9bf0ad3d5c36df4c9973dbefbff",
+      "inventory-api/Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "inventory-api/src/blocking.rs": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "inventory-api/src/advancements.rs": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "inventory-api/src/equipment.rs": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "inventory-api/src/lib.rs": "5b6b754fd3c5cef5f0d858274cdb354ba9b360331ea475384c1f64455722344a",
+      "inventory-api/src/recipe_book.rs": "34e382a1d99a73cd67b9a6646851b7ffa9448a6f790f74d58f21e24955f38e0a",
+      "inventory-api/src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "inventory-api/src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "inventory-api/src/armor_wear.rs": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "inventory-api/src/protection.rs": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "inventory-api/src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "inventory-api/src/advancements/tags.rs": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "inventory-api/src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "inventory-api/src/advancements/events.rs": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "inventory-api/src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e"
+    },
+    "scope": "Exact native declarations/layout, real ItemStack and production adapters; outer Game and ghost-call recording modeled, not game/UI/placement proof."
+  },
+  "fixture_result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 11182870528,
+    "elapsed_seconds": 1.0013119180002832,
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/recipe-preview-fixture/Cargo.toml",
+      "--lib"
+    ]
+  },
+  "api_result": {
+    "exit_code": 0,
+    "guard_stopped": false,
+    "minimum_free_bytes": 11180269568,
+    "elapsed_seconds": 1.001441366999643,
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/recipe-preview-fixture/Cargo.toml",
+      "-p",
+      "pluto-inventory-api",
+      "--lib"
+    ]
+  },
+  "test_counts": {
+    "focused_fixture": 6,
+    "api": 55,
+    "source_package": 4
+  },
+  "complete_native_package": {
+    "cutoff": {
+      "mod_head": "d039d95c634851bc2ee30c2aa11180e58b43a314",
+      "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "archive_sha256": "8122fa6b4f72cdb07af92a95f7c9d350ace97cc9308fd2b643c7b70d8ef896b7",
+      "scope": "Complete Pluto library including guide text, explicit recipe preview, prepared-world saved-book handoff, potion catalog; no full TConstruct bundle.",
+      "counts": {
+        "crate": 2,
+        "module": 43,
+        "injection": 27,
+        "state": 3
+      }
+    },
+    "result": {
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 11025891328
+    },
+    "plan": "pass",
+    "mandatory_preflight": "pass",
+    "apply": "pass",
+    "horizon_client_library_binary_check": "pass",
+    "host_check_seconds": 74,
+    "source_guards_passed": 94,
+    "api_tests_passed": 68,
+    "exact_preview_archive_sources": "three source hashes above matched actual archive bytes",
+    "artifact_directory": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v6b",
+    "limitations": [
+      "No TConstruct consumer activation",
+      "No gameplay/save/reload/LAN or component-sensitive placement proof",
+      "Observable stack comparison does not inspect private Wire decoded baseline",
+      "Persistent RecipeIndex ownership remains unimplemented"
+    ]
+  },
+  "consumer_activation": false,
+  "persistent_index_ownership": "not implemented; official state constructor plan rejected E_UNSUPPORTED_CONTROL_FLOW",
+  "stack_identity_limit": "Production helper compares observable native state, not private Wire decoded baseline; equal stale patch bytes may conceal different private baselines. Preview is read-only, not write authority."
+}

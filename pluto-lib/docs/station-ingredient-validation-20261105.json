@@ -1,0 +1,331 @@
+{
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "source_sha256": {
+    "inventory-api/src/crafting/ingredients.rs": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+    "station-ingredient.rs": "b2f283409eda4e27525e6bc025f9dba24486a332e9e8014f505428457e218f9a",
+    "station-ingredient-head.rs": "516156f6e92c80fc7d250a72543ea60e2f3b4e7ffa6385309f20e917bf1d02bd"
+  },
+  "fixture_identity": {
+    "official_source": "/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105",
+    "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+    "consumer_reference": "8c56bb52b6b77fae6115e894af9e369a5c3f9e08",
+    "consumer_marked_sha256": "eb85aeaa7e8556cdd5a36c1c505ac993af202441260937b9aefd47267a8c4501",
+    "fragments": [
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug)]\npub struct Ingredient",
+        "end": "impl Ingredient {",
+        "destination": "crafting.rs",
+        "sha256": "f359441dcb3708d7b3833ba1bfc4080bdd1a338240e315a6e80813c87a1e98b4"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug, Default)]\npub struct Placement",
+        "end": "/// A recipe result:",
+        "destination": "crafting.rs",
+        "sha256": "3343d5488ab92d2544e9ff804741911d1e1c3273c740f67b6fea50338aef23cc"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug)]\npub struct Template",
+        "end": "/// `ItemStackTemplate.CODEC` count:",
+        "destination": "crafting.rs",
+        "sha256": "458ac1af9d8daa99235436974b56196eecc4d4fe9889ec307c2835db456b9a44"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug)]\npub enum Recipe",
+        "end": "impl Special {\n    /// The recipe-book displays",
+        "destination": "crafting.rs",
+        "sha256": "3eeeab8af9dad4b1e11b8128e78f0583bbac77a11fc96e94c407999acaffe5de"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "#[derive(Clone, Debug)]\npub struct Cooking",
+        "end": "/// A recipe of a type of a mod's own",
+        "destination": "crafting.rs",
+        "sha256": "8c576070924230366297539b4b8814db920d08df75ecec10571e9a6d6816133c"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "    pub fn placement(&self, id: &str) -> Option<Placement> {",
+        "end": "    /// `Recipe.getRemainingItems`",
+        "destination": "crafting.rs",
+        "sha256": "38f904b9461c984d8c805f04de4ca39e58e7274c64cf4847bd3d0787714c13dd",
+        "rename_from": "pub fn placement(",
+        "rename_to": "pub fn native_placement("
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]\npub enum BookType",
+        "end": "impl BookType {",
+        "destination": "recipe_book.rs",
+        "sha256": "2447bd4fe51facc20577fcf6472e7fb8a18518705b59cfc1b7af8b52f6b1ddff"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]\npub enum Category",
+        "end": "impl Category {",
+        "destination": "recipe_book.rs",
+        "sha256": "ba0a8c71f138b9cce7b5354470c63c68a19174d907fe4386610b9fbcfcc7c65f"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Clone, Debug)]\npub enum Display",
+        "end": "/// A group of recipes shown as one button",
+        "destination": "recipe_book.rs",
+        "sha256": "7fd74ce914252f96c015d131e645ceb96eb20f173a6c4d900891f260cfcd4ce2"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "#[derive(Default)]\npub struct Book",
+        "end": "pub(crate) fn crafting_category",
+        "destination": "recipe_book.rs",
+        "sha256": "cd891dd34edaf1c31b04427454cf48a79aa4f9660702d9b636bad07447c0b05d"
+      },
+      {
+        "source": "crates/horizon-client/src/recipe_book.rs",
+        "start": "        let placements = entries\n",
+        "end": "        Self {\n            entries,\n            placements,",
+        "destination": "recipe_book.rs",
+        "sha256": "69e818fbc01678dff8db6e340e2b4670d0bdb8457da61de5cda3ffb7d1d98b50"
+      },
+      {
+        "source": "crates/horizon-client/src/menu/place.rs",
+        "start": "#[derive(Clone, Debug, Default)]\npub struct Stacked",
+        "end": "impl Menu {",
+        "destination": "native_menu.rs",
+        "sha256": "5790a363f24587778995be499edc395e8236e784c90373c9eb2bcc3809bfce0e"
+      },
+      {
+        "source": "crates/horizon-client/src/menu/place.rs",
+        "start": "    pub fn place_recipe(\n",
+        "end": "    /// `recipeMatches`",
+        "destination": "native_menu.rs",
+        "sha256": "85f6b5a4e41a2d430df54a85e9fd42053e4db6755fdc1e8c7a7d9af3ead80067"
+      },
+      {
+        "source": "crates/horizon-client/src/game/recipe_book.rs",
+        "start": "    fn place_recipe(&mut self, book_type: BookType, entry_index: usize, use_max: bool) {",
+        "end": "    /// The container changed under the book",
+        "destination": "native_game.rs",
+        "sha256": "ac9f02007345b5c48c82e66e6977ce201f79408079ed73796e9145b26efb9fb7",
+        "rename_from": "fn place_recipe(",
+        "rename_to": "fn native_place_recipe("
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "fn dedup_keep_order(items: &mut Vec<String>) {",
+        "end": "/// A set of accepted items",
+        "destination": "crafting.rs",
+        "sha256": "266711ddc322870d4d04b2db1a30a1857b98c43a4426992a625a370627b48c5a"
+      },
+      {
+        "source": "crates/horizon-client/src/crafting.rs",
+        "start": "impl Ingredient {",
+        "end": "/// `PlacementInfo`:",
+        "destination": "crafting.rs",
+        "sha256": "ef21ee318522aabe63d4614277285a2818bfdb240d30e972206673bcd0a4c13a"
+      },
+      {
+        "source": "crates/horizon-client/src/stations.rs",
+        "start": "fn ingredient(v: &Value, items: &Items) -> Ingredient {",
+        "end": "impl StationRecipes {",
+        "destination": "stations.rs",
+        "sha256": "9bd8bc46a67621fbd0cf2cf409afb0a63d026f2a0096361ef13aa24fae996769",
+        "rename_from": "fn ingredient(",
+        "rename_to": "pub fn native_ingredient("
+      }
+    ],
+    "routing_assertions": [
+      "local UI before remote send/menu dispatch",
+      "native menu before clear/move/recompute",
+      "LAN authority/knowledge then canonical placement before both guest menu paths",
+      "ordinary and native-mod click dispatch",
+      "book craftable projection uses canonical placement"
+    ],
+    "official_sha256": {
+      "crates/horizon-client/src/crafting.rs": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
+      "crates/horizon-client/src/recipe_book.rs": "a8e975b3ca154579894f9f7f975932acbc0d3139a0c8037e3ad46e34baf9b850",
+      "crates/horizon-client/src/menu/place.rs": "a1a2fa0760085f43c100fdb2faf1cafa43c0e57a5f0e00daa6c16b9212cbd740",
+      "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+      "Cargo.lock": "463913123985e344f2889e5beae65982773e6dbfacdcac7a916bcec522a5bd31",
+      "crates/horizon-client/src/game/lan_crafting.rs": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b",
+      "crates/horizon-client/src/stations.rs": "3de174a22da3dbd708cea70fbed8ae50489c2891bd1d7ca7296c944681919f36"
+    },
+    "files_sha256": {
+      "stack-storage.rs": "2317420b47749a25678fec6c65ccf922264c85453155570958af6b8bc004114e",
+      "preview.rs": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964",
+      "callback.rs": "317656fb90f487a01bd0cea3e4e7202833bb47e8f58d0846c0589d5db65bfe4c",
+      "attempt.rs": "38256a9d22c1c581022dad691260ce74713fd76e3eb0d76e44f0affe9045982b",
+      "placement.rs": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e",
+      "station-reference.rs": "aa803cd439cf3ca97f48eba27e0722932d930fa00d8118d60160c9d1dfd156f2",
+      "lib.rs": "d1a267b24518c5ca40242f56cbada17eeb2297a410322b1d8ca4ac30de94607c",
+      "crafting.rs": "8d68962fdf2210e0c3e47129c04aed4856c90d5c34e6b6e7720a2ca8e86249d6",
+      "recipe_book.rs": "c183e503737713a160af4da41170e004acd81daf62dc00bf5a6bbb32c5487127",
+      "native_menu.rs": "3622365cf69c2ce6321edaf1891fb6042afccc3a85aa85974cb59db6dea20e53",
+      "click.rs": "021cc502b918ddb3d48babe3eed260987d5be18c1b51f5b9ae19cd7cb1548f3f",
+      "stations.rs": "a5491f936ce722f82a460c31e0508fc236f79d8dcfd59a335e9aae188fdde1fc",
+      "station-adapter.rs": "b2f283409eda4e27525e6bc025f9dba24486a332e9e8014f505428457e218f9a",
+      "Cargo.toml": "fdd28b427cf5047bde5e6dc7b4bcfea70d0879a5589d9a81b863cdd31679d6c5",
+      "definition.rs": "f0510835e2b8d0eef8c9f7a689ba09bece3fcc710e457855c2efcb29b0cd2b00",
+      "station-head.rs": "516156f6e92c80fc7d250a72543ea60e2f3b4e7ffa6385309f20e917bf1d02bd",
+      "reference_marked.rs": "1ce99038cf8b251434095dcd2525c4d99ac37a21c77a9ae6530356000cde1c2c",
+      "native_game.rs": "6af8819819857fd8af163db1a8ed79e9894596f25f520cf69da5bb668c3c3d38",
+      "station-callback.rs": "6c46bd4e4d17e8c864321b2477ec6a6d6048c7c96baa59f19bb5ac54cc120759",
+      "inventory-api/Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "inventory-api/src/blocking.rs": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "inventory-api/src/advancements.rs": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "inventory-api/src/equipment.rs": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "inventory-api/src/lib.rs": "4d3ce5a7a9030942f000bc6fc2d480f9325e504b609ce2dc112f63a95768b380",
+      "inventory-api/src/crafting.rs": "d7c9b0dc5b56e98082c14af3ae86bc7f10a1410b029a9e67ebe775246bab08ff",
+      "inventory-api/src/recipe_book.rs": "0d14ac569859cf88b4c074c957fcb2ed82b7830faa238ae845fccda7269181e3",
+      "inventory-api/src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0",
+      "inventory-api/src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "inventory-api/src/armor_wear.rs": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "inventory-api/src/protection.rs": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "inventory-api/src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "inventory-api/src/recipe_book/placement.rs": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "inventory-api/src/advancements/tags.rs": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "inventory-api/src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "inventory-api/src/advancements/events.rs": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "inventory-api/src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "inventory-api/src/crafting/ingredients.rs": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "inventory-api/src/crafting/matching.rs": "178b1c1ac5b2bf00ff89ccc56602a92e38763435a892157a31d72e38d8058104"
+    },
+    "scope": "Exact native Ingredient parse/of/test and station ingredient body with real Items; HEAD wrapper and unrelated native custom-ingredient endpoints modeled. Not full StationRecipes loading, gameplay or external provider proof.",
+    "consumer_station_parser_sha256": "a2a7cf1d084a58486098b0f84b1e7afa73f85c5bdd482ce35086f5a335a0bff5"
+  },
+  "processes": {
+    "prepare": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11187142656,
+      "elapsed_seconds": 0.40086022700415924,
+      "command": [
+        "python",
+        "pluto-lib/tools/prepare_station_ingredient_fixture.py",
+        "--horizon-source",
+        "/workspace/scratch/c7b540ff3393/.devtools/horizon-latest-official-20261105",
+        "--output",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/station-ingredient-fixture"
+      ]
+    },
+    "fixture": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11186716672,
+      "elapsed_seconds": 1.0015191519923974,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/station-ingredient-fixture/Cargo.toml",
+        "--lib"
+      ]
+    },
+    "api": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11175641088,
+      "elapsed_seconds": 1.4044590950070415,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/station-ingredient-fixture/Cargo.toml",
+        "-p",
+        "pluto-inventory-api",
+        "--lib"
+      ]
+    },
+    "plan": {
+      "exit_code": 0,
+      "guard_stopped": false,
+      "minimum_free_bytes": 11179372544,
+      "elapsed_seconds": 16.019162206008332,
+      "command": [
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/cli-target/release/horizon-mixins",
+        "plan",
+        "--workspace",
+        "/workspace/scratch/c7b540ff3393/.devtools/latest-official-export-20261105/horizon",
+        "--mods",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/station-ingredient-plan/packaged/mixins",
+        "--out",
+        "/workspace/scratch/c7b540ff3393/.work/official-advancement-recovery/station-ingredient-plan/plan.json"
+      ]
+    }
+  },
+  "archive_sha256": "d13789538dced896c55151b91da33ed7ea0a5e653fa331744488d9fffcb111f2",
+  "plan_counts": {
+    "crates": 2,
+    "modules": 42,
+    "injections": 29,
+    "states": 2
+  },
+  "tests": {
+    "grouped_native": 1,
+    "api_total": 73,
+    "new_api": 8,
+    "python": 6
+  },
+  "complete_native_package": {
+    "cutoff": {
+      "mod_head": "3ba060dfca5e567bf9ff0b4853f429a221564c25",
+      "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+      "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+      "archive_sha256": "e42240e75471359eb9b3c82486e30a1940ba5308c1688fccda25bc83acd22890",
+      "stage_path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+      "scope": "Complete Pluto library with fixed-size terrain geometry, explicit owner-bound cloud insertion capability and bounded station ingredient parsing. No TConstruct activation, tessellation hook or guide lifetime experiment.",
+      "counts": {
+        "crate": 2,
+        "module": 61,
+        "injection": 33,
+        "state": 3
+      },
+      "preflight_groups": 11,
+      "prior_attempt": "grouped-v11: E_MODULE for terrain geometry inner documentation; stopped before apply; arithmetic unchanged."
+    },
+    "result": {
+      "exit_code": 0,
+      "disk_guard_stopped": false,
+      "minimum_free_bytes": 11120369664
+    },
+    "plan": "pass",
+    "mandatory_preflight": "all11 guard groups pass; station guard independently rechecked",
+    "apply": "pass",
+    "host_library_binary_check": "pass",
+    "host_check_seconds": 64,
+    "python_tests_passed": 187,
+    "real_inventory_api_tests_included": 106,
+    "station_archive_source_match": "all three frozen sources exact",
+    "staged_files_sealed": 5042,
+    "artifact_directory": "upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v11b",
+    "limitations": [
+      "No production TConstruct parser activation/old hook removal",
+      "No full StationRecipes loader/gameplay/LAN/save test",
+      "Flat item-ID-only proposal; no output/remainder authority"
+    ]
+  },
+  "production_consumer_activation": false,
+  "limitations": [
+    "HEAD dispatch and unrelated native ingredient endpoints modeled",
+    "No full StationRecipes load, live gameplay/LAN/save or component-aware ingredient proof",
+    "Flat item-ID-only proposals; no result/remainder or persistent ownership capability"
+  ],
+  "consumer_test_sha256": {
+    "callback.rs": "6c46bd4e4d17e8c864321b2477ec6a6d6048c7c96baa59f19bb5ac54cc120759",
+    "reference.rs": "aa803cd439cf3ca97f48eba27e0722932d930fa00d8118d60160c9d1dfd156f2"
+  },
+  "fixture_and_guard_source_sha256": {
+    "pluto-lib/tests/native/station_ingredient.rs": "d1a267b24518c5ca40242f56cbada17eeb2297a410322b1d8ca4ac30de94607c",
+    "pluto-lib/tools/prepare_station_ingredient_fixture.py": "238882d7816e68c56d406d8e1192721e2d2ffe0e94af44aae2dc0f983356808b",
+    "pluto-lib/tools/check_station_ingredient_plan.py": "e8a2b287dc3d0bb130276c6613e720097b0fa5e0af8b79ff943d57b47ab907bb",
+    "pluto-lib/tools/station-ingredient-boundaries.json": "2ea573552154e3339511048b3107494e7504a843ce646208d2289ac3c0997fa7"
+  }
+}

@@ -20,8 +20,7 @@ class HeaterFuelPreservation(unittest.TestCase):
 
     def test_helper_preserves_remainder_rules_and_rejects_wire(self):
         source = (ROOT / 'source-smeltery-fuel.rs').read_text()
-        self.assertIn('item_from_nbt(&item_to_nbt(item))', source)
-        self.assertIn('data.wire.patch().is_some()', source)
+        self.assertIn('horizon_client::pluto_stack_storage::encode_item_lossless(item).is_some()', source)
         self.assertIn('stack.count < limit.min(64)', source)
         self.assertIn('Some((next, spill))', source)
 

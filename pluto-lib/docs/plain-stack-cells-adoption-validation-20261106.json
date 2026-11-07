@@ -1,0 +1,45 @@
+{
+  "source_cutoff": "f2b2cb17a53d1b42bcc263a49596b8eb0bcd9667",
+  "legacy_cutoff": "921bb12dc23caea0c970c5bcc39b72921e98981c",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "terminal_exit": 0,
+  "disk_guard_stopped": false,
+  "disk_floor_bytes": 10871635968,
+  "minimum_free_bytes": 11051569152,
+  "rust_tests": {
+    "new_boundary_tests": 7,
+    "existing_delegated_chest_tests": 18,
+    "existing_nbt_tests": 6,
+    "total": 31
+  },
+  "valid_input_cases": {
+    "pickup": 2376,
+    "take": 42,
+    "ordered_collection": 640,
+    "total": 3058
+  },
+  "comparisons_per_case": [
+    "direct Pluto API versus frozen legacy oracle",
+    "actual delegated wrapper versus frozen legacy oracle"
+  ],
+  "valid_input_comparisons": 6116,
+  "source_guard_checks": 3,
+  "package_guard_checks": 11,
+  "projection_guard_checks": 4,
+  "full_tracked_source_files": 6589,
+  "log": "/tmp/pluto-plain-cells-adoption-20261106.log",
+  "log_sha256": "21d128a3398f093a78d1645e2f2e854804944c3814f2061b9aa9acfd727a644d",
+  "source_seal": "/tmp/pluto-plain-cells-adoption-20261106-source-seal.json",
+  "source_seal_sha256": "b20313c259281c9a3c2df7805548b5cd08314cd1b275db552a72bced289ab711",
+  "oracle_receipt": "tconstruct/tests/rust/plain_stack_cells_legacy.json",
+  "fixture_runner": "tconstruct/tests/run_plain_stack_cells.py",
+  "native_module_sha256": "36d8153d3f9eb1aa3861503a9b38f40231612667ff94a32f6a578969ca0cbbea",
+  "not_claimed": [
+    "full native package plan/apply/type-check",
+    "live Game or Hub execution",
+    "native menu-hook parity",
+    "save/reload or LAN synchronization",
+    "arbitrary write authority",
+    "lossless merging beyond caller-supplied equality"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "official_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "scope": "Read-only lifecycle/current-book capability design; no source adapter or execution proof.",
+  "sources_sha256": {
+    "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
+    "crates/horizon-client/src/game/books.rs": "8685062d40f49182dfc7af26f91c1824e5cfd5d2a80e6738217f03133758dfdf",
+    "crates/horizon-client/src/game/native_hooks.rs": "195b19d3647e21caf33757aa690b9df8cc5b562e2943a36404f7a26c6e4a60e1",
+    "crates/horizon-client/src/game/remote.rs": "331d12df620e605fda197e96465435be4f41e85db1e336b633eda37444f8fe71",
+    "crates/horizon-client/src/game/remote_chat.rs": "4c6d95ac61aa5e45155e1584fd85547f2a97aab113b3cb00cf5cbd91c290e7d0",
+    "crates/horizon-client/src/game/native_machines.rs": "410a5a7f4529a1ad9cf39e47b37814723bdf07a44f0836881099b05bebae243f",
+    "crates/horizon-client/src/game/lan_actions.rs": "a2ea07508ddc14b34fa638e0d11af31d86b9e18cd2e8a7d286e33616c4327a57",
+    "crates/horizon-client/src/game/levels.rs": "839eec483b745eef8cfdf8ac2502160e46517e1dbd62534b69e612d2828b7ba7",
+    "crates/horizon-client/src/game/execution_role.rs": "81457295dc2a098d24047cab5d1b7b55230539420a0def68ef587db4827bc4bd",
+    "crates/horizon-client/src/game/ime.rs": "166e3efab6cdd0baa84872e664cc8933d35120d9dc36dd2b0726e7f744cadd42",
+    "crates/horizon-client/src/game/pad_menu.rs": "7cf888cede2a0b1e836cc1c24ca5b4481cf3d9a2800c574bad01879579e65d2a"
+  },
+  "key_findings": [
+    {
+      "source": "game/native_hooks.rs:1119-1154",
+      "finding": "observe_screen is gated on Mods; change detection compares id/menu and cannot identify identical book reopenings."
+    },
+    {
+      "source": "game/native_hooks.rs:3778-3783",
+      "finding": "Generic native screen input gate excludes books through screen_over_playing."
+    },
+    {
+      "source": "game/remote.rs:9986-9997",
+      "finding": "remote_loading is false for some active portal loading, not a universal current-screen admission predicate."
+    },
+    {
+      "source": "game/books.rs:733-778",
+      "finding": "Native page turn plays sound after a non-lectern view turn even when its page stays at a bound."
+    },
+    {
+      "source": "game/books.rs:392-413; game/pad_menu.rs:1953-1976; game/ime.rs:100-121",
+      "finding": "Keyboard, controller on-screen keyboard and IME have distinct pre-book admission/processing."
+    }
+  ]
+}

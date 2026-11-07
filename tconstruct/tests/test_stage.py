@@ -34,6 +34,16 @@ class StageExport(unittest.TestCase):
             (project / 'tests/fixtures').mkdir(parents=True)
             shutil.copy(SCRIPT, project / 'tools/stage.py')
             shutil.copy(SCRIPT.parent / 'portable_archive.py', project / 'tools/portable_archive.py')
+            guards = root / 'pluto-lib/tools'
+            guards.mkdir(parents=True)
+            (guards / 'check_native_plan.py').write_text("""import json, os, pathlib, sys
+plan, workspace = map(pathlib.Path, sys.argv[1:])
+assert json.loads(plan.read_text()) == {'fixture_complete_plan': True}
+assert (workspace / 'marker').read_text() == 'committed'
+if os.environ.get('FIXTURE_REJECT_PREFLIGHT'):
+    raise SystemExit(19)
+(plan.parent / 'preflight-passed').write_text('passed')
+""")
             revision = git(repos[1], 'rev-parse', 'HEAD')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_repository=str(repos[1]), mixins_revision=revision)))
             horizon_revision = git(repos[0], 'rev-parse', 'HEAD')
@@ -59,7 +69,19 @@ case " $* " in *" --release "*) ;; *) exit 1 ;; esac
 [ "$(cat marker)" = committed ]
 while [ "$1" != "--target-dir" ]; do shift; done
 mkdir -p "$2/release"
-printf '#!/bin/sh\\nexit 0\\n' > "$2/release/horizon-mixins"
+cat > "$2/release/horizon-mixins" <<'CLI'
+#!/usr/bin/env python3
+import json, pathlib, sys
+out = pathlib.Path(sys.argv[sys.argv.index('--out') + 1])
+if sys.argv[1] == 'plan':
+    out.write_text(json.dumps({'fixture_complete_plan': True}))
+elif sys.argv[1] == 'apply':
+    assert (out.parent / 'preflight-passed').read_text() == 'passed'
+    out.mkdir()
+    (out / 'applied').write_text('applied')
+else:
+    raise SystemExit(2)
+CLI
 chmod +x "$2/release/horizon-mixins"
 ''')
             cargo.chmod(0o755)
@@ -70,6 +92,12 @@ chmod +x "$2/release/horizon-mixins"
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
             self.assertEqual((project / 'target/mixins-source/marker').read_text(), 'committed')
             self.assertEqual((project / 'target/mixins-revision.txt').read_text().strip(), revision)
+            self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')
+            rejected_output = project / 'guard-rejected'
+            rejected_guard = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(rejected_output)], env=dict(env, FIXTURE_REJECT_PREFLIGHT='1'), capture_output=True)
+            self.assertNotEqual(rejected_guard.returncode, 0)
+            self.assertTrue((rejected_output / 'complete-plan.json').is_file())
+            self.assertFalse((rejected_output / 'modded').exists())
             failed = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')

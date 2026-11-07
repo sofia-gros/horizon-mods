@@ -225,8 +225,8 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
     let mut ids = std::collections::HashSet::new();
     let mut hunger_seen = false;
     if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
-        super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| horizon_client::brewing::is_mod_effect(known.id) || matches!(known.id, "instant_health" | "instant_damage") || !ids.insert(known.id)),
-        super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
+        super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::pluto_potions::effect(&effect.id).is_none_or(|known| horizon_client::pluto_potions::has_custom_namespace(known.raw_id) || matches!(known.raw_id, "instant_health" | "instant_damage") || !ids.insert(known.raw_id)),
+        super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::pluto_potions::effect(id).is_none_or(|known| known.raw_id != "poison" || !ids.insert(known.raw_id)),
         super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
         super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
         super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => false,
@@ -405,23 +405,23 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let Tag::String(potion) = fluid.tag.as_ref()?.get("Potion")? else { return None; };
             let id = potion.to_string_lossy();
             if !id.starts_with("minecraft:") { return None; }
-            let def = horizon_client::brewing::potion(&id)?;
+            let def = horizon_client::pluto_potions::potion(&id)?;
             for &(id, duration, amplifier) in def.effects {
-                let effect = horizon_client::brewing::effect(id)?;
-                if effect.instant || horizon_client::brewing::is_mod_effect(effect.id) { return None; }
-                if duration > 0 { cloud.push((effect.id, duration, amplifier)); }
+                let effect = horizon_client::pluto_potions::effect(id)?;
+                if effect.instant || horizon_client::pluto_potions::has_custom_namespace(effect.raw_id) { return None; }
+                if duration > 0 { cloud.push((effect.raw_id, duration, amplifier)); }
             }
         } else {
           if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
           for entry in effect.get("effects")?.as_array()? {
             let entry = entry.as_object()?;
             if entry.keys().any(|key| !matches!(key.as_str(), "effect" | "time" | "level")) { return None; }
-            let def = horizon_client::brewing::effect(entry.get("effect")?.as_str()?)?;
-            if def.instant || horizon_client::brewing::is_mod_effect(def.id) { return None; }
+            let def = horizon_client::pluto_potions::effect(entry.get("effect")?.as_str()?)?;
+            if def.instant || horizon_client::pluto_potions::has_custom_namespace(def.raw_id) { return None; }
             let duration = i32::try_from(entry.get("time").map_or(Some(-1), serde_json::Value::as_i64)?).ok()?;
             let level = i32::try_from(entry.get("level").map_or(Some(1), serde_json::Value::as_i64)?).ok()?;
             if !(1..=256).contains(&level) { return None; }
-            if duration > 0 { cloud.push((def.id, duration, level - 1)); }
+            if duration > 0 { cloud.push((def.raw_id, duration, level - 1)); }
           }
         }
         if cloud.is_empty() { return None; }

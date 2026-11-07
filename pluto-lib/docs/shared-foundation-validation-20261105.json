@@ -1,0 +1,474 @@
+{
+  "mod_head": "31cf76672d3a7b982aebab86a91a78440afd163e",
+  "horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "archive_sha256": "20aa2a95fd066b9714bd6068ad7f654391a32b52d4a2e42aa3b791f5720bbce5",
+  "scope": "Complete Pluto library with synchronous explicit immersion-height kernel, immutable curative policy values and borrowed plain stack-cell mechanics. No native effect-instance attachment or contact hook; three old consumer helper wrappers delegate mechanically with explicit malformed-zero rejection.",
+  "counts": {
+    "crate": 2,
+    "module": 62,
+    "injection": 33,
+    "state": 3
+  },
+  "exit_code": 0,
+  "disk_guard_stopped": false,
+  "minimum_free_bytes": 10905317376,
+  "plan": {
+    "bridges": 0,
+    "crates": 2,
+    "data": 0,
+    "injections": 33,
+    "modules": 62,
+    "plan": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/grouped-v13/plan.json",
+    "post_build": 0,
+    "seconds": 23.863420446,
+    "states": 3,
+    "status": "ok"
+  },
+  "apply": {
+    "bridges": 0,
+    "crates": 2,
+    "data": 0,
+    "injections": 33,
+    "modules": 62,
+    "post_build": 0,
+    "seconds": 24.634006935,
+    "stage": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+    "stage_changed": true,
+    "states": 3,
+    "status": "ok",
+    "transformation_seconds": 24.633999093
+  },
+  "native_complete_plan_preflight": "Passed all eleven groups: protection, advancement, damage callers, client payload, recipe placement, current book, retained Wire, crafting match, terrain binding preparation, cloud insertion and station ingredient parsing.",
+  "host_check": {
+    "passed": true,
+    "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+    "profile": "dev debug=0, incremental=0, jobs=2",
+    "duration_reported": "1m 12s"
+  },
+  "api_source_checks": {
+    "python_checks": 193,
+    "included_actual_fluid_api_tests": 43,
+    "included_actual_inventory_api_tests": 115,
+    "mod_head": "31cf76672d3a7b982aebab86a91a78440afd163e",
+    "scope": "Python checks include both complete real API crates under standalone locks with identical pinned registry package identities. Counts are not all distinct runtime cases."
+  },
+  "supporting_proofs": [
+    {
+      "mod_head": "14c01d9f0232f7821b8f16f61a21ce9831eedadf",
+      "scope": "Previous actual API and resource suites; see prior report in Git history. Not rerun as an aggregate at this cutoff."
+    },
+    {
+      "mod_head": "5a534b098fd0eed2c706f75f598ad384362747c6",
+      "scope": "33 inventory API,68 real casting/store,10 native transaction/NBT executions. Does not validate the then-unsupported tag state."
+    },
+    {
+      "mod_head": "cd278a8d119c528834daa75f56150fd4f95502dc",
+      "scope": "16 real native recursive-wire, nested-codec and BundleSelected snapshot cases; source matches current shared guard."
+    },
+    {
+      "mod_head": "f651889e2fe88afb3a43093a8c54bc82dba70fc3",
+      "scope": "8 real native renderer tests, including4096 light cases and exact vertex comparisons; unchanged renderer source."
+    },
+    {
+      "mod_head": "c63e31da6127cb38ad035c46bf0b84a5f64249dc",
+      "scope": "3 static/model selected-main-hand capture checks; not a live Game fixture."
+    },
+    {
+      "mod_head": "799d2443",
+      "scope": "9 bounded per-world tag adapter fixtures; full actual native composition is checked by this report."
+    },
+    {
+      "mod_head": "60bc89c7",
+      "scope": "62 Python checks including one real Cargo harness with48 shared API tests; source predates only outer armor amount-gate correction, which has7separate passing guard tests."
+    },
+    {
+      "mod_head": "9c2cab95981845aa27fa3af77d46494e7b622c96",
+      "scope": "37actual API and38real official chest/Smeltery wrapper tests; read-only projections, no live commits."
+    },
+    {
+      "mod_head": "3a3efa185c7274fb74707e5db92b6a424e60fe1d",
+      "scope": "7real official advancement parser/index fixture cases and26API tests; outer Game shell modeled. Current report adds actual native shell type-check."
+    },
+    {
+      "mod_head": "703302c99486ac706de241ba1f00e0d2385efc3d",
+      "scope": "12real render fixture tests incl272panel combinations;22source guards; no full consumer/gameplay proof."
+    },
+    {
+      "mod_head": "999468ef38bd542e2e4dc8f83205f26462ad6e33",
+      "native_world_tests": {
+        "exit_code": 0,
+        "disk_guard_stopped": false,
+        "minimum_free_bytes": 11291705344,
+        "protection_tests": 18,
+        "damage_source_context_tests": 4,
+        "scope": "Actual applied horizon-world unit tests, not gameplay or live Game callbacks."
+      },
+      "scope": "18 native protection +4 source catalog cases executed in prior999468ef stage; unchanged world kernel/source adapters, not rerun under v5."
+    },
+    {
+      "mod_head": "5e353d1f67b5aee195b06e6f0533b80759e98ea0",
+      "scope": "40 actual chest/Smeltery wrapper tests plus6source guards; recursive retained-wire policy adopted in page paths."
+    },
+    {
+      "mod_head": "c17d168b66f70b32319bf0750f90d40d384a2e99",
+      "scope": "14 real renderer cases and24source guards; station/builder crop mechanical migration, unchanged shared renderer."
+    },
+    {
+      "mod_head": "4244c26773476c8a4e6b23188e828da28105248a",
+      "tests": 8,
+      "scope": "Real staged component/equipment/provider modules, actual native Policy/items/core and complete unchanged official advancement declarations; nested opaque-data fallback matrix. Not live Game capture or receipts."
+    },
+    {
+      "mod_head": "d8216e56",
+      "executions": 474,
+      "scope": "Strict official host/lock identity: canonical/state85, projection40, Cannon/casting164, Drain185. Actual potion module wiring and nested serializer loss guard. Repeated production tests included; not474distinct new tests."
+    },
+    {
+      "mod_head": "d161c81a48eeccce7d6a2381f82684d7bef8883f",
+      "tests": 3,
+      "scope": "Actual official horizon-client-core Text conversion. Codec API tests also run in current68-case API suite; no guide session installed."
+    },
+    {
+      "mod_head": "f98ee2b7a4fbc482a46bf9ae8a0037b8c27896fc",
+      "tests": 6,
+      "scope": "Exact official recipe declarations/layout plus native ItemStack and production preview adapters. Outer Game/ghost recorder modeled; current complete type-check adds actual shell compatibility, not gameplay."
+    },
+    {
+      "mod_head": "7b4d6f42fa9262ef09f01db1e7e53ed43648030f",
+      "tests": 5,
+      "scope": "Actual official potion/effect catalog facts; no effect application or cloud construction."
+    },
+    {
+      "mod_head": "08854c385ba5818d2654bc39a499aaf6b3600bdb",
+      "tests": 16,
+      "scope": "Actual official renderer types, old/new crop parity. No full TConstruct shell/gameplay proof."
+    },
+    {
+      "mod_head": "7713ac48f6fc5856ca98f69727dbb5da6f553749",
+      "tests": 8,
+      "scope": "Six API and two std-only owned-state tests. Current package also contains placement fixf309f818; native opening/restore lifecycle has type/source evidence, not live proof."
+    },
+    {
+      "mod_head": "d039d95c634851bc2ee30c2aa11180e58b43a314",
+      "executions": 459,
+      "scope": "Three strict official-locked Faucet fixtures,22required route cases. Closes previously excluded runner provenance gates; modeled storage/world limitations unchanged."
+    },
+    {
+      "mod_head": "23cdf0a1f34a51510a4d9d91b7e845bf2e1a167c",
+      "tests": 86,
+      "scope": "Native canonical/Smeltery fixture including whole old/new tank/inventory compound patch parity. No mutation authority change."
+    },
+    {
+      "mod_head": "0a5d2b50ca088962d2ab872790b4027a4fd4cb73",
+      "tests": 1,
+      "scope": "Actual official protocol packet projection with borrowed unchanged bytes; guard-only follow-upc3f07e2 integrated. Current complete package adds real hook/type proof, not live delivery."
+    },
+    {
+      "mod_head": "8b2cb14dfb4bcb3f2a4d20879ac132529e0495db",
+      "tests": 6,
+      "scope": "Actual official-core cloud descriptor/catalog validation. Current complete package adds private factory type-check;2host-factory unit tests remain unrun. No insertion, actor binding or gameplay."
+    },
+    {
+      "mod_head": "3b1481077b7866f245902852f5f3baa82fd4c434",
+      "tests": 15,
+      "scope": "11pure index planning cases and4exact official index/adapter cases; outer recipe staging modeled. No persistent ownership or multiplayer publication."
+    },
+    {
+      "mod_head": "fcc9d22cf7318049c07bab21326967de483ed03d",
+      "tests": 2,
+      "scope": "Exact official placement/menu/click bodies with modeled wrappers/endpoints and test-only source consumer policy; local/remote/preview-failure cases. Not live routing."
+    },
+    {
+      "mod_head": "b0563ea7c7c7dfb35123951beb45cace00c33e76",
+      "tests": 4,
+      "scope": "Pure current-book API cases;3actual BookScreen projection tests and native turn/audio/input execution remain unrun."
+    },
+    {
+      "mod_head": "0b815cc4e5d7b6f1087ac7e4e0f5697e6d12988c",
+      "tests": 3,
+      "scope": "Actual native BlockRegistry decoder and immutable View types, real Pluto API. Live resource-backed World sampling not executed; first test-only NBT conversion error fixed before rerun."
+    },
+    {
+      "mod_head": "b9949dcd7bf194be03185ba4f59d5c3c3ece2a91",
+      "tests": 8,
+      "report": "fluid-contact-world-view-proof.json",
+      "scope": "Three real decoder and five actual World/View tests using a generated minimal bundle accepted by official BlockRegistry/Behaviours loaders. No mocks or skips; not production assets, Game-wrapper runtime or gameplay."
+    },
+    {
+      "mod_head": "c4c39c649efdbab91f3b43f630bce85d14ec0cc9",
+      "tests": 7,
+      "scope": "Exact native matching/input/template declarations and unchanged adapters; special/endpoints modeled. Source-derived TConstruct policy is test-only. No live crafting or consumer activation."
+    },
+    {
+      "mod_head": "dabee8dcef8cb9afde48445511c1a8d49fbc683c",
+      "tests": 12,
+      "api_tests": 31,
+      "scope": "Eight cache/revision cases, four actual official BlockRegistry/FluidState resolver cases with modeled renderer owners, and real revised fluid API suite. Full native package now type-checks; no assembled renderer or tessellation execution."
+    },
+    {
+      "mod_head": "8a1b625cc1bdf0957b06211375843cceb3c6509a",
+      "tests": 5,
+      "scope": "Std-only fixed-size geometry tests including 12,288 bitwise official-expression cases. Header-only correction; no native renderer invocation or tessellation hook."
+    },
+    {
+      "mod_head": "f9a1e08a59e3988255293a63696a213615febf67",
+      "tests": 1,
+      "api_tests": 73,
+      "scope": "Grouped exact native station parser/Ingredient fixture and API suite; unrelated native endpoints modeled. TConstruct parser policy test-only, no production activation."
+    },
+    {
+      "mod_head": "26585d1e37194e1effa7f910ab01a8d54812f704",
+      "new_api_tests": 9,
+      "actual_protocol_tests": 1,
+      "report": "guide-request-correlation-validation.json",
+      "scope": "Actual official CustomPayload and unchanged production projection with pure caller-owned RequestTracker. IDs carried in process; no envelope, Game callback, network send/update or UI ownership proof."
+    },
+    {
+      "mod_head": "697a851a43c7926dde144e2ae723c8e95122530d",
+      "api_tests": 36,
+      "native_view_tests": 9,
+      "report": "immersion-curatives-proof.json",
+      "scope": "Twelve new pure immersion/curative cases and one additional actual World/View test with synthetic minimal resources. Central complete API suite additionally includes the later revision-lease tests. No native EffectInstance attachment or same-pass contact timing."
+    },
+    {
+      "mod_head": "f2b2cb17a53d1b42bcc263a49596b8eb0bcd9667",
+      "native_tests": 31,
+      "valid_differential_comparisons": 6116,
+      "report": "plain-stack-cells-adoption-validation-20261106.json",
+      "scope": "Actual native ItemStack/old helper reference: 3058 valid cases compared through direct API and delegated wrappers. Malformed zero-count/limit rejection is a deliberate separate correction; four callers unchanged. Not live Game/LAN/menu or notification proof."
+    }
+  ],
+  "limits": [
+    "Complete Pluto library only; no full TConstruct native bundle installed.",
+    "No linked executable, gameplay, save/reload, LAN or full launcher proof. No original PR is retroactively repaired or latest-verified.",
+    "Provider/equipment/converter module fixtures passed, but actual Game capture, block/armor callback delivery and actor/world lifecycle were not exercised live.",
+    "Saved-book handoff is explicitly opt-in with deferred readiness. Current proof checks actual state/module/hook types, not live opening/restore behavior.",
+    "Explicit recipe preview is read-only and does not authorize placement. Persistent RecipeIndex ownership remains unresolved; an explicit current-value patch API and veto-only native placement gates are now included, but consumer activation and live behavior are not proved.",
+    "Guide codec/text conversion is not screen/session/network ownership. The bounded read-only client payload observer is installed; no persistent session carrier or outbound transport exists; conditional current-book operations do not imply admitted-input ownership.",
+    "The existing snapshot comparator remains observable-only. A separate added comparator includes retained private baselines; neither API grants live-write authority. Its actual applied-items tests are recorded separately from this package check.",
+    "Only guarded development staging is supported; ordinary official launcher does not execute required composition guards.",
+    "CI locked-fetch configuration was added, but a fresh network cache run was not executed here; actual tests used the pinned lock offline.",
+    "Current-book private projection/audio tests remain unrun. Native fluid sampling passed against explicit minimal generated resources; production assets, Game-wrapper runtime and gameplay remain unproved.",
+    "Terrain bindings are immutable derived preparation facts, not custom-fluid mesh generation. Current-revision checks are point-in-time; read callbacks cannot publish side effects and rely on rollback.",
+    "The explicit insertion capability checks actual native Ready/server role and level/entity lookup before publication, but no consumer activates it. Entity presence does not prove action causation or permission. Four new private lifecycle/insertion helper tests and two existing factory tests remain unrun; type-check is not live insertion proof.",
+    "Fixed-size terrain geometry has no native mesher dispatch or old-model suppression. Caller visibility, family, lighting and render-pass policy remain outside this primitive.",
+    "The isolated guide lifetime experiment passed its own library-plus-experiment plan/apply/type proof and pure tests, but remains excluded from the ordinary native package; live client activation, screen ownership and delayed network updates were not proved.",
+    "RequestTracker supplies only explicit caller-owned, in-process correlation. Callers must separately prove native lifetime/ownership and semantic validity. No native invalidation, screen update, transport or payload envelope was activated.",
+    "Plain-cell helpers operate only on caller-borrowed cells and explicit merge equivalence/limits. They run no menu permission/result-slot hooks or save/sync/notifications. Merges may discard distinct opaque identities under the supplied policy; no general lossless merge or authority claim.",
+    "Curative values are not attached to native EffectInstance. Immersion inputs are explicit adjusted bounds and surface observations; no native tick/contact callback, effect application, deferred queue or actor context was activated."
+  ],
+  "previous_complete_library_proofs": [
+    {
+      "mod_head": "f7562a765e7effc5fddf0149bd1a2d2df9a54605",
+      "archive_sha256": "cfd3242b524587eb67f92dd6888960fb933d68b164727c132a589616253a582c",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "seconds_reported": 81
+      }
+    },
+    {
+      "mod_head": "14c01d9f0232f7821b8f16f61a21ce9831eedadf",
+      "archive_sha256": "30cf9fbff8b047a16e95045a67bbf9f3bc436e9fce21ab9c0efe38acdbf909c2",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "seconds_reported": 78
+      }
+    },
+    {
+      "mod_head": "0dd927ef26fa7b6ef3452873fe6085beb533bd15",
+      "archive_sha256": "f9b670a912baefff09918097ba70a5c1cc4810f93d61d4378aec5d7dac5c729e",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "seconds_reported": 76
+      }
+    },
+    {
+      "mod_head": "999468ef38bd542e2e4dc8f83205f26462ad6e33",
+      "archive_sha256": "2737204f0ead5e3e57757532279904145d8a935ed8d28b296ac9823f4eeeea45",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "seconds_reported": 85
+      }
+    },
+    {
+      "mod_head": "4244c26773476c8a4e6b23188e828da28105248a",
+      "archive_sha256": "d702b7104a889d2ec59fed60ba60763c7fc52c387c25a34cd42efcc58ab7ad70",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "seconds_reported": 73
+      }
+    },
+    {
+      "mod_head": "d039d95c634851bc2ee30c2aa11180e58b43a314",
+      "archive_sha256": "8122fa6b4f72cdb07af92a95f7c9d350ace97cc9308fd2b643c7b70d8ef896b7",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 14s"
+      }
+    },
+    {
+      "mod_head": "fb96dd82b8f9170fb03e662ad950fd9d28b1e322",
+      "archive_sha256": "1b3baddfacba82a27bb331c175121a4deb48795e5ca9bd0d9fdaa5aa5524974f",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "51.12s"
+      },
+      "interrupted_first_host_attempt": {
+        "exit_code": -2,
+        "disk_guard_stopped": true,
+        "minimum_free_bytes": 10851995648
+      },
+      "resume_integrity": {
+        "stage_files_sealed_and_unchanged": 5036,
+        "scope": "Only the same-cutoff cached host check resumed after verified archival/removal of obsolete generated outputs. Plan/apply and original failure logs retained."
+      }
+    },
+    {
+      "mod_head": "c55f4985001999b7ea9aa34f7470e8725a5684af",
+      "archive_sha256": "47dcc0d20c79beb6a592db4385b729e1019e87de0c752cac4430a658ea4e4f61",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 24s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5039,
+        "sha256_manifest": "grouped-v8/stage-source-sha256.json",
+        "purpose": "Immutable file seal for this exact cutoff; generated working path is reused only after verified archival."
+      }
+    },
+    {
+      "mod_head": "4d82580b32a1c040001add8c853d93d331bc493a",
+      "archive_sha256": "0bc30a5d85807cf09a04f67092246873311ed87c897333de2a8cf4dbb9d4ab84",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 19s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5039,
+        "sha256_manifest": "grouped-v9/stage-source-sha256.json",
+        "purpose": "Immutable file seal for this exact cutoff; generated working path is reused only after verified archival."
+      }
+    },
+    {
+      "mod_head": "529ad7229422121d6bda28e5b5c7af5279fa0c76",
+      "archive_sha256": "3c769c1399095cea630b2de17dc14a6a520876aa27c6bd0735d2e07bbc9b7fed",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 08s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5041,
+        "sha256_manifest": "grouped-v10b/stage-source-sha256.json",
+        "purpose": "Immutable file seal for this exact cutoff; generated working path is reused only after verified archival."
+      }
+    },
+    {
+      "mod_head": "3ba060dfca5e567bf9ff0b4853f429a221564c25",
+      "archive_sha256": "e42240e75471359eb9b3c82486e30a1940ba5308c1688fccda25bc83acd22890",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 04s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5042,
+        "sha256_manifest": "grouped-v11b/stage-source-sha256.json",
+        "purpose": "Fixed generated path for cache reuse; immutable cutoff, complete seal and archived prior bytes remain separate."
+      }
+    },
+    {
+      "mod_head": "921bb12dc23caea0c970c5bcc39b72921e98981c",
+      "archive_sha256": "c265b47f22e0abd8e8603c7ac4ea38a6c88dccb9b0c1f681b34856e2fa967874",
+      "host_check": {
+        "passed": true,
+        "command": "cargo check --offline --locked -p horizon-client --lib --bin horizon-client --no-default-features",
+        "profile": "dev debug=0, incremental=0, jobs=2",
+        "duration_reported": "1m 11s"
+      },
+      "stage_integrity": {
+        "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+        "files": 5043,
+        "sha256_manifest": "grouped-v12/stage-source-sha256.json",
+        "purpose": "Fixed generated path; every cutoff retains immutable package, full source seal and archived prior bytes."
+      }
+    }
+  ],
+  "log_sha256": {
+    "plan.log": "5fedc4020fc96604fe0920bf2dd5a79ed34d4089ba5e41bc7c5fd9d6e35a4b9b",
+    "apply.log": "1e15177fc57337b4d040862fd4eb8adca99e9927ee37df600ae2cbcf049f103b",
+    "host-check.log": "5aabe2198074e30aae73810c9bcf4cdf89c1bf10648a980de7628d1a3edd86c8",
+    "native-preflight.log": "a0a68d26ea7af090d250ba3a0eaabddd9bd1bb513ade3efa4408714fc594d6bc",
+    "api-source-tests.log": "7bd4f8900e476e326635572c6500bb3fca49ed9c47f113c81236525ee911a92e",
+    "stage-source-sha256.json": "dba302cbfbfb4bb2afd399df7a1c0344fd087a51331ba316e9d85644078f5b23",
+    "unchanged-source-timestamps.json": "4e779d19050084eb187a8b22c2a2b9c78f6b4f0fd1782aa234c2aeda6135826b"
+  },
+  "stage_path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+  "stage_integrity": {
+    "path": "/workspace/scratch/c7b540ff3393/upgrade-official-baseline-20261105/.work/plutolib-foundation-proof/current-staged",
+    "files": 5045,
+    "sha256_manifest": "grouped-v13/stage-source-sha256.json",
+    "purpose": "Immutable source seal; fixed generated working path is reused only after verified archival."
+  },
+  "retained_baseline_native_tests": {
+    "tests": 8,
+    "passed": true,
+    "mod_head": "4d82580b32a1c040001add8c853d93d331bc493a",
+    "minimum_free_bytes": 10946400256,
+    "full_stage_seal_sha256": "9eaeccb885f497dfc6f7b023cc9d87c85481f9ab6cef5284daae631206f0a6d5",
+    "report": "item-private-baseline-validation-20261105.md",
+    "scope": "Actual applied native items reader, unchanged client helpers and one packaged API; complete 5,039-file stage verified before and after. No caller activation or live write authority."
+  },
+  "preflight_revision": "Eleven mandatory source/composition groups; ordinary native package explicitly excludes the guide lifetime experiment.",
+  "unchanged_source_timestamp_restore": {
+    "files": 5038,
+    "content_changed": false,
+    "scope": "Only byte-identical files from the verified previous archive received their recorded nanosecond timestamps before Cargo. New or changed files were left fresh."
+  },
+  "earlier_failed_attempts": [
+    {
+      "mod_head": "e4cccad852492fec5d9137dbb469e4da152afc8e",
+      "scope": "Source policy guard rejected a previously verified shared codec delegation; exact named composition delta added. Actual plan rejected capture module under glob-imported world_loading.rs; module moved to game.rs without upstream/guard weakening. Original failure logs retained in grouped-v6."
+    },
+    {
+      "mod_head": "82386588b03f80f24b71b9bee1d92fc7dfd99fa4",
+      "scope": "Actual plan passed, terrain preflight rejected packaged ID prefixes before apply. Guard now accepts only exact component or deterministic bundle IDs and rejects foreign/duplicate aliases. Runtime archive is identical; original grouped-v10 logs are retained."
+    },
+    {
+      "mod_head": "ba9485870c346a41ab001d17fc5c641d6caf5ed1",
+      "scope": "Official plan rejected terrain support-module inner documentation (E_MODULE) before apply. Two inner-doc lines became ordinary comments, arithmetic unchanged; exact-expression tests rerun and generic package header regression added. Original logs retained in grouped-v11."
+    }
+  ],
+  "isolated_guide_experiment": {
+    "library_cutoff": "529ad7229422121d6bda28e5b5c7af5279fa0c76",
+    "experiment_cutoff": "1d3eb02fc732a0219fe996e243b27ff4bf5e7cd8",
+    "report": "../experiments/guide-lifetime/validation.json",
+    "scope": "11 pure state and 12 guard tests; actual combined plan/guards/apply/lib+bin type-check passed. No native activation/transport or UI execution."
+  },
+  "validated_utc": "2026-11-06T02:02:40.259809+00:00"
+}

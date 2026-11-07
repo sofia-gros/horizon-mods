@@ -1,0 +1,45 @@
+{
+  "source_cutoff": "538c0fa4813d34ce986670850fae41d8437dea79",
+  "legacy_cutoff": "921bb12dc23caea0c970c5bcc39b72921e98981c",
+  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "terminal_exit": 0,
+  "disk_guard_stopped": false,
+  "disk_floor_bytes": 10871635968,
+  "minimum_free_bytes": 11053699072,
+  "rust_tests": {
+    "new_boundary_tests": 6,
+    "original_chest_tests": 18,
+    "existing_nbt_tests": 6,
+    "total": 30
+  },
+  "valid_input_comparisons": {
+    "pickup": 2376,
+    "take": 42,
+    "ordered_collection": 640,
+    "total": 3058
+  },
+  "full_tracked_source_files": 6586,
+  "log": "/tmp/pluto-plain-cells-20261106.log",
+  "log_sha256": "d38883f83f8386f0beb6f6c9b5bef68220aa43621d99342acb7c359bd1887f89",
+  "source_seal": "/tmp/pluto-plain-cells-20261106-source-seal.json",
+  "source_seal_sha256": "a2b1dd0836eb6b37aab8fee2be68d98806330db70df3ca8a60de8bc54dc4530a",
+  "fixture_runner": "tconstruct/tests/run_plain_stack_cells.py",
+  "script_sha256": "774428726e7034ab554f2616d567fe57eb1382e9f7f3dc7396cf7f274420d02c",
+  "verified": [
+    "actual native ItemStack and NBT",
+    "actual single inventory API crate",
+    "unchanged full old helper source",
+    "four unchanged caller source files",
+    "strict official lock/path identities",
+    "full source hashes before and after"
+  ],
+  "not_claimed": [
+    "consumer replacement",
+    "full native package plan/apply/type-check",
+    "live Game or Hub execution",
+    "native menu-hook parity",
+    "save/reload or LAN synchronization",
+    "arbitrary write authority",
+    "lossless merging beyond caller-supplied equality"
+  ]
+}
