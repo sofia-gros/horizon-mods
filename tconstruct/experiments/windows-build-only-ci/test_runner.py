@@ -23,7 +23,8 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):r.check_config({'ready':False})
 
     def test_exact_release_host_and_no_self_update_install(self):
-        self.assertEqual(p.install_argv(Path('/rustup.exe')),['/rustup.exe','toolchain','install',p.TOOLCHAIN,'--profile','minimal','--component','rustfmt','--no-self-update'])
+        rustup=Path('/rustup.exe')
+        self.assertEqual(p.install_argv(rustup),[str(rustup),'toolchain','install',p.TOOLCHAIN,'--profile','minimal','--component','rustfmt','--no-self-update'])
 
     def test_isolated_offline_env_discards_rustup_and_build_overrides(self):
         old={'PATH':'base','RUSTUP_HOME':'foreign','RUSTUP_DIST_SERVER':'https://other','RUSTUP_TOOLCHAIN':'stable','CARGO_BUILD_JOBS':'99'}
@@ -104,8 +105,14 @@ class Tests(unittest.TestCase):
                 text+=f'[pkg.{name}.target.{r.launch.TARGET}]\navailable = true\nhash = "{("0"*64) if drift else h}"\nurl = "https://static.rust-lang.org/dist/2026-10-15/{dist}-1.99.1-{r.launch.TARGET}.tar.gz"\n'
             return text
         path=d/'multirust-channel-manifest.toml';path.write_text(content(),encoding='utf-8')
-        installed='\n'.join(k+'-'+r.launch.TARGET for k in p.COMPONENTS)
-        self.assertEqual(len(p.admit_manifest(root,installed)['components']),5)
+        # Independent rustup 1.29.2 display contract, not derived from manifest keys.
+        names=['cargo-x86_64-pc-windows-gnu','rust-mingw-x86_64-pc-windows-gnu',
+               'rust-std-x86_64-pc-windows-gnu','rustc-x86_64-pc-windows-gnu',
+               'rustfmt-x86_64-pc-windows-gnu']
+        installed='\n'.join(names)
+        self.assertEqual(p.admit_manifest(root,installed)['components'],sorted(names))
+        with self.assertRaises(ValueError):
+            p.admit_manifest(root,installed.replace('rustfmt-','rustfmt-preview-'))
         for value in (installed+'\nclippy',installed.split('\n',1)[1],installed+'\n'+installed.splitlines()[0]):
             with self.assertRaises(ValueError):p.admit_manifest(root,value)
         path.write_text(content(True),encoding='utf-8')

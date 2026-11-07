@@ -61,7 +61,7 @@ def admit_manifest(toolchain,installed):
         url=f'https://static.rust-lang.org/dist/2026-10-15/{distname}-1.99.1-{launch.TARGET}.tar.gz'
         if target.get('available') is not True or target.get('hash')!=digest or target.get('url')!=url:
             raise ValueError('Official component pin differs: '+name)
-    want=sorted(name+'-'+launch.TARGET for name in COMPONENTS)
+    want=sorted(('rustfmt' if name=='rustfmt-preview' else name)+'-'+launch.TARGET for name in COMPONENTS)
     if sorted(installed.splitlines())!=want:raise ValueError('Installed component set differs')
     return {'manifest':record(path,4*1024**2),'components':want,'component_gzip_sha256':COMPONENTS}
 

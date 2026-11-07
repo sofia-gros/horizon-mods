@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "ready": false,
+  "ready": true,
   "branch": "checkpoint/windows-default-build-ci-20261107",
   "integration_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
   "integration_tree": "691fe018f35b7b873dec27e293eb94ad0984bc89",
@@ -30,11 +30,11 @@
   ],
   "source_sha256": {
     ".github/workflows/windows-default-build-wip.yml": "23a2224620c79f70020735698e1bd442779ff5e5e080b7c06642d9743df4b68e",
-    "tconstruct/experiments/windows-build-only-ci/README.md": "5b89f83ef75e2f70f7559dfb5651fe7749c52d8a01e685f0acfa37f081ad68f6",
+    "tconstruct/experiments/windows-build-only-ci/README.md": "6148d5d11a63c4c7f63be5e1a8bceaec08a87fd042c5e8662711fbed7fd3ee8a",
     "tconstruct/experiments/windows-build-only-ci/inspect_pe.py": "03b9a0fe51236fcd03d6f7f413dec9935af48d7b8afcb6c43954c33826dd384c",
-    "tconstruct/experiments/windows-build-only-ci/prepare.py": "16ace759f7f54e05281a13d9dfc6c73cb42e69d304d50d5b3a5263f4be11d7bc",
+    "tconstruct/experiments/windows-build-only-ci/prepare.py": "07369261675844ced9fd7df1c708304764b437be856f95cc174c77b89f9b6b51",
     "tconstruct/experiments/windows-build-only-ci/run.py": "0b29e55d47d92b7856257663fdc682fe3a098d7cc8ce9483d8cd8f67773ea176",
-    "tconstruct/experiments/windows-build-only-ci/test_runner.py": "dc617eef74f0ea042c7d955dc0bf5e54cdeca50004cabf8e63f599b63317542f",
+    "tconstruct/experiments/windows-build-only-ci/test_runner.py": "ccd0109adc95cac5d17ae1f50e674b853ceae66f3c14f1a64f6d1534806b0671",
     "tconstruct/experiments/windows-build-only-ci/winjob.py": "bd1fe4063a335651a177118d9a941449268b3c429beee7692fa21415c894b898",
     "tconstruct/experiments/windows-formatter-ci/child_status.py": "15a14909bc35caf53300f3ce82b8f846346bace06ac8a1bc8c034198df89b380",
     "tconstruct/experiments/windows-formatter-ci/rustc_runtime.py": "5e2f5fa243011d28937ba490730811ba65c9d93adda1bcb241dc95b75fdea7a2",

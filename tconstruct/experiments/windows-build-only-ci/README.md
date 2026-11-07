@@ -1,6 +1,6 @@
 # Fresh Windows default-feature BuildOnly
 
-This is a source candidate rooted in integration 9e032ef5b013487ea08b997eb08df84825fb09ba. Execution is disabled by `ready=false` until review, exact freeze, and a separate release. No Rustup, download, Cargo, formatter, Windows API, engine, or game execution has occurred for this candidate.
+This is a source candidate rooted in integration 9e032ef5b013487ea08b997eb08df84825fb09ba. The reviewed source is fixed with `ready=true`; a separate explicit release is still required before creating its trigger. No Rustup, download, Cargo, formatter, Windows API, engine, or game execution has occurred for this candidate.
 
 The controller imports the previously tested source-CI owned phase and raw-child-status worker unchanged. The only Job derivative changes the active-process cap and matching PID query buffer together to 64, and adds a 10 GiB group committed-memory cap. It does not create a new process supervisor. A separate clean checkout of the fixed integration head/tree supplies the ordinary launcher and both packages; CI files remain in their own checkout. The existing ordinary launcher is invoked once, without rewriting its plan, guards, apply, feature selection, or compiler command.
 
@@ -27,8 +27,8 @@ Total preparation deadline20 minutes, single ordinary stage/link phase90 minutes
 ## Source references
 
 - Standard Windows2025 image/installer: actions/runner-images fad015e47059f40cf0786dcb4593384f6a0720d3, images/windows/Windows2025-Readme.md and scripts/build/Install-Rust.ps1 (Rustup1.29.2; GNU target, not a preselected GNU host compiler).
-- Rustup exact cc7b1fda1401d6160c679f2ea5dc258ce86da246, profiles/toolchains/environment-variables docs and src/cli/rustup_mode.rs.
+- Rustup1.29.2 exact d8c92c6765f85625b20482e165066bf1e98e7297: src/dist/manifest.rs `short_name`/`name` uses reverse_renames for ComponentStatus.name; src/cli/common.rs `list_items` prints that name alone with installed-only. Rust58cf build-manifest/src/versions.rs declares Rustfmt tar name `rustfmt` and preview manifest name `rustfmt-preview`. Thus the exact installed display is `rustfmt-x86_64-pc-windows-gnu`, while manifest package/hash admission remains `rustfmt-preview`.
 - Rust1.99.1 compiler58cf8f9c35b355199727627d07ae34a4e2846d67 build-manifest minimal profile includes rustc/cargo/rust-std/rust-mingw.
 - Official Horizon41f launcher/src/rust_toolchain.rs supplies component and WinLibs hashes. Official Mixins5a64 lockfile.rs completes and validates the applied lock.
 
-The 17 pure/mock source tests pass. They do not establish actual Rustup manifest format/layout, WinLibs archive layout, build resource sufficiency, new plan/apply, or link success. Review is pending; source readiness does not mean execution approval.
+The 17 pure/mock source tests pass. They do not establish actual Rustup manifest format/layout, WinLibs archive layout, build resource sufficiency, new plan/apply, or link success. The Job/resource and ordinary/lock reviews found no additional blocker. The final display-only correction and platform-native mock path expectation await final review; source readiness does not mean execution approval.
