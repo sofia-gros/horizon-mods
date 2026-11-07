@@ -1,0 +1,236 @@
+{
+  "artifact": {
+    "expires_at": "2026-11-10T02:23:19Z",
+    "files": {
+      "manifest.json": {
+        "bytes": 575,
+        "sha256": "cb4be26cc97e07c03bec9a9287ece0eb85b94cbb585c3badf50e342f4dd56df4"
+      },
+      "package-maps.json": {
+        "bytes": 179225,
+        "sha256": "a4bf579358e71e8c8179bc2bc0f8fce569b9d4c59ff9a3ebecfc350215376002"
+      },
+      "plan.json": {
+        "bytes": 6431102,
+        "sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b"
+      },
+      "receipt.json": {
+        "bytes": 235405,
+        "sha256": "4e065cddbddd5bf8ed7a7214be42e0d4a3b60f86de547e8a7df6efd10c9e7304"
+      }
+    },
+    "id": 13556955569,
+    "name": "playtest-plan-evidence-42328100345-1",
+    "validated": true,
+    "zip_bytes": 1458829,
+    "zip_sha256": "dc116ae653c6a0304e7d818b0e4df475e290eeee6cf248b15ec2d3369764e7f2"
+  },
+  "counts": {
+    "gates": 15,
+    "passed": 8,
+    "phases": 37,
+    "reached": 12,
+    "refused": 4
+  },
+  "guards": [
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_protection_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_advancement_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_damage_equipment_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 1,
+      "passed": false,
+      "reached": true,
+      "script": "check_client_payload_plan.py",
+      "stderr": "client payload observer rejected: payload candidate has no reviewed actual plan/Index observation\n"
+    },
+    {
+      "exit_code": 1,
+      "passed": false,
+      "reached": true,
+      "script": "check_recipe_placement_plan.py",
+      "stderr": "Recipe placement composition rejected: Crafting dependency module identity differs\n"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_current_book_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_wire_snapshot_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 1,
+      "passed": false,
+      "reached": true,
+      "script": "check_crafting_match_plan.py",
+      "stderr": "Crafting-match composition rejected: Unobserved native fingerprint\n"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_terrain_binding_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 1,
+      "passed": false,
+      "reached": true,
+      "script": "check_cloud_insertion_plan.py",
+      "stderr": "Cloud insertion composition rejected: Candidate cloud placement has no reviewed actual-plan observation\n"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_station_ingredient_plan.py",
+      "stderr": ""
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_terrain_cell_plan.py",
+      "stderr": ""
+    }
+  ],
+  "index": {
+    "actual_core_compile": true,
+    "actual_observer_compile": true,
+    "completed": true,
+    "error": null,
+    "phase_stdout_bytes": 930,
+    "phase_stdout_sha256": "7f3180ff5ed8c00d65820684fd179cfa684e07144ffd37dd7806b971bb9cf205",
+    "raw_stdout_recovered": false,
+    "receipt_file_sha256": "9783bc6013fa8600f75f3f77aea82a0cf634e10a415e1b92ce803f45eb7f0a6e",
+    "result": {
+      "schema": 1,
+      "targets": [
+        {
+          "file": "crates/horizon-client/src/game/native_hooks.rs",
+          "function_fingerprint": "6439828d2b9197605942c9bbfff9c2a32b93c95d934c8554fb52cc72ef85827f",
+          "node": [
+            40,
+            349
+          ],
+          "resolved_id": "horizon_client::game::native_hooks::Game<'_>::native_client_packet",
+          "target": "horizon_client::game::native_hooks::Game<'_>::native_client_packet"
+        },
+        {
+          "file": "crates/horizon-client/src/game/remote.rs",
+          "function_fingerprint": "9f16b281b32524d06842ac401582ce22a2c022e4b8dc45a43bfc82bd98eb9724",
+          "node": [
+            44,
+            68
+          ],
+          "resolved_id": "horizon_client::game::remote::Game<'_>::handle_packet",
+          "target": "horizon_client::game::remote::Game<'_>::handle_packet"
+        },
+        {
+          "file": "crates/horizon-client/src/game/remote.rs",
+          "function_fingerprint": "e1b7b4869ed3ffcebf6acf7e70cd9acfd66acfbe2363e46abf901a6489a80aac",
+          "node": [
+            44,
+            41
+          ],
+          "resolved_id": "horizon_client::game::remote::Game<'_>::poll_remote",
+          "target": "horizon_client::game::remote::Game<'_>::poll_remote"
+        }
+      ]
+    },
+    "result_provenance": "Result object from INDEX_RECEIPT; raw 930-byte stdout hash and size are phase witnesses, not locally recovered stdout bytes.",
+    "scope": "Separate auxiliary source identity observation; no apply/Game type/compatibility proof",
+    "source_verified": true
+  },
+  "integration": {
+    "head": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+    "tree": "afb6ac2ff3e824828cdde94e6e4686e0ffbe2094"
+  },
+  "limitations": [
+    "Job success means diagnostic completion, not compatibility. Four guards refused.",
+    "Index identifies source only; it is not a caller-composition or Game type proof.",
+    "Main evidence was uploaded before the separate Index step and is compared with MAIN_RECEIPT, not INDEX_RECEIPT."
+  ],
+  "main": {
+    "compatibility": false,
+    "diagnostic_complete": true,
+    "error": null,
+    "plan_accepted": true,
+    "probe_completed": true,
+    "source_verified": true
+  },
+  "not_executed": [
+    "apply",
+    "applied Game or consumer build",
+    "installed host type verification",
+    "game launch"
+  ],
+  "official": {
+    "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  },
+  "package_counts": {
+    "pluto_bundle": 152,
+    "tconstruct_bundle": 510
+  },
+  "plan": {
+    "bytes": 6431102,
+    "input_count": 5214,
+    "sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+    "summary": {
+      "bridges": 3,
+      "crates": 3,
+      "data": 1,
+      "injections": 320,
+      "modules": 329,
+      "post_build": 0,
+      "seconds": 460.675543894,
+      "states": 111,
+      "status": "ok"
+    }
+  },
+  "run": {
+    "conclusion": "success",
+    "head": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+    "id": 42328100345,
+    "index_receipt_at": "2026-11-07T02:24:43.7284629Z",
+    "job_id": 128268027000,
+    "main_receipt_at": "2026-11-07T02:23:19.4544820Z",
+    "started_at": "2026-11-07T02:12:59Z",
+    "terminal_updated_at": "2026-11-07T02:24:49Z",
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345"
+  },
+  "schema": 1,
+  "scope": "Bounded project result summary; not full console, receipt, environment or input map.",
+  "verification": {
+    "artifact_main_matches_console_main_integer_lossless": true,
+    "console_bytes": 256420,
+    "console_sha256": "db9344a9d3c4a40638474d325742039e6c794199858638b97fc2e71c3a091ccc",
+    "index_raw_json_sha256": "57c8b41467e203c1311953a25e33af0163ea17f8fd6141b4b2a2bdde4bc35684",
+    "main_canonical_json_sha256": "3ec173b3b2e04e80b6060e82c418b1652d802c291927e9bcb48dbca55e5a0b62"
+  }
+}
