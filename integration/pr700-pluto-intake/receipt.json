@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "pr": 700,
+  "url": "https://github.com/sofia-gros/horizon-mods/pull/700",
+  "work_branch": "feat/casting-tank-tagged-379",
+  "before_head": "bf0333ea11188a4009a2ed5cf25965fdcb88c575",
+  "ordinary_base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "status": "changed-pending",
+  "main_merged": false,
+  "pr_closed": false,
+  "branch_changes": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "before_sha256": "267bfacff1d0ec691eabbfe910821072d555f9f8da637fedd10bf88a49fa6952",
+      "after_sha256": "807b7213a8718c073219d948abe8fece2ed5b4eee3aa159a1c1b9b48b8e15e8a",
+      "hunks": [
+        {
+          "old": "            .is_some_and(|(id, _, _)| id.starts_with(\"minecraft:\") && horizon_client_core::potions::potion(&id).is_some())\n",
+          "new": "            .is_some_and(|(id, _, _)| id.starts_with(\"minecraft:\") && horizon_client::pluto_potions::potion(&id).is_some())\n"
+        }
+      ]
+    },
+    {
+      "path": "pluto-lib/mixins/pluto_native_creative/horizon-mixin.toml",
+      "before_sha256": "31f205f4ca554b7d3bbdade2fea29ed890d22f823a819e7345dc0c2bf1e74895",
+      "after_sha256": "8cbf6e40ef8080959386698c3a7f2c08ea1056e96dcabbbea4fcd9027d1aac0e",
+      "hunks": [
+        {
+          "old": "",
+          "new": "\n[[module]]\nid = \"potion-facts\"\nfile = \"crates/horizon-client/src/client_lib.rs\"\nname = \"pluto_potions\"\nsource = \"potion-facts.rs\"\nvisibility = \"pub\"\n"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/tests/run_faucet_tank_casting.py",
+      "before_sha256": "62b90e5f66064f606ca3ed73da237e465e5dc252152b4bbe662ecf0ade23117c",
+      "after_sha256": "6c35b0c309a10247d31d61cf72a4afce7e432bb4fda83f5368ecd40293a7653b",
+      "hunks": [
+        {
+          "old": "",
+          "new": "template = template.replace(\"__POTION_FACTS__\", str(root.parent / \"pluto-lib/mixins/pluto_native_creative/potion-facts.rs\"))\n"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/tests/rust/faucet_tank_casting_fixture.rs",
+      "before_sha256": "10de101d79014d74d49a10643b0c71a3bb7629a8c354288fe3b476b4c9214746",
+      "after_sha256": "ca665adf3d6976871d4796347885220bfbae8614548fc3720720414b588f2084",
+      "hunks": [
+        {
+          "old": "",
+          "new": "#[path=\"__POTION_FACTS__\"] pub mod pluto_potions;\n"
+        },
+        {
+          "old": "",
+          "new": "#[test]\nfn shared_catalog_is_the_native_catalog_without_policy_expansion() {\n    for id in [\"minecraft:water\", \"minecraft:awkward\", \"minecraft:swiftness\", \"swiftness\", \"minecraft:strong_luck\", \"unknown:swiftness\"] {\n        let shared = horizon_client::pluto_potions::potion(id);\n        let native = horizon_client_core::potions::potion(id);\n        assert_eq!(shared.is_some(), native.is_some(), \"{id}\");\n        if let (Some(shared), Some(native)) = (shared, native) {\n            assert_eq!((shared.raw_id, shared.name_suffix, shared.effects), (native.id, native.name, native.effects));\n        }\n    }\n    assert!(horizon_client::pluto_potions::potion(\"minecraft:water\").is_some());\n    assert!(horizon_client::pluto_potions::potion(\"minecraft:strong_luck\").is_none());\n    let mut unknown = Tank::new(1000);\n    assert!(unknown.insert_tagged(\"tconstruct:potion\", Some(&Tag::compound([(\"Potion\", Tag::String(\"minecraft:strong_luck\".into()))])), 250));\n    assert!(!faucet_network_tag_safe(&unknown));\n    // The catalog adapter does not decide TC's tag namespace or wire format.\n    let mut wrong_fluid = Tank::new(1000);\n    assert!(wrong_fluid.insert_tagged(\"other:potion\", Some(&Tag::compound([(\"Potion\", Tag::String(\"minecraft:swiftness\".into()))])), 250));\n    assert!(!faucet_network_tag_safe(&wrong_fluid));\n}\n"
+        }
+      ]
+    }
+  ],
+  "new_shared_file": {
+    "path": "pluto-lib/mixins/pluto_native_creative/potion-facts.rs",
+    "sha256": "556109f53c45803dfaf69c27312e37d89d3637200821ab23bd1325e3e60d8f14",
+    "declaration": "[[module]]\nid = \"potion-facts\"\nfile = \"crates/horizon-client/src/client_lib.rs\"\nname = \"pluto_potions\"\nsource = \"potion-facts.rs\"\nvisibility = \"pub\""
+  },
+  "native_route_tests": [
+    "reserve_tick_and_failed_write",
+    "stale_recipe_and_unknown_casting_refuse",
+    "portable_source_preserves_slots_and_refuses_bad_state",
+    "source_container_reprocess_is_atomic",
+    "source_refill_tag_waits_only_after_untagged_packet_finishes",
+    "recheck_target_and_recipe_after_source_process",
+    "portable_source_custom_tag_and_unknown_refuse",
+    "portable_base_potion_reserves_pours_and_restores_identical_tag",
+    "portable_base_potion_keeps_state_on_failed_commit_or_different_potion",
+    "portable_unknown_potion_and_opaque_fields_wait_without_consumption",
+    "shared_catalog_is_the_native_catalog_without_policy_expansion",
+    "unknown_source_and_unloaded_refuse"
+  ],
+  "native_tests_run": false,
+  "original_pr_paths": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "status": "ported-with-existing-Pluto-catalog-delegation"
+    },
+    {
+      "path": "tconstruct/tests/rust/faucet_tank_casting_fixture.rs",
+      "status": "all-11-original-cases-retained-plus-1-catalog-case"
+    },
+    {
+      "path": "tconstruct/tests/run_faucet_tank_casting.py",
+      "status": "current-locked-fixture-controls-retained-12-explicit-cases"
+    },
+    {
+      "path": "tconstruct/docs/smeltery.md",
+      "status": "original-doc-exact"
+    },
+    {
+      "path": ".github/workflows/mixins.yml",
+      "status": "original-PR-invocation-retained-on-work-branch; current-integration-CI-wiring-pending-build-owner"
+    }
+  ],
+  "limits": [
+    "Source and pure tests only. No Cargo/native/CI run.",
+    "World/recipe selection remain fixture substitutions.",
+    "First 90mB packet proof is not full250mB recipe or actual gameplay.",
+    "Original branch retains its historical compatibility declarations; no old fork was read or executed.",
+    "Do not close the PR before complete own-diff intake and required current build/startup gates."
+  ]
+}

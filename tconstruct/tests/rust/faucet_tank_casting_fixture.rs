@@ -1,4 +1,5 @@
 extern crate self as horizon_client;
+#[path="__POTION_FACTS__"] pub mod pluto_potions;
 pub mod containers { pub enum BlockEntity { Chest(Vec<Option<horizon_items::items::ItemStack>>) } }
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-faucet-tank.rs"] mod tconstruct_source_faucet_tank;
@@ -25,7 +26,17 @@ fn process_casting_tank(g: &mut Game<'_>, state:&mut super::tconstruct_source_ca
 fn casting_tank_at(g:&Game<'_>,p:Pos)->Option<super::tconstruct_source_casting_tank::CastingTank>{let mut state=super::tconstruct_source_casting_tank::CastingTank::from_nbt(&store::read(&g.world,p,"tconstruct:casting_tank")?)?;let super::containers::BlockEntity::Chest(slots)=g.world.block_entities.get(&p)?;if slots.len()<2{return None}state.slots=[slots[0].clone(),slots[1].clone()];state.lossless().then_some(state)}
 fn casting_at(g:&Game<'_>,p:Pos)->Option<(&'static str,Casting)>{let mut state=Casting::from_nbt(&tconstruct_source_melter_store::read(&g.world,p,"tconstruct:table")?)?;let BlockEntity::Chest(slots)=g.world.block_entities.get(&p)?;if slots.len()<2{return None}state.input=slots[0].clone();state.output=slots[1].clone();Some(("tconstruct:table",state))}
 struct Fluid{amount:u32} struct Recipe{fluid:Fluid,cooling_time:u32,consumes_cast:bool,switch_slots:bool}
-fn casting_recipe_at(g: &Game<'_>,_:Pos,_:&str,_:&Casting,t:&Tank)->Option<(String,Recipe,horizon_items::items::ItemStack)>{(matches!(t.fluid.as_deref(),Some("x:copper" | "minecraft:water"))).then(||((if g.recipe_changed {"test:changed"} else {"test:copper"}).into(),Recipe{fluid:Fluid{amount:90},cooling_time:1,consumes_cast:false,switch_slots:false},horizon_items::items::ItemStack::new("minecraft:copper_ingot",1)))}
+fn casting_recipe_at(g: &Game<'_>, _: Pos, _: &str, _: &Casting, tank: &Tank) -> Option<(String, Recipe, horizon_items::items::ItemStack)> {
+    let potion = tank.fluid.as_deref() == Some("tconstruct:potion");
+    if !potion && !matches!(tank.fluid.as_deref(), Some("x:copper" | "minecraft:water")) { return None; }
+    let result = if potion {
+        let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tank.tag.as_ref()?, false)?;
+        horizon_items::items::ItemStack::new("minecraft:potion", 1).with_potion(&id)
+    } else { horizon_items::items::ItemStack::new("minecraft:copper_ingot", 1) };
+    Some(((if g.recipe_changed { "test:changed" } else if potion { "test:potion" } else { "test:copper" }).into(),
+        Recipe { fluid: Fluid { amount: if potion { 250 } else { 90 } }, cooling_time: 1, consumes_cast: false, switch_slots: false }, result))
+}
+
 fn prepare_faucet_casting(g:&Game<'_>,p:Pos,k:&str,c:&mut Casting,f:&Faucet,i:&Tank){if let Some(t)=super::tconstruct_source_melter_state::casting_faucet_offer(c,f,i){if let Some((id,r,out))=casting_recipe_at(g,p,k,c,t){c.prepare(&id,r.fluid.amount,r.cooling_time,out,r.consumes_cast,r.switch_slots);}}}
 // __PRODUCTION_ROUTE__
 #[test]fn reserve_tick_and_failed_write(){let(mut g,p,s,t)=super::fixture();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));let source=Tank::from_nbt(&tconstruct_source_melter_store::read(&g.world,s,"tconstruct:fuel_tank").unwrap(),4000).unwrap();let faucet=Faucet::from_nbt(&tconstruct_source_melter_store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert_eq!((source.amount,faucet.pending.amount),(90,80));let before=g.world.tags.clone();g.world.fail=true;assert!(tick_tank_casting(&mut g,p,s,t,faucet.clone()));assert_eq!(before,g.world.tags);g.world.fail=false;assert!(tick_tank_casting(&mut g,p,s,t,faucet));let c=Casting::from_nbt(&tconstruct_source_melter_store::read(&g.world,t,"tconstruct:table").unwrap()).unwrap();let f=Faucet::from_nbt(&tconstruct_source_melter_store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert_eq!((c.tank.amount,f.pending.amount),(20,70));}
@@ -34,7 +45,87 @@ fn prepare_faucet_casting(g:&Game<'_>,p:Pos,k:&str,c:&mut Casting,f:&Faucet,i:&T
 #[test]fn source_container_reprocess_is_atomic(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();assert!(ct.tank.insert("minecraft:water",3000));ct.slots[0]=Some(horizon_items::items::ItemStack::new("minecraft:water_bucket",1));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());let before=g.world.tags.clone();g.world.fail=true;assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap();assert_eq!(slots[0].as_ref().unwrap().item.as_ref(),"minecraft:water_bucket");assert!(slots[1].is_none());assert_eq!((g.signals,g.slot_updates),(0,0));g.world.fail=false;assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));let saved=CastingTank::from_nbt(&store::read(&g.world,s,"tconstruct:casting_tank").unwrap()).unwrap();let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();let out=Casting::from_nbt(&store::read(&g.world,t,"tconstruct:table").unwrap()).unwrap();assert_eq!(saved.tank.amount+f.pending.amount+out.tank.amount,4000);assert!(saved.slots[0].is_none());assert_eq!(saved.slots[1].as_ref().unwrap().item.as_ref(),"minecraft:bucket");let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap();assert!(slots[0].is_none());assert_eq!(slots[1].as_ref().unwrap().item.as_ref(),"minecraft:bucket");assert_eq!((g.signals,g.slot_updates),(1,1));}
 #[test]fn source_refill_tag_waits_only_after_untagged_packet_finishes(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();assert!(ct.tank.insert("minecraft:water",90));ct.slots[0]=Some(horizon_items::items::ItemStack::new("minecraft:potion",1).with_potion("minecraft:swiftness"));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(true));let saved=CastingTank::from_nbt(&store::read(&g.world,s,"tconstruct:casting_tank").unwrap()).unwrap();assert_eq!(saved.tank.fluid.as_deref(),Some("tconstruct:potion"));assert!(saved.tank.tag.is_some());for _ in 0..8{let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert!(tick_tank_casting(&mut g,p,s,t,f));}let f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();let out=Casting::from_nbt(&store::read(&g.world,t,"tconstruct:table").unwrap()).unwrap();assert_eq!((f.pending.amount,out.tank.amount),(0,90));let before=g.world.tags.clone();assert!(tick_tank_casting(&mut g,p,s,t,f));assert_eq!(before,g.world.tags);let mut f=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();f.stop_after_packet=true;g.world.tags.insert((p,"tconstruct:faucet".into()),f.to_nbt());assert!(tick_tank_casting(&mut g,p,s,t,f));let stopped=Faucet::from_nbt(&store::read(&g.world,p,"tconstruct:faucet").unwrap()).unwrap();assert!(!stopped.active);}
 #[test]fn recheck_target_and_recipe_after_source_process(){use super::tconstruct_source_casting_tank::CastingTank;for variant in 0..4{let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();assert!(ct.tank.insert("minecraft:water",3000));ct.slots[0]=Some(horizon_items::items::ItemStack::new("minecraft:water_bucket",1));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());g.switch_target=variant==0;g.change_recipe=variant==1;g.change_target_slot=variant==2;g.change_source_slot=variant==3;let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap();assert_eq!(slots[0].as_ref().unwrap().item.as_ref(),if variant==3 {"minecraft:stone"} else {"minecraft:water_bucket"});assert!(slots[1].is_none());assert_eq!((g.signals,g.slot_updates),(0,0));}}
-#[test]fn portable_source_tagged_and_unknown_refuse(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();let tag=Tag::compound([("Potion",Tag::String("minecraft:swiftness".into()))]);assert!(ct.tank.insert_tagged("tconstruct:potion",Some(&tag),250));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let raw=g.world.tags.get_mut(&(s,"tconstruct:casting_tank".into())).unwrap();if let Tag::Compound(fields)=raw{fields.insert("unknown".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}
+#[test]fn portable_source_custom_tag_and_unknown_refuse(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();let tag=Tag::compound([("Potion",Tag::String("minecraft:swiftness".into())),("CustomPotionColor",Tag::Int(123))]);assert!(ct.tank.insert_tagged("tconstruct:potion",Some(&tag),250));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,"tconstruct:casting_tank".into()),ct.to_nbt());let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let raw=g.world.tags.get_mut(&(s,"tconstruct:casting_tank".into())).unwrap();if let Tag::Compound(fields)=raw{fields.insert("unknown".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}
+fn potion_source() -> (Game<'static>, Pos, Pos, Pos, Tag) {
+    let (mut game, faucet, source, target) = super::fixture();
+    let mut tank = super::tconstruct_source_casting_tank::CastingTank::new();
+    let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+    assert!(tank.tank.insert_tagged("tconstruct:potion", Some(&tag), 250));
+    game.world.blocks.insert(source, 3);
+    game.world.block_entities.insert(source, BlockEntity::Chest(tank.slots.to_vec()));
+    game.world.tags.insert((source, "tconstruct:casting_tank".into()), tank.to_nbt());
+    (game, faucet, source, target, tag)
+}
+#[test]
+fn portable_base_potion_reserves_pours_and_restores_identical_tag() {
+    let (mut game, pos, source, target, tag) = potion_source();
+    assert_eq!(activate_tank_casting(&mut game, pos, source, target, Faucet::new()), Some(true));
+    for _ in 0..8 {
+        // Reload both machine states from persisted NBT on every tick.
+        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+        assert!(tick_tank_casting(&mut game, pos, source, target, faucet));
+    }
+    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    let output = Casting::from_nbt(&store::read(&game.world, target, "tconstruct:table").unwrap()).unwrap();
+    let source = super::tconstruct_source_casting_tank::CastingTank::from_nbt(&store::read(&game.world, source, "tconstruct:casting_tank").unwrap()).unwrap();
+    assert_eq!((source.tank.amount, faucet.pending.amount, output.tank.amount), (160, 0, 90));
+    assert_eq!(source.tank.tag.as_ref(), Some(&tag));
+    assert_eq!(output.tank.tag.as_ref(), Some(&tag));
+    assert_eq!(output.tank.fluid.as_deref(), Some("tconstruct:potion"));
+}
+#[test]
+fn portable_base_potion_keeps_state_on_failed_commit_or_different_potion() {
+    for different in [false, true] {
+        let (mut game, pos, source, target, _) = potion_source();
+        if different {
+            let mut output = Casting::new();
+            assert!(output.prepare("test:potion", 250, 1, horizon_items::items::ItemStack::new("minecraft:potion", 1).with_potion("minecraft:healing"), false, false));
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+            assert!(output.tank.insert_tagged("tconstruct:potion", Some(&tag), 10));
+            game.world.tags.insert((target, "tconstruct:table".into()), output.to_nbt());
+        } else { game.world.fail = true; }
+        let before = game.world.tags.clone();
+        let _ = activate_tank_casting(&mut game, pos, source, target, Faucet::new());
+        assert_eq!(game.world.tags, before);
+    }
+}
+#[test]
+fn portable_unknown_potion_and_opaque_fields_wait_without_consumption() {
+    for opaque in [false, true] {
+        let (mut game, pos, source, target, _) = potion_source();
+        let raw = game.world.tags.get_mut(&(source, "tconstruct:casting_tank".into())).unwrap();
+        if opaque {
+            if let Tag::Compound(fields) = raw { fields.insert("unknown".into(), Tag::Int(1)); }
+        } else {
+            let mut state = super::tconstruct_source_casting_tank::CastingTank::from_nbt(raw).unwrap();
+            state.tank.tag = Some(Tag::compound([("Potion", Tag::String("minecraft:strong_luck".into()))]));
+            *raw = state.to_nbt();
+        }
+        let before = game.world.tags.clone();
+        assert_eq!(activate_tank_casting(&mut game, pos, source, target, Faucet::new()), Some(false));
+        assert_eq!(game.world.tags, before);
+    }
+}
+#[test]
+fn shared_catalog_is_the_native_catalog_without_policy_expansion() {
+    for id in ["minecraft:water", "minecraft:awkward", "minecraft:swiftness", "swiftness", "minecraft:strong_luck", "unknown:swiftness"] {
+        let shared = horizon_client::pluto_potions::potion(id);
+        let native = horizon_client_core::potions::potion(id);
+        assert_eq!(shared.is_some(), native.is_some(), "{id}");
+        if let (Some(shared), Some(native)) = (shared, native) {
+            assert_eq!((shared.raw_id, shared.name_suffix, shared.effects), (native.id, native.name, native.effects));
+        }
+    }
+    assert!(horizon_client::pluto_potions::potion("minecraft:water").is_some());
+    assert!(horizon_client::pluto_potions::potion("minecraft:strong_luck").is_none());
+    let mut unknown = Tank::new(1000);
+    assert!(unknown.insert_tagged("tconstruct:potion", Some(&Tag::compound([("Potion", Tag::String("minecraft:strong_luck".into()))])), 250));
+    assert!(!faucet_network_tag_safe(&unknown));
+    // The catalog adapter does not decide TC's tag namespace or wire format.
+    let mut wrong_fluid = Tank::new(1000);
+    assert!(wrong_fluid.insert_tagged("other:potion", Some(&Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))])), 250));
+    assert!(!faucet_network_tag_safe(&wrong_fluid));
+}
 #[test]fn unknown_source_and_unloaded_refuse(){let(mut g,p,s,t)=super::fixture();let tag=g.world.tags.get_mut(&(s,"tconstruct:fuel_tank".into())).unwrap();if let Tag::Compound(fields)=tag{fields.insert("legacy".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);g.world.chunks.clear();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}
 }
 fn fixture()->(Game<'static>,Pos,Pos,Pos){use tconstruct_source_melter_state::{Tank,Faucet,Casting};let(p,s,t)=((0,1,0),(-1,1,0),(0,0,0));let mut tank=Tank::new(4000);tank.insert("x:copper",180);let tags=HashMap::from([((s,"tconstruct:fuel_tank".into()),tank.to_nbt()),((p,"tconstruct:faucet".into()),Faucet::new().to_nbt()),((t,"tconstruct:table".into()),Casting::new().to_nbt())]);(Game{res:Res,signals:0,slot_updates:0,switch_target:false,change_recipe:false,recipe_changed:false,change_target_slot:false,change_source_slot:false,world:World{blocks:HashMap::from([(s,1),(t,2)]),block_entities:HashMap::from([(s,containers::BlockEntity::Chest(vec![])),(t,containers::BlockEntity::Chest(vec![None,None]))]),chunks:HashMap::from([((-1,0),()),((0,0),())]),tags,fail:false},_life:std::marker::PhantomData},p,s,t)}

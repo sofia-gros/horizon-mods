@@ -1172,7 +1172,7 @@ fn faucet_network_tag_safe(tank: &Tank) -> bool {
     let horizon_world::nbt::Tag::Compound(fields) = tag else { return false; };
     tank.fluid.as_deref() == Some("tconstruct:potion") && fields.len() == 1
         && super::tconstruct_source_fluid_container::potion_tag(tag, false)
-            .is_some_and(|(id, _, _)| id.starts_with("minecraft:"))
+            .is_some_and(|(id, _, _)| id.starts_with("minecraft:") && horizon_client::pluto_potions::potion(&id).is_some())
         && super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag)).is_some()
 }
 
@@ -1297,11 +1297,12 @@ fn activate_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, targ
     let source_strength = input.comparator();
     let source_snapshot = if source_strength.is_some() { input.data().map(|(_,raw)| raw) } else { None };
     let source_amount = input.tank().amount;
-    if source_strength.is_some() && (input.tank().tag.is_some() || faucet.pending.tag.is_some()) { return Some(false); }
+    // Portable sources may reserve base-potion packets whose identity survives the host wire.
+    if source_strength.is_some() && (!faucet_network_tag_safe(input.tank()) || !faucet_network_tag_safe(&faucet.pending)) { return Some(false); }
     if !ensure(game, target, &target_name) { return Some(false); }
     let Some((kind, mut casting)) = casting_at(game, target) else { return Some(false); };
     let Some(raw_casting) = store::read(&game.world, target, kind) else { return Some(false); };
-    if source_strength.is_some() && casting.tank.tag.is_some() { return Some(false); }
+    if source_strength.is_some() && !faucet_network_tag_safe(&casting.tank) { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
     if !super::tconstruct_source_melter_state::safe_casting_resume(&casting, &raw_casting, &faucet, &raw_faucet) { return Some(false); }
     if input.tank().fluid.is_none() { return Some(true); }
@@ -1338,12 +1339,12 @@ fn tick_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: 
     let source_strength = input.comparator();
     let source_snapshot = if source_strength.is_some() { input.data().map(|(_,raw)| raw) } else { None };
     let source_amount = input.tank().amount;
-    // A reprocessed source may now hold tagged fluid; finish an already
-    // reserved untagged packet before refusing a new tagged reservation.
-    if source_strength.is_some() && (faucet.pending.tag.is_some() || (faucet.pending.amount == 0 && !faucet.stop_after_packet && input.tank().tag.is_some())) { return true; }
+    // Finish a safe reserved packet even if container reprocessing changed the source.
+    // Unknown/custom tags still wait before any new reservation.
+    if source_strength.is_some() && (!faucet_network_tag_safe(&faucet.pending) || (faucet.pending.amount == 0 && !faucet.stop_after_packet && !faucet_network_tag_safe(input.tank()))) { return true; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return true; };
     let Some(raw_casting) = store::read(&game.world, target, kind) else { return true; };
-    if source_strength.is_some() && casting.tank.tag.is_some() { return true; }
+    if source_strength.is_some() && !faucet_network_tag_safe(&casting.tank) { return true; }
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return true; };
     if !super::tconstruct_source_melter_state::safe_casting_resume(&casting, &raw_casting, &faucet, &raw_faucet) { return true; }
     let empty = Tank::new(0);

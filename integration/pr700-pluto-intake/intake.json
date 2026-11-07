@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "target_base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "shared_api": {
+    "path": "pluto-lib/mixins/pluto_native_creative/potion-facts.rs",
+    "sha256": "556109f53c45803dfaf69c27312e37d89d3637200821ab23bd1325e3e60d8f14",
+    "declaration": "[[module]]\nid = \"potion-facts\"\nfile = \"crates/horizon-client/src/client_lib.rs\"\nname = \"pluto_potions\"\nsource = \"potion-facts.rs\"\nvisibility = \"pub\""
+  },
+  "changes": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-runtime.rs",
+      "before_sha256": "b87726d2ecfe4dbf12ac6cb1f070bbee02895aa160046701ef5178cb667fda71",
+      "after_sha256": "4dd65903425565b6cbf5db1ab116b2e0f575228261b37dc3a6e8b2a306139181",
+      "hunks": [
+        {
+          "start_line": 1173,
+          "old": "            .is_some_and(|(id, _, _)| id.starts_with(\"minecraft:\"))\n",
+          "new": "            .is_some_and(|(id, _, _)| id.starts_with(\"minecraft:\") && horizon_client::pluto_potions::potion(&id).is_some())\n"
+        },
+        {
+          "start_line": 1298,
+          "old": "    if source_strength.is_some() && (input.tank().tag.is_some() || faucet.pending.tag.is_some()) { return Some(false); }\n",
+          "new": "    // Portable sources may reserve base-potion packets whose identity survives the host wire.\n    if source_strength.is_some() && (!faucet_network_tag_safe(input.tank()) || !faucet_network_tag_safe(&faucet.pending)) { return Some(false); }\n"
+        },
+        {
+          "start_line": 1302,
+          "old": "    if source_strength.is_some() && casting.tank.tag.is_some() { return Some(false); }\n",
+          "new": "    if source_strength.is_some() && !faucet_network_tag_safe(&casting.tank) { return Some(false); }\n"
+        },
+        {
+          "start_line": 1339,
+          "old": "    // A reprocessed source may now hold tagged fluid; finish an already\n    // reserved untagged packet before refusing a new tagged reservation.\n    if source_strength.is_some() && (faucet.pending.tag.is_some() || (faucet.pending.amount == 0 && !faucet.stop_after_packet && input.tank().tag.is_some())) { return true; }\n",
+          "new": "    // Finish a safe reserved packet even if container reprocessing changed the source.\n    // Unknown/custom tags still wait before any new reservation.\n    if source_strength.is_some() && (!faucet_network_tag_safe(&faucet.pending) || (faucet.pending.amount == 0 && !faucet.stop_after_packet && !faucet_network_tag_safe(input.tank()))) { return true; }\n"
+        },
+        {
+          "start_line": 1344,
+          "old": "    if source_strength.is_some() && casting.tank.tag.is_some() { return true; }\n",
+          "new": "    if source_strength.is_some() && !faucet_network_tag_safe(&casting.tank) { return true; }\n"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/tests/rust/faucet_tank_casting_fixture.rs",
+      "before_sha256": "093379470b4647a02541bf6b9262ed4a3d0a66354894d4b2f99c4e3fa9445c17",
+      "after_sha256": "ee79cd4e78419d85c2052a7de1238db03896e4c29732eaaa4b3be95ba6b458ee",
+      "hunks": [
+        {
+          "start_line": 28,
+          "old": "fn casting_recipe_at(g: &Game<'_>,_:Pos,_:&str,_:&Casting,t:&Tank)->Option<(String,Recipe,horizon_items::items::ItemStack)>{(matches!(t.fluid.as_deref(),Some(\"x:copper\" | \"minecraft:water\"))).then(||((if g.recipe_changed {\"test:changed\"} else {\"test:copper\"}).into(),Recipe{fluid:Fluid{amount:90},cooling_time:1,consumes_cast:false,switch_slots:false},horizon_items::items::ItemStack::new(\"minecraft:copper_ingot\",1)))}\n",
+          "new": "fn casting_recipe_at(g: &Game<'_>, _: Pos, _: &str, _: &Casting, tank: &Tank) -> Option<(String, Recipe, horizon_items::items::ItemStack)> {\n    let potion = tank.fluid.as_deref() == Some(\"tconstruct:potion\");\n    if !potion && !matches!(tank.fluid.as_deref(), Some(\"x:copper\" | \"minecraft:water\")) { return None; }\n    let result = if potion {\n        let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tank.tag.as_ref()?, false)?;\n        horizon_items::items::ItemStack::new(\"minecraft:potion\", 1).with_potion(&id)\n    } else { horizon_items::items::ItemStack::new(\"minecraft:copper_ingot\", 1) };\n    Some(((if g.recipe_changed { \"test:changed\" } else if potion { \"test:potion\" } else { \"test:copper\" }).into(),\n        Recipe { fluid: Fluid { amount: if potion { 250 } else { 90 } }, cooling_time: 1, consumes_cast: false, switch_slots: false }, result))\n}\n\n"
+        },
+        {
+          "start_line": 37,
+          "old": "#[test]fn portable_source_tagged_and_unknown_refuse(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();let tag=Tag::compound([(\"Potion\",Tag::String(\"minecraft:swiftness\".into()))]);assert!(ct.tank.insert_tagged(\"tconstruct:potion\",Some(&tag),250));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,\"tconstruct:casting_tank\".into()),ct.to_nbt());let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let raw=g.world.tags.get_mut(&(s,\"tconstruct:casting_tank\".into())).unwrap();if let Tag::Compound(fields)=raw{fields.insert(\"unknown\".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}\n",
+          "new": "#[test]fn portable_source_custom_tag_and_unknown_refuse(){use super::tconstruct_source_casting_tank::CastingTank;let(mut g,p,s,t)=super::fixture();let mut ct=CastingTank::new();let tag=Tag::compound([(\"Potion\",Tag::String(\"minecraft:swiftness\".into())),(\"CustomPotionColor\",Tag::Int(123))]);assert!(ct.tank.insert_tagged(\"tconstruct:potion\",Some(&tag),250));g.world.blocks.insert(s,3);g.world.block_entities.insert(s,super::containers::BlockEntity::Chest(ct.slots.to_vec()));g.world.tags.insert((s,\"tconstruct:casting_tank\".into()),ct.to_nbt());let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);let raw=g.world.tags.get_mut(&(s,\"tconstruct:casting_tank\".into())).unwrap();if let Tag::Compound(fields)=raw{fields.insert(\"unknown\".into(),Tag::Int(1));}let before=g.world.tags.clone();assert_eq!(activate_tank_casting(&mut g,p,s,t,Faucet::new()),Some(false));assert_eq!(before,g.world.tags);}\nfn potion_source() -> (Game<'static>, Pos, Pos, Pos, Tag) {\n    let (mut game, faucet, source, target) = super::fixture();\n    let mut tank = super::tconstruct_source_casting_tank::CastingTank::new();\n    let tag = Tag::compound([(\"Potion\", Tag::String(\"minecraft:swiftness\".into()))]);\n    assert!(tank.tank.insert_tagged(\"tconstruct:potion\", Some(&tag), 250));\n    game.world.blocks.insert(source, 3);\n    game.world.block_entities.insert(source, BlockEntity::Chest(tank.slots.to_vec()));\n    game.world.tags.insert((source, \"tconstruct:casting_tank\".into()), tank.to_nbt());\n    (game, faucet, source, target, tag)\n}\n#[test]\nfn portable_base_potion_reserves_pours_and_restores_identical_tag() {\n    let (mut game, pos, source, target, tag) = potion_source();\n    assert_eq!(activate_tank_casting(&mut game, pos, source, target, Faucet::new()), Some(true));\n    for _ in 0..8 {\n        // Reload both machine states from persisted NBT on every tick.\n        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, \"tconstruct:faucet\").unwrap()).unwrap();\n        assert!(tick_tank_casting(&mut game, pos, source, target, faucet));\n    }\n    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, \"tconstruct:faucet\").unwrap()).unwrap();\n    let output = Casting::from_nbt(&store::read(&game.world, target, \"tconstruct:table\").unwrap()).unwrap();\n    let source = super::tconstruct_source_casting_tank::CastingTank::from_nbt(&store::read(&game.world, source, \"tconstruct:casting_tank\").unwrap()).unwrap();\n    assert_eq!((source.tank.amount, faucet.pending.amount, output.tank.amount), (160, 0, 90));\n    assert_eq!(source.tank.tag.as_ref(), Some(&tag));\n    assert_eq!(output.tank.tag.as_ref(), Some(&tag));\n    assert_eq!(output.tank.fluid.as_deref(), Some(\"tconstruct:potion\"));\n}\n#[test]\nfn portable_base_potion_keeps_state_on_failed_commit_or_different_potion() {\n    for different in [false, true] {\n        let (mut game, pos, source, target, _) = potion_source();\n        if different {\n            let mut output = Casting::new();\n            assert!(output.prepare(\"test:potion\", 250, 1, horizon_items::items::ItemStack::new(\"minecraft:potion\", 1).with_potion(\"minecraft:healing\"), false, false));\n            let tag = Tag::compound([(\"Potion\", Tag::String(\"minecraft:healing\".into()))]);\n            assert!(output.tank.insert_tagged(\"tconstruct:potion\", Some(&tag), 10));\n            game.world.tags.insert((target, \"tconstruct:table\".into()), output.to_nbt());\n        } else { game.world.fail = true; }\n        let before = game.world.tags.clone();\n        let _ = activate_tank_casting(&mut game, pos, source, target, Faucet::new());\n        assert_eq!(game.world.tags, before);\n    }\n}\n#[test]\nfn portable_unknown_potion_and_opaque_fields_wait_without_consumption() {\n    for opaque in [false, true] {\n        let (mut game, pos, source, target, _) = potion_source();\n        let raw = game.world.tags.get_mut(&(source, \"tconstruct:casting_tank\".into())).unwrap();\n        if opaque {\n            if let Tag::Compound(fields) = raw { fields.insert(\"unknown\".into(), Tag::Int(1)); }\n        } else {\n            let mut state = super::tconstruct_source_casting_tank::CastingTank::from_nbt(raw).unwrap();\n            state.tank.tag = Some(Tag::compound([(\"Potion\", Tag::String(\"minecraft:strong_luck\".into()))]));\n            *raw = state.to_nbt();\n        }\n        let before = game.world.tags.clone();\n        assert_eq!(activate_tank_casting(&mut game, pos, source, target, Faucet::new()), Some(false));\n        assert_eq!(game.world.tags, before);\n    }\n}\n#[test]\nfn shared_catalog_is_the_native_catalog_without_policy_expansion() {\n    for id in [\"minecraft:water\", \"minecraft:awkward\", \"minecraft:swiftness\", \"swiftness\", \"minecraft:strong_luck\", \"unknown:swiftness\"] {\n        let shared = horizon_client::pluto_potions::potion(id);\n        let native = horizon_client_core::potions::potion(id);\n        assert_eq!(shared.is_some(), native.is_some(), \"{id}\");\n        if let (Some(shared), Some(native)) = (shared, native) {\n            assert_eq!((shared.raw_id, shared.name_suffix, shared.effects), (native.id, native.name, native.effects));\n        }\n    }\n    assert!(horizon_client::pluto_potions::potion(\"minecraft:water\").is_some());\n    assert!(horizon_client::pluto_potions::potion(\"minecraft:strong_luck\").is_none());\n    let mut unknown = Tank::new(1000);\n    assert!(unknown.insert_tagged(\"tconstruct:potion\", Some(&Tag::compound([(\"Potion\", Tag::String(\"minecraft:strong_luck\".into()))])), 250));\n    assert!(!faucet_network_tag_safe(&unknown));\n    // The catalog adapter does not decide TC's tag namespace or wire format.\n    let mut wrong_fluid = Tank::new(1000);\n    assert!(wrong_fluid.insert_tagged(\"other:potion\", Some(&Tag::compound([(\"Potion\", Tag::String(\"minecraft:swiftness\".into()))])), 250));\n    assert!(!faucet_network_tag_safe(&wrong_fluid));\n}\n"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/tests/run_faucet_tank_casting.py",
+      "before_sha256": "a1c59c61d864c9c3e803d732efe6be2963f4dcb23ebe9232d481384b6e22580e",
+      "after_sha256": "65e08f47c819e26671e46dcbcf84f968ca83e59a2478fc3f7e1f5bccaad89ac5",
+      "hunks": [
+        {
+          "start_line": 11,
+          "old": "route = (source[source.index(\"fn tank_casting_recipe_current(\"):source.index(\"fn tank_to_cannon(\")]\n",
+          "new": "route = (source[source.index(\"fn faucet_network_tag_safe(\"):source.index(\"fn faucet_supported_potion_tag(\")]\n         + source[source.index(\"fn tank_casting_recipe_current(\"):source.index(\"fn tank_to_cannon(\")]\n"
+        },
+        {
+          "start_line": 29,
+          "old": "        'tconstruct_source_machine_runtime::portable_source_tagged_and_unknown_refuse',\n",
+          "new": "        'tconstruct_source_machine_runtime::portable_source_custom_tag_and_unknown_refuse',\n        'tconstruct_source_machine_runtime::portable_base_potion_reserves_pours_and_restores_identical_tag',\n        'tconstruct_source_machine_runtime::portable_base_potion_keeps_state_on_failed_commit_or_different_potion',\n        'tconstruct_source_machine_runtime::portable_unknown_potion_and_opaque_fields_wait_without_consumption',\n        'tconstruct_source_machine_runtime::shared_catalog_is_the_native_catalog_without_policy_expansion',\n"
+        }
+      ]
+    },
+    {
+      "path": "tconstruct/docs/smeltery.md",
+      "before_sha256": "50f9bc76189889e81c66a27f5e61cb5fba238f4eca970fd56deb0731ba9b4f96",
+      "after_sha256": "171ce53171601527d9c79bea428c151048af7e1f0b289a91368d6837921229e3",
+      "hunks": [
+        {
+          "start_line": 52,
+          "old": "A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.\n",
+          "new": "A Faucet can draw untagged fluid or a registered vanilla base-potion fluid from a Casting Tank into a Table or Basin. Base-potion packets retain the exact potion tag; a different potion with the same fluid ID cannot mix. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. A safe already-reserved packet can finish if the source container fills the source with different tagged fluid. New base-potion reservations use the current casting recipe; custom colors/effects, unknown potion IDs and other tagged forms still wait. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.\n"
+        }
+      ]
+    }
+  ],
+  "native_executed": false,
+  "apply_to_main": false
+}
