@@ -45,8 +45,11 @@ included when staging the Mixins. This diagnostic only logs received and stored
 values; it is not part of the mod or release resources. The fixture block is
 still a placeholder and does not validate original visuals or clone behavior.
 
-For the client-state diagnostic, stage the production bundle with the observer
-in a fresh directory, then build that generated tree and run the game test:
+### Historical additional-mod staging recipe (not supported by the current stage contract)
+
+The commands below are retained only to explain the earlier observer fixture. They are not runnable instructions for the current stage.py. Its full-tconstruct contract requires exactly the two admitted production archives and their complete member set; appending the independent material-wire-observer or material-drop-proof mod violates that contract. The old command also lacks the four required archive arguments. Do not bypass the guard, relabel the observer as production, or treat adding those arguments alone as support. A separately reviewed fixture composition and guard contract are required before this diagnostic can be staged again. The fixture scripts themselves are unchanged.
+
+Historical recipe:
 
 ```sh
 mkdir -p target/material-wire-mods

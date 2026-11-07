@@ -45,19 +45,37 @@ cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.to
 
 ## Prepare a modded source tree
 
-You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Horizon Mixins repository. From the repository root, replace the example paths with your local checkouts and installed bundle:
+You need Python 3.12 or later, Rust, Git, and clean official Horizon and Horizon Mixins checkouts at the revisions in `compatibility.json`. From the repository root, replace the two checkout paths below. Both native bundles are generated from this same checkout using the existing packagers, checked as complete archives, and expanded before staging. Do not substitute an old external Pluto bundle or append independent mods to the verified member set.
 
 ```sh
-python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins --pluto-bundle /path/to/installed.incoming/pluto_native_creative/mixins/pluto_native_creative
+python3 - <<'PY_STAGE'
+import os, subprocess, sys
+from pathlib import Path
+repo = Path.cwd()
+horizon = Path('/path/to/horizon').resolve(strict=True)
+mixins = Path('/path/to/horizon-mixins').resolve(strict=True)
+output = repo / 'tconstruct/target'
+sys.path.insert(0, str(repo / 'tconstruct/tools'))
+import prepare_playtest_bundles as bundles
+def run(argv, **kwargs):
+    return subprocess.run(argv, check=True, **kwargs)
+tc_mods, pluto, receipt = bundles.prepare(
+    repo, repo / 'tconstruct/target/stage-package-inputs',
+    run, sys.executable, repo, dict(os.environ))
+bundles.verify_prepared(tc_mods, pluto, receipt)
+run([sys.executable, repo / 'tconstruct/tools/stage.py',
+     '--horizon', horizon, '--mixins', mixins, '--output-dir', output,
+     '--mods', tc_mods, '--pluto-bundle', pluto,
+     '--tconstruct-archive', tc_mods.parent / 'tconstruct.hnmod',
+     '--pluto-archive', tc_mods.parent / 'plutolib.hnmod',
+     '--tconstruct-archive-sha256', receipt['packages'][0]['archive_sha256'],
+     '--pluto-archive-sha256', receipt['packages'][1]['archive_sha256']])
+PY_STAGE
 ```
 
-The development target requires the unified PlutoLib native bundle, built from PlutoLib `5520a221655e9ea5b55b9ce32a46bca511c3ae71`. The bundle contains Creative, item, Tool, transport, display and inventory APIs. It supplies one `pluto-api` facade and one `pluto-inventory-api` crate. Use the Mixins bundle directory extracted by the official launcher, or extract the `.hnmod` for staging with Horizon's native bundle reader:
+The four archive arguments bind staging to the exact TConstruct and Pluto archive paths and SHA256 values in the package receipt. The shared crafting contract is explicitly `full-tconstruct`; the unchanged full-plan guards must pass before apply. An archive or expanded member mismatch stops staging. This is not permission to skip a refusing guard.
 
-```sh
-python3 tconstruct/tools/extract_pluto.py --horizon /path/to/horizon --package /path/to/plutolib.hnmod --output /path/to/installed.incoming
-```
-
-The output directory must not already exist. Do not stage the old individual PlutoLib adapters alongside the unified bundle. Install PlutoLib separately from TConstruct; TConstruct still requires its own `.hnmod` and `.hmod`. See [PlutoLib native installation](../../pluto-lib/docs/native-installation.md). Combined installation and gameplay remain unverified.
+The source-stage output must be fresh; preserve an existing failed attempt and select another `output` path rather than overwriting it. The generated packages stay under `tconstruct/target/stage-package-inputs` and are content-checked on reuse. Native packages remain separate artifacts, and playing additionally needs TConstruct content/resources. See [PlutoLib native installation](../../pluto-lib/docs/native-installation.md). These instructions do not establish a successful latest build or gameplay run.
 
 The generated source is placed in `tconstruct/target/modded`. The resolved Mixins commit is printed and saved in `tconstruct/target/mixins-revision.txt`. The default is the pinned revision; `--mixins-revision FULL_COMMIT_SHA` selects an explicit revision for a separate compatibility test. Ensure the selected commit exists in the Mixins repository. Build the client with:
 
@@ -71,7 +89,7 @@ Preparing game resources and running the game also require Horizon 26.3 resource
 
 The `tests/game/anvil_*.py` scripts exercise the real client using a dedicated test world under `tconstruct/target`. Supply `--game`, `--ctl`, `--resources`, and the same `--run-dir` inside that directory to each script. Run `anvil_acceptance.py` first to prepare the world, then `anvil_parts.py`, `anvil_compat.py`, `anvil_lan.py`, and `anvil_lan_upgrade.py`. These scripts place and break blocks in that test world; do not point them at a player world. Linux GUI tests need a display and Vulkan adapter. They do not replace Windows testing or a full survival run.
 
-The development manifest targets Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A combined Linux build and representative checks have passed, with remaining limitations in [compatibility](compatibility.md).
+Earlier combined Linux checks used Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Those results are historical, not proof for the current pinned pair or this integration. See the remaining limitations in [compatibility](compatibility.md).
 
 ## Station recipe lookup
 

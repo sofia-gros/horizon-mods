@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## All twelve native guards passed, 2026-11-07
+
+[Run 42331005478](https://github.com/sofia-gros/horizon-mods/actions/runs/42331005478) finished at 02:48:55 UTC. Against fixed integration f2fef1be, all twelve guards exited zero; all ten gates, 27 phases and final seals passed. The 659 native members, package headers and all 5,214 official inputs matched. The [small result record](pluto-lib/docs/playtest-next-guard-replay-result-20261107.json) preserves the exact scope.
+
+The support ZIP has changed, while the old accepted plan's data remains unchanged. This was native guard diagnosis only: compatibility remains null, no plan was regenerated, and apply/build were not performed. A normal fresh stage plan from the latest packages and all guards are still required before apply. Main is unchanged.
+
+The formatter failure is narrowed to missing runtime dependencies: its pinned PE imports three non-system DLLs absent from the standalone rustfmt archive. Exact official Rust source identifies the same-release rustc/bin as their supplier. Actual rustc archive/transitive dependency verification and a corrected Windows execution are pending; see [dependency diagnosis](tconstruct/docs/windows-rustfmt-dependencies-20261107.md). Direct staging documentation now supplies both same-checkout archives and receipt hashes; the old extra-observer fixture is explicitly historical, not a way around the full package contract.
+
 ## Actual complete-plan observations, 2026-11-07
 
 [Run 42328100345](https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345) completed at 02:24:49 UTC. The fixed e907 ordinary composition produced an accepted complete plan in 460.676 seconds. All twelve guards ran: eight passed and four refused. Its four-file artifact and separate official Index observations were recovered and checked. The [small result record](pluto-lib/docs/playtest-next-plan-result-20261107.json) preserves that original outcome.

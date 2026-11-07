@@ -1,0 +1,204 @@
+{
+  "evidence": {
+    "console_bytes": 663643,
+    "console_sha256": "fa56f5f6a078c633a4dbfb6ac87dc4efc7256ac8e3c7f7085d4573f19c1c534c",
+    "receipt_json_bytes": 632068,
+    "receipt_json_sha256": "770a7901e6bfcdb47008ca214d50bd98e92185856ccb9a503936784baf99b40d"
+  },
+  "formatter": {
+    "scope": "Existing Linux1.95 guard normalization only; not latest Windows formatter proof",
+    "sha256": "56b31ad3ec8fe0277a2884a189e243b8f04e9b48e5fd22e547c1516c5f8fd34c",
+    "version": "rustfmt 1.9.0-stable (59807616e1 2026-04-14)"
+  },
+  "gates": {
+    "artifact": true,
+    "complete_guards": true,
+    "crafting_package": true,
+    "fixed_checkouts": true,
+    "formatter": true,
+    "full_plan_contract": true,
+    "official_inputs": true,
+    "package_equality": true,
+    "package_headers": true,
+    "runner": true
+  },
+  "guards": [
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_protection_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "0382e1bd90a83f2a9447e0868cf3faa3f16ee443de10bd51c1bcf04a95706c4c"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_advancement_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "aa24c93b7a84b705a7e2056e054898b2a9f788d37a985be301ab153b1499317b"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_damage_equipment_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "d30ac7a2dc83985e2922e2a44500ea087b91e907a3601e349ac5bba631ec322b"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_client_payload_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "c63aefe813ec7e83395ea4cd6c9aefc3bb112f61b5e6a9fff1959250a707e6ae"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_recipe_placement_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "e4c9fdef0dac16317b1b93511f75ea53dc2c08e766420cb4c733943f0c6444fa"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_current_book_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "bfd442201d83770b49c667275a04b3aed881e1b1490a8e947e79623a2b0802c1"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_wire_snapshot_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "0138fe1a5040bd9c77a38b93a565770f210e37ebc21dadac07194006da648182"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_crafting_match_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "f4d015c4d5d0a2c827cf973a97a0c1c5b6e6900ad5e6524dbfaad0a276fde129"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_terrain_binding_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "968d6754e9b6c7fe24e7241ca119dd3018f5740b0d7b06a44c4f4a3c12dcc5b1"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_cloud_insertion_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "e7ac531f943791436c24fe01623c72f3bca9017b19252614c9d0f7569f925dee"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_station_ingredient_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "c7701b3080c9aaddc0990fdbd263325d61271f30f4a11f6c41d2fdf74ad6af17"
+    },
+    {
+      "exit_code": 0,
+      "passed": true,
+      "reached": true,
+      "script": "check_terrain_cell_plan.py",
+      "stderr_bytes": 0,
+      "stdout_sha256": "bfcfeaeb80cb7276d7c391e0e32ac1a4dde874bf6c999bbe091fd59e04e660f7"
+    }
+  ],
+  "integration": {
+    "head": "f2fef1be8493364467d96649450a0476aed2dc5f",
+    "tree": "7a708bcd188a92b579e21637b5a8fad9e785a14e"
+  },
+  "limitations": [
+    "All guards passed only as a native source/composition replay; compatibility remains null.",
+    "The old plan.data support hash is preserved. Current support ZIP differs and is independently verified against current tracked source.",
+    "Before actual apply/build, generate a fresh normal-stage plan from the latest package and pass all required guards.",
+    "No new planner, Cargo metadata, Index, CLI/Game build, apply or launch was executed."
+  ],
+  "native_packages": {
+    "combined": {
+      "current_complete_map_sha256": "d14bf125cf6b5af138b69b398deef721c6e103638cb3de01817d558d0e3e00f0",
+      "native_map_sha256": "aba86426c3fda68b07e3909ca8f98e9068ef7df0f91ff8fb8f5da77e84c50995",
+      "native_members": 659,
+      "old_complete_map_sha256": "0f7e9dd7b18e999b5d42f117afa086c748a5e18a389b2b78ab5e3ca80452bf2f",
+      "passed": true
+    },
+    "combined_map_sha256": "d14bf125cf6b5af138b69b398deef721c6e103638cb3de01817d558d0e3e00f0",
+    "combined_members": 660,
+    "passed": true,
+    "pluto_archive_sha256": "edc186ebd0a72c97672e7de7b10ae0337fef022a2d04fc12091639c3eef10602",
+    "scope": "Native guard replay only; support data difference is not apply admission",
+    "tconstruct": {
+      "archive_after_bytes": 8202380,
+      "archive_after_sha256": "7687f1d9cdda547e21281a5c35b24e55db65299bcda4ba9a6e530c1ef8566fd6",
+      "archive_before_bytes": 8200086,
+      "archive_before_sha256": "539156a2f569e5607735ec0ba80038ef6e8ceb4c634174f6203671ab91cae529",
+      "archive_equal": false,
+      "headers_equal": true,
+      "native_members_equal": true,
+      "passed": true,
+      "scope": "Only native members and headers are equal. Current support data is independently verified against the fixed integration checkout; old plan data is not replaced. No apply or full archive equivalence. A fresh normal-stage plan and all guards against the latest package are required before apply/build.",
+      "support_after": {
+        "members": 4667,
+        "unpacked_bytes": 15283788
+      },
+      "support_after_map_sha256": "7822e1a698b7784e99efa7edc78dfcac22a9715f713df2868bc40c8bb65bd572",
+      "support_after_sha256": "75c1040d168fc59344d41275b2b2a422f154f8aefd4aa2a8d2fba8efd697972e",
+      "support_before": {
+        "members": 4666,
+        "unpacked_bytes": 15276899
+      },
+      "support_before_map_sha256": "4e7cd3dc90ad0713d79f5e81de41f3bfedc5fde4ffab777131ae28c64882b4f3",
+      "support_before_sha256": "6a6f65ef05d2526658d7e51d994e9b1a66f3c6ea444b90d796f3db48d9f3cc10",
+      "support_changed": true
+    },
+    "tconstruct_archive_sha256": "7687f1d9cdda547e21281a5c35b24e55db65299bcda4ba9a6e530c1ef8566fd6"
+  },
+  "official_input_count": 5214,
+  "original_plan": {
+    "artifact": 13556955569,
+    "bytes": 6431102,
+    "sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+    "source_commit": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+    "summary_commit": "c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4"
+  },
+  "phase_count": 27,
+  "result": {
+    "all_guards_passed": true,
+    "apply_executed": false,
+    "compatibility": null,
+    "diagnostic_complete": true,
+    "error": null,
+    "native_type_verified": false,
+    "plan_regenerated": false,
+    "probe_completed": true,
+    "source_verified": true
+  },
+  "run": {
+    "conclusion": "success",
+    "head": "fb4ec03bf5f920af3ba498e6bcf1c0f65930f425",
+    "id": 42331005478,
+    "job_id": 128277265459,
+    "receipt_at": "2026-11-07T02:48:51.6699647Z",
+    "started_at": "2026-11-07T02:48:10Z",
+    "terminal_updated_at": "2026-11-07T02:48:55Z",
+    "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42331005478"
+  },
+  "schema": 1,
+  "scope": "Small project diagnostic summary; no raw console, environment or full input map."
+}

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "The current ordinary Rust composition has an actual accepted e907 complete plan and official Index observation. Reviewed metadata now records the observed constructor, module and payload identities without changing checker algorithms, Rust or manifests. The original run passed eight guards and refused four; a new all-guard replay and actual apply/default build/startup checks remain pending.",
+  "stage": "The exact ordinary Rust composition has an accepted complete plan, official Index observations and a successful twelve-guard native replay. The replay preserves old support-data identity and is not apply admission. Actual latest-package stage/apply, default Windows build/link and available startup checks remain incomplete.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -28,15 +28,15 @@
   "pending": [
     {
       "subject": "Guide LAN response",
-      "reason": "Actual sole RETURN, noncancellable callers, private module and official poll_remote identity are recorded. Unchanged full payload checker passes the saved complete plan and pristine source subset; all-guard replay, Game types and real LAN behavior remain pending."
+      "reason": "Actual sole RETURN, noncancellable callers, private module and official poll_remote identity are recorded; the real native guard replay passes. Game types, Game6 values, view lifetime, UI and real LAN behavior remain unverified."
     },
     {
       "subject": "Crafting composition",
-      "reason": "Actual constructor nodes/fingerprints and omitted default crate visibility are recorded. All 43 source/synthetic tests pass; actual archive-backed guard replay, bootstrap/pair/Game typing and station behavior remain pending."
+      "reason": "Actual constructor and module identities are recorded and both archive-backed crafting guards pass in the twelve-guard replay. Constructor/bootstrap execution, pure pair/transaction runtime and host typing remain pending."
     },
     {
       "subject": "Latest whole-source guard pins",
-      "reason": "Actual e907 run reached all twelve guards: eight passed, four refused. Exact metadata-only observations address those refusals but the combined replay is pending. Stage-tool changes alter only the support ZIP; old plan data must remain unchanged and a fresh stage plan is required before apply."
+      "reason": "All twelve native guards pass against the byte-fixed accepted plan and equal native packages/official inputs. The current support ZIP differs, so the old plan is not apply admission. Current packages must pass the normal fresh stage plan and guards before apply."
     },
     {
       "subject": "Windows execution validation",
@@ -51,7 +51,7 @@
     },
     {
       "subject": "Validate integrated native item-cloud repair",
-      "reason": "Actual full saved-plan check and 38 source/synthetic checks pass after recording the exact moved-module identity. Checker, 19 modules, 27 hooks, 45 states and 16 hook-order contracts are retained. All-guard replay, actual Game9 typing/value tests and live publication checks remain pending."
+      "reason": "Actual full native guard replay passes with unchanged strict contracts. Actual Game9 host typing/value tests and live publication/charge checks remain pending."
     }
   ],
   "excluded_activation": [
@@ -71,7 +71,7 @@
     "gates": {
       "git_blob_composition": "passed",
       "complete_latest_plan": "Actual e907 ordinary Rust composition accepted in run42328100345, 6,431,102 bytes. Later stage/support packaging differs and requires a new stage plan before apply.",
-      "composition_guards": "Original e907 diagnostic: eight pass, four refuse. Observed metadata source/full-plan checks pass individually; combined archive-backed twelve-guard replay is pending.",
+      "composition_guards": "Actual run42331005478: all12 exit0, 10 gates and27 phases pass. Native659/header/input5214 identities match, support ZIP difference explicitly separated. No apply or complete archive equivalence.",
       "native_build": "not run on this branch",
       "windows_link": "not run",
       "game_start": "not run",
@@ -431,7 +431,7 @@
       "recipe_source_checks": 43,
       "cloud_source_checks": 38,
       "payload_source_checks": 15,
-      "all_guard_replay_complete": false,
+      "all_guard_replay_complete": true,
       "apply": false,
       "host_type": false
     },
@@ -450,7 +450,36 @@
       "missing_dll_identified": false,
       "source_verified": true,
       "owned_jobs_empty": true,
-      "record_commit": "0a1436b2337ccc4b05be1fdef108c219fa10550c"
+      "record_commit": "0a1436b2337ccc4b05be1fdef108c219fa10550c",
+      "dependency_diagnosis_commit": "e313aa03e1c6a3dc17d53e200ae8bb2ff748bdeb",
+      "dependency_scope": "Static exact-PE imports and official compiler source identify rustc/bin as supplier of three direct non-system DLLs. Actual rustc archive/transitive dependency verification and corrected execution are pending."
+    },
+    "native_guard_replay": {
+      "controller": "fb4ec03bf5f920af3ba498e6bcf1c0f65930f425",
+      "integration": "f2fef1be8493364467d96649450a0476aed2dc5f",
+      "run": 42331005478,
+      "job": 128277265459,
+      "completed_at": "2026-11-07T02:48:55Z",
+      "passed": 12,
+      "refused": 0,
+      "gates": 10,
+      "phases": 27,
+      "source_verified": true,
+      "diagnostic_complete": true,
+      "probe_completed": true,
+      "error": null,
+      "compatibility": null,
+      "native_members_equal": 659,
+      "official_inputs_equal": 5214,
+      "support_data_equal": false,
+      "apply_allowed": false,
+      "plan_regenerated": false,
+      "apply_executed": false,
+      "native_type_verified": false,
+      "evidence_commit": "f5ccded0a575026a11daf2ea190390656a6059c6",
+      "receipt_sha256": "770a7901e6bfcdb47008ca214d50bd98e92185856ccb9a503936784baf99b40d",
+      "receipt_bytes": 632068,
+      "record": "pluto-lib/docs/playtest-next-guard-replay-result-20261107.json"
     }
   },
   "safety": {
@@ -460,7 +489,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Run the reviewed native guard replay using the immutable dc4f plan, explicit actual archive contract and new observed metadata. Keep old plan support data and new support ZIP separately identified: this replay cannot authorize apply. Resolve the Windows formatter DLL dependency, then use the ordinary latest stage for a fresh complete plan, all guards, apply and default Windows build/error checks before any main merge.",
+  "next": "Complete the official Rust1.99.1 formatter runtime dependency preparation and the seven Windows regeneration checks. Then run the ordinary current-package stage: fresh complete plan, all guards, official apply with locked dependency completion, and default Windows BuildOnly plus available startup error checks. Do not merge main on native guard replay alone.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -870,6 +899,12 @@
       "ordinary_metadata_paths": 4,
       "checker_rust_manifest_changes": false,
       "full_build_or_gameplay": false
+    },
+    {
+      "name": "Record twelve passing native guards and formatter dependency diagnosis",
+      "base": "f2fef1be8493364467d96649450a0476aed2dc5f",
+      "documentation_only": true,
+      "actual_build_or_startup": false
     }
   ],
   "guide_limits": [

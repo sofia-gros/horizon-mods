@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "scope": "Static PE imports and official component source mapping; no binary execution",
+  "run": 42329829285,
+  "head": "9846c1d38083b791efb809d9156c8a1e5cf539e6",
+  "archive": {
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+    "bytes": 4941389,
+    "sha256": "488f4cdcec501721fb2986a4c36c8180d5606f5b569f942fb7c8886f36a7e2aa"
+  },
+  "executable": {
+    "bytes": 9723329,
+    "sha256": "537a30b76250a6c5f3c46dae538f8428fc53041385f5731320d4ff6703a60b2a",
+    "machine": "x86_64",
+    "format": "PE32+",
+    "imports": [
+      "api-ms-win-core-synch-l1-2-0.dll",
+      "combase.dll",
+      "kernel32.dll",
+      "shell32.dll",
+      "libgcc_s_seh-1.dll",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "rustc_driver-737f10a507f50706.dll",
+      "std-f903e3d16df36da5.dll"
+    ],
+    "delay_imports": []
+  },
+  "package_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+  "package_dll_members": 0,
+  "package_builder_config": {
+    "bytes": 7069,
+    "sha256": "8d7fc9f1f189744c56fc64cac905bc20f9558eb5906f07ff2bb9d2c436504c34",
+    "profile": "dist",
+    "dist_include_mingw_linker": "Not overridden; exact config.rs default is true"
+  },
+  "supplier_source": [
+    {
+      "imports": [
+        "rustc_driver-737f10a507f50706.dll",
+        "std-f903e3d16df36da5.dll"
+      ],
+      "component": "rustc",
+      "path": "bin",
+      "basis": [
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/build_steps/compile.rs#L2333-L2369",
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/builder/mod.rs#L1147-L1151",
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/builder/mod.rs#L1330-L1360",
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/build_steps/dist.rs#L524-L530"
+      ]
+    },
+    {
+      "imports": [
+        "libgcc_s_seh-1.dll"
+      ],
+      "additional_runtime": [
+        "libwinpthread-1.dll"
+      ],
+      "component": "rustc",
+      "path": "bin",
+      "basis": [
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/build_steps/dist.rs#L352-L389",
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/build_steps/dist.rs#L507-L518",
+        "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/bootstrap/src/core/config/config.rs#L1435"
+      ]
+    }
+  ],
+  "proposed_additional_archive": {
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustc-1.99.1-x86_64-pc-windows-gnu.tar.gz",
+    "sha256": "43b17e9a9134ea72562bfbb23728a830f671ea9be1db6a72597a8d240e986b35",
+    "pin_source": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/launcher/src/rust_toolchain.rs#L110-L129",
+    "downloaded": false
+  },
+  "limits": {
+    "loader_first_missing_dll": null,
+    "transitive_pe_closure_verified": false,
+    "rustc_archive_members_verified": false,
+    "windows_retry_executed": false,
+    "latest_composition_verified": false,
+    "applied": false,
+    "linked": false
+  },
+  "next_gate": "After independent source review and release, prepare same-release rustc bin layout plus exact rustfmt in one existing Windows job; record archive/member hashes and actual filesystem/RAM observations, then version and original 3+4 helper regenerations. No other component, Cargo, apply or build in that gate.",
+  "capacity": {
+    "last_windows_receipt_records_free_bytes": false,
+    "last_windows_receipt_records_ram_bytes": false,
+    "heavy_build_admission": "Unknown; floor checks passed but numeric capacity and build growth were not measured."
+  }
+}
