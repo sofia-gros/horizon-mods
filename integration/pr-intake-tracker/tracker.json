@@ -5,23 +5,27 @@
   "coverage_path": "pluto-lib/docs/pr-reorganization/full-coverage-20261106/coverage.json",
   "coverage_sha256": "dc7af8884dd2c7a3e21c9ca268f2876a15dbf4028441e2f9094c89e7d40e949a",
   "integration_branch": "integration/tinkers-latest-playtest-20261106",
-  "evaluated_runtime_head": "9cc1a01632913f01df1f0bcbb0b74b8bb9e80525",
+  "evaluated_runtime_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
   "semantics": "An un-reconciled PR is not a claim that its feature is absent. Existing foundation/main/common code may contain related behavior. A source intake is not migrated-feature completion or runtime proof.",
   "counts": {
     "fixed_snapshot": 265,
     "explicit_pr_source_intakes": 2,
     "not_individually_reconciled": 263,
-    "latest_complete_plan_passed": 0,
+    "latest_complete_plan_passed": 1,
     "latest_game_build_passed": 0,
     "gameplay_verified": 0
   },
   "pr_state_changes": false,
   "latest_validation": {
-    "complete_plan": "not_run_on_this_integration",
-    "all12_guards": "not_run_on_this_integration",
-    "game_build": "not_run",
-    "windows_link": "not_run",
-    "game_startup": "not_run"
+    "complete_plan": "passed on exact ordinary9e032 in Windows run42334764929",
+    "all12_guards": "passed before official apply on exact ordinary9e032",
+    "official_apply": "passed on exact ordinary9e032",
+    "game_build": "started then failed with Cargo101 at generated float-range syntax",
+    "windows_link": "not completed",
+    "game_startup": "not run",
+    "source_scope": "The next one-byte repair candidate is separate source evidence and has not passed the actual build.",
+    "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929",
+    "result_commit": "e752b933a3b2722079fda983188577cdb089195e"
   },
   "included_sources_record": "integration/playtest-20261106.json",
   "prs": [
@@ -2676,5 +2680,13 @@
       "feature_completion_verified": false
     }
   ],
-  "merge_destination": "main after verified complete plan, guards, apply/build and available startup error checks"
+  "merge_destination": "main after verified complete plan, guards, apply/build and available startup error checks",
+  "ongoing_reconciliation": {
+    "scope": "Classification and concrete next implementation groups, not completed migration or merge",
+    "storage_machines": 70,
+    "recipe_advancement": 51,
+    "world_fluids": 23,
+    "guide": 24,
+    "completed_PR_state_changes": false
+  }
 }

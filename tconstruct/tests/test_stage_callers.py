@@ -10,6 +10,7 @@ import textwrap
 import types
 import unittest
 from unittest.mock import patch
+from windows_source_layers import before_float_range
 
 ROOT = Path(__file__).resolve().parents[2]
 INVERSE = ROOT / 'tconstruct/experiments/windows-stage-package-contract/callers-inverse.json'
@@ -30,7 +31,7 @@ class StageCallers(unittest.TestCase):
         records = json.loads(INVERSE.read_bytes())['files']
         self.assertEqual(set(records), {'.github/workflows/mixins.yml', 'tconstruct/tests/test_stage.py'})
         for relative, row in records.items():
-            raw = (ROOT / relative).read_bytes()
+            raw = before_float_range(relative, (ROOT / relative).read_bytes())
             self.assertEqual(hashlib.sha256(raw).hexdigest(), row['after_sha256'])
             text = raw.decode('utf-8')
             for edit in reversed(row['edits']):

@@ -1,0 +1,106 @@
+{
+  "basis_commit": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "failed_build": {
+    "cargo_exit": 101,
+    "closure_commit": "e752b933a3b2722079fda983188577cdb089195e",
+    "job_id": 128289070532,
+    "observed_error_line": 454,
+    "phase": "actual default client compile after fresh plan, guards and official apply",
+    "run_url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929"
+  },
+  "files": {
+    "tconstruct/tests/test_stage_float_range_repair.py": {
+      "bytes": 7212,
+      "sha256": "047aa39228bd5ab1402b641b2db379af48ae32d4bc8bbb69acf029d0d1832a89"
+    },
+    "tconstruct/tools/stage_float_range_repair.py": {
+      "bytes": 10503,
+      "sha256": "65a9b896106407297b45a60bff8b5ec3e43f1163276c034418b74c06c875b557"
+    }
+  },
+  "horizon": {
+    "correct_original_line": 448,
+    "lock_sha256": "0bc4234f3001d44df9d46fbb06df331d3f53b1af6b613ec9082baaec3d93c62f",
+    "revision": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+    "target": "crates/horizon-world/src/worldgen/structure/start.rs",
+    "target_bytes": 72769,
+    "target_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d",
+    "url": "https://github.com/horizon-rust/horizon/blob/41f822b659789780f58d32c63ddfb6887ea1b8bf/crates/horizon-world/src/worldgen/structure/start.rs#L441-L450"
+  },
+  "mixins": {
+    "revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+    "source_pins": {
+      "Cargo.lock": "35846f4a621cf8e1e54f6f0f7e13ac848db590d4ec401620501c107954eae6ca",
+      "crates/horizon-mixins-core/src/native.rs": "97a4728b5416d3c5dfa5e34b2e4e1e1c495940a8f72c45323a94adc3031bcd85",
+      "crates/horizon-mixins-transform/src/lib.rs": "b70b3aa2d8e95fabfefa4374bb63d5e87fb959871fd3bb92e5c3317e71d9ced1"
+    },
+    "transform_url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-transform/src/lib.rs#L341-L343"
+  },
+  "prettyplease": {
+    "archive_members_equal_cached_source": true,
+    "archive_sha256": "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b",
+    "expression_url": "https://github.com/dtolnay/prettyplease/blob/c971184fa8c5ef5a2828196e35bd99469455b46b/src/expr.rs#L796-L817",
+    "literal_url": "https://github.com/dtolnay/prettyplease/blob/c971184fa8c5ef5a2828196e35bd99469455b46b/src/lit.rs#L46-L47",
+    "source_files": {
+      ".cargo_vcs_info.json": {
+        "bytes": 94,
+        "sha256": "a42290dfff809a03b196211cde4dccabf08a93b4957620c610ba293bfed0f910"
+      },
+      "src/algorithm.rs": {
+        "bytes": 12478,
+        "sha256": "901c91416d7526038bfad30e0066295a03d2bb995830016ace49a41540079010"
+      },
+      "src/convenience.rs": {
+        "bytes": 2294,
+        "sha256": "dd392b009b691d3587c7d8e3caeaacf450303c4223792b5f89c336358e371c39"
+      },
+      "src/expr.rs": {
+        "bytes": 51285,
+        "sha256": "c73157238a80b0fb9a1949c6250cbb01f2df9217770f263dffcf5e5fbb570296"
+      },
+      "src/fixup.rs": {
+        "bytes": 24865,
+        "sha256": "ecf87543c342fffc79bae54e4fa174cbfd5c341817315caa3b95cce0d49ebf7c"
+      },
+      "src/lit.rs": {
+        "bytes": 1721,
+        "sha256": "9ea6d25533e64df4ff01c084fa1c31ddf64fb3b159409eec7d80dbf281e5171e"
+      }
+    },
+    "vcs_commit": "c971184fa8c5ef5a2828196e35bd99469455b46b",
+    "version": "0.2.37"
+  },
+  "repair": {
+    "after": "if !(0. ..=1.).contains(&frequency) {",
+    "ast_verified": false,
+    "before": "if !(0...=1.).contains(&frequency) {",
+    "inserted_bytes": 1,
+    "receipt_filename": "float-range-repair-receipt.json",
+    "receipt_limit_bytes": 8192,
+    "semantics": "Original 0. and 1. literal spellings, f64 frequency, closed interval, and NaN rejection unchanged.",
+    "syntax_gate": "Subsequent ordinary Cargo build"
+  },
+  "reviewed_target_patch_closure": {
+    "applies_to": "try_generate HEAD plus nine support modules; no injection in StructureRegistry::new",
+    "bridges": 0,
+    "injections": 1,
+    "kind": "Linux dc4f full plan target-file closure, not a retained Windows generated file",
+    "modules": 9,
+    "plan_bytes": 6431102,
+    "plan_sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b",
+    "sha256": "73b6aa778881de3f5c1cad01640be4172d2b597546bc4ee6c793d565c102fe2b",
+    "states": 0
+  },
+  "schema": 1,
+  "status": "source-only candidate; no actual generated file repair, AST parse or native reproduction",
+  "validation": {
+    "actual_generated_file_available": false,
+    "actual_repair_executed": false,
+    "artificial_roundtrip_is_actual_generator_output": false,
+    "native_reproduction_executed": false,
+    "pristine_artificial_bad_roundtrip": true,
+    "reviewed_fullplan_closure_check": true,
+    "synthetic_tests": 24,
+    "synthetic_tests_passed": 24
+  }
+}

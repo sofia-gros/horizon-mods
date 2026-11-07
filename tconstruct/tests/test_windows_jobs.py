@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from test_windows_link_only import FakePreparedWindows, ROOT, m
-from windows_source_layers import before_jobs_one, undo
+from windows_source_layers import before_jobs_one, before_float_range, undo
 
 
 class CapturedWindows(FakePreparedWindows):
@@ -83,11 +83,11 @@ class Tests(unittest.TestCase):
         spec = json.loads((ROOT/'experiments/windows-jobs-one/inverse.json').read_bytes())
         self.assertEqual(set(spec['files']), {'tools/play_windows_latest.py'})
         for rel, row in spec['files'].items():
-            raw = (ROOT/rel).read_bytes()
+            raw = before_float_range('tconstruct/'+rel, (ROOT/rel).read_bytes())
             self.assertEqual(hashlib.sha256(undo(raw,row)).hexdigest(), row['before_sha256'])
             with self.assertRaises(AssertionError): undo(raw+b'\n', row)
         for rel, row in spec['historical_test_adapters'].items():
-            self.assertEqual(hashlib.sha256(undo((ROOT/'tests'/rel).read_bytes(),row)).hexdigest(), row['before_sha256'])
+            self.assertEqual(hashlib.sha256(undo(before_float_range('tconstruct/tests/'+rel, (ROOT/'tests'/rel).read_bytes()),row)).hexdigest(), row['before_sha256'])
 
 
 if __name__ == '__main__': unittest.main()

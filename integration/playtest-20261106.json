@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "The ordinary Rust composition has an accepted complete plan, official Index observations and twelve passing native guards. Official Rust1.99.1 formatter execution and all seven Windows helper regenerations now pass. Current-package fresh stage/apply and default Windows build/link remain incomplete.",
+  "stage": "The latest ordinary composition reached a fresh Windows complete plan, every native guard, official apply and the default locked/offline client compilation. The build stopped on a generated float-range syntax error; no complete link, CLI loader check or game success is claimed.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -35,12 +35,8 @@
       "reason": "Actual constructor and module identities are recorded and both archive-backed crafting guards pass in the twelve-guard replay. Constructor/bootstrap execution, pure pair/transaction runtime and host typing remain pending."
     },
     {
-      "subject": "Latest whole-source guard pins",
-      "reason": "All twelve native guards pass against the byte-fixed accepted plan and equal native packages/official inputs. The current support ZIP differs, so the old plan is not apply admission. Current packages must pass the normal fresh stage plan and guards before apply."
-    },
-    {
       "subject": "Windows execution validation",
-      "reason": "Official Rust1.99.1 formatter and seven exact helper regenerations passed on Windows Server2025. Launcher now explicitly sets Cargo jobs1 after clearing inherited overrides; 97 selected pure/mock checks pass. Actual current-package stage/apply and default build/link/CLI loader checks remain pending."
+      "reason": "Fresh normal Windows plan, all native guards and official apply passed for 9e032. Default locked/offline compilation stopped on an applied-source float-range token-separator error in horizon-world. Complete link/PE/imports/CLI loader/game checks remain unproved; the 19 Windows pure checks, toolchain admission and all 51 owned-process phases were verified."
     },
     {
       "subject": "Restore temporarily deferred pick-block color inheritance",
@@ -508,6 +504,51 @@
       "latest_composition_verified": false,
       "apply_executed": false,
       "game_build_executed": false
+    },
+    "windows_default_build": {
+      "controller_head": "89de9ee5b49c8a9c04a58fc985624e2f182c5a61",
+      "ordinary_head": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+      "run": 42334764929,
+      "job": 128289070532,
+      "url": "https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929",
+      "result_commit": "e752b933a3b2722079fda983188577cdb089195e",
+      "result_path": "tconstruct/docs/windows-build-retry-result-20261107.json",
+      "fresh_plan": "passed",
+      "native_guards": "passed",
+      "official_apply": "passed",
+      "client_compile": "started, failed with Cargo101",
+      "client_link": "not completed",
+      "cli_help": "not reached",
+      "game": "not run",
+      "error": "Generated start.rs joined the valid official float literal 0. and range ..= into 0...=1.; prettyplease 0.2.37 source explains the missing separator.",
+      "source_seals": true,
+      "owned_jobs_empty": true,
+      "final_receipt_utc": "2026-11-07T04:05:50.8620354Z"
+    },
+    "generated_float_range_repair": {
+      "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+      "source_checkpoint": "de10ae0efba8b4e101a6d514f9d3bdbd91c9de2d",
+      "target": "crates/horizon-world/src/worldgen/structure/start.rs",
+      "method": "StructureRegistry::new",
+      "ordinary_change": "After successful official apply, restore one ASCII space in the single pinned generated float/range expression; update launcher stage SHA.",
+      "helper_sha256": "65a9b896106407297b45a60bff8b5ec3e43f1163276c034418b74c06c875b557",
+      "test_sha256": "047aa39228bd5ab1402b641b2db379af48ae32d4bc8bbb69acf029d0d1832a89",
+      "selected_pure_mock_passed": 127,
+      "stage_fake_cli_fixture_passed": 1,
+      "whole_repository_suite": false,
+      "independent_source_review": "World exact14paths, six whole-file inverses, fixed original/plan closure and stage order; no concrete blocker",
+      "central_checks": "127 selected pure/mock tests, immutable path/blob agreement; no native execution",
+      "actual_generated_repair": false,
+      "ast_verified": false,
+      "new_build": false,
+      "unchanged": [
+        "official Horizon and Mixins revisions/source/locks",
+        "native Rust payloads and manifests",
+        "native guard conditions",
+        "default features and locked/offline build",
+        "all generated stage bytes except the admitted one-byte insertion"
+      ],
+      "failure_scope": "Unknown context, duplicate/already-correct expression, input/closure drift or seal failure stops stage; no general rewrite or automatic retry."
     }
   },
   "safety": {
@@ -517,7 +558,7 @@
     "existing_stronger_floors_preserved": true,
     "experiments_not_automatically_enabled": true
   },
-  "next": "Use the existing ordinary BuildOnly path with a separately reviewed bounded Windows driver and isolated official toolchain/cache: current packages, fresh complete plan, all guards, official apply with locked dependency completion, default build/link and bounded PE/import/CLI loader checks. Main remains unchanged until actual build and applicable error checks pass.",
+  "next": "Before another heavy CI run, perform a bounded local Rust-parser check of the actual generated source if retrievable, otherwise the minimal malformed/repaired reproduction. Add a non-writing post-apply parser gate to the existing normal build path. Keep official pins, features, locks and all guards unchanged. Main stays unchanged until actual build and applicable error checks pass.",
   "intakes": [
     {
       "subject": "Guide B/C consumer source merge",
@@ -943,6 +984,16 @@
       "whole_repository_suite": false,
       "independent_review": "Recipe exact source/inverse and central97checks; six published blobs match local bytes.",
       "actual_cargo_or_game_build": false
+    },
+    {
+      "name": "Restore one generated float-range token separator",
+      "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+      "source": "de10ae0efba8b4e101a6d514f9d3bdbd91c9de2d",
+      "ordinary_change": "Exact post-apply one-byte generated-source repair and launcher stage pin only",
+      "selected_pure_mock_checks": 127,
+      "stage_fake_cli_fixture": 1,
+      "actual_repair_or_new_build": false,
+      "main_merge": false
     }
   ],
   "guide_limits": [

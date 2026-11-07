@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Latest Windows build reached compilation, 2026-11-07
+
+[Run 42334764929](https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929) used ordinary source 9e032 and passed the fresh complete plan, every native guard and official apply. Default-feature locked/offline client compilation then failed in horizon-world: the generated start.rs joined the valid official `0. ..=1.` expression into invalid `0...=1.`. Source review ties this to the pinned prettyplease 0.2.37 printer. The official source, features, locks and guard conditions have not been weakened.
+
+All 19 Windows pure checks, toolchain admission, source seals and cleanup of all 51 owned process phases passed. Complete client link, imports/help and game execution did not finish. [The bounded failure record](tconstruct/docs/windows-build-retry-result-20261107.json) preserves the exact scope. Main remains unchanged while the narrow generated-source repair, local parser precheck and actual rebuild are pending.
+
+The next source candidate connects a strictly pinned, one-byte post-apply repair. It preserves all other staged bytes and records bounded before/after hashes and exact inverse. Central selected checks passed 127 pure/mock tests; the existing tiny Git/fake CLI export fixture also passed. This is source and synthetic evidence only: actual generated-file repair and the next complete build are still pending.
+
 ## Windows formatter verified, 2026-11-07
 
 [Run 42332291954](https://github.com/sofia-gros/horizon-mods/actions/runs/42332291954) completed successfully at 03:05:18 UTC. The exact official Rust1.99.1 runtime and pinned formatter passed version execution and all seven damage/terrain helper regenerations. All 61 pure checks, nine phases, source/input seals and owned-Job cleanup passed. The [small result record](tconstruct/docs/windows-rustc-runtime-result-20261107.json) retains the bounds and measured resource minima. Earlier failures remain recorded below as history.

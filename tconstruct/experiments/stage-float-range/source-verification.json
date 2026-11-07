@@ -1,0 +1,37 @@
+{
+  "ast_verified": false,
+  "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "generated_file_observed": false,
+  "native_executed": false,
+  "pure_log": {
+    "bytes": 17643,
+    "passed": true,
+    "sha256": "aedb6035d9a4a34ccc7a5930e3e5555a89e306e5759a596b89d7e9ce082949c5"
+  },
+  "pure_tests": 127,
+  "schema": 1,
+  "scope": "Source connection and synthetic pure tests; no actual generated file, AST, planner, apply, native build or game proof",
+  "source_sha256": {
+    "tconstruct/docs/float-range-repair-source-20261107.json": "319954f6ff8a986652888b95b1deeb6db212834d8a31087d6db2f2bfe56bf4d9",
+    "tconstruct/docs/float-range-repair-source-20261107.md": "77da7c8ae79ff2f97723fde67d698496148a2363e315a15a6e4e7b43aaf24f17",
+    "tconstruct/experiments/stage-float-range/README.md": "ecbbb2ea13901551ce3ce3508847af9e9536c4f32bcb17dfda97920d9200cba8",
+    "tconstruct/experiments/stage-float-range/inverse.json": "d9c4eb4bc79cffa6a5dc0ba44703264cc9d4e44794150e42e6cb9107e13331e6",
+    "tconstruct/tests/test_stage.py": "73a18d4c03703f7190fecbbf7500eff0b79f3975781894e1094300a0d80418c2",
+    "tconstruct/tests/test_stage_callers.py": "ed1fa4e6507957db029e5844329330b037c39352cb088d4114da65d2fbbe4dc1",
+    "tconstruct/tests/test_stage_float_range_connection.py": "b4a2c067e876b1151320725332e848f1737014bf2a4851f6c4af6af5b8e9d15d",
+    "tconstruct/tests/test_stage_float_range_repair.py": "047aa39228bd5ab1402b641b2db379af48ae32d4bc8bbb69acf029d0d1832a89",
+    "tconstruct/tests/test_windows_jobs.py": "06550bdb10d17f3923ab99c686ba2bf0eb7a35dcf9d1958a4c8100cf16459e0e",
+    "tconstruct/tests/windows_source_layers.py": "26cb23e3c994ee3df93ffe6eed6289a3f1fc1741d901aaf7afd050b503a5dbf3",
+    "tconstruct/tools/play_windows_latest.py": "613df3f2b1d4f743cff5eea6ff1bf789f4139315b2f72b8744a4b8688ab71d10",
+    "tconstruct/tools/stage.py": "231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae",
+    "tconstruct/tools/stage_float_range_repair.py": "65a9b896106407297b45a60bff8b5ec3e43f1163276c034418b74c06c875b557"
+  },
+  "stage_fixture": {
+    "log_bytes": 543,
+    "log_sha256": "e9679788614660222cb818aba6c85adfbaaed0f0b7bbc2ee82be7111840909c5",
+    "passed": true,
+    "scope": "Tiny temporary Git repositories and fake CLI only; no actual Cargo or official apply",
+    "tests": 1
+  },
+  "stage_fixture_executed": true
+}

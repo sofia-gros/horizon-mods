@@ -1,0 +1,93 @@
+{
+  "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "files": {
+    "tconstruct/tools/stage.py": {
+      "before_sha256": "64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414",
+      "after_sha256": "231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae",
+      "edits": [
+        [
+          "import stage_package_contract as package_contract\nfrom pathlib import Path\n",
+          "import stage_package_contract as package_contract\nimport stage_float_range_repair\nfrom pathlib import Path\n"
+        ],
+        [
+          "    subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)\n",
+          "    subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)\n    stage_float_range_repair.repair(original, output / 'modded', source, plan, horizon_revision=head, mixins_revision=revision)\n"
+        ]
+      ]
+    },
+    "tconstruct/tools/play_windows_latest.py": {
+      "before_sha256": "6fe2f8a278f7a8590f3f283446b213cb1d3d1ad9a539384ceb6e7ed06c9bbd6f",
+      "after_sha256": "613df3f2b1d4f743cff5eea6ff1bf789f4139315b2f72b8744a4b8688ab71d10",
+      "edits": [
+        [
+          "PROFILE = 'fast'\nSTAGE_SHA = '64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414'\n# These are read budgets, not claims about maximum compiler/resource disk growth.\n",
+          "PROFILE = 'fast'\nSTAGE_SHA = '231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae'\n# These are read budgets, not claims about maximum compiler/resource disk growth.\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/windows_source_layers.py": {
+      "before_sha256": "975c305ef4aeb05c698925c595cd876b7b85992cfab2bdbbec60beb9a4b62483",
+      "after_sha256": "26cb23e3c994ee3df93ffe6eed6289a3f1fc1741d901aaf7afd050b503a5dbf3",
+      "edits": [
+        [
+          "\ndef before_jobs_one(relative, raw):\n",
+          "\ndef before_float_range(relative, raw):\n    delta = json.loads((ROOT/'experiments/stage-float-range/inverse.json').read_bytes())\n    row = delta['files'].get(relative)\n    return undo(raw, row) if row is not None else raw\n\n\ndef before_jobs_one(relative, raw):\n"
+        ],
+        [
+          "def before_jobs_one(relative, raw):\n    delta = json.loads((ROOT/'experiments/windows-jobs-one/inverse.json').read_bytes())\n",
+          "def before_jobs_one(relative, raw):\n    raw = before_float_range('tconstruct/'+relative, raw)\n    delta = json.loads((ROOT/'experiments/windows-jobs-one/inverse.json').read_bytes())\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_windows_jobs.py": {
+      "before_sha256": "faaea296c120a118f00e9c64eb5a031e666708de9014ad7077956fcaf24df7a4",
+      "after_sha256": "06550bdb10d17f3923ab99c686ba2bf0eb7a35dcf9d1958a4c8100cf16459e0e",
+      "edits": [
+        [
+          "from test_windows_link_only import FakePreparedWindows, ROOT, m\nfrom windows_source_layers import before_jobs_one, undo\n\n",
+          "from test_windows_link_only import FakePreparedWindows, ROOT, m\nfrom windows_source_layers import before_jobs_one, before_float_range, undo\n\n"
+        ],
+        [
+          "        for rel, row in spec['files'].items():\n            raw = (ROOT/rel).read_bytes()\n            self.assertEqual(hashlib.sha256(undo(raw,row)).hexdigest(), row['before_sha256'])\n",
+          "        for rel, row in spec['files'].items():\n            raw = before_float_range('tconstruct/'+rel, (ROOT/rel).read_bytes())\n            self.assertEqual(hashlib.sha256(undo(raw,row)).hexdigest(), row['before_sha256'])\n"
+        ],
+        [
+          "        for rel, row in spec['historical_test_adapters'].items():\n            self.assertEqual(hashlib.sha256(undo((ROOT/'tests'/rel).read_bytes(),row)).hexdigest(), row['before_sha256'])\n\n",
+          "        for rel, row in spec['historical_test_adapters'].items():\n            self.assertEqual(hashlib.sha256(undo(before_float_range('tconstruct/tests/'+rel, (ROOT/'tests'/rel).read_bytes()),row)).hexdigest(), row['before_sha256'])\n\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_stage_callers.py": {
+      "before_sha256": "c89b4e0b5e0b2023d6d6b90b2e3cd91654733be26a169c5f99e2c64c9e6c9ff0",
+      "after_sha256": "ed1fa4e6507957db029e5844329330b037c39352cb088d4114da65d2fbbe4dc1",
+      "edits": [
+        [
+          "from unittest.mock import patch\n\n",
+          "from unittest.mock import patch\nfrom windows_source_layers import before_float_range\n\n"
+        ],
+        [
+          "        for relative, row in records.items():\n            raw = (ROOT / relative).read_bytes()\n            self.assertEqual(hashlib.sha256(raw).hexdigest(), row['after_sha256'])\n",
+          "        for relative, row in records.items():\n            raw = before_float_range(relative, (ROOT / relative).read_bytes())\n            self.assertEqual(hashlib.sha256(raw).hexdigest(), row['after_sha256'])\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_stage.py": {
+      "before_sha256": "811191db724e43dafea1f550b15d1ba48ca03b47a4b89f214ca7f5f726923059",
+      "after_sha256": "73a18d4c03703f7190fecbbf7500eff0b79f3975781894e1094300a0d80418c2",
+      "edits": [
+        [
+          "\"\"\")\n            revision = git(repos[1], 'rev-parse', 'HEAD')\n",
+          "\"\"\")\n            # This Git/export fixture uses fake revisions and a fake CLI, so\n            # the new repair call is an explicit test double, not production\n            # repair admission. Real helper behavior has its own pure tests.\n            (project / 'tools/stage_float_range_repair.py').write_text(\"\"\"import json\nfrom pathlib import Path\ndef repair(original, generated, source, plan, *, horizon_revision, mixins_revision):\n    assert (generated / 'applied').read_text() == 'applied'\n    assert (generated.parent / 'preflight-passed').read_text() == 'passed'\n    assert (original / '.horizon-revision').read_text().strip() == horizon_revision\n    assert (generated.parent / 'mixins-revision.txt').read_text().strip() == mixins_revision\n    assert source == generated.parent / 'mixins-source'\n    assert plan == generated.parent / 'complete-plan.json'\n    with (generated.parent / 'float-range-repair-receipt.json').open('x') as stream:\n        json.dump({'fixture_only': True, 'after_apply': True}, stream)\n    return {'fixture_only': True}\n\"\"\", encoding='utf-8')\n            revision = git(repos[1], 'rev-parse', 'HEAD')\n"
+        ],
+        [
+          "            self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')\n            rejected_output = project / 'guard-rejected'\n",
+          "            self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')\n            self.assertEqual(json.loads((project / 'target/float-range-repair-receipt.json').read_bytes()), {'fixture_only': True, 'after_apply': True})\n            rejected_output = project / 'guard-rejected'\n"
+        ],
+        [
+          "            self.assertFalse((rejected_output / 'modded').exists())\n            failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)\n",
+          "            self.assertFalse((rejected_output / 'modded').exists())\n            self.assertFalse((rejected_output / 'float-range-repair-receipt.json').exists())\n            failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)\n"
+        ]
+      ]
+    }
+  }
+}
