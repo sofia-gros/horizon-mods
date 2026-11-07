@@ -38,7 +38,11 @@ def host_modules(horizon):
     return out
 
 
-def classify(files, added_rust_names):
+# Data directories whose consumer exists only in the owner's old fork, not in official Horizon.
+FORK_ONLY_DATA = ('tconstruct/content/data/tconstruct/registered_fluid/',)
+
+
+def classify(files, added_rust_names, fork_ref=False):
     if not files:
         return 'X', ['no own changes: already in the base']
     legacy = [f for f in files if f.startswith('tconstruct/mixins/')]
@@ -47,6 +51,11 @@ def classify(files, added_rust_names):
     rust_tests = [f for f in files if f.startswith('tconstruct/tests/rust/') or f.startswith('tconstruct/tests/') and f.endswith('.rs')]
     ui = [f for f in mixin_rs if UI_FILES.search(Path(f).name)]
     reasons = []
+    fork_data = [f for f in files if f.startswith(FORK_ONLY_DATA)]
+    if fork_data:
+        reasons.append(f'data for a host feature absent upstream (registered_fluid): {len(fork_data)}')
+    if fork_ref:
+        reasons.append('text depends on the personal fork')
     if ui:
         reasons.append(f'UI/render helpers: {len(ui)}')
     if manifests:
@@ -57,7 +66,7 @@ def classify(files, added_rust_names):
         reasons.append(f'names host crates: {len(added_rust_names)}')
     if ui:
         return 'C', reasons
-    if mixin_rs or manifests or added_rust_names:
+    if mixin_rs or manifests or added_rust_names or fork_data or fork_ref:
         return 'B', reasons
     if rust_tests:
         reasons.append('Rust fixtures (may import host crates)')
@@ -94,7 +103,7 @@ def main():
                             continue
                         added.add(f'{key}::{mod}')
             fork_ref = bool(re.search(r'sofia-gros/horizon(?![-_A-Za-z])', sh('git', 'diff', '-U0', f'{base}...origin/pr/{n}')))
-        cls, reasons = classify(files, sorted(added))
+        cls, reasons = classify(files, sorted(added), fork_ref)
         rows.append({'number': n, 'title': p['title'], 'base': p['baseRefName'], 'head': p['headRefName'],
                      'stacked_on': heads.get(p['baseRefName']), 'class': cls, 'reasons': reasons,
                      'files': len(files), 'fork_suspect': sorted(added), 'fork_ref': fork_ref})
