@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "repository": "sofia-gros/horizon-mods",
+  "ordinary_base": "03497d9602f3a097da5eeefe1eede6f564f5beeb",
+  "source_pr": {
+    "number": 739,
+    "head": "baf015dba36700d546e7461c5f9a9f2184a71593",
+    "own_paths": 28,
+    "adopted_paths": 28
+  },
+  "files": {
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/chiseled_scorched_bricks_crafting.json": {
+      "before": null,
+      "source_pr_blob": "e68471461172f441704bb14f07c2fc6e866310d3",
+      "git_blob": "e68471461172f441704bb14f07c2fc6e866310d3",
+      "sha256": "01bace4dfd26424c96040af0fc8e085279494d397248631dd7770b921fcd4e4d",
+      "bytes": 683
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/polished_scorched_stone_crafting.json": {
+      "before": null,
+      "source_pr_blob": "22286298690cf7fa09feaa4f9661d13ccfbca00b",
+      "git_blob": "22286298690cf7fa09feaa4f9661d13ccfbca00b",
+      "sha256": "48031a22661607a69b739967b9fbcd6192da5a0656405f765d82e6e8be8e30b2",
+      "bytes": 675
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_bricks_fence.json": {
+      "before": null,
+      "source_pr_blob": "3d5bf1acfde90157e47f068820994a44b0df1ff8",
+      "git_blob": "3d5bf1acfde90157e47f068820994a44b0df1ff8",
+      "sha256": "4610b1b3c61a851b8f7bfffff7fdec74a3532731f743ae9e0a97e4705001ce51",
+      "bytes": 654
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_bricks_slab.json": {
+      "before": null,
+      "source_pr_blob": "d60e97f8046f57fda865ae2c56bd9b3cb766f097",
+      "git_blob": "d60e97f8046f57fda865ae2c56bd9b3cb766f097",
+      "sha256": "a4df96373ec0e13b963ed16928144da69d2923eca95807f146445000b1812353",
+      "bytes": 652
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_bricks_stairs.json": {
+      "before": null,
+      "source_pr_blob": "71b546bc53fb7ee95a57766d8c8057295c4a777e",
+      "git_blob": "71b546bc53fb7ee95a57766d8c8057295c4a777e",
+      "sha256": "0d886dbe80e096309cada005a54d3e920ae3ae8bd1175f98e5372aca94d3152c",
+      "bytes": 656
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_ladder.json": {
+      "before": null,
+      "source_pr_blob": "052539efdf698ba4860b3fd20aa87375ee3f9460",
+      "git_blob": "052539efdf698ba4860b3fd20aa87375ee3f9460",
+      "sha256": "d028823dc3e2bd8848cfea05646014c312c6134a0f6b31ed1664a8e56ec9867c",
+      "bytes": 641
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_road_slab.json": {
+      "before": null,
+      "source_pr_blob": "e318f40fd896029599c2eac41b62ae761e2ab67d",
+      "git_blob": "e318f40fd896029599c2eac41b62ae761e2ab67d",
+      "sha256": "75633da936a0e8a85ff2c40ad221ae13f97a6c7890f30b2524bd59b89e4180cb",
+      "bytes": 646
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_road_stairs.json": {
+      "before": null,
+      "source_pr_blob": "483834a6e5620f822dd4a47f9a9f609eef88c12e",
+      "git_blob": "483834a6e5620f822dd4a47f9a9f609eef88c12e",
+      "sha256": "74b8c7aa2ce9adce6705961f567b8ac2bdf17c81c40104fded6c1036649b6da4",
+      "bytes": 650
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_soul_glass.json": {
+      "before": null,
+      "source_pr_blob": "c7e1d52fb98a5c20d835d2a215a0b39cc406598a",
+      "git_blob": "c7e1d52fb98a5c20d835d2a215a0b39cc406598a",
+      "sha256": "94cec5572cdf7de34520cd2aad20670e40acd1b9e35a048c309872dfe2ca5e17",
+      "bytes": 649
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/scorched_tinted_glass.json": {
+      "before": null,
+      "source_pr_blob": "36ddc26675e6318e633c2c34c698a1d8069b3b50",
+      "git_blob": "36ddc26675e6318e633c2c34c698a1d8069b3b50",
+      "sha256": "80ef7c45929d1fe8d762e5cff53454eaed2ed593639dc22fde962f9b4600d123",
+      "bytes": 653
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/building_blocks/survival_scorched_scorched_bricks_from_brick.json": {
+      "before": null,
+      "source_pr_blob": "d6941792023685e861eb65af2f3cb829a537ef0f",
+      "git_blob": "d6941792023685e861eb65af2f3cb829a537ef0f",
+      "sha256": "c1c6dca9fe13926ca3c2b6ea29efdba8a30a805c5a99dd23cfe969726884f9bc",
+      "bytes": 699
+    },
+    "tconstruct/content/data/tconstruct/advancement/recipes/decorations/scorched_soul_glass_pane.json": {
+      "before": null,
+      "source_pr_blob": "b16259502d3c12db336d89660a891ea60891b105",
+      "git_blob": "b16259502d3c12db336d89660a891ea60891b105",
+      "sha256": "f9df2e684495f97fd115e5754ade53d8af1a313f6fe084e546feeb708b2c8b14",
+      "bytes": 664
+    },
+    "tconstruct/docs/scorched-decoration-unlocks.md": {
+      "before": null,
+      "source_pr_blob": "1b47bf5fc4e9680558749a3c733e3afbb2c77f3f",
+      "git_blob": "8df27ab357cde85c59626065a3725a89cc0ab663",
+      "sha256": "0c2d22ec3726fdb9c3de8158c141fcf367f4ba5c900e6b9fe21bd5a96d8cad87",
+      "bytes": 3383
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/README.md": {
+      "before": null,
+      "source_pr_blob": "54f950c8f88b8256dd62c946c2c13fe7bbf0f063",
+      "git_blob": "54f950c8f88b8256dd62c946c2c13fe7bbf0f063",
+      "sha256": "1845f09edc71e38165e3cdc15b661fb4807fc7463d1ce85c0dcf523b8b7a7a84",
+      "bytes": 688
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/chiseled_scorched_bricks_crafting.json": {
+      "before": null,
+      "source_pr_blob": "d7414373a9314abdc0c066c407303184e8284525",
+      "git_blob": "d7414373a9314abdc0c066c407303184e8284525",
+      "sha256": "e995240a561ed3204f1e3adaf34fa05654ccdd3996ad54422a7e233c0bd64fca",
+      "bytes": 717
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/polished_scorched_stone_crafting.json": {
+      "before": null,
+      "source_pr_blob": "e0097efc6af6b3f52aff2d1db98140d623fefa7f",
+      "git_blob": "e0097efc6af6b3f52aff2d1db98140d623fefa7f",
+      "sha256": "c878017bfa79225d41e48533fec8b1be9d11a93509d5f3730cee8c3836075b36",
+      "bytes": 709
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_bricks_fence.json": {
+      "before": null,
+      "source_pr_blob": "da3e719b9e9118c4074a22fe5483abb3a7efd59c",
+      "git_blob": "da3e719b9e9118c4074a22fe5483abb3a7efd59c",
+      "sha256": "a3de826138f8a54786289677f7a93dabcb427a176df9f0e7f06b62b9ba37e384",
+      "bytes": 688
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_bricks_from_brick.json": {
+      "before": null,
+      "source_pr_blob": "c49e4e947c89a97af4794fad789ee2fbe4920aa3",
+      "git_blob": "c49e4e947c89a97af4794fad789ee2fbe4920aa3",
+      "sha256": "bdb81a2e3e9ff9c20eeed124cb1e23a098afc5900acb04d3fff3c69003f0c8b8",
+      "bytes": 697
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_bricks_slab.json": {
+      "before": null,
+      "source_pr_blob": "53910b9c7e2cecfec6b3b191cfa5426a0df60879",
+      "git_blob": "53910b9c7e2cecfec6b3b191cfa5426a0df60879",
+      "sha256": "6ceb5bc95bb929eb2185ad6ea3b19a8b86553d452d04dba1c286a217978b226f",
+      "bytes": 686
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_bricks_stairs.json": {
+      "before": null,
+      "source_pr_blob": "3695e7b1c1994e29454cfb98e5896eb053dcb108",
+      "git_blob": "3695e7b1c1994e29454cfb98e5896eb053dcb108",
+      "sha256": "a7ec982aaebd4844efaa9350cb8b43ce4c71b21b7d60b1f12a30d4de258988a8",
+      "bytes": 690
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_ladder.json": {
+      "before": null,
+      "source_pr_blob": "da8c7cb5c9d328865de7a7d35e7aaec9fadf6804",
+      "git_blob": "da8c7cb5c9d328865de7a7d35e7aaec9fadf6804",
+      "sha256": "d1aa93fa9c933a9dc447bd197da67b87c1f27c635039de196abfd4dfe5b29c5b",
+      "bytes": 675
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_road_slab.json": {
+      "before": null,
+      "source_pr_blob": "36f021700be7694d57757e8adc42c825e29a9168",
+      "git_blob": "36f021700be7694d57757e8adc42c825e29a9168",
+      "sha256": "291651af1617546e747768d9f133d74fbd76bc2912da98ab61b8afc607513877",
+      "bytes": 680
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_road_stairs.json": {
+      "before": null,
+      "source_pr_blob": "79ec49afbba49d8bcc6b6e1e474c671e8f86fc76",
+      "git_blob": "79ec49afbba49d8bcc6b6e1e474c671e8f86fc76",
+      "sha256": "1bad6807f658e2f3a983a623369feb977345942ebc3364831c302ea01afecb36",
+      "bytes": 684
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_soul_glass.json": {
+      "before": null,
+      "source_pr_blob": "5840cbaefb11a864d9a47d612a39551b2ad89a4f",
+      "git_blob": "5840cbaefb11a864d9a47d612a39551b2ad89a4f",
+      "sha256": "b343555f011154a90968f976a1c74c8fcbe18590ec7534218125c2f0d96563db",
+      "bytes": 683
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_soul_glass_pane.json": {
+      "before": null,
+      "source_pr_blob": "610c074a03b3fc0d6bc3d1020e7995e0281f14f5",
+      "git_blob": "610c074a03b3fc0d6bc3d1020e7995e0281f14f5",
+      "sha256": "7562a6bf12feeab77d04614393d023b5cce925882778f8b4816127b2906a8e1f",
+      "bytes": 698
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/scorched_tinted_glass.json": {
+      "before": null,
+      "source_pr_blob": "b4c23266904680a7f1d20d9bdf6356055482a582",
+      "git_blob": "b4c23266904680a7f1d20d9bdf6356055482a582",
+      "sha256": "579027d1df4680f2537e371f6c94c4dbbbfc580a2d9766ec92f645479c08c696",
+      "bytes": 687
+    },
+    "tconstruct/tests/fixtures/scorched_decoration_unlocks/sha256.json": {
+      "before": null,
+      "source_pr_blob": "124e4b989debdf980bb3555df795f9e054e3e19a",
+      "git_blob": "124e4b989debdf980bb3555df795f9e054e3e19a",
+      "sha256": "475ecf0e72593931c371d962a27f4c6d856cbe17a85dbc632cda37da90d69967",
+      "bytes": 1162
+    },
+    "tconstruct/tests/test_scorched_decoration_unlocks.py": {
+      "before": null,
+      "source_pr_blob": "9946669e43d3f1031cbbf6fae542c8699ed5295d",
+      "git_blob": "b2ed350b0e14d47b0ffb48f1dbdc9901e5fa5907",
+      "sha256": "9733089cd5daa61287b41eb2f9980f2e52e90e6b3e630e3877c9dcca83928a99",
+      "bytes": 4554
+    }
+  },
+  "unchanged_inputs": {
+    "tconstruct/content/data/tconstruct/recipe/chiseled_scorched_bricks_crafting.json": {
+      "git_blob": "c2f1feaa8b1af0ff4220fa6ee8abf49ffe484154",
+      "sha256": "b69dcc93ee3084a4345ff50517f0d2ef8528b8db8d9f7753f4c50cb561927c3a",
+      "bytes": 231
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/chiseled_scorched_bricks.json": {
+      "git_blob": "ca4fa8560fd8957bf79be926cab8cd58a341e68e",
+      "sha256": "156ce1b29581fe55a0658a460f81923a63416cf84e98616a134ec7c214d75358",
+      "bytes": 137
+    },
+    "tconstruct/content/data/tconstruct/recipe/polished_scorched_stone_crafting.json": {
+      "git_blob": "a8ae52ea42432890ad1d069ad4388aa5ebc7222d",
+      "sha256": "0d57b76636457001adbb21c07ab3fbafd53977f577882b107f6157f1013365f0",
+      "bytes": 242
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/polished_scorched_stone.json": {
+      "git_blob": "f2b004adc7bbe701a41a34f0a3d60a394c407c81",
+      "sha256": "4a9b3c2a0760f9bd42e8e55ae5e50235e4e83f5900420f92c37da33ffcfc0b07",
+      "bytes": 138
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_bricks_fence.json": {
+      "git_blob": "717efbf8e4df82c7c5d48ccfc6a556f994e8f08e",
+      "sha256": "d736422a9c9ad2d38107bf4c84474bfb4eed838e036bf83973f1f0d185e2a53e",
+      "bytes": 281
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_bricks_fence.json": {
+      "git_blob": "767d379e858e8a11b8a1325fde81cc629c7c0b18",
+      "sha256": "f701d1ba52d58e1803eda3706798ceba42bac4f4aacc0b6ea886511b1aa24d67",
+      "bytes": 150
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_bricks_slab.json": {
+      "git_blob": "a5c22beb0623050508ebd212fc31bfe98e9a21d4",
+      "sha256": "5e2b81dcc33d66bfaa71f1e42e7f3eee62b3fa58de1575af848f496825c4baed",
+      "bytes": 277
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_bricks_slab.json": {
+      "git_blob": "9a4e2429b269d1103fb71042c601b3fbe8e35d4b",
+      "sha256": "d67eef16ecb1de75bdb33c3c503a9639ab4edd300df9e5e15199035b6c643fe9",
+      "bytes": 148
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_bricks_stairs.json": {
+      "git_blob": "2bac2db6f800111fe6539293f077f2e18a80bcca",
+      "sha256": "be5543b15f4e9488901e0acabb7099b04bebe64f8fefd1b570d7b03c1bcabc6b",
+      "bytes": 303
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_bricks_stairs.json": {
+      "git_blob": "d80fe173e874ae0c1c94dfe5fc6b669c81061a65",
+      "sha256": "043ba1d17355c5bd08c811f001dab54aa0b3bea02df206f721a47f65de0be61f",
+      "bytes": 150
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_ladder.json": {
+      "git_blob": "a6ab1f7f443ff1dec9a8af959c8ad5dd5bb99aae",
+      "sha256": "a9af36213c00254561145f4dbe484c7fcf8806410c7187483d63c7e4aedcbbd4",
+      "bytes": 287
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_ladder.json": {
+      "git_blob": "b45c3d26a48cfc82e32671da109e0445c694b9c1",
+      "sha256": "2bdfa1877d5f8f27b0d51e399761ace30b6c28f0c97ac33d74818166cf192974",
+      "bytes": 137
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_road_slab.json": {
+      "git_blob": "97e47c68fa31b3517418bdc032aa8586b60c948c",
+      "sha256": "7405141762f67f9ced4f7f2ad929383b04df1e9ad7ecc8822ac5ff01fcd33330",
+      "bytes": 271
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_road_slab.json": {
+      "git_blob": "9a4e2429b269d1103fb71042c601b3fbe8e35d4b",
+      "sha256": "d67eef16ecb1de75bdb33c3c503a9639ab4edd300df9e5e15199035b6c643fe9",
+      "bytes": 148
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_road_stairs.json": {
+      "git_blob": "a4c970a9d9d5b97221537c95e2952ec3bfca4516",
+      "sha256": "a9621ee60823965e46aa2fce1ef23003868fd43a0467060ae74dfcfd681379d3",
+      "bytes": 297
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_road_stairs.json": {
+      "git_blob": "d80fe173e874ae0c1c94dfe5fc6b669c81061a65",
+      "sha256": "043ba1d17355c5bd08c811f001dab54aa0b3bea02df206f721a47f65de0be61f",
+      "bytes": 150
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_soul_glass.json": {
+      "git_blob": "a5e3835d3b969a60392212a6ae7bde4971c41cff",
+      "sha256": "dec471246d9e06c31261b56533212f6d91358cc7d17bcdded06dc06b703a9d74",
+      "bytes": 269
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_soul_glass.json": {
+      "git_blob": "f86e0408868257fa8fb7401b7ea16052f7ae3771",
+      "sha256": "e90714b7efdde9816c2537bf54db5d337484c68943c59570e662cd795233c73e",
+      "bytes": 136
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_tinted_glass.json": {
+      "git_blob": "fb19b58b6ff43a70a3684058918786a63b2b0546",
+      "sha256": "71f96555ef703875dde5b25a4c4a7482884f2c308676384b9c28f608d2f01536",
+      "bytes": 298
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_tinted_glass.json": {
+      "git_blob": "6d2ff63ed700e6a6296eb64234d448b6636e3ee2",
+      "sha256": "a68b506c418418f51ad8480d331e1fc8892e13d1fabbd34b114e222d478bb317",
+      "bytes": 143
+    },
+    "tconstruct/content/data/tconstruct/recipe/survival_scorched_scorched_bricks_from_brick.json": {
+      "git_blob": "901c08e3c535dcabfc95bbf549269952a5b7a61f",
+      "sha256": "cf1952d586e296e16ecd3361b0c967c10ba568c84be2a6baf3e21c2cbfdd1aeb",
+      "bytes": 218
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_bricks.json": {
+      "git_blob": "ca4fa8560fd8957bf79be926cab8cd58a341e68e",
+      "sha256": "156ce1b29581fe55a0658a460f81923a63416cf84e98616a134ec7c214d75358",
+      "bytes": 137
+    },
+    "tconstruct/content/data/tconstruct/recipe/scorched_soul_glass_pane.json": {
+      "git_blob": "e686c7c0c7506a56a7b8da619cb549f09c869133",
+      "sha256": "eac607c9816a56e9d65d212f292ea689657e04631d8adf8cbab500f0d1252cd0",
+      "bytes": 247
+    },
+    "tconstruct/content/data/tconstruct/horizon/block/scorched_soul_glass_pane.json": {
+      "git_blob": "bc797fc5af1e56cfe28ee9c64c51e558287f87eb",
+      "sha256": "74ad13c0a7ff90d2020f3d4026bece2504df43ecc1201b76e4a56dc562d4d15f",
+      "bytes": 141
+    }
+  },
+  "shared_responsibility": {
+    "Pluto": "Existing generic advancement/recipe compatibility unchanged; no new shared hook needed for direct item-ID predicates.",
+    "TConstruct": "Twelve hidden unlock resources and native recipe mapping."
+  },
+  "checks": {
+    "resource_tests_passed": 2,
+    "full_package": false,
+    "rust": false,
+    "plan": false,
+    "apply": false,
+    "game": false,
+    "ci": false
+  },
+  "main_merged": false,
+  "pr_closed": false
+}
