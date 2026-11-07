@@ -26,6 +26,8 @@ RULES = [
      'TConstruct code names a Horizon host crate; go through a PlutoLib API'),
     ('host-inventory-direct', 'tconstruct/mixins/*.rs', r'\bgame\.inventory\b', False,
      'direct inventory mutation; use PlutoLib inventory APIs'),
+    ('python-write-text-newline', '*.py', r'\.write_text\((?!.*newline\s*=).*', False,
+     'Path.write_text writes CRLF on Windows; pass newline="\\n" (or use write_bytes)'),
     ('host-injection-new', 'tconstruct/mixins/*/horizon-mixin.toml', r'^\[\[injection\]\]', False,
      'new TConstruct injection into the host; add a PlutoLib hook/API instead'),
 ]
@@ -68,7 +70,7 @@ def main(argv=None):
         old = json.loads(BASELINE.read_text()) if BASELINE.is_file() else {}
         new = {rule: {f: min(n, old.get(rule, {}).get(f, n)) for f, n in files.items()}
                for rule, files in counts.items() if rule not in zero}
-        BASELINE.write_text(json.dumps(new, indent=1, sort_keys=True) + '\n')
+        BASELINE.write_text(json.dumps(new, indent=1, sort_keys=True) + '\n', encoding='utf-8', newline='\n')
         print('baseline written (counts only ever lowered, never raised)')
         return 0
     base = json.loads(BASELINE.read_text()) if BASELINE.is_file() else {}

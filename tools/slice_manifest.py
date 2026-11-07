@@ -53,7 +53,7 @@ for kind, lines in blocks:
         if not ok:
             dropped[kind] += 1; continue
     out.append(body)
-manifest.write_text(''.join(out), encoding='utf-8')
+manifest.write_text(''.join(out), encoding='utf-8', newline='\n')
 if a.tokens_out:
-    a.tokens_out.write_text(' '.join(sorted(tokens)), encoding='utf-8')
+    a.tokens_out.write_text(' '.join(sorted(tokens)), encoding='utf-8', newline='\n')
 print(f'kept injections={len(keep_i)} modules={len(keep_m)} states={len(keep_s)}; dropped {dropped}')

@@ -44,7 +44,7 @@ class NativePackageTests(unittest.TestCase):
             for crate in package.CRATE_DIRECTORIES:
                 source = component / crate / "src/new_service/nested.rs"
                 source.parent.mkdir()
-                source.write_text("pub const CONTRACT_VERSION: u32 = 1;\n")
+                source.write_text("pub const CONTRACT_VERSION: u32 = 1;\n", newline="\n")
                 (component / crate / "src/notes.txt").write_text("not Rust source")
                 (component / crate / "target").mkdir()
                 (component / crate / "target/generated.rs").write_text("not API source")
