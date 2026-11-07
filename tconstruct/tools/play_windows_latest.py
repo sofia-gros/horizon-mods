@@ -29,7 +29,7 @@ VERSION = '1.99.1'
 TARGET = 'x86_64-pc-windows-gnu'
 MODS_FEATURE = 'horizon-client/mods'
 PROFILE = 'fast'
-STAGE_SHA = '64a0e260c75c83d7e31fd68bac629dbd968f8210c50d0ba5e487a10205d89414'
+STAGE_SHA = '231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae'
 # These are read budgets, not claims about maximum compiler/resource disk growth.
 MAX_FILES = 100000
 MAX_TOTAL = 64 * 1024**3

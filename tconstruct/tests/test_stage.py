@@ -58,6 +58,22 @@ if os.environ.get('FIXTURE_REJECT_PREFLIGHT'):
     raise SystemExit(19)
 (plan.parent / 'preflight-passed').write_text('passed')
 """)
+            # This Git/export fixture uses fake revisions and a fake CLI, so
+            # the new repair call is an explicit test double, not production
+            # repair admission. Real helper behavior has its own pure tests.
+            (project / 'tools/stage_float_range_repair.py').write_text("""import json
+from pathlib import Path
+def repair(original, generated, source, plan, *, horizon_revision, mixins_revision):
+    assert (generated / 'applied').read_text() == 'applied'
+    assert (generated.parent / 'preflight-passed').read_text() == 'passed'
+    assert (original / '.horizon-revision').read_text().strip() == horizon_revision
+    assert (generated.parent / 'mixins-revision.txt').read_text().strip() == mixins_revision
+    assert source == generated.parent / 'mixins-source'
+    assert plan == generated.parent / 'complete-plan.json'
+    with (generated.parent / 'float-range-repair-receipt.json').open('x') as stream:
+        json.dump({'fixture_only': True, 'after_apply': True}, stream)
+    return {'fixture_only': True}
+""", encoding='utf-8')
             revision = git(repos[1], 'rev-parse', 'HEAD')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_repository=str(repos[1]), mixins_revision=revision)))
             horizon_revision = git(repos[0], 'rev-parse', 'HEAD')
@@ -152,11 +168,13 @@ chmod +x "$2/release/horizon-mixins"
             self.assertEqual((project / 'target/mixins-source/marker').read_text(), 'committed')
             self.assertEqual((project / 'target/mixins-revision.txt').read_text().strip(), revision)
             self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')
+            self.assertEqual(json.loads((project / 'target/float-range-repair-receipt.json').read_bytes()), {'fixture_only': True, 'after_apply': True})
             rejected_output = project / 'guard-rejected'
             rejected_guard = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(rejected_output)], env=dict(env, FIXTURE_REJECT_PREFLIGHT='1'), capture_output=True)
             self.assertNotEqual(rejected_guard.returncode, 0)
             self.assertTrue((rejected_output / 'complete-plan.json').is_file())
             self.assertFalse((rejected_output / 'modded').exists())
+            self.assertFalse((rejected_output / 'float-range-repair-receipt.json').exists())
             failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
