@@ -1,5 +1,6 @@
 name: Mixins validation
 on:
+  pull_request:
   workflow_dispatch:
   workflow_call:
 concurrency:

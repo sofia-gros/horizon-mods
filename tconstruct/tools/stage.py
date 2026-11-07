@@ -12,6 +12,7 @@ p.add_argument('--mixins', type=Path, required=True)
 p.add_argument('--mixins-revision', help='full Mixins commit SHA; defaults to the revision in compatibility.json')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
+p.add_argument('--pluto-guards', help='comma-separated PlutoLib guards to run, for a reduced PlutoLib bundle only; omitted = every guard (full bundle)')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
@@ -108,5 +109,8 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     # copied helper bytes embedded in the plan before any source is applied.
     plan = output / 'complete-plan.json'
     subprocess.run([str(cli), 'plan', '--workspace', str(original), '--mods', str(combined), '--out', str(plan)], check=True)
-    subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
+    if a.pluto_guards:
+        subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_sliced_plan.py'), str(plan), str(original), a.pluto_guards], check=True)
+    else:
+        subprocess.run([sys.executable, str(root.parent / 'pluto-lib/tools/check_native_plan.py'), str(plan), str(original)], check=True)
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)
