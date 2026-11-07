@@ -71,7 +71,11 @@ if a.ci:
     run('cargo', 'check', '--locked', '--manifest-path', manifest, '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features')
     print(json.dumps({'result': 'CI CHECK OK (stage + cargo check only; not launched)'}))
     sys.exit(0)
-env = dict(__import__('os').environ, CARGO_TARGET_DIR=str(a.target_dir))
+# Incremental caches grow to many GB; a fresh dependency build is cheaper than a full disk.
+env = dict(__import__('os').environ, CARGO_TARGET_DIR=str(a.target_dir), CARGO_INCREMENTAL='0')
+free = shutil.disk_usage(a.target_dir.parent if a.target_dir.parent.exists() else root).free
+if free < 10 * 2**30:
+    sys.exit(f'BUILD STOP: only {free // 2**30} GB free next to {a.target_dir}; clean build caches first')
 run('cargo', 'build', '--manifest-path', manifest, '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', env=env)
 run('cargo', 'build', '--manifest-path', manifest, '-p', 'horizon-client-lib', '--bin', 'horizon-ctl', '--no-default-features', '--profile', 'fast', env=env)
 game = a.target_dir / 'fast/horizon-client.exe'

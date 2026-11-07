@@ -1,0 +1,11 @@
+# PlutoLib: Horizon's Fabric API. A trait mod (see docs/native-mods.md, "Trait mods"): the launcher links the
+# [api] package into the game, and mods that declare "pluto_lib" in [dependencies] call its API.
+[mod]
+id = "pluto_lib"
+version = "0.1.0"
+
+[compatibility]
+horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+
+[api]
+path = "api"
