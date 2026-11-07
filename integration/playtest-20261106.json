@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "The latest ordinary composition reached a fresh Windows complete plan, every native guard, official apply and the default locked/offline client compilation. The build stopped on a generated float-range syntax error; no complete link, CLI loader check or game success is claimed.",
+  "stage": "Three selected PR source groups are integrated using existing Pluto capabilities and native resource paths. Source checks pass, but the latest ordinary composition has not completed a native build. The last Windows build reached plan, all guards and apply before the known generated float-range syntax failure.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -549,6 +549,43 @@
         "all generated stage bytes except the admitted one-byte insertion"
       ],
       "failure_scope": "Unknown context, duplicate/already-correct expression, input/closure drift or seal failure stops stage; no general rewrite or automatic retry."
+    },
+    "pr_intakes_20261107": {
+      "base": "18c2d21059ae55549391388991306343b6ca3617",
+      "groups": [
+        {
+          "number": 922,
+          "source": "755680fbb3e2c859bed458cddfe98752801cd9cb",
+          "intake_status": "portable_storage_shared_migration_source_adopted",
+          "scope": "Original portable production functions were present. Two codec predicates now reuse existing Pluto lossless storage. Original PR auxiliary files are not declared fully reconciled.",
+          "tests": "8 source/inverse checks passed; five actual Rust tests added but not run",
+          "record": "integration/storage-intake-20261107/receipt.json"
+        },
+        {
+          "number": 751,
+          "source": "a13734659b870e62e2ca08bb247a5543133b1a88",
+          "intake_status": "own_delta_source_adopted_pending_build",
+          "scope": "All 12 own-delta paths adapted; four native early-recipe unlock resources reuse the existing advancement/recipe path. Existing recipe bodies retained.",
+          "tests": "2 resource tests passed; retained complete-package test and native events not run",
+          "record": "integration/recipe-intake-20261107/early-unlocks.json"
+        },
+        {
+          "number": 732,
+          "source": "3a5a12e357564f744b460a033d512ce1ebc30a51",
+          "intake_status": "own_delta_source_adopted_pending_build",
+          "scope": "Seven Mighty broad-tool pages and bounded current-source eligibility use existing Guide/Pluto navigation and text query. No new shared API or hook.",
+          "tests": "9 source/inverse checks passed, including finite 160-case oracle; Rust, package and UI not run",
+          "record": "integration/guide-intake-20261107/broad-tools.json"
+        }
+      ],
+      "central_source_checks": 19,
+      "ordinary_rust_files": 3,
+      "actual_native_tests": false,
+      "build": false,
+      "main_merge": false,
+      "old_prs_closed": false,
+      "guard_metadata_changed": false,
+      "guard_dependency_scope": "The 17 current ordinary guard metadata JSON files have no direct pin for the three changed consumer modules. Existing protected hook payloads and manifests are unchanged; a fresh normal plan/guard/build is still required."
     }
   },
   "safety": {
@@ -1004,6 +1041,32 @@
   "merge_policy": {
     "destination": "main",
     "authorized_condition": "Actual full plan, composition guards, apply/build and available startup error checks must pass; imperfect development features are allowed but unverified build success is not.",
-    "old_prs": "Do not close before individual verification"
-  }
+    "old_prs": "After individual own-delta inclusion is confirmed in main and required work-branch checks pass, close the original PR. Source checkpoints alone do not authorize marking it complete."
+  },
+  "source_intakes": [
+    {
+      "number": 922,
+      "source": "755680fbb3e2c859bed458cddfe98752801cd9cb",
+      "intake_status": "portable_storage_shared_migration_source_adopted",
+      "scope": "Original portable production functions were present. Two codec predicates now reuse existing Pluto lossless storage. Original PR auxiliary files are not declared fully reconciled.",
+      "tests": "8 source/inverse checks passed; five actual Rust tests added but not run",
+      "record": "integration/storage-intake-20261107/receipt.json"
+    },
+    {
+      "number": 751,
+      "source": "a13734659b870e62e2ca08bb247a5543133b1a88",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "All 12 own-delta paths adapted; four native early-recipe unlock resources reuse the existing advancement/recipe path. Existing recipe bodies retained.",
+      "tests": "2 resource tests passed; retained complete-package test and native events not run",
+      "record": "integration/recipe-intake-20261107/early-unlocks.json"
+    },
+    {
+      "number": 732,
+      "source": "3a5a12e357564f744b460a033d512ce1ebc30a51",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Seven Mighty broad-tool pages and bounded current-source eligibility use existing Guide/Pluto navigation and text query. No new shared API or hook.",
+      "tests": "9 source/inverse checks passed, including finite 160-case oracle; Rust, package and UI not run",
+      "record": "integration/guide-intake-20261107/broad-tools.json"
+    }
+  ]
 }

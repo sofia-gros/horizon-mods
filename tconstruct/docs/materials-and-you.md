@@ -147,3 +147,31 @@ Glass acquisition route. The pinned source identity and order are retained; the
 text is adapted to describe this port and disclose unverified behavior.
 Actual crafting/casting, passage through a formed wall, save/reload and LAN
 remain unverified. Entity melting and the remaining guide pages are not added.
+
+
+## Mighty broad-tool pages
+
+Mighty Smelting's partial Broad Tools chapter now reads the source general
+and ranged broad-tool groups. It includes Sledge Hammer, Vein Hammer,
+Excavator, Broad Axe, Scythe, Cleaver and Longbow only when the current tool
+item and all displayed component choices are registered, the current
+recipe/definition yields inputs, and the loaded source page names that tool.
+Current tag membership controls inclusion; source text is not a tool registry.
+Javelin, external tool additions and the tank advice page remain omitted.
+
+Seven pinned source descriptions/properties use the existing tool/part preview,
+text overflow, group headings and chapter-index path. The required chapter
+notice and a per-tool notice identify source capabilities as reference material,
+not verified Horizon effect coverage. Missing per-tool notice suppresses those
+pages. Normal broad-tool construction uses a Tinker's Anvil; the preview does
+not prove every material's acquisition route or complete gameplay support.
+
+This section is the bounded PR #732 intake onto 9e032ef5 (2026-11-07),
+not adoption of its stacked branch. The resource and source-wiring checks,
+whole-file inverse checks and finite eligibility oracle are recorded separately
+in integration/guide-intake-20261107/broad-tools.json. Existing Pluto navigation,
+selected-line queries, BookId, modifier anchors and private LAN reply bridge
+remain unchanged. No new generic registry or API is needed for these
+TConstruct-specific source pages. Rust eligibility tests are added but not run.
+Host compilation, in-game layout, actual assembly, save/reload, localization
+refresh and LAN remain unverified for this delta.

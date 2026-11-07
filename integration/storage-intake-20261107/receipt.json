@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "base": "9e032ef5b013487ea08b997eb08df84825fb09ba",
+  "pr922_existing_portable_functions": {
+    "pr_head": "1ba0c453ebf89eb0e696f09e5d5ff5d760bb8813",
+    "byte_equal": true,
+    "sha256": "93593ce0573dfe5c8e72717682ccb7650017deae274c133a8876d9c850707345",
+    "bytes": 2349
+  },
+  "new_production_delta": "Two local native codec roundtrip predicates delegate to the existing casting_item_save_safe, which calls Pluto encode_item_lossless. No new API or manifest entry.",
+  "acceptance_difference": "On count=1/damage=0 inputs satisfying the retained original root-Wire checks, both versions use the same native count/damage/component roundtrip. The shared gate additionally refuses retained Wire anywhere in container/charged/pot_decorations/bundle_contents recursively. Root checks were already present.",
+  "save_authority": "This only stages an ItemStack result. No host commit, networking, notification, schema migration or transaction completion is added.",
+  "native_tests": {
+    "added": 5,
+    "executed": false
+  },
+  "source_tests": {
+    "added": 8,
+    "expected": 8,
+    "passed": 8
+  },
+  "existing_shared_source_sha256": "1c62ddc24e3e77a22a47d5663e19498b61ddcaacc04cd1d39b8c44c5ae8bbc76",
+  "pr918_existing_production": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-place.rs",
+      "git_blob": "c89571a55f3bae656d0b4dfa115a743d5247f546",
+      "sha256": "7eeca9950344a91ad4a7db9677b579c3c46c7ced2dbaf0bb07c4b579ea6243f6",
+      "pr_head_equals_base": true
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/source-machine-remove.rs",
+      "git_blob": "d9299bc4d4230a446e37fa46a550f31161e9538c",
+      "sha256": "7d7918a7ff1b63d1f2c0d9c9e21f423f29feb337438b94badcd284a3e79df15e",
+      "pr_head_equals_base": true
+    }
+  ],
+  "files": {
+    "integration/storage-intake-20261107/README.md": {
+      "bytes": 3851,
+      "sha256": "6ff80cc47bd119a0b2a076423c63c3f7d98cc17da158cd49ae3900084f119e82"
+    },
+    "integration/storage-intake-20261107/tracker.json": {
+      "bytes": 39671,
+      "sha256": "d84e7dd591552ee077a0add96ae7ec202406e5f95b4ebbf9a4f6dc18f161dbe0"
+    },
+    "integration/storage-intake-20261107/inverse.json": {
+      "bytes": 6790,
+      "sha256": "49ec715679d50b7c04c866c0bf25c5f19047bafa52207d516913adb744bd2e30"
+    },
+    "tconstruct/tests/test_portable_storage_migration.py": {
+      "bytes": 4641,
+      "sha256": "20304d0ed021dc8260778f45816ac31c95e18c956bf5537c3018332184f378d9"
+    },
+    "tconstruct/mixins/tconstruct/source-melter-state.rs": {
+      "bytes": 69794,
+      "sha256": "13b4bdb0b829bf4546ab3da1a526a119dd4bd48b02cacaf972b133a631e26059"
+    }
+  }
+}

@@ -17,10 +17,18 @@ pub(super) fn puny_armor_order(id: &str) -> usize {
     ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)
 }
 
-// Mighty has static advice only; omit dynamic groups and the tank page until
-// their displays and operation are supported.
+// Mighty exposes bounded broad-tool pages and static advice. The tank page
+// remains omitted until its display and operation are supported.
 pub(super) fn mighty_advice_page(name: &str) -> bool {
-    matches!(name, "tips" | "designing")
+    matches!(name, "group_general" | "group_ranged" | "group_info" | "tips" | "designing")
+}
+
+// These source pages describe existing broad-tool families, not complete
+// effect parity. Javelins and external additions are deliberately omitted.
+pub(super) fn mighty_tool_guide_ready(id: &str, registered: bool, inputs_available: bool, source_tool: Option<&str>) -> bool {
+    registered && inputs_available && source_tool == Some(id)
+        && matches!(id, "tconstruct:sledge_hammer" | "tconstruct:vein_hammer" | "tconstruct:excavator"
+            | "tconstruct:broad_axe" | "tconstruct:scythe" | "tconstruct:cleaver" | "tconstruct:longbow")
 }
 
 // Expose source pages whose described basics have an existing limited path.
@@ -220,9 +228,23 @@ mod tests {
         assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
     }
     #[test]
-    fn mighty_advice_excludes_dynamic_groups_and_tank_page() {
-        for name in ["tips", "designing"] { assert!(mighty_advice_page(name)); }
-        for name in ["group_general", "group_ranged", "group_info", "tanks", "unknown"] { assert!(!mighty_advice_page(name)); }
+    fn mighty_advice_includes_bounded_groups_but_excludes_tank_page() {
+        for name in ["group_general", "group_ranged", "group_info", "tips", "designing"] { assert!(mighty_advice_page(name)); }
+        for name in ["tanks", "unknown"] { assert!(!mighty_advice_page(name)); }
+    }
+    #[test]
+    fn mighty_tool_pages_require_known_registered_tools_inputs_and_matching_source() {
+        for name in ["sledge_hammer", "vein_hammer", "excavator", "broad_axe", "scythe", "cleaver", "longbow"] {
+            let id = format!("tconstruct:{name}");
+            assert!(super::mighty_tool_guide_ready(&id, true, true, Some(&id)));
+            assert!(!super::mighty_tool_guide_ready(&id, false, true, Some(&id)));
+            assert!(!super::mighty_tool_guide_ready(&id, true, false, Some(&id)));
+            assert!(!super::mighty_tool_guide_ready(&id, true, true, Some("tconstruct:other")));
+            assert!(!super::mighty_tool_guide_ready(&id, true, true, None));
+        }
+        for id in ["tconstruct:javelin", "tconstruct:pickaxe", "other:longbow"] {
+            assert!(!super::mighty_tool_guide_ready(id, true, true, Some(id)));
+        }
     }
     #[test]
     fn puny_melee_whitestone_exception_is_narrow_and_tier_bound() {

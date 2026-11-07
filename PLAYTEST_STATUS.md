@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Three selected PR source groups, 2026-11-07
+
+- **#922 portable storage:** two tank-input/result checks now delegate to existing Pluto lossless item storage. Recursive retained Wire rejection is shared rather than copied. Eight source checks passed; five added Rust tests are not yet executed.
+- **#751 early recipe unlocks:** four missing book/sand-cast unlock resources use the existing native advancement/recipe path. All own-delta source files are adapted; two resource checks passed. The complete-package test and live unlock events remain unverified.
+- **#732 Mighty broad tools:** seven source pages are admitted only for current registered tools, available components and exact source identity, using the existing Pluto-backed Guide navigation/text path. Nine source/inverse checks passed, including a finite 160-case policy oracle. Host/UI and packaging checks remain pending.
+
+These are work-branch source intakes, not completed main merges. The original PRs remain open. The [PR tracker](integration/pr-intake-tracker/tracker.json) assigns each of the fixed 265 PRs to one owner and separates adaptation, testing, main inclusion and closing. Main still requires a successful build and the available startup/error checks. The new consumer edits require a fresh normal plan/guard/build; older successful stages are not relabeled as verification of this composition.
+
 ## Latest Windows build reached compilation, 2026-11-07
 
 [Run 42334764929](https://github.com/sofia-gros/horizon-mods/actions/runs/42334764929) used ordinary source 9e032 and passed the fresh complete plan, every native guard and official apply. Default-feature locked/offline client compilation then failed in horizon-world: the generated start.rs joined the valid official `0. ..=1.` expression into invalid `0...=1.`. Source review ties this to the pinned prettyplease 0.2.37 printer. The official source, features, locks and guard conditions have not been weakened.
