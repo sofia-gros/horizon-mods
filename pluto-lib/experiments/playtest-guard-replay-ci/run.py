@@ -7,8 +7,8 @@ def load(name,path):
 prior=load('reviewed_plan_runner',HERE.parent/'playtest-plan-ci/run.py')
 common=prior.common;package=prior.package;evidence=prior.evidence;Runner=prior.Runner;sha=common.sha
 BRANCH='checkpoint/tinkers-playtest-next-guard-replay-ci-20261107'
-HEAD=None
-TREE=None  # Final metadata-only integration cutoff requires review before admission.
+HEAD='f2fef1be8493364467d96649450a0476aed2dc5f'
+TREE='7a708bcd188a92b579e21637b5a8fad9e785a14e'
 TESTS=32
 OWN={'pluto-lib/experiments/playtest-guard-replay-ci/'+n for n in ('run.py','test_runner.py','README.md')}|{'.github/workflows/playtest-guard-replay-wip.yml'}
 REQUIRED={'runner','artifact','fixed_checkouts','official_inputs','package_headers','package_equality','full_plan_contract','formatter','crafting_package','complete_guards'}
@@ -70,7 +70,7 @@ def native_package_equality(actual,old,plan):
   'archive_before_bytes':previous['archive_bytes'],'archive_after_bytes':actual['archive_bytes'],
   'support_before':previous['support'],'support_after':actual['support'],
   'support_before_map_sha256':previous['support_seal_sha256'],'support_after_map_sha256':actual['support_seal_sha256'],
-  'scope':'Only native members and headers are equal. Current support data is independently verified against the fixed integration checkout; old plan data is not replaced. No apply or full archive equivalence.'}
+  'scope':'Only native members and headers are equal. Current support data is independently verified against the fixed integration checkout; old plan data is not replaced. No apply or full archive equivalence. A fresh normal-stage plan and all guards against the latest package are required before apply/build.'}
 def native_combined_equality(actual,old):
  previous={k:v for k,v in old.items() if k!='passed'}
  if set(actual)!=set(previous) or actual['headers']!=previous['headers'] or actual['members']!=previous['members']:raise ValueError('Combined evidence/header/count differs')
