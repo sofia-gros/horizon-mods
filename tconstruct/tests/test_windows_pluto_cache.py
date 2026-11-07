@@ -8,6 +8,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from windows_source_layers import undo
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('inputs', ROOT/'tools/playtest_pluto_inputs.py')
@@ -15,7 +16,11 @@ m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 def legacy_script():
     """Verify exact latest entry, then test the preserved historical 60e42 source."""
-    text=(ROOT/'tools/play-windows.ps1').read_text(encoding='utf-8')
+    raw=(ROOT/'tools/play-windows.ps1').read_bytes()
+    for name in ('windows-link-only-inverse.json', 'windows-formatter-entry-inverse.json'):
+        row=json.loads((ROOT/'tests'/name).read_bytes())['files']['tools/play-windows.ps1']
+        raw=undo(raw,row)
+    text=raw.decode('utf-8')
     latest=ROOT/'tests/windows-latest-entry-inverse.json'
     if latest.exists():
         value=json.loads(latest.read_text(encoding='utf-8'))
