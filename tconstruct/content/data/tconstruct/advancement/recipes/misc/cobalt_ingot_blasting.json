@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_item": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "tconstruct:raw_cobalt"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipes": "tconstruct:cobalt_raw_blasting"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    },
+    "has_ore_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:cobalt_ore_blasting"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item",
+      "has_the_recipe",
+      "has_ore_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "tconstruct:cobalt_raw_blasting",
+      "tconstruct:cobalt_ore_blasting"
+    ]
+  },
+  "sends_telemetry_event": false
+}
