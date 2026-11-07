@@ -33,8 +33,10 @@ The new six pure connection tests plus the previous 97 selected pure tests pass
 apply/repair tail with test doubles. The first sparse-context run had one import
 context error because the old UTF-8 test required the damage guard file. Restoring
 that exact unchanged 9e032 file made all 103 pass; no assertion was relaxed.
-The Git/export stage fixture itself has not been executed here. No new native
-compiler, formatter, planner, official apply, Windows build, or game was run.
+The existing tiny Git/fake-CLI stage fixture also passes its one test with
+TMPDIR=/tmp and bytecode disabled (1.664 seconds), including the preserved
+12 stage calls and repair-double ordering assertions. No real native compiler,
+formatter, planner, official apply, Windows build, or game was run.
 The actual failed generated start.rs file was not retained, so acceptance of
 that complete generated file and the subsequent Cargo syntax gate remain for
 the next separately reviewed execution. This source checkpoint is not a build

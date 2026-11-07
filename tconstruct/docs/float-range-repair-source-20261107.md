@@ -14,7 +14,7 @@ The companion JSON records the exact official locks, transform/native source has
 
 ## Exact repair contract
 
-`stage_float_range_repair.repair(original, modded, mixins_source, plan_path, *, horizon_revision, mixins_revision)` runs only after normal complete-plan guards and official apply. Rendering owns that caller and the launcher pin. It takes no new stage command-line option.
+`stage_float_range_repair.repair(original, modded, mixins_source, plan_path, *, horizon_revision, mixins_revision)` runs only after normal complete-plan guards and official apply. The stage caller and launcher source pin are updated together. It takes no new stage command-line option.
 
 The helper requires the exact original and serializer source pins, plan schema/input hashes, and the reviewed target-file patch closure: one `try_generate` HEAD and nine support modules, with no injection in `StructureRegistry::new`. The closure came from the retained dc4f Linux plan. The fresh Windows plan must independently match it; a mismatch is a refusal, not permission to update the pin.
 
