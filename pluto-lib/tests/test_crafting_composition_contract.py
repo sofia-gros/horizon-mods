@@ -83,13 +83,24 @@ class ContractTests(unittest.TestCase):
             with zipfile.ZipFile(a,'a') as z:z.writestr('mixins/hidden/horizon-mixin.toml','[mod]\nid="hidden"')
             item['archive_sha256']=g.digest(a.read_bytes())
             with self.assertRaisesRegex(ValueError,'manifest set'):g.package_mode(p,c)
-    def test_new_ctor_ir_remains_unobserved(self):
+    def test_observed_ctor_ir_is_exact_and_missing_observations_still_reject(self):
         m=json.loads((ROOT/'tools/crafting-match-boundaries.json').read_bytes())['tconstruct_boundaries']
+        expected={
+            'empty':([42,0],'1e84c586bff87f44d88440bc32d0bb8f72a140325977f61a302e893dbcc4729c'),
+            'from_sources':([42,4],'10979e222d48a73a212516bb5f05b977d4ee9fedf4a4c840a27eb2ec10b8dd7b'),
+        }
         self.assertEqual(len(m),2)
         for row in m:
-            self.assertIsNone(row['node']);self.assertIsNone(row['function_fingerprint'])
+            self.assertEqual((row['node'],row['function_fingerprint']),expected[row['target'].split('::')[-1]])
             p={'schema':6,'injections':[dict(row,mod_id=g.TC)]}
-            with self.assertRaisesRegex(ValueError,'Unobserved'):g.check_order(p,[row])
+            g.check_order(p,[row])
+            for key in ('node','function_fingerprint'):
+                missing=copy.deepcopy(row);missing[key]=None
+                with self.subTest(target=row['target'],missing=key),self.assertRaisesRegex(ValueError,'Unobserved'):
+                    g.check_order(p,[missing])
+                drift=copy.deepcopy(p);drift['injections'][0][key]=[42,99] if key=='node' else '0'*64
+                with self.subTest(target=row['target'],drift=key),self.assertRaises(ValueError):
+                    g.check_order(drift,[row])
     def test_non_cancellable_only_exact_constructor(self):
         m={'target':next(iter(g.BOOTSTRAP)),'injection_id':next(iter(g.BOOTSTRAP.values())),
            'mod_id':g.TC,'file':'native.rs','kind':'HEAD','cancellable':False,'priority':100,'bindings':[],
@@ -109,6 +120,13 @@ class ContractTests(unittest.TestCase):
         return p,c
     def test_exact_synthetic_dependency_closure(self):
         p,c=self.closure();g.verify_closure(p,Path('/unused'),'full-tconstruct',c)
+        # Official schema 6 omits visibility for the exact pub(crate) variant.
+        c['modes']['full-tconstruct']['modules'][0]['visibility']=None
+        del p['modules'][0]['visibility']
+        g.verify_closure(p,Path('/unused'),'full-tconstruct',c)
+        p['modules'][0]['visibility']='pub'
+        with self.assertRaisesRegex(ValueError,'module identity'):
+            g.verify_closure(p,Path('/unused'),'full-tconstruct',c)
     def test_changed_or_duplicate_dependency_module_reject(self):
         p,c=self.closure()
         for change in ['source','duplicate','owner','sibling']:

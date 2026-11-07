@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "integration_input": "e9073648b3c4cf4d49f27bc2e1ed60997f430586",
+  "controller": "7082868bcbf37ed3eabd32f40ddf0cf08a4ee30c",
+  "run": "https://github.com/sofia-gros/horizon-mods/actions/runs/42328100345",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "artifacts": {
+    "plan.json": {
+      "bytes": 6431102,
+      "sha256": "dc4fbc3c54144f2f95728986b4e9bfb3700235655b18a3af3c8d1a6113dcb86b"
+    },
+    "receipt.json": {
+      "bytes": 235405,
+      "sha256": "4e065cddbddd5bf8ed7a7214be42e0d4a3b60f86de547e8a7df6efd10c9e7304"
+    },
+    "package-maps.json": {
+      "bytes": 179225,
+      "sha256": "a4bf579358e71e8c8179bc2bc0f8fce569b9d4c59ff9a3ebecfc350215376002"
+    },
+    "manifest.json": {
+      "bytes": 575,
+      "sha256": "cb4be26cc97e07c03bec9a9287ece0eb85b94cbb585c3badf50e342f4dd56df4"
+    }
+  },
+  "official_visibility_contract": {
+    "crates/horizon-mixins-core/src/plan.rs": {
+      "sha256": "5226f837305a778f73cf428411d5cf7a1cf1b8b33de2fd603a1459e7863e32db",
+      "git_blob": "4b46623ec6f9cda3dd5e79e51aa6fc2c7372a839",
+      "url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/plan.rs"
+    },
+    "crates/horizon-mixins-core/src/manifest.rs": {
+      "sha256": "911ee15fcfd4ff5f66f97c068e3d59c600f924da82789d5de8c0e628feab3d0c",
+      "git_blob": "c0b5b57c5ae55f151cb8736a664d07a589520cfb",
+      "url": "https://github.com/horizon-rust/horizon-mixins/blob/5a64af938ec86b00d53d16a408aabc0038fb3e57/crates/horizon-mixins-core/src/manifest.rs"
+    }
+  },
+  "constructor_observations": [
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "crafting-shared-empty-startup",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "target": "horizon_client_lib::crafting::Recipes::empty",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "node": [
+        42,
+        0
+      ],
+      "function_fingerprint": "1e84c586bff87f44d88440bc32d0bb8f72a140325977f61a302e893dbcc4729c",
+      "bindings": [],
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "helper_sha256": "99e9a9f1c523ada4c42060a6ada88e2b3df8d84f5afa53db155fd5c6c4f86792"
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "injection_id": "crafting-shared-sources-startup",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "target": "horizon_client_lib::crafting::Recipes::from_sources",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "node": [
+        42,
+        4
+      ],
+      "function_fingerprint": "10979e222d48a73a212516bb5f05b977d4ee9fedf4a4c840a27eb2ec10b8dd7b",
+      "bindings": [],
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      },
+      "helper_sha256": "b29394b2230c1363801ba93e89b2b099017fb6b3016f5d0546b89c4cec731632"
+    }
+  ],
+  "crate_visibility_observations": [
+    {
+      "mod_id": "pluto_native_creative",
+      "mod_version": "0.1.0",
+      "module_id": "pluto_native_creative-recipe-transactions",
+      "file": "crates/horizon-client/src/game/recipe_book.rs",
+      "name": "pluto_transactions",
+      "manifest_visibility": "pub(crate)",
+      "actual_ir_visibility_present": false,
+      "closure_visibility": null,
+      "source_sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2",
+      "callers": [
+        {
+          "section": "modules",
+          "mod_id": "tconstruct_native",
+          "id": "station-transaction",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "references": [
+            {
+              "line": 3,
+              "source": "use super::pluto_transactions::{self, RegistrationError, Transaction};"
+            },
+            {
+              "line": 15,
+              "source": "let result = REGISTERED.get_or_init(|| pluto_transactions::register(Transaction {"
+            }
+          ]
+        },
+        {
+          "section": "injections",
+          "mod_id": "pluto_native_creative",
+          "id": "pluto_native_creative-recipe-placement-click",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "references": [
+            {
+              "line": 7,
+              "source": "crate::game::recipe_book::pluto_transactions::attempt(game, book_type, entry_index, use_max)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "crafting-stored-deny-policies",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "name": "tconstruct_crafting_deny_policies",
+      "manifest_visibility": "pub(crate)",
+      "actual_ir_visibility_present": false,
+      "closure_visibility": null,
+      "source_sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02",
+      "callers": [
+        {
+          "section": "modules",
+          "mod_id": "tconstruct_native",
+          "id": "crafting-shared-bootstrap",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "references": [
+            {
+              "line": 34,
+              "source": "super::tconstruct_crafting_deny_policies::register,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "crafting-shared-bootstrap",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "name": "tconstruct_crafting_bootstrap",
+      "manifest_visibility": "pub(crate)",
+      "actual_ir_visibility_present": false,
+      "closure_visibility": null,
+      "source_sha256": "382ca263fa9510f6df5adb2c98c474b6cc7d25672735a29577ab0ca68ec93a65",
+      "callers": [
+        {
+          "section": "injections",
+          "mod_id": "tconstruct_native",
+          "id": "crafting-shared-empty-startup",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "references": [
+            {
+              "line": 2,
+              "source": "crate::crafting::tconstruct_crafting_bootstrap::ensure();"
+            }
+          ]
+        },
+        {
+          "section": "injections",
+          "mod_id": "tconstruct_native",
+          "id": "crafting-shared-sources-startup",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "references": [
+            {
+              "line": 2,
+              "source": "crate::crafting::tconstruct_crafting_bootstrap::ensure();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "overslime-derivation",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "name": "tconstruct_overslime_derivation",
+      "manifest_visibility": "pub(crate)",
+      "actual_ir_visibility_present": false,
+      "closure_visibility": null,
+      "source_sha256": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f",
+      "callers": [
+        {
+          "section": "modules",
+          "mod_id": "tconstruct_native",
+          "id": "crafting-shared-bootstrap",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "references": [
+            {
+              "line": 35,
+              "source": "super::tconstruct_overslime_derivation::register);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "mod_version": "0.5.0",
+      "module_id": "station-transaction",
+      "file": "crates/horizon-client/src/game/recipe_book.rs",
+      "name": "tconstruct_station_transaction",
+      "manifest_visibility": "pub(crate)",
+      "actual_ir_visibility_present": false,
+      "closure_visibility": null,
+      "source_sha256": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9",
+      "callers": [
+        {
+          "section": "modules",
+          "mod_id": "tconstruct_native",
+          "id": "source-crafting-station",
+          "file": "crates/horizon-client/src/game.rs",
+          "references": [
+            {
+              "line": 20,
+              "source": "crate::game::recipe_book::tconstruct_station_transaction::ensure();"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "before_and_after": {
+    "pluto-lib/tools/crafting-match-boundaries.json": {
+      "before_sha256": "f15874909c9ebbd3005ed1a949fe1c15e071edc20330f52db56b2fa432bb20ab",
+      "after_sha256": "15304be319f8a55a16044e5b41e71fbc0f3e9f8f5478a4cb0cc6ececc3c47562"
+    },
+    "pluto-lib/tools/crafting-composition-closure.json": {
+      "before_sha256": "232d378186197e7197278750b77893922c3040ee75cbe825d2fd6dccb42b0aad",
+      "after_sha256": "42a414087d229deca0afe43869734ebe7b5a163ae3143f29df5d66a7e98e6422"
+    },
+    "pluto-lib/tests/test_crafting_composition_contract.py": {
+      "before_sha256": "42cf18add2efeb65cb43e0dbb6a2eab59b1d42e36333f6c7ad4e0122c28a9fa9",
+      "after_sha256": "9ff2f5ba07bd59dd70d573e9e9f89165ae22c55f5143768dcfef5777d6dfeba7"
+    }
+  },
+  "unchanged_checker_sources": {
+    "pluto-lib/tools/check_recipe_placement_plan.py": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+    "pluto-lib/tools/check_crafting_match_plan.py": "1a41ab9d46c4a9bfebcb34e79f33fe42dbcc4b8cfef4ffec2dc86dda6ef12597",
+    "pluto-lib/tools/check_native_plan.py": "78d3e2b821fe8712cd09f5e7b586c2e5a3aea9deae94c8ed4c2d613e80bf16bc"
+  },
+  "unchanged_closure_checks": {
+    "boundary_count": 6,
+    "dependency_modules": 16,
+    "native_input_hashes": 6,
+    "single_inventory_crate_exact": true,
+    "station_states_exact": true,
+    "retained_lan_hook_exact": true,
+    "protected_hook_and_module_sets_exact": true,
+    "legacy_overslime_modules": [
+      "lib-source-overslime",
+      "lib-source-overslime-crafting"
+    ],
+    "legacy_station_transaction_exact_suffix": true,
+    "legacy_plan_sha256": "7139236d6484c9cf5a862d3e8358d60b2b4e0bd3a8c4c0968c6d313735670f8b"
+  },
+  "checks": {
+    "source_synthetic": 43,
+    "source_synthetic_passed": true,
+    "actual_package_tests_retained": 2,
+    "actual_package_tests_executed": false,
+    "actual_ir_predicate_comparison": true,
+    "full_guard_reexecution": false,
+    "new_plan": false,
+    "apply": false,
+    "rust": false,
+    "host_type": false,
+    "startup": false,
+    "gameplay": false
+  },
+  "scope": "Observed metadata and test expectations only. No checker acceptance widening, manifest or Rust changes. Prior source-only cutoff evidence remains historical.",
+  "published_plan_result": "https://github.com/sofia-gros/horizon-mods/blob/c50b6acbe7f7eebe1032149dbcbf8cf6033b61f4/pluto-lib/docs/playtest-next-plan-result-20261107.json"
+}
