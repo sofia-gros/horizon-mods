@@ -9,12 +9,12 @@
   "semantics": "Every PR has one implementation owner. Source adoption, existing-production checks, passing source tests, actual native tests, main inclusion and closing the original PR are separate stages. Unreconciled does not mean absent. No old PR is closed by this source intake.",
   "counts": {
     "fixed_snapshot": 265,
-    "explicit_pr_source_intakes": 5,
-    "not_individually_reconciled": 259,
+    "explicit_pr_source_intakes": 7,
+    "not_individually_reconciled": 257,
     "latest_complete_plan_passed": 1,
     "latest_game_build_passed": 0,
     "gameplay_verified": 0,
-    "individually_reviewed_scopes": 6,
+    "individually_reviewed_scopes": 8,
     "verified_main_integrations": 0,
     "prs_closed": 0
   },
@@ -717,10 +717,16 @@
       "own_delta_base_sha": "6d980fa32cf9295c54845946d56ba2340c10a327",
       "own_diff_sha256": "678f226db128d68f4cc49c1014dfc5ec0f685f456cb3813b5a6a392815397293",
       "research_partition": "recipe_advancement",
-      "intake_status": "not_individually_reconciled",
+      "intake_status": "own_delta_source_adopted_pending_build",
       "feature_completion_verified": false,
       "owner": "recipes",
-      "workflow_stage": "queued"
+      "workflow_stage": "work_branch_source_tests_passed_pending_native_build",
+      "source": "7fc5b9d77262338afd215c0a702ea9412146ee33",
+      "scope": "All 44 own-delta paths adapted; twenty Seared recipe unlock resources use existing native advancement/reward support. Existing recipes and output registrations retained.",
+      "tests": "Two resource checks passed; complete-package test and live events not run",
+      "record": "integration/recipe-intake-20261107/seared-unlocks.json",
+      "main_merged": false,
+      "pr_closed": false
     },
     {
       "number": 736,
@@ -741,10 +747,16 @@
       "own_delta_base_sha": "9567553edd0c932d9ceca32524ef44b008904771",
       "own_diff_sha256": "a67333f6d52e9d51c393d225b4000b752e742de107628fe8263c4a6e261d0865",
       "research_partition": "guide",
-      "intake_status": "not_individually_reconciled",
+      "intake_status": "own_delta_source_adopted_pending_build",
       "feature_completion_verified": false,
       "owner": "guide",
-      "workflow_stage": "queued"
+      "workflow_stage": "work_branch_source_tests_passed_pending_native_build",
+      "source": "5dde879335d73c69ab6a070ee5dccd90bcd3f89c",
+      "scope": "Adapted Tool Tanks page connects to existing Guide display and documents existing Pluto fluid read/write/resize behavior and its limits. Five implementation inputs unchanged.",
+      "tests": "15 selected source checks passed including prior broad-tool checks; actual Rust/package/UI not run",
+      "record": "integration/guide-intake-20261107/tool-tanks.json",
+      "main_merged": false,
+      "pr_closed": false
     },
     {
       "number": 738,
@@ -3314,6 +3326,32 @@
       "scope": "Seven Mighty broad-tool pages and bounded current-source eligibility use existing Guide/Pluto navigation and text query. No new shared API or hook.",
       "tests": "9 source/inverse checks passed, including finite 160-case oracle; Rust, package and UI not run",
       "record": "integration/guide-intake-20261107/broad-tools.json"
+    },
+    {
+      "number": 735,
+      "source": "7fc5b9d77262338afd215c0a702ea9412146ee33",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "All 44 own-delta paths adapted; twenty Seared recipe unlock resources use existing native advancement/reward support. Existing recipes and output registrations retained.",
+      "tests": "Two resource checks passed; complete-package test and live events not run",
+      "record": "integration/recipe-intake-20261107/seared-unlocks.json"
+    },
+    {
+      "number": 737,
+      "source": "5dde879335d73c69ab6a070ee5dccd90bcd3f89c",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Adapted Tool Tanks page connects to existing Guide display and documents existing Pluto fluid read/write/resize behavior and its limits. Five implementation inputs unchanged.",
+      "tests": "15 selected source checks passed including prior broad-tool checks; actual Rust/package/UI not run",
+      "record": "integration/guide-intake-20261107/tool-tanks.json"
     }
-  ]
+  ],
+  "current_open_inventory": {
+    "checked_at": "2026-11-07",
+    "pages": [
+      100,
+      100,
+      65
+    ],
+    "total": 265,
+    "fixed_snapshot_matches": true
+  }
 }

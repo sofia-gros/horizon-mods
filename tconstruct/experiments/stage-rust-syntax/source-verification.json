@@ -1,0 +1,28 @@
+{
+  "actual_generated_file_verified": false,
+  "actual_local_proposed_gate_cases": 3,
+  "base": "8360105dc27ee056df191db873853206b4dd3dc9",
+  "schema": 1,
+  "source_sha256": {
+    "tconstruct/docs/local-rust-syntax-result-20261107.json": "d9504a2ac1e807ce2ad1d630fab9fb9403cbb8482d6017a5f17bb94565af77e5",
+    "tconstruct/docs/local-rust-syntax-result-20261107.md": "0881f0f0083c14626b5af52ea0196b51f4d9777f2c5fc1ebfb2788f16dbf0bb6",
+    "tconstruct/experiments/stage-rust-syntax/README.md": "ece62663334c100de393be96e3bdbe6748a26e966f84376faa050765558e64a6",
+    "tconstruct/experiments/stage-rust-syntax/inverse.json": "1e870e3dc9a2fe332d2f7e8d2f66307974eeebd3b105b62a9af2e3173c961e67",
+    "tconstruct/tests/test_stage.py": "109e60552060c158ef400f0aed63eeb4ab2f6e36d2da7b1f01eaa63e0b2c015a",
+    "tconstruct/tests/test_stage_float_range_connection.py": "ff0bfb189bb3b698a9cd3aae09df88d8a2a60e59c575142ca94732a08afb57d0",
+    "tconstruct/tests/test_stage_rust_syntax.py": "f87ad7e4eb75e67f539d2ede1c74522157bedde588332f2236de5cfb69e2fd81",
+    "tconstruct/tests/windows_source_layers.py": "9b970dc8181618e02316a414282bcde2b10cb9bde2c7ede8efc5c5dc74fd3c76",
+    "tconstruct/tools/play_windows_latest.py": "90b927b130e90fec1159c1b806b954cf21913eb33e2db80508871dc752a0dd15",
+    "tconstruct/tools/stage.py": "7817cae074e4ea68e508c61bc57eb92065de5557f2dc56c36e2cbd1e22dac695",
+    "tconstruct/tools/stage_rust_syntax.py": "c9ecb9e1771c399c33db4c5df7de75f901db59579897ea17ff5ad347a2cbfc52"
+  },
+  "tests": {
+    "log_bytes": 19392,
+    "log_sha256": "f7a331b68e65f9e394712fbc955ae987e733b27b7028b2a6c419acaf19b35842",
+    "passed": true,
+    "pure": 136,
+    "tiny_git_fake_cli": 1,
+    "total": 137
+  },
+  "windows_or_compile_executed": false
+}

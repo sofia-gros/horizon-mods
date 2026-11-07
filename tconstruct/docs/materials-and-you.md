@@ -157,7 +157,8 @@ Excavator, Broad Axe, Scythe, Cleaver and Longbow only when the current tool
 item and all displayed component choices are registered, the current
 recipe/definition yields inputs, and the loaded source page names that tool.
 Current tag membership controls inclusion; source text is not a tool registry.
-Javelin, external tool additions and the tank advice page remain omitted.
+Javelin and external tool additions remain omitted. Tool Tanks uses a separate
+port-adapted page rather than the original screenshot.
 
 Seven pinned source descriptions/properties use the existing tool/part preview,
 text overflow, group headings and chapter-index path. The required chapter
@@ -175,3 +176,28 @@ remain unchanged. No new generic registry or API is needed for these
 TConstruct-specific source pages. Rust eligibility tests are added but not run.
 Host compilation, in-game layout, actual assembly, save/reload, localization
 refresh and LAN remain unverified for this delta.
+
+## Tool-tank instructions and capacity loss warning
+
+Mighty's previously omitted Tool Tanks entry now has a port-adapted text page.
+It explains the existing 1,000 mB-per-level Tank and supported fluid-ability
+capacity contribution, controller container slots and direction modes, cursor
+fill/empty actions, and held-tool interactions with supported tank blocks.
+The page distinguishes fluid identity/metadata, output-space requirements and
+the unsupported tagged-fluid LAN path.
+
+It also warns players to empty a tool before reducing its capacity: the current
+Station rebuild clamps excess fluid to the new capacity and removes contents
+when the final handler is removed. This documents existing behavior rather
+than changing it. The original source screenshot is not used because its
+numbered controls do not describe the port UI; source modifier examples are
+not presented as implemented effects.
+
+The pinned source page is retained as a fixture with attribution. This is
+the own-delta intake of PR #737 onto 3a5a12e; no stacked branch snapshot or
+new fluid mechanics are adopted. Existing Pluto stack-fluid read/write/resize
+remain the only storage implementation. Current index-based local/guest transfer
+branches replace the historical test spelling without removing its directional
+assertion. Exact source/inverse checks are recorded in
+integration/guide-intake-20261107/tool-tanks.json. Rust, package, host, actual
+GUI interactions, save/reload and LAN remain unverified for this delta.

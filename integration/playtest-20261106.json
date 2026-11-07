@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "integration/tinkers-latest-playtest-20261106",
-  "stage": "Three selected PR source groups are integrated using existing Pluto capabilities and native resource paths. Source checks pass, but the latest ordinary composition has not completed a native build. The last Windows build reached plan, all guards and apply before the known generated float-range syntax failure.",
+  "stage": "Five selected PR source groups now reuse existing Pluto capabilities/native resource paths. The repaired float-range case has passed an actual local official Rust parser; normal stage now requires a syntax gate after repair. The latest full composition still awaits native build and main inclusion.",
   "requested_target": {
     "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
     "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
@@ -586,6 +586,30 @@
       "old_prs_closed": false,
       "guard_metadata_changed": false,
       "guard_dependency_scope": "The 17 current ordinary guard metadata JSON files have no direct pin for the three changed consumer modules. Existing protected hook payloads and manifests are unchanged; a fresh normal plan/guard/build is still required."
+    },
+    "local_rust_syntax": {
+      "source": "968f3e6b62e8a371bf1171dc2225a58868de1e72",
+      "official_release": "1.99.1",
+      "actual_parser": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+      "cases": 8,
+      "accepted_valid_or_repaired": 5,
+      "rejected_invalid": 3,
+      "actual_prior_generated_file_recovered": false,
+      "whole_official_source_derived_repair_exact": true,
+      "central_new_source_fixture_tests": 10,
+      "selected_owner_source_tests": 137,
+      "record": "tconstruct/docs/local-rust-syntax-result-20261107.json",
+      "actual_next_stage_or_build": false
+    },
+    "generated_syntax_gate": {
+      "position": "after mandatory full guards, official apply and exact one-byte repair",
+      "target": "crates/horizon-world/src/worldgen/structure/start.rs",
+      "stdin": true,
+      "recursive": false,
+      "writes_source": false,
+      "whole_project_type_check": false,
+      "receipt": "rust-syntax-receipt.json",
+      "timeout_seconds": 30
     }
   },
   "safety": {
@@ -1067,6 +1091,22 @@
       "scope": "Seven Mighty broad-tool pages and bounded current-source eligibility use existing Guide/Pluto navigation and text query. No new shared API or hook.",
       "tests": "9 source/inverse checks passed, including finite 160-case oracle; Rust, package and UI not run",
       "record": "integration/guide-intake-20261107/broad-tools.json"
+    },
+    {
+      "number": 735,
+      "source": "7fc5b9d77262338afd215c0a702ea9412146ee33",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "All 44 own-delta paths adapted; twenty Seared recipe unlock resources use existing native advancement/reward support. Existing recipes and output registrations retained.",
+      "tests": "Two resource checks passed; complete-package test and live events not run",
+      "record": "integration/recipe-intake-20261107/seared-unlocks.json"
+    },
+    {
+      "number": 737,
+      "source": "5dde879335d73c69ab6a070ee5dccd90bcd3f89c",
+      "intake_status": "own_delta_source_adopted_pending_build",
+      "scope": "Adapted Tool Tanks page connects to existing Guide display and documents existing Pluto fluid read/write/resize behavior and its limits. Five implementation inputs unchanged.",
+      "tests": "15 selected source checks passed including prior broad-tool checks; actual Rust/package/UI not run",
+      "record": "integration/guide-intake-20261107/tool-tanks.json"
     }
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "title": "Tool Tanks",
+  "text": [
+    {
+      "text": "Partial port guide: Tank upgrades and supported Slurping, Spilling and Splashing handlers contribute 1,000 mB per level when the Station accepts and rebuilds the tool. Supported material or fixed traits can also contribute capacity. A stored tank does not establish support for every source modifier or fluid effect."
+    },
+    {
+      "text": "To transfer fluid in a Smeltery controller, place one tank-bearing tool in the container input and keep the output slot empty. The direction control cycles automatic, empty item and fill item modes. Automatic tries to empty the tool first, then fills it if no fluid moved. Take the changed tool from the output slot.",
+      "paragraph": true
+    },
+    {
+      "text": "You can also carry the tool on the cursor: left-click a fluid layer in the main tank to fill the tool, or right-click the main tank to empty it. Clicking a layer with an empty cursor selects the machine's bottom fluid instead. Supported Seared or Scorched tank blocks also accept a compatible held tool through their container-transfer interaction.",
+      "paragraph": true
+    },
+    {
+      "text": "The tool stores one fluid identity at a time. A different fluid or different fluid metadata cannot be mixed into it. Transfers require a known fluid, available space and valid stored contents; an occupied output blocks slot transfers. Tagged fluid transfers over LAN remain unsupported. The tool is moved with its existing damage and other data, not replaced by a fresh tool.",
+      "paragraph": true
+    },
+    {
+      "text": "Empty the tool before removing tank capacity or changing its materials. A successful rebuild that shrinks capacity discards fluid above the new limit, and removing the final tank handler clears the stored fluid. Malformed stored contents reject the rebuild instead of being repaired silently.",
+      "paragraph": true
+    },
+    {
+      "text": "This page does not enable the original Spitting, Melting or Smashing gameplay, arbitrary external tank handlers, or the original illustrated GUI. Those source examples are not a list of completed port features. Actual screen interactions, save/reload and LAN behavior have not been verified for this guide.",
+      "paragraph": true
+    }
+  ]
+}

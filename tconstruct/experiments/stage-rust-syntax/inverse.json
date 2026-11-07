@@ -1,0 +1,71 @@
+{
+  "base": "8360105dc27ee056df191db873853206b4dd3dc9",
+  "files": {
+    "tconstruct/tools/stage.py": {
+      "before_sha256": "231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae",
+      "after_sha256": "7817cae074e4ea68e508c61bc57eb92065de5557f2dc56c36e2cbd1e22dac695",
+      "edits": [
+        [
+          "import stage_package_contract as package_contract\nimport stage_float_range_repair\nfrom pathlib import Path\n\n",
+          "import stage_package_contract as package_contract\nimport stage_float_range_repair\nimport stage_rust_syntax\nfrom pathlib import Path\n\n"
+        ],
+        [
+          "    subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)\n    stage_float_range_repair.repair(original, output / 'modded', source, plan, horizon_revision=head, mixins_revision=revision)\n",
+          "    subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)\n    stage_float_range_repair.repair(original, output / 'modded', source, plan, horizon_revision=head, mixins_revision=revision)\n    stage_rust_syntax.check_generated(output / 'modded', output)\n"
+        ]
+      ]
+    },
+    "tconstruct/tools/play_windows_latest.py": {
+      "before_sha256": "613df3f2b1d4f743cff5eea6ff1bf789f4139315b2f72b8744a4b8688ab71d10",
+      "after_sha256": "90b927b130e90fec1159c1b806b954cf21913eb33e2db80508871dc752a0dd15",
+      "edits": [
+        [
+          "MODS_FEATURE = 'horizon-client/mods'\nPROFILE = 'fast'\nSTAGE_SHA = '231b683536fb2e2fc8ab4948cef7173eea44d09d72e00d6906145c461d7359ae'\n# These are read budgets, not claims about maximum compiler/resource disk growth.\nMAX_FILES = 100000\n",
+          "MODS_FEATURE = 'horizon-client/mods'\nPROFILE = 'fast'\nSTAGE_SHA = '7817cae074e4ea68e508c61bc57eb92065de5557f2dc56c36e2cbd1e22dac695'\n# These are read budgets, not claims about maximum compiler/resource disk growth.\nMAX_FILES = 100000\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/windows_source_layers.py": {
+      "before_sha256": "26cb23e3c994ee3df93ffe6eed6289a3f1fc1741d901aaf7afd050b503a5dbf3",
+      "after_sha256": "9b970dc8181618e02316a414282bcde2b10cb9bde2c7ede8efc5c5dc74fd3c76",
+      "edits": [
+        [
+          "\n\ndef before_float_range(relative, raw):\n    delta = json.loads((ROOT/'experiments/stage-float-range/inverse.json').read_bytes())\n    row = delta['files'].get(relative)\n",
+          "\n\ndef before_rust_syntax(relative, raw):\n    delta = json.loads((ROOT/'experiments/stage-rust-syntax/inverse.json').read_bytes())\n    row = delta['files'].get(relative)\n    return undo(raw, row) if row is not None else raw\n\n\ndef before_float_range(relative, raw):\n    raw = before_rust_syntax(relative, raw)\n    delta = json.loads((ROOT/'experiments/stage-float-range/inverse.json').read_bytes())\n    row = delta['files'].get(relative)\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_stage_float_range_connection.py": {
+      "before_sha256": "b4a2c067e876b1151320725332e848f1737014bf2a4851f6c4af6af5b8e9d15d",
+      "after_sha256": "ff0bfb189bb3b698a9cd3aae09df88d8a2a60e59c575142ca94732a08afb57d0",
+      "edits": [
+        [
+          "import unittest\n\nfrom windows_source_layers import before_float_range, undo\n\nROOT=Path(__file__).resolve().parents[1]\n",
+          "import unittest\n\nfrom windows_source_layers import before_float_range, before_rust_syntax, undo\n\nROOT=Path(__file__).resolve().parents[1]\n"
+        ],
+        [
+          "\ndef tail():\n    tree=ast.parse((ROOT/'tools/stage.py').read_bytes())\n    block=next(n for n in tree.body if isinstance(n,ast.With))\n    return block.body[-2:]\n",
+          "\ndef tail():\n    tree=ast.parse(before_rust_syntax('tconstruct/tools/stage.py',(ROOT/'tools/stage.py').read_bytes()))\n    block=next(n for n in tree.body if isinstance(n,ast.With))\n    return block.body[-2:]\n"
+        ]
+      ]
+    },
+    "tconstruct/tests/test_stage.py": {
+      "before_sha256": "73a18d4c03703f7190fecbbf7500eff0b79f3975781894e1094300a0d80418c2",
+      "after_sha256": "109e60552060c158ef400f0aed63eeb4ab2f6e36d2da7b1f01eaa63e0b2c015a",
+      "edits": [
+        [
+          "        json.dump({'fixture_only': True, 'after_apply': True}, stream)\n    return {'fixture_only': True}\n\"\"\", encoding='utf-8')\n            revision = git(repos[1], 'rev-parse', 'HEAD')\n",
+          "        json.dump({'fixture_only': True, 'after_apply': True}, stream)\n    return {'fixture_only': True}\n\"\"\", encoding='utf-8')\n            # Fake CLI fixtures never launch a real Rust parser.\n            (project / 'tools/stage_rust_syntax.py').write_text(\"\"\"import json\ndef check_generated(generated, output):\n    assert json.loads((output / 'float-range-repair-receipt.json').read_bytes()) == {'fixture_only': True, 'after_apply': True}\n    assert generated == output / 'modded'\n    (output / 'rust-syntax-receipt.json').write_text(json.dumps({'fixture_only': True, 'after_repair': True}))\n\"\"\", encoding='utf-8')\n            revision = git(repos[1], 'rev-parse', 'HEAD')\n"
+        ],
+        [
+          "            self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')\n            self.assertEqual(json.loads((project / 'target/float-range-repair-receipt.json').read_bytes()), {'fixture_only': True, 'after_apply': True})\n            rejected_output = project / 'guard-rejected'\n            rejected_guard = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(rejected_output)], env=dict(env, FIXTURE_REJECT_PREFLIGHT='1'), capture_output=True)\n",
+          "            self.assertEqual((project / 'target/modded/applied').read_text(), 'applied')\n            self.assertEqual(json.loads((project / 'target/float-range-repair-receipt.json').read_bytes()), {'fixture_only': True, 'after_apply': True})\n            self.assertEqual(json.loads((project / 'target/rust-syntax-receipt.json').read_bytes()), {'fixture_only': True, 'after_repair': True})\n            rejected_output = project / 'guard-rejected'\n            rejected_guard = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(rejected_output)], env=dict(env, FIXTURE_REJECT_PREFLIGHT='1'), capture_output=True)\n"
+        ],
+        [
+          "            self.assertFalse((rejected_output / 'modded').exists())\n            self.assertFalse((rejected_output / 'float-range-repair-receipt.json').exists())\n            failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)\n            self.assertNotEqual(failed.returncode, 0)\n",
+          "            self.assertFalse((rejected_output / 'modded').exists())\n            self.assertFalse((rejected_output / 'float-range-repair-receipt.json').exists())\n            self.assertFalse((rejected_output / 'rust-syntax-receipt.json').exists())\n            failed = subprocess.run([*stage_args(), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)\n            self.assertNotEqual(failed.returncode, 0)\n"
+        ]
+      ]
+    }
+  }
+}

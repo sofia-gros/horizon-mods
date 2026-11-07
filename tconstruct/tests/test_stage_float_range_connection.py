@@ -6,13 +6,13 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 
-from windows_source_layers import before_float_range, undo
+from windows_source_layers import before_float_range, before_rust_syntax, undo
 
 ROOT=Path(__file__).resolve().parents[1]
 
 
 def tail():
-    tree=ast.parse((ROOT/'tools/stage.py').read_bytes())
+    tree=ast.parse(before_rust_syntax('tconstruct/tools/stage.py',(ROOT/'tools/stage.py').read_bytes()))
     block=next(n for n in tree.body if isinstance(n,ast.With))
     return block.body[-2:]
 

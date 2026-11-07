@@ -40,7 +40,7 @@ class MightyBroadToolPages(unittest.TestCase):
         self.assertEqual(labels['tools.partial'], 'Broad Tools (Partial)')
         for name in ['tools.partial.notice_title', 'tools.partial.notice', 'tools.partial.tool_notice']:
             self.assertTrue(labels[name].strip())
-        self.assertIn('Javelins and the tank page remain omitted', labels['tools.partial.notice'])
+        self.assertIn('Javelins and external tool additions remain omitted', labels['tools.partial.notice'])
         self.assertIn('not verified Horizon effect coverage', labels['tools.partial.notice'])
         self.assertIn('component preview is not a guarantee', labels['tools.partial.tool_notice'])
 

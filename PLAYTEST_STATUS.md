@@ -2,6 +2,14 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Further PR intakes and local Rust syntax evidence, 2026-11-07
+
+PR #735 adds twenty Seared recipe unlocks through the existing native advancement/reward path; its complete own source delta is adapted and two resource checks passed. PR #737 connects the Tool Tanks explanation to the existing Guide route, with fifteen selected checks including the earlier broad-tool regressions. The underlying Pluto fluid read/write/resize and TConstruct transfer implementation remain unchanged. Package, live event and UI behavior have not been newly verified.
+
+The official Linux Rust1.99.1 parser now accepted all five valid/repaired cases and rejected all three malformed float-range cases. A damaged copy of the full official start.rs was repaired back to its exact original bytes and parsed successfully. The discarded previous Windows generated file was not available; these inputs are original-derived, not that file. [The result](tconstruct/docs/local-rust-syntax-result-20261107.json) preserves the actual outcomes and limits.
+
+Normal staging now requires the selected formatter to parse the repaired generated target through stdin, without rewriting it, immediately after guarded apply and repair. Ten central new source/fixture checks passed; the owner reports 137 selected checks. This gate covers that generated file's syntax, not Rust type checking or all project files. No heavy rerun or main merge is implied by this source commit.
+
 ## Three selected PR source groups, 2026-11-07
 
 - **#922 portable storage:** two tank-input/result checks now delegate to existing Pluto lossless item storage. Recursive retained Wire rejection is shared rather than copied. Eight source checks passed; five added Rust tests are not yet executed.

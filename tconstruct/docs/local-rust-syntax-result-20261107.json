@@ -1,0 +1,245 @@
+{
+  "cases": [
+    {
+      "expected_exit": 0,
+      "matched_expected": true,
+      "name": "version",
+      "returncode": 0,
+      "seconds": 0.02523004199611023,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5599925a145edaa750ffdd40d2dc1adb031362d0932dd5935e20440a5f51d2be",
+      "version": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)"
+    },
+    {
+      "expected_exit": 0,
+      "input_bytes": 69,
+      "input_sha256": "9e79262bd9322dd1ab6b399dbe45691d3ec4e23f69be8d88acc8c48cbe2782f4",
+      "matched_expected": true,
+      "name": "minimal-valid",
+      "returncode": 0,
+      "seconds": 0.021976726013235748,
+      "source_unchanged": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8cb599be196951f11de03c0ad43da0748047872309f42437ad8e1432f6d3f650"
+    },
+    {
+      "expected_exit": 1,
+      "input_bytes": 68,
+      "input_sha256": "dae0d548aa94da5906e66468ca2cc41da4af1cb32bf597df95cd179eecbf89f3",
+      "matched_expected": true,
+      "name": "minimal-bad",
+      "returncode": 1,
+      "seconds": 0.02212088499800302,
+      "source_unchanged": true,
+      "stderr_sha256": "70bc344a486a6d94616983e063f3b7f5eaac5cf2ea2e8a00d675a62c495416f7",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "expected_exit": 1,
+      "input_bytes": 840,
+      "input_sha256": "b270a441409689a3a6fd583fe967595bee5e42aa70cde850b130c81a2ad685eb",
+      "matched_expected": true,
+      "name": "helper-minimal-bad",
+      "returncode": 1,
+      "seconds": 0.02187140699243173,
+      "source_unchanged": true,
+      "stderr_sha256": "e64147e4f6bf121d6d04b6ae8f2dad5ad300e06dcaa1a6c718d5931acc2046e5",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "expected_exit": 0,
+      "input_bytes": 841,
+      "input_sha256": "595b91bb1b5f73336b4b4fcc4e6b448c39e3f3bde32f6b1e88164b4c54de77b6",
+      "matched_expected": true,
+      "name": "helper-minimal-fixed",
+      "returncode": 0,
+      "seconds": 0.0217942209856119,
+      "source_unchanged": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "6d70bf44517ff1fc92e0c3c7a8b98dabb4a51d8dc2514611655f1e237bcc7dae"
+    },
+    {
+      "expected_exit": 0,
+      "input_bytes": 72769,
+      "input_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d",
+      "matched_expected": true,
+      "name": "official-original",
+      "returncode": 0,
+      "seconds": 0.042804349999642,
+      "source_unchanged": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d"
+    },
+    {
+      "expected_exit": 1,
+      "input_bytes": 72768,
+      "input_sha256": "b1ee46694c2816308d7e3470beb50838cc8ea508333bab0ede91c76844a463da",
+      "matched_expected": true,
+      "name": "official-artificial-bad",
+      "returncode": 1,
+      "seconds": 0.022132301004603505,
+      "source_unchanged": true,
+      "stderr_sha256": "65d6f77f6500fbddefdc70a336465c4471527a58e7b3bfa46408d7bed914496c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "expected_exit": 0,
+      "input_bytes": 72769,
+      "input_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d",
+      "matched_expected": true,
+      "name": "official-helper-fixed",
+      "returncode": 0,
+      "seconds": 0.04254612102522515,
+      "source_unchanged": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d"
+    },
+    {
+      "expected_exit": 0,
+      "input_bytes": 46,
+      "input_sha256": "690469bee0f21722e82239cda4c5fbac7bdfad636f38e6930e581e8ca4d1f609",
+      "matched_expected": true,
+      "name": "stdin-nonrecursive",
+      "returncode": 0,
+      "seconds": 0.022397541004465893,
+      "source_unchanged": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c5b2532acbd91d5d5b8154957f7fbecc153a523c2e44f40a1d29f666b50c4919"
+    }
+  ],
+  "compiler_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+  "formatter": {
+    "bytes": 5256344,
+    "member": "rustfmt-1.99.1-x86_64-unknown-linux-gnu/rustfmt-preview/bin/rustfmt",
+    "sha256": "68cb47a2a38daa8ff2ec6d623a2374b0a165d77ec74f1f654216665018c04598"
+  },
+  "formatter_archive": {
+    "content_length": "3135459",
+    "final_url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-unknown-linux-gnu.tar.gz",
+    "sha256": "e3a88008061f485126fe24569c4d3e5a0f49462a06ee6339920f8f202124b13a",
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustfmt-1.99.1-x86_64-unknown-linux-gnu.tar.gz",
+    "version": "1.10.0"
+  },
+  "limits": {
+    "address_space_per_child": 1073741824,
+    "available_ram_floor": 1073741824,
+    "cpu_seconds": 20,
+    "output_file_bytes": 1048576,
+    "tmp_floor": 4294967296,
+    "wall_seconds": 30,
+    "workspace_floor": 10737418240
+  },
+  "manifest_sha256": "fb152be80975c194aa5fc684b2aec3a6e14e2b855efe2faa4e5f8ae6e590f463",
+  "native_compile_executed": false,
+  "official_rust": "1.99.1",
+  "owned_temporary_cleanup": [
+    {
+      "bytes": 56623104,
+      "path": "lib/libLLVM.so.23.1-rust-1.99.1-stable",
+      "sha256": "1d0cc37b9379f39dc78cbf5f4d618d1c41a2f0ade0440ff61d0904dc68ba3075"
+    },
+    {
+      "bytes": 0,
+      "path": "runtime-lib/libLLVM.so.23.1-rust-1.99.1-stable",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 116218880,
+      "path": "runtime-lib-129/libLLVM.so.23.1-rust-1.99.1-stable",
+      "sha256": "5ada8918b91a22cd1e68fc8adb2d5c7e9919bcd33c4815bdbb23ec93469add96"
+    },
+    {
+      "bytes": 84098960,
+      "path": "rustc.tar.xz",
+      "sha256": "2ff05ff9c08a90861e7f6e4065b40a8b87463b4576186fd613871c3e37f2091f"
+    }
+  ],
+  "parser_resource_minima": {
+    "min_available_ram": 1613926400,
+    "min_tmp_free": 4784918528,
+    "min_workspace_free": 10871975936
+  },
+  "parser_source_reference": "https://github.com/rust-lang/rust/blob/58cf8f9c35b355199727627d07ae34a4e2846d67/src/tools/rustfmt/src/formatting.rs#L110-L141",
+  "passed": true,
+  "prior_preparation_failures": [
+    {
+      "cause": "Unconfirmed termination; not a syntax result",
+      "method": "Python XZ extraction",
+      "partial_bytes": 56623104,
+      "status": 137
+    },
+    {
+      "bytes": 0,
+      "cause": "Decoder requires134283928 bytes, greater than128MiB",
+      "method": "native XZ at128MiB",
+      "status": 2
+    },
+    {
+      "cause": "Unexpected EOF; unconfirmed cause, not a syntax result",
+      "method": "native XZ at129MiB",
+      "partial_bytes": 116218880,
+      "status": 2
+    },
+    {
+      "cause": "ELF requires absent musl interpreter and separate rustc driver",
+      "executed": false,
+      "method": "official musl formatter"
+    }
+  ],
+  "proposed_gate": {
+    "expected_outcomes": [
+      true,
+      false,
+      true
+    ],
+    "returncodes": [
+      0,
+      1,
+      0
+    ],
+    "seconds": [
+      0.055849580996437,
+      0.021190452011069283,
+      0.04969939199509099
+    ],
+    "source_sha256": "c9ecb9e1771c399c33db4c5df7de75f901db59579897ea17ff5ad347a2cbfc52"
+  },
+  "runtime": {
+    "archive_bytes": 141445153,
+    "archive_sha256": "85e7c0e6f21636f714e2a42966011364a6cc56b6548126d32144d6ba90904966",
+    "expected_archive_bytes": 141445153,
+    "expected_archive_sha256": "85e7c0e6f21636f714e2a42966011364a6cc56b6548126d32144d6ba90904966",
+    "members": {
+      "libLLVM-23-rust-1.99.1-stable.so": {
+        "bytes": 42,
+        "sha256": "ed06fbed8d297efa92979aeb227a4ce5b87b1a462d0aeac66d093300fad74824"
+      },
+      "libLLVM.so.23.1-rust-1.99.1-stable": {
+        "bytes": 208167760,
+        "sha256": "1cfbe1392a767227b88b33ab6187283e281c63f80f9b1ca9010d9cee5fdf9131"
+      },
+      "librustc_driver-7ed0375ae352bd75.so": {
+        "bytes": 158240640,
+        "sha256": "5a2cd52edba7d15f8d898b92a912638f5b73a089c7c1bfde5604ab45665602c7"
+      }
+    },
+    "min_available_ram": 1470279680,
+    "min_tmp_free": 4785344512,
+    "min_workspace_free": 10871975936,
+    "samples": 19410,
+    "seconds": 10.507937589980429,
+    "url": "https://static.rust-lang.org/dist/2026-10-15/rustc-1.99.1-x86_64-unknown-linux-gnu.tar.gz",
+    "verified": true,
+    "written_bytes": 366408442
+  },
+  "schema": 1,
+  "scope": "Local official Rust syntax parsing only; no type checking, compilation, actual generated stage or Windows claim",
+  "source_identity": {
+    "actual_generated_file_available": false,
+    "original_bytes": 72769,
+    "original_sha256": "ccb0e6ac41d7af0cd893ca5cfc4f659ca9c0b8a2ad17f5148fd70451ed38352d",
+    "previous_run": 42334764929,
+    "previous_run_artifacts": 0,
+    "repair_helper_sha256": "65a9b896106407297b45a60bff8b5ec3e43f1163276c034418b74c06c875b557"
+  }
+}
