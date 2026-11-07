@@ -28,7 +28,7 @@ New LAN guide requests carry a sequence number, and the client accepts a reply o
 
 The source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024×512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.
 
-The modifier chapter overviews remain incomplete. Puny now includes the supported bonus-slot projection described below; the remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
+The modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot and ordinary upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
 
 Puny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.
 
@@ -232,3 +232,37 @@ registry or resolver is introduced. Existing available-block tag callers keep
 their exact function body and errors. Source tests and inverse evidence are
 recorded in integration/guide-intake-20261107/bonus-modifiers.json. Rust,
 full host, current-book refresh, complete response size and LAN are unrun.
+
+
+## Supported ordinary modifier pages
+
+Puny's Upgrades chapter and Mighty's explicitly partial Abilities chapter now
+read source group tag directives and project them onto the Station's actual
+ordinary-modifier support gate, excluding provisionally disabled modifiers.
+They select current condition-filtered recipes with an explicit level of one,
+one to five ordinary input slots, upgrade/ability slot costs and optional
+trait-level checks. The pinned source examples are Diamond, Emerald and
+Netherite in Puny, and Glowing in Mighty. Entries depend on registered input
+items and eligible tools, rather than a fixed list of placeholder pages.
+
+Each entry shows its translated description, separate numbered input slots,
+current item alternatives, slot costs, trait-level restriction and eligible
+tool types. Repeated ingredients retain separate slots. Recipes with more
+than three inputs identify the Anvil requirement. Modifiers occurring in
+multiple source groups appear once in the generated chapter. Mighty's imported
+source group metadata does not enable missing static overview prose.
+
+Changing tag replacement/removal, recipes or item availability affects the
+next open/request through the existing reader and LAN response. The displayed
+tool types do not override checks against an existing tool's state. Incremental
+recipes, level ranges, stack-sensitive/container ingredients, additional
+requirements and unknown slot types are still omitted. Source registry,
+redirect and external-registration completeness is not claimed. In-game
+pagination and LAN visual validation remain outstanding.
+
+PR #698 intake onto 33878a21 reuses existing Pluto resource snapshots and
+tag graph through the #693 projection. Station gates remain TConstruct policy;
+their two predicates are factored without changing the old planner decisions.
+Source/resource and exact inverse checks are separate from unrun Rust, host,
+UI, held-page language refresh and LAN size/transport validation. No manifest
+or shared-library change is included. Evidence: integration/guide-intake-20261107/ordinary-modifiers.json.

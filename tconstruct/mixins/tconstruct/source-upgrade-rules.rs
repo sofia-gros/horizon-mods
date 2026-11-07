@@ -36,6 +36,25 @@ const BONUS_SLOTS: [(&str, i32, i32); 8] = [
     ("tconstruct:gilded", 2, 0),
 ];
 
+// Shared by the Station planner and guide registry. Merely appearing in the
+// incremental-upgrade table does not make an ordinary modifier recipe usable.
+fn ordinary_modifier_supported(id: &str) -> bool {
+    matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+        || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id)
+}
+
+pub(super) fn ordinary_guide_registry() -> Vec<String> {
+    UPGRADES.iter().filter(|(id, _)| ordinary_modifier_supported(id) && provisional_upgrade_enabled(id))
+        .map(|(id, _)| (*id).to_owned()).collect()
+}
+
+/// Item- and tag-dependent eligibility shared by Station planning and guides.
+/// A recipe's tool selector cannot bypass these gameplay restrictions.
+pub(super) fn tool_supported_with_tags(id: &str, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
+    supported(id, item) && (id != "tconstruct:slurping"
+        || tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(item)))
+}
+
 /// The same bounded bonus registry used by Station transactions and slot totals.
 pub(super) fn bonus_guide_registry() -> &'static [(&'static str, i32, i32)] { &BONUS_SLOTS }
 
@@ -223,16 +242,11 @@ pub(super) fn plan_with_traits(
         let Some(id) = value.get("result").and_then(Value::as_str) else {
             continue;
         };
-        if !supported(id, &tool.item) {
-            continue;
-        }
-        if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
-) { continue; }
+        if !tool_supported_with_tags(id, &tool.item, tags) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
-                && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
+            if !ordinary_modifier_supported(id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
@@ -585,6 +599,30 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn slurping_override_cannot_bypass_shared_charge_tag_eligibility() {
+        use super::*;
+        // Datapack override makes this formerly stack-sensitive recipe eligible
+        // for the ordinary guide shape, but cannot expand gameplay eligibility.
+        let recipe = br#"{"type":"tconstruct:modifier","inputs":[{"item":"minecraft:glass_bottle"}],"level":1,"result":"tconstruct:slurping","slots":{"abilities":1},"tools":{"tag":"tconstruct:modifiable/armor/helmets"}}"#.to_vec();
+        let recipes = BTreeMap::from([("x:slurping_override".into(), recipe)]);
+        let helmet = ItemStack::new("tconstruct:travelers_helmet", 1);
+        let inputs = [Some(ItemStack::new("minecraft:glass_bottle", 1))];
+        let mut tags = HashMap::from([
+            ("tconstruct:modifiable/armor/helmets".into(), HashSet::from(["tconstruct:travelers_helmet".into()])),
+            ("tconstruct:modifiable/interactable/charge".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+        ]);
+        assert!(!tool_supported_with_tags("tconstruct:slurping", &helmet.item, &tags));
+        assert!(plan_with_traits(&recipes, &tags, &helmet, &inputs, 0, 1, &BTreeMap::new()).is_none());
+        // Changing the resolved tag affects both consumers without stale state.
+        tags.get_mut("tconstruct:modifiable/interactable/charge").unwrap().insert("tconstruct:travelers_helmet".into());
+        assert!(tool_supported_with_tags("tconstruct:slurping", &helmet.item, &tags));
+        assert!(plan_with_traits(&recipes, &tags, &helmet, &inputs, 0, 1, &BTreeMap::new()).is_some());
+        tags.remove("tconstruct:modifiable/interactable/charge");
+        assert!(!tool_supported_with_tags("tconstruct:slurping", &helmet.item, &tags));
+        assert!(plan_with_traits(&recipes, &tags, &helmet, &inputs, 0, 1, &BTreeMap::new()).is_none());
+    }
+
     #[test]
     fn necrotic_recipe_obeys_levels_slots_and_crystal() {
         use super::*;

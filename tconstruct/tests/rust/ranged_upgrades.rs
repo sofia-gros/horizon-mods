@@ -1006,3 +1006,37 @@ fn raging_is_not_installable_by_current_normal_or_crystal_recipe_planner() {
   assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(input)],5).is_none());
  }
 }
+
+// Real existing Pluto dependencies for the new snapshot projection fixture.
+extern crate self as pluto_api;
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/api/src/resources.rs"] pub mod resources;
+#[path = "../../../pluto-lib/mixins/pluto_native_creative/tag-graph.rs"] pub mod pluto_tag_graph;
+
+#[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
+#[path = "../../mixins/tconstruct/modifier-snapshot.rs"] mod tconstruct_modifier_snapshot;
+
+#[test]
+fn slurping_override_guide_and_station_share_resolved_charge_tag_gate() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    let recipes = BTreeMap::from([("x:slurping_override".into(), br#"{"type":"tconstruct:modifier","result":"tconstruct:slurping","level":1,"inputs":[{"item":"minecraft:glass_bottle"}],"slots":{"abilities":1},"tools":{"tag":"tconstruct:modifiable/armor/helmets"}}"#.to_vec())]);
+    let mut tags = HashMap::from([
+        ("tconstruct:modifiable/armor/helmets".into(), HashSet::from(["tconstruct:travelers_helmet".into()])),
+        ("tconstruct:modifiable/interactable/charge".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+    ]);
+    let items = vec!["minecraft:glass_bottle".into()];
+    let tools = vec!["tconstruct:travelers_helmet".into(), "tconstruct:pickaxe".into()];
+    let modifiers = tconstruct_source_upgrade_rules::ordinary_guide_registry();
+    let rows = |tags: &HashMap<String, HashSet<String>>| tconstruct_modifier_snapshot::ordinary_guide_recipes(
+        &recipes, &modifiers, &items, &tools,
+        |ingredient, item| tconstruct_source_upgrade_rules::ingredient_matches(ingredient,item,tags),
+        |id,item| tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,tags));
+    let plan = |tags: &HashMap<String, HashSet<String>>| tconstruct_source_upgrade_rules::plan_with_traits(
+        &recipes,tags,&ItemStack::new("tconstruct:travelers_helmet",1),
+        &[Some(ItemStack::new("minecraft:glass_bottle",1))],0,1,&BTreeMap::new());
+    assert!(rows(&tags).is_empty()); assert!(plan(&tags).is_none());
+    tags.get_mut("tconstruct:modifiable/interactable/charge").unwrap().insert("tconstruct:travelers_helmet".into());
+    assert_eq!(rows(&tags)[0].tools, ["tconstruct:travelers_helmet"]); assert!(plan(&tags).is_some());
+    tags.remove("tconstruct:modifiable/interactable/charge");
+    assert!(rows(&tags).is_empty()); assert!(plan(&tags).is_none());
+}

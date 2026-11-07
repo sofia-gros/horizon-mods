@@ -202,3 +202,53 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[cfg(test)]
+mod ordinary_modifier_guide_fixtures {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use serde_json::Value;
+
+    #[test]
+    fn pinned_puny_and_mighty_recipes_produce_separate_inputs_costs_and_tool_filters() {
+        let fixture: Value = serde_json::from_str(include_str!("../../fixtures/ordinary-modifier-guides.json")).unwrap();
+        let recipes: BTreeMap<_, _> = fixture["recipes"].as_object().unwrap().iter()
+            .map(|(id, recipe)| (id.clone(), serde_json::to_vec(recipe).unwrap())).collect();
+        let supported: HashSet<_> = ["diamond", "emerald", "netherite", "glowing"].map(|id| format!("tconstruct:{id}")).into_iter().collect();
+        let mut raw = super::tconstruct_modifier_snapshot::Raw::default();
+        for (path, tag) in fixture["modifier_tags"].as_object().unwrap() {
+            let path = path.strip_prefix("data/tconstruct/").unwrap().strip_suffix(".json").unwrap();
+            raw.1.insert(format!("tconstruct:{path}"), vec![serde_json::to_vec(tag).unwrap()]);
+        }
+        let mut modifiers = Vec::new();
+        for tag in ["tconstruct:upgrades/general", "tconstruct:abilities/interaction", "tconstruct:abilities/armor/boots"] {
+            modifiers.extend(super::tconstruct_modifier_snapshot::supported_guide_tag(&raw, tag, &supported).unwrap());
+        }
+        let items = ["minecraft:diamond", "minecraft:emerald", "minecraft:netherite_ingot", "minecraft:netherite_upgrade_smithing_template", "minecraft:glowstone", "minecraft:daylight_detector", "minecraft:shroomlight"].map(str::to_owned);
+        let tools = ["tconstruct:pickaxe", "tconstruct:travelers_boots", "tconstruct:sword"].map(str::to_owned);
+        let tags: HashMap<String, HashSet<String>> = [
+            ("forge:gems/diamond", vec!["minecraft:diamond"]), ("forge:gems/emerald", vec!["minecraft:emerald"]),
+            ("forge:ingots/netherite", vec!["minecraft:netherite_ingot"]),
+            ("tconstruct:modifiable/durability", vec!["tconstruct:pickaxe", "tconstruct:travelers_boots", "tconstruct:sword"]),
+            ("tconstruct:modifiable/interactable", vec!["tconstruct:pickaxe"]),
+            ("tconstruct:modifiable/armor/boots", vec!["tconstruct:travelers_boots"]),
+        ].into_iter().map(|(tag, ids)| (tag.into(), ids.into_iter().map(str::to_owned).collect())).collect();
+        // Independent fixture matcher for the source's item/tag, union and
+        // intersection subset. Production supplies the Station matcher.
+        fn matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
+            if let Some(values) = value.as_array() { return values.iter().any(|v| matches(v, item, tags)); }
+            if value["type"] == "forge:intersection" { return value["children"].as_array().unwrap().iter().all(|v| matches(v, item, tags)); }
+            value["item"].as_str() == Some(item) || value["tag"].as_str().and_then(|tag| tags.get(tag)).is_some_and(|set| set.contains(item))
+        }
+        let rows = super::tconstruct_modifier_snapshot::ordinary_guide_recipes(&recipes, &modifiers, &items, &tools, |v, id| matches(v, id, &tags), |_, _| true);
+        assert_eq!(rows.len(), 4); // Glowing appears in two source groups, once here.
+        assert_eq!(rows[0].inputs, [vec!["minecraft:diamond"]]);
+        assert_eq!(rows[1].inputs, [vec!["minecraft:emerald"]]);
+        assert_eq!(rows[2].inputs, [vec!["minecraft:netherite_upgrade_smithing_template"], vec!["minecraft:netherite_ingot"]]);
+        assert_eq!(rows[3].inputs, [vec!["minecraft:glowstone"], vec!["minecraft:daylight_detector"], vec!["minecraft:shroomlight"]]);
+        for row in &rows[..3] { assert_eq!((row.upgrade_cost, row.ability_cost, row.check_trait_level), (1, 0, false)); }
+        assert_eq!((rows[3].upgrade_cost, rows[3].ability_cost, rows[3].check_trait_level), (0, 1, true));
+        assert_eq!(rows[3].tools, ["tconstruct:pickaxe", "tconstruct:travelers_boots"]);
+        let empty = super::tconstruct_modifier_snapshot::ordinary_guide_recipes(&recipes, &modifiers, &[], &tools, |v,id| matches(v,id,&tags), |_,_|true);
+        assert!(empty.is_empty());
+    }
+}
