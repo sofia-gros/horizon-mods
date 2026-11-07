@@ -32,8 +32,15 @@ class NativePackageBudgetTest(unittest.TestCase):
                 config = tomllib.loads(archive.read(prefix + 'horizon-mixin.toml').decode())
                 original = tomllib.loads((MOD / 'mixins/tconstruct/horizon-mixin.toml').read_text())
                 self.assertEqual(config['mod']['id'], 'tconstruct_native')
-                for group in ('module', 'injection', 'bridge', 'state', 'crate'):
+                # The package is the slice of the manifest (see package_hnmod.sliced_manifest): nothing is added or changed,
+                # only entries are left out.
+                for group in ('bridge', 'crate'):
                     self.assertEqual(config.get(group), original.get(group))
+                for group in ('module', 'injection', 'state'):
+                    kept = config.get(group, [])
+                    self.assertLessEqual(len(kept), len(original.get(group, [])))
+                    for entry in kept:
+                        self.assertIn(entry, original.get(group, []))
                 for group, key in (('module', 'source'), ('injection', 'helper')):
                     for registration in config[group]:
                         path = registration[key]
