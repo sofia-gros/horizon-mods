@@ -22,7 +22,7 @@ python tools/check_docs_budget.py                       # markdown files must be
 python tools/lint_forbidden_api.py
 python -m unittest discover -s tests
 python -m unittest discover -s pluto-lib/tests          # about 30 s
-cargo test --manifest-path pluto-lib/tests/base/Cargo.toml   # PlutoLib's host-independent core, seconds
+cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml   # PlutoLib's host-independent part, seconds
 ```
 
 Tinkers' Python tests: `python -m unittest discover -s tconstruct/tests` (long: several minutes).
@@ -35,6 +35,12 @@ python tools/smoke-local/smoke.py --game <built horizon-client> --ctl <built hor
 ```
 
 `build.py` stages the slice (below), builds the client, prepares Tinkers' resources. `smoke.py` starts the game and checks what a player would see: a flint pickaxe crafted in survival, and the Part Builder opening. It prints `SMOKE PASS` only if both ran. `--ci` makes `build.py` stop after the stage and `cargo check` (no game, no resources).
+
+A mod that uses only PlutoLib, in a running game (builds PlutoLib and a throwaway consumer with the launcher, starts the game, requires the consumer's log lines):
+
+```sh
+python tools/smoke-local/probe_pluto_lib.py --launcher <horizon-launcher> --resources RESOURCES_DIR
+```
 
 PlutoLib through the official launcher (the way players get mods):
 

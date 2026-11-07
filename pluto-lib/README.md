@@ -24,18 +24,24 @@ ServerPlayConnectionEvents::JOIN.register(|player| println!("{} joined", player.
 
 ## What exists today (0.1.0, unreleased)
 
-In `mod/` (built with Horizon's official launcher, checked locally):
+In `mod/` (built with Horizon's official launcher):
 
 - `base`: `Event` (phases, ordering, combiners), `Identifier`, `ActionResult`, and the support matrix: the list of calls that exist but do nothing yet because the host cannot do them.
-- `networking_api_v1`: `ServerPlayConnectionEvents::JOIN`, fed from Horizon's `player_logged_in` hook. It has been compiled and linked, not yet seen firing in game.
+- `lifecycle_events_v1`: `ServerLifecycleEvents` (`SERVER_STARTING`, `SERVER_STOPPING`), `ServerTickEvents` (server and world tick start and end), `ServerChunkEvents` (`CHUNK_LOAD`, `CHUNK_UNLOAD`).
+- `networking_api_v1`: `ServerPlayConnectionEvents` (`JOIN`, `DISCONNECT`).
+- `events_interaction_v0`: `UseItemCallback`, `UseBlockCallback`, `AttackEntityCallback`, `PlayerBlockBreakEvents::BEFORE` (a veto cancels the break).
+- `entity_events_v1`: `ServerEntityEvents` (`ENTITY_LOAD`, `ENTITY_UNLOAD`), `ServerLivingEntityEvents::ALLOW_DAMAGE`.
 
+Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
+
+**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `CHUNK_LOAD`, `JOIN` and `END_SERVER_TICK` in the game log. The other events compile and follow the same path but have not been seen firing yet.
 The old unified bundle in `mixins/` (creative tabs, inventory, fluids, protection, tool rules and more) still ships and is migrated into `mod/` module by module.
 Of its eleven composition guards only `protection` passes on the current Horizon; the rest need re-review ([docs/migration/](../docs/migration/)).
 
 ## Building and testing
 
 ```sh
-cargo test --manifest-path pluto-lib/tests/base/Cargo.toml        # the host-independent core, seconds
+cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml        # the host-independent part, seconds
 python -m unittest discover -s pluto-lib/tests                     # packaging and guard tests
 python tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod  # from the repository root
 ```

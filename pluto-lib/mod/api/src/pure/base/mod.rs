@@ -1,5 +1,5 @@
 //! Host-independent PlutoLib types: no dependency on Horizon, so they build and test in seconds.
-//! (`pluto-lib/tests/base` compiles this module on its own.)
+//! (`pluto-lib/tests/pure` compiles this module on its own.)
 
 pub mod action_result;
 pub mod event;

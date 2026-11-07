@@ -47,6 +47,24 @@ pub const MATRIX: &[SupportEntry] = &[
         behaviour: "callbacks are accepted and never invoked; the picked item is unchanged",
         unblocked_by: "horizon-mixins supporting injections into functions that use `?` or closures (E_UNSUPPORTED_CONTROL_FLOW)",
     },
+    SupportEntry {
+        api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STARTED / SERVER_STOPPED",
+        support: Support::Stub,
+        behaviour: "callbacks are accepted and never invoked",
+        unblocked_by: "a Horizon hook point that reports the server being fully started and fully stopped (only about-to-start and stopping exist)",
+    },
+    SupportEntry {
+        api: "events_interaction_v0::PlayerBlockBreakEvents::AFTER / CANCELED",
+        support: Support::Stub,
+        behaviour: "callbacks are accepted and never invoked; BEFORE works",
+        unblocked_by: "wiring Horizon's block-destroyed notifications (a hook point to map, not yet done)",
+    },
+    SupportEntry {
+        api: "entity_events_v1::ServerLivingEntityEvents::AFTER_DEATH",
+        support: Support::Stub,
+        behaviour: "callbacks are accepted and never invoked; ALLOW_DAMAGE works",
+        unblocked_by: "mapping Horizon's mob_killed / player_died hook points (not yet done)",
+    },
 ];
 
 /// Rows for a given support class.

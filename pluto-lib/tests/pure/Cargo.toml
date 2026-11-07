@@ -1,0 +1,11 @@
+# Compiles PlutoLib's host-independent module (mod/api/src/pure) on its own so it can be tested in seconds.
+[package]
+name = "pluto-lib-pure-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "../../mod/api/src/pure/mod.rs"
+
+[workspace]
