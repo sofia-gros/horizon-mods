@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reserve the canonical deny-only crafting-match boundary in a complete plan.
+"""Reserve matching admission and separate pure derivation in a complete plan.
 
 An earlier cancellation could bypass admission; a later rewrite could resurrect
 an output. Reuse the established exclusive-boundary validator without changing
@@ -18,8 +18,11 @@ _spec.loader.exec_module(_shared)
 digest = _shared.digest
 
 
-def entries():
-    return json.loads((ROOT / 'tools/crafting-match-boundaries.json').read_text())['boundaries']
+def entries(mode='standalone-pluto'):
+    data = json.loads((ROOT / 'tools/crafting-match-boundaries.json').read_text())
+    if mode not in ('standalone-pluto', 'full-tconstruct'):
+        raise ValueError('Unknown explicit crafting mode')
+    return data['boundaries'] + (data['tconstruct_boundaries'] if mode == 'full-tconstruct' else [])
 
 
 def check_order(plan, metadata):
@@ -36,22 +39,24 @@ def verify_source(plan, workspace, metadata, helpers=None):
         raise ValueError(str(error).replace('placement', 'crafting-match')) from error
 
 
-def check(plan, workspace):
-    metadata = entries()
+def check(plan, workspace, package_contract=None):
+    mode = _shared.package_mode(plan, _shared.read_contract(package_contract))
+    metadata = entries(mode)
     check_order(plan, metadata)
     verify_source(plan, workspace, metadata)
+    _shared.verify_closure(plan, workspace, mode)
 
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
     try:
-        if len(args) != 2:
-            raise ValueError('usage: check_crafting_match_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE')
-        check(json.loads(Path(args[0]).read_text()), Path(args[1]))
-    except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
+        if len(args) != 3:
+            raise ValueError('usage: check_crafting_match_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE CRAFTING_PACKAGE_CONTRACT.json')
+        check(json.loads(Path(args[0]).read_text()), Path(args[1]), Path(args[2]))
+    except (ValueError, OSError, KeyError, TypeError, StopIteration, _shared.zipfile.BadZipFile) as error:
         print('Crafting-match composition rejected: ' + str(error), file=sys.stderr)
         return 1
-    print('Crafting-match veto ownership, native fingerprint and helper source verified.')
+    print('Crafting matching, derivation and explicit package closure verified.')
     return 0
 
 

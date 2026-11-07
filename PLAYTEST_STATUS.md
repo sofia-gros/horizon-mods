@@ -2,6 +2,16 @@
 
 This branch combines the current ordinary source work for review and a future playable build. **It is not yet a verified runnable build.** Main is the intended development integration target only after the required build and error checks pass. No latest-official launch success is claimed.
 
+## Recovery and guard integration, 2026-11-07
+
+The 13 reviewed crafting/placement guard files were recovered byte-for-byte from existing Git blobs and adopted. Their 43 prior source/synthetic checks apply to these identical bytes; recovery is not a new native test. Explicit full-package mode and both archive identities are mandatory. Two constructor observations remain null and deliberately refuse validation until the next actual plan.
+
+The one-file language guard typo fix is in commit `750b27a241c0937f1dca0150f42f8978a7b4cf98`: nine source checks passed and four negative cases detect forbidden language hooks/states. Runtime and in-game language behavior are unchanged/unverified.
+
+The Windows formatter retry `42255794408` passed 20 + 12 source tests and official archive/executable admission, then `rustfmt --version` returned no output with wrapper code 4294967295. None of the seven regeneration calls ran. The cause is unconfirmed; game build and launch remain unperformed.
+
+The fresh full-plan diagnostic uses its own reviewed direct twelve-guard caller and does not depend on Windows stage. Windows stage still needs the explicit archive-contract third argument; it must be connected before any apply/build. Main remains unchanged. Older sections below describe historical checkpoints, not success for this current source.
+
 ## Fixed target
 
 - Horizon: `41f822b659789780f58d32c63ddfb6887ea1b8bf`

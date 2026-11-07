@@ -32,7 +32,7 @@ class CraftingMatchBoundaries(unittest.TestCase):
         self.assertIn('None is unavailable', source)
         self.assertIn('No output replacement', source)
 
-    def test_interest_precedes_component_capture_and_head_only_denies(self):
+    def test_interest_precedes_capture_and_single_head_delegates_after_denial(self):
         source = (NATIVE / 'crafting-match.rs').read_text()
         self.assertLess(source.index('has_providers()'), source.index('match recipe'))
         self.assertLess(source.index('matching::prepare'), source.index('ItemFacts::capture'))
@@ -40,8 +40,13 @@ class CraftingMatchBoundaries(unittest.TestCase):
         for forbidden in ('tconstruct:', 'RecipeIndex', '.send(', 'menu_session(', '&mut'):
             self.assertNotIn(forbidden, source)
         helper = (NATIVE / 'crafting-match-veto.rs').read_text()
-        self.assertIn('ControlFlow::Break(None)', helper)
-        self.assertIn('ControlFlow::Continue(())', helper)
+        self.assertEqual(GUARD.digest(helper.encode()), GUARD.entries()[0]['helper_sha256'])
+        self.assertIn('pluto_derivations::after_matching(', helper)
+        self.assertIn('pluto_matching::evaluate(input, recipe)', helper)
+        derivation = (NATIVE / 'crafting-derivations.rs').read_text()
+        self.assertIn('ControlFlow::Break(None)', derivation)
+        self.assertIn('Selection::Native => return ControlFlow::Continue(())', derivation)
+        self.assertLess(derivation.index('if matches!(admission'), derivation.index('else { assembly_from(registry'))
         manifest = tomllib.loads((NATIVE / 'horizon-mixin.toml').read_text())
         hooks = [h for h in manifest['injection'] if h['id'] == 'crafting-match-veto']
         self.assertEqual(len(hooks), 1)
@@ -54,7 +59,7 @@ class CraftingMatchBoundaries(unittest.TestCase):
             output = Path(d) / 'matching.hnmod'
             PACKAGE.build(output)
             with zipfile.ZipFile(output) as archive:
-                for file in ('inventory-api/src/crafting.rs', 'inventory-api/src/crafting/matching.rs', 'crafting-match.rs', 'crafting-match-veto.rs'):
+                for file in ('inventory-api/src/crafting.rs', 'inventory-api/src/crafting/matching.rs', 'crafting-match.rs', 'crafting-match-veto.rs', 'crafting-derivations.rs', 'crafting-pure-remainders.rs'):
                     self.assertEqual(archive.read('mixins/pluto_native_creative/pluto_native_creative/' + file), (NATIVE / file).read_bytes())
 
     def metadata(self):

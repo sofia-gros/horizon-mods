@@ -1,0 +1,419 @@
+{
+  "schema": 1,
+  "source_runtime": "fbf6f16f3348f385320743df3b6e20d6d3e6f7bc",
+  "exclusive_module_files": [
+    "crates/horizon-client/src/crafting.rs",
+    "crates/horizon-client/src/game/recipe_book.rs"
+  ],
+  "inventory_crate": {
+    "mod_id": "pluto_native_creative",
+    "crate_id": "pluto_native_creative-inventory-api",
+    "package": "pluto-inventory-api",
+    "version": "0.1.0",
+    "path": "native-crates/pluto_native_creative/pluto_native_creative-inventory-api",
+    "dependent": "horizon-client-lib",
+    "dependent_manifest": "crates/horizon-client-lib/Cargo.toml",
+    "dependency_path": "../../native-crates/pluto_native_creative/pluto_native_creative-inventory-api",
+    "lock_dependencies": [
+      "serde_json"
+    ],
+    "files": {
+      "Cargo.toml": "7a5390ffb6d7886ddd1e319be935b97b0c4bc4d6ae8697e20dde90077e4ee818",
+      "src/advancements.rs": "bdea50108338688121cf05ca38592eadd3c03ea6e0665e351a30179f4557dacd",
+      "src/advancements/events.rs": "9862ad7fa6e57e58ec39b8c0484a07f9249b0a50c408ec77f1590d044af52d02",
+      "src/advancements/predicates.rs": "2216bf87629864a4a965264d7b9e5cfa2db922b589a883962182b927a510d29e",
+      "src/advancements/projection.rs": "1efae5b4bc14a185c28d28d8e0b79377d25abb439d6ea4d38858a849cd8c0f3e",
+      "src/advancements/tags.rs": "c3205b7a49a70a2f13d8989666e61a133eef2869886e144756d1cbabf82051a6",
+      "src/armor_wear.rs": "92b4535ab2dc57ba6b6e4fe89eec8721ad0097e930bffe7fd061302afc47260f",
+      "src/blocking.rs": "1c5b5c91b56f523c100d21d41f0cc26e9862952a0a8d6de9b7dabb73302ef1a8",
+      "src/client_payload.rs": "19f9f81c866508be1d73ec092274766479ad6cb90384d5f7fc4221e1a90031d4",
+      "src/crafting.rs": "54719eccbe76e40be9b7386ab9973f9756dba7096acf6362f8b380698e1fe05f",
+      "src/crafting/ingredients.rs": "601e39b2fc4be89a5d0f7203c5620f655173d23400d3fec390b49355d7edab62",
+      "src/crafting/matching.rs": "0f35de299eccd590c4c74b808b5258954389283b17e67e9893ebb670215c282f",
+      "src/crafting/products.rs": "ed6e85bda780bfaa9886c5aad8da919bcae72ae3e15bb21a1de7fe633dfa632a",
+      "src/equipment.rs": "24ad173e1faf971feba309e055c01a301404f6bde955ec7e37b482fc828529fb",
+      "src/guide/current_book.rs": "0725b9ab38bbf431033139e8d47a72f276abd0a39c812a0ad492296f242ef760",
+      "src/guide/document.rs": "161676b8e6f273f63fd9be06c9ebe8d1e46d9230d513a5ab3a86a5c848419bc8",
+      "src/guide/mod.rs": "9b1a16a152012960cd02ccacd33b9402098d7045e58cb9067f5dd5c91c2f690e",
+      "src/guide/requests.rs": "a293990ef1e225e74149a8a09d91daa7a174b3efdccd7808833b8e06d29979bf",
+      "src/inventory.rs": "beccd7c7cf82b5974bd84e1c58f8c0b5a29c2ea2085ce0f9ff88d33daea35d87",
+      "src/java_hashmap.rs": "ac5125fe098dd7d132ea0436a7d70f9d4a15a247f15c9b041e9fb671413e41c3",
+      "src/lib.rs": "757e8c7c365b735cdd2e0c8f4b55271b7bd3f0089459173364e7648096c4bbb1",
+      "src/menu_words.rs": "0501660a8f866ef1bc143f3dcd209108d05ebed8a49a0df2994e2b8cbfe6c536",
+      "src/predicate_fold.rs": "4609dcdc351ab99f34f3e75fff933091be3e99bebb18398d3838ca840729467a",
+      "src/projection.rs": "04d741533dc9bdf2b61294260eb3f5f61ee0ef15be8889d35d005015558cc00a",
+      "src/protection.rs": "8fc825c7865c00501f011538ca2ef8568f400abaf4fbf93fc01bb26bdd239469",
+      "src/recipe_book.rs": "f4c157393f854d59aea12f888846208646ac280fccd134b532f32648d495883e",
+      "src/recipe_book/handoff.rs": "0bb631eb80bd5a2a2f22979668eb6dd6f8695653d1d06b81ffd6f5c08f45e65d",
+      "src/recipe_book/index.rs": "b38293600d3650f2da9102e0932006c517b90ae980675f8f36b3846f581d6fbd",
+      "src/recipe_book/placement.rs": "402a5c20014f6f19b82516b42b497bb5553d23ea9e7cbfc72dd5cb9b76912e7c",
+      "src/recipe_book/presentation.rs": "8db65d93eff10b3dc410b32976f64fe55bd76ec428f0c10f79e1d68160733e60",
+      "src/recipe_book/preview.rs": "fdfc074864874889054ef3f55a6887813b136651c6ad9e87fbe649449ae9896b",
+      "src/storage.rs": "896cbc9901b221f30c70313f73f8ce59390a507aa0c72842fba0df210891a0d0"
+    }
+  },
+  "modes": {
+    "standalone-pluto": {
+      "modules": [
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-match",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_matching",
+          "visibility": "pub",
+          "source_sha256": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-placement",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_placement",
+          "visibility": "pub",
+          "source_sha256": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-products",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_products",
+          "visibility": "pub",
+          "source_sha256": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-book-invalidation",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_invalidation",
+          "visibility": null,
+          "source_sha256": "999066f1a0ab16bf6788944b0f3313b1ecf9d62521ccfd7aae54cd44436e6017"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-placement-attempt",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_placement",
+          "visibility": null,
+          "source_sha256": "38256a9d22c1c581022dad691260ce74713fd76e3eb0d76e44f0affe9045982b"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-book-preview",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_preview",
+          "visibility": null,
+          "source_sha256": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-derivations",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_derivations",
+          "visibility": "pub",
+          "source_sha256": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-transactions",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_transactions",
+          "visibility": "pub(crate)",
+          "source_sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2"
+        }
+      ],
+      "native_files": {
+        "crates/horizon-client/src/crafting.rs": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+        "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6"
+      },
+      "states": [],
+      "retained_injections": [],
+      "hook_targets": [
+        "horizon_client_lib::crafting::Recipes::assemble_if_matches",
+        "horizon_client_lib::crafting::Recipes::remainders",
+        "horizon_client_lib::crafting::Recipes::placement",
+        "horizon_client::game::recipe_book::Game<'_>::place_recipe"
+      ]
+    },
+    "full-tconstruct": {
+      "modules": [
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "lib-source-overslime",
+          "file": "crates/horizon-client/src/client_lib.rs",
+          "name": "tconstruct_source_overslime",
+          "visibility": "pub",
+          "source_sha256": "da80c34ee5b8ebb88be5bb863371ca4bc887fca4e395f72b62552cce00866b7f"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "lib-source-overslime-crafting",
+          "file": "crates/horizon-client/src/client_lib.rs",
+          "name": "tconstruct_source_overslime_crafting",
+          "visibility": "pub",
+          "source_sha256": "c7a761b13919fe045a5f3ebf8b346633853e8431599c6d138c8f8335e91b4a13"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-match",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_matching",
+          "visibility": "pub",
+          "source_sha256": "d5099f0a1c5bc976ddce3ef38d96ab17d5c97ff9625f9db966ffac6291849d83"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-placement",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_placement",
+          "visibility": "pub",
+          "source_sha256": "0931a081216fb206cd82942d4ad6f8a8785047a96c4734f64fb047537a209a4e"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-products",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_products",
+          "visibility": "pub",
+          "source_sha256": "d13a4b67bbe787e1e6055ec32112deea75b0df316f6bb4d10c7e935f4dd8f3fa"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "survival-empty-tank",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "tconstruct_survival_empty_tank",
+          "visibility": null,
+          "source_sha256": "61ac8af3b22eb21e9c0f82feb907ffe3200691f42d7f0e1bd4037ecc60945ece"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "source-crafting-station",
+          "file": "crates/horizon-client/src/game.rs",
+          "name": "tconstruct_crafting_station",
+          "visibility": null,
+          "source_sha256": "5ec29ae1512bd8b487697e08a9f464c451a772ee01e2547b3955e9c8c4b4a2e7"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-book-invalidation",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_invalidation",
+          "visibility": null,
+          "source_sha256": "999066f1a0ab16bf6788944b0f3313b1ecf9d62521ccfd7aae54cd44436e6017"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-placement-attempt",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_placement",
+          "visibility": null,
+          "source_sha256": "38256a9d22c1c581022dad691260ce74713fd76e3eb0d76e44f0affe9045982b"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-book-preview",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_preview",
+          "visibility": null,
+          "source_sha256": "094a62f7a3c04fe41274bf1e180d197038cfd8fe660a7d26ec405af377520964"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-crafting-derivations",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "pluto_derivations",
+          "visibility": "pub",
+          "source_sha256": "4393eaa04fdafb90cf3f59694e6681c6796e96cf5da34b615a1505874273151e"
+        },
+        {
+          "mod_id": "pluto_native_creative",
+          "mod_version": "0.1.0",
+          "module_id": "pluto_native_creative-recipe-transactions",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "pluto_transactions",
+          "visibility": "pub(crate)",
+          "source_sha256": "e1f5a584a293220b28f110695e7335f7b505e753aee6f4314f23363681d553f2"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "crafting-stored-deny-policies",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "tconstruct_crafting_deny_policies",
+          "visibility": "pub(crate)",
+          "source_sha256": "75e6abbcf971b8ff419c067292c72b205a48295ffa1fc2268fc13bd77a08ec02"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "crafting-shared-bootstrap",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "tconstruct_crafting_bootstrap",
+          "visibility": "pub(crate)",
+          "source_sha256": "382ca263fa9510f6df5adb2c98c474b6cc7d25672735a29577ab0ca68ec93a65"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "overslime-derivation",
+          "file": "crates/horizon-client/src/crafting.rs",
+          "name": "tconstruct_overslime_derivation",
+          "visibility": "pub(crate)",
+          "source_sha256": "0c6d10ea7a27e469c8bc50a8f538351afb5a19bb7c611aa59c6f7a4bc05c016f"
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "module_id": "station-transaction",
+          "file": "crates/horizon-client/src/game/recipe_book.rs",
+          "name": "tconstruct_station_transaction",
+          "visibility": "pub(crate)",
+          "source_sha256": "04aa7db3c99762fc435b134b1a489f49692ff817979b66f04b8075074054eee9"
+        }
+      ],
+      "native_files": {
+        "crates/horizon-client/src/client_lib.rs": "5b7eb4fe201b36f1e6b751630e73a53cf34e1ee3d4bfb041af240ddb11731ebc",
+        "crates/horizon-client/src/crafting.rs": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+        "crates/horizon-client/src/game.rs": "2488718332e589c8cbc15766c93857e83945b5f90b74f393ceaa1cd75c23891e",
+        "crates/horizon-client/src/game/recipe_book.rs": "3bbf5292ff98daa68bf9179ca5f70d04d74d8a8f5f7e6f71442e9f29270985c6",
+        "crates/horizon-client-render/src/chunk_map.rs": "718fe95c909ca5970b39db2cc30e96ae264cf43a3954b4f52773ebb4e47ec96a",
+        "crates/horizon-client/src/game/lan_crafting.rs": "0a2e2c8142611ca51b15d117f3a341ac8b95b43beeb0d7d47cc9e4b03797915b"
+      },
+      "states": [
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "state_id": "crafting-sessions",
+          "priority": 100,
+          "target": "horizon_client_render::chunk_map::ChunkMap",
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            8
+          ],
+          "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+          "name": "__horizon_mixins_tconstruct_native_crafting_sessions",
+          "ty": "std :: collections :: HashSet < (i32 , i32 , i32) >",
+          "initial": ":: core :: default :: Default :: default ()",
+          "deserialize": false,
+          "constructors": [
+            {
+              "file": "crates/horizon-client-render/src/chunk_map.rs",
+              "node": [
+                9,
+                0
+              ],
+              "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+              "expression": 2,
+              "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+            }
+          ]
+        },
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "state_id": "crafting-side-client",
+          "priority": 100,
+          "target": "horizon_client_render::chunk_map::ChunkMap",
+          "file": "crates/horizon-client-render/src/chunk_map.rs",
+          "node": [
+            8
+          ],
+          "fingerprint": "7838692a02d62c2a068bb813d2cf6c1cb2ca80655eb85bdafa5f7f85b7da4c5f",
+          "name": "__horizon_mixins_tconstruct_native_crafting_side_client",
+          "ty": "Option < (i32 , usize , usize , Vec < Option < horizon_items :: items :: ItemStack > >) >",
+          "initial": ":: core :: default :: Default :: default ()",
+          "deserialize": false,
+          "constructors": [
+            {
+              "file": "crates/horizon-client-render/src/chunk_map.rs",
+              "node": [
+                9,
+                0
+              ],
+              "function_fingerprint": "3ff1c23e4886f6132625e318f50ea26775560336c09f711759cc0ba84b3c9be8",
+              "expression": 2,
+              "fingerprint": "50bba521bb9507e26efaca5843e446bc62b9fd068281d4354ef34d7c97bbb518"
+            }
+          ]
+        }
+      ],
+      "retained_injections": [
+        {
+          "mod_id": "tconstruct_native",
+          "mod_version": "0.5.0",
+          "injection_id": "crafting-station-lan-recipe-guard",
+          "priority": 100,
+          "target": "horizon_client::game::lan_crafting::Game<'_>::lan_place_recipe",
+          "file": "crates/horizon-client/src/game/lan_crafting.rs",
+          "node": [
+            11,
+            6
+          ],
+          "function_fingerprint": "2f82b06a0d4afa2a641d25ed6f329cef9376ec37f35e54fc4b4291d0bd3a8de8",
+          "kind": "HEAD",
+          "cancellable": true,
+          "argument": null,
+          "constant_site": null,
+          "contract": {
+            "output": ":: core :: ops :: ControlFlow < () >",
+            "value": null,
+            "operation": null
+          },
+          "call_site": null,
+          "site_fingerprint": null,
+          "selector": null,
+          "ordinal": null,
+          "require": null,
+          "helper_source": "fn tconstruct_crafting_lan_recipe_guard(\n    game: &mut crate::game::Game<'_>,\n    host: &mut LanHost,\n    conn: u32,\n    packet: &horizon_protocol::packets::recipes::PlaceRecipe,\n) -> std::ops::ControlFlow<()> {\n    use horizon_client::menu::place::PostPlace;\n    use std::ops::ControlFlow::{Break, Continue};\n    let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Continue(()); };\n    let joined = host.hub.guests[gi].placed_at;\n    let tracked = game.world.chunks.__horizon_mixins_tconstruct_native_crafting_guest_sessions()\n        .get(&(conn, joined, packet.container)).copied();\n    let current = host.play.get(&conn).and_then(|play| play.crafting.table.as_ref())\n        .filter(|(window, _, _, _)| *window == packet.container).map(|(_, _, _, pos)| (pos[0], pos[1], pos[2]));\n    let station = current.is_some_and(|pos| &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == \"tconstruct:crafting_station\");\n    if tracked.is_none() && !station { return Continue(()); }\n    let Some(pos) = tracked.filter(|pos| Some(*pos) == current) else { game.lan_send_table_content(host, conn); return Break(()); };\n    let guest = &host.hub.guests[gi];\n    if guest.spectator() || !guest.within_block_range([pos.0, pos.1, pos.2], 4.0) || !station { game.lan_send_table_content(host, conn); return Break(()); }\n    let Some(id) = world_stations!(game).recipe_index.recipe_of_display(packet.recipe).map(str::to_owned) else { return Break(()); };\n    if !guest.recipe_book.knows(&id) || world_recipes!(game).placement(&id).is_none_or(|placement| placement.impossible()) { return Break(()); }\n    let (player, name, creative) = (guest.uuid, guest.name.clone(), guest.creative());\n    game.native_player_recipe_book_click(player, &name, &id, packet.use_max);\n    let Some(horizon_client::containers::BlockEntity::Chest(grid)) = game.world.block_entities.get(&pos) else { return Break(()); };\n    if grid.len() != 9 || &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name != \"tconstruct:crafting_station\" { return Break(()); }\n    let grid = grid.clone();\n    let Some((window, state, mut menu, saved_pos)) = host.play.get_mut(&conn).and_then(|play| play.crafting.table.take_if(|(window, ..)| *window == packet.container)) else { return Break(()); };\n    if menu.slot_count() != 46 {\n        host.play.entry(conn).or_default().crafting.table = Some((window, state, menu, saved_pos));\n        return Break(());\n    }\n    let original_inventory = host.hub.guests[gi].inventory.clone();\n    let original_carried = host.hub.guests[gi].carried.clone();\n    let mut placed = game.guest_menu_op(host, gi, &mut menu, |menu, env| {\n        for (index, item) in grid.iter().enumerate() { menu.set_slot(env, index + 1, item.clone()); }\n        let player: Vec<_> = (0..36).map(|index| menu.player_item(index).cloned()).collect();\n        let carried = menu.carried.clone();\n        let before: Vec<_> = grid.iter().chain(&player).flatten().cloned().collect();\n        let dropped = menu.dropped.len(); let drop_text = menu.drops.len();\n        let outcome = menu.place_recipe(env, &id, packet.use_max, creative, None);\n        let after_grid: Vec<_> = (1..10).map(|slot| menu.slot(slot).cloned()).collect();\n        let after: Vec<_> = after_grid.iter().flatten().cloned().chain((0..36).filter_map(|index| menu.player_item(index).cloned())).collect();\n        let count = |items: &[ItemStack], item: &ItemStack| -> u64 {\n            items.iter().filter(|other| other.same_item_same_components(item)).map(|other| u64::from(other.count)).sum()\n        };\n        let valid = menu.dropped.len() == dropped && before.iter().all(|item| count(&before, item) == count(&after, item))\n            && after.iter().all(|item| count(&before, item) == count(&after, item));\n        if !valid {\n            for (index, item) in grid.iter().enumerate() { menu.set_slot(env, index + 1, item.clone()); }\n            for (index, item) in player.into_iter().enumerate() { menu.set_player_item(index, item); }\n            menu.carried = carried; menu.dropped.truncate(dropped); menu.drops.truncate(drop_text);\n            return None;\n        }\n        Some((outcome, after_grid))\n    });\n    if let Some((_, new_grid)) = placed.as_ref() {\n        let valid_block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == \"tconstruct:crafting_station\";\n        if let Some(horizon_client::containers::BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&pos).filter(|_| valid_block) {\n            if items.len() == 9 {\n                *items = new_grid.clone();\n                game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));\n            } else { placed = None; }\n        } else { placed = None; }\n        if placed.is_none() {\n            host.hub.guests[gi].inventory = original_inventory;\n            host.hub.guests[gi].carried = original_carried;\n            let env = game.menu_env();\n            for index in 1..10 { menu.set_slot(&env, index, None); }\n        }\n    }\n    host.play.entry(conn).or_default().crafting.table = Some((window, state, menu, saved_pos));\n    game.lan_send_table_content(host, conn);\n    if matches!(placed, Some((PostPlace::Ghost, _))) { host.hub.send_ghost_recipe(conn, packet.container, &id); }\n    Break(())\n}\n",
+          "bindings": [
+            {
+              "name": "game",
+              "ty": "&mut crate::game::Game<'_>",
+              "value": "&mut *self"
+            },
+            {
+              "name": "host",
+              "ty": "&mut LanHost",
+              "value": "&mut *host"
+            },
+            {
+              "name": "conn",
+              "ty": "u32",
+              "value": "conn"
+            },
+            {
+              "name": "packet",
+              "ty": "&horizon_protocol::packets::recipes::PlaceRecipe",
+              "value": "p"
+            }
+          ]
+        }
+      ],
+      "hook_targets": [
+        "horizon_client_lib::crafting::Recipes::assemble_if_matches",
+        "horizon_client_lib::crafting::Recipes::remainders",
+        "horizon_client_lib::crafting::Recipes::placement",
+        "horizon_client::game::recipe_book::Game<'_>::place_recipe",
+        "horizon_client_lib::crafting::Recipes::empty",
+        "horizon_client_lib::crafting::Recipes::from_sources"
+      ]
+    }
+  }
+}

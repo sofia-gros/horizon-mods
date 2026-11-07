@@ -1,13 +1,16 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
-  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "official_mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
   "boundaries": [
     {
       "target": "horizon_client_lib::crafting::Recipes::assemble_if_matches",
-      "file": "crates/horizon-client/src/crafting.rs",
       "kind": "HEAD",
       "cancellable": true,
       "priority": 100,
+      "helper_sha256": "814dce596098aeaae669e5748f4138d18521ff45e87c0d73a00b2676aa24f16f",
+      "mod_id": "pluto_native_creative",
+      "injection_id": "crafting-match-veto",
+      "file": "crates/horizon-client/src/crafting.rs",
       "bindings": [
         {
           "name": "input",
@@ -21,10 +24,102 @@
         }
       ],
       "function_fingerprint": "4df48b30b17f2c4d735e45b54ae2e5c7d23f679c993b3d942c07f5aaecbf401c",
-      "injection_id": "crafting-match-veto",
+      "node": [
+        42,
+        8
+      ],
       "helper": "crafting-match-veto.rs",
-      "file_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
-      "helper_sha256": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2"
+      "source_path": "pluto-lib/mixins/pluto_native_creative/crafting-match-veto.rs",
+      "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Option < Option < ItemStack > > >",
+        "value": null,
+        "operation": null
+      }
+    },
+    {
+      "target": "horizon_client_lib::crafting::Recipes::remainders",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "helper_sha256": "ff061e793e9d8da4029fda367003c3df326c1c3555af8866a4ce8cf5cba01f16",
+      "mod_id": "pluto_native_creative",
+      "injection_id": "crafting-pure-remainders",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "bindings": [
+        {
+          "name": "recipe",
+          "ty": "&str",
+          "value": "recipe"
+        },
+        {
+          "name": "grid",
+          "ty": "&[Option<ItemStack>]",
+          "value": "grid"
+        },
+        {
+          "name": "size",
+          "ty": "usize",
+          "value": "size"
+        }
+      ],
+      "function_fingerprint": "79da2517a399a5350807b33ca619bc45c1136e9475c6234a1c394fa6040e9ef0",
+      "node": [
+        42,
+        11
+      ],
+      "helper": "crafting-pure-remainders.rs",
+      "source_path": "pluto-lib/mixins/pluto_native_creative/crafting-pure-remainders.rs",
+      "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+      "contract": {
+        "output": ":: core :: ops :: ControlFlow < Vec < Option < ItemStack > > >",
+        "value": null,
+        "operation": null
+      }
+    }
+  ],
+  "tconstruct_boundaries": [
+    {
+      "target": "horizon_client_lib::crafting::Recipes::empty",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "helper_sha256": "99e9a9f1c523ada4c42060a6ada88e2b3df8d84f5afa53db155fd5c6c4f86792",
+      "mod_id": "tconstruct_native",
+      "injection_id": "crafting-shared-empty-startup",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "bindings": [],
+      "function_fingerprint": null,
+      "node": null,
+      "helper": "source-crafting-empty-startup.rs",
+      "source_path": "tconstruct/mixins/tconstruct/source-crafting-empty-startup.rs",
+      "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      }
+    },
+    {
+      "target": "horizon_client_lib::crafting::Recipes::from_sources",
+      "kind": "HEAD",
+      "cancellable": false,
+      "priority": 100,
+      "helper_sha256": "b29394b2230c1363801ba93e89b2b099017fb6b3016f5d0546b89c4cec731632",
+      "mod_id": "tconstruct_native",
+      "injection_id": "crafting-shared-sources-startup",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "bindings": [],
+      "function_fingerprint": null,
+      "node": null,
+      "helper": "source-crafting-sources-startup.rs",
+      "source_path": "tconstruct/mixins/tconstruct/source-crafting-sources-startup.rs",
+      "file_sha256": "60cf662be7d44ca5bcbe4793fe0b6d78462d6379993d3bf8fb9f212ac4fe242c",
+      "contract": {
+        "output": "()",
+        "value": null,
+        "operation": null
+      }
     }
   ]
 }

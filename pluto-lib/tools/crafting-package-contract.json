@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "mode": "full-tconstruct",
+  "horizon": "41f822b659789780f58d32c63ddfb6887ea1b8bf",
+  "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
+  "packages": [
+    {
+      "mod_id": "pluto_native_creative",
+      "version": "0.1.0",
+      "archive": null,
+      "archive_sha256": null,
+      "manifest": "mixins/pluto_native_creative/horizon-mixin.toml",
+      "manifest_sha256": null
+    },
+    {
+      "mod_id": "tconstruct_native",
+      "version": "0.5.0",
+      "archive": null,
+      "archive_sha256": null,
+      "manifest": "mixins/tconstruct_native/horizon-mixin.toml",
+      "manifest_sha256": null
+    }
+  ]
+}

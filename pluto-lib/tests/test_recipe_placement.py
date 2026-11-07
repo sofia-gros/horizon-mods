@@ -17,7 +17,7 @@ class PlacementBoundaries(unittest.TestCase):
         for no in ('horizon_', 'tconstruct:', 'Allow(', 'static mut', 'RecipeIndex'):self.assertNotIn(no,source)
         self.assertEqual(source.count('static POLICIES:'),1)
         self.assertIn('Silent',source);self.assertIn('Denied',source);self.assertIn('None means unavailable',source)
-    def test_native_heads_do_not_duplicate_policy_or_grant_placement(self):
+    def test_native_veto_is_preserved_and_transaction_is_explicit_delegation(self):
         manifest=tomllib.loads((NATIVE/'horizon-mixin.toml').read_text())
         hooks=[h for h in manifest['injection'] if h['id'].startswith('recipe-placement-')]
         self.assertEqual({h['id'] for h in hooks},{'recipe-placement-definition','recipe-placement-click'})
@@ -25,12 +25,19 @@ class PlacementBoundaries(unittest.TestCase):
         source=(NATIVE/'recipe-placement-attempt.rs').read_text()
         for no in ('menu_session(', '.send(', 'RecipeIndex', 'tconstruct:'):self.assertNotIn(no,source)
         self.assertIn('ControlFlow::Break(())',source);self.assertIn('let _ = capability.show',source)
+        click=(NATIVE/'recipe-placement-click.rs').read_text()
+        self.assertEqual(GUARD.digest(click.encode()), GUARD.entries()[1]['helper_sha256'])
+        self.assertIn('pluto_transactions::attempt(game, book_type, entry_index, use_max)',click)
+        transaction=(NATIVE/'recipe-transactions.rs').read_text()
+        self.assertIn('super::pluto_placement::attempt(game, book, entry_index)',transaction)
+        self.assertIn('ControlFlow::Continue(()) => dispatch',transaction)
+        self.assertIn('let _ = handle(game, book, entry_index, use_max);',transaction)
         compact=''.join(source.split());self.assertLess(compact.index('has_providers()'),compact.index('game.recipe_ui'))
     def test_actual_package_carries_exact_api_and_four_native_sources(self):
         with tempfile.TemporaryDirectory() as d:
             output=Path(d)/'placement.hnmod';PACKAGE.build(output)
             with zipfile.ZipFile(output) as z:
-                for file in ['inventory-api/src/recipe_book/placement.rs','recipe-placement.rs','recipe-placement-definition.rs','recipe-placement-attempt.rs','recipe-placement-click.rs']:
+                for file in ['inventory-api/src/recipe_book/placement.rs','recipe-placement.rs','recipe-placement-definition.rs','recipe-placement-attempt.rs','recipe-placement-click.rs','recipe-transactions.rs']:
                     self.assertEqual(z.read('mixins/pluto_native_creative/pluto_native_creative/'+file),(NATIVE/file).read_bytes())
     def meta(self):
         return [dict(target=t,injection_id=i,file='native.rs',kind='HEAD',cancellable=True,priority=100,bindings=[],function_fingerprint='fingerprint',helper='helper.rs') for t,i in [('lib::Recipes::placement','recipe-placement-definition'),('game::place_recipe','recipe-placement-click')]]

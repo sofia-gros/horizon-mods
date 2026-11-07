@@ -26,12 +26,12 @@ class NativePreflightTests(unittest.TestCase):
                 patch.object(MODULE.payload, "metadata", return_value=metadata),
                 patch.object(MODULE.payload, "check", side_effect=lambda p, m: calls.append(("payload", p, m))),
                 patch.object(MODULE.payload, "check_source", side_effect=lambda w, m: calls.append(("payload-source", w, m))),
-                patch.object(MODULE.placement, "check", side_effect=lambda p, w: calls.append(("placement", p, w))),
+                patch.object(MODULE.placement, "check", side_effect=lambda p, w, c: calls.append(("placement", p, w, c))),
                 patch.object(MODULE.current_book, "metadata", return_value=metadata),
                 patch.object(MODULE.current_book, "check", side_effect=lambda p, m: calls.append(("book", p, m))),
                 patch.object(MODULE.current_book, "check_source", side_effect=lambda w, m: calls.append(("book-source", w, m))),
                 patch.object(MODULE.wire_snapshot, "check", side_effect=lambda p, w: calls.append(("wire-snapshot", p, w))),
-                patch.object(MODULE.matching, "check", side_effect=lambda p, w: calls.append(("matching", p, w))),
+                patch.object(MODULE.matching, "check", side_effect=lambda p, w, c: calls.append(("matching", p, w, c))),
                 patch.object(MODULE.terrain, "metadata", return_value=metadata),
                 patch.object(MODULE.terrain, "check", side_effect=lambda p, m: calls.append(("terrain", p, m))),
                 patch.object(MODULE.terrain, "check_source", side_effect=lambda w, m: calls.append(("terrain-source", w, m))),
@@ -42,8 +42,8 @@ class NativePreflightTests(unittest.TestCase):
                 patch.object(MODULE.terrain_cell, "check_source", side_effect=lambda w, m: calls.append(("terrain-cell-source", w, m))),
             ]:
                 stack.enter_context(manager)
-            MODULE.check(plan, "pristine")
-        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine")), ("terrain-cell", plan, metadata), ("terrain-cell-source", Path("pristine"), metadata)])
+            MODULE.check(plan, "pristine", Path("fixed-package-contract.json"))
+        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine"), Path("fixed-package-contract.json")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine"), Path("fixed-package-contract.json")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine")), ("terrain-cell", plan, metadata), ("terrain-cell-source", Path("pristine"), metadata)])
 
     def test_advancement_failure_stops_before_equipment_application_checks(self):
         with patch.object(MODULE.protection, "check"), \

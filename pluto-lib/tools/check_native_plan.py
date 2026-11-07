@@ -32,7 +32,7 @@ station = _load("check_station_ingredient_plan")
 terrain_cell = _load("check_terrain_cell_plan")
 
 
-def check(plan, workspace):
+def check(plan, workspace, crafting_package_contract=None):
     """Reject missing services, unsafe composition, source drift or copied edits."""
     protection.check(plan)
     advancement.check(plan, Path(workspace))
@@ -42,12 +42,12 @@ def check(plan, workspace):
     metadata = payload.metadata()
     payload.check(plan, metadata)
     payload.check_source(Path(workspace), metadata)
-    placement.check(plan, Path(workspace))
+    placement.check(plan, Path(workspace), crafting_package_contract)
     metadata = current_book.metadata()
     current_book.check(plan, metadata)
     current_book.check_source(Path(workspace), metadata)
     wire_snapshot.check(plan, Path(workspace))
-    matching.check(plan, Path(workspace))
+    matching.check(plan, Path(workspace), crafting_package_contract)
     metadata = terrain.metadata()
     terrain.check(plan, metadata)
     terrain.check_source(Path(workspace), metadata)
@@ -61,9 +61,9 @@ def check(plan, workspace):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     try:
-        if len(argv) != 2:
-            raise ValueError("usage: check_native_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE")
-        check(json.loads(Path(argv[0]).read_text()), Path(argv[1]))
+        if len(argv) != 3:
+            raise ValueError("usage: check_native_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE CRAFTING_PACKAGE_CONTRACT.json")
+        check(json.loads(Path(argv[0]).read_text()), Path(argv[1]), Path(argv[2]))
     except (ValueError, OSError, KeyError, StopIteration, subprocess.CalledProcessError) as error:
         print(f"Pluto native preflight rejected: {error}", file=sys.stderr)
         return 1

@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "ordinary_runtime_base": "fbf6f16f3348f385320743df3b6e20d6d3e6f7bc",
+  "before": {
+    "pluto-lib/tools/check_native_plan.py": {
+      "git_blob": "26a9c75a5afcb5027db2377c14c3d40e9f0ccb6a",
+      "sha256": "001afdd06e25a36815afba090990e8af08e32a5fbdf0def2b203703b4c31712c"
+    },
+    "pluto-lib/tools/check_recipe_placement_plan.py": {
+      "git_blob": "ce7fe16fdc7317cbeaa97b0022c9fba074498317",
+      "sha256": "13a27a0077e0231b33c9ab83852c4529ba6d14c19a791888cac22d5eee67b091"
+    },
+    "pluto-lib/tools/check_crafting_match_plan.py": {
+      "git_blob": "6b12de8045154b3046c7cf4c9659043f83d1a4ee",
+      "sha256": "ceb6e770c1de129e9a64269b568eb27290ceaaa02b70ecf3eba8744195cb70fb"
+    },
+    "pluto-lib/tools/recipe-placement-boundaries.json": {
+      "git_blob": "54548b113b8630197ace0e9eb23370ef13d15bef",
+      "sha256": "931c7b2c3b559d18c43bea2efed96a58d6d77b3cf34a5d7f47ae87d159c3fc0b"
+    },
+    "pluto-lib/tools/crafting-match-boundaries.json": {
+      "git_blob": "66b173767f6d08a2c1bdb1ed4eb892392e971032",
+      "sha256": "90dd56366e9266d08db1fd536547ffee1d3fdb606ea7e67d92cb74e693082aab"
+    },
+    "pluto-lib/tests/test_crafting_match.py": {
+      "git_blob": "52076a1117fd7b5e1d48515cfe4d9dbc6c4341bc",
+      "sha256": "d228517a331b47ef92631f015b1613ed1657b17d9250f91b772a4b787072c2ea"
+    },
+    "pluto-lib/tests/test_recipe_placement.py": {
+      "git_blob": "856c982d42d5e21deac10c4bb049cfdeb61029f2",
+      "sha256": "ff039ef8d8b0d35bf153acd6f15e1c8e87ca3675ab467b1ffcff8b6536a94688"
+    },
+    "pluto-lib/tests/test_native_preflight.py": {
+      "git_blob": "83722e81d5315197302da703a10997098fde1f3a",
+      "sha256": "a70dd387c6549c54071a6241524f673f17dad4cec38e2493a53df51a58bd8422"
+    }
+  },
+  "files": {
+    "pluto-lib/docs/crafting-composition-guard-contract.md": {
+      "sha256": "065a5db153793c3a1725fbc948be89835026f57414cabaef2f03da627b0d8e4a",
+      "bytes": 6542
+    },
+    "pluto-lib/tests/test_native_preflight.py": {
+      "sha256": "80a3860e56048ced487d6bc138735d7524a94e0409aaae46d1c69b328bf23871",
+      "bytes": 11507
+    },
+    "pluto-lib/tests/test_crafting_composition_contract.py": {
+      "sha256": "42cf18add2efeb65cb43e0dbb6a2eab59b1d42e36333f6c7ad4e0122c28a9fa9",
+      "bytes": 10960
+    },
+    "pluto-lib/tests/test_recipe_placement.py": {
+      "sha256": "6a66aa31b039ab4f37003461e7c527c5e98a56c1324106fc92fece92f84c7163",
+      "bytes": 5460
+    },
+    "pluto-lib/tests/test_crafting_match.py": {
+      "sha256": "105accf8874fe904f2c3565fd4d5f2f85e627c83017aa0b03b15640b27c278bb",
+      "bytes": 6539
+    },
+    "pluto-lib/tools/crafting-package-contract.json": {
+      "sha256": "e94919c74d3c10f79420c503adf90c956f8f13909ba1e026d270af960bd5de7f",
+      "bytes": 636
+    },
+    "pluto-lib/tools/crafting-composition-closure.json": {
+      "sha256": "232d378186197e7197278750b77893922c3040ee75cbe825d2fd6dccb42b0aad",
+      "bytes": 24553
+    },
+    "pluto-lib/tools/recipe-placement-boundaries.json": {
+      "sha256": "fa33e6505758ce5066326fbafbe1551a59b58856e1d1799d1ee55909bb4a4781",
+      "bytes": 2675
+    },
+    "pluto-lib/tools/crafting-match-boundaries.json": {
+      "sha256": "f15874909c9ebbd3005ed1a949fe1c15e071edc20330f52db56b2fa432bb20ab",
+      "bytes": 4213
+    },
+    "pluto-lib/tools/check_native_plan.py": {
+      "sha256": "78d3e2b821fe8712cd09f5e7b586c2e5a3aea9deae94c8ed4c2d613e80bf16bc",
+      "bytes": 2951
+    },
+    "pluto-lib/tools/check_crafting_match_plan.py": {
+      "sha256": "1a41ab9d46c4a9bfebcb34e79f33fe42dbcc4b8cfef4ffec2dc86dda6ef12597",
+      "bytes": 2495
+    },
+    "pluto-lib/tools/check_recipe_placement_plan.py": {
+      "sha256": "7a153e6a4863a3721ead6aa8b96b189b35a2df7bc7464f44950a1184e9cd0496",
+      "bytes": 15068
+    }
+  },
+  "checks": {
+    "source_synthetic": 43,
+    "actual_package_tests": {
+      "retained": 2,
+      "executed": false
+    },
+    "new_constructor_plan_observed": false,
+    "rust": false,
+    "plan": false,
+    "apply": false,
+    "host_type": false
+  },
+  "mandatory_caller_dependencies": [
+    "Storage direct twelve-guard wrapper contract for two guards",
+    "Windows stage explicit full package contract third argument"
+  ],
+  "status": "source-only; new constructor null fingerprints require refusal"
+}
