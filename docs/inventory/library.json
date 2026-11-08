@@ -2859,24 +2859,24 @@
       "note": "not yet compared with the port"
     },
     "tools/definition/module/build/MultiplyStatsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/definition.rs: multiply_stats with multiply-all, with the original's test cases (mining speed (1+5)*5 = 30); the armor builder helper is a data-generation helper"
     },
     "tools/definition/module/build/SetStatsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/definition.rs: base_stats, with the original's test case (stats set outright, others left default)"
     },
     "tools/definition/module/build/ToolActionsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/definition.rs: tool_actions and the can-perform check, with the original's test case"
     },
     "tools/definition/module/build/ToolActionToolHook.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "tools/definition/module/build/ToolSlotsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/definition.rs: modifier_slots, summed over modules; the original's slot test case"
     },
     "tools/definition/module/build/ToolStatsHook.java": {
       "status": "todo",
@@ -2887,8 +2887,8 @@
       "note": "not yet compared with the port"
     },
     "tools/definition/module/build/ToolTraitsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/definition.rs: traits as entries; the trait hook that also adds the material traits needs the tool stack (to do)"
     },
     "tools/definition/module/build/VolatileDataToolHook.java": {
       "status": "todo",
@@ -2987,8 +2987,8 @@
       "note": "not yet compared with the port"
     },
     "tools/definition/module/material/PartStatsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/definition.rs: part_stats: parts with scale and the primary part, with range check; the material-hook (which stat each part takes) is done with the tool stack"
     },
     "tools/definition/module/material/RemappingMaterialsModule.java": {
       "status": "todo",
@@ -3067,16 +3067,16 @@
       "note": "not yet compared with the port"
     },
     "tools/definition/ToolDefinitionData.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/definition.rs: the module list with the stats, slots, traits, actions and parts hooks; all 45 of the original's tool definitions load (the 100+ modules of the other types are raw data); the remaining hooks arrive with their modules"
     },
     "tools/definition/ToolDefinitionDataBuilder.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "tools/definition/ToolDefinitionLoader.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/definition.rs: loading from the data files with the type registry; the reload listener and the client sync are the game glue"
     },
     "tools/definition/UpdateToolDefinitionDataPacket.java": {
       "status": "todo",
