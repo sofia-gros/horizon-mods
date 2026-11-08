@@ -1,4 +1,4 @@
-# Players: messages and items
+# Players: messages, items, effects and food
 
 A `ServerPlayer` is a plain handle (uuid and name). Its methods reach the game only while a PlutoLib callback that carries a player is running (a join, a command). Called anywhere else, a method does nothing and says so: it returns `false` or `0`, or hands back everything it was asked to give. A stored handle can therefore never touch the game from the wrong place.
 
@@ -54,6 +54,27 @@ with_ops(&mut game, || {
     player.take_item("minecraft:stick", 2);
 });
 ```
+
+## Effects and Food
+
+A status effect is an `EffectInstance`: which effect, how strong, how long. `add_effect` gives one to the player, `effects` lists what the player has and `remove_effect` takes one off. A food that heals or protects (a cake, a stew) is an item use that gives an effect.
+
+```rust
+use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    // ten seconds of Speed II
+    assert!(player.add_effect(&EffectInstance::new("minecraft:speed", 200).amplifier(1)));
+    assert_eq!(player.effects().len(), 1);
+    assert!(player.remove_effect("minecraft:speed"));
+});
+```
+
+> **Tip.** A duration is in ticks: 20 are one second. `-1` never ends.
+
+> **Use with Caution.** `add_food` is a documented stub: Horizon lets a mod read a player's food level but not change it, so `add_food` does nothing and returns `false` until it does. Give an effect such as `minecraft:saturation` instead.
 
 ## Testing
 
@@ -150,6 +171,138 @@ let mut game = MemoryPlayerOps { language: "ja_jp".to_owned(), ..Default::defaul
 with_ops(&mut game, || assert_eq!(player.language(), "ja_jp"));
 ```
 
+### `EffectInstance`
+
+A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style) and `particles: bool`.
+
+```rust
+use pluto_lib::EffectInstance;
+
+let plain = EffectInstance::new("minecraft:regeneration", 100);
+assert_eq!(plain.amplifier, 0);
+assert!(plain.particles && !plain.ambient);
+let custom = EffectInstance { ambient: true, ..EffectInstance::new("minecraft:haste", -1) };
+assert_eq!(custom.duration, -1);
+```
+
+### `EffectInstance::new`
+
+`fn new(id: &str, duration: i32) -> EffectInstance`. An effect of level I lasting `duration` ticks, with particles.
+
+```rust
+use pluto_lib::EffectInstance;
+
+let effect = EffectInstance::new("minecraft:night_vision", 600);
+assert_eq!(effect.id, "minecraft:night_vision");
+assert_eq!(effect.duration, 600);
+```
+
+### `EffectInstance::amplifier`
+
+`fn amplifier(self, amplifier: u8) -> EffectInstance`. The same effect at another level (0 is level I).
+
+```rust
+use pluto_lib::EffectInstance;
+
+assert_eq!(EffectInstance::new("minecraft:strength", 100).amplifier(2).amplifier, 2);
+```
+
+### `EffectInstance::without_particles`
+
+`fn without_particles(self) -> EffectInstance`. The same effect without particles.
+
+```rust
+use pluto_lib::EffectInstance;
+
+assert!(!EffectInstance::new("minecraft:speed", 100).without_particles().particles);
+```
+
+### `FoodStatus`
+
+A player's hunger. Fields: `level: i32` (0 to 20), `saturation: f32` and `exhaustion: f32`.
+
+```rust
+use pluto_lib::FoodStatus;
+
+let hungry = FoodStatus { level: 6, saturation: 0.0, exhaustion: 1.5 };
+assert!(hungry.level < 20);
+```
+
+### `ServerPlayer::add_effect`
+
+`fn add_effect(&self, effect: &EffectInstance) -> bool`. Gives the player a status effect; it replaces a weaker or shorter one of the same kind. False if nothing changed (an unknown effect, a duration of 0, a dead player) or outside a callback that carries the player.
+
+```rust
+use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let effect = EffectInstance::new("minecraft:speed", 200);
+assert!(!player.add_effect(&effect)); // no running game
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    assert!(player.add_effect(&effect));
+    assert!(!player.add_effect(&EffectInstance::new("minecraft:speed", 0))); // nothing to give
+});
+```
+
+### `ServerPlayer::remove_effect`
+
+`fn remove_effect(&self, id: &str) -> bool`. Takes the effect `id` off the player; true if they had it.
+
+```rust
+use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    player.add_effect(&EffectInstance::new("minecraft:speed", 200));
+    assert!(player.remove_effect("minecraft:speed"));
+    assert!(!player.remove_effect("minecraft:speed")); // already gone
+});
+```
+
+### `ServerPlayer::effects`
+
+`fn effects(&self) -> Vec<EffectInstance>`. The status effects the player has; empty outside a callback that carries the player.
+
+```rust
+use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert!(player.effects().is_empty());
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    player.add_effect(&EffectInstance::new("minecraft:haste", 100));
+    assert_eq!(player.effects()[0].id, "minecraft:haste");
+});
+```
+
+### `ServerPlayer::food`
+
+`fn food(&self) -> Option<FoodStatus>`. The player's hunger; None outside a callback that carries the player.
+
+```rust
+use pluto_lib::{with_ops, FoodStatus, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert_eq!(player.food(), None);
+let hungry = FoodStatus { level: 4, saturation: 0.0, exhaustion: 0.0 };
+let mut game = MemoryPlayerOps { food: Some(hungry), ..Default::default() };
+with_ops(&mut game, || assert_eq!(player.food().unwrap().level, 4));
+```
+
+### `ServerPlayer::add_food`
+
+`fn add_food(&self, nutrition: i32, saturation: f32) -> bool`. Stub: Horizon offers no way to change a player's food level yet, so this does nothing and returns `false`, inside a callback too.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || assert!(!player.add_food(4, 0.6)));
+```
+
 ### `ServerPlayer::empty_slots`
 
 `fn empty_slots(&self) -> u32`. How many of the 36 main inventory slots are empty. Check it before an action that needs room, so nothing is consumed and then lost. 0 outside a callback.
@@ -169,10 +322,10 @@ with_ops(&mut game, || {
 
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`.
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`.
 
 ```rust
-use pluto_lib::{with_ops, PlayerOps, ServerPlayer};
+use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};
 
 /// A game where nobody can receive anything.
 struct FullWorld;
@@ -185,6 +338,10 @@ impl PlayerOps for FullWorld {
     fn take_item(&mut self, _: u128, _: &str, _: u32) -> u32 { 0 }
     fn empty_slots(&mut self, _: u128) -> u32 { 0 }
     fn language(&mut self, _: u128) -> Option<String> { None }
+    fn add_effect(&mut self, _: u128, _: &EffectInstance) -> bool { false }
+    fn remove_effect(&mut self, _: u128, _: &str) -> bool { false }
+    fn effects(&mut self, _: u128) -> Option<Vec<EffectInstance>> { None }
+    fn food(&mut self, _: u128) -> Option<FoodStatus> { None }
 }
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
@@ -212,7 +369,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 ### `MemoryPlayerOps`
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`).
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)` and `food` the hunger every player has (None means full).
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};

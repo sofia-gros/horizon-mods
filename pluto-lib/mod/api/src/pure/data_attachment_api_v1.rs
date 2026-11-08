@@ -92,6 +92,18 @@ mod tests {
         fn language(&mut self, _: u128) -> Option<String> {
             None
         }
+        fn add_effect(&mut self, _: u128, _: &crate::pure::player_api::EffectInstance) -> bool {
+            false
+        }
+        fn remove_effect(&mut self, _: u128, _: &str) -> bool {
+            false
+        }
+        fn effects(&mut self, _: u128) -> Option<Vec<crate::pure::player_api::EffectInstance>> {
+            None
+        }
+        fn food(&mut self, _: u128) -> Option<crate::pure::player_api::FoodStatus> {
+            None
+        }
     }
 
     fn counter() -> AttachmentType<i32> {

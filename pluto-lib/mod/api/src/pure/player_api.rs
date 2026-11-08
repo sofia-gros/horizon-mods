@@ -26,6 +26,14 @@ pub trait PlayerOps {
     fn empty_slots(&mut self, player: u128) -> u32;
     /// The language option of the player's client (`en_us`, `ja_jp`, ...); None if the player is not known.
     fn language(&mut self, player: u128) -> Option<String>;
+    /// Gives the player a status effect; true if anything changed.
+    fn add_effect(&mut self, player: u128, effect: &EffectInstance) -> bool;
+    /// Takes the effect `id` off the player; true if they had it.
+    fn remove_effect(&mut self, player: u128, id: &str) -> bool;
+    /// The status effects the player has; None if the player is not known.
+    fn effects(&mut self, player: u128) -> Option<Vec<EffectInstance>>;
+    /// The player's food level (0 to 20), saturation and exhaustion; None if the player is not known.
+    fn food(&mut self, player: u128) -> Option<FoodStatus>;
 }
 
 thread_local! {
@@ -59,6 +67,51 @@ pub(super) fn with_current<R>(default: R, f: impl FnOnce(&mut dyn PlayerOps) -> 
         Some(raw) => f(unsafe { &mut *raw }),
         None => default,
     }
+}
+
+/// A status effect on a player (Minecraft: `MobEffectInstance`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EffectInstance {
+    /// The effect, such as `minecraft:speed` or a mod's own.
+    pub id: String,
+    /// 0 for level I.
+    pub amplifier: u8,
+    /// Ticks left; -1 for an infinite one.
+    pub duration: i32,
+    /// From a beacon or a conduit: translucent particles and a framed icon.
+    pub ambient: bool,
+    /// Whether the effect shows particles.
+    pub particles: bool,
+}
+
+impl EffectInstance {
+    /// An effect of level I lasting `duration` ticks (20 are one second; -1 never ends), with particles.
+    pub fn new(id: &str, duration: i32) -> Self {
+        Self { id: id.to_owned(), amplifier: 0, duration, ambient: false, particles: true }
+    }
+
+    /// The same effect at another level (0 is level I).
+    pub fn amplifier(mut self, amplifier: u8) -> Self {
+        self.amplifier = amplifier;
+        self
+    }
+
+    /// The same effect without particles.
+    pub fn without_particles(mut self) -> Self {
+        self.particles = false;
+        self
+    }
+}
+
+/// A player's hunger (Minecraft: `FoodData`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FoodStatus {
+    /// The food level, 0 to 20.
+    pub level: i32,
+    /// The saturation.
+    pub saturation: f32,
+    /// The exhaustion.
+    pub exhaustion: f32,
 }
 
 /// A connected player.
@@ -95,6 +148,34 @@ impl ServerPlayer {
         with_current(None, |ops| ops.language(self.uuid)).unwrap_or_else(|| "en_us".to_owned())
     }
 
+    /// Fabric: `LivingEntity.addStatusEffect`. Gives the player a status effect; it replaces a weaker or shorter one of the same kind. False if
+    /// nothing changed (an unknown effect, a duration of 0, a dead player) or the call is made outside a callback that carries the player.
+    pub fn add_effect(&self, effect: &EffectInstance) -> bool {
+        with_current(false, |ops| ops.add_effect(self.uuid, effect))
+    }
+
+    /// Fabric: `LivingEntity.removeStatusEffect`. Takes the effect `id` off the player; true if they had it.
+    pub fn remove_effect(&self, id: &str) -> bool {
+        with_current(false, |ops| ops.remove_effect(self.uuid, id))
+    }
+
+    /// The status effects the player has; empty outside a callback that carries the player.
+    pub fn effects(&self) -> Vec<EffectInstance> {
+        with_current(None, |ops| ops.effects(self.uuid)).unwrap_or_default()
+    }
+
+    /// Fabric: `PlayerEntity.getHungerManager`. The player's hunger; None outside a callback that carries the player.
+    pub fn food(&self) -> Option<FoodStatus> {
+        with_current(None, |ops| ops.food(self.uuid))
+    }
+
+    /// Feeds the player `nutrition` hunger points and `saturation`. Stub: Horizon offers no way to change a player's food level yet, so
+    /// this does nothing and returns false (see the support matrix).
+    pub fn add_food(&self, nutrition: i32, saturation: f32) -> bool {
+        let _ = (nutrition, saturation);
+        false
+    }
+
     /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
@@ -115,6 +196,10 @@ pub struct MemoryPlayerOps {
     pub free_slots: u32,
     /// The language option of every player's client; empty means `en_us`.
     pub language: String,
+    /// The status effects of every player, by `(player, effect id)`.
+    pub effects: std::collections::BTreeMap<(u128, String), EffectInstance>,
+    /// The food status every player has; None means a full, saturated player.
+    pub food: Option<FoodStatus>,
 }
 
 impl PlayerOps for MemoryPlayerOps {
@@ -147,6 +232,22 @@ impl PlayerOps for MemoryPlayerOps {
     }
     fn language(&mut self, _player: u128) -> Option<String> {
         Some(if self.language.is_empty() { "en_us".to_owned() } else { self.language.clone() })
+    }
+    fn add_effect(&mut self, player: u128, effect: &EffectInstance) -> bool {
+        if effect.duration == 0 || effect.duration < -1 {
+            return false;
+        }
+        self.effects.insert((player, effect.id.clone()), effect.clone());
+        true
+    }
+    fn remove_effect(&mut self, player: u128, id: &str) -> bool {
+        self.effects.remove(&(player, id.to_owned())).is_some()
+    }
+    fn effects(&mut self, player: u128) -> Option<Vec<EffectInstance>> {
+        Some(self.effects.iter().filter(|((p, _), _)| *p == player).map(|(_, e)| e.clone()).collect())
+    }
+    fn food(&mut self, _player: u128) -> Option<FoodStatus> {
+        Some(self.food.unwrap_or(FoodStatus { level: 20, saturation: 5.0, exhaustion: 0.0 }))
     }
 }
 
@@ -187,6 +288,18 @@ mod tests {
             3
         }
         fn language(&mut self, _: u128) -> Option<String> {
+            None
+        }
+        fn add_effect(&mut self, _: u128, _: &EffectInstance) -> bool {
+            false
+        }
+        fn remove_effect(&mut self, _: u128, _: &str) -> bool {
+            false
+        }
+        fn effects(&mut self, _: u128) -> Option<Vec<EffectInstance>> {
+            None
+        }
+        fn food(&mut self, _: u128) -> Option<FoodStatus> {
             None
         }
     }

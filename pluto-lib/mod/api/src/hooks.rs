@@ -18,6 +18,7 @@ use crate::pure::base::{Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, ItemSlot};
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
+use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::command_api_v2;
@@ -139,6 +140,37 @@ impl PlayerOps for HostOps {
 
     fn language(&mut self, player: u128) -> Option<String> {
         self.host().player_client(player).map(|client| client.language)
+    }
+
+    fn add_effect(&mut self, player: u128, effect: &EffectInstance) -> bool {
+        self.host().add_effect(
+            player,
+            &horizon_client::game::NativeEffect {
+                id: effect.id.clone(),
+                amplifier: effect.amplifier,
+                duration: effect.duration,
+                ambient: effect.ambient,
+                particles: effect.particles,
+            },
+        )
+    }
+
+    fn remove_effect(&mut self, player: u128, id: &str) -> bool {
+        self.host().remove_effect(player, id)
+    }
+
+    fn effects(&mut self, player: u128) -> Option<Vec<EffectInstance>> {
+        let effects = self.host().effects(player)?;
+        Some(
+            effects
+                .into_iter()
+                .map(|e| EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles })
+                .collect(),
+        )
+    }
+
+    fn food(&mut self, player: u128) -> Option<FoodStatus> {
+        self.host().player_food(player).map(|(level, saturation, exhaustion)| FoodStatus { level, saturation, exhaustion })
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
