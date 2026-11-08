@@ -44,7 +44,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [base](base.md) | `Event`, `Identifier`, `ActionResult`, the support matrix |
 | [lifecycle](lifecycle.md) | server start and stop, ticks, chunk load and unload |
 | [networking](networking.md) | a player joins or leaves |
-| [interaction](interaction.md) | using items and blocks, attacking, breaking blocks |
+| [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, breaking blocks and how fast |
 | [entities](entities.md) | entities entering and leaving worlds, damage, death |
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | resource reload listeners |
@@ -52,14 +52,14 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
 | [color](color.md) | the tint of a block's faces, which may depend on where the block stands (stub: the game does not ask yet) |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |
-| [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons |
+| [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons, what each slot takes, shift-click routing, what a hopper may put in |
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |
 | [fluid](fluid.md) | fluids a mod defines: id, temperature, light, density, viscosity, colour |
 | [i18n](i18n.md) | translations: text per language, the language in use, switching |
 | [world](world.md) | reading and changing blocks of a world |
 | [projectile](projectile.md) | a projectile hits something: act on the world, cancel the hit |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
-| [player](player.md) | messages and items for a player, and testing with `MemoryPlayerOps` |
+| [player](player.md) | messages, items and item stacks with their data (damage, max damage, custom data) for a player, effects, hunger, and testing with `MemoryPlayerOps` |
 | [attachments](attachments.md) | values saved with a player |
 | [config](config.md) | config files |
 | [commands](commands.md) | commands |
