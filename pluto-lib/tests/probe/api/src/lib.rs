@@ -92,6 +92,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         let said = p.player.send_message("PlutoLib says hello");
         let left = p.player.give_item("minecraft:stick", 1);
         println!("PLUTO-PROBE player send_message={said} give_left={left}");
+        let gave = p.player.add_effect(&pluto_lib::EffectInstance::new("minecraft:speed", 200).amplifier(1));
+        let have: Vec<String> = p.player.effects().iter().map(|e| format!("{}:{}", e.id, e.amplifier)).collect();
+        println!("PLUTO-PROBE effects gave={gave} have={have:?} food={:?} add_food={}", p.player.food(), p.player.add_food(4, 0.5));
         let visits = AttachmentRegistry::create(Identifier::new("pluto_probe", "visits").unwrap(), || 0u32);
         let before = p.player.get_attached(&visits);
         let stored = p.player.set_attached(&visits, before + 1);

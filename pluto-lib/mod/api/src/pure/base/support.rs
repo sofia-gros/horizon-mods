@@ -54,6 +54,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
     },
     SupportEntry {
+        api: "player_api::ServerPlayer::add_food",
+        support: Support::Stub,
+        behaviour: "does nothing and returns false; the food level is unchanged",
+        unblocked_by: "Horizon offering a way to change a player's food level (it can only read it today)",
+    },
+    SupportEntry {
         api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STARTED / SERVER_STOPPED",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked",
