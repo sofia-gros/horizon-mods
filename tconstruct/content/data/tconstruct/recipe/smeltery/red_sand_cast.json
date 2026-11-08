@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#forge:sand/red"
+  ],
+  "result": {
+    "id": "tconstruct:blank_red_sand_cast",
+    "count": 4
+  }
+}

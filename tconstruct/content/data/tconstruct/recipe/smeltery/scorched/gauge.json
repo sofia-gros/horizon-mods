@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "C": "tconstruct:obsidian_pane",
+    "G": "#forge:glass_panes/colorless"
+  },
+  "pattern": [
+    " C ",
+    "CGC",
+    " C "
+  ],
+  "result": {
+    "id": "tconstruct:obsidian_gauge",
+    "count": 4
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "#": "#forge:slimeballs",
+    "P": "minecraft:piston"
+  },
+  "pattern": [
+    "#",
+    "P"
+  ],
+  "result": {
+    "id": "minecraft:sticky_piston"
+  }
+}
