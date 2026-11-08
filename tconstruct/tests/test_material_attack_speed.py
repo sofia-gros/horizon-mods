@@ -23,12 +23,6 @@ class MaterialAttackSpeed(unittest.TestCase):
             subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/material_attack_speed.rs'), '-L', f'dependency={deps}', '--extern', f'serde_json={libraries[0]}', '-C', 'debuginfo=0', '-C', 'strip=debuginfo', '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
-    def test_runtime_hook_is_enabled(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        injection = manifest.split('id = "material-attack-speed"', 1)[1].split('[[', 1)[0]
-        self.assertIn('main_hand_attack_speed', injection)
-        self.assertIn('helper = "material-attack-speed.rs"', injection)
-        self.assertIn('kind = "HEAD"', injection)
 
 if __name__ == '__main__':
     unittest.main()

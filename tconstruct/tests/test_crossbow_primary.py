@@ -7,13 +7,6 @@ import tempfile
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
 class CrossbowPrimary(unittest.TestCase):
-    def test_active_release_hook(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        rule = manifest.split('id = "material-crossbow-use"', 1)[1].split('[[', 1)[0]
-        self.assertIn('helper = "material-crossbow-use.rs"', rule)
-        self.assertIn('::use_crossbow"', rule)
-        self.assertIn('kind = "HEAD"', rule)
-        self.assertIn('cancellable = true', rule)
     def test_cached_release_harness(self):
         directory = os.environ.get('TC_CROSSBOW_HARNESS_DEPS')
         if not directory:

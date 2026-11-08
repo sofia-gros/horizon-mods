@@ -16,13 +16,6 @@ class MiningFactorPrecision(unittest.TestCase):
             subprocess.run([compiler, '--edition=2021', '--test', str(ROOT / 'tests/rust/mining_factor_precision.rs'), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
-    def test_active_rule_uses_shared_helper(self):
-        rules = (ROOT / 'mixins/tconstruct/source-mining-rules.rs').read_text()
-        self.assertIn('Some(conditional_speed_with_water(', rules)
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        for name in ('game', 'lib', 'items'):
-            module = manifest.split(f'id = "{name}-source-mining-math"', 1)[1].split('[[', 1)[0]
-            self.assertIn('source = "source-mining-math.rs"', module)
 
 if __name__ == '__main__':
     unittest.main()

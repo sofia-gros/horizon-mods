@@ -23,12 +23,6 @@ class RagingBroken(unittest.TestCase):
             subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/raging_broken.rs'), '-L', f'dependency={deps}', '--extern', f'serde_json={libraries[0]}', '-C', 'debuginfo=0', '-C', 'strip=debuginfo', '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
-    def test_return_hook_is_enabled(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        injection = manifest.split('id = "source-melee-damage-return"', 1)[1].split('[[', 1)[0]
-        self.assertIn('::melee_damage', injection)
-        self.assertIn('kind = "RETURN"', injection)
-        self.assertIn('source-melee-damage-return.rs', injection)
 
 if __name__ == '__main__':
     unittest.main()

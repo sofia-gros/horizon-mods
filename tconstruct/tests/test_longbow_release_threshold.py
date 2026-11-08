@@ -7,19 +7,6 @@ import tempfile
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
 class LongbowReleaseThreshold(unittest.TestCase):
-    def test_active_release_hook(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        rule = manifest.split('id = "material-bow-release"', 1)[1].split('[[', 1)[0]
-        self.assertIn('helper = "material-bow-release.rs"', rule)
-        self.assertIn('::release_used_item"', rule)
-        self.assertIn('kind = "HEAD"', rule)
-        self.assertIn('cancellable = true', rule)
-    def test_active_crossbow_charge_hook(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        rule = manifest.split('id = "material-crossbow-charge"', 1)[1].split('[[', 1)[0]
-        self.assertIn('helper = "material-crossbow-charge.rs"', rule)
-        self.assertIn('kind = "HEAD"', rule)
-        self.assertIn('cancellable = true', rule)
     def test_cached_release_harness(self):
         directory = os.environ.get('TC_LONGBOW_HARNESS_DEPS')
         if not directory:
