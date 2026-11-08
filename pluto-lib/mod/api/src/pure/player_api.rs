@@ -18,6 +18,12 @@ pub trait PlayerOps {
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String>;
     /// Stores JSON under the attachment `id` for the player; false if it could not be stored.
     fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool;
+    /// How many plain `item` the player carries in the main inventory.
+    fn count_item(&mut self, player: u128, item: &str) -> u32;
+    /// Takes up to `count` plain `item` from the player; returns how many were taken.
+    fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32;
+    /// How many of the 36 main inventory slots are empty.
+    fn empty_slots(&mut self, player: u128) -> u32;
 }
 
 thread_local! {
@@ -70,6 +76,21 @@ impl ServerPlayer {
     pub fn give_item(&self, item: &str, count: u32) -> u32 {
         with_current(count, |ops| ops.give(self.uuid, item, count))
     }
+
+    /// Fabric: `PlayerInventory.count(item)`. 0 outside a callback that carries this player.
+    pub fn count_item(&self, item: &str) -> u32 {
+        with_current(0, |ops| ops.count_item(self.uuid, item))
+    }
+
+    /// Fabric: `PlayerInventory.remove` (by item): takes up to `count`; returns how many were taken (0 outside a callback).
+    pub fn take_item(&self, item: &str, count: u32) -> u32 {
+        with_current(0, |ops| ops.take_item(self.uuid, item, count))
+    }
+
+    /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
+    pub fn empty_slots(&self) -> u32 {
+        with_current(0, |ops| ops.empty_slots(self.uuid))
+    }
 }
 
 #[cfg(test)]
@@ -99,6 +120,15 @@ mod tests {
             self.attached.insert((player, id.to_owned()), json.to_owned());
             true
         }
+        fn count_item(&mut self, _: u128, item: &str) -> u32 {
+            if item == "minecraft:stick" { 4 } else { 0 }
+        }
+        fn take_item(&mut self, _: u128, _: &str, count: u32) -> u32 {
+            count.min(1)
+        }
+        fn empty_slots(&mut self, _: u128) -> u32 {
+            3
+        }
     }
 
     fn player() -> ServerPlayer {
@@ -113,6 +143,14 @@ mod tests {
         assert_eq!(left, 3);
         assert_eq!(ops.told, [(7, "hi".to_owned())]);
         assert_eq!(ops.given, [(7, "minecraft:stick".to_owned(), 5)]);
+    }
+
+    #[test]
+    fn inventory_questions_are_answered_inside_a_scope_and_by_zero_outside() {
+        let mut ops = Recorder::default();
+        let inside = with_ops(&mut ops, || (player().count_item("minecraft:stick"), player().take_item("minecraft:stick", 5), player().empty_slots()));
+        assert_eq!(inside, (4, 1, 3));
+        assert_eq!((player().count_item("minecraft:stick"), player().take_item("minecraft:stick", 5), player().empty_slots()), (0, 0, 0));
     }
 
     #[test]

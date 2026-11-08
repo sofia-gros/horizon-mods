@@ -32,6 +32,7 @@ In `mod/` (built with Horizon's official launcher):
 - `player_api`: `ServerPlayer` with `send_message` and `give_item`. The handle is plain data; its methods reach the game only while a callback that carries a player runs (outside, they do nothing and say so).
 - `data_attachment_api_v1`: `AttachmentRegistry::create(id, default)` and `has_attached` / `get_attached` / `get_attached_existing` / `set_attached` on `ServerPlayer`; values are serde types saved with the player. Players only so far; worlds, chunks, block entities and other entities follow.
 - `config_api` (not in Fabric API; NeoForge's `ModConfigEvent`): `ConfigRegistry::register` asks for `config/<mod id>-<kind>.toml` with default text; `ConfigEvents::{LOADING, RELOADING, UNLOADING}` hand over the file's text.
+- `command_api_v2`: `CommandRegistrationCallback::EVENT` hands a registrar; `register(usage, handler)` adds a command by one usage line (`pay <player:player> <amount:integer>`), the handler gets a `CommandContext` (the player and the argument words). `ServerPlayer` also gained `count_item`, `take_item` and `empty_slots`.
 - `events_interaction_v0`: `UseItemCallback`, `UseBlockCallback`, `AttackEntityCallback`, `PlayerBlockBreakEvents::BEFORE` (a veto cancels the break).
 - `entity_events_v1`: `ServerEntityEvents` (`ENTITY_LOAD`, `ENTITY_UNLOAD`), `ServerLivingEntityEvents::ALLOW_DAMAGE`.
 - `loot_api_v2`: `LootTableEvents::MODIFY` (edit a loading loot table's JSON).

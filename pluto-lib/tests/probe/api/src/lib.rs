@@ -1,12 +1,18 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
 use pluto_lib::{
-    AttachmentRegistry, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    AttachmentRegistry, CommandRegistrationCallback, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
     ServerTickEvents,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe ping <word:word>", |ctx| {
+            println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
+            1
+        });
+    });
     ConfigRegistry::register("pluto_probe", ConfigKind::Common, "probe = true
 ");
     ConfigEvents::LOADING.register(|c| {

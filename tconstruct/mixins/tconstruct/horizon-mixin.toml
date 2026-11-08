@@ -18,17 +18,6 @@ path = "source-config-parser"
 dependent = "horizon-client"
 
 [[injection]]
-id = "command"
-target = "horizon_client::game::commands::Game<'_>::run_command"
-kind = "HEAD"
-cancellable = true
-helper = "command.rs"
-bindings = [
-  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
-  { name = "command", ty = "&str", value = "command" },
-]
-
-[[injection]]
 id = "wear"
 target = "horizon_client::game::Game<'_>::mine_block_with_held"
 kind = "HEAD"

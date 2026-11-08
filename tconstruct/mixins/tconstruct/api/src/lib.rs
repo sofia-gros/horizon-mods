@@ -2,13 +2,12 @@
 //! expressed through PlutoLib stays in the manifest's direct injections.
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use horizon_client::mod_api::Hooks;
-use pluto_lib::{AttachmentRegistry, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, ServerPlayConnectionEvents};
+use pluto_lib::{AttachmentRegistry, CommandContext, CommandRegistrationCallback, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, ServerPlayConnectionEvents};
 
 /// `config/tconstruct-common.toml`, `[gameplay] shouldSpawnWithTinkersBook` (default true), as in the original mod.
 static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
 
-pub fn hooks() -> Box<dyn Hooks> {
+pub fn hooks() -> pluto_lib::ModHooks {
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {
@@ -25,12 +24,48 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("tconstruct: gave the starting book to {}", join.name);
         }
     });
-    Box::new(Nothing)
+    CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("tconstruct parts", parts);
+        registrar.register("tconstruct assemble", assemble);
+    });
+    pluto_lib::no_hooks()
 }
 
-/// Everything is registered through PlutoLib's events; the trait object only has to exist.
-struct Nothing;
-impl Hooks for Nothing {}
+const PARTS: [&str; 3] = ["tconstruct:flint_pick_head", "tconstruct:wood_binding", "tconstruct:wood_handle"];
+
+/// `/tconstruct parts`: one flint and two sticks become the three parts of a flint pickaxe, if all three fit.
+fn parts(ctx: &CommandContext) -> i32 {
+    let player = &ctx.source;
+    if player.count_item("minecraft:flint") < 1 || player.count_item("minecraft:stick") < 2 || player.empty_slots() < PARTS.len() as u32 {
+        return 0;
+    }
+    player.take_item("minecraft:flint", 1);
+    player.take_item("minecraft:stick", 2);
+    for part in PARTS {
+        player.give_item(part, 1);
+    }
+    println!("tconstruct: parts crafted for {}", player.name);
+    1
+}
+
+/// `/tconstruct assemble`: the three parts become a flint pickaxe (the parts come back if it does not fit).
+fn assemble(ctx: &CommandContext) -> i32 {
+    let player = &ctx.source;
+    if PARTS.iter().any(|part| player.count_item(part) < 1) {
+        return 0;
+    }
+    for part in PARTS {
+        player.take_item(part, 1);
+    }
+    if player.give_item("tconstruct:flint_pickaxe", 1) > 0 {
+        for part in PARTS {
+            player.give_item(part, 1);
+        }
+        return 0;
+    }
+    println!("tconstruct: pickaxe assembled for {}", player.name);
+    1
+}
 
 fn spawn_with_book(text: &str) -> bool {
     text.parse::<toml::Table>()

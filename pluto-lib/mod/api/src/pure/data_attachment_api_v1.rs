@@ -80,6 +80,15 @@ mod tests {
             self.0.insert((player, id.to_owned()), json.to_owned());
             true
         }
+        fn count_item(&mut self, _: u128, _: &str) -> u32 {
+            0
+        }
+        fn take_item(&mut self, _: u128, _: &str, _: u32) -> u32 {
+            0
+        }
+        fn empty_slots(&mut self, _: u128) -> u32 {
+            0
+        }
     }
 
     fn counter() -> AttachmentType<i32> {
