@@ -11,7 +11,7 @@ use tconstruct_library::materials::MaterialId;
 use tconstruct_library::resource::ResourceId;
 
 fn data_root() -> Option<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../../.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering");
     root.is_dir().then_some(root)
 }
 
