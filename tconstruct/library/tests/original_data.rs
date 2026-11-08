@@ -202,3 +202,32 @@ fn a_whole_wood_pickaxe_is_rebuilt_from_the_originals_data() {
     assert_eq!(rebuilt.stats[&ToolStatId::tconstruct("durability")], StatValue::Float(60.0));
     assert_eq!(rebuilt.slots["upgrades"], 3);
 }
+
+#[test]
+fn every_formula_in_the_originals_modifier_data_is_well_formed() {
+    use tconstruct_library::formula::PostFixFormula;
+    fn walk(value: &Value, found: &mut Vec<Vec<Value>>) {
+        match value {
+            Value::Object(object) => {
+                if let Some(Value::Array(formula)) = object.get("formula") {
+                    found.push(formula.clone());
+                }
+                object.values().for_each(|v| walk(v, found));
+            }
+            Value::Array(list) => list.iter().for_each(|v| walk(v, found)),
+            _ => {}
+        }
+    }
+    let Some(root) = data_root() else { return };
+    let mut formulas = Vec::new();
+    for (_, json) in read_all(&root.join("modifiers")) {
+        walk(&json, &mut formulas);
+    }
+    assert!(formulas.len() > 20, "{} formulas", formulas.len());
+    for tokens in &formulas {
+        // the variables a formula may name are those it uses; the stack and the operators are what is checked
+        let names: Vec<String> = tokens.iter().filter_map(|t| t.as_str()).filter_map(|t| t.strip_prefix('$')).map(str::to_owned).collect();
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        PostFixFormula::parse(tokens, &names).unwrap_or_else(|e| panic!("{tokens:?}: {e}"));
+    }
+}
