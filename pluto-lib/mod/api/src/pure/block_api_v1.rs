@@ -95,13 +95,14 @@ impl Direction {
 
 /// The blocks around a position, as far as the game lets a behaviour look.
 pub trait BlockView {
-    /// The state at `pos` with its properties, for a block that has a [`BlockBehavior`]; None for any other block and where the game
-    /// cannot say (not loaded). Ask [`BlockView::is_air`] and [`BlockView::is_face_sturdy`] about every other block.
+    /// The state at `pos` with its properties; None where the game cannot say (not loaded).
     fn block_state(&self, pos: BlockPos) -> Option<BlockState>;
     /// Whether the block at `pos` is air.
     fn is_air(&self, pos: BlockPos) -> bool;
-    /// Whether the block at `pos` has a sturdy `face` (Minecraft: `isFaceSturdy`), something a block can be fixed to.
+    /// Whether the whole `face` of the block at `pos` is solid (Minecraft: `isFaceSturdy`), something a block can be fixed to.
     fn is_face_sturdy(&self, pos: BlockPos, face: Direction) -> bool;
+    /// Whether the block at `pos` is in the block tag `tag`, such as `tconstruct:slimy_leaves`.
+    fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool;
 }
 
 /// A [`BlockView`] for tests: the blocks set are sturdy on every face, everything else is air.
@@ -111,6 +112,8 @@ pub struct MemoryBlockView {
     pub blocks: BTreeMap<BlockPos, BlockState>,
     /// Positions that hold a block but not a sturdy one (a slab's top, glass).
     pub weak: BTreeSet<BlockPos>,
+    /// The tags each position's block is in.
+    pub tags: BTreeMap<BlockPos, BTreeSet<String>>,
 }
 
 impl BlockView for MemoryBlockView {
@@ -124,6 +127,10 @@ impl BlockView for MemoryBlockView {
 
     fn is_face_sturdy(&self, pos: BlockPos, _face: Direction) -> bool {
         self.blocks.contains_key(&pos) && !self.weak.contains(&pos)
+    }
+
+    fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool {
+        self.tags.get(&pos).is_some_and(|tags| tags.contains(tag))
     }
 }
 
@@ -210,8 +217,6 @@ type InsideFn = Arc<dyn Fn(&EntityInsideContext) + Send + Sync>;
 #[derive(Clone)]
 pub struct BlockBehavior {
     block: Identifier,
-    properties: Vec<(String, Vec<String>)>,
-    sturdy: bool,
     can_survive: Option<SurviveFn>,
     state_for_placement: Option<PlacementFn>,
     update_shape: Option<ShapeFn>,
@@ -221,26 +226,7 @@ pub struct BlockBehavior {
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, properties: Vec::new(), sturdy: true, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None }
-    }
-
-    /// Tells PlutoLib one state property the block declares and every value it can take, so the callbacks can read and write it. List
-    /// every property the callbacks use.
-    pub fn property(mut self, name: &str, values: &[&str]) -> Self {
-        self.properties.push((name.to_owned(), values.iter().map(|v| (*v).to_owned()).collect()));
-        self
-    }
-
-    /// Whether other blocks can be fixed to this block's faces (Minecraft: `isFaceSturdy`); true unless said otherwise. Say `false` for a small
-    /// or hollow block (a punji, a plant), because the game cannot tell a behaviour how sturdy a block is.
-    pub fn sturdy(mut self, sturdy: bool) -> Self {
-        self.sturdy = sturdy;
-        self
-    }
-
-    /// Whether other blocks can be fixed to this block.
-    pub fn is_sturdy(&self) -> bool {
-        self.sturdy
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -273,10 +259,6 @@ impl BlockBehavior {
         &self.block
     }
 
-    /// The declared properties with their values.
-    pub fn properties(&self) -> &[(String, Vec<String>)] {
-        &self.properties
-    }
 }
 
 static BEHAVIORS: Mutex<Vec<BlockBehavior>> = Mutex::new(Vec::new());

@@ -1,6 +1,20 @@
 {
   "tconstruct": {
     "max": 284,
-    "known_overlaps": ["source-slurping-finish", "source-tasty-finish"]
+    "known_overlaps": [
+      "source-copper-gauge-placement",
+      "source-copper-gauge-update",
+      "source-ender-propagule-survive",
+      "source-fluid-cannon-placement",
+      "source-sapling-survive",
+      "source-slime-fungus-survive",
+      "source-slime-leaves-place",
+      "source-slime-leaves-update",
+      "source-slime-plant-survive",
+      "source-slime-vine-place",
+      "source-slime-vine-update",
+      "source-slurping-finish",
+      "source-tasty-finish"
+    ]
   }
 }
