@@ -243,13 +243,20 @@ impl<'a> ModifierStatsBuilder<'a> {
         }
     }
 
-    /// `build`: the stats that differ from their default (`StatsNBT`).
+    /// `build`: the stats that differ from their default (`StatsNBT`), each within its bounds.
     pub fn build(&self) -> BTreeMap<ToolStatId, StatValue> {
         self.builders
             .iter()
-            .map(|(id, builder)| (id.clone(), self.built(id, builder)))
+            .map(|(id, builder)| (id.clone(), self.clamped(id, self.built(id, builder))))
             .filter(|(id, value)| *value != self.stat(id).default_value(self.stats.tiers.min_tier()))
             .collect()
+    }
+
+    fn clamped(&self, id: &ToolStatId, value: StatValue) -> StatValue {
+        match value {
+            StatValue::Float(v) => StatValue::Float(self.stat(id).clamp(v)),
+            tier => tier,
+        }
     }
 
     /// `buildMultipliers`.
@@ -461,5 +468,96 @@ mod tool_type_tests {
         assert_eq!(ToolType::from(&in_tag, &ToolType::NO_MELEE), Some(ToolType::Ranged));
         assert_eq!(ToolType::from(&in_tag, &[ToolType::Melee]), None);
         assert_eq!(ToolType::MeleeUnarmed.name(), "melee_unarmed");
+    }
+}
+
+/// The original's `ToolStatsModifierBuilderTest`, ported case by case.
+#[cfg(test)]
+mod original_builder_tests {
+    use super::*;
+
+    fn stats() -> ToolStats {
+        ToolStats::tinkers(HarvestTiers::vanilla())
+    }
+
+    fn id(name: &str) -> ToolStatId {
+        ToolStatId::tconstruct(name)
+    }
+
+    /// `StatsNBT.get`: the built value, or the default when the stat is not in it.
+    fn built(stats: &ToolStats, builder: &ModifierStatsBuilder<'_>, name: &str) -> StatValue {
+        builder.build().get(&id(name)).cloned().unwrap_or_else(|| stats.get(&id(name)).unwrap().default_value(stats.tiers.min_tier()))
+    }
+
+    fn tier(name: &str) -> StatValue {
+        StatValue::Tier(ResourceId::try_new("minecraft", name).unwrap())
+    }
+
+    #[test]
+    fn empty() {
+        let stats = stats();
+        assert!(ModifierStatsBuilder::new(&stats).build().is_empty());
+    }
+
+    #[test]
+    fn tier_stat_default_set_and_largest() {
+        let stats = stats();
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.add(&id("attack_damage"), 1.0);
+        assert_eq!(built(&stats, &builder, "harvest_tier"), tier("wood"));
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.update(&id("harvest_tier"), &tier("diamond"));
+        assert_eq!(built(&stats, &builder, "harvest_tier"), tier("diamond"));
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.update(&id("harvest_tier"), &tier("iron"));
+        builder.update(&id("harvest_tier"), &tier("diamond"));
+        assert_eq!(built(&stats, &builder, "harvest_tier"), tier("diamond"));
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.update(&id("harvest_tier"), &tier("netherite"));
+        builder.update(&id("harvest_tier"), &tier("diamond"));
+        assert_eq!(built(&stats, &builder, "harvest_tier"), tier("netherite"));
+    }
+
+    #[test]
+    fn float_stat_default_add_and_multiply() {
+        let stats = stats();
+        let int = |builder: &ModifierStatsBuilder<'_>, name| built(&stats, builder, name).float().unwrap() as i32;
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.add(&id("attack_damage"), 1.0);
+        assert_eq!(int(&builder, "durability"), 1, "an untouched stat is its default");
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.add(&id("durability"), 10.0);
+        assert_eq!(int(&builder, "durability"), 11);
+        builder.add(&id("durability"), 15.0);
+        assert_eq!(int(&builder, "durability"), 26);
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.multiply(&id("durability"), 2.0);
+        assert_eq!(int(&builder, "durability"), 2);
+        builder.multiply(&id("durability"), 1.5);
+        assert_eq!(int(&builder, "durability"), 3);
+    }
+
+    #[test]
+    fn durability_does_not_depend_on_the_order_of_add_and_multiply() {
+        let stats = stats();
+        let mut a = ModifierStatsBuilder::new(&stats);
+        a.add(&id("durability"), 10.0);
+        a.multiply(&id("durability"), 2.0);
+        let mut b = ModifierStatsBuilder::new(&stats);
+        b.multiply(&id("durability"), 2.0);
+        b.add(&id("durability"), 10.0);
+        assert_eq!(built(&stats, &a, "durability"), StatValue::Float(22.0));
+        assert_eq!(built(&stats, &b, "durability"), StatValue::Float(22.0));
+    }
+
+    #[test]
+    fn values_stay_within_their_bounds() {
+        let stats = stats();
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.add(&id("durability"), f64::from(i16::MIN));
+        assert_eq!(built(&stats, &builder, "durability"), StatValue::Float(stats.get(&id("durability")).unwrap().min));
+        let mut builder = ModifierStatsBuilder::new(&stats);
+        builder.add(&id("attack_damage"), 4096.0);
+        assert_eq!(built(&stats, &builder, "attack_damage"), StatValue::Float(stats.get(&id("attack_damage")).unwrap().max));
     }
 }
