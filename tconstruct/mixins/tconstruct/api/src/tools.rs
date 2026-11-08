@@ -1,9 +1,13 @@
 //! Tools, on the original's library (`tconstruct-library`): the registries the tool code works from, loaded from the original's data.
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, OnceLock};
 
 use serde_json::Value;
 use tconstruct_library::condition::ConditionContext;
+use tconstruct_library::materials::MaterialId;
+use tconstruct_library::modifiers::stat_modules::ToolContext;
+use tconstruct_library::tools::stack::rebuild_stats;
+use tconstruct_library::tools::stat::StatValue;
 use tconstruct_library::materials::manager::MaterialManager;
 use tconstruct_library::materials::MaterialRegistry;
 use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
@@ -35,6 +39,8 @@ pub struct ToolLibrary {
     pub materials: MaterialRegistry,
     pub modifiers: ModifierManager,
     pub definitions: HashMap<ResourceId, ToolDefinitionData>,
+    /// The members of the `modifiable/*` item tags, with nested tags resolved (an item that does not exist is not checked).
+    pub item_tags: BTreeMap<ResourceId, Vec<ResourceId>>,
     /// What loading found wrong, as the original would log it.
     pub problems: Vec<String>,
 }
@@ -75,7 +81,46 @@ impl ToolLibrary {
                 Err(error) => problems.push(format!("Failed to load tool definition {id}: {error}")),
             }
         }
-        Self { stats, materials, modifiers, definitions, problems }
+        let (item_tags, tag_problems) = tconstruct_library::tags::load(&files("tags/item"), &|_| true);
+        problems.extend(tag_problems);
+        Self { stats, materials, modifiers, definitions, item_tags, problems }
+    }
+}
+
+/// The item tags of one tool item, for the conditions of the modules.
+struct ToolItem<'a> {
+    library: &'a ToolLibrary,
+    item: ResourceId,
+}
+
+impl ToolContext for ToolItem<'_> {
+    fn item_in_tag(&self, tag: &str) -> bool {
+        ResourceId::try_parse(tag).and_then(|tag| self.library.item_tags.get(&tag)).is_some_and(|members| members.contains(&self.item))
+    }
+}
+
+impl ToolLibrary {
+    /// A tool of `definition` (a tool item such as `tconstruct:pickaxe`) with every part made of `material`: the stats and the modifiers it
+    /// would have, as one line of text. Err with the reason when the tool or the material is unknown.
+    pub fn preview(&self, tool: &str, material: &str) -> Result<String, String> {
+        let id = ResourceId::try_parse_in("tconstruct", tool).ok_or("bad tool id")?;
+        let definition = self.definitions.get(&id).ok_or_else(|| format!("no tool {id}"))?;
+        let material = MaterialId::try_parse(&format!("tconstruct:{}", material.trim_start_matches("tconstruct:"))).ok_or("bad material id")?;
+        if self.materials.materials.material(&material).is_none() {
+            return Err(format!("no material {material}"));
+        }
+        let materials = vec![material; definition.parts().len()];
+        let rebuilt = rebuild_stats(definition, &materials, &[], &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
+        let stats: Vec<String> = rebuilt
+            .stats
+            .iter()
+            .map(|(stat, value)| match value {
+                StatValue::Float(v) => format!("{}={v}", stat.0.path()),
+                StatValue::Tier(t) => format!("{}={t}", stat.0.path()),
+            })
+            .collect();
+        let modifiers: Vec<String> = rebuilt.modifiers.iter().map(|m| format!("{}x{}", m.modifier.resource().path(), m.level)).collect();
+        Ok(format!("{id}: {}; modifiers {}; slots {:?}", stats.join(", "), modifiers.join(", "), rebuilt.slots))
     }
 }
 
@@ -102,5 +147,21 @@ pub fn register() {
     );
     for problem in library.problems.iter().take(10) {
         println!("tconstruct: library problem: {problem}");
+    }
+}
+
+/// `/tconstruct preview <tool> <material>`: what a tool made of one material would be.
+pub fn preview_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    let (Some(tool), Some(material)) = (ctx.args.first(), ctx.args.get(1)) else { return 0 };
+    match library().preview(tool, material) {
+        Ok(text) => {
+            println!("tconstruct: preview {tool} {material}: {text}");
+            ctx.source.send_message(&text);
+            1
+        }
+        Err(reason) => {
+            ctx.source.send_message(&reason);
+            0
+        }
     }
 }

@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering'
 OUT = ROOT / 'tconstruct/mixins/tconstruct/api/src/tinkering_data.rs'
+ITEM_TAGS = ROOT / 'tconstruct/content/data/tconstruct/tags/item'
 KINDS = ('materials/definition', 'materials/stats', 'materials/traits', 'tags/materials', 'modifiers', 'tags/modifiers', 'tool_definitions')
 
 
@@ -32,6 +33,12 @@ def main(argv):
             data = json.dumps(json.loads(path.read_bytes().decode('utf-8')), separators=(',', ':'), ensure_ascii=False)
             lines.append(f'    ("{kind}", "tconstruct:{name}", r####"{data}"####),')
             count += 1
+    # the item tags the tool stats and modifiers name (the content owns them)
+    for path in sorted((ITEM_TAGS / 'modifiable').rglob('*.json')) + [ITEM_TAGS / 'modifiable.json']:
+        name = path.relative_to(ITEM_TAGS).with_suffix('').as_posix()
+        data = json.dumps(json.loads(path.read_bytes().decode('utf-8')), separators=(',', ':'), ensure_ascii=False)
+        lines.append(f'    ("tags/item", "tconstruct:{name}", r####"{data}"####),')
+        count += 1
     lines.append('];')
     enchantments = source / 'enchantments_to_modifiers.json'
     data = json.dumps(json.loads(enchantments.read_bytes().decode('utf-8')), separators=(',', ':'), ensure_ascii=False)
