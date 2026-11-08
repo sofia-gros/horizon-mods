@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_nicrosil",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_nicrosil",
+      "required": false
+    }
+  ]
+}

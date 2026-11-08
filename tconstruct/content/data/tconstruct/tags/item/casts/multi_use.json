@@ -1,0 +1,116 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:casts/multi_use/ingot",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/nugget",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/gem",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/rod",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/repair_kit",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/plate",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/gear",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/coin",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/wire",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/pick_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/small_axe_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/small_blade",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/adze_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/hammer_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/broad_axe_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/broad_blade",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/large_plate",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/tool_binding",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/tough_binding",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/tool_handle",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/tough_handle",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/bow_limb",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/bow_grip",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/helmet_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/chestplate_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/leggings_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/boots_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/multi_use/maille",
+      "required": false
+    }
+  ]
+}

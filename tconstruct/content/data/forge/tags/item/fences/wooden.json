@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_fence",
+      "required": false
+    }
+  ]
+}

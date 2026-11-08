@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:gem_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gem_red_sand_cast",
+      "required": false
+    }
+  ]
+}

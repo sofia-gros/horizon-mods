@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/melee/weapon",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/harvest",
+      "required": false
+    }
+  ]
+}

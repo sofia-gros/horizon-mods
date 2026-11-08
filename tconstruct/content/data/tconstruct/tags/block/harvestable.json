@@ -1,0 +1,19 @@
+{
+  "values": [
+    "minecraft:pumpkin",
+    "minecraft:beehive",
+    "minecraft:bee_nest",
+    {
+      "id": "#tconstruct:harvestable/crops",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:harvestable/interact",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:harvestable/stackable",
+      "required": false
+    }
+  ]
+}

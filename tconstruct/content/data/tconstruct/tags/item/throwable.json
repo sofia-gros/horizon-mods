@@ -1,0 +1,32 @@
+{
+  "values": [
+    "minecraft:snowball",
+    "minecraft:egg",
+    "minecraft:ender_pearl",
+    "minecraft:splash_potion",
+    "minecraft:lingering_potion",
+    "minecraft:experience_bottle",
+    "minecraft:ender_eye",
+    "minecraft:firework_rocket",
+    {
+      "id": "tconstruct:efln_ball",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flint_shuriken",
+      "required": false
+    },
+    {
+      "id": "tconstruct:quartz_shuriken",
+      "required": false
+    },
+    {
+      "id": "tconstruct:glow_ball",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ammo/thrown",
+      "required": false
+    }
+  ]
+}

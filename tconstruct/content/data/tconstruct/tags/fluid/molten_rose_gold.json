@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_rose_gold",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_rose_gold",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:travelers_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_leggings",
+      "required": false
+    }
+  ]
+}

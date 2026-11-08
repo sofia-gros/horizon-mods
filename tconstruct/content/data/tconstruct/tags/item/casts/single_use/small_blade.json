@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:small_blade_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:small_blade_red_sand_cast",
+      "required": false
+    }
+  ]
+}

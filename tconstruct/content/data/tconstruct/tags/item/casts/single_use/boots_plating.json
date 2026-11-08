@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:boots_plating_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:boots_plating_red_sand_cast",
+      "required": false
+    }
+  ]
+}

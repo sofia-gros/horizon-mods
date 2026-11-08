@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:longbow",
+      "required": false
+    },
+    {
+      "id": "tconstruct:javelin",
+      "required": false
+    }
+  ]
+}

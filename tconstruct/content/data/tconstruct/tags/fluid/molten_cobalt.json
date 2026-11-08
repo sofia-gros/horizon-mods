@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_cobalt",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_cobalt",
+      "required": false
+    }
+  ]
+}

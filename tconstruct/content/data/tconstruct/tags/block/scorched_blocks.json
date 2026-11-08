@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:scorched_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:polished_scorched_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_road",
+      "required": false
+    },
+    {
+      "id": "tconstruct:chiseled_scorched_bricks",
+      "required": false
+    }
+  ]
+}

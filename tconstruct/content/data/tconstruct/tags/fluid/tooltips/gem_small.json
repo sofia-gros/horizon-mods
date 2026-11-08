@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:molten_quartz",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_amethyst",
+      "required": false
+    }
+  ]
+}

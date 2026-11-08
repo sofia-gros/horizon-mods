@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/armor/worn",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/armor/held",
+      "required": false
+    }
+  ]
+}

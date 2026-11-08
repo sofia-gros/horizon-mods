@@ -1,0 +1,21 @@
+{
+  "values": [
+    "#minecraft:mineable/hoe",
+    {
+      "id": "#forge:mineable/sword",
+      "required": false
+    },
+    {
+      "id": "#forge:glass",
+      "required": false
+    },
+    {
+      "id": "#forge:glass_panes",
+      "required": false
+    },
+    "minecraft:glowstone",
+    "minecraft:redstone_lamp",
+    "minecraft:sea_lantern",
+    "minecraft:beacon"
+  ]
+}

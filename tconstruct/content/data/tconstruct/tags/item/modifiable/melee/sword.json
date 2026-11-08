@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sword",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cleaver",
+      "required": false
+    }
+  ]
+}

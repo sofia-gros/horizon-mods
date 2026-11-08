@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_melter",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_alloyer",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:zombified_piglin_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:zombified_piglin_wall_head",
+      "required": false
+    }
+  ]
+}

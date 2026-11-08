@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_bricks_wall",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble_wall",
+      "required": false
+    }
+  ]
+}

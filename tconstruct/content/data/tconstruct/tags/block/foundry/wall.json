@@ -1,0 +1,44 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:scorched_blocks",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:foundry/tanks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_tinted_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ladder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lamp",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_drain",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_chute",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_duct",
+      "required": false
+    }
+  ]
+}

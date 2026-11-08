@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:gear_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gear_red_sand_cast",
+      "required": false
+    }
+  ]
+}

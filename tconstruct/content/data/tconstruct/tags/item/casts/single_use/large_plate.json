@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:large_plate_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:large_plate_red_sand_cast",
+      "required": false
+    }
+  ]
+}

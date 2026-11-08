@@ -1,0 +1,56 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:travelers_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_boots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slimy_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_boots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_wings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_shield",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_shield",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/unsalvageable",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ancient",
+      "required": false
+    }
+  ]
+}

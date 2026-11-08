@@ -1,0 +1,9 @@
+{
+  "values": [
+    "minecraft:trident",
+    {
+      "id": "tconstruct:thrown_tool",
+      "required": false
+    }
+  ]
+}

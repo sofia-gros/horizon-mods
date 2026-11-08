@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:molten_glass",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:liquid_soul",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_obsidian",
+      "required": false
+    }
+  ]
+}

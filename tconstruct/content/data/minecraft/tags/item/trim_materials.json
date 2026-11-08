@@ -1,0 +1,68 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:slimesteel_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:amethyst_bronze_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:pig_iron_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:rose_gold_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:steel_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cobalt_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:manyullyn_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:hepatizon_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cinderslime_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:queens_slime_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:knightmetal_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:knightslime_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_slime_crystal",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_crystal",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_crystal",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_crystal",
+      "required": false
+    }
+  ]
+}

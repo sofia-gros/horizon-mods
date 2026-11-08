@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:helmet_plating_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:helmet_plating_red_sand_cast",
+      "required": false
+    }
+  ]
+}

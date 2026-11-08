@@ -1,0 +1,208 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:powdered_snow",
+      "required": false
+    },
+    {
+      "id": "#forge:milk",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:blazing_blood",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:venom",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_glass",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:liquid_soul",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_obsidian",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_clay",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:seared_stone",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:scorched_stone",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:honey",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:mushroom_stew",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:rabbit_stew",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:meat_soup",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_copper",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_iron",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_gold",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_zinc",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_tin",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_aluminum",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_silver",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_lead",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_nickel",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_platinum",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_tungsten",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_osmium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_uranium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_chromium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_cadmium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_amethyst_bronze",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_pig_iron",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_rose_gold",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_cobalt",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_steel",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_bronze",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_brass",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_pewter",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_invar",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_constantan",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_manyullyn",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_hepatizon",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_netherite",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_knightmetal",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_lumium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_enderium",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_refined_glowstone",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_refined_obsidian",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_nicrosil",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_duralumin",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_bendalloy",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_steeleaf",
+      "required": false
+    }
+  ]
+}

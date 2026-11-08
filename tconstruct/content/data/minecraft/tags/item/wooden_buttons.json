@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_button",
+      "required": false
+    }
+  ]
+}

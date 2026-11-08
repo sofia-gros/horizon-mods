@@ -33,6 +33,74 @@
     "tconstruct:bloodshroom_wall_hanging_sign",
     "tconstruct:enderbark_wall_hanging_sign",
     "tconstruct:greenheart_wall_hanging_sign",
-    "tconstruct:skyroot_wall_hanging_sign"
+    "tconstruct:skyroot_wall_hanging_sign",
+    {
+      "id": "tconstruct:punji",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_vine",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_vine",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tinker_station",
+      "required": false
+    },
+    {
+      "id": "tconstruct:part_builder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tinkers_chest",
+      "required": false
+    },
+    {
+      "id": "tconstruct:part_chest",
+      "required": false
+    }
   ]
 }

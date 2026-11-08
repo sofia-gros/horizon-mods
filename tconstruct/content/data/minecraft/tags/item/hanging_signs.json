@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_hanging_sign",
+      "required": false
+    }
+  ]
+}

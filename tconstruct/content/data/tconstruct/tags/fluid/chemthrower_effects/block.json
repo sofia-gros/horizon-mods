@@ -1,0 +1,28 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:molten_amethyst",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_quartz",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_emerald",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_diamond",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_debris",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:fiery_liquid",
+      "required": false
+    }
+  ]
+}

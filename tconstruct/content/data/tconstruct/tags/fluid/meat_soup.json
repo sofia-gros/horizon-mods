@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:meat_soup",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_meat_soup",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:pick_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:hammer_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:small_axe_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:broad_axe_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:small_blade",
+      "required": false
+    },
+    {
+      "id": "tconstruct:broad_blade",
+      "required": false
+    },
+    {
+      "id": "tconstruct:adze_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:large_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tool_binding",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tough_binding",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tool_handle",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tough_handle",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bow_limb",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bow_grip",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bowstring",
+      "required": false
+    },
+    {
+      "id": "tconstruct:maille",
+      "required": false
+    },
+    {
+      "id": "tconstruct:shield_core",
+      "required": false
+    },
+    {
+      "id": "tconstruct:helmet_plating",
+      "required": false
+    },
+    {
+      "id": "tconstruct:chestplate_plating",
+      "required": false
+    },
+    {
+      "id": "tconstruct:leggings_plating",
+      "required": false
+    },
+    {
+      "id": "tconstruct:boots_plating",
+      "required": false
+    }
+  ]
+}

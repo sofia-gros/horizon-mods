@@ -1,0 +1,13 @@
+{
+  "values": [
+    "#minecraft:planks",
+    {
+      "id": "tconstruct:blazewood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nahuatl",
+      "required": false
+    }
+  ]
+}

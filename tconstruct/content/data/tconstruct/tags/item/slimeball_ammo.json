@@ -1,0 +1,21 @@
+{
+  "values": [
+    {
+      "id": "#forge:slimeball/earth",
+      "required": false
+    },
+    {
+      "id": "#forge:slimeball/sky",
+      "required": false
+    },
+    {
+      "id": "#forge:slimeball/ichor",
+      "required": false
+    },
+    {
+      "id": "#forge:slimeball/ender",
+      "required": false
+    },
+    "minecraft:magma_cream"
+  ]
+}

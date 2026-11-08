@@ -1,0 +1,32 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:gold_reinforcement",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_item_frame",
+      "required": false
+    },
+    {
+      "id": "tconstruct:reversed_gold_item_frame",
+      "required": false
+    },
+    {
+      "id": "tconstruct:molten_gold_bucket",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_bars",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_platform",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/gold",
+      "required": false
+    }
+  ]
+}

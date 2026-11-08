@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_planks",
+      "required": false
+    }
+  ]
+}

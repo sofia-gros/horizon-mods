@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:magma",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_magma",
+      "required": false
+    }
+  ]
+}

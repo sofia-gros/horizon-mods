@@ -1,0 +1,29 @@
+{
+  "values": [
+    {
+      "id": "#forge:stone",
+      "required": false
+    },
+    {
+      "id": "#forge:cobblestone",
+      "required": false
+    },
+    {
+      "id": "#forge:sandstone",
+      "required": false
+    },
+    {
+      "id": "#forge:end_stones",
+      "required": false
+    },
+    {
+      "id": "#forge:gravel",
+      "required": false
+    },
+    "minecraft:netherrack",
+    "minecraft:basalt",
+    "minecraft:polished_basalt",
+    "minecraft:blackstone",
+    "minecraft:polished_blackstone"
+  ]
+}

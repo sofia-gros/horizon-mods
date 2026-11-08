@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:magma_fluid",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazing_blood_fluid",
+      "required": false
+    }
+  ]
+}

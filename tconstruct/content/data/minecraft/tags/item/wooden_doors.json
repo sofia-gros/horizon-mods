@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_door",
+      "required": false
+    }
+  ]
+}

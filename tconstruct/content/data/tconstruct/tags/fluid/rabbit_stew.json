@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:rabbit_stew",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_rabbit_stew",
+      "required": false
+    }
+  ]
+}

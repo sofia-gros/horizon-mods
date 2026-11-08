@@ -1,0 +1,19 @@
+{
+  "values": [
+    "minecraft:kelp",
+    "minecraft:kelp_plant",
+    "minecraft:nether_wart",
+    "minecraft:small_dripleaf",
+    "minecraft:sugar_cane",
+    "#minecraft:mineable/hoe",
+    {
+      "id": "#forge:mineable/shears",
+      "required": false
+    },
+    {
+      "id": "#forge:mineable/sword",
+      "required": false
+    },
+    "#minecraft:crops"
+  ]
+}

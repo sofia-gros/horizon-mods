@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "#forge:slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:sky_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:ichor",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:ender_slime",
+      "required": false
+    }
+  ]
+}

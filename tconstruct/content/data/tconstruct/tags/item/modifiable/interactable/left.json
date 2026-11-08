@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:crossbow",
+      "required": false
+    },
+    {
+      "id": "tconstruct:longbow",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_shield",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_shield",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/interactable/dual",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_invar",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_invar",
+      "required": false
+    }
+  ]
+}

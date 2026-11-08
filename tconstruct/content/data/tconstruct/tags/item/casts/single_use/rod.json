@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:rod_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:rod_red_sand_cast",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:ichor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_ichor",
+      "required": false
+    }
+  ]
+}

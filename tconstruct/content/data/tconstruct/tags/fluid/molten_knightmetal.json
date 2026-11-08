@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_knightmetal",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_knightmetal",
+      "required": false
+    }
+  ]
+}

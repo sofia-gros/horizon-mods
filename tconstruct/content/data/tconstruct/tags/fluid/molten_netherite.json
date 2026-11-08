@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_netherite",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_netherite",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_debris",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_debris",
+      "required": false
+    }
+  ]
+}

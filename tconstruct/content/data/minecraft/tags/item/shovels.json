@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:mattock",
+      "required": false
+    },
+    {
+      "id": "tconstruct:pickadze",
+      "required": false
+    },
+    {
+      "id": "tconstruct:excavator",
+      "required": false
+    }
+  ]
+}

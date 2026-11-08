@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:pickaxe",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sledge_hammer",
+      "required": false
+    },
+    {
+      "id": "tconstruct:vein_hammer",
+      "required": false
+    },
+    {
+      "id": "tconstruct:pickadze",
+      "required": false
+    },
+    {
+      "id": "tconstruct:war_pick",
+      "required": false
+    }
+  ]
+}

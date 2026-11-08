@@ -1,0 +1,13 @@
+{
+  "values": [
+    "minecraft:fishing_bobber",
+    {
+      "id": "tconstruct:fishing_bobber",
+      "required": false
+    },
+    {
+      "id": "#forge:reflecting/preserve_owner",
+      "required": false
+    }
+  ]
+}

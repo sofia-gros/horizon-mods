@@ -1,0 +1,72 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_brick",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_brick",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fake_ingot",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/netherite_scrap",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/steel",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/cobalt",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/slimesteel",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/amethyst_bronze",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/rose_gold",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/pig_iron",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/cinderslime",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/queens_slime",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/manyullyn",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/hepatizon",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/soulsteel",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/knightmetal",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/knightslime",
+      "required": false
+    }
+  ]
+}

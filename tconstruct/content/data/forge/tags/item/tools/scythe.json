@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:kama",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scythe",
+      "required": false
+    }
+  ]
+}

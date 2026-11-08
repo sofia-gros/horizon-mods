@@ -1,0 +1,14 @@
+{
+  "values": [
+    "minecraft:arrow",
+    "minecraft:spectral_arrow",
+    {
+      "id": "tconstruct:arrow",
+      "required": false
+    },
+    {
+      "id": "#forge:collectables/discardable",
+      "required": false
+    }
+  ]
+}

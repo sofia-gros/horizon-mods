@@ -18,6 +18,62 @@
     "tconstruct:blood_ichor_slime_grass",
     "tconstruct:ichor_vanilla_slime_grass",
     "tconstruct:pig_iron_block",
-    "tconstruct:knightmetal_block"
+    "tconstruct:knightmetal_block",
+    {
+      "id": "tconstruct:gold_bars",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_platform",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cobalt_platform",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazewood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazewood_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazewood_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazewood_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_duct",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_duct",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fluid_cannon",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tinkers_anvil",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_anvil",
+      "required": false
+    }
   ]
 }

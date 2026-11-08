@@ -1,0 +1,184 @@
+{
+  "values": [
+    {
+      "id": "#forge:molten_iron",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_gold",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_copper",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_cobalt",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_steel",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_debris",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_slimesteel",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_amethyst_bronze",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_rose_gold",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_pig_iron",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_manyullyn",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_hepatizon",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_queens_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_cinderslime",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_netherite",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_soulsteel",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_knightmetal",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_knightslime",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_tin",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_aluminum",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_lead",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_silver",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_nickel",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_zinc",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_platinum",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_tungsten",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_osmium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_uranium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_chromium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_cadmium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_bronze",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_brass",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_electrum",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_invar",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_constantan",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_pewter",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_enderium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_lumium",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_signalum",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_refined_glowstone",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_refined_obsidian",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_nicrosil",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_duralumin",
+      "required": false
+    },
+    {
+      "id": "#forge:molten_bendalloy",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_steeleaf",
+      "required": false
+    }
+  ]
+}

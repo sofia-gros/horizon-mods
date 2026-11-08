@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:scorched_blocks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lamp",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_drain",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_chute",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_duct",
+      "required": false
+    }
+  ]
+}

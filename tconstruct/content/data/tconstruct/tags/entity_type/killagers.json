@@ -1,0 +1,14 @@
+{
+  "values": [
+    {
+      "id": "#forge:villagers",
+      "required": false
+    },
+    {
+      "id": "#forge:illagers",
+      "required": false
+    },
+    "minecraft:iron_golem",
+    "minecraft:ravager"
+  ]
+}

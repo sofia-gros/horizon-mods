@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "#forge:magma",
+      "required": false
+    },
+    {
+      "id": "#forge:ender",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:slime",
+      "required": false
+    }
+  ]
+}

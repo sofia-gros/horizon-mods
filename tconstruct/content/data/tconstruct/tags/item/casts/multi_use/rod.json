@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:rod_cast",
+      "required": false
+    }
+  ]
+}

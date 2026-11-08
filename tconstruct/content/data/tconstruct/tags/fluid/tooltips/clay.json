@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:molten_clay",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_porcelain",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:seared_stone",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:scorched_stone",
+      "required": false
+    }
+  ]
+}

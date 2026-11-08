@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:ender_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_ender_slime",
+      "required": false
+    }
+  ]
+}

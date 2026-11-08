@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:swasher",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/interactable/right",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/shields",
+      "required": false
+    }
+  ]
+}
