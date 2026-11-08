@@ -10,6 +10,7 @@ use std::sync::Arc;
 use serde_json::{Map, Value};
 
 use super::stat::{ModifierStatsBuilder, StatKind, StatValue, ToolStatId, ToolStats};
+use crate::materials::{MaterialId, MaterialRegistry, MaterialStatsId};
 use crate::modifiers::ModifierEntry;
 use crate::resource::ResourceId;
 
@@ -361,10 +362,42 @@ impl ToolDefinitionData {
         self.all::<PartStatsModule>().flat_map(|m| m.parts.clone()).collect()
     }
 
+    /// `MaterialStatsModule.addToolStats` for the part modules: every part's material gives the stats of the part's type, scaled. A
+    /// material list shorter than the parts gives the stats of the parts it has.
+    pub fn add_material_stats(&self, builder: &mut ModifierStatsBuilder<'_>, materials: &[MaterialId], registry: &MaterialRegistry) {
+        for module in self.all::<PartStatsModule>() {
+            for (index, part) in module.parts.iter().enumerate() {
+                let (Some(material), Some(kind)) = (materials.get(index), part_stat_type(&part.item)) else { continue };
+                if let Some(stats) = registry.stats_or_default(material, &kind) {
+                    stats.apply(builder, part.scale);
+                }
+            }
+        }
+    }
+
     /// How many modules are kept as data only.
     pub fn uncarried_modules(&self) -> usize {
         self.modules.iter().filter(|m| !m.carried()).count()
     }
+}
+
+/// `IToolPart.getStatType` for the part items of `TinkerToolParts`: the kind of material stats each takes.
+pub fn part_stat_type(part: &ResourceId) -> Option<MaterialStatsId> {
+    if part.namespace() != "tconstruct" {
+        return None;
+    }
+    let path = part.path();
+    let name = match path {
+        "pick_head" | "hammer_head" | "small_axe_head" | "broad_axe_head" | "small_blade" | "broad_blade" | "adze_head" | "large_plate" => "head",
+        "bow_limb" => "limb",
+        "bow_grip" => "grip",
+        "tool_handle" | "tough_handle" => "handle",
+        "tool_binding" | "tough_binding" => "binding",
+        "bowstring" | "arrow_head" | "arrow_shaft" | "fletching" | "maille" | "shield_core" | "ribcage" | "shell" | "laces" => path,
+        _ if path.ends_with("_plating") => return MaterialStatsId::try_parse(&format!("tconstruct:plating_{}", path.trim_end_matches("_plating"))),
+        _ => return None,
+    };
+    MaterialStatsId::try_parse(&format!("tconstruct:{name}"))
 }
 
 #[cfg(test)]
