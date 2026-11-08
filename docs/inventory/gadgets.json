@@ -1,0 +1,122 @@
+{
+  "domain": "gadgets",
+  "java": "slimeknights/tconstruct/gadgets",
+  "classes": {
+    "block/PunjiBlock.java": {
+      "status": "ported",
+      "note": "PlutoLib behaviour (gadgets.rs); connection and breaking checked in game; waterlogging and fall-distance damage are not done"
+    },
+    "block/FoodCakeBlock.java": {
+      "status": "parked",
+      "note": "the cakes need the mob effects of the tools domain and a way to set a player's food (Horizon cannot yet); the blocks themselves are missing"
+    },
+    "block/InvertedCakeBlock.java": {
+      "status": "parked",
+      "note": "the cakes need the mob effects of the tools domain and a way to set a player's food (Horizon cannot yet); the blocks themselves are missing"
+    },
+    "block/DropperRailBlock.java": {
+      "status": "todo",
+      "note": "not looked at yet; whether the content block does what the original does is not checked"
+    },
+    "capability/PiggybackCapability.java": {
+      "status": "parked",
+      "note": "needs riding and an entity capability, which Horizon does not offer"
+    },
+    "capability/PiggybackHandler.java": {
+      "status": "parked",
+      "note": "needs riding and an entity capability, which Horizon does not offer"
+    },
+    "item/PiggyBackPackItem.java": {
+      "status": "parked",
+      "note": "needs riding and an entity capability, which Horizon does not offer"
+    },
+    "client/FancyArmorStandRenderer.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "client/FancyItemFrameRenderer.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "entity/DispenseFancyArmorStand.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "entity/FancyArmorStandEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "entity/FancyItemFrameEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "entity/FrameType.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "item/FancyArmorStandItem.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "item/FancyItemFrameItem.java": {
+      "status": "parked",
+      "note": "Horizon has no entity templates for item frames or armor stands"
+    },
+    "client/RenderShuriken.java": {
+      "status": "parked",
+      "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
+    },
+    "entity/shuriken/FlintShurikenEntity.java": {
+      "status": "parked",
+      "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
+    },
+    "entity/shuriken/QuartzShurikenEntity.java": {
+      "status": "parked",
+      "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
+    },
+    "entity/shuriken/ShurikenEntityBase.java": {
+      "status": "parked",
+      "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
+    },
+    "item/ShurikenItem.java": {
+      "status": "parked",
+      "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
+    },
+    "entity/EFLNEntity.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "entity/EFLNExplosion.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "item/EFLNItem.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "entity/GlowballEntity.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "item/GlowBallItem.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "item/ShootProjectileDispenserBehavior.java": {
+      "status": "todo",
+      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+    },
+    "GadgetClientEvents.java": {
+      "status": "todo",
+      "note": "client events of the gadgets: not looked at yet"
+    },
+    "TinkerGadgets.java": {
+      "status": "partial",
+      "note": "registrations: the punji exists; the cakes, frames, stands, throwballs and backpack do not"
+    },
+    "data/GadgetRecipeProvider.java": {
+      "status": "not-code",
+      "note": "data generator: its output is in the recipe files"
+    }
+  }
+}
