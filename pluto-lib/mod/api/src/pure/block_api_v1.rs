@@ -86,6 +86,42 @@ impl Direction {
         }
     }
 
+    /// The six directions ordered by how closely a player turned `yaw` degrees and looking `pitch` degrees (negative looks up) faces them,
+    /// nearest first (Minecraft: `Direction.orderedByNearest`).
+    pub fn nearest_looking(yaw: f32, pitch: f32) -> [Direction; 6] {
+        let pitch = pitch * (std::f32::consts::PI / 180.0);
+        let yaw = -yaw * (std::f32::consts::PI / 180.0);
+        let (sin_pitch, cos_pitch, sin_yaw, cos_yaw) = (pitch.sin(), pitch.cos(), yaw.sin(), yaw.cos());
+        let east = sin_yaw > 0.0;
+        let up = sin_pitch < 0.0;
+        let south = cos_yaw > 0.0;
+        let x = if east { sin_yaw } else { -sin_yaw };
+        let y = if up { -sin_pitch } else { sin_pitch };
+        let z = if south { cos_yaw } else { -cos_yaw };
+        let (x_cos, z_cos) = (x * cos_pitch, z * cos_pitch);
+        let (dx, dy, dz) = (
+            if east { Direction::East } else { Direction::West },
+            if up { Direction::Up } else { Direction::Down },
+            if south { Direction::South } else { Direction::North },
+        );
+        let array = |a: Direction, b: Direction, c: Direction| [a, b, c, c.opposite(), b.opposite(), a.opposite()];
+        if x > z {
+            if y > x_cos {
+                array(dy, dx, dz)
+            } else if z_cos > y {
+                array(dx, dz, dy)
+            } else {
+                array(dx, dy, dz)
+            }
+        } else if y > z_cos {
+            array(dy, dz, dx)
+        } else if x_cos > y {
+            array(dz, dx, dy)
+        } else {
+            array(dz, dy, dx)
+        }
+    }
+
     /// The position one block from `pos` in this direction.
     pub fn relative(self, pos: BlockPos) -> BlockPos {
         let [x, y, z] = self.offset();
@@ -241,8 +277,26 @@ pub struct PlacementContext<'a> {
     pub in_water: bool,
     /// The item in the placer's hand, such as `tconstruct:punji`.
     pub item: String,
+    /// Whether the clicked block is replaced (grass, a snow layer), so the block goes into the clicked position itself.
+    pub replace_clicked: bool,
     /// The blocks around.
     pub view: &'a dyn BlockView,
+}
+
+impl PlacementContext<'_> {
+    /// The directions in the order the placer looks at them, nearest first, with the side opposite the clicked face moved to the front
+    /// unless the clicked block is replaced (Minecraft: `getNearestLookingDirections`).
+    pub fn nearest_looking_directions(&self) -> [Direction; 6] {
+        let mut nearest = Direction::nearest_looking(self.yaw, self.pitch);
+        if !self.replace_clicked {
+            let wanted = self.face.opposite();
+            if let Some(index) = nearest.iter().position(|d| *d == wanted) {
+                nearest.copy_within(0..index, 1);
+                nearest[0] = wanted;
+            }
+        }
+        nearest
+    }
 }
 
 /// What a placement becomes.
@@ -508,6 +562,37 @@ mod tests {
         assert!(random_tick("example:shoot", &mut TickContext { state, pos: [0, 64, 0], world: &mut world }));
         assert_eq!(world.blocks.len(), 1, "8 modulo 4 is 0: the shoot grew upwards");
         assert!(!random_tick("example:rock", &mut TickContext { state: BlockState::parse("example:rock").unwrap(), pos: [0, 0, 0], world: &mut world }));
+    }
+
+    #[test]
+    fn looking_order_follows_where_the_placer_faces_and_puts_the_clicked_side_first() {
+        // facing south (yaw 0), level: south first, then down/up in some order, north last
+        let level = Direction::nearest_looking(0.0, 0.0);
+        assert_eq!(level[0], Direction::South);
+        assert_eq!(level[5], Direction::North);
+        // looking straight up
+        assert_eq!(Direction::nearest_looking(0.0, -90.0)[0], Direction::Up);
+        // facing west (yaw 90)
+        assert_eq!(Direction::nearest_looking(90.0, 0.0)[0], Direction::West);
+        let view = MemoryBlockView::default();
+        let context = |replace_clicked| PlacementContext {
+            state: BlockState::parse("example:vine").unwrap(),
+            pos: [0, 64, 0],
+            face: Direction::North,
+            yaw: 0.0,
+            pitch: 0.0,
+            sneaking: false,
+            in_water: false,
+            item: String::new(),
+            replace_clicked,
+            view: &view,
+        };
+        assert_eq!(context(true).nearest_looking_directions()[0], Direction::South);
+        // the clicked face was north, so the side opposite it (south) leads; it already did here, so look from the other side
+        let mut other = context(false);
+        other.face = Direction::East;
+        assert_eq!(other.nearest_looking_directions()[0], Direction::West);
+        assert_eq!(other.nearest_looking_directions()[1], Direction::South);
     }
 
     #[test]

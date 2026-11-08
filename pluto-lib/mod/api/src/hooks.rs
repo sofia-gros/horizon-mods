@@ -475,6 +475,7 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
             sneaking: request.sneaking,
             in_water: request.in_water,
             item: request.item.clone(),
+            replace_clicked: request.replace_clicked,
             view: &GameView(view),
         };
         match block_api_v1::placement(&block, &context) {

@@ -191,6 +191,19 @@ assert_eq!(Direction::North.clockwise(), Direction::East);
 assert_eq!(Direction::Down.clockwise(), Direction::Down);
 ```
 
+### `Direction::nearest_looking`
+
+`fn nearest_looking(yaw: f32, pitch: f32) -> [Direction; 6]`. The six directions ordered by how closely a player turned `yaw` degrees and looking `pitch` degrees (negative looks up) faces them, nearest first.
+
+```rust
+use pluto_lib::Direction;
+
+let order = Direction::nearest_looking(0.0, 0.0); // facing south, level
+assert_eq!(order[0], Direction::South);
+assert_eq!(order[5], Direction::North);
+assert_eq!(Direction::nearest_looking(0.0, -90.0)[0], Direction::Up);
+```
+
 ### `Direction::relative`
 
 `fn relative(self, pos: BlockPos) -> BlockPos`. The position one block from `pos` in this direction.
@@ -320,7 +333,7 @@ assert!(context.view.is_air([0, 65, 0]));
 
 ### `PlacementContext`
 
-What a placement is told. `state` is the block's default state, `pos` where it would go, `face` the face that was clicked, `yaw` and `pitch` the placer's turn and look in degrees, `sneaking` whether the placer sneaks, `in_water` whether the position holds water now, `item` the item in hand and `view` the blocks around.
+What a placement is told. `state` is the block's default state, `pos` where it would go, `face` the face that was clicked, `yaw` and `pitch` the placer's turn and look in degrees, `sneaking` whether the placer sneaks, `in_water` whether the position holds water now, `item` the item in hand, `replace_clicked` whether the clicked block is replaced (grass, a snow layer) so the block goes into the clicked position itself, and `view` the blocks around.
 
 ```rust
 use pluto_lib::{BlockState, Direction, MemoryBlockView, PlacementContext};
@@ -335,14 +348,39 @@ let context = PlacementContext {
     sneaking: false,
     in_water: false,
     item: "example:post".into(),
+    replace_clicked: false,
     view: &view,
 };
+assert!(!context.replace_clicked);
 assert_eq!(context.face.opposite(), Direction::Down);
 assert!(!context.sneaking && !context.in_water);
 assert_eq!((context.pos, context.yaw, context.pitch), ([1, 64, 1], 90.0, 0.0));
 assert_eq!(context.item, "example:post");
 assert_eq!(context.state.to_string(), "example:post");
 assert!(context.view.is_air([1, 63, 1]));
+```
+
+### `PlacementContext::nearest_looking_directions`
+
+`fn nearest_looking_directions(&self) -> [Direction; 6]`. The directions in the order the placer looks at them, nearest first, with the side opposite the clicked face moved to the front unless the clicked block is replaced. A vine tries them in this order to find a side it can hold on.
+
+```rust
+use pluto_lib::{BlockState, Direction, MemoryBlockView, PlacementContext};
+
+let view = MemoryBlockView::default();
+let context = PlacementContext {
+    state: BlockState::parse("example:vine").unwrap(),
+    pos: [0, 64, 0],
+    face: Direction::East,
+    yaw: 0.0,
+    pitch: 0.0,
+    sneaking: false,
+    in_water: false,
+    item: String::new(),
+    replace_clicked: false,
+    view: &view,
+};
+assert_eq!(context.nearest_looking_directions()[0], Direction::West); // the side opposite the clicked face
 ```
 
 ### `Placement`
