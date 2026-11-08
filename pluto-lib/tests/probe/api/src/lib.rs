@@ -137,7 +137,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         });
     });
     CommandRegistrationCallback::EVENT.register(|registrar| {
-        registrar.register("pluto_probe check", |_| {
+        registrar.register("pluto_probe check", |ctx| {
             let later = pluto_lib::World::new("minecraft:overworld").get_block_state([5, 81, 5]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
             let vine = pluto_lib::World::new("minecraft:overworld").get_block_state([40, 81, 41]).map(|s| s.block.to_string());
@@ -155,6 +155,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE chime played={chime}");
             let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE sapling grew={tree:?}");
+            let mut drunk: Vec<String> = ctx.source.effects().into_iter().map(|e| e.id).filter(|id| id != "minecraft:speed").collect();
+            drunk.sort();
+            println!("PLUTO-PROBE bottle effects={drunk:?}");
             // what real clicks did: seeds on dirt, bone meal on grass, on a sapling and on a fungus
             let w = pluto_lib::World::new("minecraft:overworld");
             let name = |pos| w.get_block_state(pos).map(|s| s.block.to_string()).unwrap_or_default();
