@@ -101,9 +101,29 @@ pub struct RawModule {
     pub json: Map<String, Value>,
 }
 
+/// `ModifierModule.getPriority` of the module types that have an opinion, read from the original's classes: the priority the module
+/// prefers for its modifier. The conditional modules prefer 75 when they work as a percentage.
+pub fn module_priority(kind: &str, json: &Map<String, Value>) -> Option<i32> {
+    let percent = json.get("percent").and_then(Value::as_bool).unwrap_or(false);
+    match kind.strip_prefix("tconstruct:")? {
+        "zoom" | "restore_lost_health" => Some(10),
+        "minimap" => Some(30),
+        "blocking" | "smashing" | "modifier_slot" | "stat_copy" | "swappable_bonus_slot" => Some(50),
+        "throwing" | "projectile_bounce" => Some(110),
+        "inventory_menu" => Some(75),
+        "projectile_explosion" => Some(25),
+        "stat_tooltip" => Some(1000),
+        "conditional_stat" | "conditional_melee_damage" | "conditional_power" | "conditional_mining_speed" => percent.then_some(75),
+        _ => None,
+    }
+}
+
 impl ModifierModule for RawModule {
     fn kind(&self) -> &str {
         &self.kind
+    }
+    fn priority(&self) -> Option<i32> {
+        module_priority(&self.kind, &self.json)
     }
     fn carried(&self) -> bool {
         false
@@ -449,6 +469,26 @@ mod tests {
         assert_eq!(apply(1, &["tconstruct:harvest", "tconstruct:durability"]).1, StatValue::Float(1.0), "below the minimum level");
         assert_eq!(apply(3, &["tconstruct:melee", "tconstruct:durability"]).1, StatValue::Float(1.0), "not a harvest tool");
         assert_eq!(apply(3, &[]).0, StatValue::Float(0.0), "a stat that does not support the item does nothing");
+    }
+
+    #[test]
+    fn raw_modules_keep_the_priority_their_class_prefers() {
+        let (manager, problems) = load(
+            vec![
+                ("tconstruct:slotty", json!({"modules": [{"type": "tconstruct:modifier_slot", "name": "upgrades", "each_level": 1}]})),
+                ("tconstruct:conditional", json!({"modules": [{"type": "tconstruct:conditional_stat", "percent": true}]})),
+                ("tconstruct:not_percent", json!({"modules": [{"type": "tconstruct:conditional_stat"}]})),
+                ("tconstruct:explicit", json!({"priority": 3, "modules": [{"type": "tconstruct:zoom"}]})),
+            ],
+            vec![],
+            vec![],
+        );
+        assert!(problems.is_empty(), "{problems:?}");
+        let priority = |id: &str| manager.get(&mid(id)).unwrap().priority;
+        assert_eq!(priority("tconstruct:slotty"), 50);
+        assert_eq!(priority("tconstruct:conditional"), 75);
+        assert_eq!(priority("tconstruct:not_percent"), DEFAULT_PRIORITY);
+        assert_eq!(priority("tconstruct:explicit"), 3, "a written priority wins over the modules'");
     }
 
     #[test]
