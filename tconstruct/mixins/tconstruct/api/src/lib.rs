@@ -11,6 +11,7 @@ mod fluids;
 mod gadgets;
 mod shared;
 mod trees;
+mod tinkering_data;
 mod tools;
 mod world;
 mod fluids_table;
