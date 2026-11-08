@@ -19,6 +19,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     gadgets::register();
     shared::register();
     shared::register_glow();
+    shared::register_cheese();
     world::register();
     world::register_leaves();
     world::register_grass();

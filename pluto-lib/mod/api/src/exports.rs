@@ -20,7 +20,7 @@ pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, Attachme
 pub use crate::pure::entity_events_v1::{self, EntityInfo, LivingDamage, ServerEntityEvents, ServerLivingEntityEvents};
 pub use crate::pure::events_interaction_v0::{
     self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
-    UseItemCallback, UseItemContext, UseItemOnBlockCallback, UseItemOnBlockContext,
+    UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext,
 };
 pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,

@@ -227,6 +227,47 @@ let used = UseItemOnBlockContext {
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
+### `UseItemFinishContext`
+
+A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback).
+
+```rust
+use pluto_lib::{ServerPlayer, UseItemFinishContext};
+
+let done = UseItemFinishContext { item: "example:cheese".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+assert_eq!(done.item, "example:cheese");
+assert_eq!(done.player.name, "Alex");
+```
+
+### `UseItemFinishCallback`
+
+A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server.
+
+```rust
+use pluto_lib::UseItemFinishCallback;
+
+UseItemFinishCallback::EVENT.register(|done| {
+    if done.item == "example:cheese" {
+        let _ = done.player.effects();
+    }
+});
+```
+
+### `UseItemFinishCallback::EVENT`
+
+The event to register on. Every callback is called in turn.
+
+```rust
+use pluto_lib::{ServerPlayer, UseItemFinishCallback, UseItemFinishContext};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static FINISHED: AtomicU32 = AtomicU32::new(0);
+UseItemFinishCallback::EVENT.register(|done| if done.item == "example:snack" { FINISHED.fetch_add(1, Ordering::SeqCst); });
+let done = UseItemFinishContext { item: "example:snack".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+UseItemFinishCallback::EVENT.invoke(&done);
+assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
+```
+
 ### `BreakSpeedContext`
 
 How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change) and `speed` the speed now (a `Cell`: change it with `set`).

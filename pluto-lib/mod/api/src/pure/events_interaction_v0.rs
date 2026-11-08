@@ -57,6 +57,15 @@ pub struct BreakSpeedContext {
     pub speed: Cell<f32>,
 }
 
+/// A player finished using an item over time (ate or drank it).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UseItemFinishContext {
+    /// The item id, such as `tconstruct:cheese_ingot`.
+    pub item: String,
+    /// The player; its methods work inside the callback.
+    pub player: ServerPlayer,
+}
+
 /// A player attacked an entity.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttackEntityContext {
@@ -74,6 +83,7 @@ pub struct BlockBreakContext {
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
 static USE_BLOCK: Event<UseBlockContext, ActionResult> = Event::first_not_pass();
 static USE_ITEM_ON_BLOCK: Event<UseItemOnBlockContext, ActionResult> = Event::first_not_pass();
+static USE_ITEM_FINISH: Event<UseItemFinishContext, ()> = Event::void();
 static BREAK_SPEED: Event<BreakSpeedContext, ()> = Event::void();
 static ATTACK_ENTITY: Event<AttackEntityContext, ActionResult> = Event::first_not_pass();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
@@ -100,6 +110,14 @@ pub struct UseItemOnBlockCallback;
 
 impl UseItemOnBlockCallback {
     pub const EVENT: &'static Event<UseItemOnBlockContext, ActionResult> = &USE_ITEM_ON_BLOCK;
+}
+
+/// A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects
+/// have been given; only for a player on the server.
+pub struct UseItemFinishCallback;
+
+impl UseItemFinishCallback {
+    pub const EVENT: &'static Event<UseItemFinishContext, ()> = &USE_ITEM_FINISH;
 }
 
 /// How fast a player digs a block (NeoForge: `PlayerEvent.BreakSpeed`). Not asked in creative mode or for an unbreakable block.
@@ -143,6 +161,10 @@ pub(crate) fn use_block(pos: [i32; 3], face: [i32; 3]) -> bool {
 
 pub(crate) fn use_item_on_block(context: &UseItemOnBlockContext) -> bool {
     handled(USE_ITEM_ON_BLOCK.invoke(context))
+}
+
+pub(crate) fn use_item_finish(context: &UseItemFinishContext) {
+    USE_ITEM_FINISH.invoke(context);
 }
 
 /// The dig speed after every callback has had its say.
