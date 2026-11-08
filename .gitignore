@@ -4,4 +4,4 @@
 __pycache__/
 
 /tconstruct/target/
-/tconstruct/library/target/
+/tconstruct/mixins/tconstruct/api/library/target/

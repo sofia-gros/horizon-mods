@@ -30,6 +30,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE pick called block=tconstruct:earth_slime_dirt',
             'PLUTO-PROBE break_speed block=tconstruct:earth_slime_dirt',
             'PLUTO-PROBE stack read=None written=true now=Some(8):5',
+            'tconstruct: library linked, 25 tool stats, 23 material stat types',
             'PLUTO-PROBE cheese cured=true',
             'PLUTO-PROBE menu slots=minecraft:dirt:64 - minecraft:coal:10',
             'PLUTO-PROBE bottle effects=["minecraft:levitation", "minecraft:slowness"]',
@@ -76,6 +77,7 @@ header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding=
 (bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
 shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
 if a.full:
+    EXPECTED += ("tconstruct: library linked, 25 tool stats, 23 material stat types",)
     import json, tomllib
     config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
     shutil.rmtree(bundles / 'tconstruct')

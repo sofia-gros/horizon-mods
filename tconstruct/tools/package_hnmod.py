@@ -88,7 +88,7 @@ def package(output):
     manifest_payload = sliced_manifest()
     for rel, source in tracked('tconstruct/mixins/tconstruct'):
         inside = rel.relative_to('tconstruct/mixins/tconstruct')
-        if source.suffix not in ('.rs', '.toml'):
+        if source.suffix not in ('.rs', '.toml') and source.name != 'Cargo.lock':
             raise ValueError(f'unsupported native source: {rel}')
         # Generated accessors are namespaced by the native mod ID.
         payload = (manifest_payload if inside.as_posix() == 'horizon-mixin.toml' else source.read_bytes()).replace(

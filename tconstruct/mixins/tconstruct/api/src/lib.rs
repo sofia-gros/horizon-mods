@@ -11,10 +11,12 @@ mod fluids;
 mod gadgets;
 mod shared;
 mod trees;
+mod tools;
 mod world;
 mod fluids_table;
 
 pub fn hooks() -> pluto_lib::ModHooks {
+    tools::register();
     fluids::register();
     gadgets::register();
     shared::register();

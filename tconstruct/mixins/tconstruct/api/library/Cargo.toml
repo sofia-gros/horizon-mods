@@ -14,4 +14,3 @@ serde_json = "1"
 name = "tconstruct_library"
 path = "src/lib.rs"
 
-[workspace]

@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 horizon-client = { git = "https://github.com/horizon-rust/horizon" }
 toml = "1"
+tconstruct-library = { path = "library" }
