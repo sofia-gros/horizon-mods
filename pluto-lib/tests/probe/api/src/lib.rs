@@ -74,6 +74,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             let east = world.get_block_state([5, 81, 5]).and_then(|s| s.property("east").map(str::to_owned));
             world.set_block_state([5, 80, 5], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE punji east={east:?}");
+            world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:budding_earth_slime_crystal").unwrap());
             let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
                 .iter()
                 .enumerate()
@@ -111,6 +112,16 @@ pub fn hooks() -> Box<dyn Hooks> {
             1
         });
     });
+    // a random tick on a block the game ticks at random: the callback may write blocks and roll the level's dice
+    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "budding_earth_slime_crystal").unwrap()).random_tick(|c| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        let marker = pluto_lib::BlockState::parse("minecraft:glass").unwrap();
+        let rolled = c.world.random_int(6);
+        let set = c.world.set_block_state([c.pos[0], c.pos[1] + 2, c.pos[2]], &marker);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE random_tick pos={:?} rolled_in_range={} set={set}", c.pos, (0..6).contains(&rolled));
+        }
+    }));
     ConfigRegistry::register("pluto_probe", ConfigKind::Common, "probe = true
 ");
     ConfigEvents::LOADING.register(|c| {

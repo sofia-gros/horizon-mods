@@ -8,7 +8,7 @@ pub use crate::pure::base::{
     default_phase,
 };
 pub use crate::pure::block_api_v1::{
-    self, BlockBehavior, BlockBehaviors, BlockView, Direction, EntityInsideContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
+    self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
     SurviveContext,
 };
 pub use crate::pure::block_entity_api_v1::{self, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};

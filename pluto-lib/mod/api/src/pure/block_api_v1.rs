@@ -114,6 +114,10 @@ pub struct MemoryBlockView {
     pub weak: BTreeSet<BlockPos>,
     /// The tags each position's block is in.
     pub tags: BTreeMap<BlockPos, BTreeSet<String>>,
+    /// The numbers [`BlockEditor::random_int`] hands out, first first (each is taken modulo the bound); 0 once they are used up.
+    pub rolls: Vec<i32>,
+    /// The ticks scheduled so far: position, block and delay.
+    pub scheduled: Vec<(BlockPos, String, i32)>,
 }
 
 impl BlockView for MemoryBlockView {
@@ -132,6 +136,81 @@ impl BlockView for MemoryBlockView {
     fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool {
         self.tags.get(&pos).is_some_and(|tags| tags.contains(tag))
     }
+}
+
+/// What a callback may change: a [`BlockView`] that can also write blocks, roll dice and schedule ticks (Minecraft: `ServerLevel`).
+pub trait BlockEditor: BlockView {
+    /// Sets the block at `pos` to `state` (Minecraft: `setBlock` with the flags that update neighbours and clients); false if it could
+    /// not be set (not loaded, unknown block).
+    fn set_block_state(&mut self, pos: BlockPos, state: &BlockState) -> bool;
+    /// Replaces the block at `pos` with air.
+    fn remove_block(&mut self, pos: BlockPos) -> bool {
+        match BlockState::parse("minecraft:air") {
+            Ok(air) => self.set_block_state(pos, &air),
+            Err(_) => false,
+        }
+    }
+    /// A random whole number from 0 up to but not including `bound` (Minecraft: `RandomSource.nextInt`), drawn from the level's own random
+    /// source so the order of draws is the game's.
+    fn random_int(&mut self, bound: i32) -> i32;
+    /// Asks the game to tick `block` at `pos` after `delay` game ticks (Minecraft: `scheduleTick`); false if it could not be scheduled.
+    fn schedule_tick(&mut self, pos: BlockPos, block: &str, delay: i32) -> bool;
+}
+
+impl BlockEditor for MemoryBlockView {
+    fn set_block_state(&mut self, pos: BlockPos, state: &BlockState) -> bool {
+        if state.block.to_string() == "minecraft:air" {
+            self.blocks.remove(&pos);
+        } else {
+            self.blocks.insert(pos, state.clone());
+        }
+        true
+    }
+
+    fn random_int(&mut self, bound: i32) -> i32 {
+        if self.rolls.is_empty() || bound <= 0 {
+            0
+        } else {
+            self.rolls.remove(0).rem_euclid(bound)
+        }
+    }
+
+    fn schedule_tick(&mut self, pos: BlockPos, block: &str, delay: i32) -> bool {
+        self.scheduled.push((pos, block.to_owned(), delay));
+        true
+    }
+}
+
+/// A tick or a bone meal reached the block: it may read and change the world around it.
+pub struct TickContext<'a> {
+    /// The block's state.
+    pub state: BlockState,
+    /// The position.
+    pub pos: BlockPos,
+    /// The world around, which can be changed.
+    pub world: &'a mut dyn BlockEditor,
+}
+
+/// Where a plant is asked what it may stand on (Minecraft: `mayPlaceOn`).
+pub struct PlaceOnContext<'a> {
+    /// The plant's state.
+    pub state: BlockState,
+    /// The ground block's state.
+    pub ground: BlockState,
+    /// The ground block's position.
+    pub ground_pos: BlockPos,
+    /// The blocks around.
+    pub view: &'a dyn BlockView,
+}
+
+/// Where a bone meal is about to be used (Minecraft: `isValidBonemealTarget`).
+pub struct BonemealContext<'a> {
+    /// The block's state.
+    pub state: BlockState,
+    /// The position.
+    pub pos: BlockPos,
+    /// The blocks around.
+    pub view: &'a dyn BlockView,
 }
 
 /// Where a block is asked whether it may stay (Minecraft: `canSurvive`).
@@ -212,6 +291,10 @@ type SurviveFn = Arc<dyn Fn(&SurviveContext<'_>) -> bool + Send + Sync>;
 type PlacementFn = Arc<dyn Fn(&PlacementContext<'_>) -> Placement + Send + Sync>;
 type ShapeFn = Arc<dyn Fn(&ShapeUpdateContext<'_>) -> Option<BlockState> + Send + Sync>;
 type InsideFn = Arc<dyn Fn(&EntityInsideContext) + Send + Sync>;
+type TickFn = Arc<dyn Fn(&mut TickContext<'_>) + Send + Sync>;
+type BonemealCheckFn = Arc<dyn Fn(&BonemealContext<'_>) -> bool + Send + Sync>;
+type BonemealSuccessFn = Arc<dyn Fn(&mut TickContext<'_>) -> bool + Send + Sync>;
+type PlaceOnFn = Arc<dyn Fn(&PlaceOnContext<'_>) -> bool + Send + Sync>;
 
 /// What one block of the mod does. Build it, then give it to [`BlockBehaviors::register`].
 #[derive(Clone)]
@@ -221,12 +304,18 @@ pub struct BlockBehavior {
     state_for_placement: Option<PlacementFn>,
     update_shape: Option<ShapeFn>,
     entity_inside: Option<InsideFn>,
+    random_tick: Option<TickFn>,
+    scheduled_tick: Option<TickFn>,
+    can_bonemeal: Option<BonemealCheckFn>,
+    bonemeal_success: Option<BonemealSuccessFn>,
+    on_bonemeal: Option<TickFn>,
+    may_place_on: Option<PlaceOnFn>,
 }
 
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None }
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -251,6 +340,46 @@ impl BlockBehavior {
     /// An entity is inside the block's space.
     pub fn entity_inside(mut self, f: impl Fn(&EntityInsideContext) + Send + Sync + 'static) -> Self {
         self.entity_inside = Some(Arc::new(f));
+        self
+    }
+
+    /// A random tick reached the block (Minecraft: `randomTick`): the game picks blocks at random, a few in every chunk section each tick.
+    /// Having this callback is what makes the game's own random tick of the block not run, so do what the block needs.
+    pub fn random_tick(mut self, f: impl Fn(&mut TickContext<'_>) + Send + Sync + 'static) -> Self {
+        self.random_tick = Some(Arc::new(f));
+        self
+    }
+
+    /// A tick the block scheduled came due (Minecraft: `tick`); schedule one with [`BlockEditor::schedule_tick`]. Having this callback is
+    /// what makes the game's own tick of the block not run.
+    pub fn scheduled_tick(mut self, f: impl Fn(&mut TickContext<'_>) + Send + Sync + 'static) -> Self {
+        self.scheduled_tick = Some(Arc::new(f));
+        self
+    }
+
+    /// Whether a bone meal can be used on the block (Minecraft: `isValidBonemealTarget`); a used meal is spent only if this says yes.
+    pub fn can_bonemeal(mut self, f: impl Fn(&BonemealContext<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.can_bonemeal = Some(Arc::new(f));
+        self
+    }
+
+    /// Whether a bone meal that was used makes the block grow this time (Minecraft: `isBonemealSuccess`); roll with
+    /// [`BlockEditor::random_int`]. Without it the game's own chance applies.
+    pub fn bonemeal_success(mut self, f: impl Fn(&mut TickContext<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.bonemeal_success = Some(Arc::new(f));
+        self
+    }
+
+    /// The block grows from a bone meal (Minecraft: `performBonemeal`).
+    pub fn on_bonemeal(mut self, f: impl Fn(&mut TickContext<'_>) + Send + Sync + 'static) -> Self {
+        self.on_bonemeal = Some(Arc::new(f));
+        self
+    }
+
+    /// What a plant may stand on (Minecraft: `mayPlaceOn`): asked for the plant with the ground below it. The block's template has to be a
+    /// plant that asks, such as a crop or a sapling.
+    pub fn may_place_on(mut self, f: impl Fn(&PlaceOnContext<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.may_place_on = Some(Arc::new(f));
         self
     }
 
@@ -298,6 +427,44 @@ pub(crate) fn shape_update(block: &str, context: &ShapeUpdateContext<'_>) -> Opt
     BlockBehaviors::get(block)?.update_shape.and_then(|f| f(context))
 }
 
+pub(crate) fn random_tick(block: &str, context: &mut TickContext<'_>) -> bool {
+    match BlockBehaviors::get(block).and_then(|b| b.random_tick) {
+        Some(f) => {
+            f(context);
+            true
+        }
+        None => false,
+    }
+}
+
+pub(crate) fn scheduled_tick(block: &str, context: &mut TickContext<'_>) -> bool {
+    match BlockBehaviors::get(block).and_then(|b| b.scheduled_tick) {
+        Some(f) => {
+            f(context);
+            true
+        }
+        None => false,
+    }
+}
+
+pub(crate) fn can_bonemeal(block: &str, context: &BonemealContext<'_>) -> Option<bool> {
+    BlockBehaviors::get(block)?.can_bonemeal.map(|f| f(context))
+}
+
+pub(crate) fn bonemeal_success(block: &str, context: &mut TickContext<'_>) -> Option<bool> {
+    BlockBehaviors::get(block)?.bonemeal_success.map(|f| f(context))
+}
+
+pub(crate) fn on_bonemeal(block: &str, context: &mut TickContext<'_>) {
+    if let Some(f) = BlockBehaviors::get(block).and_then(|b| b.on_bonemeal) {
+        f(context);
+    }
+}
+
+pub(crate) fn may_place_on(block: &str, context: &PlaceOnContext<'_>) -> Option<bool> {
+    BlockBehaviors::get(block)?.may_place_on.map(|f| f(context))
+}
+
 pub(crate) fn inside(block: &str, context: &EntityInsideContext) {
     if let Some(f) = BlockBehaviors::get(block).and_then(|b| b.entity_inside) {
         f(context);
@@ -325,6 +492,22 @@ mod tests {
         view.weak.insert([0, 65, 0]);
         assert_eq!(ctx(&view), Some(false), "a weak block cannot hold it");
         assert_eq!(survives("example:other", &SurviveContext { state: BlockState::parse("example:other").unwrap(), pos: [0, 0, 0], view: &view }), None);
+    }
+
+    #[test]
+    fn a_random_tick_grows_a_shoot_when_the_dice_say_so_and_leaves_the_world_alone_otherwise() {
+        BlockBehaviors::register(BlockBehavior::new(id("example:shoot")).random_tick(|c| {
+            if c.world.random_int(4) == 0 {
+                c.world.set_block_state([c.pos[0], c.pos[1] + 1, c.pos[2]], &c.state.clone());
+            }
+        }));
+        let state = BlockState::parse("example:shoot").unwrap();
+        let mut world = MemoryBlockView { rolls: vec![3, 8], ..Default::default() };
+        assert!(random_tick("example:shoot", &mut TickContext { state: state.clone(), pos: [0, 64, 0], world: &mut world }));
+        assert!(world.blocks.is_empty(), "a 3 is not a 0");
+        assert!(random_tick("example:shoot", &mut TickContext { state, pos: [0, 64, 0], world: &mut world }));
+        assert_eq!(world.blocks.len(), 1, "8 modulo 4 is 0: the shoot grew upwards");
+        assert!(!random_tick("example:rock", &mut TickContext { state: BlockState::parse("example:rock").unwrap(), pos: [0, 0, 0], world: &mut world }));
     }
 
     #[test]

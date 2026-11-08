@@ -54,9 +54,45 @@ assert!(behavior.block().path() == "post");
 
 > **Tip.** The game asks at least six times for every block set. Keep `update_shape` short, and answer `None` when nothing changes.
 
+## Growing Over Time
+
+`random_tick` runs when the game picks the block for a random tick, a few blocks in every chunk section each tick. The callback gets a `TickContext` whose `world` can read the blocks around and change them. This block turns into its grown form one time in four:
+
+```rust
+use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier};
+
+BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "shoot").unwrap()).random_tick(|c| {
+    if c.world.random_int(4) == 0 {
+        c.world.set_block_state(c.pos, &c.state.clone().with("grown", "true"));
+    }
+}));
+```
+
+`scheduled_tick` is the same for a tick the block asked for with `world.schedule_tick(pos, "example:shoot", 20)`.
+
+> **Use with Caution.** Having a `random_tick` or `scheduled_tick` callback stops the game's own tick of that block, as the original blocks did. Do everything the block needs in the callback. Roll dice with `world.random_int` and not with your own random numbers, so the order of draws is the game's.
+
+## Bone Meal
+
+Three callbacks decide what a bone meal does: `can_bonemeal` says whether it can be used (a used meal is spent only on yes), `bonemeal_success` whether it works this time, and `on_bonemeal` what grows:
+
+```rust
+use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier};
+
+BlockBehaviors::register(
+    BlockBehavior::new(Identifier::new("example", "sapling").unwrap())
+        .can_bonemeal(|c| c.view.is_air([c.pos[0], c.pos[1] + 1, c.pos[2]]))
+        .bonemeal_success(|c| c.world.random_int(100) < 45)
+        .on_bonemeal(|c| {
+            c.world.set_block_state(c.pos, &c.state.clone().with("stage", "1"));
+        }),
+);
+```
+
 ## Testing
 
-`MemoryBlockView` is a small world for tests: the blocks you set are solid, everything else is air. Build the context yourself and call your own functions:
+
+`MemoryBlockView` is a small world for tests, and a `BlockEditor` too: the blocks you set are solid, everything else is air, `rolls` holds the numbers `random_int` hands out and `scheduled` collects the ticks asked for. Build the context yourself and call your own functions:
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -189,7 +225,7 @@ assert!(OneStone.is_air([1, 0, 0]));
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in.
+A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up) and `scheduled` the ticks asked for.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -200,6 +236,72 @@ view.weak.insert([0, 0, 0]);
 assert!(!view.is_air([0, 0, 0]));
 assert!(!view.is_face_sturdy([0, 0, 0], Direction::Up));
 assert_eq!(view.block_state([0, 0, 0]).unwrap().to_string(), "minecraft:glass");
+```
+
+### `BlockEditor`
+
+A `BlockView` that can also change the world, handed to tick and bone meal callbacks as `world`. `set_block_state(pos, &state) -> bool` sets a block (neighbours and clients are told) and is false if it could not be set, `remove_block(pos) -> bool` replaces a block with air, `random_int(bound) -> i32` is a number from 0 up to but not including `bound` from the level's own random source, and `schedule_tick(pos, block, delay) -> bool` asks the game to tick `block` at `pos` after `delay` game ticks.
+
+```rust
+use pluto_lib::{BlockEditor, BlockState, BlockView, MemoryBlockView};
+
+let mut world = MemoryBlockView::default();
+world.rolls = vec![7];
+assert!(world.set_block_state([0, 64, 0], &BlockState::parse("minecraft:stone").unwrap()));
+assert!(!world.is_air([0, 64, 0]));
+assert!(world.remove_block([0, 64, 0]));
+assert!(world.is_air([0, 64, 0]));
+assert_eq!(world.random_int(5), 2); // 7 modulo 5
+assert_eq!(world.random_int(5), 0); // used up
+assert!(world.schedule_tick([0, 64, 0], "example:shoot", 20));
+assert_eq!(world.scheduled.len(), 1);
+```
+
+### `TickContext`
+
+A tick or a bone meal reached the block. `state` is the block's state, `pos` its position and `world` the world around, which can be changed.
+
+```rust
+use pluto_lib::{BlockState, MemoryBlockView, TickContext};
+
+let mut world = MemoryBlockView::default();
+let mut context = TickContext { state: BlockState::parse("example:shoot").unwrap(), pos: [0, 64, 0], world: &mut world };
+assert_eq!(context.pos, [0, 64, 0]);
+assert_eq!(context.state.block.path(), "shoot");
+assert!(context.world.set_block_state(context.pos, &context.state.clone()));
+```
+
+### `BonemealContext`
+
+Where a bone meal is about to be used. `state` is the block's state, `pos` its position and `view` the blocks around.
+
+```rust
+use pluto_lib::{BlockState, BonemealContext, MemoryBlockView};
+
+let view = MemoryBlockView::default();
+let context = BonemealContext { state: BlockState::parse("example:sapling").unwrap(), pos: [0, 64, 0], view: &view };
+assert!(context.view.is_air([context.pos[0], context.pos[1] + 1, context.pos[2]]));
+assert_eq!(context.state.block.path(), "sapling");
+```
+
+### `PlaceOnContext`
+
+Where a plant is asked what it may stand on. `state` is the plant's state, `ground` the block below and `ground_pos` its position, `view` the blocks around.
+
+```rust
+use pluto_lib::{BlockState, MemoryBlockView, PlaceOnContext};
+
+let view = MemoryBlockView::default();
+let context = PlaceOnContext {
+    state: BlockState::parse("example:fern").unwrap(),
+    ground: BlockState::parse("minecraft:dirt").unwrap(),
+    ground_pos: [0, 63, 0],
+    view: &view,
+};
+assert_eq!(context.ground.block.path(), "dirt");
+assert_eq!(context.ground_pos, [0, 63, 0]);
+assert_eq!(context.state.block.path(), "fern");
+assert!(context.view.is_air([0, 64, 0]));
 ```
 
 ### `SurviveContext`
@@ -367,6 +469,82 @@ use pluto_lib::{BlockBehavior, Identifier};
 let behavior = BlockBehavior::new(Identifier::new("example", "thorns").unwrap())
     .entity_inside(|c| println!("{} touched the thorns at {:?}", c.kind, c.pos));
 assert!(behavior.block().path() == "thorns");
+```
+
+### `BlockBehavior::random_tick`
+
+`fn random_tick(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. A random tick reached the block. Having this callback stops the game's own random tick of the block.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "moss").unwrap()).random_tick(|c| {
+    let above = [c.pos[0], c.pos[1] + 1, c.pos[2]];
+    if c.world.is_air(above) && c.world.random_int(6) == 0 {
+        c.world.set_block_state(above, &c.state.clone());
+    }
+});
+assert_eq!(behavior.block().path(), "moss");
+```
+
+### `BlockBehavior::scheduled_tick`
+
+`fn scheduled_tick(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. A tick the block scheduled with `schedule_tick` came due. Having this callback stops the game's own tick of the block.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "fuse").unwrap()).scheduled_tick(|c| {
+    c.world.remove_block(c.pos);
+});
+assert_eq!(behavior.block().path(), "fuse");
+```
+
+### `BlockBehavior::can_bonemeal`
+
+`fn can_bonemeal(self, f: impl Fn(&BonemealContext) -> bool) -> BlockBehavior`. Whether a bone meal can be used on the block; a used meal is spent only on yes.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "sapling").unwrap())
+    .can_bonemeal(|c| c.view.is_air([c.pos[0], c.pos[1] + 1, c.pos[2]]));
+assert_eq!(behavior.block().path(), "sapling");
+```
+
+### `BlockBehavior::bonemeal_success`
+
+`fn bonemeal_success(self, f: impl Fn(&mut TickContext) -> bool) -> BlockBehavior`. Whether a bone meal that was used makes the block grow this time. Without it the game's own chance applies.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "sapling").unwrap()).bonemeal_success(|c| c.world.random_int(100) < 45);
+assert_eq!(behavior.block().path(), "sapling");
+```
+
+### `BlockBehavior::on_bonemeal`
+
+`fn on_bonemeal(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. The block grows from a bone meal.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "sapling").unwrap()).on_bonemeal(|c| {
+    c.world.set_block_state(c.pos, &c.state.clone().with("stage", "1"));
+});
+assert_eq!(behavior.block().path(), "sapling");
+```
+
+### `BlockBehavior::may_place_on`
+
+`fn may_place_on(self, f: impl Fn(&PlaceOnContext) -> bool) -> BlockBehavior`. What a plant may stand on. The block's template has to be a plant that asks, such as a crop or a sapling.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "fern").unwrap()).may_place_on(|c| c.ground.block.path() == "dirt");
+assert_eq!(behavior.block().path(), "fern");
 ```
 
 ### `BlockBehavior::block`
