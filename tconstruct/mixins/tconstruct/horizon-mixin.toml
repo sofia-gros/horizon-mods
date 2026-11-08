@@ -4167,26 +4167,6 @@ bindings = [
 ]
 
 [[module]]
-id = "source-cheese-remainder"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_cheese_remainder"
-source = "source-cheese-remainder.rs"
-
-[[injection]]
-id = "source-cheese-finish"
-target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
-kind = "HEAD"
-helper = "source-cheese-finish.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
-
-[[injection]]
-id = "source-cheese-start"
-target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
-kind = "HEAD"
-helper = "source-cheese-start.rs"
-bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
-
-[[module]]
 id = "source-slimy-loot-client"
 file = "crates/horizon-client/src/game/functions.rs"
 name = "tconstruct_source_slimy_loot"

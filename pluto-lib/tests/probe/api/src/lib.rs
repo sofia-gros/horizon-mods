@@ -1,12 +1,16 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
 use pluto_lib::{
-    AttachmentRegistry, CommandRegistrationCallback, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    AttachmentRegistry, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
     ServerTickEvents,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    ItemUseRegistry::register(
+        Identifier::new("pluto_probe", "snack").unwrap(),
+        ItemUse::new(16, UseAction::Eat).food(4, 0.5).remainder(Identifier::new("minecraft", "stick").unwrap(), 2),
+    );
     CommandRegistrationCallback::EVENT.register(|registrar| {
         registrar.register("pluto_probe ping <word:word>", |ctx| {
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
@@ -23,6 +27,9 @@ pub fn hooks() -> Box<dyn Hooks> {
     ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
     ServerPlayConnectionEvents::JOIN.register(|p| {
         println!("PLUTO-PROBE join name={}", p.name);
+        // what the game side holds for the item registered through PlutoLib
+        let spec = horizon_client::entry::pluto_item_use::get("pluto_probe:snack");
+        println!("PLUTO-PROBE item_use game_side={spec:?}");
         let said = p.player.send_message("PlutoLib says hello");
         let left = p.player.give_item("minecraft:stick", 1);
         println!("PLUTO-PROBE player send_message={said} give_left={left}");

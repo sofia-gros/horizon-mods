@@ -9,3 +9,31 @@ horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
 
 [api]
 path = "api"
+
+# Items used over time (ItemUseRegistry): food, the "not hungry" rule and the remainder are applied by the game side.
+[[module]]
+id = "pluto-item-use"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_item_use"
+source = "pluto-item-use.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-item-use-plan"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_item_use_plan"
+source = "pluto-item-use-plan.rs"
+
+[[injection]]
+id = "pluto-item-use-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "pluto-item-use-start.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[injection]]
+id = "pluto-item-use-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "pluto-item-use-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
