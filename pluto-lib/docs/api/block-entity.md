@@ -123,7 +123,7 @@ assert_eq!(pos[1], 64);
 
 ### `BlockEntityTick`
 
-What a ticker receives. `pos` is the block entity's position, `data` its saved data, which the ticker may change; changes are saved with the chunk.
+What a ticker receives. `pos` is the block entity's position, `data` its saved data and `items` its item slots, which the ticker may change; changes are saved with the chunk.
 
 ```rust
 use pluto_lib::{BlockEntityTick, Nbt, NbtCompound, NbtCompoundExt};
@@ -134,7 +134,8 @@ fn count_up(tick: &mut BlockEntityTick<'_>) {
     let _at = tick.pos;
 }
 let mut data = NbtCompound::new();
-count_up(&mut BlockEntityTick { pos: [0, 64, 0], data: &mut data });
+let mut items = Vec::new();
+count_up(&mut BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items });
 assert_eq!(data.get_int("ticks", 0), 1);
 ```
 
@@ -264,4 +265,113 @@ use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier};
 assert!(BlockEntityTypeRegistry::get("example:nothing_here").is_none());
 BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "found").unwrap()));
 assert!(BlockEntityTypeRegistry::get("example:found").is_some());
+```
+
+## Item slots and fluid tanks
+
+### `ItemSlot`
+
+One stack in an item slot, reduced to the item and the count. A slot whose item is unchanged keeps its data when only `count` is changed.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+
+let slot = ItemSlot { item: Identifier::new("minecraft", "coal").unwrap(), count: 8 };
+assert_eq!(slot.count, 8);
+assert_eq!(slot.item.path(), "coal");
+```
+
+### `FluidStack`
+
+Fluid in a tank. `fluid` is the fluid (`minecraft:water`, `minecraft:lava` or a mod's own), `amount` the millibuckets (a bucket is a thousand).
+
+```rust
+use pluto_lib::{FluidStack, Identifier};
+
+let bucket = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 1000 };
+assert_eq!(bucket.amount, 1000);
+assert_eq!(bucket.fluid.to_string(), "minecraft:water");
+```
+
+### `BlockEntityType::item_slots`
+
+`fn item_slots(self, count: u32) -> BlockEntityType`. The block entity has `count` item slots (at most 256) that hoppers and the block's menu can reach. A ticker reads and changes them through `BlockEntityTick::items`.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, ItemSlot};
+
+let kind = BlockEntityType::new(Identifier::new("example", "smelter").unwrap())
+    .item_slots(3)
+    .ticker(|tick| {
+        // burn one coal from slot 0 per tick
+        if let Some(Some(slot)) = tick.items.get_mut(0) {
+            if slot.item.path() == "coal" && slot.count > 0 {
+                slot.count -= 1;
+            }
+        }
+        if let Some(Some(slot)) = tick.items.get(0) {
+            if slot.count == 0 {
+                tick.items[0] = None;
+            }
+        }
+    });
+let _: Option<ItemSlot> = None;
+let _ = kind;
+```
+
+### `BlockEntityType::fluid_tanks`
+
+`fn fluid_tanks(self, capacities: impl IntoIterator<Item = u32>) -> BlockEntityType`. One fluid tank for each capacity given, in millibuckets (at most 16 tanks, each 1 to 1 000 000). The contents are saved with the block entity; a ticker reads and changes them with `BlockEntityTick::fluid` and `set_fluid`, and other blocks can fill and drain them (Fabric: `FluidStorage`).
+
+```rust
+use pluto_lib::{BlockEntityType, FluidStack, Identifier};
+
+let kind = BlockEntityType::new(Identifier::new("example", "melter").unwrap())
+    .fluid_tanks([4000, 1000])
+    .ticker(|tick| {
+        // move whatever is in tank 0 into tank 1 until it is full
+        if let Some(stack) = tick.fluid(0) {
+            let room = 1000 - tick.fluid(1).map_or(0, |f| f.amount);
+            let moved = stack.amount.min(room);
+            if moved > 0 {
+                tick.set_fluid(1, Some(FluidStack { fluid: stack.fluid.clone(), amount: tick.fluid(1).map_or(0, |f| f.amount) + moved }));
+                let left = stack.amount - moved;
+                tick.set_fluid(0, (left > 0).then(|| FluidStack { fluid: stack.fluid, amount: left }));
+            }
+        }
+    });
+let _ = kind;
+```
+
+### `BlockEntityTick::fluid`
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, or `None` if the tank is empty or does not exist.
+
+```rust
+use pluto_lib::{BlockEntityTick, FluidStack, Identifier, NbtCompound};
+
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items };
+assert_eq!(tick.fluid(0), None);
+tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500 }));
+assert_eq!(tick.fluid(0).unwrap().amount, 500);
+```
+
+### `BlockEntityTick::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`. The tanks before `index` are kept (empty if there were none yet).
+
+```rust
+use pluto_lib::{BlockEntityTick, FluidStack, Identifier, NbtCompound};
+
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items };
+let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 250 };
+tick.set_fluid(2, Some(lava.clone()));
+assert_eq!(tick.fluid(0), None);
+assert_eq!(tick.fluid(2), Some(lava));
+tick.set_fluid(2, None);
+assert_eq!(tick.fluid(2), None);
 ```
