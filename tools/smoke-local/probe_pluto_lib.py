@@ -8,7 +8,7 @@ HORIZON_LAUNCHER_HOME / HORIZON_HOME / XDG_* / TMP / CARGO_HOME if the defaults 
 
   probe_pluto_lib.py --launcher horizon-launcher.exe --resources RESOURCES [--work DIR]
 """
-import argparse, os, re, shutil, subprocess, sys, tempfile, time
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,7 +18,8 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
             'tconstruct: gave the starting book to',
             'PLUTO-PROBE command ping arg=hello source=',
-            'PLUTO-PROBE block_entity ticks=5 pos=[3, 80, 3] slots=2 water=500',
+            'PLUTO-PROBE block_entity ticks=5 pos=[3, 80, 3] slots=3 water=500',
+            'PLUTO-PROBE screen_draw origin_set=true',
             'pluto_lib: creative tabs added, tabs=',
             'PLUTO-PROBE item_use game_side=Some(Spec { food: Some((4, 0.5)), can_always_eat: false, remainder: Some(("minecraft:stick", 2)) })',
             'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')
@@ -93,8 +94,18 @@ with game_log.open('w') as log:
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '120', 'wait-ready', '120'], capture_output=True, timeout=130)
         time.sleep(3)
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', 'pluto_probe ping hello'], capture_output=True, timeout=40)
-        for line in ('setblock 3 80 3 tconstruct:seared_stone', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
-            subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', line], capture_output=True, timeout=40)
+        # a menu block two blocks from the player, to open its screen
+        where = subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'state'], capture_output=True, text=True, timeout=40).stdout
+        try:
+            position = json.loads(where)['player']['position']
+            bx, by, bz = int(position[0] // 1) + 2, int(position[1] // 1), int(position[2] // 1)
+        except (ValueError, KeyError, TypeError, IndexError):
+            bx, by, bz = 3, 80, 3
+        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', f'interact {bx} {by} {bz}', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
+            # `interact X Y Z` is a control command (right-click a block); the rest are game commands
+            words = ['interact', *line.split()[1:]] if line.startswith('interact ') else ['command', line]
+            done = subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', *words], capture_output=True, text=True, timeout=40)
+            (run / 'ctl.log').open('a', encoding='utf-8').write(f'{words}: {done.returncode} {done.stdout.strip()} {done.stderr.strip()}\n')
             time.sleep(1)
         time.sleep(2)
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'quit'], capture_output=True, timeout=40)

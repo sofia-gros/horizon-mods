@@ -95,6 +95,7 @@ pub struct BlockEntityType {
     /// The data a new block entity starts with.
     pub initial_data: NbtCompound,
     slots: u32,
+    menu: Option<String>,
     tanks: Vec<u32>,
     ticker: Option<Ticker>,
     update_tag: Option<UpdateTag>,
@@ -103,7 +104,7 @@ pub struct BlockEntityType {
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, tanks: Vec::new(), ticker: None, update_tag: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, update_tag: None }
     }
 
     /// The same type under another id.
@@ -121,6 +122,15 @@ impl BlockEntityType {
     /// The same type, with `count` item slots (at most 256) that hoppers and the block's menu can reach (Minecraft: `Container`).
     pub fn item_slots(mut self, count: u32) -> Self {
         self.slots = count.min(256);
+        self
+    }
+
+    /// The same type, with the menu the game opens when the block is used (its item slots are the menu's): one of `minecraft:furnace`,
+    /// `minecraft:blast_furnace`, `minecraft:smoker` (3 slots), `minecraft:hopper` (5), `minecraft:generic_3x3` (9),
+    /// `minecraft:generic_9x1` to `minecraft:generic_9x6` (9 to 54), or a menu type of the mod's content; the slot count must match.
+    /// The window around the slots is registered with `ScreenHandlerRegistry`.
+    pub fn menu(mut self, menu_type: &str) -> Self {
+        self.menu = Some(menu_type.to_owned());
         self
     }
 
@@ -183,6 +193,16 @@ pub(crate) fn create(block: &str) -> Option<(String, NbtCompound)> {
 /// The number of item slots the block's block entity has; None if it has no container.
 pub(crate) fn item_slots(block: &str) -> Option<u32> {
     BlockEntityTypeRegistry::get(block).map(|t| t.slots).filter(|&n| n > 0)
+}
+
+/// The menu type of the block's container, if it has one.
+pub(crate) fn menu(block: &str) -> Option<String> {
+    BlockEntityTypeRegistry::get(block).and_then(|t| t.menu)
+}
+
+/// The block whose type has the block entity id `entity_id`.
+pub(crate) fn block_of(entity_id: &str) -> Option<String> {
+    by_entity_id(entity_id).map(|t| t.block.to_string())
 }
 
 /// The capacity of each fluid tank of the block's block entity; None if it has none.

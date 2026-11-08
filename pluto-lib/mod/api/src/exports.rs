@@ -24,4 +24,7 @@ pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemG
 pub use crate::pure::loot_api_v2::{self, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents};
 pub use crate::pure::player_api::{self, MemoryPlayerOps, PlayerOps, ServerPlayer, with_ops};
+pub use crate::pure::screen_handler_api_v1::{
+    self, MenuButton, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenTooltip,
+};
 pub use crate::pure::resource_loader_v0::{self, ResourceManagerHelper, ResourceType, reload_event};
