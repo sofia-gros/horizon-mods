@@ -1107,108 +1107,108 @@
       "note": "not yet compared with the port"
     },
     "materials/definition/IMaterial.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "material.rs: tier, sort order, rarity from tier, ordering (tier, sort order, id) and UNKNOWN, with tests"
     },
     "materials/definition/LazyMaterial.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/definition/Material.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "material.rs: tier, sort order, rarity from tier, ordering (tier, sort order, id) and UNKNOWN, with tests"
     },
     "materials/definition/MaterialId.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "ids.rs: parse, print, normalise, match and suffix rules with tests; the Loadable/network/command-reader parts are the game glue of the port"
     },
     "materials/definition/MaterialManager.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "manager.rs: definitions with conditions, redirects (validated), tags with nesting, optional members and replace, sorting of the visible ones; loaded against the original generated data (302 definition files, no problems). Not done: reading the files from the game (the game glue) and the client sync packet"
     },
     "materials/definition/MaterialVariant.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/definition/MaterialVariantId.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "ids.rs: parse, print, normalise, match and suffix rules with tests; the Loadable/network/command-reader parts are the game glue of the port"
     },
     "materials/definition/MaterialVariantIdImpl.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "ids.rs: parse, print, normalise, match and suffix rules with tests; the Loadable/network/command-reader parts are the game glue of the port"
     },
     "materials/definition/UpdateMaterialsPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the three sync packets: the game glue sends the loaded data to clients with PlutoLib networking when the materials are wired into the game"
     },
     "materials/IMaterialRegistry.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/IMaterialUser.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "asks whether a material has the stats of a type; follows with the concrete stat types in phase I"
     },
     "materials/json/MaterialJson.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "read by manager.rs, stats.rs and traits.rs with the original field names and defaults"
     },
     "materials/json/MaterialStatJson.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "read by manager.rs, stats.rs and traits.rs with the original field names and defaults"
     },
     "materials/json/MaterialTraitsJson.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "read by manager.rs, stats.rs and traits.rs with the original field names and defaults"
     },
     "materials/MaterialRegistry.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/MaterialRegistryImpl.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/RandomMaterial.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "materials/stats/IMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "stats.rs has the trait with the id and the can-repair flag of the type; the tooltip, localisation and repair numbers come with the concrete stats in phase I"
     },
     "materials/stats/IRepairableMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "stats.rs has the trait with the id and the can-repair flag of the type; the tooltip, localisation and repair numbers come with the concrete stats in phase I"
     },
     "materials/stats/MaterialStatsId.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "ids.rs"
     },
     "materials/stats/MaterialStatsManager.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "stats.rs: the stat type registry, merging of stat files field by field, null removal, optional and unregistered types, defaults, singleton types. Not done: the concrete stat types (head, handle, ... arrive with phase I) and the client sync packet"
     },
     "materials/stats/MaterialStatType.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "stats.rs: the stat type registry, merging of stat files field by field, null removal, optional and unregistered types, defaults, singleton types. Not done: the concrete stat types (head, handle, ... arrive with phase I) and the client sync packet"
     },
     "materials/stats/UpdateMaterialStatsPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the three sync packets: the game glue sends the loaded data to clients with PlutoLib networking when the materials are wired into the game"
     },
     "materials/traits/MaterialTraits.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "traits.rs: default and per-stat traits, fallbacks between stat types, merge and reset, loaded against the original generated data (99 files, no problems). The modifier entries keep the modifier id as written until the modifier registry exists (phase I); client sync not done"
     },
     "materials/traits/MaterialTraitsManager.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "traits.rs: default and per-stat traits, fallbacks between stat types, merge and reset, loaded against the original generated data (99 files, no problems). The modifier entries keep the modifier id as written until the modifier registry exists (phase I); client sync not done"
     },
     "materials/traits/UpdateMaterialTraitsPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the three sync packets: the game glue sends the loaded data to clients with PlutoLib networking when the materials are wired into the game"
     },
     "modifiers/data/FloatMultiplier.java": {
       "status": "todo",

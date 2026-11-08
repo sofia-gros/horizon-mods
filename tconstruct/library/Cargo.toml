@@ -1,0 +1,17 @@
+# The library of the original Tinkers' Construct (slimeknights.tconstruct.library) as plain Rust with no game in it: ids, materials, stats, traits
+# and their loading from the original's data files. It compiles and tests on its own in seconds (cargo test --manifest-path
+# tconstruct/library/Cargo.toml); the Tinkers API crate uses it from the game.
+[package]
+name = "tconstruct-library"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1"
+
+[lib]
+name = "tconstruct_library"
+path = "src/lib.rs"
+
+[workspace]
