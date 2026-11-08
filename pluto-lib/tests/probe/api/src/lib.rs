@@ -198,6 +198,12 @@ pub fn hooks() -> Box<dyn Hooks> {
             } else {
                 println!("PLUTO-PROBE stack missing");
             }
+            // a tool built by a mod comes with its max damage and its data
+            let built = (0..36).filter_map(|slot| ctx.source.stack(slot)).find(|s| s.item == "tconstruct:pickaxe" && s.custom_data.contains_key("tconstruct:stats"));
+            match built {
+                Some(tool) => println!("PLUTO-PROBE built max_damage={:?} materials={}", tool.max_damage, tool.custom_data.get("tconstruct:materials").and_then(Nbt::as_list).map_or(0, <[Nbt]>::len)),
+                None => println!("PLUTO-PROBE built none"),
+            }
             println!("PLUTO-PROBE cheese cured={}", !ctx.source.effects().iter().any(|e| e.id == "minecraft:night_vision"));
             let mut drunk: Vec<String> = ctx.source.effects().into_iter().map(|e| e.id).filter(|id| id != "minecraft:speed").collect();
             drunk.sort();

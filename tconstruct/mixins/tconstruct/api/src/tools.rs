@@ -100,6 +100,36 @@ impl ToolContext for ToolItem<'_> {
 }
 
 impl ToolLibrary {
+    /// The stack of a tool made of `material` in every part: the tool's item, its durability as the stack's max damage and its materials,
+    /// modifiers and stats as the stack's data (`tconstruct:materials`, `tconstruct:modifiers`, `tconstruct:stats` in the custom data).
+    pub fn build(&self, tool: &str, material: &str) -> Result<pluto_lib::StackData, String> {
+        use pluto_lib::Nbt;
+        let id = ResourceId::try_parse_in("tconstruct", tool).ok_or("bad tool id")?;
+        let definition = self.definitions.get(&id).ok_or_else(|| format!("no tool {id}"))?;
+        let material = MaterialId::try_parse(&format!("tconstruct:{}", material.trim_start_matches("tconstruct:"))).ok_or("bad material id")?;
+        if self.materials.materials.material(&material).is_none() {
+            return Err(format!("no material {material}"));
+        }
+        let materials = vec![material; definition.parts().len()];
+        let rebuilt = rebuild_stats(definition, &materials, &[], &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
+        let mut stats = pluto_lib::NbtCompound::new();
+        for (stat, value) in &rebuilt.stats {
+            stats.insert(stat.0.to_string(), match value {
+                StatValue::Float(v) => Nbt::Float(*v),
+                StatValue::Tier(t) => Nbt::String(t.to_string()),
+            });
+        }
+        let durability = match rebuilt.stats.get(&tconstruct_library::tools::stat::ToolStatId::tconstruct("durability")) {
+            Some(StatValue::Float(v)) => Some(*v as i32),
+            _ => None,
+        };
+        let mut data = pluto_lib::NbtCompound::new();
+        data.insert("tconstruct:materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
+        data.insert("tconstruct:modifiers".to_owned(), Nbt::List(rebuilt.modifiers.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
+        data.insert("tconstruct:stats".to_owned(), Nbt::Compound(stats));
+        Ok(pluto_lib::StackData { item: id.to_string(), count: 1, damage: 0, max_damage: durability, custom_data: data })
+    }
+
     /// A tool of `definition` (a tool item such as `tconstruct:pickaxe`) with every part made of `material`: the stats and the modifiers it
     /// would have, as one line of text. Err with the reason when the tool or the material is unknown.
     pub fn preview(&self, tool: &str, material: &str) -> Result<String, String> {
@@ -157,6 +187,26 @@ pub fn preview_command(ctx: &pluto_lib::CommandContext) -> i32 {
         Ok(text) => {
             println!("tconstruct: preview {tool} {material}: {text}");
             ctx.source.send_message(&text);
+            1
+        }
+        Err(reason) => {
+            ctx.source.send_message(&reason);
+            0
+        }
+    }
+}
+
+/// `/tconstruct build <tool> <material>`: gives a tool made of one material, with its stats on the stack.
+pub fn build_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    let (Some(tool), Some(material)) = (ctx.args.first(), ctx.args.get(1)) else { return 0 };
+    match library().build(tool, material) {
+        Ok(stack) => {
+            let (item, max) = (stack.item.clone(), stack.max_damage);
+            if ctx.source.give_stack(stack).is_some() {
+                ctx.source.send_message("no room for the tool");
+                return 0;
+            }
+            println!("tconstruct: built {item} of {material} with max damage {max:?}");
             1
         }
         Err(reason) => {

@@ -55,6 +55,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     CommandRegistrationCallback::EVENT.register(|registrar| {
         registrar.register("tconstruct parts", parts);
         registrar.register("tconstruct preview <tool:word> <material:word>", tools::preview_command);
+        registrar.register("tconstruct build <tool:word> <material:word>", tools::build_command);
         registrar.register("tconstruct assemble", assemble);
     });
     pluto_lib::no_hooks()
