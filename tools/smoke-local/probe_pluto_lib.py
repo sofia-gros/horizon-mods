@@ -16,7 +16,9 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE loot_modify', 'PLUTO-PROBE player send_message=true give_left=0',
             'PLUTO-PROBE attachment stored=true now=',
             'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
-            'tconstruct: gave the starting book to')
+            'tconstruct: gave the starting book to',
+            'PLUTO-PROBE command ping arg=hello source=',
+            'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')
 # reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
 OPTIONAL = ('PLUTO-PROBE client_resources_reloaded',)
 
@@ -64,6 +66,11 @@ with game_log.open('w') as log:
             time.sleep(.3)
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '120', 'wait-ready', '120'], capture_output=True, timeout=130)
         time.sleep(3)
+        subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', 'pluto_probe ping hello'], capture_output=True, timeout=40)
+        for line in ('give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
+            subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', line], capture_output=True, timeout=40)
+            time.sleep(1)
+        time.sleep(2)
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'quit'], capture_output=True, timeout=40)
         proc.wait(timeout=60)
     finally:

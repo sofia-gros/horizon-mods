@@ -72,8 +72,6 @@ jobs:
           /tmp/tconstruct-slime-plant-support-test
           rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
           /tmp/tconstruct-broad-wire-test
-          rustc --test tconstruct/tests/rust/command.rs -o /tmp/tconstruct-command-test
-          /tmp/tconstruct-command-test
           rustc --test tconstruct/tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
           /tmp/tconstruct-recipe-snapshot-test
           rustc --test tconstruct/tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test

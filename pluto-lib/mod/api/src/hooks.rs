@@ -6,7 +6,7 @@
 use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
-    ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
+    NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
@@ -14,6 +14,7 @@ use horizon_client::mod_api::{
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
+use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
@@ -23,6 +24,18 @@ pub fn hooks() -> Box<dyn Hooks> {
 }
 
 struct PlutoHooks;
+
+/// What a mod's `hooks()` returns: the launcher's entry point type. A mod that registers everything through PlutoLib's events returns
+/// [`no_hooks`], so its source never names a Horizon type.
+pub type ModHooks = Box<dyn Hooks>;
+
+struct NoHooks;
+impl Hooks for NoHooks {}
+
+/// Hooks that do nothing, for a mod whose behaviour is all registered through PlutoLib events.
+pub fn no_hooks() -> ModHooks {
+    Box::new(NoHooks)
+}
 
 /// PlutoLib's player operations over Horizon's `Host`, open only while a callback that carries a player runs.
 struct HostOps<'a>(&'a mut dyn Host);
@@ -34,6 +47,21 @@ impl PlayerOps for HostOps<'_> {
 
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
         self.0.give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
+    }
+
+    fn count_item(&mut self, player: u128, item: &str) -> u32 {
+        let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
+        (0..36).filter_map(|slot| self.0.carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()
+    }
+
+    fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32 {
+        let _ = player;
+        self.0.take_items(item, count)
+    }
+
+    fn empty_slots(&mut self, player: u128) -> u32 {
+        let _ = player;
+        (0..36).filter(|slot| self.0.carried_stack(*slot).is_none()).count() as u32
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
@@ -95,6 +123,18 @@ fn model_config(file: &NativeConfigFile) -> ModConfig {
 }
 
 impl Hooks for PlutoHooks {
+    fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
+        for (usage, level) in command_api_v2::collect() {
+            event.commands.push(if level == 0 { NativeCommand::new(&usage) } else { NativeCommand::op(&usage, level) });
+        }
+    }
+
+    fn perform_command(&self, host: &mut dyn Host, event: &mut PerformCommandEvent<'_>) -> Flow {
+        let (uuid, name, line) = (event.player.uuid, event.player.name.clone(), event.command.to_owned());
+        let ran = player_api::with_ops(&mut HostOps(host), || command_api_v2::execute(uuid, name, &line));
+        cancel_if(ran)
+    }
+
     fn register_configs(&self, _host: &mut dyn Host, event: &mut RegisterConfigsEvent<'_>) {
         for spec in config_api::registered() {
             let kind = match spec.kind {
