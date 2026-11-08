@@ -1,6 +1,6 @@
 //! `library.materials.definition.MaterialManager`: the materials of `data/<namespace>/tinkering/materials/definition/*.json`, the
 //! redirects among them and the material tags.
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 use serde_json::Value;
 
@@ -54,7 +54,9 @@ impl MaterialManager {
         });
         let mut manager = Self { materials, redirects, sorted: Vec::new(), tags: BTreeMap::new() };
         manager.resort();
-        manager.tags = load_tags(tag_files, &manager, &mut problems);
+        let (tags, tag_problems) = crate::tags::load(tag_files, &|id| manager.materials.contains_key(&MaterialId::from_resource(id.clone())));
+        problems.extend(tag_problems);
+        manager.tags = tags.into_iter().map(|(tag, members)| (tag, members.into_iter().map(MaterialId::from_resource).collect())).collect();
         (manager, problems)
     }
 
@@ -131,74 +133,6 @@ fn load_material(file: &ResourceId, json: &Value, redirects: &mut HashMap<Materi
     };
     let sort_order = json.get("sortOrder").and_then(Value::as_i64).unwrap_or(100) as i32;
     Ok(Some(Material { id, tier, sort_order, rarity, craftable, hidden }))
-}
-
-/// A tag file is `{"replace": bool, "values": [...]}`: a value is an id, `#tag` for another tag of the same kind, or an object with
-/// `id` and `required: false`. Members that do not exist are an error unless optional. Later files with the same id add to the earlier
-/// ones unless `replace` is set.
-fn load_tags(files: &[(ResourceId, Value)], manager: &MaterialManager, problems: &mut Problems) -> BTreeMap<ResourceId, Vec<MaterialId>> {
-    let mut definitions: BTreeMap<ResourceId, Vec<Value>> = BTreeMap::new();
-    for (id, json) in files {
-        let values = json.get("values").and_then(Value::as_array).cloned().unwrap_or_default();
-        if json.get("replace").and_then(Value::as_bool).unwrap_or(false) {
-            definitions.insert(id.clone(), values);
-        } else {
-            definitions.entry(id.clone()).or_default().extend(values);
-        }
-    }
-    let mut resolved = BTreeMap::new();
-    for tag in definitions.keys() {
-        let mut members = Vec::new();
-        let mut seen = HashSet::new();
-        resolve_tag(tag, &definitions, manager, &mut members, &mut seen, &mut vec![tag.clone()], problems);
-        resolved.insert(tag.clone(), members);
-    }
-    resolved
-}
-
-fn resolve_tag(
-    tag: &ResourceId,
-    definitions: &BTreeMap<ResourceId, Vec<Value>>,
-    manager: &MaterialManager,
-    members: &mut Vec<MaterialId>,
-    seen: &mut HashSet<MaterialId>,
-    path: &mut Vec<ResourceId>,
-    problems: &mut Problems,
-) {
-    for value in &definitions[tag] {
-        let (text, required) = match value {
-            Value::String(text) => (text.as_str(), true),
-            Value::Object(object) => (object.get("id").and_then(Value::as_str).unwrap_or(""), object.get("required").and_then(Value::as_bool).unwrap_or(true)),
-            _ => ("", true),
-        };
-        if let Some(inner) = text.strip_prefix('#') {
-            let Some(inner) = ResourceId::try_parse(inner) else {
-                problems.push(format!("Tag {tag} has a bad reference '{text}'"));
-                continue;
-            };
-            if path.contains(&inner) {
-                problems.push(format!("Tag {tag} includes itself through {inner}"));
-            } else if definitions.contains_key(&inner) {
-                path.push(inner.clone());
-                resolve_tag(&inner, definitions, manager, members, seen, path, problems);
-                path.pop();
-            } else if required {
-                problems.push(format!("Tag {tag} refers to the missing tag {inner}"));
-            }
-            continue;
-        }
-        let Some(id) = ResourceId::try_parse(text).map(MaterialId::from_resource) else {
-            problems.push(format!("Tag {tag} has a bad id '{text}'"));
-            continue;
-        };
-        if manager.material(&id).is_some() {
-            if seen.insert(id.clone()) {
-                members.push(id);
-            }
-        } else if required {
-            problems.push(format!("Tag {tag} lists {id}, which is not a material"));
-        }
-    }
 }
 
 #[cfg(test)]
