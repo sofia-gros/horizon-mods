@@ -81,6 +81,14 @@ pub fn hooks() -> Box<dyn Hooks> {
             let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
             world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            // a glow stays on a solid face and goes when the face does
+            world.set_block_state([14, 80, 14], &stone);
+            world.set_block_state([14, 81, 14], &pluto_lib::BlockState::parse("tconstruct:glow[facing=down]").unwrap());
+            world.set_block_state([16, 81, 16], &pluto_lib::BlockState::parse("tconstruct:glow[facing=down]").unwrap());
+            world.set_block_state([16, 81, 17], &stone);
+            let kept_glow = world.get_block_state([14, 81, 14]).is_some_and(|s| s.block.path() == "glow");
+            let lost_glow = world.get_block_state([16, 81, 16]).is_some_and(|s| s.block.path() == "air");
+            println!("PLUTO-PROBE glow kept={kept_glow} lost={lost_glow}");
             world.set_block_state([34, 80, 34], &pluto_lib::BlockState::parse("tconstruct:budding_sky_slime_crystal").unwrap());
             // seeds used on slime dirt make grass (the event is invoked here; the game's hook calls it the same way)
             world.set_block_state([26, 80, 26], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());

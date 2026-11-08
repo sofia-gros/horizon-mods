@@ -1,1 +1,1 @@
-{"template": "minecraft:small_amethyst_bud", "properties": {"light": 8}}
+{"template":"minecraft:small_amethyst_bud","properties":{"light":8,"hardness":1.5,"explosion_resistance":1.5,"requires_tool":true}}

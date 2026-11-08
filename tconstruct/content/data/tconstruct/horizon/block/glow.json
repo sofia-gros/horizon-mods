@@ -1,1 +1,1 @@
-{"template":"minecraft:end_rod","properties":{"hardness":0.0,"explosion_resistance":0.0,"light":14,"sounds":"minecraft:white_wool"}}
+{"template":"minecraft:end_rod","properties":{"hardness":0.0,"explosion_resistance":0.0,"light":14,"sounds":"minecraft:white_wool"},"shapes":{"properties":["facing"],"values":{"up":[[0,0.9375,0,1,1,1]],"down":[[0,0,0,1,0.0625,1]],"north":[[0,0,0,1,1,0.0625]],"south":[[0,0,0.9375,1,1,1]],"east":[[0.9375,0,0,1,1,1]],"west":[[0,0,0,0.0625,1,1]]}},"collision_shapes":{"default":[]}}

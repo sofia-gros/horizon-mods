@@ -25,6 +25,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE fluids tconstruct=43',
             'PLUTO-PROBE punji east=Some("true")',
             'PLUTO-PROBE vine kept_on_stone=true',
+            'PLUTO-PROBE glow kept=true lost=true',
             'PLUTO-PROBE copper waxed=Some("tconstruct:waxed_exposed_copper_platform") weathered=true',
             'PLUTO-PROBE pick called block=tconstruct:earth_slime_dirt',
             'PLUTO-PROBE break_speed block=tconstruct:earth_slime_dirt',
