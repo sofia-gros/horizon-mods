@@ -2,6 +2,69 @@
 
 A block entity is data that belongs to a block position: it is saved with the chunk, ticked every game tick on the server and can be sent to clients. The block itself (its model, its recipes) comes from the mod's content; here the block gets its block entity type.
 
+## Basic Example
+
+A block entity gives a block a place to keep data that is saved with the chunk and updated every tick. This oven burns down a fuel counter once a tick:
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, Nbt, NbtCompound, NbtCompoundExt};
+
+let mut start = NbtCompound::new();
+start.insert("fuel".to_owned(), Nbt::Int(200));
+BlockEntityTypeRegistry::register(
+    BlockEntityType::new(Identifier::new("example", "oven").unwrap())
+        .initial_data(start)
+        .ticker(|tick| {
+            let fuel = tick.data.get_int("fuel", 0);
+            if fuel > 0 {
+                tick.data.insert("fuel".to_owned(), Nbt::Int(fuel as i32 - 1));
+            }
+        }),
+);
+```
+
+The block itself (model, name, recipes) comes from your mod's content; this only gives it a block entity.
+
+## Saved Data
+
+`tick.data` is an `NbtCompound`, the tagged data the game saves. Read it with the typed helpers (`get_int`, `get_double`, `get_string`, `get_compound`), which return a default for a missing key instead of failing, and write it with `insert`:
+
+```rust
+use pluto_lib::{Nbt, NbtCompound, NbtCompoundExt};
+
+let mut data = NbtCompound::new();
+data.insert("name".to_owned(), Nbt::String("oven".into()));
+data.insert("heat".to_owned(), Nbt::Short(300));
+assert_eq!(data.get_int("heat", 0), 300);
+assert_eq!(data.get_int("cold", -1), -1);
+assert_eq!(data.get_string("name"), Some("oven"));
+```
+
+## Sending Data to Clients
+
+Nothing is sent to players unless you say so. A renderer or a screen on the client sees only the *update tag*; send everything with `sync_data()` or choose what with `update_tag`:
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, NbtCompound};
+
+let kind = BlockEntityType::new(Identifier::new("example", "tank_display").unwrap()).update_tag(|data| {
+    let mut tag = NbtCompound::new();
+    if let Some(level) = data.get("level") {
+        tag.insert("level".to_owned(), level.clone());
+    }
+    tag
+});
+let _ = kind;
+```
+
+## Items and Fluids
+
+Add `item_slots(n)` for slots that hoppers and menus can reach and `fluid_tanks([...])` for tanks other blocks can fill and drain; the ticker reads and changes both (see [Item slots and fluid tanks](#item-slots-and-fluid-tanks)).
+
+> **Use with Caution.** A ticker runs on the server for every loaded block entity of the type, every tick. Keep it cheap: no searching the world, no allocating in the common case.
+
+## Reference
+
 ## NBT
 
 NBT is the tagged data the game saves and sends. PlutoLib has its own copy of the types so code using it does not depend on the game's.

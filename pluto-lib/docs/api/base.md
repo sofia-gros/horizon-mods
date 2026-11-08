@@ -2,6 +2,52 @@
 
 The pieces every other module is built from. A mod author mostly meets `Event` (to register a callback), `Identifier` (to name things) and `ActionResult` (to answer an interaction).
 
+## Basic Example
+
+An `Event` is a list of callbacks. PlutoLib's events are all `static`; your mod registers a closure on them. A mod can also make its own event for other mods to hook:
+
+```rust
+use pluto_lib::{Event, Unit};
+
+/// Fired when the machine finishes a recipe; the callbacks receive the recipe's name.
+static RECIPE_DONE: Event<String, ()> = Event::new(&Unit);
+
+RECIPE_DONE.register(|name| println!("made {name}"));
+RECIPE_DONE.invoke(&"steel".to_owned());
+```
+
+## Choosing How Answers Combine
+
+When callbacks return something, a combiner turns the list of answers into one. The three that ship cover the events of the game: `Event::void()` (no answer, every callback runs), `Event::first_not_pass()` (the first answer that is not `Pass` wins) and `Event::allow_all()` (any `false` vetoes).
+
+```rust
+use pluto_lib::{ActionResult, Event};
+
+static USE: Event<(), ActionResult> = Event::first_not_pass();
+USE.register(|_| ActionResult::Pass); // not mine
+USE.register(|_| ActionResult::Fail); // cancel it
+assert_eq!(USE.invoke(&()), ActionResult::Fail);
+```
+
+## Ordering Callbacks with Phases
+
+Callbacks run in the order they were registered. When one mod must run before another, put it in a named phase and order the phases:
+
+```rust
+use pluto_lib::{default_phase, Event, Identifier};
+
+static E: Event<(), ()> = Event::void();
+let early = Identifier::new("example", "early").unwrap();
+E.add_phase_ordering(early.clone(), default_phase()).unwrap();
+E.register_with_phase(early, |_| { /* runs before callbacks registered with `register` */ });
+E.register(|_| {});
+E.invoke(&());
+```
+
+> **Tip.** A phase ordering that contradicts an earlier one is refused with `PhaseOrderingCycle` and the event keeps working, so one mod's wish can never break another mod's event.
+
+## Reference
+
 ## Events
 
 ### `Event`

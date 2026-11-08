@@ -4,6 +4,65 @@ A `ServerPlayer` is a plain handle (uuid and name). Its methods reach the game o
 
 To test code that uses a handle, run it inside `with_ops` with a `MemoryPlayerOps`.
 
+## Basic Example
+
+Send a message and give an item to a player from a callback that carries one:
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+fn welcome(player: &ServerPlayer) {
+    player.send_message("Welcome!");
+    let left = player.give_item("minecraft:bread", 3);
+    assert_eq!(left, 0, "everything fitted");
+}
+
+// the page uses an in-memory game; in a real callback the game is already there
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || welcome(&player));
+assert_eq!(game.told.len(), 1);
+```
+
+## Outside a Callback
+
+A `ServerPlayer` is plain data. Its methods reach the game only while a callback that carries a player runs, so you can keep a handle without any risk of using it at the wrong time. Outside, they do nothing and say so: `send_message` returns `false`, `give_item` returns the whole count, the counters return 0:
+
+```rust
+use pluto_lib::ServerPlayer;
+
+let stored = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert!(!stored.send_message("late"));
+assert_eq!(stored.give_item("minecraft:stick", 4), 4);
+```
+
+## Taking Items Safely
+
+Check before you consume: a command that needs a flint, two sticks and room for three parts should look first and change nothing if any is missing:
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps { free_slots: 5, ..Default::default() };
+with_ops(&mut game, || {
+    player.give_item("minecraft:flint", 1);
+    player.give_item("minecraft:stick", 2);
+    let can = player.count_item("minecraft:flint") >= 1 && player.count_item("minecraft:stick") >= 2 && player.empty_slots() >= 3;
+    assert!(can);
+    player.take_item("minecraft:flint", 1);
+    player.take_item("minecraft:stick", 2);
+});
+```
+
+## Testing
+
+`MemoryPlayerOps` is a small game that keeps messages, items and attachments in plain collections. Run your code inside `with_ops` and look at what it recorded.
+
+> **Tip.** Set `free_slots` to a small number to test a full inventory, and `language` to test a message in another language.
+
+## Reference
+
 ### `ServerPlayer`
 
 A connected player. `uuid` is the player's UUID as a number, `name` the player's name.

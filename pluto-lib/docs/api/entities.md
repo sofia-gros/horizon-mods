@@ -1,5 +1,35 @@
 # Entity events: entering and leaving worlds, damage and death
 
+## Basic Example
+
+Hear when an entity enters or leaves a world:
+
+```rust
+use pluto_lib::ServerEntityEvents;
+
+ServerEntityEvents::ENTITY_LOAD.register(|entity| {
+    if entity.kind == "minecraft:zombie" {
+        println!("a zombie appeared in {}", entity.dimension);
+    }
+});
+```
+
+## Cancelling Damage
+
+`ALLOW_DAMAGE` is asked before damage is applied. Answer `false` to cancel it; one `false` among all the callbacks is enough:
+
+```rust
+use pluto_lib::{LivingDamage, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::ALLOW_DAMAGE.register(|damage: &LivingDamage| damage.damage_type != "minecraft:fall");
+```
+
+`attacker` and `direct` are entity ids, negative when there is none: a skeleton's arrow has the skeleton as `attacker` and the arrow as `direct`.
+
+> **Use with Caution.** `AFTER_DEATH` is accepted but not called yet: Horizon's death hook points are not mapped (see the support matrix). Register for it anyway; it starts working without a change in your mod.
+
+## Reference
+
 ## Data
 
 ### `EntityInfo`

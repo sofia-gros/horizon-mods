@@ -2,6 +2,43 @@
 
 Add lines to an item's tooltip. Callbacks can add lines after the game's own; reading or editing the lines already there is a stub (support matrix).
 
+## Basic Example
+
+Add a line to an item's tooltip:
+
+```rust
+use pluto_lib::{ItemTooltipCallback, TooltipLine};
+
+ItemTooltipCallback::EVENT.register(|tip| {
+    if tip.item == "minecraft:diamond" {
+        tip.added.borrow_mut().push(TooltipLine::grey("Shiny"));
+    }
+});
+```
+
+Lines you add come after the game's own. The callback runs whenever a tooltip is built, so keep it short.
+
+## Using Items Over Time
+
+Food, drinks and bows take time to use. Register how long, the pose and, for food, what it feeds and what it leaves behind:
+
+```rust
+use pluto_lib::{Identifier, ItemUse, ItemUseRegistry, UseAction};
+
+ItemUseRegistry::register(
+    Identifier::new("example", "stew").unwrap(),
+    ItemUse::new(32, UseAction::Eat)
+        .food(6, 0.6)
+        .remainder(Identifier::new("minecraft", "bowl").unwrap(), 1),
+);
+```
+
+A player who is not hungry cannot start a feeding item unless you add `.can_always_eat()`. When one is used up, the remainder is handed back (the use is refused if it would not fit).
+
+> **Use with Caution.** A callback cannot read the lines already in a tooltip, only add to them (listed in the support matrix).
+
+## Reference
+
 ### `TooltipLine`
 
 One tooltip line to add. `text` is the line, `color` is `0xRRGGBBAA`.

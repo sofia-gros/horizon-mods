@@ -2,6 +2,56 @@
 
 Add commands when the server builds its command tree. A command is one usage line: words, then arguments `<name:kind>`, optional ones last in brackets `[name:kind]`. Kinds: `word`, `text` (the rest of the line, last), `integer`, `number`, `boolean`, `player`, `item`, `block_pos`. The handler gets the arguments as text, in order, and returns the command's result (1 for success, 0 for failure).
 
+## Basic Example
+
+Register a command when the server builds its command tree. The usage line is the command: words, then arguments in angle brackets.
+
+```rust
+use pluto_lib::CommandRegistrationCallback;
+
+CommandRegistrationCallback::EVENT.register(|registrar| {
+    registrar.register("example hello", |ctx| {
+        ctx.source.send_message("Hello!");
+        1 // success
+    });
+});
+```
+
+## Arguments
+
+An argument is written `<name:kind>`; an optional one goes last in square brackets, `[name:kind]`. The handler receives the words in `ctx.args`, in the order the usage lists them:
+
+```rust
+use pluto_lib::CommandRegistrationCallback;
+
+CommandRegistrationCallback::EVENT.register(|registrar| {
+    registrar.register("example give <item:item> [count:integer]", |ctx| {
+        let item = &ctx.args[0];
+        let count: u32 = ctx.args.get(1).and_then(|c| c.parse().ok()).unwrap_or(1);
+        ctx.source.give_item(item, count);
+        1
+    });
+});
+```
+
+The kinds are `word`, `text` (the rest of the line, last), `integer`, `number`, `boolean`, `player`, `item` and `block_pos`.
+
+## Who May Run It
+
+`register` is for every player. `register_op` takes an operator level from 1 to 4:
+
+```rust
+use pluto_lib::CommandRegistrationCallback;
+
+CommandRegistrationCallback::EVENT.register(|registrar| {
+    registrar.register_op("example reset", 2, |_| 1);
+});
+```
+
+> **Tip.** A handler is a plain closure over a `CommandContext`, so you can test it without a game: build the context by hand and run it inside `with_ops` with a `MemoryPlayerOps` (see [player](player.md)).
+
+## Reference
+
 ### `CommandRegistrationCallback`
 
 Holder of the registration event.

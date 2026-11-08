@@ -4,6 +4,64 @@ Attach any `serde` value to a player and read it back later, also after the game
 
 Like every `ServerPlayer` method, these work only inside a callback that carries the player (`with_ops`); elsewhere they report "nothing there" and store nothing.
 
+## Basic Example
+
+An attachment is a value that belongs to a player and is saved with them. Create its type once, then read and write it from any callback that carries the player. Here a counter remembers how many times a player has joined:
+
+```rust
+use pluto_lib::{AttachmentRegistry, Identifier, ServerPlayConnectionEvents};
+
+ServerPlayConnectionEvents::JOIN.register(|join| {
+    let visits = AttachmentRegistry::create(Identifier::new("example", "visits").unwrap(), || 0u32);
+    let before = join.player.get_attached(&visits);
+    join.player.set_attached(&visits, before + 1);
+});
+```
+
+## Structured Values
+
+The value can be any type that `serde` can save, so a whole record fits in one attachment:
+
+```rust
+use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
+struct Quest {
+    stage: u8,
+    notes: Vec<String>,
+}
+
+let quest = AttachmentRegistry::create(Identifier::new("example", "quest").unwrap(), Quest::default);
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    player.set_attached(&quest, Quest { stage: 2, notes: vec!["found the key".into()] });
+    assert_eq!(player.get_attached(&quest).stage, 2);
+});
+```
+
+## Never Set, or Set to the Default?
+
+`get_attached` hides the difference between "nothing stored" and "stored the default". When it matters (a book that is given once), ask `has_attached` or `get_attached_existing`:
+
+```rust
+use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};
+
+let given = AttachmentRegistry::create(Identifier::new("example", "book_given").unwrap(), || false);
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    assert!(!player.has_attached(&given));
+    player.set_attached(&given, false);
+    assert!(player.has_attached(&given), "stored, even though it is the default value");
+});
+```
+
+> **Use with Caution.** The methods work only inside a callback that carries the player (a join, a command). Elsewhere they report "nothing there" and store nothing, so a handle kept in a `static` cannot write to a player at the wrong moment. Only players can carry attachments so far; worlds, chunks, block entities and other entities follow.
+
+## Reference
+
 ### `AttachmentRegistry`
 
 Creates attachment types.

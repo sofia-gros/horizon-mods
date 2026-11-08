@@ -2,6 +2,37 @@
 
 Be told when a player joins or leaves. Callbacks get a `PlayerConnection` whose `player` can be used right away to message or give items (see `player.md`).
 
+## Basic Example
+
+Greet a player when they join:
+
+```rust
+use pluto_lib::ServerPlayConnectionEvents;
+
+ServerPlayConnectionEvents::JOIN.register(|join| {
+    join.player.send_message("Welcome to the server!");
+});
+```
+
+## Giving Something Once
+
+`JOIN` fires on every join, so a one-time gift needs a flag that is saved with the player (see [attachments](attachments.md)):
+
+```rust
+use pluto_lib::{AttachmentRegistry, Identifier, ServerPlayConnectionEvents};
+
+ServerPlayConnectionEvents::JOIN.register(|join| {
+    let gift = AttachmentRegistry::create(Identifier::new("example", "gift_given").unwrap(), || false);
+    if !join.player.get_attached(&gift) && join.player.give_item("minecraft:bread", 3) == 0 {
+        join.player.set_attached(&gift, true);
+    }
+});
+```
+
+> **Use with Caution.** The `ServerPlayer` is valid inside the callback. A copy kept for later reports failure instead of acting (see [player](player.md)).
+
+## Reference
+
 ### `PlayerConnection`
 
 What a connection callback receives. `player` is the `ServerPlayer` (its methods work inside the callback), `name` is the player's name (also `player.name`).

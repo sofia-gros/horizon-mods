@@ -2,6 +2,44 @@
 
 Callbacks decide what happens when a player acts. The use and attack events answer with an `ActionResult` (the first answer that is not `Pass` wins); the block-break `BEFORE` event answers yes or no (any no cancels).
 
+## Basic Example
+
+Stop players from using a block in a place, and let everything else through:
+
+```rust
+use pluto_lib::{ActionResult, UseBlockCallback};
+
+UseBlockCallback::EVENT.register(|used| {
+    if used.pos[1] < 0 { ActionResult::Fail } else { ActionResult::Pass }
+});
+```
+
+## What an Answer Means
+
+The use and attack events answer with an `ActionResult`, and the first answer that is not `Pass` wins. `Fail` cancels the action. `Success` and `Consume` mean your callback did the job (`Success` also swings the hand). `Pass` leaves it to the next callback and finally to the game.
+
+```rust
+use pluto_lib::ActionResult;
+
+assert!(ActionResult::Consume.is_accepted());
+assert!(!ActionResult::Consume.should_swing_hand());
+assert!(ActionResult::Success.should_swing_hand());
+```
+
+## Breaking Blocks
+
+`PlayerBlockBreakEvents::BEFORE` is a yes or no question instead: answer `false` to cancel the break.
+
+```rust
+use pluto_lib::PlayerBlockBreakEvents;
+
+PlayerBlockBreakEvents::BEFORE.register(|broken| broken.pos != [0, 64, 0]);
+```
+
+> **Use with Caution.** `AFTER` and `CANCELED` are accepted but not called yet (support matrix).
+
+## Reference
+
 ## Data
 
 ### `UseItemContext`
