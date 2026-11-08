@@ -1,0 +1,3438 @@
+{
+  "domain": "library",
+  "java": "slimeknights/tconstruct/library",
+  "classes": {
+    "client/armor/AbstractArmorModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/ArmorModelManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/MultilayerArmorModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/ArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/ConditionalArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/DyedArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/FirstArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/FixedArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/MaterialArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/MaterialHasFallbackTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/TintedArmorTexture.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/armor/texture/TrimArmorTextureSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/AbstractMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/AmmoMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ArmorMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ContentListingCentered.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ContentMaterialSkull.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ContentModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ContentPageIconList.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/ContentTool.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/FluidEffectContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/material/LacesMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/material/RibcageMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/material/ShellMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/material/SingleMaterialStatContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/material/SlimeMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/MeleeHarvestMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/RangedMaterialContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/content/TooltipShowcaseContent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/elements/CycleRecipeElement.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/elements/FluidItemElement.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/elements/ListingCenteredElement.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/elements/PageIconLinkElement.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/elements/TinkerItemElement.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/AbstractTagInjectingTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/FluidEffectInjectingTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/materials/AbstractMaterialSectionTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/materials/MaterialSectionTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/materials/TierRangeMaterialSectionTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/ModifierSectionTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/ModifierTagInjectorTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/ToolSectionTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/sectiontransformer/ToolTagInjectorTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/book/TinkerBook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/AbstractArmorModelProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/GenericTextureGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/AbstractMaterialRenderInfoProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/AbstractMaterialSpriteProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/AbstractPartSpriteProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/GeneratorPartTextureJsonGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/MaterialPaletteDebugGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/MaterialPartTextureGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/material/TrimMaterialPaletteGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/AnimatedGreyToSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/FramesSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/GreyToColorMapping.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/GreyToSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/IColorMapping.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/IRecolorSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/ISpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/OffsettingSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/spritetransformer/RecolorSpriteTransformer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/util/AbstractSpriteReader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/util/DataGenSpriteReader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/data/util/ResourceManagerSpriteReader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/GuiUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/Icons.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/item/ModifiableCrossbowClientExtension.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/item/ModifiableItemClientExtension.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/materials/MaterialGeneratorInfo.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/materials/MaterialRenderInfo.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/materials/MaterialRenderInfoLoader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/materials/MaterialTextureField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/materials/MaterialTooltipCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/block/FluidTextureModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/block/IncrementalFluidCuboid.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/block/TankModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/DynamicTextureLoader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/FluidContainerModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/ModelProperties.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/TinkerItemProperties.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/tools/MaterialBlockModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/tools/MaterialModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/tools/NestedOverrides.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/tools/ToolModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/model/UniqueGuiModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/DyedModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/FluidModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/IBakedModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/IUnbakedModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/MaterialModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/BannerModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/CompoundModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/ConditionalModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/FluidModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/LoadConditionModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/MaterialHasFallbackModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/MaterialModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/ModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/ModifierModelLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/NestedModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/SimpleModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/TankModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/model/TrimModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/ModifierIconManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/ModifierModelManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/ModifierModelMap.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/ModifierModelMapManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/NormalModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/PotionModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/TankModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/modifiers/TrimModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/particle/AttackParticle.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/particle/SlimeParticle.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/RenderUtils.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/SafeClient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/TinkerRenderTypes.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/AbstractModifierModelMapProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/AbstractStructureRepalleter.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/AbstractTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/AbstractToolItemModelProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/GenericNBTProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/GenericStringProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/AbstractMaterialDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/AbstractMaterialStatsDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/AbstractMaterialTraitDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/CostTagAppender.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/CraftingNBTWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/IByproduct.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/ICastCreationHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/IMaterialRecipeHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/ISmelteryRecipeHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/IToolRecipeHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/recipe/SmelteryRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractEnchantmentToModifierProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractFluidEffectProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractMaterialTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractMobEquipmentProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractModifierProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractModifierTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractStationSlotLayoutProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tinkering/AbstractToolDefinitionDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/MaterialsLoadedEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/EnderclearanceTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/EnderdodgingTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/EnderportingTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/EnderSlimeTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/FluidEffectTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/ModifierTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/ReturningTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/SlimeslingTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/teleport/SlingModifierTeleportEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/TinkerToolEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "events/ToolEquipmentChangeEvent.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "exception/TinkerAPIException.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "exception/TinkerAPIMaterialException.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "exception/TinkerJSONException.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/EmptyFluidHandlerItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/FillOnlyFluidHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/FluidTankAnimated.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/FluidTankBase.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/IFluidTankUpdater.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/IMultitankListChange.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "fluid/SimpleFluidTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/condition/TagDifferencePresentCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/condition/TagIntersectionPresentCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/condition/TagNotEmptyCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/field/MergingField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/field/MergingListField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/field/OptionallyNestedLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/IntRange.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/JsonRedirect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/LevelingInt.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/LevelingValue.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/AddToolDataFunction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/equipment/MobEquipment.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/equipment/MobEquipmentManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/HasLootContextSetCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/TagPreferenceLootEntry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/loot/ToolPartLootEntry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/FormulaLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/ModifierFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/PostFixFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/PostFixOperator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/PushConstantOperation.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/PushVariableOperation.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/SimpleLevelingFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/math/StackOperation.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/NoFieldRecordLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/BlockAtFeetEntityPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/BlockVariableRangePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/EntityVariableRangePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/HarvestTierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/HasMobEffectPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialDefinitionPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialHasPartPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialIdPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialPredicateField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialStatTypePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialTierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/material/MaterialVariantPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/modifier/ModifierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/modifier/SingleModifierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/modifier/SlotTypeModifierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/modifier/TagModifierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/TinkerPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/HasMaterialPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/HasModifierPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/HasStatTypePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/HasToolHookPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/PersistentDataPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/StatInRangePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/StatInSetPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/ToolActionPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/ToolContextPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/ToolStackItemPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/ToolStackPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/ToolVariableRangePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/tool/VolatileDataPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/predicate/VariableRangePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/RandomLevelingValue.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/TinkerLoadables.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/block/BlockVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/block/ConditionalBlockVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/block/LoadConditionBlockVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/block/StatePropertyVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/ConditionalVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/AttributeEntityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/ConditionalEntityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/EntityEffectLevelVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/EntityLightVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/EntityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/EquipmentCountEntityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/LoadConditionEntityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/entity/PlayerStatVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/melee/EntityMeleeVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/melee/LoadConditionMeleeVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/melee/MeleeFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/melee/MeleeVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/BlockLightVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/BlockMiningSpeedVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/BlockTemperatureVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/EffectiveMiningSpeedVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/LoadConditionMiningSpeedVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/MiningSpeedFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/mining/MiningSpeedVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/power/EntityPowerVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/power/LoadConditionPowerVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/power/PersistentDataPowerVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/power/PowerFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/power/PowerVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/protection/EntityProtectionVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/protection/LoadConditionProtectionVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/protection/ProtectionFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/protection/ProtectionVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/stat/ConditionalStatFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/stat/ConditionalStatVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/stat/EntityConditionalStatVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/stat/LoadConditionStatVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/StatLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/ToFloatFunction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ConditionalToolVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/FluidAmountVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/LoadConditionToolVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ModDataSource.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ModDataVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ModifierLevelVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/StatMultiplierVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/TankCapacityVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ToolFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ToolStatVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/tool/ToolVariable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/VariableFormula.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/VariableFormulaLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/variable/VariableLoaderRegistry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/IMaterial.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/LazyMaterial.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/Material.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/MaterialId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/MaterialManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/MaterialVariant.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/MaterialVariantId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/MaterialVariantIdImpl.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/definition/UpdateMaterialsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/IMaterialRegistry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/IMaterialUser.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/json/MaterialJson.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/json/MaterialStatJson.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/json/MaterialTraitsJson.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/MaterialRegistry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/MaterialRegistryImpl.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/RandomMaterial.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/IMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/IRepairableMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/MaterialStatsId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/MaterialStatsManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/MaterialStatType.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/stats/UpdateMaterialStatsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/traits/MaterialTraits.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/traits/MaterialTraitsManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "materials/traits/UpdateMaterialTraitsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/data/FloatMultiplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/data/ModifierMaxLevel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/data/VanillaMaxLevel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/entity/ProjectileWithKnockback.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/entity/ProjectileWithPower.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/entity/ReusableProjectile.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/FakeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/BlockInteractFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/BreakBlockFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/MeltBlockFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/MobEffectCloudFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/MoveBlocksFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/OffsetBlockFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/PlaceBlockFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/block/PotionCloudFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/EffectLevel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/AddBreathFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/AwardStatFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/CureEffectsFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/DamageFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/EntityInteractFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/FireFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/FreezeFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/MobEffectFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/PotionFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/PushEntityFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/RandomTeleportFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/RemoveEffectFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/entity/RestoreHungerFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/FluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/FluidEffectContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/FluidEffectManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/FluidEffects.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/FluidMobEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/AlternativesFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/AreaMobEffectFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/ConditionalFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/DropItemFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/ExplosionFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/FluidEffectListBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/LoadConditionFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/ScalingFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/SequenceFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/general/SetBlockFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/GroupCost.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/TimeAction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/UnloadableFluidEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/fluid/UpdateFluidEffectsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/ArmorWalkModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/DamageBlockModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/ElytraFlightModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/EquipmentChangeModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/ModifyDamageModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/OnAttackedModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/armor/ProtectionModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/AttributesModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/EnchantmentModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/MaterialRepairModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/ProcessLootModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/RepairFactorModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/ToolActionModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/ToolDamageModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/behavior/ToolDurabilityChangedHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/ConditionalStatModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/CraftCountModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/ModifierRemovalHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/ModifierTraitHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/RawDataModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/ToolStatsModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/ValidateModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/build/VolatileDataModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/ArmorLootingModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/DamageDealtModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/LootingModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/MeleeDamageModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/MeleeHitModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/combat/MonsterMeleeHitModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/display/DisplayNameModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/display/DurabilityDisplayModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/display/RequirementsModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/display/TooltipModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/AreaOfEffectHighlightModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/BlockInteractionModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/EdibleEffectHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/EntityInteractionModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/GeneralInteractionModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/InteractionSource.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/InventoryTickModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/KeybindInteractModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/SlotStackModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/interaction/UsingToolModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/BlockBreakModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/BlockHarvestModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/BreakSpeedContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/BreakSpeedModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/HarvestEnchantmentsModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/mining/RemoveBlockModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/BowAmmoModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/LauncherHitModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/ProjectileFuseModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/ProjectileHitModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/ProjectileLaunchModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/ProjectileShootModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/ranged/ScheduledProjectileTaskModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/BlockTransformModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/CapacityBarHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/PlantHarvestModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/ShearsModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/sling/SlingAngleModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/sling/SlingForceModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/hook/special/sling/SlingLaunchModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/impl/BasicModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/impl/ComposableModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/impl/DurabilityShieldModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/impl/NoLevelsModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/impl/SingleLevelModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/IncrementalModifierEntry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/Modifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ModifierEntry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ModifierHooks.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ModifierId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ModifierManager.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/AdjustDamageModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/ArmorWalkRadiusModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/BlockDamageSourceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/CoverGroundWalkerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/EffectImmunityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/MaxArmorAttributeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/MobDisguiseModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/ProtectionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/ReplaceBlockWalkerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/armor/ToolActionWalkerTransformModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/AttributeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/AttributeUniqueField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/BlockItemProviderModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/BlockTransformModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/ConditionalStatModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/InfinityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/MaterialRepairModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/ReduceToolDamageModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/RepairModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/ShowOffhandModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/ToolActionsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/behavior/ToolActionTransformModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/EnchantmentModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/ModifierRequirementsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/ModifierSlotModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/ModifierTraitModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/RarityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/SetStatModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/StatBoostModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/StatCopyModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/SwappableSlotModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/SwappableToolTraitsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/VolatileFlagModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/VolatileFloatModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/build/VolatileIntModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/CapacityBarModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/CapacityBarValidator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/CapacitySourceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/DamageToCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/DurabilityShieldModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/EnergyAsCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/FluidAsCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/FluidPredicateAsCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/LaunchCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/LootToCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/MeleeCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/MiningCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/OverslimeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/capacity/TimeToCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/ConditionalMeleeDamageModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/ConditionalPowerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/KnockbackModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/LootingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/MeleeAttributeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/MobEffectModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/ProjectileExplosionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/combat/SlingForceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/ConditionalModifierModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/DurabilityBarColorModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/MaterialVariantColorModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/MeleeInstrumentModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/ModifierVariantColorModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/ModifierVariantNameModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/ShowInteractionSourceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/display/StatTooltipModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleConsumeDurabilityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleCureEffectsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleCureRandomEffectModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleRemoveEffectModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/interaction/edible/EdibleRepresentativeItemModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/mining/ConditionalMiningSpeedModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/ModifierModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/ArmorLevelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/ArmorStatModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/CureOnRemovalModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/MarkHarvestingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/MaxArmorLevelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/MaxArmorStatModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/technical/SlotInChargeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/BooleanPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/ConditionalStatTooltip.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/IntLevelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/LevelingIntModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/ModifierCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/ModuleBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/modules/util/ProjectilePredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/UpdateModifiersPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/DynamicModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/LazyModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/ModifierDeferredRegister.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/ModifierLevelDisplay.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/ModifierTooltip.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/ModifierTooltipsField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/ModuleWithKey.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/OptionalModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/util/StaticModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "module/HookProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "module/ModuleHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "module/ModuleHookMap.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "module/WithHooks.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/alloying/AlloyRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/alloying/AlloyRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/alloying/IAlloyTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/alloying/IMutableAlloyTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/AbstractCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/CastDuplicationRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/CastingRecipeLookup.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/container/ContainerFillingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/container/ContainerFillingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/DisplayCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/ICastingContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/ICastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/IDisplayableCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/ItemCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/ItemCastingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/AbstractMaterialCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/CompositeCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/CompositeCastingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/MaterialCastingLookup.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/MaterialCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/MaterialCastingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/MaterialFluidRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/MaterialFluidRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/PartSwapCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/PartSwapCastingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/material/ToolCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/potion/ModifierPotionCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/PotionCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/PotionCastingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/RetexturedCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/TipClearingCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/casting/TippingCastingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/FilteredFluidRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/FilteredItemRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/FilteredRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/FluidVisible.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/ItemVisible.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/RecipeSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/RecipeSlots.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/display/VanillaFilteredRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/entitymelting/EntityMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/entitymelting/EntityMeltingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/entitymelting/EntityMeltingRecipeCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/FluidValues.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/fuel/IFluidContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/fuel/MeltingFuel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/fuel/MeltingFuelBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/fuel/MeltingFuelLookup.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/BlockTagIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/InstrumentIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/MaterialIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/MaterialValueIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/NestedIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/NoContainerIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ingredient/ToolHookIngredient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ITinkerableContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/IDisplayMaterialRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/IMaterialValue.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialRecipeCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialsConsumerBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialsCraftingTableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/MaterialValue.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/ShapedMaterialConsumerBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/ShapedMaterialRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/ShapedMaterialsRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/material/ShapelessMaterialsRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/DamageableMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/DisplayMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/IDisplayableMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/IMeltingContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/IMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/MaterialMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/MaterialMeltingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/MeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/MeltingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/MeltingRecipeLookup.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/melting/OreMeltingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/AbstractModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/AbstractModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/AbstractMultilevelModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/DisplayModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/IDisplayModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/IModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/IncrementalModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/IncrementalModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/ModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/ModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/MultilevelIncrementalModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/MultilevelIncrementalModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/MultilevelModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/MultilevelModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/OverslimeCraftingTableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/OverslimeModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/OverslimeModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/SwappableModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/adding/SwappableModifierRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/ModifierRecipeLookup.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/ModifierSalvage.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/severing/AgeableSeveringRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/severing/SeveringRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/severing/SeveringRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/modifiers/severing/SeveringRecipeCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/molding/IMoldingContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/molding/MoldingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/molding/MoldingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/DisplayPartRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/IDisplayPartBuilderRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/IPartBuilderContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/IPartBuilderRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/ItemPartRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/ItemPartRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/PartRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/PartRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/Pattern.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/recycle/PartBuilderRecycle.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/recycle/PartBuilderRecycleBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/partbuilder/recycle/PartBuilderToolRecycleBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/RandomItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/RecipeResult.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/SingleItemContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TagPredicate.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerRecipeTypes.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/FixedMaterialSwappingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/MaterialIndexSwappingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/MaterialSwappingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/MaterialSwappingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/MaterialValueSwappingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/PartSwappingOverrideRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/ToolBuildingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/ToolBuildingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/building/ToolMaterialSwappingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/IDisplayCraftingTinkering.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/IDisplayTinkerStationRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/IDisplayToolTinkering.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/IMutableTinkerStationContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/ITinkerStationContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/ITinkerStationRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/IModifierMaterialRepairRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/IModifierRepairRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ISpecializedRepairRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierMaterialRepairKitRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierMaterialRepairRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierMaterialRepairRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierRepairCraftingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierRepairRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/tinkerstation/repairing/ModifierRepairTinkerStationRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/worktable/AbstractSizedIngredientRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/worktable/AbstractWorktableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/worktable/IModifierWorktableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/worktable/ModifierSetWorktableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/worktable/ModifierSetWorktableRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerBookIDs.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerItemDisplays.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/BlockItemProviderCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/BlockItemProviderModifierHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/CompoundIndexHookIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/EntityModifierCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/fluid/FluidModifierHookIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/fluid/TankModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/fluid/ToolFluidCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/fluid/ToolTankHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/inventory/InventoryMenuModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/inventory/InventoryModifierHookIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/inventory/InventoryModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/inventory/InventorySlotMenuModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/inventory/ToolInventoryCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/PersistentDataCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/TinkerDataCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/TinkerDataKeys.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/ToolCapabilityProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/capability/ToolEnergyCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/EquipmentChangeContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/EquipmentContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/EquipmentIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/LootingContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/ToolAttackContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/ToolHarvestContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/context/ToolRebuildContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/ModifiableArmorMaterial.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/AreaOfEffectIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/BoxAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/CircleAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/ConditionalAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/IBoxExpansion.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/LoadConditionAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/TreeAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/aoe/VeiningAOEIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/MultiplyStatsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/SetStatsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolActionsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolActionToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolSlotsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolStatsHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolTraitHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/ToolTraitsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/VolatileDataToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/VolatileFlagModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/build/VolatileIntModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/ConditionalToolModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/CustomMaterialName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/FixedMaterialToolName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/MaterialToolName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/MaterialToolNameModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/SimpleToolName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/StatTypesToolNameModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/ToolNameHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/display/UniqueMaterialToolName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/interaction/AttackInteraction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/interaction/DualOptionInteraction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/interaction/InteractionToolModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/interaction/PreferenceSetInteraction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/interaction/ToggleableSetInteraction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/DefaultMaterialsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/MaterialRepairModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/MaterialRepairToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/MaterialStatsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/MaterialTraitsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/MissingMaterialsToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/PartsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/PartStatsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/RemappingMaterialsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/StatlessPartRepairModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/StatScaleField.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/ToolMaterialHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/material/ToolPartsHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/IsEffectiveModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/IsEffectiveToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/MaxTierModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/MiningSpeedModifierModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/MiningSpeedToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/MiningTierToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/mining/OneClickBreakModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/ToolHooks.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/ToolModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/weapon/CircleWeaponAttack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/weapon/MeleeHitToolHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/weapon/ParticleWeaponAttack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/module/weapon/SweepWeaponAttack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/ToolDefinition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/ToolDefinitionData.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/ToolDefinitionDataBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/ToolDefinitionLoader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/definition/UpdateToolDefinitionDataPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ArmorUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ModifierBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ModifierLootingHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ModifierUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ToolAttackUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ToolBuildHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ToolDamageUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/ToolHarvestLogic.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/TooltipBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/helper/TooltipUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/IndestructibleItemEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/armor/DummyArmorMaterial.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/armor/ModifiableArmorItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/armor/MultilayerArmorItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/IModifiable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/IModifiableDisplay.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ITinkerStationDisplay.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ModifiableArrowItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ModifiableItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ModifiableShurikenItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ranged/ModifiableBowItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ranged/ModifiableCrossbowItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/ranged/ModifiableLauncherItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/item/TinkerTier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/LayoutIcon.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/LayoutSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/Patterns.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/StationSlotLayout.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/StationSlotLayoutLoader.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/layout/UpdateTinkerSlotLayoutsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/DummyToolStack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/IModDataView.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/IToolContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/IToolStackView.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/LazyToolStack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/MaterialIdNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/MaterialNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/ModDataNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/ModifierNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/MultiplierNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/StatsNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/ToolDataNBT.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/nbt/ToolStack.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/block/MaterialBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/block/MaterialBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/block/MaterialBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/block/ToolPartBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/IMaterialItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/IRepairKitItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/IToolPart.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/MaterialItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/MaterialItemCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/PartCastItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/part/ToolPartItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/SlotType.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/CapacityStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/FloatToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/impl/IntegerToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/impl/PercentToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/INumericToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/IToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/MaxToolStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/ModifierStatsBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/ToolStatId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/ToolStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "tools/stat/ToolTierStat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/BlockSideHitListener.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/CustomExplosion.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/DomainDisplayName.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/GenericTagUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/GsonLoadable.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/HarvestTiers.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/IdParser.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/JsonUtils.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/MutableUseOnContext.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/NBTTags.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/Orientation2D.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/ResourceId.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/RestrictedCompoundTag.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/RomanNumeralHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/Schedule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/SimpleCache.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/SlimeBounceHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/TagUtil.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/TeleportHelper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/TinkerTooltipFlags.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/Util.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "utils/WeakListenerList.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}

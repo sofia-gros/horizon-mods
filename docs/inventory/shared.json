@@ -1,0 +1,250 @@
+{
+  "domain": "shared",
+  "java": "slimeknights/tconstruct/shared",
+  "classes": {
+    "block/BetterPaneBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ClearGlassPaneBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ClearStainedGlassBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ClearStainedGlassPaneBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/TableBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/GlowBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/KnightMetalBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/OrientableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/PlaceBlockDispenserBehavior.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/PlatformBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/SlimesteelBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/SlimeType.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/SoulGlassBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/SoulGlassPaneBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/TableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/WaxedPlatformBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/WeatheringPlatformBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ClientGeneratePartTexturesCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/FluidParticle.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/MaterialArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/MaterialStatsArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/MaterialTagSource.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/MaterialVariantArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/ModifierArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/ModifierHookArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/ModifierTagSource.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/SlotTypeArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/TinkerSuggestionProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/argument/ToolStatArgument.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/HeldModifiableItemIterator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/DurabilityCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/GenerateHiddenFluidsCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/GenerateMeltingRecipesCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/GeneratePartTexturesCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/MaterialsCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/ModifierPriorityCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/ModifiersCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/ModifierUsageCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/SlotsCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/subcommand/StatsCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "command/TConstructCommand.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "CommonsClientEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "CommonsEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/CommonRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "effect/AntigravityEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "effect/ReturningEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "inventory/BlockContainerOpenedTrigger.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "inventory/ConfigurableInvWrapperCapability.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "inventory/TriggeringBaseContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "inventory/TriggeringMultiModuleContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CheeseBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CheeseItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/TinkerBookItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/GeneratePartTexturesPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "particle/FluidParticleData.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerAttributes.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerClient.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerCommons.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerEffects.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerFood.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerMaterials.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}

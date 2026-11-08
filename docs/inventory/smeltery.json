@@ -1,0 +1,522 @@
+{
+  "domain": "smeltery",
+  "java": "slimeknights/tconstruct/smeltery",
+  "classes": {
+    "block/AbstractCastingBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/CastingBasinBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/CastingTableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/CastingTankBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ChannelBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/OrientableSmelteryBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/RetexturedOrientableSmelteryBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedDrainBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedDuctBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedGlassBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedLadderBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedPillarBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedSlabBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedSoulGlassBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedStairsBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedTankBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/component/SearedTintedGlassBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/AlloyerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/ControllerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/FoundryControllerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/HeaterBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/HeatingControllerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/MelterBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/SmelteryControllerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/controller/TinyMultiblockControllerBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/CastingBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/CastingTankBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/ChannelBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/component/DrainBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/component/DuctBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/component/SmelteryComponentBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/component/SmelteryInputOutputBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/component/TankBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/controller/AlloyerBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/controller/FoundryBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/controller/HeatingStructureBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/controller/MelterBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/controller/SmelteryBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/FaucetBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/FluidCannonBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/GaugeBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/HeaterBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/CastingContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/DuctItemHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/DuctTankWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/HeaterItemHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/MelterFuelWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/MoldingContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/ITankBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/LanternBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/alloying/IAlloyingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/alloying/MixerAlloyTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/alloying/MultiAlloyingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/alloying/SingleAlloyingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/alloying/SmelteryAlloyTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/ByproductMeltingModuleInventory.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/EntityMeltingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/FuelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/MeltingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/MeltingModuleInventory.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/MultitankFuelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/module/SolidFuelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/FoundryMultiblock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/HeatingStructureMultiblock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/MultiblockCuboid.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/MultiblockResult.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/MultiblockStructureData.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/multiblock/SmelteryMultiblock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/ProxyTankBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/CastingFluidHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/ChannelSideTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/ChannelTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/IDisplayFluidListener.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/ISmelteryTankHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/ProxyItemTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/tank/SmelteryTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/FaucetBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/FluidCannonBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/KnightMetalFluidCannonBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ProxyTankBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/RenderingGaugeBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/SearedLanternBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/CastingBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/ChannelBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/FaucetBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/GaugeBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/HeatingStructureBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/ProxyTankBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/SmelteryTankRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/TankBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/render/TankInventoryBlockEntityRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/AlloyerScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/HeatingStructureScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/IScreenWithFluidTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/MelterScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/ClickableTankModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/GuiFuelModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/GuiMeltingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/GuiSmelteryTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/GuiTankModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/module/HeatingStructureSideInventoryScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/screen/SingleItemScreenFactory.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/util/CastingItemRenderTypeBuffer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/util/TintedVertexBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/Byproduct.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/FluidContainerTransferProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/SmelteryCompat.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/SmelteryRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CopperCanFluidHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CopperCanItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/DummyMaterialItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/ScaledFluidTank.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/TankItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/TankItemFluidHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/AlloyerContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/HeatingStructureContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/MelterContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/SingleItemContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/TransferDirectionSupplier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/ChannelFlowPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/FaucetActivationPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/FluidUpdatePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/SmelteryFluidClickedPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/SmelteryTankUpdatePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/StructureErrorPositionPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/StructureUpdatePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "SmelteryClientEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerSmeltery.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}

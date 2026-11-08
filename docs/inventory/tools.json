@@ -1,0 +1,1142 @@
+{
+  "domain": "tools",
+  "java": "slimeknights/tconstruct/tools",
+  "classes": {
+    "ArmorDefinitions.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ClientInteractionHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/CrystalshotRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/FluidEffectProjectileRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/material/CombatFishingHookRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/material/ThrownShurikenRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/material/ThrownToolRenderer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ModifierClientEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/OverslimeModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/RayTracer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ShieldBannerModifierSpriteSource.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/SlimeskullArmorModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/SlimeskullModifierModel.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ToolContainerScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/ToolRenderEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ArmorModelProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/client/ModifierModelMapProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/EnchantmentToModifierProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/FluidEffectProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialIds.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialRenderInfoProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialStatsDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/MaterialTraitsDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/material/TrimMaterialProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ModifierIds.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ModifierProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ModifierRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/sprite/TinkerMaterialSpriteProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/sprite/TinkerPartSpriteProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/sprite/TinkerTrimMaterialPaletteGenerator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/StationSlotLayoutProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ToolDefinitionDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ToolItemModelProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ToolsRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/CombatFishingHook.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/CustomFireball.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/FluidEffectProjectile.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/ModifiableArrow.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/ThrownShuriken.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/ThrownTool.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "entity/ToolProjectile.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CreativeSlotItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/CrystalshotItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/DragonScaleItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/FakeIngotItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/FakeStorageBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/ModifiableSwordItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/ModifierCrystalItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/RepairKitItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/SlimeskullItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/DoubleJumpHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/EquipmentChangeWatcher.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/InteractionHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/ModifiableArrowDispenserBehavior.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/ModifiableShurikenDispenserBehavior.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/ModifierEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "logic/ToolEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/ReadOnlySlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/ToolContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/AmbidextrousModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/BouncyModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/DoubleJumpModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/FlamewakeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/ReflectingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/armor/ZoomModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/BurstingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/SlurpingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/SpillingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/SpittingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/SplashingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/UseFluidOnHitModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/fluid/WettingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/interaction/BlockingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/interaction/FirestarterModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/interaction/HarvestAbilityModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/interaction/ShearsAbilityModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/interaction/SilkyShearsAbilityModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/ranged/CrystalshotModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/sling/BonkingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/sling/FlingingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/sling/SlingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/sling/SpringingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/sling/WarpingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/AutosmeltModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/BucketingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/DuelWieldingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/ExchangingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/OffhandAttackModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ability/tool/ParryingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/effect/BleedingEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/effect/HelmetChargingEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/effect/MagneticEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/effect/NoMilkEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/effect/RepulsiveEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/EnergyHandlerModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/loot/ChrysophiliteBonusFunction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/loot/ChrysophiliteLootCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/loot/HasModifierLootCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/loot/ModifierBonusLootFunction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/ModifierLootModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/CreativeSlotModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/DyedModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/EmbellishmentModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/FarsightedModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/NearsightedModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/OverslimeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/StatOverrideModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/slotless/TrimModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/DamageSpeedTradeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/FrostshieldModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/general/EnderportingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/general/SolarPoweredModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/general/StoneshieldModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/general/TannedModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/general/TastyModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/harvest/DwarvenModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/harvest/MomentumModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/harvest/TemperateModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/ConductingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/DecayModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/EnderferenceModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/InsatiableModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/InvariantModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/LaceratingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/melee/NecroticModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/ranged/HolyModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/ranged/OlympicModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/BoonOfSssssModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/BreathtakingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/ChrysophiliteModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/EnderdodgingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/FirebreathModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/FrosttouchModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/GoldGuardModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/PlagueModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/RevengeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/SelfDestructiveModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/StrongBonesModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/WildfireModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/traits/skull/WitheredModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/armor/SoulSpeedModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/armor/SpringyModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/armor/ThornsModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/general/MagneticModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/melee/FieryModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/melee/PiercingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/melee/SeveringModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/melee/SweepingEdgeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/ranged/FreezingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/ranged/ImpalingModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/ranged/PunchModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/ranged/ScopeModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modifiers/upgrades/ranged/SinistralModifier.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/CounterModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/DepthProtectionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/EnderclearanceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/FieryCounterModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/FireWalkerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/FlameBarrierModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/FreezingCounterModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/GlowWalkerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/GoldenAttributeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/KineticModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/KnockbackCounterModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/LightspeedAttributeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/MinimapModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/OvershieldModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/RecurrentProtectionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/RestoreLostHealthModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/ShieldStrapModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/SleevesModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/SoulSpeedModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/TeleportDodgeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/ThornsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/ToolBeltModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/armor/UpdateHealthModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ArmorModuleBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/AutosmeltModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ClearEffectOnUnequipModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/BlockingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/ChannelingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/DamageOnShootModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/FieryArmorAttackModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/FieryAttackModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/FreezingAttackModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/LifestealModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/SeveringModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/SpillingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/combat/SweepingEdgeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/cosmetic/BannerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/cosmetic/DyeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/cosmetic/EmbellishmentModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/cosmetic/TrimModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/CraftCountModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/DamageOnUnequipModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/durability/DurabilityAsCapacityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/durability/ShareDurabilityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/durability/ToolDamageRangeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/FovModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/HeadlightModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/BrushModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/BucketModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/ExtinguishCampfireModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/FireballModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/FishingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/HarvestModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/PlaceFireModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/PlaceGlowModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/ShearsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/sling/SlingKnockbackModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/sling/SlingLeapModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/sling/SlingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/sling/SlingTeleportModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/SlurpingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/SpittingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/SplashingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/TankInteractionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/interaction/ThrowingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/InventorySelectionModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/MeltingFluidEffectiveModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/MeltingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/OverburnModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/OvergrowthModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/ammo/ProjectileFuseModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/ammo/ProjectileGravityModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/ammo/SmashingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/ammo/TippedModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/bow/QuiverInventoryModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/BulkQuiverModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/ArrowPierceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/ProjectileAttractMobsModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/ProjectileBounceModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/ProjectilePlaceGlowModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/PunchModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/common/ReversePunchModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/RestrictAngleModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ranged/TrickQuiverModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ReduceEffectOnUnequipModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/SmeltingModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/TheOneProbeModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "modules/ZoomModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/EntityMovementChangePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/FluidDataSerializer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/InteractWithAirPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/PushBlockRowPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/SyncProjectileModifiersPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/TinkerControlPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/ToolContainerFluidUpdatePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ArmorDyeingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ArmorTrimRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/BannerModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/EnchantmentConvertingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/EnchantmentConvertingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ExtractModifierRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ModifierRemovalRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ModifierRemovalRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ModifierSortingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ModifierSortingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/severing/MooshroomDemushroomingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/severing/PlayerBeheadingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/severing/SheepShearingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/severing/SnowGolemBeheadingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/severing/SpecialSeveringRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TippedToolTransformRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ToggleInteractionWorktableRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/ToggleInteractionWorktableRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/GripMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/HandleMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/HeadMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/LimbMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/PlatingMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/RepairStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/SkullStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/SlimeStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/StatlessMaterialStats.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "stats/ToolType.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerModifiers.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerToolActions.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerToolParts.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerTools.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "ToolClientEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "ToolDefinitions.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}
