@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "group": "slime_blocks",
+  "key": {
+    "#": "#forge:slimeball/ender"
+  },
+  "pattern": [
+    "###",
+    "###",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:ender_slime"
+  }
+}

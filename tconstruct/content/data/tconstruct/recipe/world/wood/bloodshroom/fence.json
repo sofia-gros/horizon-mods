@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "wooden_fence",
+  "key": {
+    "#": "#forge:rods/wooden",
+    "W": "tconstruct:bloodshroom_planks"
+  },
+  "pattern": [
+    "W#W",
+    "W#W"
+  ],
+  "result": {
+    "id": "tconstruct:bloodshroom_fence",
+    "count": 3
+  }
+}
