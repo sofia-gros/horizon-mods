@@ -26,6 +26,9 @@ p = argparse.ArgumentParser()
 p.add_argument('--launcher', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True, help='prepared Horizon 26.3 resource folder')
 p.add_argument('--work', type=Path, default=ROOT / '.local/pluto-probe')
+p.add_argument('--full', type=Path, metavar='PLUTO_INSTALLED',
+               help='also build the whole sliced Tinkers (every injection the pinned Mixins accepts) with the legacy PlutoLib slice made from '
+                    'this extracted legacy bundle folder (build.py leaves one at <work>/pluto-installed)')
 a = p.parse_args()
 
 if a.work.exists():
@@ -39,6 +42,26 @@ header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding=
 (bundles / 'tconstruct').mkdir()
 (bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
 shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
+if a.full:
+    import json, tomllib
+    config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
+    shutil.rmtree(bundles / 'tconstruct')
+    command = [sys.executable, str(ROOT / 'tools/slice_manifest.py'), '--tokens-out', str(a.work / 'tokens.txt'), '--out', str(bundles / 'tconstruct')]
+    for ident in config['tconstruct_all_except']:
+        command += ['--all-except', ident]
+    for host_file in config.get('launcher_unsafe_files', []):
+        command += ['--avoid-file', host_file]
+    subprocess.run(command, check=True)
+    legacy = a.full / 'pluto_native_creative/mixins/pluto_native_creative'
+    names = {m['name'] for m in tomllib.loads((legacy / 'horizon-mixin.toml').read_text(encoding='utf-8'))['module']}
+    command = [sys.executable, str(ROOT / 'tools/slice_manifest.py'), '--src', str(legacy), '--out', str(bundles / 'pluto_native_creative')]
+    for seed in config['pluto_seeds']:
+        command += ['--seed', seed]
+    for prefix in config['pluto_keep_prefixes']:
+        command += ['--keep-prefix', prefix]
+    for name in sorted(names & set((a.work / 'tokens.txt').read_text().split())):
+        command += ['--keep-module-name', name]
+    subprocess.run(command, check=True)
 build_log = a.work / 'native-build.log'
 with build_log.open('w') as log:
     build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code', '--profile', 'dev'],

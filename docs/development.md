@@ -42,6 +42,8 @@ A mod that uses only PlutoLib, in a running game (builds PlutoLib and a throwawa
 python tools/smoke-local/probe_pluto_lib.py --launcher <horizon-launcher> --resources RESOURCES_DIR
 ```
 
+With `--full <extracted legacy PlutoLib folder>` the probe also builds the whole sliced Tinkers (about 7 minutes with the launcher's `dev` profile; without it the probe takes about 2).
+
 PlutoLib through the official launcher (the way players get mods):
 
 ```sh
