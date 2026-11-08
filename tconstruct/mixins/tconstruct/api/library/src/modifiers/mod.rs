@@ -458,7 +458,7 @@ mod tests {
         let mut modules = ModuleRegistry::with_original_types();
         modules.register_stat_modules(stats.clone());
         let boost = json!({"type": "tconstruct:stat_boost", "each_level": 0.75, "operation": "add", "stat": "tconstruct:attack_damage"});
-        let limited = json!({"type": "tconstruct:stat_boost", "flat": 2.0, "operation": "add", "stat": "tconstruct:durability", "modifier_level": {"min": 2}, "tool": {"type": "mantle:tag", "tag": "tconstruct:harvest"}});
+        let limited = json!({"type": "tconstruct:stat_boost", "flat": 2.0, "operation": "add", "stat": "tconstruct:durability", "modifier_level": {"min": 2}, "tool": {"type": "mantle:tag", "tag": "tconstruct:modifiable/harvest"}});
         let files = vec![(rid("tconstruct:sharpness"), json!({"modules": [boost, limited]}))];
         let (manager, problems) = ModifierManager::load(&files, &[], &[], &modules, &EmptyContext);
         assert!(problems.is_empty(), "{problems:?}");
@@ -475,10 +475,10 @@ mod tests {
             (builder.get(&ToolStatId::tconstruct("attack_damage")), builder.get(&ToolStatId::tconstruct("durability")))
         };
         // the attack damage stat applies to melee items; the durability boost needs level 2 and a harvest tool
-        assert_eq!(apply(3, &["tconstruct:melee", "tconstruct:durability"]).0, StatValue::Float(2.25));
-        assert_eq!(apply(3, &["tconstruct:harvest", "tconstruct:durability"]).1, StatValue::Float(3.0), "1 default + 2 flat");
-        assert_eq!(apply(1, &["tconstruct:harvest", "tconstruct:durability"]).1, StatValue::Float(1.0), "below the minimum level");
-        assert_eq!(apply(3, &["tconstruct:melee", "tconstruct:durability"]).1, StatValue::Float(1.0), "not a harvest tool");
+        assert_eq!(apply(3, &["tconstruct:modifiable/melee", "tconstruct:modifiable/durability"]).0, StatValue::Float(2.25));
+        assert_eq!(apply(3, &["tconstruct:modifiable/harvest", "tconstruct:modifiable/durability"]).1, StatValue::Float(3.0), "1 default + 2 flat");
+        assert_eq!(apply(1, &["tconstruct:modifiable/harvest", "tconstruct:modifiable/durability"]).1, StatValue::Float(1.0), "below the minimum level");
+        assert_eq!(apply(3, &["tconstruct:modifiable/melee", "tconstruct:modifiable/durability"]).1, StatValue::Float(1.0), "not a harvest tool");
         assert_eq!(apply(3, &[]).0, StatValue::Float(0.0), "a stat that does not support the item does nothing");
     }
 

@@ -316,33 +316,33 @@ impl ToolStats {
             stat
         };
         let mut all = vec![
-            integer("durability", 0xFF47CC47, 1.0, 1.0, i32::MAX as f32, &["tconstruct:durability"]),
-            float("use_item_speed", 0xFF78A0CD, 0.2, 0.0, 1.0, &["tconstruct:held"]),
-            float("attack_damage", 0xFFD76464, 0.0, 0.0, 2048.0, &["tconstruct:melee"]),
-            float("attack_speed", 0xFF8547CC, 1.0, 0.0, 1024.0, &["tconstruct:melee_weapon"]),
-            float("mining_speed", 0xFF78A0CD, 1.0, 0.1, 2048.0, &["tconstruct:harvest"]),
-            ToolStat::float("harvest_tier", Tier, 0, 0.0, 0.0, 0.0, &["tconstruct:harvest"]),
-            float("armor", 0xFF8547CC, 0.0, 0.0, 30.0, &["tconstruct:armor"]),
-            float("armor_toughness", 0xFF8547CC, 0.0, 0.0, 20.0, &["tconstruct:armor"]),
-            float("knockback_resistance", 0xFF8547CC, 0.0, 0.0, 1.0, &["tconstruct:armor"]),
-            float("block_amount", 0xFF78A0CD, 5.0, 0.0, 2048.0, &["tconstruct:held"]),
-            conditional(float("block_angle", 0xFF78A0CD, 120.0, 0.0, 180.0, &["tconstruct:held"])),
-            conditional(float("draw_speed", 0xFF8547CC, 1.0, 0.0, 1024.0, &["tconstruct:ranged"])),
-            conditional(float("velocity", 0xFF78A0CD, 1.0, 0.0, 1024.0, &["tconstruct:ranged", "tconstruct:ammo"])),
-            conditional(float("accuracy", 0xFF8547CC, 0.75, 0.1, 1.0, &["tconstruct:ranged", "tconstruct:ammo"])),
-            conditional(float("projectile_damage", 0xFFD76464, 2.0, 0.0, 1024.0, &["tconstruct:launchers", "tconstruct:ammo"])),
+            integer("durability", 0xFF47CC47, 1.0, 1.0, i32::MAX as f32, &["tconstruct:modifiable/durability"]),
+            float("use_item_speed", 0xFF78A0CD, 0.2, 0.0, 1.0, &["tconstruct:modifiable/held"]),
+            float("attack_damage", 0xFFD76464, 0.0, 0.0, 2048.0, &["tconstruct:modifiable/melee"]),
+            float("attack_speed", 0xFF8547CC, 1.0, 0.0, 1024.0, &["tconstruct:modifiable/melee/weapon"]),
+            float("mining_speed", 0xFF78A0CD, 1.0, 0.1, 2048.0, &["tconstruct:modifiable/harvest"]),
+            ToolStat::float("harvest_tier", Tier, 0, 0.0, 0.0, 0.0, &["tconstruct:modifiable/harvest"]),
+            float("armor", 0xFF8547CC, 0.0, 0.0, 30.0, &["tconstruct:modifiable/armor"]),
+            float("armor_toughness", 0xFF8547CC, 0.0, 0.0, 20.0, &["tconstruct:modifiable/armor"]),
+            float("knockback_resistance", 0xFF8547CC, 0.0, 0.0, 1.0, &["tconstruct:modifiable/armor"]),
+            float("block_amount", 0xFF78A0CD, 5.0, 0.0, 2048.0, &["tconstruct:modifiable/held"]),
+            conditional(float("block_angle", 0xFF78A0CD, 120.0, 0.0, 180.0, &["tconstruct:modifiable/held"])),
+            conditional(float("draw_speed", 0xFF8547CC, 1.0, 0.0, 1024.0, &["tconstruct:modifiable/ranged"])),
+            conditional(float("velocity", 0xFF78A0CD, 1.0, 0.0, 1024.0, &["tconstruct:modifiable/ranged", "tconstruct:modifiable/ammo"])),
+            conditional(float("accuracy", 0xFF8547CC, 0.75, 0.1, 1.0, &["tconstruct:modifiable/ranged", "tconstruct:modifiable/ammo"])),
+            conditional(float("projectile_damage", 0xFFD76464, 2.0, 0.0, 1024.0, &["tconstruct:modifiable/ranged/launcher", "tconstruct:modifiable/ammo"])),
             conditional(ToolStat::float("water_inertia", Percent, 0xFF5A82F3, 0.6, 0.01, 0.99, &[])),
-            conditional(integer("sea_luck", 0xFF345EC3, 0.0, 0.0, 1024.0, &["tconstruct:fishing_rods"])),
-            conditional(integer("lure", 0xFFCBCC18, 0.0, 0.0, 5.0, &["tconstruct:fishing_rods"])),
+            conditional(integer("sea_luck", 0xFF345EC3, 0.0, 0.0, 1024.0, &["tconstruct:modifiable/fishing_rods"])),
+            conditional(integer("lure", 0xFFCBCC18, 0.0, 0.0, 5.0, &["tconstruct:modifiable/fishing_rods"])),
             // registered by `OverslimeModule` in the original; the slime stats need it
-            integer("overslime", 0xFF71DC85, 0.0, 0.0, i16::MAX as f32, &["tconstruct:durability"]),
+            integer("overslime", 0xFF71DC85, 0.0, 0.0, i16::MAX as f32, &["tconstruct:modifiable/durability"]),
             // registered by their modules in the original: the tool tank and energy, and the edible modifiers
             ToolStat::float("tank_capacity", StatKind::Capacity { format_key: "mantle.gui.fluid.millibucket".to_owned() }, 0xA0A0A0, 0.0, 0.0, i32::MAX as f32, &[]),
             ToolStat::float("max_energy", StatKind::Capacity { format_key: "tconstruct.tool_stat.energy".to_owned() }, 0xA00000, 0.0, 0.0, i32::MAX as f32, &[]),
-            integer("hunger", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
-            float("saturation", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
-            float("eat_duration", 0xFFF0A8A4, 16.0, 0.0, 100.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
-            ToolStat::float("edible_counter_chance", Percent, 0xFFF0A8A4, 0.0, 0.0, 1.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
+            integer("hunger", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:modifiable/interactable/charge", "tconstruct:modifiable/armor"]),
+            float("saturation", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:modifiable/interactable/charge", "tconstruct:modifiable/armor"]),
+            float("eat_duration", 0xFFF0A8A4, 16.0, 0.0, 100.0, &["tconstruct:modifiable/interactable/charge", "tconstruct:modifiable/armor"]),
+            ToolStat::float("edible_counter_chance", Percent, 0xFFF0A8A4, 0.0, 0.0, 1.0, &["tconstruct:modifiable/interactable/charge", "tconstruct:modifiable/armor"]),
         ];
         for stat in all.drain(..) {
             stats.register(stat).expect("the original's stats have distinct names");
@@ -418,7 +418,7 @@ mod tests {
         let stats = stats();
         assert_eq!(stats.get(&id("accuracy")).unwrap().clamp(5.0), 1.0);
         assert_eq!(stats.get(&id("accuracy")).unwrap().clamp(0.0), 0.1);
-        let in_tag = |tag: &str| tag == "tconstruct:ammo";
+        let in_tag = |tag: &str| tag == "tconstruct:modifiable/ammo";
         assert!(stats.get(&id("velocity")).unwrap().supports(&in_tag));
         assert!(!stats.get(&id("armor")).unwrap().supports(&in_tag));
         assert!(stats.get(&id("water_inertia")).unwrap().supports(&in_tag), "no tags means every item");
@@ -440,12 +440,12 @@ impl ToolType {
     /// `getTag`.
     pub fn tag(self) -> &'static str {
         match self {
-            Self::Melee => "tconstruct:melee_weapon",
-            Self::Harvest => "tconstruct:harvest",
-            Self::Ranged => "tconstruct:ranged",
-            Self::Launcher => "tconstruct:launchers",
-            Self::Armor => "tconstruct:armor",
-            Self::MeleeUnarmed => "tconstruct:melee",
+            Self::Melee => "tconstruct:modifiable/melee/weapon",
+            Self::Harvest => "tconstruct:modifiable/harvest",
+            Self::Ranged => "tconstruct:modifiable/ranged",
+            Self::Launcher => "tconstruct:modifiable/ranged/launcher",
+            Self::Armor => "tconstruct:modifiable/armor",
+            Self::MeleeUnarmed => "tconstruct:modifiable/melee",
         }
     }
 
@@ -476,7 +476,7 @@ mod tool_type_tests {
 
     #[test]
     fn the_first_matching_type_wins() {
-        let in_tag = |tag: &str| tag == "tconstruct:ranged" || tag == "tconstruct:armor";
+        let in_tag = |tag: &str| tag == "tconstruct:modifiable/ranged" || tag == "tconstruct:modifiable/armor";
         assert_eq!(ToolType::from(&in_tag, &ToolType::NO_MELEE), Some(ToolType::Ranged));
         assert_eq!(ToolType::from(&in_tag, &[ToolType::Melee]), None);
         assert_eq!(ToolType::MeleeUnarmed.name(), "melee_unarmed");
