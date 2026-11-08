@@ -218,6 +218,12 @@ impl LevelEdit for Edit<'_, '_> {
         self.level.world.random.next_int_bound(bound).unwrap_or(0)
     }
 
+    fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
+        let Some(ticks) = self.ticks.as_deref_mut() else { return false };
+        let behaviours = self.level.behaviours;
+        behaviours.place_feature(&mut *self.level, ticks, feature, at(pos)).unwrap_or(false)
+    }
+
     fn random_float(&mut self) -> f32 {
         self.level.world.random.next_float()
     }

@@ -175,6 +175,8 @@ pub struct MemoryBlockView {
     pub floats: Vec<f32>,
     /// The numbers [`BlockEditor::random_int`] hands out, first first (each is taken modulo the bound); 0 once they are used up.
     pub rolls: Vec<i32>,
+    /// The features placed so far: id and position.
+    pub features: Vec<(String, BlockPos)>,
     /// The ticks scheduled so far: position, block and delay.
     pub scheduled: Vec<(BlockPos, String, i32)>,
 }
@@ -245,6 +247,9 @@ pub trait BlockEditor: BlockView {
     fn random_float(&mut self) -> f32;
     /// Asks the game to tick `block` at `pos` after `delay` game ticks (Minecraft: `scheduleTick`); false if it could not be scheduled.
     fn schedule_tick(&mut self, pos: BlockPos, block: &str, delay: i32) -> bool;
+    /// Places the configured feature `feature` at `pos` (Minecraft: `ConfiguredFeature.place`): a worldgen feature declared in data, such as
+    /// `tconstruct:slime_fungus/blood_earth_slime_grass`. False if the feature is unknown or found no room.
+    fn place_feature(&mut self, feature: &str, pos: BlockPos) -> bool;
 }
 
 impl BlockEditor for MemoryBlockView {
@@ -275,6 +280,11 @@ impl BlockEditor for MemoryBlockView {
 
     fn schedule_tick(&mut self, pos: BlockPos, block: &str, delay: i32) -> bool {
         self.scheduled.push((pos, block.to_owned(), delay));
+        true
+    }
+
+    fn place_feature(&mut self, feature: &str, pos: BlockPos) -> bool {
+        self.features.push((feature.to_owned(), pos));
         true
     }
 }

@@ -208,3 +208,28 @@ pub fn register() {
         );
     }
 }
+
+/// The blood and ichor fungi (`SlimeFungusBlock`): they grow on slime soil and a bone meal places the huge fungus of their ground.
+pub fn register_fungus() {
+    for kind in ["blood", "ichor"] {
+        BlockBehaviors::register(
+            BlockBehavior::new(Identifier::new("tconstruct", &format!("{kind}_slime_sapling")).expect("valid id"))
+                .can_survive(|c| c.view.is_in_tag(Direction::Down.relative(c.pos), "tconstruct:slimy_soil"))
+                .can_bonemeal(|c| c.view.is_in_tag(Direction::Down.relative(c.pos), "tconstruct:slimy_soil"))
+                .bonemeal_success(|c| c.world.random_float() < 0.4)
+                .on_bonemeal(move |c| {
+                    let ground = Direction::Down.relative(c.pos);
+                    if !c.world.is_in_tag(ground, "tconstruct:slimy_soil") {
+                        return;
+                    }
+                    // a huge cap reaches four blocks sideways: never change a chunk that is not loaded
+                    if !c.world.is_area_loaded(c.pos, 5) {
+                        return;
+                    }
+                    // Horizon's huge fungus takes one base block, so each ground has its own configured feature
+                    let Some(ground) = c.world.block_state(ground) else { return };
+                    c.world.place_feature(&format!("tconstruct:slime_fungus/{kind}_{}", ground.block.path()), c.pos);
+                }),
+        );
+    }
+}

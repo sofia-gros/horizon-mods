@@ -245,7 +245,7 @@ assert!(OneStone.is_air([1, 0, 0]));
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for.
+A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -260,7 +260,7 @@ assert_eq!(view.block_state([0, 0, 0]).unwrap().to_string(), "minecraft:glass");
 
 ### `BlockEditor`
 
-A `BlockView` that can also change the world, handed to tick and bone meal callbacks as `world`. `set_block_state(pos, &state) -> bool` sets a block (neighbours and clients are told) and is false if it could not be set, `remove_block(pos) -> bool` replaces a block with air, `random_int(bound) -> i32` is a number from 0 up to but not including `bound` and `random_float() -> f32` one from 0.0 up to but not including 1.0, both from the level's own random source, and `schedule_tick(pos, block, delay) -> bool` asks the game to tick `block` at `pos` after `delay` game ticks.
+A `BlockView` that can also change the world, handed to tick and bone meal callbacks as `world`. `set_block_state(pos, &state) -> bool` sets a block (neighbours and clients are told) and is false if it could not be set, `remove_block(pos) -> bool` replaces a block with air, `random_int(bound) -> i32` is a number from 0 up to but not including `bound` and `random_float() -> f32` one from 0.0 up to but not including 1.0, both from the level's own random source, `schedule_tick(pos, block, delay) -> bool` asks the game to tick `block` at `pos` after `delay` game ticks, and `place_feature(feature, pos) -> bool` places a configured worldgen feature declared in data (false if it is unknown or found no room).
 
 ```rust
 use pluto_lib::{BlockEditor, BlockState, BlockView, MemoryBlockView};
@@ -275,6 +275,8 @@ assert_eq!(world.random_int(5), 2); // 7 modulo 5
 assert_eq!(world.random_int(5), 0); // used up
 assert!(world.schedule_tick([0, 64, 0], "example:shoot", 20));
 assert_eq!(world.scheduled.len(), 1);
+assert!(world.place_feature("example:big_shoot", [0, 64, 0]));
+assert_eq!(world.features[0].0, "example:big_shoot");
 ```
 
 ### `TickContext`
