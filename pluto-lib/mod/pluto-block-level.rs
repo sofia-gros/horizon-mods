@@ -104,10 +104,9 @@ pub(super) fn update_shape(level: &GameLevel<'_>, pos: BlockPos, state: BlockSta
         neighbour: info(level, neighbour),
     };
     if let Some(changed) = (sink.update_shape)(&View { level }, &update) {
+        // the same state counts as an answer too: the game's own handling of this update is then skipped
         if let Some(id) = resolve(level, &changed) {
-            if id != state {
-                *new = Some(id);
-            }
+            *new = Some(id);
         }
     }
 }

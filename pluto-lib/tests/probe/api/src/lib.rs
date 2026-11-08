@@ -81,6 +81,14 @@ pub fn hooks() -> Box<dyn Hooks> {
             let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
             world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            // leaves count their distance from a slime log, and from leaves next to it
+            let log = pluto_lib::BlockState::parse("tconstruct:skyroot_log").unwrap();
+            let leaves = pluto_lib::BlockState::parse("tconstruct:sky_slime_leaves").unwrap();
+            world.set_block_state([44, 81, 44], &log);
+            world.set_block_state([45, 81, 44], &leaves);
+            world.set_block_state([46, 81, 44], &leaves);
+            let distance = |x: i32| world.get_block_state([x, 81, 44]).and_then(|s| s.property("distance").map(str::to_owned));
+            println!("PLUTO-PROBE leaves near={:?} next={:?}", distance(45), distance(46));
             world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:budding_earth_slime_crystal").unwrap());
             let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
                 .iter()
