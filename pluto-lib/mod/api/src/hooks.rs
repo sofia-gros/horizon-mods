@@ -80,6 +80,10 @@ impl HostHandle {
     }
 }
 
+/// The component type PlutoLib registers to keep a mod's data on an item stack (`StackData::custom_data`). The game's own
+/// `minecraft:custom_data` is not reachable from a mod, so PlutoLib adds one of its own.
+const STACK_DATA_COMPONENT: &str = "pluto_lib:custom_data";
+
 struct HostOps(HostHandle);
 
 impl HostOps {
@@ -128,6 +132,39 @@ impl PlayerOps for HostOps {
 
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
         self.host().give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
+    }
+
+    fn stack(&mut self, player: u128, slot: i32) -> Option<player_api::StackData> {
+        let _ = player; // the host reaches the acting player, who is the one the handle names
+        let stack = self.host().carried_stack(slot).filter(|s| s.count > 0).map(|s| s.clone())?;
+        let custom_data = match self.host().component(&stack, STACK_DATA_COMPONENT) {
+            Ok(Some(Tag::Compound(compound))) => compound_from_tag(compound),
+            _ => NbtCompound::new(),
+        };
+        Some(player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, custom_data })
+    }
+
+    fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &player_api::StackData) -> bool {
+        let _ = player;
+        let Some(mut stack) = self.host().carried_stack(slot).filter(|s| &*s.item == expected_item && s.count > 0).map(|s| s.clone()) else { return false };
+        stack.count = new.count;
+        stack.damage = new.damage;
+        let host = self.host();
+        let result = if new.custom_data.is_empty() {
+            host.remove_component(&mut stack, STACK_DATA_COMPONENT)
+        } else {
+            host.set_component(&mut stack, STACK_DATA_COMPONENT, Tag::Compound(compound_to_tag(&new.custom_data)))
+        };
+        if result.is_err() {
+            return false;
+        }
+        match host.carried_stack(slot) {
+            Some(slot) => {
+                *slot = stack;
+                true
+            }
+            None => false,
+        }
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
@@ -881,6 +918,12 @@ impl Hooks for PlutoHooks {
             player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
         };
         scoped(host, || events_interaction_v0::use_item_finish(&context));
+    }
+
+    fn component_types(&self, event: &mut horizon_client::mod_api::ComponentTypesEvent<'_>) {
+        if !event.types.iter().any(|t| t == STACK_DATA_COMPONENT) {
+            event.types.push(STACK_DATA_COMPONENT.to_owned());
+        }
     }
 
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {

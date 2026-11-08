@@ -184,6 +184,19 @@ pub fn hooks() -> Box<dyn Hooks> {
             let waxed = pluto_lib::World::new("minecraft:overworld").get_block_state([30, 79, 29]).map(|s| s.block.to_string());
             let weathered = pluto_lib::World::new("minecraft:overworld").get_block_state([27, 79, 29]).is_some_and(|s| s.block.path() != "copper_platform");
             println!("PLUTO-PROBE copper waxed={waxed:?} weathered={weathered}");
+            // a stack with custom data: read it, write it back changed, read it again
+            let slot = (0..36).find(|slot| ctx.source.stack(*slot).is_some_and(|s| s.item == "minecraft:diamond_pickaxe"));
+            if let Some(slot) = slot {
+                let mut stack = ctx.source.stack(slot).unwrap();
+                let read = stack.custom_data.get("pluto").and_then(Nbt::as_i64);
+                stack.custom_data.insert("pluto".to_owned(), Nbt::Int(8));
+                stack.damage = 5;
+                let written = ctx.source.update_stack(slot, &stack);
+                let after = ctx.source.stack(slot).unwrap();
+                println!("PLUTO-PROBE stack read={read:?} written={written} now={:?}:{}", after.custom_data.get("pluto").and_then(Nbt::as_i64), after.damage);
+            } else {
+                println!("PLUTO-PROBE stack missing");
+            }
             println!("PLUTO-PROBE cheese cured={}", !ctx.source.effects().iter().any(|e| e.id == "minecraft:night_vision"));
             let mut drunk: Vec<String> = ctx.source.effects().into_iter().map(|e| e.id).filter(|id| id != "minecraft:speed").collect();
             drunk.sort();
