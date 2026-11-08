@@ -1,1 +1,1 @@
-{"template": "minecraft:amethyst_cluster", "properties": {"light": 12}}
+{"template":"minecraft:amethyst_cluster","properties":{"light":12,"hardness":2.5,"explosion_resistance":2.5,"requires_tool":true,"sounds":"minecraft:netherite_block"}}

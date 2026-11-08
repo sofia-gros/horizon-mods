@@ -3,60 +3,60 @@
   "java": "slimeknights/tconstruct/shared",
   "classes": {
     "block/BetterPaneBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "only skipRendering (hides the faces of a pane inside the pane above or below it): a drawing detail Horizon's mesher does by its own rules"
     },
     "block/ClearGlassPaneBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the content panes exist; the multipart connected-texture state (IMultipartConnectedBlock: which neighbours the glass joins) and the beacon colour multiplier of the stained ones are not carried"
     },
     "block/ClearStainedGlassBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the 16 content blocks exist; the beacon colour multiplier (GlassColor) is not carried"
     },
     "block/ClearStainedGlassPaneBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the content panes exist; the multipart connected-texture state (IMultipartConnectedBlock: which neighbours the glass joins) and the beacon colour multiplier of the stained ones are not carried"
     },
     "block/entity/TableBlockEntity.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "block/GlowBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "shared.rs register_glow: survives on a solid face and not in water, placement tries the clicked face then every other, goes when the support goes. Checked in game: a glow stayed on stone and one without a solid face was removed. The thin plate shapes and no collision are content; \"replaceable\" (other blocks may replace it) is not carried"
     },
     "block/KnightMetalBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the content block exists with its box shape; waterlogging and the damage on contact (BLOCK_DAMAGE) are not carried (entity_inside is a stub)"
     },
     "block/OrientableBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported-unchecked",
+      "note": "compared with the Java: the pig iron block uses the glazed terracotta template, whose placement is the same rule (facing opposite the placer's horizontal look); not tried in game"
     },
     "block/PlaceBlockDispenserBehavior.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "a dispenser placing blocks: Horizon has no dispenser behaviour registration for mods"
     },
     "block/PlatformBlock.java": {
       "status": "partial",
       "note": "shapes (the 64 combinations as content), connection above and below and sideways to the platform_connections blocks are done and the vertical part checked in game (shared.rs); waterlogging is not"
     },
     "block/SlimesteelBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "compared with the Java: bouncing after a fall and no fall damage need to change an entity's velocity from a block hook, which Horizon's hooks cannot do (no host); the content block is a plain block"
     },
     "block/SlimeType.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "enum of the slime kinds: its values are the names of the content blocks"
     },
     "block/SoulGlassBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the content blocks exist; the support shape of the block, the pane's empty collision with its own support shape and the not-pathfindable rule are not carried"
     },
     "block/SoulGlassPaneBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java: the content blocks exist; the support shape of the block, the pane's empty collision with its own support shape and the not-pathfindable rule are not carried"
     },
     "block/TableBlock.java": {
       "status": "todo",

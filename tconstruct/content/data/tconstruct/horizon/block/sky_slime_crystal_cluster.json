@@ -1,1 +1,1 @@
-{"template": "minecraft:amethyst_cluster"}
+{"template":"minecraft:amethyst_cluster","properties":{"hardness":1.5,"explosion_resistance":1.5,"requires_tool":true}}

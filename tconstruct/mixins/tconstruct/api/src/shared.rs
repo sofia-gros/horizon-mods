@@ -162,3 +162,31 @@ pub fn register() {
         );
     }
 }
+
+/// The glow (`GlowBlock`): a thin light on a face, which stays only while the face it sits on is solid and the glow is not in a fluid.
+pub fn register_glow() {
+    fn supported<V: BlockView + ?Sized>(view: &V, pos: [i32; 3], facing: Direction) -> bool {
+        view.is_face_sturdy(facing.relative(pos), facing.opposite()) && !view.is_water(pos)
+    }
+    fn facing_of(state: &BlockState) -> Option<Direction> {
+        Direction::parse(state.property("facing")?)
+    }
+    BlockBehaviors::register(
+        BlockBehavior::new(Identifier::new("tconstruct", "glow").expect("valid id"))
+            .can_survive(|c| facing_of(&c.state).is_some_and(|facing| supported(c.view, c.pos, facing)))
+            .state_for_placement(|c| {
+                // the face that was clicked first, then every other direction
+                let wanted = c.face.opposite();
+                let side = std::iter::once(wanted).chain(Direction::ALL.into_iter().filter(|d| *d != wanted)).find(|d| supported(c.view, c.pos, *d));
+                match side {
+                    Some(facing) => Placement::State(c.state.clone().with("facing", facing.name())),
+                    None => Placement::Refuse,
+                }
+            })
+            // `neighborChanged` removes a glow that lost its support
+            .update_shape(|c| {
+                let facing = facing_of(&c.state)?;
+                if supported(c.view, c.pos, facing) { None } else { BlockState::parse("minecraft:air").ok() }
+            }),
+    );
+}
