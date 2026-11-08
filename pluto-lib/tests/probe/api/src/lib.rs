@@ -74,6 +74,16 @@ pub fn hooks() -> Box<dyn Hooks> {
             let east = world.get_block_state([5, 81, 5]).and_then(|s| s.property("east").map(str::to_owned));
             world.set_block_state([5, 80, 5], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE punji east={east:?}");
+            let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    let state = pluto_lib::BlockState::parse(&format!("tconstruct:{name}")).unwrap();
+                    world.set_block_state([8 + i as i32 * 2, 81, 8], &state)
+                        && world.get_block_state([8 + i as i32 * 2, 81, 8]).is_some_and(|s| s.block.path() == *name)
+                })
+                .collect();
+            println!("PLUTO-PROBE signs placed={signs:?}");
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
             1
         });

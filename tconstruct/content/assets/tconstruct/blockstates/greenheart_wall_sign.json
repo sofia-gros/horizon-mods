@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "tconstruct:block/sign/greenheart_wall_sign",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "tconstruct:block/sign/greenheart_wall_sign",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "tconstruct:block/sign/greenheart_wall_sign"
+    },
+    "facing=west": {
+      "model": "tconstruct:block/sign/greenheart_wall_sign",
+      "y": 90
+    }
+  }
+}
