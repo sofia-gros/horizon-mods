@@ -89,6 +89,9 @@ mod tests {
         fn empty_slots(&mut self, _: u128) -> u32 {
             0
         }
+        fn language(&mut self, _: u128) -> Option<String> {
+            None
+        }
     }
 
     fn counter() -> AttachmentType<i32> {

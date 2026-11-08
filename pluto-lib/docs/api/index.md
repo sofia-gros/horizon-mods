@@ -48,6 +48,8 @@ pub fn hooks() -> ModHooks {
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |
 | [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons |
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |
+| [fluid](fluid.md) | fluids a mod defines: id, temperature, light, density, viscosity, colour |
+| [i18n](i18n.md) | translations: text per language, the language in use, switching |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
 | [player](player.md) | messages and items for a player, and testing with `MemoryPlayerOps` |
 | [attachments](attachments.md) | values saved with a player |

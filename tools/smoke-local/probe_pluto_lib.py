@@ -21,6 +21,8 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE block_entity ticks=5 pos=[3, 80, 3] slots=3 water=500',
             'PLUTO-PROBE screen_draw origin_set=true',
             'PLUTO-PROBE renderer pos=',
+            'PLUTO-PROBE fluids tconstruct=42',
+            'PLUTO-PROBE i18n language=en_us text=Hello from the probe ja=プローブからこんにちは player_language=',
             'pluto_lib: creative tabs added, tabs=',
             'PLUTO-PROBE item_use game_side=Some(Spec { food: Some((4, 0.5)), can_always_eat: false, remainder: Some(("minecraft:stick", 2)) })',
             'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')

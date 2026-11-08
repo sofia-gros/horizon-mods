@@ -7,6 +7,8 @@ use pluto_lib::{
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    pluto_lib::Translations::register("en_us", [("pluto_probe.hello".to_owned(), "Hello from the probe".to_owned())]);
+    pluto_lib::Translations::register("ja_jp", [("pluto_probe.hello".to_owned(), "プローブからこんにちは".to_owned())]);
     BlockEntityRendererRegistry::register(Identifier::new("tconstruct", "seared_melter").unwrap(), |render| {
         static ONCE: AtomicBool = AtomicBool::new(false);
         if !ONCE.swap(true, Ordering::Relaxed) {
@@ -65,6 +67,14 @@ pub fn hooks() -> Box<dyn Hooks> {
     ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
     ServerPlayConnectionEvents::JOIN.register(|p| {
         println!("PLUTO-PROBE join name={}", p.name);
+        println!(
+            "PLUTO-PROBE i18n language={} text={} ja={} player_language={}",
+            pluto_lib::I18n::language(),
+            pluto_lib::I18n::translate("pluto_probe.hello"),
+            pluto_lib::I18n::translate_in("ja_jp", "pluto_probe.hello"),
+            p.player.language()
+        );
+        println!("PLUTO-PROBE fluids tconstruct={}", pluto_lib::FluidRegistry::registered().iter().filter(|f| f.id.namespace() == "tconstruct").count());
         // what the game side holds for the item registered through PlutoLib
         let spec = horizon_client::entry::pluto_item_use::get("pluto_probe:snack");
         println!("PLUTO-PROBE item_use game_side={spec:?}");

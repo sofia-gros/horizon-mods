@@ -78,6 +78,19 @@ with_ops(&mut game, || {
 });
 ```
 
+### `ServerPlayer::language`
+
+`fn language(&self) -> String`. The language option of the player's client (`en_us`, `ja_jp`, ...); `en_us` outside a callback that carries this player. Use it to write a message in the player's language with `I18n::translate_in` (see [i18n](i18n.md)).
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert_eq!(player.language(), "en_us");
+let mut game = MemoryPlayerOps { language: "ja_jp".to_owned(), ..Default::default() };
+with_ops(&mut game, || assert_eq!(player.language(), "ja_jp"));
+```
+
 ### `ServerPlayer::empty_slots`
 
 `fn empty_slots(&self) -> u32`. How many of the 36 main inventory slots are empty. Check it before an action that needs room, so nothing is consumed and then lost. 0 outside a callback.
@@ -97,7 +110,7 @@ with_ops(&mut game, || {
 
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`.
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`.
 
 ```rust
 use pluto_lib::{with_ops, PlayerOps, ServerPlayer};
@@ -112,6 +125,7 @@ impl PlayerOps for FullWorld {
     fn count_item(&mut self, _: u128, _: &str) -> u32 { 0 }
     fn take_item(&mut self, _: u128, _: &str, _: u32) -> u32 { 0 }
     fn empty_slots(&mut self, _: u128) -> u32 { 0 }
+    fn language(&mut self, _: u128) -> Option<String> { None }
 }
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
@@ -139,7 +153,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 ### `MemoryPlayerOps`
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, and `free_slots` is how many main slots are empty for every player.
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`).
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};

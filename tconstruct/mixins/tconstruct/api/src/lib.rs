@@ -7,7 +7,11 @@ use pluto_lib::{AttachmentRegistry, CommandContext, ItemUse, ItemUseRegistry, Us
 /// `config/tconstruct-common.toml`, `[gameplay] shouldSpawnWithTinkersBook` (default true), as in the original mod.
 static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
 
+mod fluids;
+mod fluids_table;
+
 pub fn hooks() -> pluto_lib::ModHooks {
+    fluids::register();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {

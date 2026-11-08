@@ -24,6 +24,10 @@ use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
+    crate::pure::i18n_api::set_host(crate::pure::i18n_api::HostLanguage {
+        code: horizon_client::lang::code,
+        get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
+    });
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -77,6 +81,10 @@ impl PlayerOps for HostOps<'_> {
     fn empty_slots(&mut self, player: u128) -> u32 {
         let _ = player;
         (0..36).filter(|slot| self.0.carried_stack(*slot).is_none()).count() as u32
+    }
+
+    fn language(&mut self, player: u128) -> Option<String> {
+        self.0.player_client(player).map(|client| client.language)
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
@@ -438,7 +446,10 @@ impl Hooks for PlutoHooks {
 
     fn server_tick(&self, _host: &mut dyn Host, event: &mut ServerTickEvent<'_>) {
         match event.phase {
-            ServerTickPhase::ServerTickStart { .. } => lifecycle_events_v1::server_tick(true),
+            ServerTickPhase::ServerTickStart { .. } => {
+                crate::pure::i18n_api::poll_language();
+                lifecycle_events_v1::server_tick(true)
+            }
             ServerTickPhase::ServerTickEnd { .. } => lifecycle_events_v1::server_tick(false),
             #[allow(unreachable_patterns)]
             _ => {}
