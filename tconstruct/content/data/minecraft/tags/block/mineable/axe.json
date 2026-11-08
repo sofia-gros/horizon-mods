@@ -17,6 +17,22 @@
     "tconstruct:blazewood_stairs",
     "tconstruct:blazewood_fence",
     "tconstruct:crafting_station",
-    "tconstruct:enderbark_roots"
+    "tconstruct:enderbark_roots",
+    "tconstruct:bloodshroom_sign",
+    "tconstruct:enderbark_sign",
+    "tconstruct:greenheart_sign",
+    "tconstruct:skyroot_sign",
+    "tconstruct:bloodshroom_wall_sign",
+    "tconstruct:enderbark_wall_sign",
+    "tconstruct:greenheart_wall_sign",
+    "tconstruct:skyroot_wall_sign",
+    "tconstruct:bloodshroom_hanging_sign",
+    "tconstruct:enderbark_hanging_sign",
+    "tconstruct:greenheart_hanging_sign",
+    "tconstruct:skyroot_hanging_sign",
+    "tconstruct:bloodshroom_wall_hanging_sign",
+    "tconstruct:enderbark_wall_hanging_sign",
+    "tconstruct:greenheart_wall_hanging_sign",
+    "tconstruct:skyroot_wall_hanging_sign"
   ]
 }
