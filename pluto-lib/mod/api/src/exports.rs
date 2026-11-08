@@ -13,6 +13,7 @@ pub use crate::pure::block_api_v1::{
 };
 pub use crate::pure::block_entity_api_v1::{self, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry};
+pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ColorProviderRegistry};
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};
 pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry, ConfigSpec, ModConfig};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};

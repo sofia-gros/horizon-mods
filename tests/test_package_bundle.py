@@ -31,7 +31,7 @@ class TinkersPackageSlice(unittest.TestCase):
                 manifest = tomllib.loads(z.read('mixins/tconstruct_native/horizon-mixin.toml').decode())
         ids = {i['id'] for i in manifest['injection']}
         self.assertFalse(ids & {'source-host-mining-context', 'source-client-mining-context', 'tinkers-chest-pick-color'})
-        self.assertGreater(len(ids), 250)
+        self.assertGreater(len(ids), 100)  # most injections ship; the count falls as they move onto PlutoLib
         # the launcher cannot work around Mixins' printing bug in these Horizon files, so nothing that edits them ships
         self.assertFalse([m for m in manifest['module'] if m['file'].endswith('worldgen/structure/start.rs')])
 

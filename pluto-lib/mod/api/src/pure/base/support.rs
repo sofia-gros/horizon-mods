@@ -54,6 +54,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
     },
     SupportEntry {
+        api: "color_provider_api_v1::ColorProviderRegistry::register_block (host mesher)",
+        support: Support::BlockedByMixins,
+        behaviour: "providers are accepted and kept; the game never asks them, so faces keep the game's own tint",
+        unblocked_by: "horizon-mixins accepting an injection into the mesher's face tint (E_UNSUPPORTED_CONTROL_FLOW today)",
+    },
+    SupportEntry {
         api: "block_api_v1::BlockBehavior::entity_inside",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked",
