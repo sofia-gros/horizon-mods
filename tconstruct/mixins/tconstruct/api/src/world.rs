@@ -1,5 +1,5 @@
 //! The world: the slime vines. Ported from the original `SlimeVineBlock`; the block's look, loot and states are content files.
-use pluto_lib::{ActionResult, BlockBehavior, BlockBehaviors, BlockEditor, BlockState, BlockView, Direction, Identifier, Placement, UseItemOnBlockCallback, World};
+use pluto_lib::{ActionResult, BlockBehavior, BlockBehaviors, BlockEditor, BlockState, BlockView, Direction, Identifier, Placement, ProjectileEvents, UseItemOnBlockCallback, World};
 
 const HORIZONTAL: [Direction; 4] = [Direction::North, Direction::East, Direction::South, Direction::West];
 const LEAVES: &str = "tconstruct:slimy_leaves";
@@ -422,4 +422,40 @@ pub fn register_crystals() {
             }),
         );
     }
+}
+
+/// The chime a crystal sounds when a projectile hits it (`CrystalBlock.onProjectileHit`, `CrystalClusterBlock.onProjectileHit`).
+fn chime_of(block: &str) -> Option<&'static str> {
+    let name = block.strip_prefix("tconstruct:")?;
+    if let Some(kind) = ["earth", "sky", "ichor", "ender"].into_iter().find(|k| name.contains(&format!("{k}_slime_crystal"))) {
+        return Some(match kind {
+            "earth" => "tconstruct:block.earth_crystal.chime",
+            "sky" => "tconstruct:block.sky_crystal.chime",
+            "ichor" => "tconstruct:block.ichor_crystal.chime",
+            _ => "tconstruct:block.ender_crystal.chime",
+        });
+    }
+    match name {
+        "steel_cluster" => Some("tconstruct:block.sky_crystal.chime"),
+        "cobalt_cluster" => Some("tconstruct:block.ichor_crystal.chime"),
+        "knightmetal_cluster" => Some("tconstruct:block.ender_crystal.chime"),
+        _ => None,
+    }
+}
+
+pub fn register_crystal_chimes() {
+    ProjectileEvents::IMPACT.register(|hit| {
+        if hit.entity.is_some() {
+            return true;
+        }
+        let world = hit.world();
+        if let Some(chime) = world.get_block_state(hit.block).and_then(|s| chime_of(&s.block.to_string())) {
+            // the pitch varies from 0.5 to 1.7, as the original's random does
+            let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.subsec_nanos());
+            let pitch = 0.5 + (nanos % 1200) as f32 / 1000.0;
+            let at = [f64::from(hit.block[0]) + 0.5, f64::from(hit.block[1]) + 0.5, f64::from(hit.block[2]) + 0.5];
+            world.play_sound(chime, at, 1.0, pitch);
+        }
+        true
+    });
 }

@@ -151,6 +151,8 @@ pub fn hooks() -> Box<dyn Hooks> {
                 .filter(|s| s.block.path().ends_with("sky_slime_crystal_bud") || s.block.path().ends_with("sky_slime_crystal_cluster"))
                 .count();
             println!("PLUTO-PROBE crystal buds_found={}", buds > 0);
+            let chime = around.play_sound("tconstruct:block.sky_crystal.chime", [34.5, 80.5, 34.5], 1.0, 1.0);
+            println!("PLUTO-PROBE chime played={chime}");
             let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE sapling grew={tree:?}");
             1

@@ -26,6 +26,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE punji east=Some("true")',
             'PLUTO-PROBE vine kept_on_stone=true',
             'PLUTO-PROBE crystal buds_found=true',
+            'PLUTO-PROBE chime played=true',
             'PLUTO-PROBE seeds answer=Success block=Some("tconstruct:sky_earth_slime_grass")',
             'PLUTO-PROBE sapling grew=Some("tconstruct:greenheart_log")',
             'PLUTO-PROBE grass covered=Some("tconstruct:earth_slime_dirt")',
