@@ -16,7 +16,7 @@ English · [日本語](README.ja.md)
 
 | | |
 |---|---|
-| **[PlutoLib](pluto-lib/README.md)** | Horizon's counterpart of the Fabric API: an independent mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
+| **[PlutoLib](pluto-lib/README.md)** ([API pages](pluto-lib/docs/api/index.md)) | Horizon's counterpart of the Fabric API: an independent mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
 | **[Tinkers' Construct for Horizon](tconstruct/README.md)** | A port of Tinkers' Construct: build tools from parts, smelt and cast metals, modify your equipment. |
 
 ## Status: under recovery

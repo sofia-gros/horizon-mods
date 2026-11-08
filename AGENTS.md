@@ -27,6 +27,7 @@ Where things are: [README.md](README.md), [docs/architecture.md](docs/architectu
 7. **Line endings are LF everywhere.** `.gitattributes` forces it whatever `core.autocrlf` says; `python tools/check_line_endings.py` checks it. In Python write files with `newline="\n"`.
 8. **Never bypass a PlutoLib guard** (`pluto-lib/tools/check_*_plan.py`); a failing guard means that feature needs re-review.
 9. **Documents stay few and current.** No per-implementation notes; detail lives in code (rustdoc, tests). Update the existing documents instead of adding new ones.
+9a. **Documentation travels with the change.** A PR that changes an API updates its page in `pluto-lib/docs/api/`, the page list in `pluto-lib/docs/api/index.md` and the feature list in `pluto-lib/README.md`; a PR that moves a phase updates the status table and decision log in `docs/roadmap.md`. A new page is linked from a page people start from (the API index is linked from the root README and `pluto-lib/README.md`).
 10. **Releases** only by tag, per product (`pluto-lib-v…`, `tconstruct-v…`), and only when [docs/releasing.md](docs/releasing.md)'s criteria hold.
 
 ## Pins and the slice
