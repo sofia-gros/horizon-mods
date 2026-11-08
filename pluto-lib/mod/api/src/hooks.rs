@@ -415,6 +415,29 @@ impl block_api_v1::BlockView for GameView<'_> {
     fn is_in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         self.0.in_tag(pos, tag)
     }
+    fn brightness(&self, pos: [i32; 3]) -> u8 {
+        self.0.brightness(pos)
+    }
+
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool {
+        self.0.light_passes_up(pos)
+    }
+
+    fn is_water(&self, pos: [i32; 3]) -> bool {
+        self.0.is_water(pos)
+    }
+
+    fn is_fluid_full(&self, pos: [i32; 3]) -> bool {
+        self.0.fluid_full(pos)
+    }
+
+    fn is_area_loaded(&self, pos: [i32; 3], radius: i32) -> bool {
+        self.0.area_loaded(pos, radius)
+    }
+
+    fn is_full_block(&self, pos: [i32; 3]) -> bool {
+        self.0.full_block(pos)
+    }
 }
 
 /// The game's view of the blocks around, with the right to change them.
@@ -435,6 +458,29 @@ impl block_api_v1::BlockView for GameEditor<'_> {
 
     fn is_in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         self.0.in_tag(pos, tag)
+    }
+    fn brightness(&self, pos: [i32; 3]) -> u8 {
+        self.0.brightness(pos)
+    }
+
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool {
+        self.0.light_passes_up(pos)
+    }
+
+    fn is_water(&self, pos: [i32; 3]) -> bool {
+        self.0.is_water(pos)
+    }
+
+    fn is_fluid_full(&self, pos: [i32; 3]) -> bool {
+        self.0.fluid_full(pos)
+    }
+
+    fn is_area_loaded(&self, pos: [i32; 3], radius: i32) -> bool {
+        self.0.area_loaded(pos, radius)
+    }
+
+    fn is_full_block(&self, pos: [i32; 3]) -> bool {
+        self.0.full_block(pos)
     }
 }
 

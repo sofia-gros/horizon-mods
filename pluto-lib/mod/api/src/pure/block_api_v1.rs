@@ -139,6 +139,19 @@ pub trait BlockView {
     fn is_face_sturdy(&self, pos: BlockPos, face: Direction) -> bool;
     /// Whether the block at `pos` is in the block tag `tag`, such as `tconstruct:slimy_leaves`.
     fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool;
+    /// The light at `pos` from the sky and from blocks, 0 to 15 (Minecraft: `getMaxLocalRawBrightness`).
+    fn brightness(&self, pos: BlockPos) -> u8;
+    /// Whether light passes from the block at `pos` into the block above it, which is what lets grass live under a cover.
+    fn light_passes_up(&self, pos: BlockPos) -> bool;
+    /// Whether the block at `pos` holds water: water itself or a waterlogged block.
+    fn is_water(&self, pos: BlockPos) -> bool;
+    /// Whether the fluid at `pos` is a full source block of fluid (Minecraft: `getFluidState().getAmount() == 8`).
+    fn is_fluid_full(&self, pos: BlockPos) -> bool;
+    /// Whether the chunks within `radius` blocks of `pos` are loaded (Minecraft: `isAreaLoaded`); tick callbacks check it so that they never
+    /// load a chunk by touching its edge.
+    fn is_area_loaded(&self, pos: BlockPos, radius: i32) -> bool;
+    /// Whether the collision shape of the block at `pos` is a whole block (Minecraft: `isCollisionShapeFullBlock`).
+    fn is_full_block(&self, pos: BlockPos) -> bool;
 }
 
 /// A [`BlockView`] for tests: the blocks set are sturdy on every face, everything else is air.
@@ -150,6 +163,12 @@ pub struct MemoryBlockView {
     pub weak: BTreeSet<BlockPos>,
     /// The tags each position's block is in.
     pub tags: BTreeMap<BlockPos, BTreeSet<String>>,
+    /// The light of each position; positions not listed have 15 (open sky).
+    pub light: BTreeMap<BlockPos, u8>,
+    /// Positions that hold a full source of water.
+    pub water: BTreeSet<BlockPos>,
+    /// Positions that are not loaded (the rest are).
+    pub unloaded: BTreeSet<BlockPos>,
     /// The numbers [`BlockEditor::random_int`] hands out, first first (each is taken modulo the bound); 0 once they are used up.
     pub rolls: Vec<i32>,
     /// The ticks scheduled so far: position, block and delay.
@@ -171,6 +190,31 @@ impl BlockView for MemoryBlockView {
 
     fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool {
         self.tags.get(&pos).is_some_and(|tags| tags.contains(tag))
+    }
+
+    fn brightness(&self, pos: BlockPos) -> u8 {
+        self.light.get(&pos).copied().unwrap_or(15)
+    }
+
+    fn light_passes_up(&self, pos: BlockPos) -> bool {
+        let above = [pos[0], pos[1] + 1, pos[2]];
+        !self.blocks.contains_key(&above) || self.weak.contains(&above)
+    }
+
+    fn is_water(&self, pos: BlockPos) -> bool {
+        self.water.contains(&pos)
+    }
+
+    fn is_fluid_full(&self, pos: BlockPos) -> bool {
+        self.water.contains(&pos)
+    }
+
+    fn is_area_loaded(&self, pos: BlockPos, radius: i32) -> bool {
+        !self.unloaded.iter().any(|u| (u[0] - pos[0]).abs() <= radius && (u[2] - pos[2]).abs() <= radius)
+    }
+
+    fn is_full_block(&self, pos: BlockPos) -> bool {
+        self.blocks.contains_key(&pos) && !self.weak.contains(&pos)
     }
 }
 

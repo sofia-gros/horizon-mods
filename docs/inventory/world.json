@@ -23,12 +23,12 @@
       "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
     },
     "block/SlimeGrassBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "ported-unchecked",
+      "note": "PlutoLib behaviour (world.rs register_grass): spreading, dying under cover, bone meal. Checked in game: covered grass turns into its dirt on a random tick. Spreading and bone meal were not watched"
     },
     "block/SlimeNyliumBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "ported-unchecked",
+      "note": "same code path as the grass (nether foliage): dies when covered, bone meal spreads foliage and may place a sapling; not watched in game"
     },
     "block/SlimePropaguleBlock.java": {
       "status": "todo",
@@ -43,12 +43,12 @@
       "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
     },
     "block/SlimeTallGrassBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "ported-unchecked",
+      "note": "survives on the slime dirts and grasses (the ferns and tall grass); shearing drops and the plant type are the template's; not watched in game"
     },
     "block/SlimeRootsBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "not-code",
+      "note": "only skipRendering between roots (a client drawing detail); the content block is the template's"
     },
     "block/BuddingCrystalBlock.java": {
       "status": "partial",

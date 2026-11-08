@@ -47,6 +47,41 @@ impl LevelView for View<'_, '_> {
         let block = behaviours.block(self.level.block_state(at(pos)));
         behaviours.tag(tag).is_some_and(|set| set.contains(block))
     }
+
+    fn brightness(&self, pos: [i32; 3]) -> u8 {
+        horizon_world::level::raw_brightness(self.level, at(pos), self.level.sky_darken()).clamp(0, 15) as u8
+    }
+
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool {
+        use horizon_world::level::data::state_flags::{CAN_OCCLUDE, SHAPE_OCCLUSION};
+        let behaviours = self.level.behaviours;
+        let state = self.level.block_state(at(pos));
+        let above = self.level.block_state(at([pos[0], pos[1] + 1, pos[2]]));
+        let occludes = |s| behaviours.facts(s).flags & (CAN_OCCLUDE | SHAPE_OCCLUSION) == (CAN_OCCLUDE | SHAPE_OCCLUSION);
+        let from_full = occludes(state) && behaviours.shape_info(state).full_faces & (1 << Direction::Up as u8) != 0;
+        let to_full = occludes(above) && behaviours.shape_info(above).full_faces & (1 << Direction::Down as u8) != 0;
+        let attenuation = if from_full || to_full { 16 } else { i32::from(behaviours.facts(above).dampening) };
+        attenuation < 15
+    }
+
+    fn is_water(&self, pos: [i32; 3]) -> bool {
+        self.state(pos).is_some_and(|s| s.block == "minecraft:water" || s.properties.get("waterlogged").is_some_and(|v| v == "true"))
+    }
+
+    fn fluid_full(&self, pos: [i32; 3]) -> bool {
+        self.state(pos).is_some_and(|s| {
+            s.properties.get("waterlogged").is_some_and(|v| v == "true")
+                || (matches!(s.block.as_str(), "minecraft:water" | "minecraft:lava") && s.properties.get("level").is_some_and(|v| v == "0"))
+        })
+    }
+
+    fn area_loaded(&self, pos: [i32; 3], radius: i32) -> bool {
+        [-radius, radius].iter().all(|dx| [-radius, radius].iter().all(|dz| self.level.world.loaded(pos[0] + dx, pos[2] + dz)))
+    }
+
+    fn full_block(&self, pos: [i32; 3]) -> bool {
+        self.level.behaviours.shape_info(self.level.block_state(at(pos))).full_faces & 0x3f == 0x3f
+    }
 }
 
 pub(super) fn survives(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, survives: &mut Option<bool>) {
@@ -132,6 +167,30 @@ impl LevelView for Edit<'_, '_> {
 
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         View { level: &*self.level }.in_tag(pos, tag)
+    }
+
+    fn brightness(&self, pos: [i32; 3]) -> u8 {
+        View { level: &*self.level }.brightness(pos)
+    }
+
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.light_passes_up(pos)
+    }
+
+    fn is_water(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.is_water(pos)
+    }
+
+    fn fluid_full(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.fluid_full(pos)
+    }
+
+    fn area_loaded(&self, pos: [i32; 3], radius: i32) -> bool {
+        View { level: &*self.level }.area_loaded(pos, radius)
+    }
+
+    fn full_block(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.full_block(pos)
     }
 }
 

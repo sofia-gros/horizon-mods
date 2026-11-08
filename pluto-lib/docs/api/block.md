@@ -216,7 +216,7 @@ assert_eq!(Direction::West.relative([5, 64, 5]), [4, 64, 5]);
 
 ### `BlockView`
 
-What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, and `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`.
+What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`, `brightness(pos) -> u8` the light at the position (0 to 15), `light_passes_up(pos) -> bool` whether light passes from that block into the one above it, `is_water(pos) -> bool` whether it holds water, `is_fluid_full(pos) -> bool` whether its fluid is a full source, `is_area_loaded(pos, radius) -> bool` whether the chunks around are loaded (check it in a tick callback before touching blocks near the edge) and `is_full_block(pos) -> bool` whether its collision shape is a whole block.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction};
@@ -230,6 +230,12 @@ impl BlockView for OneStone {
     fn is_air(&self, pos: [i32; 3]) -> bool { pos != [0, 0, 0] }
     fn is_face_sturdy(&self, pos: [i32; 3], _face: Direction) -> bool { pos == [0, 0, 0] }
     fn is_in_tag(&self, _pos: [i32; 3], tag: &str) -> bool { tag == "minecraft:base_stone_overworld" }
+    fn brightness(&self, _pos: [i32; 3]) -> u8 { 15 }
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool { pos != [0, 0, 0] }
+    fn is_water(&self, _pos: [i32; 3]) -> bool { false }
+    fn is_fluid_full(&self, _pos: [i32; 3]) -> bool { false }
+    fn is_area_loaded(&self, _pos: [i32; 3], _radius: i32) -> bool { true }
+    fn is_full_block(&self, pos: [i32; 3]) -> bool { pos == [0, 0, 0] }
 }
 
 assert!(OneStone.is_face_sturdy([0, 0, 0], Direction::Up));
@@ -238,7 +244,7 @@ assert!(OneStone.is_air([1, 0, 0]));
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up) and `scheduled` the ticks asked for.
+A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up) and `scheduled` the ticks asked for.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};

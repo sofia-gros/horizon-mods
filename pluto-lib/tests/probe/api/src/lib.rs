@@ -81,6 +81,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
             world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            // grass under a stone gets no light and turns back into dirt on a random tick
+            world.set_block_state([20, 80, 20], &pluto_lib::BlockState::parse("tconstruct:earth_earth_slime_grass").unwrap());
+            world.set_block_state([20, 81, 20], &stone);
             // leaves count their distance from a slime log, and from leaves next to it
             let log = pluto_lib::BlockState::parse("tconstruct:skyroot_log").unwrap();
             let leaves = pluto_lib::BlockState::parse("tconstruct:sky_slime_leaves").unwrap();
@@ -126,6 +129,8 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
             let vine = pluto_lib::World::new("minecraft:overworld").get_block_state([40, 81, 41]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE vine after_support_removed={vine:?}");
+            let grass = pluto_lib::World::new("minecraft:overworld").get_block_state([20, 80, 20]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE grass covered={grass:?}");
             1
         });
     });
