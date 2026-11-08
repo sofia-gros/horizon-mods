@@ -39,7 +39,7 @@ pub struct ServerLifecycleEvents;
 impl ServerLifecycleEvents {
     /// Fabric: `SERVER_STARTING`.
     pub const SERVER_STARTING: &'static Event<ServerInfo, ()> = &SERVER_STARTING;
-    /// Fabric: `SERVER_STARTED`. Stub: Horizon has no matching hook point yet (see the support matrix).
+    /// Fabric: `SERVER_STARTED`. Called at the first server tick after the server finished starting (Horizon has no earlier point).
     pub const SERVER_STARTED: &'static Event<ServerInfo, ()> = &SERVER_STARTED;
     /// Fabric: `SERVER_STOPPING`.
     pub const SERVER_STOPPING: &'static Event<ServerInfo, ()> = &SERVER_STOPPING;
@@ -75,8 +75,13 @@ impl ServerChunkEvents {
 
 // The dispatchers below are what the Horizon hook translation (hooks.rs) calls.
 
+static STARTED_PENDING: std::sync::Mutex<Option<bool>> = std::sync::Mutex::new(None);
+
 pub(crate) fn server_starting(dedicated: bool) {
     SERVER_STARTING.invoke(&ServerInfo { dedicated });
+    if let Ok(mut pending) = STARTED_PENDING.lock() {
+        *pending = Some(dedicated);
+    }
 }
 
 pub(crate) fn server_stopping(dedicated: bool) {
@@ -85,6 +90,11 @@ pub(crate) fn server_stopping(dedicated: bool) {
 
 pub(crate) fn server_tick(start: bool) {
     if start {
+        // the first tick after the server started: it has finished starting
+        let pending = STARTED_PENDING.lock().ok().and_then(|mut pending| pending.take());
+        if let Some(dedicated) = pending {
+            SERVER_STARTED.invoke(&ServerInfo { dedicated });
+        }
         START_SERVER_TICK.invoke(&());
     } else {
         END_SERVER_TICK.invoke(&());
@@ -112,6 +122,21 @@ pub(crate) fn chunk_unloaded(dimension: &str, chunk: [i32; 2]) {
 mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn started_is_called_once_at_the_first_tick_after_starting() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLifecycleEvents::SERVER_STARTED.register(move |server| log.lock().unwrap().push(server.dedicated));
+        server_tick(true);
+        assert!(seen.lock().unwrap().is_empty(), "not before the server started");
+        server_starting(true);
+        server_tick(false);
+        assert!(seen.lock().unwrap().is_empty(), "the end of a tick is not the first tick");
+        server_tick(true);
+        server_tick(true);
+        assert_eq!(*seen.lock().unwrap(), [true], "once");
+    }
 
     #[test]
     fn world_tick_reaches_start_or_end_with_the_dimension() {

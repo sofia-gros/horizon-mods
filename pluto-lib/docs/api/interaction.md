@@ -50,6 +50,22 @@ UseItemOnBlockCallback::EVENT.register(|used| {
 });
 ```
 
+## How Fast a Block Is Dug
+
+`BreakSpeedCallback` is asked every tick of a dig, on the server and on the client that predicts it, with the speed the game worked out. Change it with `speed.set(..)`; every callback is called in turn. A speed of 0 makes no progress, so the block is not broken. Not asked in creative mode or for an unbreakable block. This one makes a golden pickaxe dig stone twice as fast:
+
+```rust
+use pluto_lib::BreakSpeedCallback;
+
+BreakSpeedCallback::EVENT.register(|dig| {
+    if dig.block.block.path() == "stone" {
+        dig.speed.set(dig.speed.get() * 2.0);
+    }
+});
+```
+
+> **Use with Caution.** It runs every tick of every dig: only compute.
+
 ## Breaking Blocks
 
 `PlayerBlockBreakEvents::BEFORE` is a yes or no question instead: answer `false` to cancel the break.
@@ -209,6 +225,45 @@ let used = UseItemOnBlockContext {
     player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true,
 };
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
+```
+
+### `BreakSpeedContext`
+
+How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change) and `speed` the speed now (a `Cell`: change it with `set`).
+
+```rust
+use pluto_lib::{BlockState, BreakSpeedContext};
+use std::cell::Cell;
+
+let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5) };
+dig.speed.set(dig.speed.get() * 2.0);
+assert_eq!((dig.original, dig.speed.get()), (1.5, 3.0));
+assert_eq!(dig.pos, [0, 64, 0]);
+assert_eq!(dig.block.block.path(), "stone");
+```
+
+### `BreakSpeedCallback`
+
+How fast a player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).
+
+```rust
+use pluto_lib::BreakSpeedCallback;
+
+BreakSpeedCallback::EVENT.register(|dig| dig.speed.set(dig.speed.get() + 1.0));
+```
+
+### `BreakSpeedCallback::EVENT`
+
+The event itself, to register on or to invoke in a test.
+
+```rust
+use pluto_lib::{BlockState, BreakSpeedCallback, BreakSpeedContext};
+use std::cell::Cell;
+
+BreakSpeedCallback::EVENT.register(|dig| if dig.block.block.path() == "slow_stone" { dig.speed.set(0.0) });
+let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0) };
+BreakSpeedCallback::EVENT.invoke(&dig);
+assert_eq!(dig.speed.get(), 0.0);
 ```
 
 ### `AttackEntityCallback`

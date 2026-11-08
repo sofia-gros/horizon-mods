@@ -30,24 +30,6 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
-        api: "item_api_v1::MiningSpeed::MODIFY (host tick_mining)",
-        support: Support::BlockedByMixins,
-        behaviour: "callbacks are accepted and never invoked; mining speed is the game's own",
-        unblocked_by: "horizon-mixins accepting a MODIFY_VARIABLE hook on tick_mining's `speed` local (E_LOCAL_NOT_FOUND today)",
-    },
-    SupportEntry {
-        api: "item_api_v1::MiningSpeed::MODIFY (client destroy_progress)",
-        support: Support::BlockedByMixins,
-        behaviour: "callbacks are accepted and never invoked; the client's predicted progress is the game's own",
-        unblocked_by: "horizon-mixins matching the `speed` accesses in destroy_progress (E_MATCH_COUNT: 4 found, 2 required)",
-    },
-    SupportEntry {
-        api: "block_api::Block::PICK_STACK_COLOR (host picked_stack)",
-        support: Support::BlockedByMixins,
-        behaviour: "callbacks are accepted and never invoked; the picked item is unchanged",
-        unblocked_by: "horizon-mixins supporting injections into functions that use `?` or closures (E_UNSUPPORTED_CONTROL_FLOW)",
-    },
-    SupportEntry {
         api: "fluid_api_v1::FluidDef::with_world_blocks / with_bucket",
         support: Support::Stub,
         behaviour: "the request is kept; no source or flowing blocks and no bucket of a mod's fluid exist",
@@ -66,34 +48,22 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
     },
     SupportEntry {
-        api: "tconstruct copper platforms weathering",
-        support: Support::Stub,
-        behaviour: "copper platforms never weather",
-        unblocked_by: "PlutoLib's random-tick behaviour with block writes (planned with the world plants)",
-    },
-    SupportEntry {
         api: "player_api::ServerPlayer::add_food",
         support: Support::Stub,
         behaviour: "does nothing and returns false; the food level is unchanged",
         unblocked_by: "Horizon offering a way to change a player's food level (it can only read it today)",
     },
     SupportEntry {
-        api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STARTED / SERVER_STOPPED",
+        api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STOPPED",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked",
-        unblocked_by: "a Horizon hook point that reports the server being fully started and fully stopped (only about-to-start and stopping exist)",
+        unblocked_by: "a Horizon hook point that reports the server having stopped (only stopping exists)",
     },
     SupportEntry {
         api: "events_interaction_v0::PlayerBlockBreakEvents::AFTER / CANCELED",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked; BEFORE works",
         unblocked_by: "wiring Horizon's block-destroyed notifications (a hook point to map, not yet done)",
-    },
-    SupportEntry {
-        api: "entity_events_v1::ServerLivingEntityEvents::AFTER_DEATH",
-        support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked; ALLOW_DAMAGE works",
-        unblocked_by: "mapping Horizon's mob_killed / player_died hook points (not yet done)",
     },
     SupportEntry {
         api: "resource_loader_v0::ResourceType::ServerData",

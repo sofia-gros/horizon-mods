@@ -47,7 +47,7 @@ pub struct ServerLivingEntityEvents;
 impl ServerLivingEntityEvents {
     /// Fabric: `ALLOW_DAMAGE`: return `false` to cancel the damage.
     pub const ALLOW_DAMAGE: &'static Event<LivingDamage, bool> = &ALLOW_DAMAGE;
-    /// Fabric: `AFTER_DEATH`. Stub: no matching Horizon hook point is wired yet (see the support matrix).
+    /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
 }
 
@@ -60,6 +60,10 @@ pub(crate) fn entity_unloaded(id: u32, kind: &str, dimension: &str) {
 }
 
 /// True when the damage may be applied.
+pub(crate) fn after_death(death: &LivingDamage) {
+    AFTER_DEATH.invoke(death);
+}
+
 pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
     ALLOW_DAMAGE.invoke(damage)
 }
@@ -67,6 +71,15 @@ pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn after_death_reaches_every_callback_with_the_killer() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::AFTER_DEATH.register(move |d| log.lock().unwrap().push((d.entity, d.attacker)));
+        after_death(&LivingDamage { entity: 7, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 2, direct: -1, amount: 0.0 });
+        assert_eq!(*seen.lock().unwrap(), [(7, 2)]);
+    }
 
     #[test]
     fn any_veto_cancels_the_damage() {
