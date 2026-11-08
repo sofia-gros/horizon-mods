@@ -24,6 +24,8 @@ pub trait PlayerOps {
     fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32;
     /// How many of the 36 main inventory slots are empty.
     fn empty_slots(&mut self, player: u128) -> u32;
+    /// The language option of the player's client (`en_us`, `ja_jp`, ...); None if the player is not known.
+    fn language(&mut self, player: u128) -> Option<String>;
 }
 
 thread_local! {
@@ -87,6 +89,12 @@ impl ServerPlayer {
         with_current(0, |ops| ops.take_item(self.uuid, item, count))
     }
 
+    /// The language option of the player's client (`en_us`, `ja_jp`, ...); `en_us` outside a callback that carries this player. Use it to write
+    /// a message in the player's language with `I18n::translate_in`.
+    pub fn language(&self) -> String {
+        with_current(None, |ops| ops.language(self.uuid)).unwrap_or_else(|| "en_us".to_owned())
+    }
+
     /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
@@ -105,6 +113,8 @@ pub struct MemoryPlayerOps {
     pub attachments: std::collections::HashMap<(u128, String), String>,
     /// How many of the 36 main slots are empty for every player (set it to test full inventories).
     pub free_slots: u32,
+    /// The language option of every player's client; empty means `en_us`.
+    pub language: String,
 }
 
 impl PlayerOps for MemoryPlayerOps {
@@ -134,6 +144,9 @@ impl PlayerOps for MemoryPlayerOps {
     }
     fn empty_slots(&mut self, _player: u128) -> u32 {
         self.free_slots
+    }
+    fn language(&mut self, _player: u128) -> Option<String> {
+        Some(if self.language.is_empty() { "en_us".to_owned() } else { self.language.clone() })
     }
 }
 
@@ -172,6 +185,9 @@ mod tests {
         }
         fn empty_slots(&mut self, _: u128) -> u32 {
             3
+        }
+        fn language(&mut self, _: u128) -> Option<String> {
+            None
         }
     }
 

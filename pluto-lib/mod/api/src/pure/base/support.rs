@@ -48,6 +48,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "horizon-mixins supporting injections into functions that use `?` or closures (E_UNSUPPORTED_CONTROL_FLOW)",
     },
     SupportEntry {
+        api: "fluid_api_v1::FluidDef::with_world_blocks / with_bucket",
+        support: Support::Stub,
+        behaviour: "the request is kept; no source or flowing blocks and no bucket of a mod's fluid exist",
+        unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
+    },
+    SupportEntry {
         api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STARTED / SERVER_STOPPED",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked",

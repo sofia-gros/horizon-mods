@@ -28,6 +28,8 @@ mod api_pages {
     page!(BlockEntity, "block-entity.md");
     page!(Screen, "screen.md");
     page!(Renderer, "renderer.md");
+    page!(Fluid, "fluid.md");
+    page!(I18n, "i18n.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");
