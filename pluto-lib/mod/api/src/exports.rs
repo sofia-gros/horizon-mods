@@ -30,4 +30,6 @@ pub use crate::pure::player_api::{self, MemoryPlayerOps, PlayerOps, ServerPlayer
 pub use crate::pure::screen_handler_api_v1::{
     self, MenuButton, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenTooltip,
 };
+pub use crate::pure::projectile_events_v1::{self, ProjectileEvents, ProjectileImpact};
+pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, World, WorldOps, with_world};
 pub use crate::pure::resource_loader_v0::{self, ResourceManagerHelper, ResourceType, reload_event};

@@ -30,6 +30,8 @@ mod api_pages {
     page!(Renderer, "renderer.md");
     page!(Fluid, "fluid.md");
     page!(I18n, "i18n.md");
+    page!(World, "world.md");
+    page!(Projectile, "projectile.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");

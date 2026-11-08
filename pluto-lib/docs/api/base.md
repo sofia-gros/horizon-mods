@@ -163,6 +163,19 @@ assert!(E.add_phase_ordering(a.clone(), b.clone()).is_ok());
 assert!(E.add_phase_ordering(b, a).is_err()); // would make a cycle
 ```
 
+### `Event::is_empty`
+
+`fn is_empty(&self) -> bool`. Whether no callback is registered. The game uses it to pay for an expensive hook only when someone listens.
+
+```rust
+use pluto_lib::Event;
+
+static E: Event<(), ()> = Event::void();
+assert!(E.is_empty());
+E.register(|_| {});
+assert!(!E.is_empty());
+```
+
 ### `Event::invoke`
 
 `fn invoke(&self, args: &A) -> R`. Runs the callbacks and returns the combined answer. PlutoLib calls it for its own events; a mod calls it for events it defines (and tests use it to drive a callback).

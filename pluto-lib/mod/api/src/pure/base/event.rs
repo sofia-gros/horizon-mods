@@ -187,6 +187,11 @@ impl<A: 'static, R: 'static> Event<A, R> {
 
     /// Fabric: `invoker().invoke(...)`. Callbacks run without any lock held, so a callback may register more callbacks
     /// (they take effect from the next invocation).
+    /// Whether no callback is registered.
+    pub fn is_empty(&self) -> bool {
+        self.callbacks().is_empty()
+    }
+
     pub fn invoke(&self, args: &A) -> R {
         let callbacks = self.callbacks();
         let mut results = callbacks.iter().map(|callback| callback(args));
