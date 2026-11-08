@@ -55,24 +55,24 @@
       "note": "PlutoLib behaviour (world.rs register_crystals): 1 in 5 random ticks starts a small bud or grows the bud on a random side, waterlogged as the neighbour. Checked in game: a budding sky crystal grew a bud beside it. The piston reaction is the template's"
     },
     "block/CrystalBlock.java": {
-      "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "status": "ported-unchecked",
+      "note": "world.rs register_crystal_chimes: a projectile hitting a crystal block or cluster plays the kind's chime with a pitch from 0.5 to 1.7; the extra hit sound of the block type is not played; not tried in game"
     },
     "block/CrystalClusterBlock.java": {
-      "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "status": "ported-unchecked",
+      "note": "same code path as CrystalBlock (the chime on a projectile hit, also for the steel, cobalt and knightmetal clusters); not tried in game"
     },
     "block/CongealedSlimeBlock.java": {
-      "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "status": "todo",
+      "note": "compared with the Java: bouncing off the sides (entityInside), the bounce after a fall, no fall damage, the shorter collision box and the sticky path type all need an entity motion API (velocity, fall distance, hurt marker) that PlutoLib does not have yet; the content block is a plain block"
     },
     "block/SlimeDirtBlock.java": {
-      "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "status": "ported-unchecked",
+      "note": "compared with the Java: it only sustains slime plants and ordinary plains plants; the slime plants stand on it through PlutoLib (world.rs supports), and ordinary plants through the dirt template; not tried in game"
     },
     "block/StickySlimeBlock.java": {
       "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "note": "compared with the Java: the block is a slime block that sticks to what the predicate allows; the content uses the slime block template, so it sticks to everything a slime block does and the per-type sticky predicate is not applied"
     },
     "block/PiglinHeadBlock.java": {
       "status": "parked",
