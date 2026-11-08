@@ -139,9 +139,10 @@ impl ModuleRegistry {
         self.loaders.insert(kind.to_owned(), loader);
     }
 
-    /// Registers the modules that change a tool's stats, over the stats they name.
+    /// Registers the modules that change a tool's stats or its list of modifiers, over the stats they name.
     pub fn register_stat_modules(&mut self, stats: Arc<crate::tools::stat::ToolStats>) {
         self.register("tconstruct:stat_boost", stat_modules::stat_boost_loader(stats));
+        self.register("tconstruct:trait", stat_modules::trait_loader());
     }
 
     pub fn knows(&self, kind: &str) -> bool {

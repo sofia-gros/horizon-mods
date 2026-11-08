@@ -1,13 +1,13 @@
 //! `library.tools.nbt.ToolStack.rebuildStats` and `ModifierNBT.Builder` without the item: from a tool definition, the materials of its
 //! parts and the upgrades, the list of modifiers the tool has (upgrades, tool traits and material traits, merged and sorted by
 //! priority) and the stats the definition, the materials and the modifiers give it.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
 use super::definition::{part_stat_type, PartStatsModule, ToolDefinitionData, ToolTraitsModule};
 use super::stat::{ModifierStatsBuilder, StatValue, ToolStatId, ToolStats};
 use crate::materials::{MaterialId, MaterialRegistry};
-use crate::modifiers::stat_modules::{StatBoostModule, ToolContext};
+use crate::modifiers::stat_modules::{ModifierTraitModule, StatBoostModule, ToolContext};
 use crate::modifiers::{ModifierEntry, ModifierId, ModifierManager};
 
 /// `ModifierNBT.Builder`: entries of the same modifier add their levels; the result is sorted by priority, highest first, and entries
@@ -25,6 +25,40 @@ pub fn merge_modifiers(entries: impl IntoIterator<Item = ModifierEntry>, manager
     }
     merged.sort_by_key(|entry| std::cmp::Reverse(manager.get(&entry.modifier).map_or(0, |m| m.priority)));
     merged
+}
+
+/// `ModifierTraitHook.TraitBuilder`: adds modifiers and, for each, the traits its modules bring along (which may bring more).
+struct TraitBuilder<'a> {
+    manager: &'a ModifierManager,
+    context: &'a dyn ToolContext,
+    entries: Vec<ModifierEntry>,
+    seen: HashSet<ModifierId>,
+    stack: Vec<ModifierId>,
+}
+
+impl TraitBuilder<'_> {
+    fn add(&mut self, entry: ModifierEntry) {
+        if entry.modifier == ModifierId::empty() || entry.level <= 0 || !self.manager.contains(&entry.modifier) {
+            return;
+        }
+        self.entries.push(entry.clone());
+        let Some(modifier) = self.manager.get(&entry.modifier) else { return };
+        if self.stack.contains(&entry.modifier) {
+            // the original logs "Encountered X as a child of itself" and stops
+            return;
+        }
+        self.stack.push(entry.modifier.clone());
+        let first = !self.seen.contains(&entry.modifier);
+        for module in &modifier.modules {
+            if let Some(module) = module.as_any().downcast_ref::<ModifierTraitModule>() {
+                if let Some(extra) = module.trait_for(self.context, &entry, first) {
+                    self.add(extra);
+                }
+            }
+        }
+        self.seen.insert(entry.modifier.clone());
+        self.stack.pop();
+    }
 }
 
 impl ToolDefinitionData {
@@ -69,7 +103,13 @@ pub fn rebuild_stats(
     stats: &Arc<ToolStats>,
     context: &dyn ToolContext,
 ) -> RebuiltTool {
-    let all = merge_modifiers(upgrades.iter().cloned().chain(definition.tool_traits(materials, registry)), modifiers);
+    let before = merge_modifiers(upgrades.iter().cloned().chain(definition.tool_traits(materials, registry)), modifiers);
+    // modifiers that bring traits along (`ModifierTraitModule`): every modifier of the list is added again through the trait builder
+    let mut traits = TraitBuilder { manager: modifiers, context, entries: Vec::new(), seen: HashSet::new(), stack: Vec::new() };
+    for entry in before {
+        traits.add(entry);
+    }
+    let all = merge_modifiers(traits.entries, modifiers);
     let mut builder = ModifierStatsBuilder::new(stats);
     definition.add_material_stats(&mut builder, materials, registry);
     definition.add_tool_stats(&mut builder);
@@ -101,6 +141,46 @@ mod tests {
         let (manager, problems) = ModifierManager::load(&files, &[], &[], &ModuleRegistry::with_original_types(), &EmptyContext);
         assert!(problems.is_empty(), "{problems:?}");
         manager
+    }
+
+    struct Anything;
+    impl ToolContext for Anything {
+        fn item_in_tag(&self, _: &str) -> bool {
+            true
+        }
+    }
+
+    fn with_modules(files: Vec<(&str, serde_json::Value)>) -> ModifierManager {
+        let files: Vec<_> = files.into_iter().map(|(n, v)| (ResourceId::try_parse(n).unwrap(), v)).collect();
+        let mut modules = ModuleRegistry::with_original_types();
+        modules.register_stat_modules(Arc::new(ToolStats::tinkers(crate::tools::stat::HarvestTiers::vanilla())));
+        let (manager, problems) = ModifierManager::load(&files, &[], &[], &modules, &EmptyContext);
+        assert!(problems.is_empty(), "{problems:?}");
+        manager
+    }
+
+    fn expand(manager: &ModifierManager, start: ModifierEntry) -> Vec<String> {
+        let mut builder = TraitBuilder { manager, context: &Anything, entries: Vec::new(), seen: HashSet::new(), stack: Vec::new() };
+        builder.add(start);
+        merge_modifiers(builder.entries, manager).iter().map(|e| format!("{}x{}", e.modifier, e.level)).collect()
+    }
+
+    #[test]
+    fn trait_modules_bring_modifiers_along_by_level_and_stay_out_of_loops() {
+        let manager = with_modules(vec![
+            ("tconstruct:parent", json!({"modules": [{"type": "tconstruct:trait", "name": "tconstruct:scaled", "level": 2, "fixed_level": false}, {"type": "tconstruct:trait", "name": "tconstruct:once", "level": 1, "fixed_level": true}]})),
+            ("tconstruct:scaled", json!({})),
+            ("tconstruct:once", json!({})),
+            ("tconstruct:loop_a", json!({"modules": [{"type": "tconstruct:trait", "name": "tconstruct:loop_b", "fixed_level": false}]})),
+            ("tconstruct:loop_b", json!({"modules": [{"type": "tconstruct:trait", "name": "tconstruct:loop_a", "fixed_level": false}]})),
+        ]);
+        let entry = |id: &str, level| ModifierEntry { modifier: mid(id), level };
+        // not fixed: the trait's level times the parent's (2 x 3); fixed: once, at its own level
+        assert_eq!(expand(&manager, entry("tconstruct:parent", 3)), ["tconstruct:parentx3", "tconstruct:scaledx6", "tconstruct:oncex1"]);
+        // at level 1 the trait is added at its own level
+        assert_eq!(expand(&manager, entry("tconstruct:parent", 1)), ["tconstruct:parentx1", "tconstruct:scaledx2", "tconstruct:oncex1"]);
+        let looped = expand(&manager, entry("tconstruct:loop_a", 1));
+        assert!(looped.len() <= 3, "a modifier that is its own child stops the expansion: {looped:?}");
     }
 
     #[test]
