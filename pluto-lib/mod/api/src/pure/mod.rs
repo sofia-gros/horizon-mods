@@ -17,5 +17,7 @@ pub mod lifecycle_events_v1;
 pub mod loot_api_v2;
 pub mod networking_api_v1;
 pub mod player_api;
+pub mod projectile_events_v1;
 pub mod resource_loader_v0;
 pub mod screen_handler_api_v1;
+pub mod world_api_v1;

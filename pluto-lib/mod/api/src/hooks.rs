@@ -7,7 +7,7 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
@@ -18,6 +18,8 @@ use crate::pure::base::{Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, ItemSlot};
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
+use crate::pure::world_api_v1::{self, BlockState, WorldOps};
+use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
@@ -57,39 +59,91 @@ pub fn no_hooks() -> ModHooks {
 }
 
 /// PlutoLib's player operations over Horizon's `Host`, open only while a callback that carries a player runs.
-struct HostOps<'a>(&'a mut dyn Host);
+/// A pointer to the host that is turned into a reference only for the length of one call, so the player scope and the world scope can both
+/// hold it without two live `&mut`.
+#[derive(Clone, Copy)]
+struct HostHandle(*mut dyn Host);
 
-impl PlayerOps for HostOps<'_> {
+impl HostHandle {
+    fn new(host: &mut dyn Host) -> Self {
+        // SAFETY: the handle is only used while the callback that gave the host runs, one call at a time.
+        Self(unsafe { std::mem::transmute::<&mut dyn Host, *mut dyn Host>(host) })
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn get(&self) -> &mut dyn Host {
+        // SAFETY: see `new`; no reference made here outlives the call that asked for it.
+        unsafe { &mut *self.0 }
+    }
+}
+
+struct HostOps(HostHandle);
+
+impl HostOps {
+    fn host(&mut self) -> &mut dyn Host {
+        self.0.get()
+    }
+}
+
+/// The world's blocks over the host.
+struct HostWorld(HostHandle);
+
+impl WorldOps for HostWorld {
+    fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
+        let host = self.0.get();
+        let level = host.level(dimension)?;
+        host.level_block_state(level, pos)
+    }
+
+    fn set_block_state(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
+        let Ok(parsed) = BlockState::parse(state) else { return false };
+        let host = self.0.get();
+        let Some(id) = host.default_state(&parsed.block.to_string()) else { return false };
+        let changed = host.set_block(dimension, pos, id, 3);
+        for (key, value) in &parsed.properties {
+            host.set_block_property(pos, key, value);
+        }
+        changed
+    }
+}
+
+/// Runs `f` with the player scope and the world scope both open over the host.
+fn scoped<R>(host: &mut dyn Host, f: impl FnOnce() -> R) -> R {
+    let handle = HostHandle::new(host);
+    player_api::with_ops(&mut HostOps(handle), || world_api_v1::with_world(&mut HostWorld(handle), f))
+}
+
+impl PlayerOps for HostOps {
     fn tell(&mut self, player: u128, line: &str) -> bool {
-        self.0.tell(player, Text::literal(line.to_owned()))
+        self.host().tell(player, Text::literal(line.to_owned()))
     }
 
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
-        self.0.give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
+        self.host().give_stack(player, ItemStack::new(item, count)).map_or(0, |left| left.count)
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
-        (0..36).filter_map(|slot| self.0.carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()
+        (0..36).filter_map(|slot| self.host().carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()
     }
 
     fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32 {
         let _ = player;
-        self.0.take_items(item, count)
+        self.host().take_items(item, count)
     }
 
     fn empty_slots(&mut self, player: u128) -> u32 {
         let _ = player;
-        (0..36).filter(|slot| self.0.carried_stack(*slot).is_none()).count() as u32
+        (0..36).filter(|slot| self.host().carried_stack(*slot).is_none()).count() as u32
     }
 
     fn language(&mut self, player: u128) -> Option<String> {
-        self.0.player_client(player).map(|client| client.language)
+        self.host().player_client(player).map(|client| client.language)
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
         let kind = json_attachment(id)?;
-        match kind.get_existing(&mut *self.0, Holder::Player(player)) {
+        match kind.get_existing(self.host(), Holder::Player(player)) {
             Ok(Some(json)) if !json.is_empty() => Some(json),
             _ => None,
         }
@@ -97,7 +151,7 @@ impl PlayerOps for HostOps<'_> {
 
     fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
         match json_attachment(id) {
-            Some(kind) => kind.set(&mut *self.0, Holder::Player(player), json.to_owned()).is_ok(),
+            Some(kind) => kind.set(self.host(), Holder::Player(player), json.to_owned()).is_ok(),
             None => false,
         }
     }
@@ -397,6 +451,28 @@ impl Hooks for PlutoHooks {
         block_entity_api_v1::update_tag(&event.entity.id, &compound_from_tag(&event.entity.nbt)).map(|tag| compound_to_tag(&tag))
     }
 
+    fn hears_projectile_impacts(&self, _host: &dyn Host, event: &mut HearsProjectileImpactsEvent) {
+        if projectile_events_v1::heard() {
+            event.hears = true;
+        }
+    }
+
+    fn projectile_impact(&self, host: &mut dyn Host, event: &mut ProjectileImpactEvent<'_>) -> Flow {
+        let hit = ProjectileImpact {
+            dimension: event.dimension.to_owned(),
+            projectile: event.projectile,
+            kind: event.kind.to_owned(),
+            owner: i64::from(event.owner),
+            entity: event.entity,
+            entity_kind: event.entity_kind.to_owned(),
+            block: event.block,
+            face: event.face,
+            at: event.at,
+        };
+        let allowed = scoped(host, || projectile_events_v1::impact(&hit));
+        if allowed { Flow::Continue } else { Flow::Cancel }
+    }
+
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
         for (usage, level) in command_api_v2::collect() {
             event.commands.push(if level == 0 { NativeCommand::new(&usage) } else { NativeCommand::op(&usage, level) });
@@ -405,7 +481,7 @@ impl Hooks for PlutoHooks {
 
     fn perform_command(&self, host: &mut dyn Host, event: &mut PerformCommandEvent<'_>) -> Flow {
         let (uuid, name, line) = (event.player.uuid, event.player.name.clone(), event.command.to_owned());
-        let ran = player_api::with_ops(&mut HostOps(host), || command_api_v2::execute(uuid, name, &line));
+        let ran = scoped(host, || command_api_v2::execute(uuid, name, &line));
         cancel_if(ran)
     }
 
@@ -474,12 +550,12 @@ impl Hooks for PlutoHooks {
 
     fn player_logged_in(&self, host: &mut dyn Host, event: &mut PlayerLoggedInEvent<'_>) {
         let (uuid, name) = (event.player, event.name.to_string());
-        player_api::with_ops(&mut HostOps(host), || networking_api_v1::player_joined(uuid, name));
+        scoped(host, || networking_api_v1::player_joined(uuid, name));
     }
 
     fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
         let (uuid, name) = (event.player, event.name.to_string());
-        player_api::with_ops(&mut HostOps(host), || networking_api_v1::player_left(uuid, name));
+        scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 
     fn entity_join_level(&self, _host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {

@@ -7,6 +7,13 @@ use pluto_lib::{
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    pluto_lib::ProjectileEvents::IMPACT.register(|hit| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE projectile kind={} dimension={}", hit.kind, hit.dimension);
+        }
+        true
+    });
     pluto_lib::Translations::register("en_us", [("pluto_probe.hello".to_owned(), "Hello from the probe".to_owned())]);
     pluto_lib::Translations::register("ja_jp", [("pluto_probe.hello".to_owned(), "プローブからこんにちは".to_owned())]);
     BlockEntityRendererRegistry::register(Identifier::new("tconstruct", "seared_melter").unwrap(), |render| {
@@ -53,6 +60,10 @@ pub fn hooks() -> Box<dyn Hooks> {
     );
     CommandRegistrationCallback::EVENT.register(|registrar| {
         registrar.register("pluto_probe ping <word:word>", |ctx| {
+            let world = pluto_lib::World::new("minecraft:overworld");
+            let glass = pluto_lib::BlockState::new(Identifier::new("minecraft", "glass").unwrap());
+            let set = world.set_block_state([3, 81, 3], &glass);
+            println!("PLUTO-PROBE world set={set} read={:?}", world.get_block_state([3, 81, 3]).map(|s| s.to_string()));
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
             1
         });
