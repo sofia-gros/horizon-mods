@@ -19,6 +19,7 @@ pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,
 };
 pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, TooltipLine, UseAction};
+pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents};
 pub use crate::pure::player_api::{self, MemoryPlayerOps, PlayerOps, ServerPlayer, with_ops};
