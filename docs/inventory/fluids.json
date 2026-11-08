@@ -1,0 +1,94 @@
+{
+  "domain": "fluids",
+  "java": "slimeknights/tconstruct/fluids",
+  "classes": {
+    "TinkerFluids.java": {
+      "status": "partial",
+      "note": "the 42 fluid definitions exist in PlutoLib's FluidRegistry (fluids_table.rs, written before this rule; not compared one by one with the Java); the fluid blocks and buckets do not exist"
+    },
+    "block/BurningLiquidBlock.java": {
+      "status": "parked",
+      "note": "Horizon has no world fluid blocks or buckets for a mod's fluid (tanks only)"
+    },
+    "block/MobEffectLiquidBlock.java": {
+      "status": "parked",
+      "note": "Horizon has no world fluid blocks or buckets for a mod's fluid (tanks only)"
+    },
+    "fluids/SlimeFluid.java": {
+      "status": "parked",
+      "note": "Horizon has no world fluid blocks or buckets for a mod's fluid (tanks only)"
+    },
+    "fluids/SlimeFluidType.java": {
+      "status": "parked",
+      "note": "Horizon has no world fluid blocks or buckets for a mod's fluid (tanks only)"
+    },
+    "fluids/PotionFluidType.java": {
+      "status": "parked",
+      "note": "Horizon has no world fluid blocks or buckets for a mod's fluid (tanks only)"
+    },
+    "item/BottleItem.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "item/MagmaBottleItem.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "item/PotionBucketItem.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "item/EmptyPotionTransfer.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "util/ConstantFluidContainerWrapper.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "util/EmptyBottleIntoEmpty.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "util/EmptyBottleIntoWater.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "util/FillBottle.java": {
+      "status": "parked",
+      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+    },
+    "item/ContainerFoodItem.java": {
+      "status": "todo",
+      "note": "food that leaves a container: the cheese uses ItemUse; the bottles wait for the fluid items"
+    },
+    "util/BottleBrewingRecipe.java": {
+      "status": "parked",
+      "note": "brewing recipes: no brewing API in Horizon"
+    },
+    "FluidEvents.java": {
+      "status": "todo",
+      "note": "not looked at yet"
+    },
+    "FluidClientEvents.java": {
+      "status": "todo",
+      "note": "not looked at yet"
+    },
+    "data/FluidBlockstateModelProvider.java": {
+      "status": "not-code",
+      "note": "data generators"
+    },
+    "data/FluidBucketModelProvider.java": {
+      "status": "not-code",
+      "note": "data generators"
+    },
+    "data/FluidTextureProvider.java": {
+      "status": "not-code",
+      "note": "data generators"
+    },
+    "data/FluidTooltipProvider.java": {
+      "status": "not-code",
+      "note": "data generators"
+    }
+  }
+}
