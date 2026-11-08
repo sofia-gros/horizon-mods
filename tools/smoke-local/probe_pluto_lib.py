@@ -18,6 +18,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
             'tconstruct: gave the starting book to',
             'PLUTO-PROBE command ping arg=hello source=',
+            'PLUTO-PROBE block_entity ticks=5 pos=[3, 80, 3]',
             'pluto_lib: creative tabs added, tabs=',
             'PLUTO-PROBE item_use game_side=Some(Spec { food: Some((4, 0.5)), can_always_eat: false, remainder: Some(("minecraft:stick", 2)) })',
             'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')
@@ -92,7 +93,7 @@ with game_log.open('w') as log:
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '120', 'wait-ready', '120'], capture_output=True, timeout=130)
         time.sleep(3)
         subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', 'pluto_probe ping hello'], capture_output=True, timeout=40)
-        for line in ('give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
+        for line in ('setblock 3 80 3 tconstruct:seared_stone', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
             subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', 'command', line], capture_output=True, timeout=40)
             time.sleep(1)
         time.sleep(2)

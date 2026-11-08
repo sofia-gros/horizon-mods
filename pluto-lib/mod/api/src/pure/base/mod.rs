@@ -4,9 +4,11 @@
 pub mod action_result;
 pub mod event;
 pub mod identifier;
+pub mod nbt;
 pub mod support;
 
 pub use action_result::ActionResult;
 pub use event::{Callback, Combiner, Event, PhaseOrderingCycle, default_phase};
 pub use identifier::{DEFAULT_NAMESPACE, Identifier, IdentifierError};
+pub use nbt::{Nbt, NbtCompound, NbtCompoundExt};
 pub use support::{Support, SupportEntry};

@@ -7,13 +7,15 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
+use crate::pure::base::{Nbt, NbtCompound};
+use crate::pure::block_entity_api_v1;
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
@@ -124,6 +126,49 @@ fn cancel_if(handled: bool) -> Flow {
     if handled { Flow::Cancel } else { Flow::Continue }
 }
 
+fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
+    Some(match tag {
+        Tag::End => return None,
+        Tag::Byte(v) => Nbt::Byte(*v),
+        Tag::Short(v) => Nbt::Short(*v),
+        Tag::Int(v) => Nbt::Int(*v),
+        Tag::Long(v) => Nbt::Long(*v),
+        Tag::Float(bits) => Nbt::Float(f32::from_bits(*bits)),
+        Tag::Double(bits) => Nbt::Double(f64::from_bits(*bits)),
+        Tag::ByteArray(v) => Nbt::ByteArray(v.clone()),
+        Tag::String(s) => Nbt::String(s.to_string_lossy()),
+        Tag::List(items) => Nbt::List(items.iter().filter_map(nbt_from_tag).collect()),
+        Tag::Compound(c) => Nbt::Compound(compound_from_tag(c)),
+        Tag::IntArray(v) => Nbt::IntArray(v.clone()),
+        Tag::LongArray(v) => Nbt::LongArray(v.clone()),
+    })
+}
+
+fn tag_from_nbt(nbt: &Nbt) -> Tag {
+    match nbt {
+        Nbt::Byte(v) => Tag::Byte(*v),
+        Nbt::Short(v) => Tag::Short(*v),
+        Nbt::Int(v) => Tag::Int(*v),
+        Nbt::Long(v) => Tag::Long(*v),
+        Nbt::Float(v) => Tag::Float(v.to_bits()),
+        Nbt::Double(v) => Tag::Double(v.to_bits()),
+        Nbt::ByteArray(v) => Tag::ByteArray(v.clone()),
+        Nbt::String(s) => Tag::String(s.as_str().into()),
+        Nbt::List(items) => Tag::List(items.iter().map(tag_from_nbt).collect()),
+        Nbt::Compound(c) => Tag::Compound(compound_to_tag(c)),
+        Nbt::IntArray(v) => Tag::IntArray(v.clone()),
+        Nbt::LongArray(v) => Tag::LongArray(v.clone()),
+    }
+}
+
+fn compound_from_tag(compound: &Compound) -> NbtCompound {
+    compound.iter().filter_map(|(key, tag)| Some((key.to_string_lossy(), nbt_from_tag(tag)?))).collect()
+}
+
+fn compound_to_tag(compound: &NbtCompound) -> Compound {
+    compound.iter().map(|(key, nbt)| (key.as_str().into(), tag_from_nbt(nbt))).collect()
+}
+
 fn model_config(file: &NativeConfigFile) -> ModConfig {
     let kind = match file.kind {
         NativeConfigKind::Client => ConfigKind::Client,
@@ -156,6 +201,29 @@ impl Hooks for PlutoHooks {
                 UseAction::Spear => UseAnimation::Spear,
             };
         }
+    }
+
+    fn block_entity(&self, _host: &mut dyn Host, event: &mut BlockEntityEvent<'_>) -> Option<(String, Compound)> {
+        block_entity_api_v1::create(event.block).map(|(id, data)| (id, compound_to_tag(&data)))
+    }
+
+    fn block_entity_ticks(&self, _host: &dyn Host, event: &mut BlockEntityTicksEvent<'_>) {
+        if block_entity_api_v1::ticks(event.block) {
+            event.ticks = true;
+        }
+    }
+
+    fn block_entity_tick(&self, _host: &mut dyn Host, event: &mut BlockEntityTickEvent<'_>) {
+        let id = event.entity.id.clone();
+        let mut data = compound_from_tag(&event.entity.nbt);
+        let before = data.clone();
+        if block_entity_api_v1::tick(&id, event.pos, &mut data) && data != before {
+            event.entity.nbt = compound_to_tag(&data);
+        }
+    }
+
+    fn block_entity_update_tag(&self, event: &mut BlockEntityUpdateTagEvent<'_>) -> Option<Compound> {
+        block_entity_api_v1::update_tag(&event.entity.id, &compound_from_tag(&event.entity.nbt)).map(|tag| compound_to_tag(&tag))
     }
 
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
