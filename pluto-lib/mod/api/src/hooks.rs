@@ -7,8 +7,8 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -660,10 +660,44 @@ impl Hooks for PlutoHooks {
         with_block_entity(event.entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
     }
 
-    fn menu_button(&self, _host: &mut dyn Host, event: &mut MenuButtonEvent<'_>) {
+    fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
         let (pos, button) = (event.pos, event.id);
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
-        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items));
+        let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(|s| Some(ItemSlot { item: crate::pure::base::Identifier::parse(&s.item).ok()?, count: s.count }));
+        let before = carried.clone();
+        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
+        if carried != before {
+            *event.carried = carried.map(|s| ItemStack::new(&s.item.to_string(), s.count));
+        }
+    }
+
+    fn menu_slot_rules(&self, event: &mut MenuSlotRulesEvent<'_>) {
+        let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
+        screen_handler_api_v1::slot_rules(&block, event.slot, &event.stack.item, event.stack.count, &mut event.may_place, &mut event.max_stack);
+    }
+
+    fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
+        let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
+        let Ok(item) = crate::pure::base::Identifier::parse(&event.stack.item) else { return Flow::Continue };
+        let mut moved = ItemSlot { item, count: event.stack.count };
+        let (pos, slot, container_slots) = (event.pos, event.slot, event.container_slots);
+        let mut handled = false;
+        with_block_entity(event.entity, |data, items| {
+            handled = screen_handler_api_v1::quick_move(&block, pos, slot, container_slots, &mut moved, data, items);
+            handled
+        });
+        if handled {
+            event.stack.count = moved.count;
+            Flow::Cancel
+        } else {
+            Flow::Continue
+        }
+    }
+
+    fn container_accepts(&self, _host: &dyn Host, event: &mut ContainerAcceptsEvent<'_>) -> Flow {
+        let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
+        let face = event.face.map(|d| direction(d as u8));
+        if screen_handler_api_v1::accepts(&block, event.pos, event.slot, &event.stack.item, event.stack.count, face) { Flow::Continue } else { Flow::Cancel }
     }
 
     fn block_entity_submit(&self, host: &dyn Host, event: &mut BlockEntitySubmitEvent<'_>) {

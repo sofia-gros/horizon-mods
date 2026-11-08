@@ -59,6 +59,34 @@ let _ = window;
 
 > **Use with Caution.** The slot count of the menu type must match the block entity's `item_slots`. The window is drawn over the game's panel; set `with_own_background` on the layout if you draw your own.
 
+## What the Slots Take
+
+`on_slot_rule` decides what each slot of the menu takes and how many it holds. A result slot, which only gives, answers `may_place = false`; a fuel slot can take fewer. `on_quick_move` says where a shift-clicked stack goes, and `on_accepts` whether a hopper may put an item in:
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(), ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).slot(56.0, 53.0).slot(116.0, 35.0))
+    .on_slot_rule(|rule| {
+        if rule.slot == 2 {
+            rule.may_place = false; // the result slot only gives
+        }
+    })
+    .on_quick_move(|moved| {
+        // fuel goes to the second slot
+        if moved.stack.item.to_string() == "minecraft:coal" && moved.items.get(1).is_some_and(|slot| slot.is_none()) {
+            moved.items[1] = Some(ItemSlot { item: moved.stack.item.clone(), count: moved.stack.count });
+            moved.stack.count = 0;
+            return true;
+        }
+        false
+    })
+    .on_accepts(|put| put.item != "minecraft:dirt");
+let _ = window;
+```
+
+> **Use with Caution.** The slot rule runs inside every click, drag and shift-click, several times for one, with no world or player at hand. Answer from the stack alone, and fast.
+
 ## Reference
 
 ### `ScreenLayout`
@@ -210,7 +238,7 @@ assert_eq!(lines, ["Heat: 42"]);
 
 ### `MenuButton`
 
-What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data and `items` its item slots, which the callback may change.
+What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change.
 
 ```rust
 use pluto_lib::{MenuButton, Nbt, NbtCompound};
@@ -222,13 +250,94 @@ fn toggle(button: &mut MenuButton<'_>) {
 }
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
-toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items });
+let mut carried = None;
+toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
 assert!(data.contains_key("lit"));
+```
+
+### `SlotRule`
+
+What a slot of the menu takes. `slot` is the container slot counted from 0, `item` and `count` the stack being asked about, and `may_place` and `max_stack` come in with the menu's own answer; change them. `max_stack` is kept between 1 and 99.
+
+```rust
+use pluto_lib::SlotRule;
+
+let mut rule = SlotRule { slot: 2, item: "minecraft:coal", count: 1, may_place: true, max_stack: 64 };
+rule.may_place = false;
+rule.max_stack = 16;
+assert_eq!((rule.slot, rule.item, rule.count), (2, "minecraft:coal", 1));
+assert!(!rule.may_place && rule.max_stack == 16);
+```
+
+### `QuickMove`
+
+A shift-click on a slot. `pos` is the block entity's position, `slot` the menu's index (below `container_slots` the block's own slot, then the player's 27 main slots, then the hotbar), `container_slots` how many slots the block's container has, `stack` a copy of what the slot holds (take what you move out of it), `data` the saved data and `items` the item slots, which the callback may change.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, NbtCompound, QuickMove};
+
+let mut stack = ItemSlot { item: Identifier::new("minecraft", "coal").unwrap(), count: 12 };
+let mut data = NbtCompound::new();
+let mut items = vec![None, None];
+let mut moved = QuickMove { pos: [0, 64, 0], slot: 30, container_slots: 2, stack: &mut stack, data: &mut data, items: &mut items };
+moved.items[0] = Some(moved.stack.clone());
+moved.stack.count = 0;
+assert_eq!((moved.pos, moved.slot, moved.container_slots), ([0, 64, 0], 30, 2));
+assert!(moved.data.is_empty());
+assert_eq!(items[0].as_ref().map(|s| s.count), Some(12));
+```
+
+### `ContainerAccept`
+
+A hopper, dropper or other block asks whether the container takes an item. `pos` is the block entity's position, `slot` where it would go, `item` and `count` the stack, and `face` the side it comes in from, if any.
+
+```rust
+use pluto_lib::{ContainerAccept, Direction};
+
+let put = ContainerAccept { pos: [0, 64, 0], slot: 0, item: "minecraft:dirt", count: 1, face: Some(Direction::Up) };
+assert_eq!((put.pos, put.slot, put.item, put.count), ([0, 64, 0], 0, "minecraft:dirt", 1));
+assert_eq!(put.face, Some(Direction::Up));
+```
+
+### `ScreenHandlerType::on_slot_rule`
+
+`fn on_slot_rule(self, rule: impl Fn(&mut SlotRule<'_>) + Send + Sync + 'static) -> ScreenHandlerType`. `rule` decides what each slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). A slot that only gives answers `may_place = false`. The game asks the rule only for a menu type that a content mod adds (`data/<id>/horizon/menu/<name>.json`), not for a vanilla one such as the furnace.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(), ScreenLayout::new(176.0, 166.0))
+    .on_slot_rule(|rule| rule.max_stack = if rule.item == "minecraft:coal" { 16 } else { rule.max_stack });
+let _ = window;
+```
+
+### `ScreenHandlerType::on_quick_move`
+
+`fn on_quick_move(self, quick_move: impl Fn(&mut QuickMove<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`. `quick_move` says where a shift-clicked stack goes (Minecraft: `quickMoveStack`). Answer `true` when you handled it: the slot then holds what is left of `stack` and the game's own routing is skipped. Answer `false` and what you changed is undone.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(), ScreenLayout::new(176.0, 166.0))
+    .on_quick_move(|moved| moved.slot >= moved.container_slots && moved.stack.count == 0);
+let _ = window;
+```
+
+### `ScreenHandlerType::on_accepts`
+
+`fn on_accepts(self, accepts: impl Fn(&ContainerAccept<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`. `accepts` says whether the container takes an item that a hopper, a dropper or another block puts in (NeoForge: `IItemHandler.isItemValid`). Players' clicks are the slot rules' instead.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "millstone").unwrap(), ScreenLayout::new(176.0, 166.0))
+    .on_accepts(|put| put.item == "minecraft:wheat");
+let _ = window;
 ```
 
 ### `ScreenHandlerType`
 
-The window of a block's menu. `block` is the block it belongs to and `layout` its layout; the callbacks are added with `on_draw`, `on_click`, `on_tooltip` and `on_button`.
+The window of a block's menu. `block` is the block it belongs to and `layout` its layout; the callbacks are added with `on_draw`, `on_click`, `on_tooltip`, `on_button`, `on_slot_rule`, `on_quick_move` and `on_accepts`.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
