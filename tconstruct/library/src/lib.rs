@@ -2,6 +2,7 @@
 pub mod condition;
 pub mod materials;
 pub mod modifiers;
+pub mod predicate;
 pub mod resource;
 pub mod tags;
 pub mod tools;

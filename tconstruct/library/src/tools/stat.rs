@@ -216,6 +216,11 @@ impl<'a> ModifierStatsBuilder<'a> {
     /// `multiplyAll`: multiplies the stat and keeps the factor to apply to values added after.
     pub fn multiply_all(&mut self, id: &ToolStatId, factor: f64) {
         self.multiply(id, factor);
+        self.add_multiplier(id, factor);
+    }
+
+    /// `multiplier(stat, value)`: a factor kept to apply to values added after, without changing the stat now.
+    pub fn add_multiplier(&mut self, id: &ToolStatId, factor: f64) {
         *self.multipliers.entry(id.clone()).or_insert(1.0) *= factor as f32;
     }
 
@@ -331,6 +336,13 @@ impl ToolStats {
             conditional(integer("lure", 0xFFCBCC18, 0.0, 0.0, 5.0, &["tconstruct:fishing_rods"])),
             // registered by `OverslimeModule` in the original; the slime stats need it
             integer("overslime", 0xFF71DC85, 0.0, 0.0, i16::MAX as f32, &["tconstruct:durability"]),
+            // registered by their modules in the original: the tool tank and energy, and the edible modifiers
+            ToolStat::float("tank_capacity", StatKind::Capacity { format_key: "mantle.gui.fluid.millibucket".to_owned() }, 0xA0A0A0, 0.0, 0.0, i32::MAX as f32, &[]),
+            ToolStat::float("max_energy", StatKind::Capacity { format_key: "tconstruct.tool_stat.energy".to_owned() }, 0xA00000, 0.0, 0.0, i32::MAX as f32, &[]),
+            integer("hunger", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
+            float("saturation", 0xFFF0A8A4, 0.0, 0.0, 200.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
+            float("eat_duration", 0xFFF0A8A4, 16.0, 0.0, 100.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
+            ToolStat::float("edible_counter_chance", Percent, 0xFFF0A8A4, 0.0, 0.0, 1.0, &["tconstruct:interactable_charge", "tconstruct:armor"]),
         ];
         for stat in all.drain(..) {
             stats.register(stat).expect("the original's stats have distinct names");
@@ -352,9 +364,9 @@ mod tests {
     }
 
     #[test]
-    fn the_original_registers_eighteen_stats_and_the_overslime_capacity() {
+    fn the_original_registers_eighteen_stats_and_those_its_modules_add() {
         let stats = stats();
-        assert_eq!(stats.all().count(), 19);
+        assert_eq!(stats.all().count(), 25);
         assert!(stats.supports_conditional(&id("draw_speed")));
         assert!(!stats.supports_conditional(&id("durability")));
         let mut again = stats.clone();
