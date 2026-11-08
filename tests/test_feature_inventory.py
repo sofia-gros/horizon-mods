@@ -23,7 +23,7 @@ class Inventory(unittest.TestCase):
         removed.pop(next(iter(removed)))
         tmp = ROOT / '.local/tmp/inventory-test.json'
         tmp.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps({**data, 'classes': removed}), encoding='utf-8')
+        tmp.write_bytes(json.dumps({**data, "classes": removed}).encode("utf-8"))
         self.assertTrue(inv.report(tmp)[3])
 
 
