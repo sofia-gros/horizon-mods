@@ -6,6 +6,12 @@ priority = 100
 [compatibility]
 horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
 
+[api]
+path = "api"
+
+[dependencies]
+pluto_lib = "^0.1"
+
 [[crate]]
 id = "source-config-parser"
 path = "source-config-parser"
@@ -3411,13 +3417,6 @@ kind = "HEAD"
 cancellable = true
 helper = "source-materials-book-draw.rs"
 bindings = [{ name = "game", ty = "&Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut HudBatch", value = "&mut *batch" }]
-
-[[injection]]
-id = "materials-starting-book"
-target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
-kind = "HEAD"
-helper = "source-materials-starting-book.rs"
-bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
 [[injection]]
 id = "materials-book-request"
