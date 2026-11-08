@@ -63,3 +63,16 @@ fn the_originals_traits_load_without_problems() {
     let wood = MaterialId::try_parse("tconstruct:wood").unwrap();
     assert_eq!(manager.default_traits(&wood)[0].modifier.to_string(), "tconstruct:cultivated");
 }
+
+#[test]
+fn the_originals_stats_load_with_every_registered_type() {
+    let Some(root) = data_root() else { return };
+    let files = read_all(&root.join("materials/stats"));
+    assert!(files.len() > 90, "{} stat files", files.len());
+    let mut registry = tconstruct_library::materials::MaterialRegistry::with_tinkers_stats();
+    let problems = registry.stats.load(&files);
+    assert!(problems.is_empty(), "{:?}", &problems[..problems.len().min(5)]);
+    let flint = MaterialId::try_parse("tconstruct:flint").unwrap();
+    let head = tconstruct_library::materials::MaterialStatsId::try_parse("tconstruct:head").unwrap();
+    assert!(registry.material_stats(&flint, &head).is_some());
+}
