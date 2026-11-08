@@ -21,6 +21,7 @@ pub(crate) const FLUIDS: &[(&str, i32, u8, i32, i32)] = &[
     ("molten_obsidian", 1300, 3, 2000, 10000),
     ("molten_ender", 777, 5, 2000, 10000),
     ("blazing_blood", 1800, 15, 3500, 10000),
+    ("fiery_liquid", 1800, 15, 2000, 10000),
     ("molten_emerald", 1234, 9, 2000, 10000),
     ("molten_quartz", 937, 6, 2000, 10000),
     ("molten_amethyst", 1250, 11, 2000, 10000),
