@@ -1,0 +1,234 @@
+{
+  "domain": "world",
+  "java": "slimeknights/tconstruct/world",
+  "classes": {
+    "block/SlimeVineBlock.java": {
+      "status": "ported",
+      "note": "PlutoLib behaviour (world.rs); checked in game by the probe"
+    },
+    "block/SlimeLeavesBlock.java": {
+      "status": "ported",
+      "note": "PlutoLib behaviour (world.rs); checked in game by the probe"
+    },
+    "block/DirtType.java": {
+      "status": "not-code",
+      "note": "enums: their values are the content block names"
+    },
+    "block/FoliageType.java": {
+      "status": "not-code",
+      "note": "enums: their values are the content block names"
+    },
+    "block/SlimeFungusBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimeGrassBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimeNyliumBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimePropaguleBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimePropaguleLeavesBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimeSaplingBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimeTallGrassBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/SlimeRootsBlock.java": {
+      "status": "todo",
+      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+    },
+    "block/BuddingCrystalBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/CrystalBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/CrystalClusterBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/CongealedSlimeBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/SlimeDirtBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/StickySlimeBlock.java": {
+      "status": "partial",
+      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+    },
+    "block/PiglinHeadBlock.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "block/PiglinWallHeadBlock.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "item/EndermanHeadItem.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "TinkerHeadType.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "client/BlockModelSkullRenderer.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "client/DragonSkullModel.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "client/PiglinSkullModel.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "client/SkullModelHelper.java": {
+      "status": "parked",
+      "note": "Horizon has no skull blocks for mods"
+    },
+    "entity/ArmoredSlimeEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "entity/EnderSlimeEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "entity/SkySlimeEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "entity/SlimePlacementPredicate.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "entity/TerracubeEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "entity/TravelersPlateSlimeEntity.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "client/SlimeArmorLayer.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "client/TerracubeRenderer.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "client/TinkerSlimeRenderer.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "data/MobEquipmentProvider.java": {
+      "status": "parked",
+      "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
+    },
+    "client/SlimeColorizer.java": {
+      "status": "todo",
+      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+    },
+    "client/SlimeColorReloadListener.java": {
+      "status": "todo",
+      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+    },
+    "WorldClientEvents.java": {
+      "status": "todo",
+      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+    },
+    "data/StructureRepalleter.java": {
+      "status": "not-code",
+      "note": "data generators: their output is the worldgen, recipe and structure files in the content (compared by count, not file by file)"
+    },
+    "data/WorldgenProvider.java": {
+      "status": "not-code",
+      "note": "data generators: their output is the worldgen, recipe and structure files in the content (compared by count, not file by file)"
+    },
+    "data/WorldRecipeProvider.java": {
+      "status": "not-code",
+      "note": "data generators: their output is the worldgen, recipe and structure files in the content (compared by count, not file by file)"
+    },
+    "item/SlimeGrassSeedItem.java": {
+      "status": "todo",
+      "note": "old injection (source-slime-seed-use)"
+    },
+    "logic/AncientToolItemListing.java": {
+      "status": "todo",
+      "note": "villager trades and world events: not looked at yet"
+    },
+    "WorldEvents.java": {
+      "status": "todo",
+      "note": "villager trades and world events: not looked at yet"
+    },
+    "TinkerWorld.java": {
+      "status": "partial",
+      "note": "registrations: blocks, items and fluids exist as content; the list is checked by tools/gap_report.py"
+    },
+    "TinkerStructures.java": {
+      "status": "todo",
+      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/islands/IslandPiece.java": {
+      "status": "todo",
+      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/islands/IslandPlacement.java": {
+      "status": "todo",
+      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/islands/IslandStructure.java": {
+      "status": "todo",
+      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/config/SlimeFungusConfig.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/config/SlimeTreeConfig.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/ExtraRootVariantPlacer.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/feature/SlimeFungusFeature.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/feature/SlimeTreeFeature.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/LeaveVineDecorator.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    },
+    "worldgen/trees/SlimeTree.java": {
+      "status": "todo",
+      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+    }
+  }
+}
