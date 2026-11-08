@@ -178,7 +178,7 @@ fn a_whole_wood_pickaxe_is_rebuilt_from_the_originals_data() {
     struct Pickaxe;
     impl ToolContext for Pickaxe {
         fn item_in_tag(&self, tag: &str) -> bool {
-            ["tconstruct:harvest", "tconstruct:durability", "tconstruct:melee"].contains(&tag)
+            ["tconstruct:modifiable/harvest", "tconstruct:modifiable/durability", "tconstruct:modifiable/melee"].contains(&tag)
         }
     }
     let Some(root) = data_root() else { return };
@@ -229,5 +229,21 @@ fn every_formula_in_the_originals_modifier_data_is_well_formed() {
         let names: Vec<String> = tokens.iter().filter_map(|t| t.as_str()).filter_map(|t| t.strip_prefix('$')).map(str::to_owned).collect();
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
         PostFixFormula::parse(tokens, &names).unwrap_or_else(|e| panic!("{tokens:?}: {e}"));
+    }
+}
+
+#[test]
+fn every_item_tag_a_tool_stat_names_exists_in_the_content() {
+    use tconstruct_library::tools::stat::{HarvestTiers, ToolStats, ToolType};
+    let content = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../content/data/tconstruct/tags/item");
+    if !content.is_dir() {
+        return;
+    }
+    let stats = ToolStats::tinkers(HarvestTiers::vanilla());
+    let mut tags: Vec<String> = stats.all().flat_map(|s| s.item_tags.clone()).collect();
+    tags.extend([ToolType::Melee, ToolType::Harvest, ToolType::Ranged, ToolType::Launcher, ToolType::Armor, ToolType::MeleeUnarmed].map(|t| t.tag().to_owned()));
+    for tag in tags {
+        let path = tag.strip_prefix("tconstruct:").unwrap_or_else(|| panic!("{tag} is not a tconstruct tag"));
+        assert!(content.join(format!("{path}.json")).is_file(), "no content file for the item tag {tag}");
     }
 }
