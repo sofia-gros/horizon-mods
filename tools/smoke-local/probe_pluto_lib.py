@@ -77,7 +77,7 @@ header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding=
 (bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
 shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
 if a.full:
-    EXPECTED += ("tconstruct: library linked, 25 tool stats, 23 material stat types",)
+    EXPECTED += ("tconstruct: library linked, 25 tool stats, 23 material stat types", "tconstruct: library loaded, 83 materials, 329 modifiers, 45 tool definitions, 0 problems")
     import json, tomllib
     config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
     shutil.rmtree(bundles / 'tconstruct')

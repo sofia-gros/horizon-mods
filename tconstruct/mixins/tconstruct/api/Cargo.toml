@@ -7,3 +7,4 @@ edition = "2024"
 horizon-client = { git = "https://github.com/horizon-rust/horizon" }
 toml = "1"
 tconstruct-library = { path = "library" }
+serde_json = "1"
