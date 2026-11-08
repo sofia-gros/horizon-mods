@@ -50,6 +50,7 @@ pub struct Placement {
     pub sneaking: bool,
     pub in_water: bool,
     pub item: String,
+    pub replace_clicked: bool,
 }
 
 pub enum PlacementAnswer {

@@ -3705,38 +3705,6 @@ helper = "source-slimy-grass-tick.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
 
 [[module]]
-id = "source-slime-vine"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_vine"
-source = "source-slime-vine.rs"
-
-[[injection]]
-id = "source-slime-vine-random"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
-kind = "HEAD"
-helper = "source-slime-vine-random.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
-
-[[injection]]
-id = "source-slime-vine-update"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
-kind = "HEAD"
-helper = "source-slime-vine-update.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]
-
-[[bridge]]
-id = "slime-vine-looking-directions"
-kind = "INVOKE"
-target = "horizon_world::level::place::PlacementContext::nearest_looking_directions"
-
-[[injection]]
-id = "source-slime-vine-place"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
-kind = "HEAD"
-helper = "source-slime-vine-place.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
-
-[[module]]
 id = "source-ender-propagule"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_ender_propagule"

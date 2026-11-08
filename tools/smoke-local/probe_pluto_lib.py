@@ -24,6 +24,8 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE renderer pos=',
             'PLUTO-PROBE fluids tconstruct=42',
             'PLUTO-PROBE punji east=Some("true")',
+            'PLUTO-PROBE vine kept_on_stone=true',
+            'PLUTO-PROBE vine after_support_removed=Some("minecraft:air")',
             'PLUTO-PROBE random_tick pos=[30, 81, 30] rolled_in_range=true set=true',
             'PLUTO-PROBE signs placed=[true, true, true, true]',
             'PLUTO-PROBE potted placed=[true, true]',

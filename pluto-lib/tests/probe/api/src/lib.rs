@@ -74,6 +74,13 @@ pub fn hooks() -> Box<dyn Hooks> {
             let east = world.get_block_state([5, 81, 5]).and_then(|s| s.property("east").map(str::to_owned));
             world.set_block_state([5, 80, 5], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE punji east={east:?}");
+            // a slime vine hangs on a stone to its north, and goes when the stone does
+            world.set_block_state([40, 81, 40], &stone);
+            let vine = pluto_lib::BlockState::parse("tconstruct:sky_slime_vine[north=true]").unwrap();
+            world.set_block_state([40, 81, 41], &vine);
+            let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
+            world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
+            println!("PLUTO-PROBE vine kept_on_stone={kept}");
             world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:budding_earth_slime_crystal").unwrap());
             let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
                 .iter()
@@ -109,6 +116,8 @@ pub fn hooks() -> Box<dyn Hooks> {
         registrar.register("pluto_probe check", |_| {
             let later = pluto_lib::World::new("minecraft:overworld").get_block_state([5, 81, 5]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
+            let vine = pluto_lib::World::new("minecraft:overworld").get_block_state([40, 81, 41]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE vine after_support_removed={vine:?}");
             1
         });
     });

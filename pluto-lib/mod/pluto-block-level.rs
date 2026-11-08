@@ -77,6 +77,7 @@ pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &Pl
         sneaking: context.sneaking,
         in_water,
         item: context.item.clone(),
+        replace_clicked: context.replace_clicked,
     };
     match (sink.placement)(&View { level }, &request) {
         PlacementAnswer::Default => {}
