@@ -20,6 +20,16 @@ use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
+    item_api_v1::set_register_sink(|item, behavior| {
+        horizon_client::entry::pluto_item_use::set(
+            item,
+            horizon_client::entry::pluto_item_use::Spec {
+                food: behavior.food.map(|food| (food.nutrition, food.saturation)),
+                can_always_eat: behavior.can_always_eat,
+                remainder: behavior.remainder.as_ref().map(|(id, count)| (id.to_string(), *count)),
+            },
+        );
+    });
     Box::new(PlutoHooks)
 }
 

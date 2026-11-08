@@ -18,6 +18,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
             'tconstruct: gave the starting book to',
             'PLUTO-PROBE command ping arg=hello source=',
+            'PLUTO-PROBE item_use game_side=Some(Spec { food: Some((4, 0.5)), can_always_eat: false, remainder: Some(("minecraft:stick", 2)) })',
             'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')
 # reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
 OPTIONAL = ('PLUTO-PROBE client_resources_reloaded',)

@@ -24,8 +24,11 @@ pub fn hooks() -> pluto_lib::ModHooks {
             println!("tconstruct: gave the starting book to {}", join.name);
         }
     });
-    // a cheese block is eaten over 32 ticks (its start check and finish handling are still the game-side injections)
-    ItemUseRegistry::register(Identifier::new("tconstruct", "cheese_block").expect("valid id"), ItemUse { use_time: 32, action: UseAction::Eat });
+    // a cheese block: eaten over 32 ticks, feeds 3 (0.4 saturation), leaves 3 cheese ingots
+    ItemUseRegistry::register(
+        Identifier::new("tconstruct", "cheese_block").expect("valid id"),
+        ItemUse::new(32, UseAction::Eat).food(3, 0.4).remainder(Identifier::new("tconstruct", "cheese_ingot").expect("valid id"), 3),
+    );
     CommandRegistrationCallback::EVENT.register(|registrar| {
         registrar.register("tconstruct parts", parts);
         registrar.register("tconstruct assemble", assemble);
