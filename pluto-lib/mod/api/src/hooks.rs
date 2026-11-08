@@ -84,6 +84,19 @@ impl HostHandle {
 /// `minecraft:custom_data` is not reachable from a mod, so PlutoLib adds one of its own.
 const STACK_DATA_COMPONENT: &str = "pluto_lib:custom_data";
 
+/// A stack as PlutoLib's `StackData`: its damage, max damage and the data PlutoLib keeps on it.
+fn stack_data_of(host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
+    let custom_data = match host.component(stack, STACK_DATA_COMPONENT) {
+        Ok(Some(Tag::Compound(compound))) => compound_from_tag(compound),
+        _ => NbtCompound::new(),
+    };
+    let max_damage = match stack.data().and_then(|d| d.other("minecraft:max_damage")) {
+        Some(Tag::Int(value)) => Some(*value),
+        _ => None,
+    };
+    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data }
+}
+
 struct HostOps(HostHandle);
 
 impl HostOps {
@@ -947,7 +960,8 @@ impl Hooks for PlutoHooks {
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
         let Some(level) = host.level(host.dimension()) else { return };
         let Some(block) = host.level_block_state(level, event.pos).and_then(|text| BlockState::parse(&text).ok()) else { return };
-        event.speed = events_interaction_v0::break_speed(event.pos, block, event.original, event.speed);
+        let held = host.acting_player().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        event.speed = events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held);
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {

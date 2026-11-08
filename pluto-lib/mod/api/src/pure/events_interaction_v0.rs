@@ -55,6 +55,9 @@ pub struct BreakSpeedContext {
     pub original: f32,
     /// The speed now, which callbacks may change with `set`; every callback is called in turn, each seeing the last one's.
     pub speed: Cell<f32>,
+    /// The stack the player digs with, with its damage, max damage and custom data; None for an empty hand or when the game does not
+    /// say who digs.
+    pub held: Option<super::player_api::StackData>,
 }
 
 /// A player finished using an item over time (ate or drank it).
@@ -168,8 +171,8 @@ pub(crate) fn use_item_finish(context: &UseItemFinishContext) {
 }
 
 /// The dig speed after every callback has had its say.
-pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32) -> f32 {
-    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed) };
+pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32, held: Option<super::player_api::StackData>) -> f32 {
+    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held };
     BREAK_SPEED.invoke(&context);
     context.speed.get()
 }
