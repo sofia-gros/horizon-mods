@@ -3235,8 +3235,8 @@
       "note": "not yet compared with the port"
     },
     "tools/nbt/ModifierNBT.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "stack.rs merge_modifiers: levels of the same modifier add, unknown ones are dropped, sorted by priority with ties in the order added. Not done: the amount/needed (incremental) entries and the NBT form"
     },
     "tools/nbt/MultiplierNBT.java": {
       "status": "todo",
@@ -3251,8 +3251,8 @@
       "note": "not yet compared with the port"
     },
     "tools/nbt/ToolStack.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/stack.rs rebuild_stats: upgrades + tool traits + material traits merged and sorted, material and definition stats, then the modifiers' stat_boost modules; a wood pickaxe is rebuilt from all of the original's data (60 durability, pierce and cultivated x3, 3 upgrade slots). Not done: volatile data, the trait modules of modifiers, the item NBT storage, damage and repair, the other modifier hooks"
     },
     "tools/part/block/MaterialBlock.java": {
       "status": "todo",
