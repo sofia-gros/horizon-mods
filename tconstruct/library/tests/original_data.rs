@@ -149,7 +149,7 @@ fn every_part_of_the_originals_tools_has_a_stat_type_and_a_wood_pickaxe_has_the_
 }
 
 #[test]
-fn the_originals_modifiers_load_with_the_stat_and_trait_modules_carried() {
+fn the_originals_modifiers_load_with_the_stat_trait_and_volatile_modules_carried() {
     use std::sync::Arc;
     use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
     use tconstruct_library::tools::stat::{HarvestTiers, ToolStats};
@@ -161,7 +161,10 @@ fn the_originals_modifiers_load_with_the_stat_and_trait_modules_carried() {
     let (before, _) = ModifierManager::load(&files, &tags, &[], &ModuleRegistry::with_original_types(), &EmptyContext);
     let (after, problems) = ModifierManager::load(&files, &tags, &[], &modules, &EmptyContext);
     assert!(problems.is_empty(), "{:?}", &problems[..problems.len().min(8)]);
-    assert_eq!(before.uncarried_modules() - after.uncarried_modules(), 120, "all 90 stat_boost and 30 trait modules are carried now");
+    // the modules of the carried types are carried now (modifiers gated on other mods are not loaded, so count from the manager)
+    let carried_now: usize = after.ids().iter().filter_map(|id| after.get(id)).flat_map(|m| m.modules.iter()).filter(|m| m.carried()).count();
+    assert!(carried_now > 150, "{carried_now} carried modules");
+    assert_eq!(before.uncarried_modules() - after.uncarried_modules(), carried_now);
 }
 
 #[test]
