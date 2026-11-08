@@ -23,6 +23,25 @@ tags are `<directory>-v<semver>` per product (`pluto-lib-v1.0.0`, `tconstruct-v1
 
 Release criteria (step 7): CI green on the release commit; `tools/smoke-local` passes against the pinned Horizon; the release is built from a written-down PlutoLib/Horizon/Mixins triple; save/reload and LAN paths of the shipped feature groups are exercised, not assumed; README and docs state what is and is not supported.
 
+### 1.1 Port by domain (steps 3 and 4 in the order the owner approved)
+
+The original Java at the pinned revision is the specification (the existing Rust is of unknown correctness). Each domain is one design, one PlutoLib API set, one build and one in-game check, and its direct injections leave Tinkers. Out of scope: everything for other mods (the original's `plugin` package: no integration items, blocks or systems). Rules: PlutoLib keeps its responsibilities (design principles); anything Horizon does not offer is a PlutoLib injection plus a documented API; mods on PlutoLib never compete for injections (PlutoLib owns each injection point once and dispatches to callbacks; a mod ships none).
+
+| Phase | Domain (original size) | PlutoLib foundations it needs first | PRs |
+|---|---|---|---|
+| A | **Foundations**: creative tabs (paged, stacks with data that can be taken out; the feature of the old bundle, redesigned), block data and ticking per position, fluid tanks, menus (screens), rendering base, injection-ownership check | those themselves | 6 to 8 |
+| B | fluids (2k lines) | fluids | 1 to 2 |
+| C | gadgets (3k) | item use, entities | 1 to 2 |
+| D | world: slime islands, plants, saplings, worldgen (6k) | block behaviour, worldgen | 2 to 3 |
+| E | shared: blocks, items, recipes, commands, config (6k) | commands, config, data | 1 to 2 |
+| F | common: network, tags, data loading (10k) | networking, data | 2 to 3 |
+| G | tables: tool stations, Part Builder, anvil, book (10k) | menus, block data, rendering, creative tabs | 3 to 4 |
+| H | smeltery: smeltery, melter, casting, faucet, channel, tanks (20k) | fluid tanks, block data, multiblock structures | 4 to 6 |
+| I | tools: tools, materials, traits, mining, melee, ranged, armour (38k and part of library) | item use, entities, attributes | 5 to 8 |
+| J | finish: whole-game check, the open PRs and issues, the gap list against the original | | 2 to 3 |
+
+Each domain ends with: a table comparing the original's behaviour with the port (in the pull request), the domain's direct injections removed, the in-game check written down as run or not run, and PlutoLib's pages and tests updated. Phase status is kept in the decision log.
+
 ## 2. Overnight run (unattended)
 
 The agent keeps working without stopping until the owner is back. It decides for itself inside the limits below, records each non-obvious decision in the log at the end of this file, and never waits for an answer it can replace with the conservative default.
