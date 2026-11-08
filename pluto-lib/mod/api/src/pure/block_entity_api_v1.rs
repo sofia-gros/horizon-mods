@@ -8,17 +8,78 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use super::base::{Identifier, NbtCompound};
+use super::base::{Identifier, Nbt, NbtCompound};
 
 /// A block position `[x, y, z]`.
 pub type BlockPos = [i32; 3];
 
-/// What a ticker receives: where the block entity is and its saved data, which the ticker may change.
+/// One stack in an item slot, reduced to the item and the count. A stack whose item is not changed keeps its data when only the count
+/// is changed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemSlot {
+    /// The item.
+    pub item: Identifier,
+    /// How many.
+    pub count: u32,
+}
+
+/// Fluid in a tank: which fluid and how many millibuckets (a bucket is a thousand).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FluidStack {
+    /// The fluid, such as `minecraft:water` or a mod's own.
+    pub fluid: Identifier,
+    /// Millibuckets.
+    pub amount: u32,
+}
+
+/// What a ticker receives: where the block entity is, its saved data and its item slots, which the ticker may change.
 pub struct BlockEntityTick<'a> {
     /// The block entity's position.
     pub pos: BlockPos,
     /// The block entity's saved data, without the position and the id; changes are saved with the chunk.
     pub data: &'a mut NbtCompound,
+    /// The item slots, as many as the type declared (none if it declared none); an empty slot is `None`.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+}
+
+impl BlockEntityTick<'_> {
+    /// The fluid in tank `index`, if it holds any (tanks are declared with [`BlockEntityType::fluid_tanks`]).
+    pub fn fluid(&self, index: usize) -> Option<FluidStack> {
+        let tank = self.data.get("fluids")?.as_list()?.get(index)?.as_compound()?;
+        let fluid = tank.get("Fluid")?.as_str()?;
+        let amount = tank.get("Amount")?.as_i64()?;
+        if fluid == "minecraft:empty" || amount <= 0 {
+            return None;
+        }
+        Some(FluidStack { fluid: Identifier::parse(fluid).ok()?, amount: amount as u32 })
+    }
+
+    /// Puts `stack` in tank `index`, or empties the tank with `None`. The tanks before `index` are kept (empty if there are none yet).
+    pub fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>) {
+        let mut tanks: Vec<Nbt> = match self.data.get("fluids") {
+            Some(Nbt::List(list)) => list.clone(),
+            _ => Vec::new(),
+        };
+        let empty = || {
+            let mut tank = NbtCompound::new();
+            tank.insert("Fluid".to_owned(), Nbt::String("minecraft:empty".to_owned()));
+            tank.insert("Amount".to_owned(), Nbt::Int(0));
+            Nbt::Compound(tank)
+        };
+        while tanks.len() <= index {
+            tanks.push(empty());
+        }
+        tanks[index] = match stack {
+            Some(stack) if stack.amount > 0 => {
+                let mut tank = NbtCompound::new();
+                tank.insert("Fluid".to_owned(), Nbt::String(stack.fluid.to_string()));
+                tank.insert("Amount".to_owned(), Nbt::Int(stack.amount.min(i32::MAX as u32) as i32));
+                Nbt::Compound(tank)
+            }
+            _ => empty(),
+        };
+        self.data.insert("fluids".to_owned(), Nbt::List(tanks));
+    }
 }
 
 type Ticker = Arc<dyn Fn(&mut BlockEntityTick<'_>) + Send + Sync>;
@@ -33,6 +94,8 @@ pub struct BlockEntityType {
     pub id: Identifier,
     /// The data a new block entity starts with.
     pub initial_data: NbtCompound,
+    slots: u32,
+    tanks: Vec<u32>,
     ticker: Option<Ticker>,
     update_tag: Option<UpdateTag>,
 }
@@ -40,7 +103,7 @@ pub struct BlockEntityType {
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), ticker: None, update_tag: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, tanks: Vec::new(), ticker: None, update_tag: None }
     }
 
     /// The same type under another id.
@@ -52,6 +115,20 @@ impl BlockEntityType {
     /// The same type, new block entities starting with `data`.
     pub fn initial_data(mut self, data: NbtCompound) -> Self {
         self.initial_data = data;
+        self
+    }
+
+    /// The same type, with `count` item slots (at most 256) that hoppers and the block's menu can reach (Minecraft: `Container`).
+    pub fn item_slots(mut self, count: u32) -> Self {
+        self.slots = count.min(256);
+        self
+    }
+
+    /// The same type, with one fluid tank for each capacity given, in millibuckets (at most 16 tanks, each 1 to 1 000 000). The
+    /// contents are saved with the block entity; read and change them in the ticker with [`BlockEntityTick::fluid`] and
+    /// [`BlockEntityTick::set_fluid`], and other blocks can fill and drain them (Fabric: `FluidStorage`).
+    pub fn fluid_tanks(mut self, capacities: impl IntoIterator<Item = u32>) -> Self {
+        self.tanks = capacities.into_iter().take(16).map(|c| c.clamp(1, 1_000_000)).collect();
         self
     }
 
@@ -103,16 +180,26 @@ pub(crate) fn create(block: &str) -> Option<(String, NbtCompound)> {
     BlockEntityTypeRegistry::get(block).map(|t| (t.id.to_string(), t.initial_data))
 }
 
+/// The number of item slots the block's block entity has; None if it has no container.
+pub(crate) fn item_slots(block: &str) -> Option<u32> {
+    BlockEntityTypeRegistry::get(block).map(|t| t.slots).filter(|&n| n > 0)
+}
+
+/// The capacity of each fluid tank of the block's block entity; None if it has none.
+pub(crate) fn fluid_tanks(block: &str) -> Option<Vec<u32>> {
+    BlockEntityTypeRegistry::get(block).map(|t| t.tanks).filter(|t| !t.is_empty())
+}
+
 /// Whether the block's block entity ticks.
 pub(crate) fn ticks(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.ticker.is_some())
 }
 
 /// Runs the ticker of the block entity type `entity_id` on `data`; true if a ticker ran.
-pub(crate) fn tick(entity_id: &str, pos: BlockPos, data: &mut NbtCompound) -> bool {
+pub(crate) fn tick(entity_id: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> bool {
     match by_entity_id(entity_id).and_then(|t| t.ticker) {
         Some(ticker) => {
-            ticker(&mut BlockEntityTick { pos, data });
+            ticker(&mut BlockEntityTick { pos, data, items });
             true
         }
         None => false,
@@ -155,8 +242,9 @@ mod tests {
         let (entity, mut data) = create("test:furnace").unwrap();
         assert_eq!(entity, "test:furnace_entity");
         assert!(ticks("test:furnace"));
-        assert!(tick(&entity, [5, 64, 5], &mut data));
-        assert!(tick(&entity, [5, 64, 5], &mut data));
+        let mut items = Vec::new();
+        assert!(tick(&entity, [5, 64, 5], &mut data, &mut items));
+        assert!(tick(&entity, [5, 64, 5], &mut data, &mut items));
         assert_eq!(data.get_int("heat", -1), 2);
         assert_eq!(data.get_int("x", -1), 5);
         let tag = update_tag(&entity, &data).unwrap();
@@ -164,7 +252,25 @@ mod tests {
         assert_eq!(tag.get_int("heat", -1), 2);
         assert!(create("test:unknown").is_none());
         assert!(!ticks("test:unknown"));
-        assert!(!tick("test:unknown_entity", [0; 3], &mut data));
+        assert!(!tick("test:unknown_entity", [0; 3], &mut data, &mut items));
+    }
+
+    #[test]
+    fn slots_and_tanks_are_declared_per_block_and_fluid_contents_round_trip_through_the_saved_data() {
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:tank")).item_slots(3).fluid_tanks([4000, 0, 5_000_000]));
+        assert_eq!(item_slots("test:tank"), Some(3));
+        assert_eq!(fluid_tanks("test:tank"), Some(vec![4000, 1, 1_000_000]), "capacities are clamped to 1..=1 000 000");
+        assert_eq!(item_slots("test:nothing"), None);
+        let mut data = NbtCompound::new();
+        let mut items = vec![None, Some(ItemSlot { item: id("minecraft:stick"), count: 2 }), None];
+        let mut tick = BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items };
+        assert_eq!(tick.fluid(1), None);
+        tick.set_fluid(1, Some(FluidStack { fluid: id("minecraft:lava"), amount: 250 }));
+        assert_eq!(tick.fluid(0), None, "the tank before is kept, empty");
+        assert_eq!(tick.fluid(1), Some(FluidStack { fluid: id("minecraft:lava"), amount: 250 }));
+        tick.set_fluid(1, None);
+        assert_eq!(tick.fluid(1), None);
+        assert_eq!(tick.items[1].as_ref().unwrap().count, 2);
     }
 
     #[test]
@@ -174,7 +280,7 @@ mod tests {
         let mut data = NbtCompound::new();
         data.insert("a".into(), Nbt::Byte(1));
         assert_eq!(update_tag("test:quiet", &data), Some(data.clone()));
-        assert!(!tick("test:quiet", [0; 3], &mut data));
+        assert!(!tick("test:quiet", [0; 3], &mut data, &mut Vec::new()));
         BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:quiet")));
         assert!(update_tag("test:quiet", &data).is_none(), "registering again replaces the earlier type");
     }

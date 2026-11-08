@@ -7,7 +7,7 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
@@ -15,7 +15,7 @@ use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use crate::pure::base::{Nbt, NbtCompound};
-use crate::pure::block_entity_api_v1;
+use crate::pure::block_entity_api_v1::{self, ItemSlot};
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
@@ -207,6 +207,18 @@ impl Hooks for PlutoHooks {
         block_entity_api_v1::create(event.block).map(|(id, data)| (id, compound_to_tag(&data)))
     }
 
+    fn block_entity_container(&self, _host: &dyn Host, event: &mut BlockEntityContainerEvent<'_>) -> Option<ModContainer> {
+        let slots = block_entity_api_v1::item_slots(event.block)? as usize;
+        let all: Vec<usize> = (0..slots).collect();
+        Some(ModContainer { slots, faces: std::array::from_fn(|_| all.clone()), inputs: all.clone(), outputs: all, menu: None })
+    }
+
+    fn block_entity_fluids(&self, _host: &dyn Host, event: &mut BlockEntityFluidsEvent<'_>) -> Option<ModFluidTanks> {
+        let tanks = block_entity_api_v1::fluid_tanks(event.block)?;
+        let all: Vec<usize> = (0..tanks.len()).collect();
+        Some(ModFluidTanks { tanks: tanks.iter().map(|&c| c as i32).collect(), faces: std::array::from_fn(|_| all.clone()), inputs: all.clone(), outputs: all })
+    }
+
     fn block_entity_ticks(&self, _host: &dyn Host, event: &mut BlockEntityTicksEvent<'_>) {
         if block_entity_api_v1::ticks(event.block) {
             event.ticks = true;
@@ -217,8 +229,32 @@ impl Hooks for PlutoHooks {
         let id = event.entity.id.clone();
         let mut data = compound_from_tag(&event.entity.nbt);
         let before = data.clone();
-        if block_entity_api_v1::tick(&id, event.pos, &mut data) && data != before {
-            event.entity.nbt = compound_to_tag(&data);
+        let original: Vec<Option<ItemStack>> = event.entity.items.clone();
+        let mut items: Vec<Option<ItemSlot>> = original
+            .iter()
+            .map(|slot| slot.as_ref().and_then(|s| Some(ItemSlot { item: crate::pure::base::Identifier::parse(&s.item).ok()?, count: s.count })))
+            .collect();
+        let before_items = items.clone();
+        if block_entity_api_v1::tick(&id, event.pos, &mut data, &mut items) {
+            if data != before {
+                event.entity.nbt = compound_to_tag(&data);
+            }
+            if items != before_items {
+                // a slot whose item is the same keeps its data and only takes the new count
+                event.entity.items = items
+                    .iter()
+                    .zip(original.iter().chain(std::iter::repeat(&None)))
+                    .map(|(now, was)| match (now, was) {
+                        (None, _) => None,
+                        (Some(slot), Some(old)) if old.item.as_ref() == slot.item.to_string() => {
+                            let mut kept = old.clone();
+                            kept.count = slot.count;
+                            Some(kept)
+                        }
+                        (Some(slot), _) => Some(ItemStack::new(&slot.item.to_string(), slot.count)),
+                    })
+                    .collect();
+            }
         }
     }
 
