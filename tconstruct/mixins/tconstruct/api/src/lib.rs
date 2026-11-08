@@ -2,7 +2,7 @@
 //! expressed through PlutoLib stays in the manifest's direct injections.
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use pluto_lib::{AttachmentRegistry, CommandContext, CommandRegistrationCallback, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, ServerPlayConnectionEvents};
+use pluto_lib::{AttachmentRegistry, CommandContext, ItemUse, ItemUseRegistry, UseAction, CommandRegistrationCallback, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, ServerPlayConnectionEvents};
 
 /// `config/tconstruct-common.toml`, `[gameplay] shouldSpawnWithTinkersBook` (default true), as in the original mod.
 static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
@@ -24,6 +24,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
             println!("tconstruct: gave the starting book to {}", join.name);
         }
     });
+    // a cheese block is eaten over 32 ticks (its start check and finish handling are still the game-side injections)
+    ItemUseRegistry::register(Identifier::new("tconstruct", "cheese_block").expect("valid id"), ItemUse { use_time: 32, action: UseAction::Eat });
     CommandRegistrationCallback::EVENT.register(|registrar| {
         registrar.register("tconstruct parts", parts);
         registrar.register("tconstruct assemble", assemble);

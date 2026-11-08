@@ -4,8 +4,10 @@
 //! show a callback the lines already there (see the support matrix).
 
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
-use super::base::Event;
+use super::base::{Event, Identifier};
 
 /// One tooltip line to add.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -48,9 +50,87 @@ pub(crate) fn item_tooltip(item: &str, count: u32) -> Vec<TooltipLine> {
     context.added.into_inner()
 }
 
+/// How the player holds an item while using it over time (Fabric: `UseAction`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum UseAction {
+    /// No pose: the item is held still.
+    None,
+    /// Brought to the mouth, eating.
+    Eat,
+    /// Brought to the mouth, drinking.
+    Drink,
+    /// Raised like a shield.
+    Block,
+    /// Drawn like a bow.
+    Bow,
+    /// Raised like a trident.
+    Trident,
+    /// Loaded like a crossbow.
+    Crossbow,
+    /// Held to the eye like a spyglass.
+    Spyglass,
+    /// Blown like a goat horn.
+    TootHorn,
+    /// Swept like a brush.
+    Brush,
+    /// Held like a bundle.
+    Bundle,
+    /// Held like a spear.
+    Spear,
+}
+
+/// An item that is used over time (Fabric: `Item.getMaxUseTime` and `Item.getUseAction`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ItemUse {
+    /// Ticks the use takes before it completes; 20 ticks are one second.
+    pub use_time: i32,
+    /// The pose while using.
+    pub action: UseAction,
+}
+
+static ITEM_USES: Mutex<Option<HashMap<String, ItemUse>>> = Mutex::new(None);
+
+/// Registers how items are used over time (Fabric: overriding `getMaxUseTime` / `getUseAction` in an `Item` subclass).
+pub struct ItemUseRegistry;
+
+impl ItemUseRegistry {
+    /// Makes `item` usable over time. Applies to every stack of that item; registering the same item again replaces the earlier entry.
+    pub fn register(item: Identifier, behavior: ItemUse) {
+        if let Ok(mut all) = ITEM_USES.lock() {
+            all.get_or_insert_with(HashMap::new).insert(item.to_string(), behavior);
+        }
+    }
+
+    /// What was registered for `item` (an id such as `tconstruct:cheese_block`), if anything.
+    pub fn get(item: &str) -> Option<ItemUse> {
+        ITEM_USES.lock().ok()?.as_ref()?.get(item).copied()
+    }
+}
+
+/// The use time the game should use for `item`: the registered one, else the game's own.
+pub(crate) fn use_duration(item: &str, game_default: i32) -> i32 {
+    ItemUseRegistry::get(item).map_or(game_default, |behavior| behavior.use_time)
+}
+
+/// The pose for `item`: the registered one, else None (the game keeps its own).
+pub(crate) fn use_animation(item: &str) -> Option<UseAction> {
+    ItemUseRegistry::get(item).map(|behavior| behavior.action)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_registered_item_gets_its_use_time_and_pose_and_others_keep_the_games() {
+        ItemUseRegistry::register(Identifier::new("test", "wheel").unwrap(), ItemUse { use_time: 32, action: UseAction::Eat });
+        assert_eq!(use_duration("test:wheel", 0), 32);
+        assert_eq!(use_animation("test:wheel"), Some(UseAction::Eat));
+        assert_eq!(use_duration("test:other", 7), 7);
+        assert_eq!(use_animation("test:other"), None);
+        ItemUseRegistry::register(Identifier::new("test", "wheel").unwrap(), ItemUse { use_time: 10, action: UseAction::Drink });
+        assert_eq!(ItemUseRegistry::get("test:wheel"), Some(ItemUse { use_time: 10, action: UseAction::Drink }));
+    }
 
     #[test]
     fn callbacks_add_lines_in_registration_order_for_the_item_they_choose() {

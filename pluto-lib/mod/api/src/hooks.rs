@@ -6,7 +6,7 @@
 use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
-    NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
+    UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
@@ -123,6 +123,30 @@ fn model_config(file: &NativeConfigFile) -> ModConfig {
 }
 
 impl Hooks for PlutoHooks {
+    fn use_duration(&self, _host: &dyn Host, event: &mut UseDurationEvent<'_>) {
+        event.duration = item_api_v1::use_duration(&event.stack.item, event.duration);
+    }
+
+    fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
+        use item_api_v1::UseAction;
+        if let Some(action) = item_api_v1::use_animation(&event.stack.item) {
+            *event.animation = match action {
+                UseAction::None => UseAnimation::None,
+                UseAction::Eat => UseAnimation::Eat,
+                UseAction::Drink => UseAnimation::Drink,
+                UseAction::Block => UseAnimation::Block,
+                UseAction::Bow => UseAnimation::Bow,
+                UseAction::Trident => UseAnimation::Trident,
+                UseAction::Crossbow => UseAnimation::Crossbow,
+                UseAction::Spyglass => UseAnimation::Spyglass,
+                UseAction::TootHorn => UseAnimation::TootHorn,
+                UseAction::Brush => UseAnimation::Brush,
+                UseAction::Bundle => UseAnimation::Bundle,
+                UseAction::Spear => UseAnimation::Spear,
+            };
+        }
+    }
+
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
         for (usage, level) in command_api_v2::collect() {
             event.commands.push(if level == 0 { NativeCommand::new(&usage) } else { NativeCommand::op(&usage, level) });
