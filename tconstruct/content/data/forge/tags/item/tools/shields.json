@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:battlesign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_shield",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_shield",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:knightmetal_block",
+      "required": false
+    },
+    {
+      "id": "tconstruct:knightslime_block",
+      "required": false
+    }
+  ]
+}

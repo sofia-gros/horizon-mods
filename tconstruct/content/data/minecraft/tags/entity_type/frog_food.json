@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sky_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:terracube",
+      "required": false
+    }
+  ]
+}

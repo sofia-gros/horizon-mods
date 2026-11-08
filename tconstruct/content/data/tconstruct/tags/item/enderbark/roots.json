@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:enderbark_roots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_enderbark_roots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_enderbark_roots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_enderbark_roots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_enderbark_roots",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:mushroom_stew",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_mushroom_stew",
+      "required": false
+    }
+  ]
+}

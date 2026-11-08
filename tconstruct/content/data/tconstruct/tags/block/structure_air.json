@@ -1,0 +1,9 @@
+{
+  "values": [
+    "minecraft:light",
+    {
+      "id": "tconstruct:glow",
+      "required": false
+    }
+  ]
+}

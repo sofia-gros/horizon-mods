@@ -1,0 +1,48 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:earth_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:sky_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:ichor",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:ender_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:magma",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_ender",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_slimesteel",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_queens_slime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_cinderslime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_knightslime",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:molten_signalum",
+      "required": false
+    }
+  ]
+}

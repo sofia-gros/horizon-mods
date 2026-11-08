@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/ranged/longbows",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ranged/crossbows",
+      "required": false
+    }
+  ]
+}

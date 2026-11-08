@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/interactable/left",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/interactable/right",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/interactable/armor",
+      "required": false
+    }
+  ]
+}

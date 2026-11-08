@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:cast_chest",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_bars",
+      "required": false
+    },
+    {
+      "id": "tconstruct:gold_platform",
+      "required": false
+    }
+  ]
+}

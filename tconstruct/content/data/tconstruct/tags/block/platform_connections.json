@@ -1,0 +1,27 @@
+{
+  "values": [
+    "minecraft:lever",
+    "minecraft:ladder",
+    "minecraft:iron_bars",
+    {
+      "id": "tconstruct:gold_bars",
+      "required": false
+    },
+    "minecraft:tripwire_hook",
+    "minecraft:wall_torch",
+    "minecraft:soul_wall_torch",
+    "minecraft:redstone_wall_torch",
+    "minecraft:redstone_wire",
+    {
+      "id": "#forge:glass_panes",
+      "required": false
+    },
+    "#minecraft:buttons",
+    {
+      "id": "#forge:fences",
+      "required": false
+    },
+    "#minecraft:walls",
+    "#minecraft:wall_signs"
+  ]
+}

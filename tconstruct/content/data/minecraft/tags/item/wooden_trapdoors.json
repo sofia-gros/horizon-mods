@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_trapdoor",
+      "required": false
+    }
+  ]
+}

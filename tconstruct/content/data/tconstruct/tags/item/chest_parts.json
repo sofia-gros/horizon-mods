@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:parts",
+      "required": false
+    },
+    {
+      "id": "tconstruct:helmet_plating_dummy",
+      "required": false
+    },
+    {
+      "id": "tconstruct:chestplate_plating_dummy",
+      "required": false
+    },
+    {
+      "id": "tconstruct:leggings_plating_dummy",
+      "required": false
+    },
+    {
+      "id": "tconstruct:boots_plating_dummy",
+      "required": false
+    }
+  ]
+}

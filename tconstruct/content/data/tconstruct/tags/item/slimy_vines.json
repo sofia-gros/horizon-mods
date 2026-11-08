@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sky_slime_vine",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_vine",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_heater",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:seared_tanks",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:scorched_tanks",
+      "required": false
+    }
+  ]
+}

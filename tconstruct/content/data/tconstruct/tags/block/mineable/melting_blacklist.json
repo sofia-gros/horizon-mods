@@ -1,0 +1,76 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_melter",
+      "required": false
+    },
+    {
+      "id": "tconstruct:smeltery_controller",
+      "required": false
+    },
+    {
+      "id": "tconstruct:foundry_controller",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_lantern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lantern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fluid_cannon",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fluid_cannon",
+      "required": false
+    },
+    {
+      "id": "tconstruct:end_fluid_cannon",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_casting_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_proxy_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_gauge",
+      "required": false
+    }
+  ]
+}

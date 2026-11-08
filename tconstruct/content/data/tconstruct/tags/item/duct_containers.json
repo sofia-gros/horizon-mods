@@ -1,0 +1,17 @@
+{
+  "values": [
+    "minecraft:bucket",
+    {
+      "id": "tconstruct:copper_can",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_lantern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lantern",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:scorched_bricks_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blazewood_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nahuatl_fence",
+      "required": false
+    }
+  ]
+}

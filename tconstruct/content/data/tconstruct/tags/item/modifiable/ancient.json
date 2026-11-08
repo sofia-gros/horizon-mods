@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:melting_pan",
+      "required": false
+    },
+    {
+      "id": "tconstruct:war_pick",
+      "required": false
+    },
+    {
+      "id": "tconstruct:battlesign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:swasher",
+      "required": false
+    },
+    {
+      "id": "tconstruct:minotaur_axe",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_bendalloy",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_bendalloy",
+      "required": false
+    }
+  ]
+}

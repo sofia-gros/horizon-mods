@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:earth_slime_sapling",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_sapling",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_sapling",
+      "required": false
+    }
+  ]
+}

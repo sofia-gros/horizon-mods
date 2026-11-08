@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:ichor_slime_leaves",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_leaves",
+      "required": false
+    }
+  ]
+}

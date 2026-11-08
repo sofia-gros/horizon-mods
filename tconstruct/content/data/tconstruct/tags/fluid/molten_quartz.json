@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_quartz",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_quartz",
+      "required": false
+    }
+  ]
+}

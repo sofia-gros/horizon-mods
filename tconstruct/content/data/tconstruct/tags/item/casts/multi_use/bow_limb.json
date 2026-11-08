@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:bow_limb_cast",
+      "required": false
+    }
+  ]
+}

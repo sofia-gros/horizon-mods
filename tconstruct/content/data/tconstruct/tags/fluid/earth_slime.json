@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:earth_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_earth_slime",
+      "required": false
+    }
+  ]
+}

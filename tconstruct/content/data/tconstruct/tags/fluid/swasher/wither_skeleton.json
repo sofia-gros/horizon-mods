@@ -1,0 +1,17 @@
+{
+  "values": [
+    "minecraft:lava",
+    {
+      "id": "tconstruct:blazing_blood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:liquid_soul",
+      "required": false
+    },
+    {
+      "id": "tconstruct:magma",
+      "required": false
+    }
+  ]
+}

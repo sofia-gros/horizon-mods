@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_sign",
+      "required": false
+    }
+  ]
+}

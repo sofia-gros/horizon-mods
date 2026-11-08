@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:pick_head_cast",
+      "required": false
+    }
+  ]
+}

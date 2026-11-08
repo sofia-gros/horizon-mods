@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:earth_slime_leaves",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_leaves",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_leaves",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_leaves",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_leaves",
+      "required": false
+    }
+  ]
+}

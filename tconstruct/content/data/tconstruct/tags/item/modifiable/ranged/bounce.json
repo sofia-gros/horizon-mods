@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:swasher",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ranged/longbows",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/staffs",
+      "required": false
+    }
+  ]
+}

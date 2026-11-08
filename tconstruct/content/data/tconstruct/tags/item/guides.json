@@ -1,0 +1,28 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:materials_and_you",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tinkers_gadgetry",
+      "required": false
+    },
+    {
+      "id": "tconstruct:puny_smelting",
+      "required": false
+    },
+    {
+      "id": "tconstruct:mighty_smelting",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fantastic_foundry",
+      "required": false
+    },
+    {
+      "id": "tconstruct:encyclopedia",
+      "required": false
+    }
+  ]
+}

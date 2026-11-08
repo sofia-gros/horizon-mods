@@ -1,0 +1,28 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:congealed_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:grout",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nether_grout",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_sapling",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_sapling",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:slimy_soil",
+      "required": false
+    }
+  ]
+}

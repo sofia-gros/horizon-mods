@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:structure_debug/general",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:smeltery",
+      "required": false
+    }
+  ]
+}

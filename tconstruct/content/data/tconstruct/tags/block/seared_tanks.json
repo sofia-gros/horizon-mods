@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_gauge",
+      "required": false
+    }
+  ]
+}

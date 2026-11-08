@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:pick_head_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:pick_head_red_sand_cast",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:crafting_station",
+      "required": false
+    },
+    {
+      "id": "tconstruct:part_builder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tinker_station",
+      "required": false
+    }
+  ]
+}

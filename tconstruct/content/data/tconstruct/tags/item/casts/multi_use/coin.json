@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:coin_cast",
+      "required": false
+    }
+  ]
+}

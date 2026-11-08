@@ -1,0 +1,28 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:soul_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_soul_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_soul_glass_pane",
+      "required": false
+    }
+  ]
+}

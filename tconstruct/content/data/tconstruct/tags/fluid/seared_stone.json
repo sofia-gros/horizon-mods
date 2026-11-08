@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_seared_stone",
+      "required": false
+    }
+  ]
+}

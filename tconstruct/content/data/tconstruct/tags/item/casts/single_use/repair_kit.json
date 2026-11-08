@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:repair_kit_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:repair_kit_red_sand_cast",
+      "required": false
+    }
+  ]
+}

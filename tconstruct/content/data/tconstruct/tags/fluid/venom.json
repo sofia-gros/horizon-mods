@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:venom",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_venom",
+      "required": false
+    }
+  ]
+}

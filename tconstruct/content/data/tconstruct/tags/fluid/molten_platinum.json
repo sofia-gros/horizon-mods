@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_platinum",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_platinum",
+      "required": false
+    }
+  ]
+}

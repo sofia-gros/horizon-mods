@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:greenheart_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_pressure_plate",
+      "required": false
+    }
+  ]
+}

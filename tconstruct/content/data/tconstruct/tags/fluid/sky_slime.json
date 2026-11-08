@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sky_slime",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_sky_slime",
+      "required": false
+    }
+  ]
+}

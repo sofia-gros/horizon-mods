@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:fiery_liquid",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_fiery_liquid",
+      "required": false
+    }
+  ]
+}

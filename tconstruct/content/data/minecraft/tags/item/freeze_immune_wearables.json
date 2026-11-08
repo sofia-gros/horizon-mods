@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:travelers_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_boots",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:arrow",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_staff",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_staff",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_staff",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_staff",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_boots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:plate_boots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_helmet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slimy_chestplate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_leggings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_boots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:slime_wings",
+      "required": false
+    },
+    {
+      "id": "tconstruct:travelers_shield",
+      "required": false
+    }
+  ]
+}

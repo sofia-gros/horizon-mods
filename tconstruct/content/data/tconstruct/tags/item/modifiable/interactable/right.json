@@ -1,0 +1,72 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:pickaxe",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sledge_hammer",
+      "required": false
+    },
+    {
+      "id": "tconstruct:vein_hammer",
+      "required": false
+    },
+    {
+      "id": "tconstruct:mattock",
+      "required": false
+    },
+    {
+      "id": "tconstruct:pickadze",
+      "required": false
+    },
+    {
+      "id": "tconstruct:excavator",
+      "required": false
+    },
+    {
+      "id": "tconstruct:hand_axe",
+      "required": false
+    },
+    {
+      "id": "tconstruct:broad_axe",
+      "required": false
+    },
+    {
+      "id": "tconstruct:kama",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scythe",
+      "required": false
+    },
+    {
+      "id": "tconstruct:dagger",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sword",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cleaver",
+      "required": false
+    },
+    {
+      "id": "tconstruct:javelin",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flint_and_brick",
+      "required": false
+    },
+    {
+      "id": "tconstruct:minotaur_axe",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/interactable/dual",
+      "required": false
+    }
+  ]
+}

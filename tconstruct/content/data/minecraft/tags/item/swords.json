@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:dagger",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sword",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cleaver",
+      "required": false
+    },
+    {
+      "id": "tconstruct:swasher",
+      "required": false
+    }
+  ]
+}

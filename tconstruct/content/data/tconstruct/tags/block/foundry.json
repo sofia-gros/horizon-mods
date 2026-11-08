@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:foundry/wall",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:foundry/floor",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:foundry/tanks",
+      "required": false
+    }
+  ]
+}

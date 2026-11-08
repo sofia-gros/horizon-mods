@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_ladder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ladder",
+      "required": false
+    }
+  ]
+}

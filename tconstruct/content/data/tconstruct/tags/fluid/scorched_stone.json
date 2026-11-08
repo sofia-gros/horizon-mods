@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:scorched_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_scorched_stone",
+      "required": false
+    }
+  ]
+}

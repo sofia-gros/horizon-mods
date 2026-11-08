@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:crossbow",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fishing_rod",
+      "required": false
+    }
+  ]
+}

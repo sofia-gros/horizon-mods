@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cracked_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_paver",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:seared_bricks",
+      "required": false
+    }
+  ]
+}

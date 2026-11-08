@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:molten_refined_obsidian",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_molten_refined_obsidian",
+      "required": false
+    }
+  ]
+}

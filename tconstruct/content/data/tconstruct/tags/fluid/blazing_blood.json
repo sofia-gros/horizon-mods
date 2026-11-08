@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:blazing_blood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_blazing_blood",
+      "required": false
+    }
+  ]
+}

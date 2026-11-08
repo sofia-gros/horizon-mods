@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:liquid_soul",
+      "required": false
+    },
+    {
+      "id": "tconstruct:flowing_liquid_soul",
+      "required": false
+    }
+  ]
+}

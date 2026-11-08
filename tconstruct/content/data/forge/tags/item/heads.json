@@ -1,0 +1,41 @@
+{
+  "values": [
+    "minecraft:piglin_head",
+    {
+      "id": "tconstruct:blaze_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderman_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stray_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:husk_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:drowned_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:spider_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cave_spider_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:piglin_brute_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:zombified_piglin_head",
+      "required": false
+    }
+  ]
+}

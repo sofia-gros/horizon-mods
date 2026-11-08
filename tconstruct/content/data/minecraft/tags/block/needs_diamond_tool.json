@@ -18,6 +18,58 @@
     "tconstruct:earth_enderbark_roots",
     "tconstruct:sky_enderbark_roots",
     "tconstruct:ichor_enderbark_roots",
-    "tconstruct:ender_enderbark_roots"
+    "tconstruct:ender_enderbark_roots",
+    {
+      "id": "tconstruct:nahuatl",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nahuatl_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nahuatl_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nahuatl_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_roots",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_drain",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_chute",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_proxy_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:foundry_controller",
+      "required": false
+    },
+    {
+      "id": "tconstruct:obsidian_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:end_fluid_cannon",
+      "required": false
+    }
   ]
 }

@@ -1,0 +1,280 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sky_slime_dirt",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_sky_slime_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_sky_slime_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_vanilla_slime_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_stone_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_stone_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_paver",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_paver_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_paver_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cobble_wall",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_bricks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_bricks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_bricks_wall",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_cracked_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fancy_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_triangle_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ladder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_lamp",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_tinted_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_soul_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_bricks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_bricks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_bricks_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_road",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_road_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_road_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:polished_scorched_stone",
+      "required": false
+    },
+    {
+      "id": "tconstruct:chiseled_scorched_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ladder",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lamp",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_soul_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_tinted_glass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_soul_glass_pane",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_ingot_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_lantern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_faucet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_channel",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_basin",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_table",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_casting_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_lantern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_faucet",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_channel",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_basin",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_table",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_heater",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_melter",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_alloyer",
+      "required": false
+    }
+  ]
+}

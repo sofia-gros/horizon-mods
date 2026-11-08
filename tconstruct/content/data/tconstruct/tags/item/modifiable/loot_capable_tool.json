@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/melee",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/harvest",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/fishing_rods",
+      "required": false
+    }
+  ]
+}

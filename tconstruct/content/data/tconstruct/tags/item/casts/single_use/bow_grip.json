@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:bow_grip_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bow_grip_red_sand_cast",
+      "required": false
+    }
+  ]
+}

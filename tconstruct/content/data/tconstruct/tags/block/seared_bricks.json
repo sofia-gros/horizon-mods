@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:seared_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fancy_bricks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_triangle_bricks",
+      "required": false
+    }
+  ]
+}

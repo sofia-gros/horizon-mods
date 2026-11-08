@@ -1,0 +1,40 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/multipart",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/durability",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/melee",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/harvest",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ranged",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ammo",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/aoe",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/held",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/bonus_slots",
+      "required": false
+    }
+  ]
+}

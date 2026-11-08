@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:tool_binding_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:tool_binding_red_sand_cast",
+      "required": false
+    }
+  ]
+}

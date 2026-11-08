@@ -1,0 +1,13 @@
+{
+  "values": [
+    "minecraft:crafting_table",
+    {
+      "id": "tconstruct:crafting_station",
+      "required": false
+    },
+    {
+      "id": "#forge:workbench",
+      "required": false
+    }
+  ]
+}

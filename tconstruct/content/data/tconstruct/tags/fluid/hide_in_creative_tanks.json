@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:potion",
+      "required": false
+    }
+  ]
+}

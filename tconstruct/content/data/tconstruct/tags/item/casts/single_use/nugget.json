@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:nugget_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nugget_red_sand_cast",
+      "required": false
+    }
+  ]
+}

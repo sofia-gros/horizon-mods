@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:scorched_fuel_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_fuel_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_tank",
+      "required": false
+    },
+    {
+      "id": "tconstruct:scorched_ingot_gauge",
+      "required": false
+    }
+  ]
+}

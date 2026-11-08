@@ -1,0 +1,44 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:arrow_head",
+      "required": false
+    },
+    {
+      "id": "tconstruct:arrow_shaft",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fletching",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ribcage",
+      "required": false
+    },
+    {
+      "id": "tconstruct:shell",
+      "required": false
+    },
+    {
+      "id": "tconstruct:laces",
+      "required": false
+    },
+    {
+      "id": "tconstruct:repair_kit",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fake_ingot",
+      "required": false
+    },
+    {
+      "id": "tconstruct:fake_storage_block",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:parts/bartered",
+      "required": false
+    }
+  ]
+}

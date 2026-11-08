@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/book_armor/materials_and_you",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/book_armor/puny_smelting",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/book_armor/mighty_smelting",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/book_armor/fantastic_foundry",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/book_armor/tinkers_gadgetry",
+      "required": false
+    }
+  ]
+}

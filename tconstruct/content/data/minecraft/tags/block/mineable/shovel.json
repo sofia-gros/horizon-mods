@@ -37,6 +37,254 @@
     "tconstruct:sky_enderbark_roots",
     "tconstruct:ichor_enderbark_roots",
     "tconstruct:ender_enderbark_roots",
-    "tconstruct:cheese_block"
+    "tconstruct:cheese_block",
+    {
+      "id": "tconstruct:greenheart_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_planks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_planks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_greenheart_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_greenheart_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_fence_gate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_wall_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_wall_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_planks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_planks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_skyroot_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_skyroot_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_fence_gate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_wall_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:skyroot_wall_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_planks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_planks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_bloodshroom_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_bloodshroom_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_fence_gate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_wall_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:bloodshroom_wall_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_planks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_planks_slab",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_planks_stairs",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_fence",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_enderbark_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:stripped_enderbark_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_fence_gate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_door",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_trapdoor",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_pressure_plate",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_button",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_wall_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:enderbark_wall_hanging_sign",
+      "required": false
+    },
+    {
+      "id": "tconstruct:grout",
+      "required": false
+    },
+    {
+      "id": "tconstruct:nether_grout",
+      "required": false
+    }
   ]
 }

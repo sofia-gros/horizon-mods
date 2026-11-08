@@ -5,6 +5,46 @@
     "tconstruct:sky_earth_slime_grass",
     "tconstruct:blood_earth_slime_grass",
     "tconstruct:earth_sky_slime_grass",
-    "tconstruct:earth_vanilla_slime_grass"
+    "tconstruct:earth_vanilla_slime_grass",
+    {
+      "id": "tconstruct:iron_platform",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:copper_platforms",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_log",
+      "required": false
+    },
+    {
+      "id": "tconstruct:greenheart_wood",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_drain",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_chute",
+      "required": false
+    },
+    {
+      "id": "tconstruct:smeltery_controller",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_fluid_cannon",
+      "required": false
+    },
+    {
+      "id": "tconstruct:copper_gauge",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cast_chest",
+      "required": false
+    }
   ]
 }

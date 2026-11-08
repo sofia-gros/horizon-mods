@@ -1,0 +1,20 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:greenheart_logs",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:skyroot_logs",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:bloodshroom_logs",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:enderbark_logs",
+      "required": false
+    }
+  ]
+}

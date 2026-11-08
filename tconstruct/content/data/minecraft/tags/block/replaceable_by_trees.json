@@ -1,0 +1,44 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:earth_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_tall_grass",
+      "required": false
+    },
+    {
+      "id": "tconstruct:earth_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:sky_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ichor_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:ender_slime_fern",
+      "required": false
+    },
+    {
+      "id": "tconstruct:blood_slime_fern",
+      "required": false
+    }
+  ]
+}

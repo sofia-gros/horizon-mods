@@ -1,0 +1,40 @@
+{
+  "values": [
+    {
+      "id": "#forge:ingots/steel",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/cobalt",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/slimesteel",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/cinderslime",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/queens_slime",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/manyullyn",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/hepatizon",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/knightmetal",
+      "required": false
+    },
+    {
+      "id": "#forge:ingots/knightslime",
+      "required": false
+    }
+  ]
+}

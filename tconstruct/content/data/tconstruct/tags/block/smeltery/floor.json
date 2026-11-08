@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:seared_blocks",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_lamp",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_drain",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_chute",
+      "required": false
+    },
+    {
+      "id": "tconstruct:seared_duct",
+      "required": false
+    }
+  ]
+}

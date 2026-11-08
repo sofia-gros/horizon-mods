@@ -1,0 +1,120 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:casts/single_use/blank",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/ingot",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/nugget",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/gem",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/rod",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/repair_kit",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/plate",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/gear",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/coin",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/wire",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/pick_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/small_axe_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/small_blade",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/adze_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/hammer_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/broad_axe_head",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/broad_blade",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/large_plate",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/tool_binding",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/tough_binding",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/tool_handle",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/tough_handle",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/bow_limb",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/bow_grip",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/helmet_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/chestplate_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/leggings_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/boots_plating",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:casts/single_use/maille",
+      "required": false
+    }
+  ]
+}

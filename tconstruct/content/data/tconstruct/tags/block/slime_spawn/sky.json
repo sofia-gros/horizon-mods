@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:sky_slime_crystal_block",
+      "required": false
+    },
+    {
+      "id": "tconstruct:budding_sky_slime_crystal",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:slimy_grass/sky",
+      "required": false
+    }
+  ]
+}

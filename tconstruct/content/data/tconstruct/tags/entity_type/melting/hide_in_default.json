@@ -1,0 +1,9 @@
+{
+  "values": [
+    "minecraft:giant",
+    {
+      "id": "#tconstruct:melting/blacklist",
+      "required": false
+    }
+  ]
+}

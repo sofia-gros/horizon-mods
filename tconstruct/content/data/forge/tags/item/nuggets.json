@@ -1,0 +1,68 @@
+{
+  "values": [
+    {
+      "id": "#forge:nuggets/copper",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/netherite",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/netherite_scrap",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/steel",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/cobalt",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/slimesteel",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/amethyst_bronze",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/rose_gold",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/pig_iron",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/cinderslime",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/queens_slime",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/manyullyn",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/hepatizon",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/soulsteel",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/knightmetal",
+      "required": false
+    },
+    {
+      "id": "#forge:nuggets/knightslime",
+      "required": false
+    }
+  ]
+}

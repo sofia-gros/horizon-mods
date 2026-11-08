@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:ender_slime_crystal_block",
+      "required": false
+    },
+    {
+      "id": "tconstruct:budding_ender_slime_crystal",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:slimy_grass/ender",
+      "required": false
+    }
+  ]
+}

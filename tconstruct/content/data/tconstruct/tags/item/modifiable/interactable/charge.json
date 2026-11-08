@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#tconstruct:modifiable/interactable/charge/modifier",
+      "required": false
+    },
+    {
+      "id": "#tconstruct:modifiable/ranged/bows",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "tconstruct:chestplate_plating_sand_cast",
+      "required": false
+    },
+    {
+      "id": "tconstruct:chestplate_plating_red_sand_cast",
+      "required": false
+    }
+  ]
+}

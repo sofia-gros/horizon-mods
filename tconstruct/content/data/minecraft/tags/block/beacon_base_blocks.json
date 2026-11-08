@@ -1,0 +1,44 @@
+{
+  "values": [
+    {
+      "id": "#forge:storage_blocks/cobalt",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/steel",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/slimesteel",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/cinderslime",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/queens_slime",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/manyullyn",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/hepatizon",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/soulsteel",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/knightmetal",
+      "required": false
+    },
+    {
+      "id": "#forge:storage_blocks/knightslime",
+      "required": false
+    }
+  ]
+}
