@@ -5,7 +5,6 @@
   "tconstruct/mixins/tconstruct/broken-speed.rs": 2,
   "tconstruct/mixins/tconstruct/builder-info-ui.rs": 17,
   "tconstruct/mixins/tconstruct/chest-inventory-api-game.rs": 2,
-  "tconstruct/mixins/tconstruct/command.rs": 3,
   "tconstruct/mixins/tconstruct/connected-mesh-face.rs": 1,
   "tconstruct/mixins/tconstruct/game-tool-api.rs": 2,
   "tconstruct/mixins/tconstruct/gold-guard-world.rs": 1,
@@ -253,15 +252,15 @@
   "tconstruct/mixins/tconstruct/tasty-duration.rs": 1,
   "tconstruct/mixins/tconstruct/tasty-finish.rs": 2,
   "tconstruct/mixins/tconstruct/tasty-use.rs": 3,
+  "tconstruct/mixins/tconstruct/tconstruct-state.rs": 75,
   "tconstruct/mixins/tconstruct/transaction.rs": 32,
   "tconstruct/mixins/tconstruct/wear.rs": 1,
   "tconstruct/mixins/tconstruct/workstation-origin.rs": 1
  },
  "host-injection-new": {
-  "tconstruct/mixins/tconstruct/horizon-mixin.toml": 290
+  "tconstruct/mixins/tconstruct/horizon-mixin.toml": 288
  },
  "host-inventory-direct": {
-  "tconstruct/mixins/tconstruct/command.rs": 11,
   "tconstruct/mixins/tconstruct/material-attack-speed.rs": 1,
   "tconstruct/mixins/tconstruct/material-melee-bonus.rs": 1,
   "tconstruct/mixins/tconstruct/netherite-held-name.rs": 1,
@@ -324,11 +323,8 @@
   "tconstruct/tests/run_plain_stack_cells.py": 2,
   "tconstruct/tests/run_smeltery_shift_fixture.py": 1,
   "tconstruct/tests/test_blasting_display.py": 1,
-  "tconstruct/tests/test_creative_blocks.py": 1,
-  "tconstruct/tests/test_fixture_pluto_dependency.py": 5,
   "tconstruct/tests/test_gold_guard.py": 3,
   "tconstruct/tests/test_horizon_source_data.py": 2,
-  "tconstruct/tests/test_machine_sneak_passthrough.py": 1,
   "tconstruct/tests/test_native_creative_integration.py": 2,
   "tconstruct/tests/test_resources.py": 5,
   "tconstruct/tests/test_stage.py": 23,

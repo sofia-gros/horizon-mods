@@ -25,7 +25,7 @@ python -m unittest discover -s pluto-lib/tests          # about 30 s
 cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml   # PlutoLib's host-independent part, seconds
 ```
 
-Tinkers' Python tests: `python -m unittest discover -s tconstruct/tests` (long: several minutes).
+Tinkers' Python tests: `python -m unittest discover -s tconstruct/tests` (26 tests, about 75 s; nine of them skip unless `rustc` and their fixture folders are set up).
 
 With the game (needs the pinned checkouts and prepared resources):
 

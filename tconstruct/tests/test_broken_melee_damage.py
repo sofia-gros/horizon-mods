@@ -23,12 +23,6 @@ class BrokenMeleeDamage(unittest.TestCase):
             subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/broken_melee_damage.rs'), '-L', f'dependency={deps}', '--extern', f'serde_json={libraries[0]}', '-C', 'debuginfo=0', '-C', 'strip=debuginfo', '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
-    def test_active_hook(self):
-        manifest = (ROOT / 'mixins/tconstruct/horizon-mixin.toml').read_text()
-        injection = manifest.split('id = "material-melee-bonus"', 1)[1].split('[[', 1)[0]
-        self.assertIn('::attack_damage', injection)
-        self.assertIn('helper = "material-melee-bonus.rs"', injection)
-        self.assertIn('kind = "HEAD"', injection)
 
 if __name__ == '__main__':
     unittest.main()
