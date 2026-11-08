@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use super::base::{Identifier, NbtCompound};
+use super::block_api_v1::Direction;
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
 
 /// The surface a screen draws on, in GUI pixels. PlutoLib passes one to the draw callback; a test can implement it to check what a screen
@@ -120,12 +121,62 @@ pub struct MenuButton<'a> {
     pub data: &'a mut NbtCompound,
     /// The block entity's item slots, which the callback may change.
     pub items: &'a mut Vec<Option<ItemSlot>>,
+    /// The stack on the pressing player's cursor, which the callback may change (Minecraft: `Player.containerMenu.getCarried`).
+    pub carried: &'a mut Option<ItemSlot>,
+}
+
+/// What a slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). Change `may_place` and `max_stack`; they come in with the
+/// menu's own answer.
+pub struct SlotRule<'a> {
+    /// The container slot, counted from 0.
+    pub slot: usize,
+    /// The item being asked about.
+    pub item: &'a str,
+    /// How many of it.
+    pub count: u32,
+    /// Whether the slot takes the item.
+    pub may_place: bool,
+    /// How many the slot holds, 1 to 99 (the item's own stack size still caps it).
+    pub max_stack: u32,
+}
+
+/// A shift-click on a slot of the menu (Minecraft: `quickMoveStack`).
+pub struct QuickMove<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The menu's slot index: below `container_slots` the block's own slot, then the player's 27 main slots, then the hotbar.
+    pub slot: usize,
+    /// How many slots the block's container has.
+    pub container_slots: usize,
+    /// A copy of what the slot holds; take what you move out of it.
+    pub stack: &'a mut ItemSlot,
+    /// The block entity's saved data, which the callback may change.
+    pub data: &'a mut NbtCompound,
+    /// The block entity's item slots, which the callback may change.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+}
+
+/// A hopper, dropper or other block asks whether the container takes an item (NeoForge: `IItemHandler.isItemValid`).
+pub struct ContainerAccept<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The slot it would go into.
+    pub slot: usize,
+    /// The item.
+    pub item: &'a str,
+    /// How many.
+    pub count: u32,
+    /// The side it comes in from, if any.
+    pub face: Option<Direction>,
 }
 
 type Draw = Arc<dyn Fn(&mut ScreenDraw<'_>) + Send + Sync>;
 type Click = Arc<dyn Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync>;
 type Tooltip = Arc<dyn Fn(&mut ScreenTooltip<'_>) + Send + Sync>;
 type Button = Arc<dyn Fn(&mut MenuButton<'_>) + Send + Sync>;
+type Rule = Arc<dyn Fn(&mut SlotRule<'_>) + Send + Sync>;
+type Move = Arc<dyn Fn(&mut QuickMove<'_>) -> bool + Send + Sync>;
+type Accept = Arc<dyn Fn(&ContainerAccept<'_>) -> bool + Send + Sync>;
 
 /// The window of a block's menu.
 #[derive(Clone)]
@@ -138,12 +189,15 @@ pub struct ScreenHandlerType {
     click: Option<Click>,
     tooltip: Option<Tooltip>,
     button: Option<Button>,
+    rule: Option<Rule>,
+    quick_move: Option<Move>,
+    accepts: Option<Accept>,
 }
 
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, click: None, tooltip: None, button: None }
+        Self { block, layout, draw: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
@@ -168,6 +222,30 @@ impl ScreenHandlerType {
     /// The same window, `button` running on the server when a player presses a menu button (Minecraft: `clickMenuButton`).
     pub fn on_button(mut self, button: impl Fn(&mut MenuButton<'_>) + Send + Sync + 'static) -> Self {
         self.button = Some(Arc::new(button));
+        self
+    }
+}
+
+impl ScreenHandlerType {
+    /// The same window, `rule` deciding what each slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). It runs inside a
+    /// click, a drag or a shift-click, several times for one, with no world or player at hand: answer from the stack, and fast. A slot that only
+    /// gives (a result slot) answers `may_place = false`.
+    pub fn on_slot_rule(mut self, rule: impl Fn(&mut SlotRule<'_>) + Send + Sync + 'static) -> Self {
+        self.rule = Some(Arc::new(rule));
+        self
+    }
+
+    /// The same window, `quick_move` saying where a shift-clicked stack goes (Minecraft: `quickMoveStack`). Answer `true` when you handled it:
+    /// the slot then holds what is left of `stack` and the game's own routing is skipped. Answer `false` and everything you changed is undone.
+    pub fn on_quick_move(mut self, quick_move: impl Fn(&mut QuickMove<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.quick_move = Some(Arc::new(quick_move));
+        self
+    }
+
+    /// The same window, `accepts` saying whether the container takes an item that a hopper, a dropper or another block puts in (NeoForge:
+    /// `IItemHandler.isItemValid`). Players' clicks are the slot rules' instead.
+    pub fn on_accepts(mut self, accepts: impl Fn(&ContainerAccept<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.accepts = Some(Arc::new(accepts));
         self
     }
 }
@@ -220,13 +298,39 @@ pub(crate) fn tooltip(block: &str, at: [f32; 2], data: &[i32], lines: &mut Vec<S
 }
 
 /// Runs the button callback of the window of the block entity type whose block is `block`.
-pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> bool {
+pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, carried: &mut Option<ItemSlot>) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.button) {
         Some(button) => {
-            button(&mut MenuButton { pos, id, data, items });
+            button(&mut MenuButton { pos, id, data, items, carried });
             true
         }
         None => false,
+    }
+}
+
+/// Asks the window's slot rule; leaves `may_place` and `max_stack` as they are if it has none.
+pub(crate) fn slot_rules(block: &str, slot: usize, item: &str, count: u32, may_place: &mut bool, max_stack: &mut u32) {
+    if let Some(rule) = ScreenHandlerRegistry::get(block).and_then(|h| h.rule) {
+        let mut asked = SlotRule { slot, item, count, may_place: *may_place, max_stack: *max_stack };
+        rule(&mut asked);
+        *may_place = asked.may_place;
+        *max_stack = asked.max_stack.clamp(1, 99);
+    }
+}
+
+/// Runs the window's shift-click callback; true if it handled the click.
+pub(crate) fn quick_move(block: &str, pos: BlockPos, slot: usize, container_slots: usize, stack: &mut ItemSlot, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.quick_move) {
+        Some(quick_move) => quick_move(&mut QuickMove { pos, slot, container_slots, stack, data, items }),
+        None => false,
+    }
+}
+
+/// Whether the container takes the item; true if the window has no opinion.
+pub(crate) fn accepts(block: &str, pos: BlockPos, slot: usize, item: &str, count: u32, face: Option<Direction>) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.accepts) {
+        Some(accepts) => accepts(&ContainerAccept { pos, slot, item, count, face }),
+        None => true,
     }
 }
 
@@ -274,7 +378,28 @@ mod tests {
                 .on_button(|b| {
                     b.data.insert("pressed".into(), Nbt::Int(b.id));
                     b.items.push(None);
-                }),
+                    *b.carried = None;
+                })
+                .on_slot_rule(|r| {
+                    if r.slot == 2 {
+                        r.may_place = false; // a result slot only gives
+                    }
+                    if r.item == "test:fuel" {
+                        r.max_stack = 16;
+                    }
+                })
+                .on_quick_move(|q| {
+                    // fuel goes to slot 1; the rest is left to the game
+                    if q.stack.item.to_string() == "test:fuel" {
+                        q.items.resize(2, None);
+                        q.items[1] = Some(q.stack.clone());
+                        q.stack.count = 0;
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .on_accepts(|a| a.item != "test:junk"),
         );
         let layout = layout("test:oven").unwrap();
         assert_eq!(layout.slots, vec![Some([56.0, 17.0]), None]);
@@ -297,9 +422,33 @@ mod tests {
 
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
-        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items));
+        let mut carried = Some(ItemSlot { item: Identifier::parse("test:fuel").unwrap(), count: 3 });
+        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried));
         assert_eq!(data.get_int("pressed", 0), 7);
         assert_eq!(items.len(), 1);
-        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items));
+        assert_eq!(carried, None, "the button took what was on the cursor");
+        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried));
+
+        let (mut may, mut max) = (true, 99);
+        slot_rules("test:oven", 2, "test:coal", 1, &mut may, &mut max);
+        assert!(!may, "slot 2 only gives");
+        let (mut may, mut max) = (true, 99);
+        slot_rules("test:oven", 0, "test:fuel", 1, &mut may, &mut max);
+        assert!(may);
+        assert_eq!(max, 16);
+        let (mut may, mut max) = (false, 5);
+        slot_rules("test:none", 0, "test:fuel", 1, &mut may, &mut max);
+        assert_eq!((may, max), (false, 5), "no window: the game's answer stays");
+
+        let mut fuel = ItemSlot { item: Identifier::parse("test:fuel").unwrap(), count: 8 };
+        let mut items = Vec::new();
+        assert!(quick_move("test:oven", [0; 3], 40, 2, &mut fuel, &mut data, &mut items));
+        assert_eq!((fuel.count, items[1].as_ref().map(|s| s.count)), (0, Some(8)));
+        let mut stone = ItemSlot { item: Identifier::parse("test:stone").unwrap(), count: 8 };
+        assert!(!quick_move("test:oven", [0; 3], 40, 2, &mut stone, &mut data, &mut items));
+
+        assert!(accepts("test:oven", [0; 3], 0, "test:coal", 1, None));
+        assert!(!accepts("test:oven", [0; 3], 0, "test:junk", 1, Some(Direction::Up)));
+        assert!(accepts("test:none", [0; 3], 0, "test:junk", 1, None));
     }
 }

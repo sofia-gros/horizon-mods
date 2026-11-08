@@ -30,6 +30,17 @@ pub fn hooks() -> Box<dyn Hooks> {
                 if !ONCE.swap(true, Ordering::Relaxed) {
                     println!("PLUTO-PROBE screen_draw origin_set={}", d.origin[0] >= 0.0);
                 }
+            })
+            .on_quick_move(|q| {
+                if q.stack.item.to_string() != "minecraft:coal" {
+                    return false;
+                }
+                if q.items.len() < 3 {
+                    q.items.resize(3, None);
+                }
+                q.items[2] = Some(q.stack.clone()); // the furnace's own routing would send coal to the fuel slot, 1
+                q.stack.count = 0;
+                true
             }),
     );
     BlockEntityTypeRegistry::register(
@@ -46,6 +57,13 @@ pub fn hooks() -> Box<dyn Hooks> {
                 }
                 if ticks == 5 {
                     println!("PLUTO-PROBE block_entity ticks={ticks} pos={:?} slots={} water={}", tick.pos, tick.items.len(), tick.fluid(0).map_or(0, |f| f.amount));
+                }
+                let held: Vec<String> = tick.items.iter().take(3).map(|s| s.as_ref().map_or("-".to_owned(), |s| format!("{}:{}", s.item, s.count))).collect();
+                let held = held.join(" ");
+                let seen = tick.data.get_string("held").unwrap_or("").to_owned();
+                if held != "- - -" && held != seen {
+                    println!("PLUTO-PROBE menu slots={held}");
+                    tick.data.insert("held".to_owned(), Nbt::String(held));
                 }
             })
             .sync_data(),

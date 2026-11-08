@@ -200,6 +200,11 @@ pub(crate) fn menu(block: &str) -> Option<String> {
     BlockEntityTypeRegistry::get(block).and_then(|t| t.menu)
 }
 
+/// The block whose type opens the menu type `menu`.
+pub(crate) fn block_of_menu(menu: &str) -> Option<String> {
+    TYPES.lock().ok()?.iter().find(|t| t.menu.as_deref() == Some(menu)).map(|t| t.block.to_string())
+}
+
 /// The block whose type has the block entity id `entity_id`.
 pub(crate) fn block_of(entity_id: &str) -> Option<String> {
     by_entity_id(entity_id).map(|t| t.block.to_string())
