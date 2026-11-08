@@ -54,6 +54,9 @@ pub struct StackData {
     pub count: u32,
     /// Damage taken, 0 for a new item.
     pub damage: u32,
+    /// The most damage this stack takes before it breaks, when it differs from the item's (Minecraft: the `minecraft:max_damage`
+    /// component); None for the item's own. A tool whose durability depends on its materials sets it.
+    pub max_damage: Option<i32>,
     /// The custom data compound, empty for none.
     pub custom_data: crate::pure::base::NbtCompound,
 }
@@ -305,7 +308,7 @@ mod stack_tests {
     use crate::pure::base::Nbt;
 
     fn pickaxe(damage: u32) -> StackData {
-        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, custom_data: [("stats".to_owned(), Nbt::Int(60))].into() }
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into() }
     }
 
     #[test]
@@ -317,10 +320,13 @@ mod stack_tests {
             assert_eq!(player.stack(0), None);
             let mut stack = player.stack(1).unwrap();
             assert_eq!(stack.custom_data["stats"], Nbt::Int(60));
+            assert_eq!(stack.max_damage, Some(60));
             stack.damage = 7;
+            stack.max_damage = Some(120);
             stack.custom_data.insert("stats".into(), Nbt::Int(61));
             assert!(player.update_stack(1, &stack));
             assert_eq!(player.stack(1).unwrap().damage, 7);
+            assert_eq!(player.stack(1).unwrap().max_damage, Some(120));
             // another item in the slot is left alone
             let other = StackData { item: "minecraft:stick".into(), ..stack.clone() };
             assert!(!player.update_stack(1, &other));

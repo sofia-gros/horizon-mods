@@ -191,9 +191,10 @@ pub fn hooks() -> Box<dyn Hooks> {
                 let read = stack.custom_data.get("pluto").and_then(Nbt::as_i64);
                 stack.custom_data.insert("pluto".to_owned(), Nbt::Int(8));
                 stack.damage = 5;
+                stack.max_damage = Some(500);
                 let written = ctx.source.update_stack(slot, &stack);
                 let after = ctx.source.stack(slot).unwrap();
-                println!("PLUTO-PROBE stack read={read:?} written={written} now={:?}:{}", after.custom_data.get("pluto").and_then(Nbt::as_i64), after.damage);
+                println!("PLUTO-PROBE stack read={read:?} written={written} now={:?}:{}/{:?}", after.custom_data.get("pluto").and_then(Nbt::as_i64), after.damage, after.max_damage);
             } else {
                 println!("PLUTO-PROBE stack missing");
             }

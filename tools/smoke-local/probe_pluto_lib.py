@@ -29,7 +29,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE copper waxed=Some("tconstruct:waxed_exposed_copper_platform") weathered=true',
             'PLUTO-PROBE pick called block=tconstruct:earth_slime_dirt',
             'PLUTO-PROBE break_speed block=tconstruct:earth_slime_dirt',
-            'PLUTO-PROBE stack read=None written=true now=Some(8):5',
+            'PLUTO-PROBE stack read=None written=true now=Some(8):5/Some(500)',
             'tconstruct: library linked, 25 tool stats, 23 material stat types',
             'PLUTO-PROBE cheese cured=true',
             'PLUTO-PROBE menu slots=minecraft:dirt:64 - minecraft:coal:10',
