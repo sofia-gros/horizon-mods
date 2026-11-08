@@ -81,6 +81,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
             world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            world.set_block_state([34, 80, 34], &pluto_lib::BlockState::parse("tconstruct:budding_sky_slime_crystal").unwrap());
             // seeds used on slime dirt make grass (the event is invoked here; the game's hook calls it the same way)
             world.set_block_state([26, 80, 26], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
             let used = pluto_lib::UseItemOnBlockContext {
@@ -104,7 +105,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             world.set_block_state([46, 81, 44], &leaves);
             let distance = |x: i32| world.get_block_state([x, 81, 44]).and_then(|s| s.property("distance").map(str::to_owned));
             println!("PLUTO-PROBE leaves near={:?} next={:?}", distance(45), distance(46));
-            world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:budding_earth_slime_crystal").unwrap());
+            world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:enderbark_roots").unwrap());
             let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
                 .iter()
                 .enumerate()
@@ -143,13 +144,20 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE vine after_support_removed={vine:?}");
             let grass = pluto_lib::World::new("minecraft:overworld").get_block_state([20, 80, 20]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE grass covered={grass:?}");
+            let around = pluto_lib::World::new("minecraft:overworld");
+            let buds = pluto_lib::Direction::ALL
+                .iter()
+                .filter_map(|d| around.get_block_state(d.relative([34, 80, 34])))
+                .filter(|s| s.block.path().ends_with("sky_slime_crystal_bud") || s.block.path().ends_with("sky_slime_crystal_cluster"))
+                .count();
+            println!("PLUTO-PROBE crystal buds_found={}", buds > 0);
             let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE sapling grew={tree:?}");
             1
         });
     });
     // a random tick on a block the game ticks at random: the callback may write blocks and roll the level's dice
-    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "budding_earth_slime_crystal").unwrap()).random_tick(|c| {
+    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "enderbark_roots").unwrap()).random_tick(|c| {
         static ONCE: AtomicBool = AtomicBool::new(false);
         let marker = pluto_lib::BlockState::parse("minecraft:glass").unwrap();
         let rolled = c.world.random_int(6);
