@@ -15,8 +15,8 @@
       "note": "the cakes need the mob effects of the tools domain and a way to set a player's food (Horizon cannot yet); the blocks themselves are missing"
     },
     "block/DropperRailBlock.java": {
-      "status": "todo",
-      "note": "not looked at yet; whether the content block does what the original does is not checked"
+      "status": "not-code",
+      "note": "compared with the Java: the class is never registered anywhere in the original (no block, no item, no language key); there is nothing to port"
     },
     "capability/PiggybackCapability.java": {
       "status": "parked",
@@ -83,36 +83,36 @@
       "note": "deprecated in the original; the shuriken is tool ammo of the tools domain"
     },
     "entity/EFLNEntity.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "entity/EFLNExplosion.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "item/EFLNItem.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "entity/GlowballEntity.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "item/GlowBallItem.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "item/ShootProjectileDispenserBehavior.java": {
-      "status": "todo",
-      "note": "deprecated throwballs: thrown entity types can be content, the behaviour can use ProjectileEvents; waits for the common domain's glow block"
+      "status": "parked",
+      "note": "deprecated throwballs (the original replaces them with the tools' shuriken): throwing needs a mod's own thrown entity type spawned by an item, and neither Horizon nor PlutoLib has a way to spawn one; the glow ball also needs the glow block of the common domain"
     },
     "GadgetClientEvents.java": {
-      "status": "todo",
-      "note": "client events of the gadgets: not looked at yet"
+      "status": "parked",
+      "note": "registers the renderers of the frames, armor stands, throwballs and shurikens: all parked with their entities"
     },
     "TinkerGadgets.java": {
       "status": "partial",
-      "note": "registrations: the punji exists; the cakes, frames, stands, throwballs and backpack do not"
+      "note": "registrations: the punji exists and is checked; everything else of the package is parked with its reason above"
     },
     "data/GadgetRecipeProvider.java": {
       "status": "not-code",

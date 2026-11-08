@@ -32,7 +32,7 @@
     },
     "item/MagmaBottleItem.java": {
       "status": "parked",
-      "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
+      "note": "drinking sets the drinker on fire for 15 seconds: PlutoLib has no way to set an entity on fire yet; the bottle item is not added"
     },
     "item/PotionBucketItem.java": {
       "status": "parked",
@@ -59,20 +59,20 @@
       "note": "fluid items (bottles, buckets) need Horizon fluid containers for items"
     },
     "item/ContainerFoodItem.java": {
-      "status": "todo",
-      "note": "food that leaves a container: the cheese uses ItemUse; the bottles wait for the fluid items"
+      "status": "partial",
+      "note": "the slime and venom bottles are content items now (drink animation, 32 ticks, the glass bottle left behind, effects as consumable components); checked in game: drinking the ichor bottle gave levitation and slowness. Tinkers' own effects (experienced, ricochet, enderference) are missing because the mob effects are not ported (they belong to the tools phase), and filling a bottle from a tank is parked with the fluid items"
     },
     "util/BottleBrewingRecipe.java": {
       "status": "parked",
       "note": "brewing recipes: no brewing API in Horizon"
     },
     "FluidEvents.java": {
-      "status": "todo",
-      "note": "not looked at yet"
+      "status": "parked",
+      "note": "its two handlers are the furnace burn time of the blazing blood bucket and the fluid capability of the powder snow bucket: both need fluid items for a mod's fluids, which Horizon does not offer"
     },
     "FluidClientEvents.java": {
-      "status": "todo",
-      "note": "not looked at yet"
+      "status": "parked",
+      "note": "translucent render layers of the fluid blocks, the potion item colour and the fluid container model loader: all for fluid blocks and fluid items, which Horizon does not offer"
     },
     "data/FluidBlockstateModelProvider.java": {
       "status": "not-code",
