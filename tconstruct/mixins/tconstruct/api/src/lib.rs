@@ -9,11 +9,13 @@ static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
 
 mod fluids;
 mod gadgets;
+mod shared;
 mod fluids_table;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     fluids::register();
     gadgets::register();
+    shared::register();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {

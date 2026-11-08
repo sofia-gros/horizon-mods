@@ -89,6 +89,17 @@
     "tconstruct:knightmetal_cluster",
     "tconstruct:pig_iron_block",
     "tconstruct:knightmetal_block",
-    "tconstruct:scorched_basin"
+    "tconstruct:scorched_basin",
+    "tconstruct:iron_platform",
+    "tconstruct:gold_platform",
+    "tconstruct:cobalt_platform",
+    "tconstruct:copper_platform",
+    "tconstruct:waxed_copper_platform",
+    "tconstruct:exposed_copper_platform",
+    "tconstruct:waxed_exposed_copper_platform",
+    "tconstruct:weathered_copper_platform",
+    "tconstruct:waxed_weathered_copper_platform",
+    "tconstruct:oxidized_copper_platform",
+    "tconstruct:waxed_oxidized_copper_platform"
   ]
 }

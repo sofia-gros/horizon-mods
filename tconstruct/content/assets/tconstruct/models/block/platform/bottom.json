@@ -57,7 +57,7 @@
 				"down":  {"texture": "#top"}
 			}
 		},
-
+        
 		{
 			"name": "bottom_outer",
 			"from": [0, 0, 0],
