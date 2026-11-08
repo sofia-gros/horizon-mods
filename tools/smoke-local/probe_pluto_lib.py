@@ -25,6 +25,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE fluids tconstruct=43',
             'PLUTO-PROBE punji east=Some("true")',
             'PLUTO-PROBE vine kept_on_stone=true',
+            'PLUTO-PROBE real seeds_grass=true bonemeal_plants=true sapling_tree=true fungus=true',
             'PLUTO-PROBE crystal buds_found=true',
             'PLUTO-PROBE chime played=true',
             'PLUTO-PROBE seeds answer=Success block=Some("tconstruct:sky_earth_slime_grass")',
@@ -32,7 +33,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE grass covered=Some("tconstruct:earth_slime_dirt")',
             'PLUTO-PROBE leaves near=Some("1") next=Some("2")',
             'PLUTO-PROBE vine after_support_removed=Some("minecraft:air")',
-            'PLUTO-PROBE random_tick pos=[30, 81, 30] rolled_in_range=true set=true',
+            'PLUTO-PROBE random_tick pos=[30, 96, 30] rolled_in_range=true set=true',
             'PLUTO-PROBE signs placed=[true, true, true, true]',
             'PLUTO-PROBE potted placed=[true, true]',
             'PLUTO-PROBE platform down=Some("true") up=Some("true")',
@@ -121,9 +122,9 @@ with game_log.open('w') as log:
             bx, by, bz = int(position[0] // 1) + 2, int(position[1] // 1), int(position[2] // 1)
         except (ValueError, KeyError, TypeError, IndexError):
             bx, by, bz = 3, 80, 3
-        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'gamerule random_tick_speed 4000', 'tconstruct parts', 'tconstruct assemble', 'pluto_probe check'):
+        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'fill 26 78 27 42 78 33 minecraft:stone', 'fill 26 79 27 42 92 33 minecraft:air', 'setblock 28 79 30 tconstruct:earth_slime_dirt', 'setblock 30 79 30 tconstruct:earth_earth_slime_grass', 'setblock 32 79 30 tconstruct:earth_slime_dirt', 'setblock 32 80 30 tconstruct:earth_slime_sapling[stage=1]', 'setblock 38 79 30 tconstruct:earth_slime_dirt', 'setblock 38 80 30 tconstruct:blood_slime_sapling', 'tp @s 31 79 32.5', 'give @s tconstruct:sky_slime_grass_seeds 2', 'select tconstruct:sky_slime_grass_seeds', 'look-at block 28 79 30', 'interact 28 79 30', 'give @s minecraft:bone_meal 30', 'select minecraft:bone_meal', 'look-at block 30 79 30', 'interact 30 79 30', 'look-at block 32 80 30', 'interact 32 80 30', 'interact 32 80 30', 'interact 32 80 30', 'interact 32 80 30', 'interact 32 80 30', 'interact 32 80 30', 'tp @s 36 79 32.5', 'look-at block 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'interact 38 80 30', 'gamerule random_tick_speed 4000', 'tconstruct parts', 'tconstruct assemble', 'pluto_probe check'):
             # `interact X Y Z` is a control command (right-click a block); the rest are game commands
-            words = ['interact', *line.split()[1:]] if line.startswith('interact ') else line.split() if line.startswith('look ') or line in ('use-item', 'close', 'state') else ['command', line]
+            words = ['interact', *line.split()[1:]] if line.startswith('interact ') else line.split() if line.startswith(('look ', 'look-at ', 'select ')) or line in ('use-item', 'close', 'state') else ['command', line]
             done = subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', *words], capture_output=True, text=True, timeout=40)
             (run / 'ctl.log').open('a', encoding='utf-8').write(f'{words}: {done.returncode} {done.stdout.strip()} {done.stderr.strip()}\n')
             time.sleep(1)
