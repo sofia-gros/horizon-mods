@@ -44,6 +44,38 @@ The original Java at the pinned revision is the specification (the existing Rust
 
 Each domain ends with: a table comparing the original's behaviour with the port (in the pull request), the domain's direct injections removed, the in-game check written down as run or not run, and PlutoLib's pages and tests updated. Phase status is kept in the decision log.
 
+### 1.2 Status (kept current; the numbers come from `python tools/feature_inventory.py`)
+
+Updated 2026-11-08. Release scheme (owner): when this roadmap is complete both products are released as **0.0.1**; **0.5.0** means mostly playable and **1.0.0** a complete port; then a new roadmap is written.
+
+| Phase | State | What is true |
+|---|---|---|
+| A foundations (PlutoLib) | working, with documented stubs | Events, items, item groups (paged creative tabs), players (messages, items, effects, food stub), attachments, config, commands, block entities with tanks, screens, renderer, fluids, i18n, world blocks, projectiles, block behaviour (survive, placement, shape update, random and scheduled ticks, bone meal, plant ground) with the game's own block data. Every API page has an example per item; stubs are in the support matrix. |
+| B fluids | INCOMPLETE | The 43 fluid definitions match the Java; fluid blocks, buckets and bottles are parked (Horizon has no world fluids or fluid items for mods). |
+| C gadgets | INCOMPLETE | Punji done and checked. Cakes, frames, armor stands, backpack, shurikens parked (Horizon limits); dropper rail, throwballs, client events todo. |
+| D world | INCOMPLETE | Slime vines and leaves ported and checked in game. Grass, nylium, saplings, fungus, propagules, the seed item, tinting, islands, trees and world generation still run on the old direct injections or are not done; slime mobs and skulls parked. |
+| E shared / F common | content only so far | Signs, platforms, potted plants, 696 tags, 79 crafting recipes and the damage types are added as content. The Java of both packages is not yet compared class by class. |
+| G tables, H smeltery, I tools | not started | Inventories exist (every class `todo`); the library under them is ported by the phase that uses it. |
+| J finish | not started | Whole-game check, open PRs and issues, the gap list. |
+
+| Domain (original classes) | ported | unchecked | partial | todo | parked | not code |
+|---|---|---|---|---|---|---|
+| fluids (22) | 0 | 0 | 1 | 3 | 14 | 4 |
+| gadgets (29) | 1 | 0 | 1 | 8 | 18 | 1 |
+| world (57) | 2 | 0 | 7 | 25 | 18 | 5 |
+| common (65) | 0 | 0 | 0 | 65 | 0 | 0 |
+| shared (61) | 0 | 0 | 0 | 61 | 0 | 0 |
+| tables (76) | 0 | 0 | 0 | 76 | 0 | 0 |
+| smeltery (129) | 0 | 0 | 0 | 129 | 0 | 0 |
+| tools (284) | 0 | 0 | 0 | 284 | 0 | 0 |
+| library (858) | 0 | 0 | 0 | 858 | 0 | 0 |
+
+Direct injections left in Tinkers: 277 (the limit in `tools/injection_limits.json`; it only goes down). Open items worth knowing: the full probe fails on `screen_draw` in `main` as before; the growth of vines, bone meal and scheduled ticks are built but were not watched in game.
+
+**Method (owner rule):** every phase is measured against the original Java's class list (`docs/inventory/`), never against the existing Rust; a phase is complete only when no class is `todo`, `partial` or `ported-unchecked`; what Horizon cannot do is `parked` with the reason and never counted as done.
+
+**Next, in order:** (1) the plants of phase D (grass family, saplings and fungus; their tasks are written for Codex in `docs/codex/tasks/`), (2) a world generation API in PlutoLib and the trees and islands on it, (3) phases E and F class by class, (4) tables, smeltery and tools with their PlutoLib needs designed first. **Codex** (from about 2026-11-10 for four days) does bulk porting inside the fence of `docs/codex.md`: one task file, one branch, `tools/codex_guard.py`, review and game check by the owner's agent.
+
 ## 2. Overnight run (unattended)
 
 The agent keeps working without stopping until the owner is back. It decides for itself inside the limits below, records each non-obvious decision in the log at the end of this file, and never waits for an answer it can replace with the conservative default.
