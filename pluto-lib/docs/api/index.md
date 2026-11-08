@@ -49,6 +49,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | resource reload listeners |
 | [items](items.md) | tooltips, using items over time |
+| [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |
 | [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons |
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |

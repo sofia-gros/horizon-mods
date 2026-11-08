@@ -8,6 +8,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    BlockEntityInsideEvent, BlockStateId, CanSurviveEvent, LevelHost, LevelTicksHost, StateForPlacementEvent, UpdateShapeEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
@@ -21,6 +22,7 @@ use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
+use crate::pure::block_api_v1::{self, EntityInsideContext, SurviveContext};
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
@@ -386,7 +388,225 @@ fn model_config(file: &NativeConfigFile) -> ModConfig {
     ModConfig { mod_id: file.mod_id.clone(), kind, file: file.file.clone(), text: file.text.clone() }
 }
 
+/// Block behaviour: the game asks about states by id, PlutoLib's behaviours speak in `BlockState` text. The table below names every state
+/// of every block that has a behaviour (built from the property values the behaviour declares), plus air and the fluids.
+mod block_host {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use std::sync::{Arc, Mutex};
+
+    use horizon_client::mod_api::{BlockPos, BlockStateId, Direction as HDirection, FluidKind, Host, LevelDimension, LevelHost};
+
+    use crate::pure::block_api_v1::{BlockBehaviors, BlockView, Direction};
+    use crate::pure::world_api_v1::BlockState;
+
+    pub(super) struct StateTable {
+        /// Block id and state of every known state id.
+        pub by_id: HashMap<BlockStateId, (String, BlockState)>,
+        /// The id of a state written as text.
+        pub by_text: HashMap<String, BlockStateId>,
+        pub air: HashSet<BlockStateId>,
+        pub weak: HashSet<BlockStateId>,
+    }
+
+    static DEFAULTS: Mutex<Vec<(String, BlockStateId, Vec<(String, Vec<String>)>, bool, bool)>> = Mutex::new(Vec::new());
+    static TABLE: Mutex<Option<Arc<StateTable>>> = Mutex::new(None);
+
+    /// Remembers the default state of every block with a behaviour (and of air and the fluids); the table is built from them on first use.
+    pub(super) fn remember_defaults(host: &mut dyn Host) {
+        let mut all = Vec::new();
+        for behavior in BlockBehaviors::registered() {
+            let name = behavior.block().to_string();
+            if let Some(id) = host.default_state(&name) {
+                all.push((name, id, behavior.properties().to_vec(), false, !behavior.is_sturdy()));
+            }
+        }
+        for air in ["minecraft:air", "minecraft:cave_air", "minecraft:void_air"] {
+            if let Some(id) = host.default_state(air) {
+                all.push((air.to_owned(), id, Vec::new(), true, false));
+            }
+        }
+        let levels: Vec<String> = (0..16).map(|n| n.to_string()).collect();
+        for fluid in ["minecraft:water", "minecraft:lava"] {
+            if let Some(id) = host.default_state(fluid) {
+                all.push((fluid.to_owned(), id, vec![("level".to_owned(), levels.clone())], false, true));
+            }
+        }
+        if let Ok(mut defaults) = DEFAULTS.lock() {
+            *defaults = all;
+        }
+        if let Ok(mut table) = TABLE.lock() {
+            *table = None;
+        }
+    }
+
+    fn build(level: &dyn LevelHost) -> Option<StateTable> {
+        let defaults = DEFAULTS.lock().ok()?;
+        if defaults.is_empty() {
+            return None;
+        }
+        let mut table = StateTable { by_id: HashMap::new(), by_text: HashMap::new(), air: HashSet::new(), weak: HashSet::new() };
+        for (name, default, properties, air, weak) in defaults.iter() {
+            let mut states: Vec<(BlockStateId, BTreeMap<String, String>)> = vec![(*default, BTreeMap::new())];
+            for (key, values) in properties {
+                let mut next = Vec::new();
+                for (id, chosen) in &states {
+                    for value in values {
+                        if let Some(changed) = level.state_with_property(*id, key, value) {
+                            let mut chosen = chosen.clone();
+                            chosen.insert(key.clone(), value.clone());
+                            next.push((changed, chosen));
+                        }
+                    }
+                }
+                if !next.is_empty() {
+                    states = next;
+                }
+            }
+            for (id, chosen) in states {
+                let state = BlockState { block: crate::pure::base::Identifier::parse(name).ok()?, properties: chosen };
+                if *air {
+                    table.air.insert(id);
+                }
+                if *weak {
+                    table.weak.insert(id);
+                }
+                table.by_text.insert(state.to_string(), id);
+                table.by_id.insert(id, (name.clone(), state));
+            }
+        }
+        Some(table)
+    }
+
+    /// The table, built the first time a hook has a level to read states with.
+    pub(super) fn table(level: &dyn LevelHost) -> Option<Arc<StateTable>> {
+        let mut slot = TABLE.lock().ok()?;
+        if slot.is_none() {
+            *slot = build(level).map(Arc::new);
+        }
+        slot.clone()
+    }
+
+    /// The table if it has been built already (for hooks that have no level).
+    pub(super) fn built() -> Option<Arc<StateTable>> {
+        TABLE.lock().ok()?.clone()
+    }
+
+    pub(super) fn dimension(dimension: LevelDimension) -> &'static str {
+        match dimension {
+            LevelDimension::Overworld => "minecraft:overworld",
+            LevelDimension::Nether => "minecraft:the_nether",
+            LevelDimension::End => "minecraft:the_end",
+        }
+    }
+
+    pub(super) fn direction(direction: HDirection) -> Direction {
+        match direction {
+            HDirection::Down => Direction::Down,
+            HDirection::Up => Direction::Up,
+            HDirection::North => Direction::North,
+            HDirection::South => Direction::South,
+            HDirection::West => Direction::West,
+            HDirection::East => Direction::East,
+        }
+    }
+
+    pub(super) fn pos(pos: BlockPos) -> [i32; 3] {
+        [pos.x, pos.y, pos.z]
+    }
+
+    pub(super) fn is_water(fluid: horizon_client::mod_api::FluidState) -> bool {
+        matches!(fluid.kind(), FluidKind::Water | FluidKind::FlowingWater)
+    }
+
+    /// What a behaviour sees of the blocks around.
+    pub(super) struct LevelView<'a> {
+        pub read: &'a dyn Fn([i32; 3]) -> BlockStateId,
+        pub table: &'a StateTable,
+    }
+
+    impl BlockView for LevelView<'_> {
+        fn block_state(&self, pos: [i32; 3]) -> Option<BlockState> {
+            self.table.by_id.get(&(self.read)(pos)).map(|(_, state)| state.clone())
+        }
+
+        fn is_air(&self, pos: [i32; 3]) -> bool {
+            self.table.air.contains(&(self.read)(pos))
+        }
+
+        fn is_face_sturdy(&self, pos: [i32; 3], _face: Direction) -> bool {
+            let id = (self.read)(pos);
+            // Horizon cannot say how sturdy a face is: every block counts as sturdy except air, fluids and the blocks whose behaviour
+            // says `sturdy(false)`.
+            !self.table.air.contains(&id) && !self.table.weak.contains(&id)
+        }
+    }
+}
+
 impl Hooks for PlutoHooks {
+    fn can_survive(&self, level: &dyn LevelHost, event: &mut CanSurviveEvent) -> Option<bool> {
+        let table = block_host::table(level)?;
+        let (block, state) = table.by_id.get(&event.state)?;
+        let read = |p: [i32; 3]| level.block_state(p);
+        let view = block_host::LevelView { read: &read, table: &table };
+        block_api_v1::survives(block, &SurviveContext { state: state.clone(), pos: block_host::pos(event.pos), view: &view })
+    }
+
+    fn state_for_placement(&self, level: &dyn LevelHost, event: &mut StateForPlacementEvent<'_>) -> Option<Option<BlockStateId>> {
+        let table = block_host::table(level)?;
+        let (block, state) = table.by_id.get(&event.state)?;
+        let read = |p: [i32; 3]| level.block_state(p);
+        let view = block_host::LevelView { read: &read, table: &table };
+        let c = event.context;
+        let context = block_api_v1::PlacementContext {
+            state: state.clone(),
+            pos: block_host::pos(c.pos),
+            face: block_host::direction(c.face),
+            yaw: c.yaw,
+            pitch: c.pitch,
+            sneaking: c.sneaking,
+            in_water: block_host::is_water(event.fluid),
+            item: c.item.clone(),
+            view: &view,
+        };
+        match block_api_v1::placement(block, &context) {
+            block_api_v1::Placement::Default => None,
+            block_api_v1::Placement::Refuse => Some(None),
+            block_api_v1::Placement::State(chosen) => table.by_text.get(&chosen.to_string()).map(|id| Some(*id)),
+        }
+    }
+
+    fn update_shape(&self, level: &mut dyn LevelTicksHost, event: &mut UpdateShapeEvent) -> Option<BlockStateId> {
+        let table = block_host::table(&*level)?;
+        let (block, state) = table.by_id.get(&event.state)?;
+        let read = |p: [i32; 3]| LevelHost::block_state(&*level, p);
+        let view = block_host::LevelView { read: &read, table: &table };
+        let context = block_api_v1::ShapeUpdateContext {
+            state: state.clone(),
+            pos: block_host::pos(event.pos),
+            direction: block_host::direction(event.direction),
+            neighbour_pos: block_host::pos(event.neighbour_pos),
+            neighbour: table.by_id.get(&event.neighbour).map(|(_, s)| s.clone()),
+            view: &view,
+        };
+        let changed = block_api_v1::shape_update(block, &context)?;
+        table.by_text.get(&changed.to_string()).copied().filter(|id| *id != event.state)
+    }
+
+    fn block_entity_inside(&self, event: &mut BlockEntityInsideEvent<'_>) {
+        let Some(table) = block_host::built() else { return };
+        let Some((block, state)) = table.by_id.get(&event.state) else { return };
+        block_api_v1::inside(
+            block,
+            &EntityInsideContext {
+                dimension: event.dimension.to_owned(),
+                state: state.clone(),
+                pos: event.position,
+                entity: event.entity,
+                kind: event.kind.to_owned(),
+            },
+        );
+    }
+
     fn use_duration(&self, _host: &dyn Host, event: &mut UseDurationEvent<'_>) {
         event.duration = item_api_v1::use_duration(&event.stack.item, event.duration);
     }
@@ -544,7 +764,8 @@ impl Hooks for PlutoHooks {
         config_api::unloading(model_config(event.config));
     }
 
-    fn server_about_to_start(&self, _host: &mut dyn Host, event: &mut ServerAboutToStartEvent) {
+    fn server_about_to_start(&self, host: &mut dyn Host, event: &mut ServerAboutToStartEvent) {
+        block_host::remember_defaults(host);
         lifecycle_events_v1::server_starting(event.dedicated);
     }
 

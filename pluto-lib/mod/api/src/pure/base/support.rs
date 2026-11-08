@@ -54,6 +54,18 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
     },
     SupportEntry {
+        api: "block_api_v1::BlockView::is_face_sturdy",
+        support: Support::Stub,
+        behaviour: "every block counts as sturdy except air, water, lava and blocks whose behaviour says `sturdy(false)`",
+        unblocked_by: "Horizon telling a block hook how sturdy a neighbour's face is (the hooks get the level's state ids only)",
+    },
+    SupportEntry {
+        api: "block_api_v1::BlockView::block_state (other mods' and vanilla blocks)",
+        support: Support::Stub,
+        behaviour: "None for every block that has no BlockBehavior; the block behind a state id cannot be named from a hook",
+        unblocked_by: "a Horizon call that names a state's block, and reads its properties, from a block hook",
+    },
+    SupportEntry {
         api: "player_api::ServerPlayer::add_food",
         support: Support::Stub,
         behaviour: "does nothing and returns false; the food level is unchanged",
