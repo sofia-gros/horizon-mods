@@ -119,3 +119,31 @@ fn the_originals_tool_definitions_load_without_problems() {
     assert_eq!(data.parts().len(), 3);
     assert!(data.can_perform("pickaxe_dig"));
 }
+
+#[test]
+fn every_part_of_the_originals_tools_has_a_stat_type_and_a_wood_pickaxe_has_the_originals_numbers() {
+    use tconstruct_library::tools::definition::{part_stat_type, ToolDefinitionData, ToolModuleRegistry};
+    use tconstruct_library::tools::stat::{HarvestTiers, ModifierStatsBuilder, StatValue, ToolStatId, ToolStats};
+    let Some(root) = data_root() else { return };
+    let defs = read_all(&root.join("tool_definitions"));
+    let registry = ToolModuleRegistry::with_original_types();
+    let stats = ToolStats::tinkers(HarvestTiers::vanilla());
+    for (id, json) in &defs {
+        let data = ToolDefinitionData::from_json(json, &registry, &stats).unwrap();
+        for part in data.parts() {
+            assert!(part_stat_type(&part.item).is_some(), "{id}: no stat type for part {}", part.item);
+        }
+    }
+    // wood pickaxe: head 60 durability, +0 handle percent; the pickaxe's own base: attack damage 0.5 and speed 1.2
+    let mut materials = tconstruct_library::materials::MaterialRegistry::with_tinkers_stats();
+    let problems = materials.stats.load(&read_all(&root.join("materials/stats")));
+    assert!(problems.is_empty(), "{problems:?}");
+    let wood = MaterialId::try_parse("tconstruct:wood").unwrap();
+    let pickaxe = defs.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
+    let data = ToolDefinitionData::from_json(&pickaxe.1, &registry, &stats).unwrap();
+    let mut builder = ModifierStatsBuilder::new(&stats);
+    data.add_material_stats(&mut builder, &[wood.clone(), wood.clone(), wood], &materials);
+    data.add_tool_stats(&mut builder);
+    assert_eq!(builder.get(&ToolStatId::tconstruct("durability")), StatValue::Float(60.0));
+    assert_eq!(builder.get(&ToolStatId::tconstruct("mining_speed")), StatValue::Float(2.0));
+}
