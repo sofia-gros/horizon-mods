@@ -141,7 +141,11 @@ impl PlayerOps for HostOps {
             Ok(Some(Tag::Compound(compound))) => compound_from_tag(compound),
             _ => NbtCompound::new(),
         };
-        Some(player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, custom_data })
+        let max_damage = match stack.data().and_then(|d| d.other("minecraft:max_damage")) {
+            Some(Tag::Int(value)) => Some(*value),
+            _ => None,
+        };
+        Some(player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data })
     }
 
     fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &player_api::StackData) -> bool {
@@ -149,6 +153,9 @@ impl PlayerOps for HostOps {
         let Some(mut stack) = self.host().carried_stack(slot).filter(|s| &*s.item == expected_item && s.count > 0).map(|s| s.clone()) else { return false };
         stack.count = new.count;
         stack.damage = new.damage;
+        // the stack's own durability, as a component the game reads before the item's
+        stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
+        stack.tidy();
         let host = self.host();
         let result = if new.custom_data.is_empty() {
             host.remove_component(&mut stack, STACK_DATA_COMPONENT)
