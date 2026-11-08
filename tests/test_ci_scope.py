@@ -22,6 +22,10 @@ class Scope(unittest.TestCase):
     def test_documentation_and_images(self):
         self.assertTrue(documentation_only(['README.md', 'docs/roadmap.md', 'docs/preview.png', 'tconstruct/README.md', 'tconstruct/docs/playing.md', 'tconstruct/docs/preview.png']))
 
+    def test_api_pages_hold_compiled_examples_so_they_are_not_docs_only(self):
+        self.assertFalse(documentation_only(['pluto-lib/docs/api/player.md']))
+        self.assertTrue(documentation_only(['pluto-lib/docs/design-principles.md']))
+
     def test_runtime_tests_configuration_and_empty_are_not_docs_only(self):
         for paths in ([], ['mixins/tconstruct/transaction.rs'], ['tests/test_ci_scope.py'],
                       ['compatibility.json'], ['.github/workflows/mixins.yml'],

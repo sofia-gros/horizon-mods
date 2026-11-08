@@ -9,8 +9,9 @@ DOC_EXTENSIONS = {'.md', '.rst', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp
 
 
 def documentation_only(paths):
+    # the API pages hold code examples that the test suite compiles, so changing one is a code change
     return bool(paths) and all(
-        path == 'README.md' or (path.startswith('docs/') or (len(Path(path).parts) >= 2 and Path(path).parts[1] == 'docs') or (len(Path(path).parts) == 2 and Path(path).name == 'README.md')) and Path(path).suffix.lower() in DOC_EXTENSIONS
+        not path.startswith('pluto-lib/docs/api/') and (path == 'README.md' or (path.startswith('docs/') or (len(Path(path).parts) >= 2 and Path(path).parts[1] == 'docs') or (len(Path(path).parts) == 2 and Path(path).name == 'README.md')) and Path(path).suffix.lower() in DOC_EXTENSIONS)
         for path in paths
     )
 

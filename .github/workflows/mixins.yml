@@ -29,6 +29,7 @@ jobs:
         run: |
           python3 tools/check_line_endings.py
           python3 tools/check_docs_budget.py
+          python3 tools/check_api_docs.py
           python3 tools/lint_forbidden_api.py
       - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
@@ -56,6 +57,7 @@ jobs:
           python3 -m unittest discover -s tests -v
           python3 -m unittest discover -s tconstruct/tests -v
           PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v
+          cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/glass-crafting/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml

@@ -19,6 +19,7 @@ Where things are: [README.md](README.md), [docs/architecture.md](docs/architectu
 2. **One pull request, one verification unit.** It says exactly what was run and what was not.
 3. **Verify locally first.** Run the local gate in [docs/development.md](docs/development.md); CI is a slower second check, not a precondition. Anything that touches game behaviour also needs `tools/smoke-local`.
 4. **Say "verified" only for what ran.** Builds, launches, mod loads and "feature works" are different claims; unexecuted means "unverified".
+4a. **PlutoLib API changes carry their documentation.** Adding or changing a public item means writing or updating its section (types, arguments, a working example for every form) in `pluto-lib/docs/api/`; `tools/check_api_docs.py` and the doctests fail otherwise.
 5. **No new features while PlutoLib is built**, and no new direct injections.
 6. **Keep tests few and real.** A test must fail when the behaviour it names is broken. Never write tests that assert source or document text, copy upstream files, or exist only to pass.
 7. **Line endings are LF everywhere.** `.gitattributes` forces it whatever `core.autocrlf` says; `python tools/check_line_endings.py` checks it. In Python write files with `newline="\n"`.
