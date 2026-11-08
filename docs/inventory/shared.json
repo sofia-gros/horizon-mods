@@ -235,8 +235,8 @@
       "note": "not yet compared with the port"
     },
     "TinkerEffects.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the 14 shared and modifier effects (experienced, ricochet, enderference, bouncy, double jump, antigravity, returning, bleeding, magnetic, self destructing, repulsive, pierce, conductive, venom) exist as content mob effects with the original's category, colour and icon, and the slime bottles use them; Horizon's mob effects have no tick behaviour or attribute modifiers yet, so they do nothing by themselves (the attributes, tick logic and potions are not carried)"
     },
     "TinkerFood.java": {
       "status": "todo",
