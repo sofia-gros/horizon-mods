@@ -1,0 +1,8 @@
+[package]
+name = "mod-tconstruct"
+version = "0.5.0"
+edition = "2024"
+
+[dependencies]
+horizon-client = { git = "https://github.com/horizon-rust/horizon" }
+toml = "1"

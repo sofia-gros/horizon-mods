@@ -118,6 +118,18 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     combined = Path(temp) / 'bundles'
     shutil.copytree(mods, combined)
     shutil.copytree(pluto, combined / "pluto_native_creative")
+    # The pinned Mixins CLI predates trait mods: it rejects `[api]` and `[dependencies]`, and the `api/` crate is built only by the
+    # official launcher. Drop them from this staged copy (the packaged mod keeps them).
+    for staged in combined.glob('*/horizon-mixin.toml'):
+        text = staged.read_text(encoding='utf-8')
+        kept, skipping = [], False
+        for line in text.splitlines(keepends=True):
+            header = line.strip()
+            if header.startswith('['):
+                skipping = header in ('[api]', '[dependencies]')
+            if not skipping:
+                kept.append(line)
+        staged.write_text(''.join(kept), encoding='utf-8', newline='\n')
     # Validate the complete installed composition, not only Pluto's own hooks.
     # The guard uses this checkout's reviewed source and verifies the exact
     # copied helper bytes embedded in the plan before any source is applied.

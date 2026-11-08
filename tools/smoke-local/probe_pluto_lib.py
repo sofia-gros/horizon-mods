@@ -8,14 +8,15 @@ HORIZON_LAUNCHER_HOME / HORIZON_HOME / XDG_* / TMP / CARGO_HOME if the defaults 
 
   probe_pluto_lib.py --launcher horizon-launcher.exe --resources RESOURCES [--work DIR]
 """
-import argparse, os, shutil, subprocess, sys, tempfile, time
+import argparse, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
             'PLUTO-PROBE loot_modify', 'PLUTO-PROBE player send_message=true give_left=0',
             'PLUTO-PROBE attachment stored=true now=',
-            'PLUTO-PROBE config_loading pluto_probe-common.toml text=')
+            'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
+            'tconstruct: gave the starting book to')
 # reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
 OPTIONAL = ('PLUTO-PROBE client_resources_reloaded',)
 
@@ -30,9 +31,15 @@ if a.work.exists():
 bundles, out = a.work / 'bundles', a.work / 'out'
 shutil.copytree(ROOT / 'pluto-lib/mod', bundles / 'pluto_lib')
 shutil.copytree(ROOT / 'pluto-lib/tests/probe', bundles / 'pluto_probe')
+# Tinkers' PlutoLib-only part: its manifest header (no injections, so Mixins has nothing to apply) and its api crate
+tinkers = ROOT / 'tconstruct/mixins/tconstruct'
+header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding='utf-8'), maxsplit=1, flags=re.M)[0]
+(bundles / 'tconstruct').mkdir()
+(bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
+shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
 build_log = a.work / 'native-build.log'
 with build_log.open('w') as log:
-    build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code'],
+    build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code', '--profile', 'dev'],
                            stdout=log, stderr=subprocess.STDOUT)
 if build.returncode != 0 or not (out / 'horizon-engine.exe').is_file() and not (out / 'horizon-engine').is_file():
     sys.exit(f'PROBE FAIL (build): see {build_log}')
@@ -62,7 +69,7 @@ with game_log.open('w') as log:
     finally:
         if proc.poll() is None:
             proc.terminate()
-lines = [l for l in game_log.read_text(errors='replace').splitlines() if 'PLUTO-PROBE' in l]
+lines = [l for l in game_log.read_text(errors='replace').splitlines() if 'PLUTO-PROBE' in l or l.startswith('tconstruct:')]
 missing = [e for e in EXPECTED if not any(e in l for l in lines)]
 if missing:
     sys.exit(f'PROBE FAIL: events that did not fire: {missing}; saw {lines}; log {game_log}')
