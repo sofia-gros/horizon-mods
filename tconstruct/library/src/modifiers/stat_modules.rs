@@ -73,6 +73,17 @@ pub trait ToolContext {
     fn item_in_tag(&self, tag: &str) -> bool;
 }
 
+/// The error a loader gives for a shape of its data it does not carry yet; the registry then keeps the module as raw data.
+pub const UNSUPPORTED: &str = "unsupported condition";
+
+/// A loader that falls back to `raw` for data shapes it does not carry.
+pub fn with_raw_fallback(loader: ModuleLoader, raw: ModuleLoader) -> ModuleLoader {
+    Arc::new(move |json| match loader(json) {
+        Err(error) if error == UNSUPPORTED => raw(json),
+        other => other,
+    })
+}
+
 /// `ModifierCondition` as `stat_boost` uses it: an optional `tool` predicate and an optional `modifier_level` range.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Condition {
@@ -85,7 +96,17 @@ impl Condition {
     pub fn from_json(object: &Map<String, Value>) -> Result<Self, String> {
         let mut condition = Self { tool: object.get("tool").cloned(), ..Self::default() };
         if let Some(range) = object.get("modifier_level") {
-            let range = range.as_object().ok_or("'modifier_level' must be an object with 'min' and 'max'")?;
+            if let Some(exact) = range.as_i64() {
+                // a single number is that level exactly
+                condition.min_level = Some(exact as i32);
+                condition.max_level = Some(exact as i32);
+                return Ok(condition);
+            }
+            let range = range.as_object().ok_or("'modifier_level' must be a number or an object with 'min' and 'max'")?;
+            if range.contains_key("type") {
+                // a predicate over the level rather than a range: the module is kept as raw data
+                return Err(UNSUPPORTED.to_owned());
+            }
             condition.min_level = range.get("min").and_then(Value::as_i64).map(|v| v as i32);
             condition.max_level = range.get("max").and_then(Value::as_i64).map(|v| v as i32);
         }
@@ -376,5 +397,120 @@ mod volatile_tests {
         let condition = Condition { min_level: Some(2), ..Condition::default() };
         add_volatile_data(&VolatileFlagModule { flag: "tconstruct:piglin_neutral".into(), condition }, &Anything, &entry(1), &mut data);
         assert!(data.flags.is_empty());
+    }
+}
+
+/// `AttributeModifier.Operation`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AttributeOperation {
+    Addition,
+    MultiplyBase,
+    MultiplyTotal,
+}
+
+impl AttributeOperation {
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "addition" => Some(Self::Addition),
+            "multiply_base" => Some(Self::MultiplyBase),
+            "multiply_total" => Some(Self::MultiplyTotal),
+            _ => None,
+        }
+    }
+}
+
+/// One attribute change a modifier gives for an equipment slot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AttributeChange {
+    pub attribute: crate::resource::ResourceId,
+    /// `unique.slot`, the name the change is told apart by.
+    pub name: String,
+    pub operation: AttributeOperation,
+    pub amount: f32,
+}
+
+/// The equipment slots, as `EquipmentSlot.getName`.
+pub const EQUIPMENT_SLOTS: [&str; 6] = ["mainhand", "offhand", "feet", "legs", "chest", "head"];
+
+/// `AttributeModule` (`tconstruct:attribute`): an attribute changed by `flat + each_level x level` in the slots the tool is worn or held in.
+/// The formula form (`formula` and `variables`) needs the variable loaders and stays raw data.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AttributeModule {
+    pub unique: String,
+    pub attribute: crate::resource::ResourceId,
+    pub operation: AttributeOperation,
+    pub amount: LevelingValue,
+    pub slots: Vec<String>,
+    pub condition: Condition,
+}
+
+impl AttributeModule {
+    /// `addAttributes`: the change for `slot`, if the module covers it and its condition holds.
+    pub fn attributes(&self, context: &dyn ToolContext, entry: &ModifierEntry, slot: &str) -> Option<AttributeChange> {
+        if !self.slots.iter().any(|s| s == slot) || !self.condition.matches(context, entry) {
+            return None;
+        }
+        Some(AttributeChange { attribute: self.attribute.clone(), name: format!("{}.{}", self.unique, slot), operation: self.operation, amount: self.amount.compute(entry.level as f32) })
+    }
+}
+
+impl ModifierModule for AttributeModule {
+    fn kind(&self) -> &str {
+        "tconstruct:attribute"
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/// The loader of `tconstruct:attribute`. `unique` is the module's name for its changes; the original defaults it from the modifier,
+/// here from the attribute when the data does not say.
+pub fn attribute_loader(raw: ModuleLoader) -> ModuleLoader {
+    Arc::new(move |json| {
+        if json.contains_key("formula") {
+            return raw(json);
+        }
+        let attribute = json.get("attribute").and_then(Value::as_str).and_then(crate::resource::ResourceId::try_parse).ok_or("attribute needs an 'attribute'")?;
+        let operation = json.get("operation").and_then(Value::as_str).and_then(AttributeOperation::from_name).ok_or("attribute needs a valid 'operation'")?;
+        let slots = json
+            .get("slots")
+            .and_then(Value::as_array)
+            .ok_or("attribute needs 'slots'")?
+            .iter()
+            .map(|s| s.as_str().filter(|s| EQUIPMENT_SLOTS.contains(s)).map(str::to_owned).ok_or("a slot must be an equipment slot"))
+            .collect::<Result<Vec<_>, _>>()?;
+        let unique = json.get("unique").and_then(Value::as_str).map_or_else(|| attribute.to_string(), str::to_owned);
+        Ok(Arc::new(AttributeModule { unique, attribute, operation, amount: LevelingValue::from_json(json)?, slots, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    })
+}
+
+#[cfg(test)]
+mod attribute_tests {
+    use super::*;
+
+    struct Anything;
+    impl ToolContext for Anything {
+        fn item_in_tag(&self, _: &str) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn an_attribute_module_covers_its_slots_by_level() {
+        let json = serde_json::json!({"type": "tconstruct:attribute", "attribute": "tconstruct:generic.good_effect_duration_multiplier", "flat": 0.15, "each_level": 0.1, "operation": "multiply_base", "slots": ["head", "mainhand"]});
+        let raw: ModuleLoader = Arc::new(|_| Err("raw".to_owned()));
+        let module = attribute_loader(raw)(json.as_object().unwrap()).unwrap();
+        let module = module.as_any().downcast_ref::<AttributeModule>().unwrap();
+        let entry = ModifierEntry { modifier: crate::modifiers::ModifierId::try_parse("tconstruct:test").unwrap(), level: 2 };
+        let change = module.attributes(&Anything, &entry, "head").unwrap();
+        assert!((change.amount - 0.35).abs() < 1e-6 && change.operation == AttributeOperation::MultiplyBase);
+        assert!(module.attributes(&Anything, &entry, "feet").is_none());
+    }
+
+    #[test]
+    fn the_formula_form_stays_raw() {
+        let json = serde_json::json!({"type": "tconstruct:attribute", "formula": ["$level"], "variables": {}});
+        let raw: ModuleLoader = Arc::new(|_| Err("raw".to_owned()));
+        assert_eq!(attribute_loader(raw)(json.as_object().unwrap()).err().as_deref(), Some("raw"));
     }
 }

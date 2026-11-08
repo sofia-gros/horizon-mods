@@ -159,12 +159,20 @@ impl ModuleRegistry {
         self.loaders.insert(kind.to_owned(), loader);
     }
 
-    /// Registers the modules that change a tool's stats or its list of modifiers, over the stats they name.
+    /// Registers the modules that change a tool's stats or its list of modifiers, over the stats they name. A module whose data uses a
+    /// shape not carried yet (a predicate over the level, the formula form of an attribute) stays raw data.
     pub fn register_stat_modules(&mut self, stats: Arc<crate::tools::stat::ToolStats>) {
-        self.register("tconstruct:stat_boost", stat_modules::stat_boost_loader(stats));
-        self.register("tconstruct:trait", stat_modules::trait_loader());
-        for (kind, loader) in stat_modules::volatile_loaders() {
-            self.register(kind, loader);
+        let mut carried: Vec<(String, ModuleLoader)> = vec![
+            ("tconstruct:stat_boost".to_owned(), stat_modules::stat_boost_loader(stats)),
+            ("tconstruct:trait".to_owned(), stat_modules::trait_loader()),
+        ];
+        carried.extend(stat_modules::volatile_loaders().into_iter().map(|(kind, loader)| (kind.to_owned(), loader)));
+        if let Some(raw) = self.loaders.get("tconstruct:attribute").cloned() {
+            carried.push(("tconstruct:attribute".to_owned(), stat_modules::attribute_loader(raw)));
+        }
+        for (kind, loader) in carried {
+            let raw = self.loaders.get(&kind).cloned().unwrap_or_else(|| Arc::new(|_| Err("unknown module".to_owned())));
+            self.loaders.insert(kind, stat_modules::with_raw_fallback(loader, raw));
         }
     }
 
