@@ -27,6 +27,7 @@ mod api_pages {
     page!(Creative, "creative.md");
     page!(BlockEntity, "block-entity.md");
     page!(Screen, "screen.md");
+    page!(Renderer, "renderer.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");

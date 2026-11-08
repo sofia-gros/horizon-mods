@@ -7,7 +7,7 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
 };
 
@@ -16,6 +16,7 @@ use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use crate::pure::base::{Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, ItemSlot};
+use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
@@ -205,6 +206,59 @@ fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompoun
     ran
 }
 
+/// What a block entity renderer draws on: the game's draw state for this block entity.
+struct HostDraw<'a> {
+    host: &'a dyn Host,
+    draw: &'a mut BlockEntityDraw,
+}
+
+impl BlockEntityCanvas for HostDraw<'_> {
+    fn push(&mut self) {
+        self.draw.push();
+    }
+
+    fn pop(&mut self) {
+        self.draw.pop();
+    }
+
+    fn translate(&mut self, by: [f32; 3]) {
+        self.draw.translate(by);
+    }
+
+    fn rotate_about(&mut self, axis: [f32; 3], degrees: f32, pivot: [f32; 3]) {
+        self.draw.rotate_about(axis, degrees, pivot);
+    }
+
+    fn scale(&mut self, by: [f32; 3]) {
+        self.draw.scale(by);
+    }
+
+    fn quad(&mut self, sprite: &str, corners: [[f32; 3]; 4], uv: [f32; 4], tint: u32) -> bool {
+        self.host.draw_quad(self.draw, sprite, corners, uv, tint)
+    }
+
+    fn cube(&mut self, from: [f32; 3], to: [f32; 3], sprite: &str, tint: u32) -> bool {
+        let face = CubeFace { sprite, uv: None };
+        self.host.draw_cube(self.draw, from, to, [Some(face); 6], tint)
+    }
+
+    fn block(&mut self, block: &str, properties: &[(&str, &str)]) -> bool {
+        self.host.draw_block(self.draw, block, properties)
+    }
+
+    fn item(&mut self, item: &ItemSlot) -> bool {
+        self.host.draw_item(self.draw, &ItemStack::new(&item.item.to_string(), item.count), DisplayContext::Fixed, None, 0)
+    }
+
+    fn model(&mut self, model: &str, tint: u32) -> bool {
+        self.host.draw_model(self.draw, model, tint)
+    }
+
+    fn keep(&mut self) {
+        self.draw.keep();
+    }
+}
+
 /// What a screen draws on: the game's batch for the frame.
 struct HostCanvas<'a> {
     host: &'a dyn Host,
@@ -294,6 +348,15 @@ impl Hooks for PlutoHooks {
         let (pos, button) = (event.pos, event.id);
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
         with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items));
+    }
+
+    fn block_entity_submit(&self, host: &dyn Host, event: &mut BlockEntitySubmitEvent<'_>) {
+        if !block_entity_renderer_api_v1::BlockEntityRendererRegistry::has(event.block) {
+            return;
+        }
+        let data = compound_from_tag(&event.entity.nbt);
+        let mut canvas = HostDraw { host, draw: &mut *event.draw };
+        block_entity_renderer_api_v1::render(event.block, event.pos, &data, &mut canvas);
     }
 
     fn screen(&self, _host: &dyn Host, event: &mut ScreenEvent<'_>) -> Option<NativeScreen> {
