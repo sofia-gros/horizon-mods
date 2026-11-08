@@ -21,6 +21,18 @@ pub trait LevelView {
     fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool;
     /// Whether the block at `pos` is in the block tag `tag` (`tconstruct:slimy_leaves`).
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool;
+    /// The light at `pos` from sky and blocks, 0 to 15 (`getMaxLocalRawBrightness`).
+    fn brightness(&self, pos: [i32; 3]) -> u8;
+    /// Whether light can pass from the block at `pos` into the one above it (`LightEngine.getLightBlockInto` below 15).
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool;
+    /// Whether the block at `pos` holds water (water itself, or a waterlogged block).
+    fn is_water(&self, pos: [i32; 3]) -> bool;
+    /// Whether the fluid at `pos` is a full source (`getFluidState().getAmount() == 8`).
+    fn fluid_full(&self, pos: [i32; 3]) -> bool;
+    /// Whether the chunks within `radius` blocks of `pos` are loaded (`isAreaLoaded`).
+    fn area_loaded(&self, pos: [i32; 3], radius: i32) -> bool;
+    /// Whether the collision shape of the block at `pos` is a whole block (`isCollisionShapeFullBlock`).
+    fn full_block(&self, pos: [i32; 3]) -> bool;
 }
 
 /// A view that can also change the level.

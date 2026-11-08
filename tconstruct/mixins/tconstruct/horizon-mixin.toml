@@ -3663,13 +3663,6 @@ kind = "HEAD"
 helper = "source-sapling-bonemeal-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
 
-[[injection]]
-id = "source-slimy-grass-tick"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
-kind = "HEAD"
-helper = "source-slimy-grass-tick.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
-
 [[module]]
 id = "source-ender-propagule"
 file = "crates/horizon-client/src/game.rs"
@@ -3883,19 +3876,6 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_native_hook_bodies"
 source = "source-native-hook-bodies.rs"
 
-[[module]]
-id = "source-slime-plant-support"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_plant_support"
-source = "source-slime-plant-support.rs"
-
-[[injection]]
-id = "source-slime-plant-survive"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
-kind = "HEAD"
-helper = "source-slime-plant-survive.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
-
 [[injection]]
 id = "copper-can-contents-gui"
 target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
@@ -3909,39 +3889,6 @@ bindings = [
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
 ]
-
-[[module]]
-id = "source-slime-grass-meal"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_grass_meal"
-source = "source-slime-grass-meal.rs"
-
-[[injection]]
-id = "source-slime-grass-meal-valid"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
-kind = "HEAD"
-helper = "source-slime-grass-meal-valid.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
-
-[[injection]]
-id = "source-slime-grass-meal-success"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
-kind = "HEAD"
-helper = "source-slime-grass-meal-success.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "&*self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
-
-[[injection]]
-id = "source-slime-grass-meal-perform"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
-kind = "HEAD"
-helper = "source-slime-grass-meal-perform.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
-
-[[module]]
-id = "source-slime-grass-meal-algorithm"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_grass_meal_algorithm"
-source = "source-slime-grass-meal-algorithm.rs"
 
 [[module]]
 id = "source-slime-seed-rules"

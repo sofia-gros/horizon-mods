@@ -191,3 +191,166 @@ pub fn register_leaves() {
         );
     }
 }
+
+// ---- slime grass, nylium and the short plants
+
+const FOLIAGE: [&str; 5] = ["earth", "sky", "ichor", "ender", "blood"];
+const SOILS: [&str; 5] = ["earth", "sky", "ichor", "ender", "vanilla"];
+
+/// Nether foliage grows on nylium (`FoliageType.isNether`), the rest on grass.
+fn is_nether(foliage: &str) -> bool {
+    matches!(foliage, "ichor" | "blood")
+}
+
+/// The dirt a slime grass block turns back into (`getDirtState`): its own soil.
+fn dirt_of(grass: &BlockState) -> Option<BlockState> {
+    let (_, rest) = grass.block.path().split_once('_')?;
+    let soil = rest.strip_suffix("_slime_grass")?;
+    BlockState::parse(&if soil == "vanilla" { "minecraft:dirt".to_owned() } else { format!("tconstruct:{soil}_slime_dirt") }).ok()
+}
+
+/// The grass of `foliage` on top of the given dirt, if it is a dirt that grass can grow on (`getStateFromDirt`).
+fn grass_on(dirt: &BlockState, foliage: &str) -> Option<BlockState> {
+    let soil = match (dirt.block.namespace(), dirt.block.path()) {
+        ("minecraft", "dirt") => "vanilla".to_owned(),
+        ("tconstruct", path) => path.strip_suffix("_slime_dirt")?.to_owned(),
+        _ => return None,
+    };
+    if !SOILS.contains(&soil.as_str()) {
+        return None;
+    }
+    BlockState::parse(&format!("tconstruct:{foliage}_{soil}_slime_grass")).ok()
+}
+
+/// What the short plants (fern, tall grass, sapling) may stand on: the four slime dirts and every slime grass.
+fn supports(ground: &BlockState) -> bool {
+    if ground.block.namespace() != "tconstruct" {
+        return false;
+    }
+    let path = ground.block.path();
+    if let Some(soil) = path.strip_suffix("_slime_dirt") {
+        return matches!(soil, "earth" | "sky" | "ichor" | "ender");
+    }
+    path.strip_suffix("_slime_grass")
+        .and_then(|name| name.split_once('_'))
+        .is_some_and(|(foliage, soil)| FOLIAGE.contains(&foliage) && SOILS.contains(&soil))
+}
+
+/// Whether the position can be slime grass: light must reach it, unless it lies under one layer of snow (`isValidPos`).
+fn valid_grass_position<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> bool {
+    let above = Direction::Up.relative(pos);
+    if let Some(top) = view.block_state(above) {
+        if top.block.to_string() == "minecraft:snow" && top.property("layers") == Some("1") {
+            return true;
+        }
+    }
+    if view.is_fluid_full(above) {
+        return false;
+    }
+    view.light_passes_up(pos)
+}
+
+fn plant_can_stand<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> bool {
+    view.block_state(Direction::Down.relative(pos)).is_some_and(|ground| supports(&ground))
+}
+
+/// Shared growth from bone meal (`SlimeGrassBlock.growGrass`): scatters ferns, tall grass and perhaps a sapling around `pos`.
+fn grow_grass(world: &mut dyn BlockEditor, pos: [i32; 3], valid_base: &str, foliage: &str, include_sapling: bool, spread: bool) {
+    let up = Direction::Up.relative(pos);
+    'main: for i in 0..128 {
+        let mut target = up;
+        for _ in 0..(i / 16) {
+            let dx = world.random_int(3) - 1;
+            let dy = (world.random_int(3) - 1) * world.random_int(3) / 2;
+            let dz = world.random_int(3) - 1;
+            target = [target[0] + dx, target[1] + dy, target[2] + dz];
+            let below = Direction::Down.relative(target);
+            // stop under an opaque block
+            if world.is_full_block(target) {
+                continue 'main;
+            }
+            // spread the foliage onto dirt, if asked to
+            if spread {
+                if let Some(dirt) = world.block_state(below) {
+                    if let Some(grass) = grass_on(&dirt, foliage) {
+                        world.set_block_state(below, &grass);
+                        continue 'main;
+                    }
+                }
+            }
+            if !world.is_in_tag(below, valid_base) {
+                continue 'main;
+            }
+        }
+        if world.is_air(target) {
+            let roll = world.random_int(32);
+            let plant = if roll == 0 && include_sapling {
+                "slime_sapling"
+            } else if roll < 6 {
+                "slime_fern"
+            } else {
+                "slime_tall_grass"
+            };
+            if let Ok(state) = BlockState::parse(&format!("tconstruct:{foliage}_{plant}")) {
+                if plant_can_stand(&*world, target) {
+                    world.set_block_state(target, &state);
+                }
+            }
+        }
+    }
+}
+
+pub fn register_grass() {
+    for foliage in FOLIAGE {
+        let nether = is_nether(foliage);
+        for soil in SOILS {
+            let name = format!("{foliage}_{soil}_slime_grass");
+            let (valid_base, include_sapling, spread) = if nether { ("tconstruct:slimy_nylium", true, true) } else { ("tconstruct:slimy_grass", false, false) };
+            BlockBehaviors::register(
+                BlockBehavior::new(Identifier::new("tconstruct", &name).expect("valid id"))
+                    .random_tick(move |c| {
+                        if nether {
+                            // nylium only dies when covered
+                            if !c.world.light_passes_up(c.pos) {
+                                if let Some(dirt) = dirt_of(&c.state) {
+                                    c.world.set_block_state(c.pos, &dirt);
+                                }
+                            }
+                            return;
+                        }
+                        // never load a chunk by touching its edge
+                        if !c.world.is_area_loaded(c.pos, 3) {
+                            return;
+                        }
+                        if !valid_grass_position(&*c.world, c.pos) {
+                            if let Some(dirt) = dirt_of(&c.state) {
+                                c.world.set_block_state(c.pos, &dirt);
+                            }
+                        } else if c.world.brightness(Direction::Up.relative(c.pos)) >= 9 {
+                            for _ in 0..4 {
+                                let dx = c.world.random_int(3) - 1;
+                                let dy = c.world.random_int(5) - 3;
+                                let dz = c.world.random_int(3) - 1;
+                                let spot = [c.pos[0] + dx, c.pos[1] + dy, c.pos[2] + dz];
+                                let Some(dirt) = c.world.block_state(spot) else { continue };
+                                let Some(grass) = grass_on(&dirt, foliage) else { continue };
+                                let above = Direction::Up.relative(spot);
+                                if valid_grass_position(&*c.world, spot) && !c.world.is_water(above) {
+                                    let snowy = c.world.block_state(above).is_some_and(|s| s.block.to_string() == "minecraft:snow");
+                                    c.world.set_block_state(spot, &grass.with("snowy", if snowy { "true" } else { "false" }));
+                                }
+                            }
+                        }
+                    })
+                    .can_bonemeal(|c| c.view.is_air(Direction::Up.relative(c.pos)))
+                    .bonemeal_success(|_| true)
+                    .on_bonemeal(move |c| grow_grass(&mut *c.world, c.pos, valid_base, foliage, include_sapling, spread)),
+            );
+        }
+        for plant in ["slime_fern", "slime_tall_grass"] {
+            BlockBehaviors::register(
+                BlockBehavior::new(Identifier::new("tconstruct", &format!("{foliage}_{plant}")).expect("valid id")).can_survive(|c| plant_can_stand(c.view, c.pos)),
+            );
+        }
+    }
+}
