@@ -4,9 +4,10 @@ pub use crate::pure::base;
 pub use crate::pure::base::event::{AllowAll, FirstNotPass, Unit};
 pub use crate::pure::base::support::{MATRIX, entries_with};
 pub use crate::pure::base::{
-    ActionResult, Callback, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
+    ActionResult, Callback, Nbt, NbtCompound, NbtCompoundExt, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
     default_phase,
 };
+pub use crate::pure::block_entity_api_v1::{self, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos};
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};
 pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry, ConfigSpec, ModConfig};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};

@@ -1,12 +1,24 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
 use pluto_lib::{
-    AttachmentRegistry, ItemGroup, ItemGroupRegistry, ItemStack, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    BlockEntityType, BlockEntityTypeRegistry, Nbt, NbtCompoundExt, AttachmentRegistry, ItemGroup, ItemGroupRegistry, ItemStack, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
     ServerTickEvents,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    BlockEntityTypeRegistry::register(
+        BlockEntityType::new(Identifier::new("tconstruct", "seared_stone").unwrap())
+            .with_id(Identifier::new("pluto_probe", "stone_entity").unwrap())
+            .ticker(|tick| {
+                let ticks = tick.data.get_int("ticks", 0) + 1;
+                tick.data.insert("ticks".to_owned(), Nbt::Int(ticks as i32));
+                if ticks == 5 {
+                    println!("PLUTO-PROBE block_entity ticks={ticks} pos={:?}", tick.pos);
+                }
+            })
+            .sync_data(),
+    );
     ItemGroupRegistry::register(
         ItemGroup::new(Identifier::new("pluto_probe", "tab").unwrap(), "Probe Tab", ItemStack::new(Identifier::new("minecraft", "stick").unwrap(), 1))
             .entry(ItemStack::new(Identifier::new("minecraft", "stick").unwrap(), 3).with_components("{\"minecraft:custom_name\":'\"Probe\"'}")),
