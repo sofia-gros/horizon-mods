@@ -163,6 +163,15 @@ pub fn hooks() -> Box<dyn Hooks> {
         });
     });
     CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe tool", |ctx| {
+            // the wear of a tool after it dug: the game counts damage against the stack's own max damage
+            let tool = (0..36).filter_map(|slot| ctx.source.stack(slot)).find(|s| s.item == "tconstruct:pickaxe");
+            match tool {
+                Some(tool) => println!("PLUTO-PROBE tool damage={} max={:?}", tool.damage, tool.max_damage),
+                None => println!("PLUTO-PROBE tool none"),
+            }
+            1
+        });
         registrar.register("pluto_probe check", |ctx| {
             let later = pluto_lib::World::new("minecraft:overworld").get_block_state([5, 81, 5]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
