@@ -23,6 +23,8 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE screen_draw origin_set=true',
             'PLUTO-PROBE renderer pos=',
             'PLUTO-PROBE fluids tconstruct=42',
+            'PLUTO-PROBE punji east=Some("true")',
+            'PLUTO-PROBE punji after_support_removed_later=Some("minecraft:air")',
             'PLUTO-PROBE world set=true read=Some("minecraft:glass")',
             'PLUTO-PROBE projectile kind=minecraft:snowball',
             'PLUTO-PROBE i18n language=en_us text=Hello from the probe ja=プローブからこんにちは player_language=',
@@ -107,7 +109,7 @@ with game_log.open('w') as log:
             bx, by, bz = int(position[0] // 1) + 2, int(position[1] // 1), int(position[2] // 1)
         except (ValueError, KeyError, TypeError, IndexError):
             bx, by, bz = 3, 80, 3
-        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble'):
+        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble', 'pluto_probe check'):
             # `interact X Y Z` is a control command (right-click a block); the rest are game commands
             words = ['interact', *line.split()[1:]] if line.startswith('interact ') else line.split() if line.startswith('look ') or line in ('use-item', 'close', 'state') else ['command', line]
             done = subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', *words], capture_output=True, text=True, timeout=40)

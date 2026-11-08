@@ -7,6 +7,10 @@ pub use crate::pure::base::{
     ActionResult, Callback, Nbt, NbtCompound, NbtCompoundExt, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
     default_phase,
 };
+pub use crate::pure::block_api_v1::{
+    self, BlockBehavior, BlockBehaviors, BlockView, Direction, EntityInsideContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
+    SurviveContext,
+};
 pub use crate::pure::block_entity_api_v1::{self, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry};
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};

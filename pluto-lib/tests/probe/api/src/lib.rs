@@ -64,7 +64,24 @@ pub fn hooks() -> Box<dyn Hooks> {
             let glass = pluto_lib::BlockState::new(Identifier::new("minecraft", "glass").unwrap());
             let set = world.set_block_state([3, 81, 3], &glass);
             println!("PLUTO-PROBE world set={set} read={:?}", world.get_block_state([3, 81, 3]).map(|s| s.to_string()));
+            // two punji sticks side by side on stone: each learns of the other; then the stone under one goes and so does the stick
+            let stone = pluto_lib::BlockState::parse("minecraft:stone").unwrap();
+            let punji = pluto_lib::BlockState::parse("tconstruct:punji[facing=down]").unwrap();
+            for x in [5, 6] {
+                world.set_block_state([x, 80, 5], &stone);
+                world.set_block_state([x, 81, 5], &punji);
+            }
+            let east = world.get_block_state([5, 81, 5]).and_then(|s| s.property("east").map(str::to_owned));
+            world.set_block_state([5, 80, 5], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
+            println!("PLUTO-PROBE punji east={east:?}");
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
+            1
+        });
+    });
+    CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe check", |_| {
+            let later = pluto_lib::World::new("minecraft:overworld").get_block_state([5, 81, 5]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
             1
         });
     });
