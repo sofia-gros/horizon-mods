@@ -93,6 +93,50 @@ impl ServerPlayer {
     }
 }
 
+/// An in-memory game for tests: the players it knows keep messages, items and attachments in plain collections. Run code that uses
+/// [`ServerPlayer`] inside [`with_ops`] with one of these to check what it did.
+#[derive(Default, Debug)]
+pub struct MemoryPlayerOps {
+    /// Every `(player, line)` sent with `send_message`.
+    pub told: Vec<(u128, String)>,
+    /// Items each player carries, by `(player, item id)`.
+    pub items: std::collections::HashMap<(u128, String), u32>,
+    /// JSON stored per `(player, attachment id)`.
+    pub attachments: std::collections::HashMap<(u128, String), String>,
+    /// How many of the 36 main slots are empty for every player (set it to test full inventories).
+    pub free_slots: u32,
+}
+
+impl PlayerOps for MemoryPlayerOps {
+    fn tell(&mut self, player: u128, line: &str) -> bool {
+        self.told.push((player, line.to_owned()));
+        true
+    }
+    fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {
+        *self.items.entry((player, item.to_owned())).or_default() += count;
+        0
+    }
+    fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
+        self.attachments.get(&(player, id.to_owned())).cloned()
+    }
+    fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
+        self.attachments.insert((player, id.to_owned()), json.to_owned());
+        true
+    }
+    fn count_item(&mut self, player: u128, item: &str) -> u32 {
+        self.items.get(&(player, item.to_owned())).copied().unwrap_or(0)
+    }
+    fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32 {
+        let have = self.items.entry((player, item.to_owned())).or_default();
+        let taken = (*have).min(count);
+        *have -= taken;
+        taken
+    }
+    fn empty_slots(&mut self, _player: u128) -> u32 {
+        self.free_slots
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

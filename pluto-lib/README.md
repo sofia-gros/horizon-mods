@@ -48,7 +48,8 @@ Of its eleven composition guards only `protection` passes on the current Horizon
 ## Building and testing
 
 ```sh
-cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml        # the host-independent part, seconds
+cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml        # the host-independent part and the compiled examples of docs/api, seconds
+python tools/check_api_docs.py                                     # from the repository root: every public item is documented
 python -m unittest discover -s pluto-lib/tests                     # packaging and guard tests
 python tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod  # from the repository root
 ```

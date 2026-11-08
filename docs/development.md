@@ -19,10 +19,11 @@ Quick, no game, no network:
 ```sh
 python tools/check_line_endings.py
 python tools/check_docs_budget.py                       # markdown files must be on the allow list
+python tools/check_api_docs.py                          # every public PlutoLib item has a section and an example in pluto-lib/docs/api
 python tools/lint_forbidden_api.py
 python -m unittest discover -s tests
 python -m unittest discover -s pluto-lib/tests          # about 30 s
-cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml   # PlutoLib's host-independent part, seconds
+cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml   # PlutoLib's host-independent part and every code example of pluto-lib/docs/api (doctests), seconds
 ```
 
 Tinkers' Python tests: `python -m unittest discover -s tconstruct/tests` (26 tests, about 75 s; nine of them skip unless `rustc` and their fixture folders are set up).

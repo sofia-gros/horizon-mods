@@ -14,7 +14,7 @@ ALLOWED = [
     'README.md', 'README.ja.md', 'AGENTS.md', 'CLAUDE.md',
     'docs/architecture.md', 'docs/development.md', 'docs/releasing.md', 'docs/roadmap.md', 'docs/migration/pr-classification.md',
     'pluto-lib/README.md', 'pluto-lib/docs/design-principles.md', 'pluto-lib/docs/fabric-api-design.md',
-    'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md',
+    'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md', 'pluto-lib/docs/api/*.md',
     'tconstruct/README.md',
     # licence and attribution notices are legal text, not documentation
     '*NOTICE.md', '*NOTICES.md', '*LICENSE.md',

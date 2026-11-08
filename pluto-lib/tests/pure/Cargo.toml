@@ -1,8 +1,11 @@
-# Compiles PlutoLib's host-independent module (mod/api/src/pure) on its own so it can be tested in seconds.
+# Compiles PlutoLib's host-independent module (mod/api/src/pure) on its own so it can be tested in seconds, and compiles the
+# code examples of the API pages (docs/api/*.md) as doctests against the same names a mod author sees (`pluto_lib::...`).
 [package]
 name = "pluto-lib-pure-tests"
 version = "0.0.0"
-edition = "2024"
+# 2021 on purpose: rustdoc merges doctests into one process from edition 2024, and the examples share PlutoLib's global events,
+# so each example must run in its own process.
+edition = "2021"
 publish = false
 
 [dependencies]
@@ -10,6 +13,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [lib]
-path = "../../mod/api/src/pure/mod.rs"
+name = "pluto_lib"
+path = "src/lib.rs"
 
 [workspace]
