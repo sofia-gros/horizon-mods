@@ -39,8 +39,8 @@
       "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
     },
     "block/SlimeSaplingBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "ported",
+      "note": "PlutoLib behaviour (trees.rs): stage change, tree growth on random tick and bone meal, ground. Checked in game: a stage-1 earth sapling on slime dirt grew into a greenheart log"
     },
     "block/SlimeTallGrassBlock.java": {
       "status": "ported-unchecked",
@@ -207,8 +207,8 @@
       "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
     },
     "worldgen/trees/config/SlimeTreeConfig.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "partial",
+      "note": "the three configs of the sapling and island trees are constants in trees.rs; the island generation does not read them yet"
     },
     "worldgen/trees/ExtraRootVariantPlacer.java": {
       "status": "todo",
@@ -219,16 +219,16 @@
       "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
     },
     "worldgen/trees/feature/SlimeTreeFeature.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "ported-unchecked",
+      "note": "trees.rs ports the whole feature over BlockEditor and uses it for the earth and sky saplings; the canopy and the leaf distances were not inspected in game; the island generation still calls the old shape code"
     },
     "worldgen/trees/LeaveVineDecorator.java": {
       "status": "todo",
       "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
     },
     "worldgen/trees/SlimeTree.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "partial",
+      "note": "earth and sky saplings choose their tree; ender (mangrove style tree), blood and ichor (fungus) are still on the old code"
     }
   }
 }

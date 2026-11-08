@@ -10,6 +10,7 @@ static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
 mod fluids;
 mod gadgets;
 mod shared;
+mod trees;
 mod world;
 mod fluids_table;
 
@@ -20,6 +21,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world::register();
     world::register_leaves();
     world::register_grass();
+    trees::register();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {
