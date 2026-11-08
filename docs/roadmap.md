@@ -76,6 +76,22 @@ Direct injections left in Tinkers: 261 (the limit in `tools/injection_limits.jso
 
 **Next, in order:** (1) the plants of phase D (grass family, then saplings and fungus), (2) a world generation API in PlutoLib and the trees and islands on it, (3) phases E and F class by class, (4) tables, smeltery and tools with their PlutoLib needs designed first. **Codex** (from about 2026-11-10 for four days; the owner wants it for phases G, H and I, so no task is written before their PlutoLib API exists) does bulk porting inside the fence of `docs/codex.md`: one task file, one branch, `tools/codex_guard.py`, review and game check by the owner's agent.
 
+### 1.3 What PlutoLib needs for phases G, H and I (from the remaining injections)
+
+Every direct injection still in Tinkers marks a thing PlutoLib cannot do yet. Grouped by what they do, with the PlutoLib module that should take them (generated 2026-11-08 from `tconstruct/mixins/tconstruct/horizon-mixin.toml`). Each group is designed as PlutoLib API first, with its documentation page, and only then ported by the phase that needs it; this is also the order in which tasks for Codex can be written.
+
+| What the 261 remaining Tinkers injections do | injections | PlutoLib needs | phase |
+|---|---|---|---|
+| Menus, slots and stations (clicks, drags, quick craft, station and smeltery screens) | 81 | screen_handler_api_v1 (slot click, drag, quick move, shift-click events; a crafting station menu type with its own result slot), and LAN guests going through the same code | G, H |
+| Tools in combat and mining (attack, weapon hit and wear, mining speed, drops, tool use, block transformers, attributes) | 32 | item_api_v1 and entity_events_v1 (attack events with the damage, mining speed and harvest level events: stubs blocked by Mixins today, tool durability, item attribute modifiers, area-of-effect breaking) | I |
+| Drawing items, tooltips and screens | 5 | an item model hook (per-stack models for tools and parts), tooltip lines from the stack, screen drawing (exists: screen_handler_api_v1) | G, I |
+| Networking and block entity sync (guests, tracked entities, wire data) | 20 | networking_api_v1 (payloads both ways, tracked-entity data) and block entity sync (exists in part: update_tag, sync_data) | G, H, I |
+| Recipes and data packs (custom recipe types, reload, loot and content overlays) | 15 | a recipe API (custom recipe types for casting, melting, part building, modifiers; reload events), resource_loader_v0 (exists) and loot_api_v2 (exists) | F, G, H, I |
+| Placing blocks and picking them (facing on placement, picked stack, drops) | 10 | block_api_v1 (exists: placement state; needs the item-stack side of placement and pick-block) | G, H |
+| Eating, drinking and using items over time | 11 | item_api_v1 ItemUse (exists; needs finish callbacks with effects) | D, I |
+| Worldgen (islands and the ender tree) | 2 | a world generation API in PlutoLib: custom feature types and structure starts | D |
+| Everything else (single cases: wear, tank drops, comparators, amplifying hooks) | 85 | looked at when the phase using it starts | G, H, I |
+
 ## 2. Overnight run (unattended)
 
 The agent keeps working without stopping until the owner is back. It decides for itself inside the limits below, records each non-obvious decision in the log at the end of this file, and never waits for an answer it can replace with the conservative default.
