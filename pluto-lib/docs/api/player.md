@@ -349,6 +349,22 @@ with_ops(&mut game, || {
 });
 ```
 
+### `ServerPlayer::give_stack`
+
+`fn give_stack(&self, stack: StackData) -> Option<StackData>`. Gives the player a stack with its damage, max damage and custom data, such as a tool a mod has just made. Returns what did not fit (None if all of it did); outside a callback that carries the player, the whole stack comes back.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into() };
+with_ops(&mut game, || {
+    assert_eq!(player.give_stack(tool), None);
+    assert_eq!(player.stack(0).unwrap().max_damage, Some(60));
+});
+```
+
 ### `ServerPlayer::update_stack`
 
 `fn update_stack(&self, slot: i32, new: &StackData) -> bool`. Writes count, damage and custom data of the stack in `slot` back, if it still holds the item `new.item`. A count of 0 empties the slot. True if it was written; false for an empty slot, another item, a slot that does not exist, or outside a callback.
@@ -369,7 +385,7 @@ with_ops(&mut game, || {
 
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>` and `update_stack(player, slot, expected_item, &StackData) -> bool`.
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing) and `update_stack(player, slot, expected_item, &StackData) -> bool`.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};

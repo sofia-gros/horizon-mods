@@ -38,6 +38,10 @@ pub trait PlayerOps {
     fn stack(&mut self, _player: u128, _slot: i32) -> Option<StackData> {
         None
     }
+    /// Gives a stack with its damage, max damage and custom data; returns what did not fit (the whole stack if nothing could be given).
+    fn give_stack(&mut self, _player: u128, stack: StackData) -> Option<StackData> {
+        Some(stack)
+    }
     /// Replaces count, damage and custom data of the stack in `slot` if it still holds `expected_item`; true if it did.
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
@@ -206,6 +210,12 @@ impl ServerPlayer {
         with_current(None, |ops| ops.stack(self.uuid, slot))
     }
 
+    /// Gives the player a stack with its damage, max damage and custom data (a tool made by a mod). Returns what did not fit; the whole
+    /// stack comes back outside a callback that carries the player.
+    pub fn give_stack(&self, stack: StackData) -> Option<StackData> {
+        with_current(Some(stack.clone()), |ops| ops.give_stack(self.uuid, stack))
+    }
+
     /// Writes back count, damage and custom data of the stack in `slot`, if it still holds the item `new.item`. True if it was written;
     /// false outside a callback, for an empty slot, or when the slot holds another item.
     pub fn update_stack(&self, slot: i32, new: &StackData) -> bool {
@@ -290,6 +300,18 @@ impl PlayerOps for MemoryPlayerOps {
     fn stack(&mut self, player: u128, slot: i32) -> Option<StackData> {
         self.stacks.get(&player)?.get(usize::try_from(slot).ok()?)?.clone().filter(|s| s.count > 0)
     }
+    fn give_stack(&mut self, player: u128, stack: StackData) -> Option<StackData> {
+        let slots = self.stacks.entry(player).or_default();
+        if let Some(index) = slots.iter().position(Option::is_none) {
+            slots[index] = Some(stack);
+            None
+        } else if slots.len() < 36 {
+            slots.push(Some(stack));
+            None
+        } else {
+            Some(stack)
+        }
+    }
     fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &StackData) -> bool {
         let Some(held) = usize::try_from(slot).ok().and_then(|i| self.stacks.get_mut(&player)?.get_mut(i)) else { return false };
         match held {
@@ -309,6 +331,20 @@ mod stack_tests {
 
     fn pickaxe(damage: u32) -> StackData {
         StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into() }
+    }
+
+    #[test]
+    fn a_stack_made_by_a_mod_can_be_given_with_its_data() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        with_ops(&mut ops, || {
+            assert_eq!(player.give_stack(pickaxe(0)), None);
+            assert_eq!(player.stack(0).unwrap().custom_data["stats"], Nbt::Int(60));
+        });
+        // a full inventory hands the stack back
+        ops.stacks.insert(1, vec![Some(pickaxe(0)); 36]);
+        assert_eq!(with_ops(&mut ops, || player.give_stack(pickaxe(1))), Some(pickaxe(1)));
+        assert_eq!(player.give_stack(pickaxe(2)), Some(pickaxe(2)), "outside a callback nothing is given");
     }
 
     #[test]

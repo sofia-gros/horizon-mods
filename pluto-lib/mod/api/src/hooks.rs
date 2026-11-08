@@ -148,6 +148,17 @@ impl PlayerOps for HostOps {
         Some(player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data })
     }
 
+    fn give_stack(&mut self, player: u128, stack: player_api::StackData) -> Option<player_api::StackData> {
+        let mut made = ItemStack::new(&stack.item, stack.count);
+        made.damage = stack.damage;
+        made.data_mut().set_other("minecraft:max_damage", stack.max_damage.filter(|m| *m > 0).map(Tag::Int));
+        made.tidy();
+        if !stack.custom_data.is_empty() && self.host().set_component(&mut made, STACK_DATA_COMPONENT, Tag::Compound(compound_to_tag(&stack.custom_data))).is_err() {
+            return Some(stack);
+        }
+        self.host().give_stack(player, made).map(|left| player_api::StackData { count: left.count, ..stack })
+    }
+
     fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &player_api::StackData) -> bool {
         let _ = player;
         let Some(mut stack) = self.host().carried_stack(slot).filter(|s| &*s.item == expected_item && s.count > 0).map(|s| s.clone()) else { return false };
