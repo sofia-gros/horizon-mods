@@ -84,6 +84,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             // grass under a stone gets no light and turns back into dirt on a random tick
             world.set_block_state([20, 80, 20], &pluto_lib::BlockState::parse("tconstruct:earth_earth_slime_grass").unwrap());
             world.set_block_state([20, 81, 20], &stone);
+            // a sapling in its second stage on slime dirt grows into a tree on a random tick
+            world.set_block_state([24, 79, 24], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
+            world.set_block_state([24, 80, 24], &pluto_lib::BlockState::parse("tconstruct:earth_slime_sapling[stage=1]").unwrap());
             // leaves count their distance from a slime log, and from leaves next to it
             let log = pluto_lib::BlockState::parse("tconstruct:skyroot_log").unwrap();
             let leaves = pluto_lib::BlockState::parse("tconstruct:sky_slime_leaves").unwrap();
@@ -131,6 +134,8 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE vine after_support_removed={vine:?}");
             let grass = pluto_lib::World::new("minecraft:overworld").get_block_state([20, 80, 20]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE grass covered={grass:?}");
+            let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE sapling grew={tree:?}");
             1
         });
     });

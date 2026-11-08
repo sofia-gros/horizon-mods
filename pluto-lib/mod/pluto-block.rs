@@ -33,6 +33,8 @@ pub trait LevelView {
     fn area_loaded(&self, pos: [i32; 3], radius: i32) -> bool;
     /// Whether the collision shape of the block at `pos` is a whole block (`isCollisionShapeFullBlock`).
     fn full_block(&self, pos: [i32; 3]) -> bool;
+    /// The lowest buildable y and the first y above the build limit.
+    fn build_height(&self) -> [i32; 2];
 }
 
 /// A view that can also change the level.
@@ -41,6 +43,8 @@ pub trait LevelEdit: LevelView {
     fn set_state(&mut self, pos: [i32; 3], state: &StateInfo, flags: i32) -> bool;
     /// A number from 0 up to but not including `bound`, from the level's own random source.
     fn random_int(&mut self, bound: i32) -> i32;
+    /// A number from 0.0 up to but not including 1.0, from the level's own random source.
+    fn random_float(&mut self) -> f32;
     /// Schedules a tick of `block` at `pos` after `delay` game ticks.
     fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool;
 }

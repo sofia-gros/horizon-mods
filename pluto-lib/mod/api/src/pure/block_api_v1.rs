@@ -152,6 +152,8 @@ pub trait BlockView {
     fn is_area_loaded(&self, pos: BlockPos, radius: i32) -> bool;
     /// Whether the collision shape of the block at `pos` is a whole block (Minecraft: `isCollisionShapeFullBlock`).
     fn is_full_block(&self, pos: BlockPos) -> bool;
+    /// The lowest y blocks can be built at and the first y above the build limit (Minecraft: `getMinBuildHeight`, `getMaxBuildHeight`).
+    fn build_height(&self) -> [i32; 2];
 }
 
 /// A [`BlockView`] for tests: the blocks set are sturdy on every face, everything else is air.
@@ -169,6 +171,8 @@ pub struct MemoryBlockView {
     pub water: BTreeSet<BlockPos>,
     /// Positions that are not loaded (the rest are).
     pub unloaded: BTreeSet<BlockPos>,
+    /// The numbers [`BlockEditor::random_float`] hands out, first first; 0.0 once they are used up.
+    pub floats: Vec<f32>,
     /// The numbers [`BlockEditor::random_int`] hands out, first first (each is taken modulo the bound); 0 once they are used up.
     pub rolls: Vec<i32>,
     /// The ticks scheduled so far: position, block and delay.
@@ -216,6 +220,10 @@ impl BlockView for MemoryBlockView {
     fn is_full_block(&self, pos: BlockPos) -> bool {
         self.blocks.contains_key(&pos) && !self.weak.contains(&pos)
     }
+
+    fn build_height(&self) -> [i32; 2] {
+        [-64, 320]
+    }
 }
 
 /// What a callback may change: a [`BlockView`] that can also write blocks, roll dice and schedule ticks (Minecraft: `ServerLevel`).
@@ -233,6 +241,8 @@ pub trait BlockEditor: BlockView {
     /// A random whole number from 0 up to but not including `bound` (Minecraft: `RandomSource.nextInt`), drawn from the level's own random
     /// source so the order of draws is the game's.
     fn random_int(&mut self, bound: i32) -> i32;
+    /// A number from 0.0 up to but not including 1.0 from the level's own random source (Minecraft: `RandomSource.nextFloat`).
+    fn random_float(&mut self) -> f32;
     /// Asks the game to tick `block` at `pos` after `delay` game ticks (Minecraft: `scheduleTick`); false if it could not be scheduled.
     fn schedule_tick(&mut self, pos: BlockPos, block: &str, delay: i32) -> bool;
 }
@@ -252,6 +262,14 @@ impl BlockEditor for MemoryBlockView {
             0
         } else {
             self.rolls.remove(0).rem_euclid(bound)
+        }
+    }
+
+    fn random_float(&mut self) -> f32 {
+        if self.floats.is_empty() {
+            0.0
+        } else {
+            self.floats.remove(0)
         }
     }
 

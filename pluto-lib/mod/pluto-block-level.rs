@@ -2,6 +2,7 @@
 // blocks that have a behaviour registered through the API crate (block_api_v1). Other blocks are left to the game and to other hooks.
 use super::*;
 use horizon_core::geometry::Direction;
+use horizon_core::random::RandomSource;
 use crate::entry::pluto_block::{self, LevelEdit, LevelView, Placement, PlacementAnswer, ShapeUpdate, StateInfo};
 
 struct View<'a, 'g> {
@@ -81,6 +82,10 @@ impl LevelView for View<'_, '_> {
 
     fn full_block(&self, pos: [i32; 3]) -> bool {
         self.level.behaviours.shape_info(self.level.block_state(at(pos))).full_faces & 0x3f == 0x3f
+    }
+
+    fn build_height(&self) -> [i32; 2] {
+        [self.level.world.bottom_y(), self.level.world.top_y()]
     }
 }
 
@@ -192,6 +197,10 @@ impl LevelView for Edit<'_, '_> {
     fn full_block(&self, pos: [i32; 3]) -> bool {
         View { level: &*self.level }.full_block(pos)
     }
+
+    fn build_height(&self) -> [i32; 2] {
+        View { level: &*self.level }.build_height()
+    }
 }
 
 impl LevelEdit for Edit<'_, '_> {
@@ -207,6 +216,10 @@ impl LevelEdit for Edit<'_, '_> {
             return 0;
         }
         self.level.world.random.next_int_bound(bound).unwrap_or(0)
+    }
+
+    fn random_float(&mut self) -> f32 {
+        self.level.world.random.next_float()
     }
 
     fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool {

@@ -250,7 +250,7 @@ fn valid_grass_position<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> bool 
     view.light_passes_up(pos)
 }
 
-fn plant_can_stand<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> bool {
+pub(crate) fn plant_can_stand<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> bool {
     view.block_state(Direction::Down.relative(pos)).is_some_and(|ground| supports(&ground))
 }
 

@@ -1,6 +1,6 @@
 {
   "tconstruct": {
-    "max": 272,
+    "max": 267,
     "known_overlaps": [
       "source-copper-gauge-placement",
       "source-copper-gauge-update",
@@ -11,11 +11,6 @@
       "source-ender-propagule-valid",
       "source-fluid-cannon-placement",
       "source-geode-random-tick",
-      "source-sapling-bonemeal-perform",
-      "source-sapling-bonemeal-success",
-      "source-sapling-bonemeal-valid",
-      "source-sapling-random",
-      "source-sapling-survive",
       "source-slime-fungus-perform",
       "source-slime-fungus-success",
       "source-slime-fungus-survive",

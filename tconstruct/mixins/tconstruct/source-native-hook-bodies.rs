@@ -31,29 +31,6 @@ pub(super) fn tconstruct_geode_random_tick(level: &mut GameLevel<'_>, ticks: &mu
     behaviours.set_block(level, ticks, target, next_state, 3);
 }
 
-pub(super) fn tconstruct_sapling_random(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
-    use horizon_core::random::RandomSource;
-    if !super::tconstruct_sapling_tree::sapling(level,state) {return;}
-    *handled=true;
-    let Some(y)=pos.y.checked_add(1) else {return;};
-    if horizon_world::level::raw_brightness(level, BlockPos::new(pos.x,y,pos.z), level.sky_darken()) >= 9
-        && matches!(level.world.random.next_int_bound(7),Ok(0)) {
-        super::tconstruct_sapling_tree::advance(level,ticks,pos,state);
-    }
-}
-
-pub(super) fn tconstruct_sapling_survive(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, survives: &mut Option<bool>) {
-    if !super::tconstruct_sapling_tree::sapling(level,state) {return;}
-    let Some(y)=pos.y.checked_sub(1) else {*survives=Some(false);return;};
-    let ground=level.block_state(BlockPos::new(pos.x,y,pos.z));
-    let Some(name)=level.registry.state(ground).map(|s|s.name.as_str()) else {*survives=Some(false);return;};
-    let dirt=matches!(name,"tconstruct:earth_slime_dirt"|"tconstruct:sky_slime_dirt"|"tconstruct:ichor_slime_dirt"|"tconstruct:ender_slime_dirt");
-    let grass=name.strip_prefix("tconstruct:").and_then(|v|v.strip_suffix("_slime_grass")).and_then(|v|v.split_once('_')).is_some_and(|(foliage,soil)| ["earth","sky","ichor","ender","blood"].contains(&foliage) && ["earth","sky","ichor","ender","vanilla"].contains(&soil));
-    *survives=Some(dirt||grass);
-}
-
-// Run after native cancellation handlers and before actual block removal.
-// Area recursion spends only on its first allowed call.
 pub(super) fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>, canceled: bool) {
     if canceled { return; }
     use horizon_world::nbt::Tag;

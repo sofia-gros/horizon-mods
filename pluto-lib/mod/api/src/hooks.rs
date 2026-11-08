@@ -438,6 +438,10 @@ impl block_api_v1::BlockView for GameView<'_> {
     fn is_full_block(&self, pos: [i32; 3]) -> bool {
         self.0.full_block(pos)
     }
+
+    fn build_height(&self) -> [i32; 2] {
+        self.0.build_height()
+    }
 }
 
 /// The game's view of the blocks around, with the right to change them.
@@ -482,6 +486,10 @@ impl block_api_v1::BlockView for GameEditor<'_> {
     fn is_full_block(&self, pos: [i32; 3]) -> bool {
         self.0.full_block(pos)
     }
+
+    fn build_height(&self) -> [i32; 2] {
+        self.0.build_height()
+    }
 }
 
 impl block_api_v1::BlockEditor for GameEditor<'_> {
@@ -491,6 +499,10 @@ impl block_api_v1::BlockEditor for GameEditor<'_> {
 
     fn random_int(&mut self, bound: i32) -> i32 {
         self.0.random_int(bound)
+    }
+
+    fn random_float(&mut self) -> f32 {
+        self.0.random_float()
     }
 
     fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool {
