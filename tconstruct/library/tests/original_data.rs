@@ -163,3 +163,39 @@ fn the_originals_modifiers_load_with_the_stat_boost_module_carried() {
     assert!(problems.is_empty(), "{:?}", &problems[..problems.len().min(8)]);
     assert_eq!(before.uncarried_modules() - after.uncarried_modules(), 90, "all 90 stat_boost modules are carried now");
 }
+
+#[test]
+fn a_whole_wood_pickaxe_is_rebuilt_from_the_originals_data() {
+    use std::sync::Arc;
+    use tconstruct_library::modifiers::stat_modules::ToolContext;
+    use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
+    use tconstruct_library::tools::definition::{ToolDefinitionData, ToolModuleRegistry};
+    use tconstruct_library::tools::stack::rebuild_stats;
+    use tconstruct_library::tools::stat::{HarvestTiers, StatValue, ToolStatId, ToolStats};
+    struct Pickaxe;
+    impl ToolContext for Pickaxe {
+        fn item_in_tag(&self, tag: &str) -> bool {
+            ["tconstruct:harvest", "tconstruct:durability", "tconstruct:melee"].contains(&tag)
+        }
+    }
+    let Some(root) = data_root() else { return };
+    let stats = Arc::new(ToolStats::tinkers(HarvestTiers::vanilla()));
+    let mut materials = tconstruct_library::materials::MaterialRegistry::with_tinkers_stats();
+    assert!(materials.stats.load(&read_all(&root.join("materials/stats"))).is_empty());
+    assert!(materials.traits.load(&read_all(&root.join("materials/traits"))).is_empty());
+    let mut modules = ModuleRegistry::with_original_types();
+    modules.register_stat_modules(stats.clone());
+    let (modifiers, problems) = ModifierManager::load(&read_all(&root.join("modifiers")), &[], &[], &modules, &EmptyContext);
+    assert!(problems.is_empty(), "{problems:?}");
+    let defs = read_all(&root.join("tool_definitions"));
+    let pickaxe = defs.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
+    let definition = ToolDefinitionData::from_json(&pickaxe.1, &ToolModuleRegistry::with_original_types(), &stats).unwrap();
+    let wood = MaterialId::try_parse("tconstruct:wood").unwrap();
+    let rebuilt = rebuild_stats(&definition, &[wood.clone(), wood.clone(), wood], &[], &materials, &modifiers, &stats, &Pickaxe);
+    let names: Vec<String> = rebuilt.modifiers.iter().map(|e| format!("{}x{}", e.modifier, e.level)).collect();
+    // the pickaxe's own pierce trait and the wood's default trait on each of the three parts
+    assert!(names.contains(&"tconstruct:piercex1".to_owned()), "{names:?}");
+    assert!(names.contains(&"tconstruct:cultivatedx3".to_owned()), "{names:?}");
+    assert_eq!(rebuilt.stats[&ToolStatId::tconstruct("durability")], StatValue::Float(60.0));
+    assert_eq!(rebuilt.slots["upgrades"], 3);
+}
