@@ -1811,8 +1811,8 @@
       "note": "not yet compared with the port"
     },
     "modifiers/modules/build/StatBoostModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/modifiers/stat_modules.rs: the five operations (add, percent, multiply base, multiply conditional, multiply all), flat + each level amounts, the tool (item predicate) and modifier level conditions; all 90 uses in the original's modifier data load carried, and the level, condition and support cases are tested. The builder helpers (add, multiplyBase, ...) are data-generation helpers"
     },
     "modifiers/modules/build/StatCopyModule.java": {
       "status": "todo",

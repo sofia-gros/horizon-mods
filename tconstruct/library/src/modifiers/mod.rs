@@ -5,6 +5,7 @@
 //! ported has a loader in the `ModuleRegistry`, the others load as raw data and are counted by `Modifier::uncarried_modules`, so a
 //! modifier that loads is not mistaken for one that works.
 pub mod module_types;
+pub mod stat_modules;
 
 use std::any::Any;
 use std::collections::{BTreeMap, HashMap};
@@ -136,6 +137,11 @@ impl ModuleRegistry {
     /// Registers (or replaces) the loader of a type.
     pub fn register(&mut self, kind: &str, loader: ModuleLoader) {
         self.loaders.insert(kind.to_owned(), loader);
+    }
+
+    /// Registers the modules that change a tool's stats, over the stats they name.
+    pub fn register_stat_modules(&mut self, stats: Arc<crate::tools::stat::ToolStats>) {
+        self.register("tconstruct:stat_boost", stat_modules::stat_boost_loader(stats));
     }
 
     pub fn knows(&self, kind: &str) -> bool {
@@ -404,6 +410,44 @@ mod tests {
         assert_eq!(manager.for_enchantment("#minecraft:tag"), Some(&mid("tconstruct:sharpness")));
         assert!(manager.for_enchantment("minecraft:gone").is_none() && manager.for_enchantment("minecraft:bad").is_none());
         assert_eq!(problems.len(), 1, "only the non-optional unknown modifier is a problem: {problems:?}");
+    }
+
+    struct Tags(&'static [&'static str]);
+    impl stat_modules::ToolContext for Tags {
+        fn item_in_tag(&self, tag: &str) -> bool {
+            self.0.contains(&tag)
+        }
+    }
+
+    #[test]
+    fn a_stat_boost_adds_by_level_and_respects_the_tool_and_level_conditions() {
+        use crate::tools::stat::{HarvestTiers, ModifierStatsBuilder, StatValue, ToolStatId, ToolStats};
+        let stats = Arc::new(ToolStats::tinkers(HarvestTiers::vanilla()));
+        let mut modules = ModuleRegistry::with_original_types();
+        modules.register_stat_modules(stats.clone());
+        let boost = json!({"type": "tconstruct:stat_boost", "each_level": 0.75, "operation": "add", "stat": "tconstruct:attack_damage"});
+        let limited = json!({"type": "tconstruct:stat_boost", "flat": 2.0, "operation": "add", "stat": "tconstruct:durability", "modifier_level": {"min": 2}, "tool": {"type": "mantle:tag", "tag": "tconstruct:harvest"}});
+        let files = vec![(rid("tconstruct:sharpness"), json!({"modules": [boost, limited]}))];
+        let (manager, problems) = ModifierManager::load(&files, &[], &[], &modules, &EmptyContext);
+        assert!(problems.is_empty(), "{problems:?}");
+        let modifier = manager.get(&mid("tconstruct:sharpness")).unwrap();
+        assert_eq!(modifier.uncarried_modules(), 0);
+        let apply = |level: i32, tags: &'static [&'static str]| {
+            let mut builder = ModifierStatsBuilder::new(&stats);
+            let entry = ModifierEntry { modifier: modifier.id.clone(), level };
+            for module in &modifier.modules {
+                if let Some(boost) = module.as_any().downcast_ref::<stat_modules::StatBoostModule>() {
+                    boost.add_tool_stats(&Tags(tags), &entry, &stats, &mut builder);
+                }
+            }
+            (builder.get(&ToolStatId::tconstruct("attack_damage")), builder.get(&ToolStatId::tconstruct("durability")))
+        };
+        // the attack damage stat applies to melee items; the durability boost needs level 2 and a harvest tool
+        assert_eq!(apply(3, &["tconstruct:melee", "tconstruct:durability"]).0, StatValue::Float(2.25));
+        assert_eq!(apply(3, &["tconstruct:harvest", "tconstruct:durability"]).1, StatValue::Float(3.0), "1 default + 2 flat");
+        assert_eq!(apply(1, &["tconstruct:harvest", "tconstruct:durability"]).1, StatValue::Float(1.0), "below the minimum level");
+        assert_eq!(apply(3, &["tconstruct:melee", "tconstruct:durability"]).1, StatValue::Float(1.0), "not a harvest tool");
+        assert_eq!(apply(3, &[]).0, StatValue::Float(0.0), "a stat that does not support the item does nothing");
     }
 
     #[test]

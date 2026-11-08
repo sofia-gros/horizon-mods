@@ -147,3 +147,19 @@ fn every_part_of_the_originals_tools_has_a_stat_type_and_a_wood_pickaxe_has_the_
     assert_eq!(builder.get(&ToolStatId::tconstruct("durability")), StatValue::Float(60.0));
     assert_eq!(builder.get(&ToolStatId::tconstruct("mining_speed")), StatValue::Float(2.0));
 }
+
+#[test]
+fn the_originals_modifiers_load_with_the_stat_boost_module_carried() {
+    use std::sync::Arc;
+    use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
+    use tconstruct_library::tools::stat::{HarvestTiers, ToolStats};
+    let Some(root) = data_root() else { return };
+    let files = read_all(&root.join("modifiers"));
+    let tags = read_all(&root.join("tags/modifiers"));
+    let mut modules = ModuleRegistry::with_original_types();
+    modules.register_stat_modules(Arc::new(ToolStats::tinkers(HarvestTiers::vanilla())));
+    let (before, _) = ModifierManager::load(&files, &tags, &[], &ModuleRegistry::with_original_types(), &EmptyContext);
+    let (after, problems) = ModifierManager::load(&files, &tags, &[], &modules, &EmptyContext);
+    assert!(problems.is_empty(), "{:?}", &problems[..problems.len().min(8)]);
+    assert_eq!(before.uncarried_modules() - after.uncarried_modules(), 90, "all 90 stat_boost modules are carried now");
+}
