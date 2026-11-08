@@ -90,6 +90,15 @@ pub fn hooks() -> Box<dyn Hooks> {
             world.set_block_state([12, 80, 12], &stone);
             world.set_block_state([12, 82, 12], &platform);
             let read = |key: &str| world.get_block_state([12, 81, 12]).and_then(|s| s.property(key).map(str::to_owned));
+            let pots: Vec<bool> = ["potted_blood_slime_fern", "potted_sky_slime_sapling"]
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    let state = pluto_lib::BlockState::parse(&format!("tconstruct:{name}")).unwrap();
+                    world.set_block_state([16 + i as i32 * 2, 81, 16], &state) && world.get_block_state([16 + i as i32 * 2, 81, 16]).is_some_and(|s| s.block.path() == *name)
+                })
+                .collect();
+            println!("PLUTO-PROBE potted placed={pots:?}");
             println!("PLUTO-PROBE platform down={:?} up={:?}", read("down"), read("up"));
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
             1
