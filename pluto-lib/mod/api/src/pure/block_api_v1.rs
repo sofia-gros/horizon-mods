@@ -384,7 +384,8 @@ impl BlockBehavior {
         self
     }
 
-    /// How a neighbour's change turns the block's state: `Some(state)` becomes the block's state, `None` leaves it. The game asks often
+    /// How a neighbour's change turns the block's state: `Some(state)` becomes the block's state (the same state too, which stops the game's own
+    /// handling of that update), `None` leaves the update to the game. The game asks often
     /// (at least six times for each block set), so keep it short.
     pub fn update_shape(mut self, f: impl Fn(&ShapeUpdateContext<'_>) -> Option<BlockState> + Send + Sync + 'static) -> Self {
         self.update_shape = Some(Arc::new(f));

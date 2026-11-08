@@ -487,7 +487,7 @@ assert!(behavior.block().path() == "post");
 
 ### `BlockBehavior::update_shape`
 
-`fn update_shape(self, f: impl Fn(&ShapeUpdateContext) -> Option<BlockState>) -> BlockBehavior`. How a neighbour's change turns the block's state: `Some(state)` becomes the block's state, `None` leaves it. Asked at least six times for every block set, so keep it short.
+`fn update_shape(self, f: impl Fn(&ShapeUpdateContext) -> Option<BlockState>) -> BlockBehavior`. How a neighbour's change turns the block's state: `Some(state)` becomes the block's state (the same state too, which stops the game's own handling of that update), `None` leaves the update to the game. Asked at least six times for every block set, so keep it short.
 
 ```rust
 use pluto_lib::{BlockBehavior, Identifier};

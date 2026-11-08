@@ -3617,40 +3617,6 @@ helper = "source-slime-colormap-load.rs"
 bindings = [{ name = "root", ty = "&std::path::Path", value = "root" }]
 
 [[module]]
-id = "source-slime-leaves"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_leaves"
-source = "source-slime-leaves.rs"
-
-[[injection]]
-id = "source-slime-leaves-update"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
-kind = "HEAD"
-helper = "source-slime-leaves-update.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "neighbor", ty = "BlockStateId", value = "neighbour" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]
-
-[[injection]]
-id = "source-slime-leaves-tick"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_tick_block"
-kind = "HEAD"
-helper = "source-slime-leaves-tick.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
-
-[[injection]]
-id = "source-slime-leaves-random"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
-kind = "HEAD"
-helper = "source-slime-leaves-random.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
-
-[[injection]]
-id = "source-slime-leaves-place"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
-kind = "HEAD"
-helper = "source-slime-leaves-place.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
-
-[[module]]
 id = "source-planted-slime-tree-shape"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_slime_tree_shape"

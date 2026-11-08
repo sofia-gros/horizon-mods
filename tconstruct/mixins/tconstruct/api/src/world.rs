@@ -132,8 +132,7 @@ pub fn register() {
                         return None;
                     }
                     let updated = update_connections(c.view, &update_id, c.state.clone(), c.pos);
-                    let result = if has_sides(&updated) { updated } else { BlockState::parse("minecraft:air").ok()? };
-                    (result != c.state).then_some(result)
+                    Some(if has_sides(&updated) { updated } else { BlockState::parse("minecraft:air").ok()? })
                 })
                 .random_tick(move |c| {
                     // only a top piece starts by growing down a side
@@ -152,6 +151,43 @@ pub fn register() {
                         grow(&mut *c.world, &tick_id, c.pos, c.state.clone());
                     }
                 }),
+        );
+    }
+}
+
+const LOGS: &str = "tconstruct:slimy_logs";
+const LEAVES_BLOCKS: [&str; 3] = ["earth_slime_leaves", "sky_slime_leaves", "ender_slime_leaves"];
+
+/// How far a neighbour is from a log: 0 for a slime log, its own distance for slime leaves, 7 for anything else (`getDistance`).
+fn leaf_distance<V: BlockView + ?Sized>(view: &V, pos: [i32; 3]) -> i32 {
+    if view.is_in_tag(pos, LOGS) {
+        return 0;
+    }
+    match view.block_state(pos) {
+        Some(s) if s.block.namespace() == "tconstruct" && LEAVES_BLOCKS.contains(&s.block.path()) => s.property("distance").and_then(|d| d.parse().ok()).unwrap_or(7),
+        _ => 7,
+    }
+}
+
+/// The leaves with the distance their six neighbours give (`updateDistance`).
+fn update_distance<V: BlockView + ?Sized>(view: &V, state: BlockState, pos: [i32; 3]) -> BlockState {
+    let mut distance = 7;
+    for direction in Direction::ALL {
+        distance = distance.min(leaf_distance(view, direction.relative(pos)) + 1);
+        if distance == 1 {
+            break;
+        }
+    }
+    state.with("distance", &distance.to_string())
+}
+
+pub fn register_leaves() {
+    for name in LEAVES_BLOCKS {
+        BlockBehaviors::register(
+            BlockBehavior::new(Identifier::new("tconstruct", name).expect("valid id"))
+                // the original schedules a tick that sets the distance; the distance is set right away, which gives the same result
+                .update_shape(|c| Some(update_distance(c.view, c.state.clone(), c.pos)))
+                .state_for_placement(|c| Placement::State(update_distance(c.view, c.state.clone().with("persistent", "true"), c.pos))),
         );
     }
 }

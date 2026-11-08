@@ -1,6 +1,6 @@
 {
   "tconstruct": {
-    "max": 281,
+    "max": 277,
     "known_overlaps": [
       "source-copper-gauge-placement",
       "source-copper-gauge-update",
@@ -23,10 +23,6 @@
       "source-slime-grass-meal-perform",
       "source-slime-grass-meal-success",
       "source-slime-grass-meal-valid",
-      "source-slime-leaves-place",
-      "source-slime-leaves-random",
-      "source-slime-leaves-tick",
-      "source-slime-leaves-update",
       "source-slime-plant-survive",
       "source-slimy-grass-tick",
       "source-slurping-finish",
