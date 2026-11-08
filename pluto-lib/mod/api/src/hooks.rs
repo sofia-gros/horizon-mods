@@ -8,7 +8,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
-    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent,
+    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent, UseItemOnEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -96,6 +96,11 @@ impl WorldOps for HostWorld {
         let host = self.0.get();
         let level = host.level(dimension)?;
         host.level_block_state(level, pos)
+    }
+
+    fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        // source 4 is the block category
+        self.0.get().play_sound(sound, at, 4, volume, pitch)
     }
 
     fn set_block_state(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
@@ -818,6 +823,20 @@ impl Hooks for PlutoHooks {
 
     fn use_item(&self, _host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
         cancel_if(events_interaction_v0::use_item(&event.stack.item, event.stack.count))
+    }
+
+    fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
+        let Some(player) = host.acting_player() else { return Flow::Continue };
+        let context = events_interaction_v0::UseItemOnBlockContext {
+            item: event.stack.item.to_string(),
+            count: event.stack.count,
+            pos: event.pos,
+            face: event.face,
+            dimension: player.dimension.clone(),
+            creative: player.game_mode == 1,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+        };
+        cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
     }
 
     fn right_click_block(&self, _host: &mut dyn Host, event: &mut RightClickBlockEvent) -> Flow {

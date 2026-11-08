@@ -21,6 +21,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world::register();
     world::register_leaves();
     world::register_grass();
+    world::register_seeds();
     trees::register();
     trees::register_fungus();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");

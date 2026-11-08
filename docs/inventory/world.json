@@ -171,8 +171,8 @@
       "note": "data generators: their output is the worldgen, recipe and structure files in the content (compared by count, not file by file)"
     },
     "item/SlimeGrassSeedItem.java": {
-      "status": "todo",
-      "note": "old injection (source-slime-seed-use)"
+      "status": "ported-unchecked",
+      "note": "PlutoLib UseItemOnBlockCallback (world.rs register_seeds): dirt to grass, vine to slime vine, sound, one seed used up outside creative. Checked in game by invoking the event on slime dirt (it became grass); the game hook that calls the event was not driven by a real click"
     },
     "logic/AncientToolItemListing.java": {
       "status": "todo",
