@@ -23,6 +23,16 @@ pub trait LevelView {
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool;
 }
 
+/// A view that can also change the level.
+pub trait LevelEdit: LevelView {
+    /// Sets the block at `pos` to `state` with `Level.setBlock`'s flags; false if it could not be set.
+    fn set_state(&mut self, pos: [i32; 3], state: &StateInfo, flags: i32) -> bool;
+    /// A number from 0 up to but not including `bound`, from the level's own random source.
+    fn random_int(&mut self, bound: i32) -> i32;
+    /// Schedules a tick of `block` at `pos` after `delay` game ticks.
+    fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool;
+}
+
 pub struct ShapeUpdate {
     pub state: StateInfo,
     pub pos: [i32; 3],
@@ -56,6 +66,15 @@ pub struct Sink {
     pub survives: fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>,
     pub placement: fn(&dyn LevelView, &Placement) -> PlacementAnswer,
     pub update_shape: fn(&dyn LevelView, &ShapeUpdate) -> Option<StateInfo>,
+    /// A random tick; true when a behaviour handled it (the game's own tick is skipped).
+    pub random_tick: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> bool,
+    /// A scheduled tick; true when a behaviour handled it.
+    pub scheduled_tick: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> bool,
+    pub bonemeal_valid: fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>,
+    pub bonemeal_success: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> Option<bool>,
+    pub bonemeal_perform: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]),
+    /// A plant, the ground below it and the ground's position.
+    pub may_place_on: fn(&dyn LevelView, &StateInfo, &StateInfo, [i32; 3]) -> Option<bool>,
 }
 
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);

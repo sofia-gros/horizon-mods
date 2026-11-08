@@ -24,6 +24,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE renderer pos=',
             'PLUTO-PROBE fluids tconstruct=42',
             'PLUTO-PROBE punji east=Some("true")',
+            'PLUTO-PROBE random_tick pos=[30, 81, 30] rolled_in_range=true set=true',
             'PLUTO-PROBE signs placed=[true, true, true, true]',
             'PLUTO-PROBE potted placed=[true, true]',
             'PLUTO-PROBE platform down=Some("true") up=Some("true")',
@@ -112,7 +113,7 @@ with game_log.open('w') as log:
             bx, by, bz = int(position[0] // 1) + 2, int(position[1] // 1), int(position[2] // 1)
         except (ValueError, KeyError, TypeError, IndexError):
             bx, by, bz = 3, 80, 3
-        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'tconstruct parts', 'tconstruct assemble', 'pluto_probe check'):
+        for line in ('setblock 3 80 3 tconstruct:seared_melter', f'setblock {bx} {by} {bz} tconstruct:seared_melter', 'give @s minecraft:snowball 1', 'look 0 90', 'use-item', 'summon minecraft:snowball ~ ~3 ~ {Motion:[0.0,-2.0,0.0]}', 'state', f'interact {bx} {by} {bz}', 'close', 'give @s minecraft:flint 1', 'give @s minecraft:stick 2', 'gamerule random_tick_speed 4000', 'tconstruct parts', 'tconstruct assemble', 'pluto_probe check'):
             # `interact X Y Z` is a control command (right-click a block); the rest are game commands
             words = ['interact', *line.split()[1:]] if line.startswith('interact ') else line.split() if line.startswith('look ') or line in ('use-item', 'close', 'state') else ['command', line]
             done = subprocess.run([str(ctl), '--socket', str(endpoint), '--timeout', '30', *words], capture_output=True, text=True, timeout=40)

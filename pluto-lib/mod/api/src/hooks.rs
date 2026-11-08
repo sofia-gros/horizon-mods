@@ -417,12 +417,47 @@ impl block_api_v1::BlockView for GameView<'_> {
     }
 }
 
+/// The game's view of the blocks around, with the right to change them.
+struct GameEditor<'a>(&'a mut dyn horizon_client::entry::pluto_block::LevelEdit);
+
+impl block_api_v1::BlockView for GameEditor<'_> {
+    fn block_state(&self, pos: [i32; 3]) -> Option<BlockState> {
+        self.0.state(pos).as_ref().and_then(to_state)
+    }
+
+    fn is_air(&self, pos: [i32; 3]) -> bool {
+        self.0.is_air(pos)
+    }
+
+    fn is_face_sturdy(&self, pos: [i32; 3], face: block_api_v1::Direction) -> bool {
+        self.0.face_sturdy(pos, face as u8)
+    }
+
+    fn is_in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
+        self.0.in_tag(pos, tag)
+    }
+}
+
+impl block_api_v1::BlockEditor for GameEditor<'_> {
+    fn set_block_state(&mut self, pos: [i32; 3], state: &BlockState) -> bool {
+        self.0.set_state(pos, &to_info(state), 3)
+    }
+
+    fn random_int(&mut self, bound: i32) -> i32 {
+        self.0.random_int(bound)
+    }
+
+    fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool {
+        self.0.schedule_tick(pos, block, delay)
+    }
+}
+
 fn direction(face: u8) -> block_api_v1::Direction {
     block_api_v1::Direction::ALL[usize::from(face).min(5)]
 }
 
 fn block_sink() -> horizon_client::entry::pluto_block::Sink {
-    use horizon_client::entry::pluto_block::{LevelView, Placement, PlacementAnswer, ShapeUpdate, Sink, StateInfo};
+    use horizon_client::entry::pluto_block::{LevelEdit, LevelView, Placement, PlacementAnswer, ShapeUpdate, Sink, StateInfo};
     fn survives(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
         let state = to_state(state)?;
         let block = state.block.to_string();
@@ -461,7 +496,48 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         };
         block_api_v1::shape_update(&block, &context).map(|changed| to_info(&changed))
     }
-    Sink { has: |block| block_api_v1::BlockBehaviors::get(block).is_some(), survives, placement, update_shape }
+    fn random_tick(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> bool {
+        let Some(state) = to_state(state) else { return false };
+        let block = state.block.to_string();
+        block_api_v1::random_tick(&block, &mut block_api_v1::TickContext { state, pos, world: &mut GameEditor(world) })
+    }
+    fn scheduled_tick(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> bool {
+        let Some(state) = to_state(state) else { return false };
+        let block = state.block.to_string();
+        block_api_v1::scheduled_tick(&block, &mut block_api_v1::TickContext { state, pos, world: &mut GameEditor(world) })
+    }
+    fn bonemeal_valid(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
+        let state = to_state(state)?;
+        let block = state.block.to_string();
+        block_api_v1::can_bonemeal(&block, &block_api_v1::BonemealContext { state, pos, view: &GameView(view) })
+    }
+    fn bonemeal_success(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
+        let state = to_state(state)?;
+        let block = state.block.to_string();
+        block_api_v1::bonemeal_success(&block, &mut block_api_v1::TickContext { state, pos, world: &mut GameEditor(world) })
+    }
+    fn bonemeal_perform(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) {
+        let Some(state) = to_state(state) else { return };
+        let block = state.block.to_string();
+        block_api_v1::on_bonemeal(&block, &mut block_api_v1::TickContext { state, pos, world: &mut GameEditor(world) });
+    }
+    fn may_place_on(view: &dyn LevelView, plant: &StateInfo, ground: &StateInfo, ground_pos: [i32; 3]) -> Option<bool> {
+        let (plant, ground) = (to_state(plant)?, to_state(ground)?);
+        let block = plant.block.to_string();
+        block_api_v1::may_place_on(&block, &block_api_v1::PlaceOnContext { state: plant, ground, ground_pos, view: &GameView(view) })
+    }
+    Sink {
+        has: |block| block_api_v1::BlockBehaviors::get(block).is_some(),
+        survives,
+        placement,
+        update_shape,
+        random_tick,
+        scheduled_tick,
+        bonemeal_valid,
+        bonemeal_success,
+        bonemeal_perform,
+        may_place_on,
+    }
 }
 
 impl Hooks for PlutoHooks {

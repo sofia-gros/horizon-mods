@@ -88,3 +88,45 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape
 kind = "HEAD"
 helper = "pluto-block-update-shape.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "neighbour_pos", ty = "BlockPos", value = "neighbour_pos" }, { name = "neighbour", ty = "BlockStateId", value = "neighbour" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]
+
+[[injection]]
+id = "pluto-block-random-tick"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
+kind = "HEAD"
+helper = "pluto-block-random-tick.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "pluto-block-scheduled-tick"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_tick_block"
+kind = "HEAD"
+helper = "pluto-block-scheduled-tick.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-valid"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-valid.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-success"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-success.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-perform"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-perform.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
+
+[[injection]]
+id = "pluto-block-may-place-on"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_may_place_on"
+kind = "HEAD"
+helper = "pluto-block-may-place-on.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "ground", ty = "BlockStateId", value = "ground" }, { name = "ground_pos", ty = "BlockPos", value = "ground_pos" }, { name = "may", ty = "&mut Option<bool>", value = "&mut *may" }]

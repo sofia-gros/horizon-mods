@@ -2,7 +2,7 @@
 // blocks that have a behaviour registered through the API crate (block_api_v1). Other blocks are left to the game and to other hooks.
 use super::*;
 use horizon_core::geometry::Direction;
-use crate::entry::pluto_block::{self, LevelView, Placement, PlacementAnswer, ShapeUpdate, StateInfo};
+use crate::entry::pluto_block::{self, LevelEdit, LevelView, Placement, PlacementAnswer, ShapeUpdate, StateInfo};
 
 struct View<'a, 'g> {
     level: &'a GameLevel<'g>,
@@ -108,5 +108,121 @@ pub(super) fn update_shape(level: &GameLevel<'_>, pos: BlockPos, state: BlockSta
                 *new = Some(id);
             }
         }
+    }
+}
+
+/// A view that can write: the level with the hook's tick queue (a hook without one cannot write blocks).
+struct Edit<'a, 'g> {
+    level: &'a mut GameLevel<'g>,
+    ticks: Option<&'a mut Ticks>,
+}
+
+impl LevelView for Edit<'_, '_> {
+    fn state(&self, pos: [i32; 3]) -> Option<StateInfo> {
+        View { level: &*self.level }.state(pos)
+    }
+
+    fn is_air(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.is_air(pos)
+    }
+
+    fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool {
+        View { level: &*self.level }.face_sturdy(pos, face)
+    }
+
+    fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
+        View { level: &*self.level }.in_tag(pos, tag)
+    }
+}
+
+impl LevelEdit for Edit<'_, '_> {
+    fn set_state(&mut self, pos: [i32; 3], wanted: &StateInfo, flags: i32) -> bool {
+        let Some(id) = resolve(&*self.level, wanted) else { return false };
+        let Some(ticks) = self.ticks.as_deref_mut() else { return false };
+        let behaviours = self.level.behaviours;
+        behaviours.set_block(&mut *self.level, ticks, at(pos), id, flags)
+    }
+
+    fn random_int(&mut self, bound: i32) -> i32 {
+        if bound <= 0 {
+            return 0;
+        }
+        self.level.world.random.next_int_bound(bound).unwrap_or(0)
+    }
+
+    fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool {
+        let Some(ticks) = self.ticks.as_deref_mut() else { return false };
+        self.level.native_schedule_block_tick(ticks, pos, block, delay)
+    }
+}
+
+pub(super) fn random_tick(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
+    tick_with(level, ticks, pos, state, handled, |sink| sink.random_tick);
+}
+
+pub(super) fn scheduled_tick(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
+    tick_with(level, ticks, pos, state, handled, |sink| sink.scheduled_tick);
+}
+
+fn tick_with(
+    level: &mut GameLevel<'_>,
+    ticks: &mut Ticks,
+    pos: BlockPos,
+    state: BlockStateId,
+    handled: &mut bool,
+    pick: fn(pluto_block::Sink) -> fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> bool,
+) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let Some(current) = info(level, state) else { return };
+    if !(sink.has)(&current.block) {
+        return;
+    }
+    let mut edit = Edit { level, ticks: Some(ticks) };
+    if pick(sink)(&mut edit, &current, [pos.x, pos.y, pos.z]) {
+        *handled = true;
+    }
+}
+
+pub(super) fn bonemeal_valid(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, valid: &mut Option<bool>) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let Some(current) = info(level, state) else { return };
+    if !(sink.has)(&current.block) {
+        return;
+    }
+    if let Some(answer) = (sink.bonemeal_valid)(&View { level }, &current, [pos.x, pos.y, pos.z]) {
+        *valid = Some(answer);
+    }
+}
+
+pub(super) fn bonemeal_success(level: &mut GameLevel<'_>, pos: BlockPos, state: BlockStateId, success: &mut bool) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let Some(current) = info(level, state) else { return };
+    if !(sink.has)(&current.block) {
+        return;
+    }
+    let mut edit = Edit { level, ticks: None };
+    if let Some(answer) = (sink.bonemeal_success)(&mut edit, &current, [pos.x, pos.y, pos.z]) {
+        *success = answer;
+    }
+}
+
+pub(super) fn bonemeal_perform(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let Some(current) = info(level, state) else { return };
+    if !(sink.has)(&current.block) {
+        return;
+    }
+    let mut edit = Edit { level, ticks: Some(ticks) };
+    (sink.bonemeal_perform)(&mut edit, &current, [pos.x, pos.y, pos.z]);
+}
+
+pub(super) fn may_place_on(level: &GameLevel<'_>, state: BlockStateId, ground: BlockStateId, ground_pos: BlockPos, may: &mut Option<bool>) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let (Some(plant), Some(below)) = (info(level, state), info(level, ground)) else { return };
+    if !(sink.has)(&plant.block) {
+        return;
+    }
+    if let Some(answer) = (sink.may_place_on)(&View { level }, &plant, &below, [ground_pos.x, ground_pos.y, ground_pos.z]) {
+        *may = Some(answer);
     }
 }
