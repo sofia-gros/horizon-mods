@@ -1,0 +1,310 @@
+{
+  "domain": "tables",
+  "java": "slimeknights/tconstruct/tables",
+  "classes": {
+    "block/ChestBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/CraftingStationBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/chest/AbstractChestBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/chest/CastChestBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/chest/PartChestBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/chest/TinkersChestBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/CraftingContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/IChestItemHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/IScalingContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/LazyResultContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/ModifierWorktableContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/PartBuilderContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/ScalingChestItemHandler.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/inventory/TinkerStationContainerWrapper.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/table/CraftingStationBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/table/ModifierWorktableBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/table/PartBuilderBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/table/RetexturedTableBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/entity/table/TinkerStationBlockEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/GenericTableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ITabbedBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/RetexturedTableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/ScorchedAnvilBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/TabbedTableBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/TinkersAnvilBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/TinkersChestBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "block/TinkerStationBlock.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/BaseTabbedScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/CraftingStationScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/ModifierWorktableScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/module/DynamicContainerScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/module/GenericScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/module/InfoPanelScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/module/ScalingChestScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/module/SideInventoryScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/PartBuilderScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/PartInfoPanelScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/TinkerChestScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/TinkerStationScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/ToolTableScreen.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/BorderWidget.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/SideButtonsWidget.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/SideButtonsWidgetPaged.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/SlotButtonItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/TinkerStationButtonsWidget.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "client/inventory/widget/TinkerTabsWidget.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/TableRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/AnvilBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "item/TinkersChestBlockItem.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/CraftingStationContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/ModifierWorktableContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/module/SideInventoryContainer.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/PartBuilderContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/slot/ArmorSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/slot/CraftingResultSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/slot/LazyResultSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/slot/PlayerSensitiveLazyResultSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/slot/TinkerStationSlot.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/TabbedContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/TinkerChestContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "menu/TinkerStationContainerMenu.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/StationTabPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/TinkerStationRenamePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/TinkerStationSelectionPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/UpdateCraftingRecipePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/UpdateStationScreenPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/UpdateTinkerStationRecipePacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/CraftingTableRepairKitRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/PartBuilderToolRecycle.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerStationDamagingRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerStationDamagingRecipeBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerStationPartSwapping.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerStationPartSwappingBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/TinkerStationRepairRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TableClientEvents.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerTables.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}

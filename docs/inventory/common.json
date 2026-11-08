@@ -1,0 +1,266 @@
+{
+  "domain": "common",
+  "java": "slimeknights/tconstruct/common",
+  "classes": {
+    "ClientEventBase.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "config/Config.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "config/ConfigurableAction.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/advancement/AdvancementIds.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/advancement/FunctionProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/AdvancementsProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/BaseRecipeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/ConfigurationDataProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/CountRequirementsStrategy.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/DamageTypeProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/FakeRegistryEntry.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/AdvancementLootTableProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/BlockLootTableProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/EntityLootTableProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/GlobalLootModifiersProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/LootTableInjectionProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/loot/TConstructLootTableProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/model/MaterialModelBuilder.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/model/ModelSpriteProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/model/TinkerBlockStateProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/model/TinkerItemModelProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/model/TinkerSpriteSourceProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/render/RenderFluidProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/render/RenderItemProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/StructureUpdater.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/BiomeTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/BlockEntityTypeTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/BlockTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/CreativeTabTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/DamageTypeTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/EnchantmentTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/EntityTypeTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/FluidTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/InstrumentTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/ItemTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/MaterialTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/MenuTypeTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/ModifierTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "data/tags/PotionTagProvider.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/BlockOrEntityCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "json/ConfigEnabledCondition.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "multiblock/IMasterLogic.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "multiblock/IServantLogic.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "multiblock/ServantTileEntity.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/InventorySlotSyncPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/SyncPersistentDataPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/TinkerNetwork.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "network/UpdateNeighborsPacket.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/LoadableFinishedRecipe.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "recipe/RecipeCacheInvalidator.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/ArgumentTypeDeferredRegister.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/AttributeDeferredRegister.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/BlockDeferredRegisterExtension.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/CastItemObject.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/EnumDeferredRegister.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/FluidDeferredRegisterExtension.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/GeodeItemObject.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/ItemDeferredRegisterExtension.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "registration/PotionDeferredRegister.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "Sounds.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "SoundUtils.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerDamageTypes.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerEffect.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerModule.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    },
+    "TinkerTags.java": {
+      "status": "todo",
+      "note": "not yet compared with the port"
+    }
+  }
+}
