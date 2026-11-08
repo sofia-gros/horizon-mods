@@ -3303,48 +3303,48 @@
       "note": "not yet compared with the port"
     },
     "tools/stat/CapacityStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: StatKind::Capacity with its unit key; the registered capacities (tank, energy) come with their modules"
     },
     "tools/stat/FloatToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: base, add, percent and multiply arithmetic, bounds and item-tag support, with tests"
     },
     "tools/stat/impl/IntegerToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: StatKind::Integer (drawn as a whole number; the drawing is the game's)"
     },
     "tools/stat/impl/PercentToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: StatKind::Percent"
     },
     "tools/stat/INumericToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: the add, percent, multiply and multiply-all operations of ModifierStatsBuilder"
     },
     "tools/stat/IToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/stat.rs: default, clamp, supports and the builder protocol are ported; the NBT/JSON/network encodings and the Component formatting are the game glue and drawing, not done"
     },
     "tools/stat/MaxToolStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: StatKind::Max, the largest value wins"
     },
     "tools/stat/ModifierStatsBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/stat.rs: update, add, percent, multiply, multiply-all, get, build and multipliers ported with tests; the StatsNBT and MultiplierNBT containers (storage in an item) are not done"
     },
     "tools/stat/ToolStatId.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: ToolStatId"
     },
     "tools/stat/ToolStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/stat.rs: the 18 registered stats plus the overslime capacity, registration refusing duplicates, conditional marks; the JSON/network loaders are the game glue"
     },
     "tools/stat/ToolTierStat.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: StatKind::Tier with HarvestTiers ordering (the vanilla tiers; other tiers register with the tier phase)"
     },
     "utils/BlockSideHitListener.java": {
       "status": "todo",

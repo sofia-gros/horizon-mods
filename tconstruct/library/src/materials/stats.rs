@@ -8,6 +8,7 @@ use serde_json::{Map, Value};
 
 use super::ids::{MaterialId, MaterialStatsId};
 use crate::resource::ResourceId;
+use crate::tools::stat::ModifierStatsBuilder;
 
 /// `MaterialStatsManager.FOLDER`.
 pub const FOLDER: &str = "tinkering/materials/stats";
@@ -16,6 +17,14 @@ pub const FOLDER: &str = "tinkering/materials/stats";
 pub trait MaterialStats: Any + Send + Sync {
     fn id(&self) -> &MaterialStatsId;
     fn as_any(&self) -> &dyn Any;
+
+    /// `apply(builder, scale)`: what these stats do to a tool's stats; `scale` is how much of the part counts (1 for a whole part).
+    fn apply(&self, _builder: &mut ModifierStatsBuilder<'_>, _scale: f32) {}
+
+    /// `IRepairableMaterialStats.getDurability`: the durability repairing with this material is worth, if the stats can repair.
+    fn repair_durability(&self) -> Option<i32> {
+        None
+    }
 }
 
 /// Reads the stats from the JSON object of a data file.
@@ -34,7 +43,8 @@ pub struct MaterialStatType {
 pub fn singleton(stats: Arc<dyn MaterialStats>) -> MaterialStatType {
     let id = stats.id().clone();
     let given = stats.clone();
-    MaterialStatType { id, default_stats: stats, loader: Arc::new(move |_| Ok(given.clone())), can_repair: false }
+    let can_repair = stats.repair_durability().is_some();
+    MaterialStatType { id, default_stats: stats, loader: Arc::new(move |_| Ok(given.clone())), can_repair }
 }
 
 /// The registry of stat types and the stats loaded for every material.

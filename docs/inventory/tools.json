@@ -1075,44 +1075,44 @@
       "note": "not yet compared with the port"
     },
     "stats/GripMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, defaults, apply"
     },
     "stats/HandleMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, defaults, apply as percents and the multiplier builder's rounding"
     },
     "stats/HeadMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, defaults, bounds, apply and repair durability; all of the original's data files load"
     },
     "stats/LimbMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, defaults, apply"
     },
     "stats/PlatingMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/tools/material_stats.rs: the five plating types (helmet, chestplate, leggings, boots, shield), loading and apply; the armor builder (durability and armor per slot) comes with the armor materials"
     },
     "stats/RepairStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: ribcage, shell and laces"
     },
     "stats/SkullStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, loading, apply"
     },
     "stats/SlimeStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: fields, loading, apply including the overslime capacity"
     },
     "stats/StatlessMaterialStats.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/material_stats.rs: the nine stat-less types"
     },
     "stats/ToolType.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/tools/stat.rs: ToolType with its tags"
     },
     "TinkerModifiers.java": {
       "status": "todo",
