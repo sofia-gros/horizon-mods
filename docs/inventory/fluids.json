@@ -4,7 +4,7 @@
   "classes": {
     "TinkerFluids.java": {
       "status": "partial",
-      "note": "the 42 fluid definitions exist in PlutoLib's FluidRegistry (fluids_table.rs, written before this rule; not compared one by one with the Java); the fluid blocks and buckets do not exist"
+      "note": "compared with the Java: 43 definitions (name, temperature, light, density, viscosity) match; fiery_liquid was missing and is added; the 31 compat ores and alloys (tin, lead, silver, ... and the mod-specific ones) are left out on purpose (no mod integration); fluid blocks, buckets and bottles are parked"
     },
     "block/BurningLiquidBlock.java": {
       "status": "parked",

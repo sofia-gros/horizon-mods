@@ -22,7 +22,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE block_entity ticks=5 pos=[3, 80, 3] slots=3 water=500',
             'PLUTO-PROBE screen_draw origin_set=true',
             'PLUTO-PROBE renderer pos=',
-            'PLUTO-PROBE fluids tconstruct=42',
+            'PLUTO-PROBE fluids tconstruct=43',
             'PLUTO-PROBE punji east=Some("true")',
             'PLUTO-PROBE vine kept_on_stone=true',
             'PLUTO-PROBE leaves near=Some("1") next=Some("2")',
