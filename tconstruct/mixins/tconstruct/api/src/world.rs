@@ -392,3 +392,34 @@ pub fn register_seeds() {
         ActionResult::Success
     });
 }
+
+/// The budding slime crystals (`BuddingCrystalBlock`): now and then they start a small bud on a side or grow the bud that is there.
+pub fn register_crystals() {
+    for kind in ["earth", "sky", "ichor", "ender"] {
+        BlockBehaviors::register(
+            BlockBehavior::new(Identifier::new("tconstruct", &format!("budding_{kind}_slime_crystal")).expect("valid id")).random_tick(move |c| {
+                if c.world.random_int(5) != 0 {
+                    return;
+                }
+                let direction = Direction::ALL[c.world.random_int(6) as usize];
+                let target = direction.relative(c.pos);
+                if !c.world.is_area_loaded(target, 0) {
+                    return;
+                }
+                let Some(old) = c.world.block_state(target) else { return };
+                // an empty space or a full block of water takes a small bud (`canClusterGrowAtState`)
+                let name = if c.world.is_air(target) || (old.block.to_string() == "minecraft:water" && c.world.is_fluid_full(target)) {
+                    Some(format!("tconstruct:small_{kind}_slime_crystal_bud"))
+                } else {
+                    [("small", "medium"), ("medium", "large"), ("large", "")].iter().find_map(|(from, to)| {
+                        (old.block.to_string() == format!("tconstruct:{from}_{kind}_slime_crystal_bud"))
+                            .then(|| if to.is_empty() { format!("tconstruct:{kind}_slime_crystal_cluster") } else { format!("tconstruct:{to}_{kind}_slime_crystal_bud") })
+                    })
+                };
+                let Some(Ok(bud)) = name.map(|n| BlockState::parse(&n)) else { return };
+                let water = c.world.is_water(target);
+                c.world.set_block_state(target, &bud.with("facing", direction.name()).with("waterlogged", if water { "true" } else { "false" }));
+            }),
+        );
+    }
+}

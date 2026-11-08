@@ -1,6 +1,6 @@
 {
   "tconstruct": {
-    "max": 262,
+    "max": 261,
     "known_overlaps": [
       "source-copper-gauge-placement",
       "source-copper-gauge-update",
@@ -10,7 +10,6 @@
       "source-ender-propagule-survive",
       "source-ender-propagule-valid",
       "source-fluid-cannon-placement",
-      "source-geode-random-tick",
       "source-slurping-finish",
       "source-tasty-finish"
     ]

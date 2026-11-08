@@ -51,8 +51,8 @@
       "note": "only skipRendering between roots (a client drawing detail); the content block is the template's"
     },
     "block/BuddingCrystalBlock.java": {
-      "status": "partial",
-      "note": "the content block exists; the behaviour of the class (growth, bouncing, support) is not ported or checked"
+      "status": "ported",
+      "note": "PlutoLib behaviour (world.rs register_crystals): 1 in 5 random ticks starts a small bud or grows the bud on a random side, waterlogged as the neighbour. Checked in game: a budding sky crystal grew a bud beside it. The piston reaction is the template's"
     },
     "block/CrystalBlock.java": {
       "status": "partial",
