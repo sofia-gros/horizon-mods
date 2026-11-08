@@ -3810,19 +3810,6 @@ bindings = [
 ]
 
 [[module]]
-id = "source-slime-seed-rules"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_seed_rules"
-source = "source-pure-rules.rs"
-
-[[injection]]
-id = "source-slime-seed-use"
-target = "horizon_client::game::native_hooks::Game<'_>::native_use_item_on"
-kind = "HEAD"
-helper = "source-slime-seed-use.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
-
-[[module]]
 id = "modifier-resource-snapshot-module"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_modifier_snapshot"

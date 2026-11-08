@@ -70,6 +70,8 @@ pub trait WorldOps {
     fn block_state(&mut self, dimension: &str, pos: BlockPos) -> Option<String>;
     /// Sets the block at `pos` to the state given as text; false if it could not be set.
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
+    /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
+    fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool;
 }
 
 thread_local! {
@@ -123,6 +125,12 @@ impl World {
         BlockState::parse(&text).ok()
     }
 
+    /// Minecraft: `playSound`. Plays the sound event `sound` (such as `minecraft:block.grass.place`) for the players near `at`. False if the sound is
+    /// unknown, or the call is made outside a callback that carries a world.
+    pub fn play_sound(&self, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        with_current(false, |ops| ops.play_sound(&self.dimension, sound, at, volume, pitch))
+    }
+
     /// Minecraft: `setBlockState`. False if it could not be set (chunk not loaded, unknown block, outside a callback).
     pub fn set_block_state(&self, pos: BlockPos, state: &BlockState) -> bool {
         with_current(false, |ops| ops.set_block_state(&self.dimension, pos, &state.to_string()))
@@ -134,6 +142,8 @@ impl World {
 pub struct MemoryWorldOps {
     /// The blocks set so far, by `(dimension, position)`.
     pub blocks: BTreeMap<(String, BlockPos), String>,
+    /// The sounds played so far: sound event and position.
+    pub sounds: Vec<(String, [f64; 3])>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -143,6 +153,11 @@ impl WorldOps for MemoryWorldOps {
 
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool {
         self.blocks.insert((dimension.to_owned(), pos), state.to_owned());
+        true
+    }
+
+    fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], _volume: f32, _pitch: f32) -> bool {
+        self.sounds.push((sound.to_owned(), at));
         true
     }
 }

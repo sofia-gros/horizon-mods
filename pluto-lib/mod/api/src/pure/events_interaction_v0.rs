@@ -4,6 +4,7 @@
 //! callback that does not return `ActionResult::Pass` decides; any other result stops the game's own handling.
 
 use super::base::{ActionResult, Event};
+use super::player_api::ServerPlayer;
 
 /// A player used an item.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -19,6 +20,25 @@ pub struct UseBlockContext {
     pub pos: [i32; 3],
     /// The face that was clicked, as a unit offset.
     pub face: [i32; 3],
+}
+
+/// A player used an item on a block: the held item, the block it was used on and who did it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UseItemOnBlockContext {
+    /// The item id, such as `tconstruct:earth_slime_grass_seeds`.
+    pub item: String,
+    /// How many of the item are held.
+    pub count: u32,
+    /// The block it was used on.
+    pub pos: [i32; 3],
+    /// The face that was clicked, as a unit offset.
+    pub face: [i32; 3],
+    /// The dimension, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The player; its methods work inside the callback.
+    pub player: ServerPlayer,
+    /// Whether the player is in creative mode (nothing is used up).
+    pub creative: bool,
 }
 
 /// A player attacked an entity.
@@ -37,6 +57,7 @@ pub struct BlockBreakContext {
 
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
 static USE_BLOCK: Event<UseBlockContext, ActionResult> = Event::first_not_pass();
+static USE_ITEM_ON_BLOCK: Event<UseItemOnBlockContext, ActionResult> = Event::first_not_pass();
 static ATTACK_ENTITY: Event<AttackEntityContext, ActionResult> = Event::first_not_pass();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
@@ -54,6 +75,14 @@ pub struct UseBlockCallback;
 
 impl UseBlockCallback {
     pub const EVENT: &'static Event<UseBlockContext, ActionResult> = &USE_BLOCK;
+}
+
+/// A player used an item on a block (like Fabric's `UseBlockCallback`, which also fires for an empty hand, with the held item and the player
+/// in the context). Answer `Success` after doing the job, and the game does not handle it.
+pub struct UseItemOnBlockCallback;
+
+impl UseItemOnBlockCallback {
+    pub const EVENT: &'static Event<UseItemOnBlockContext, ActionResult> = &USE_ITEM_ON_BLOCK;
 }
 
 /// Fabric: `AttackEntityCallback.EVENT`.
@@ -86,6 +115,10 @@ pub(crate) fn use_item(item: &str, count: u32) -> bool {
 
 pub(crate) fn use_block(pos: [i32; 3], face: [i32; 3]) -> bool {
     handled(USE_BLOCK.invoke(&UseBlockContext { pos, face }))
+}
+
+pub(crate) fn use_item_on_block(context: &UseItemOnBlockContext) -> bool {
+    handled(USE_ITEM_ON_BLOCK.invoke(context))
 }
 
 pub(crate) fn attack_entity(entity: i32, kind: &str, pos: [f64; 3]) -> bool {

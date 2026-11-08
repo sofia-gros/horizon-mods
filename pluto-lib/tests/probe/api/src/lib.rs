@@ -81,6 +81,15 @@ pub fn hooks() -> Box<dyn Hooks> {
             let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
             world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
             println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            // seeds used on slime dirt make grass (the event is invoked here; the game's hook calls it the same way)
+            world.set_block_state([26, 80, 26], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
+            let used = pluto_lib::UseItemOnBlockContext {
+                item: "tconstruct:sky_slime_grass_seeds".into(), count: 1, pos: [26, 80, 26], face: [0, 1, 0],
+                dimension: "minecraft:overworld".into(), player: pluto_lib::ServerPlayer { uuid: 1, name: "probe".into() }, creative: true,
+            };
+            let answer = pluto_lib::UseItemOnBlockCallback::EVENT.invoke(&used);
+            let seeded = world.get_block_state([26, 80, 26]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE seeds answer={answer:?} block={seeded:?}");
             // grass under a stone gets no light and turns back into dirt on a random tick
             world.set_block_state([20, 80, 20], &pluto_lib::BlockState::parse("tconstruct:earth_earth_slime_grass").unwrap());
             world.set_block_state([20, 81, 20], &stone);

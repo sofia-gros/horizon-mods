@@ -136,7 +136,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded) and `set_block_state(dimension, pos, state) -> bool`. PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded) `set_block_state(dimension, pos, state) -> bool` and `play_sound(dimension, sound, at, volume, pitch) -> bool`. PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -146,6 +146,7 @@ struct Frozen;
 impl WorldOps for Frozen {
     fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> { None }
     fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool { false }
+    fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
 }
 with_world(&mut Frozen, || assert_eq!(World::new("minecraft:overworld").get_block_state([0, 0, 0]), None));
 ```
@@ -165,7 +166,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position) and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), every sound played in `sounds`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -206,6 +207,20 @@ assert_eq!(World::new("minecraft:overworld").dimension, "minecraft:overworld");
 use pluto_lib::World;
 
 assert_eq!(World::new("minecraft:overworld").get_block_state([0, 64, 0]), None);
+```
+
+### `World::play_sound`
+
+`fn play_sound(&self, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool`. Plays the sound event `sound` (such as `minecraft:block.grass.place`) for the players near `at`. False if the sound is unknown, or the call is made outside a callback that carries a world.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 1.0)); // outside a callback
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert!(world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 1.0)));
+assert_eq!(ops.sounds.len(), 1);
 ```
 
 ### `World::set_block_state`

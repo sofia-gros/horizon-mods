@@ -26,6 +26,30 @@ assert!(!ActionResult::Consume.should_swing_hand());
 assert!(ActionResult::Success.should_swing_hand());
 ```
 
+## Using an Item on a Block
+
+`UseBlockCallback` tells you which block was used. When the item in the hand matters, use `UseItemOnBlockCallback`: its context carries the item, how many are held, the dimension, the player (whose methods work inside the callback) and whether the player is in creative mode. This one turns dirt into grass when a seed is used on it, and uses the seed up:
+
+```rust
+use pluto_lib::{ActionResult, BlockState, Identifier, UseItemOnBlockCallback, World};
+
+UseItemOnBlockCallback::EVENT.register(|used| {
+    if used.item != "example:grass_seeds" {
+        return ActionResult::Pass;
+    }
+    let world = World::new(&used.dimension);
+    let dirt = world.get_block_state(used.pos).filter(|s| s.block.to_string() == "minecraft:dirt");
+    if dirt.is_none() || !world.set_block_state(used.pos, &BlockState::new(Identifier::new("minecraft", "grass_block").unwrap())) {
+        return ActionResult::Pass;
+    }
+    world.play_sound("minecraft:block.grass.place", [0.5, 0.5, 0.5], 1.0, 1.0);
+    if !used.creative {
+        used.player.take_item(&used.item, 1);
+    }
+    ActionResult::Success
+});
+```
+
 ## Breaking Blocks
 
 `PlayerBlockBreakEvents::BEFORE` is a yes or no question instead: answer `false` to cancel the break.
@@ -137,6 +161,54 @@ use pluto_lib::{ActionResult, UseBlockCallback, UseBlockContext};
 
 UseBlockCallback::EVENT.register(|_| ActionResult::Success);
 assert!(UseBlockCallback::EVENT.invoke(&UseBlockContext { pos: [0, 0, 0], face: [0, 1, 0] }).should_swing_hand());
+```
+
+### `UseItemOnBlockContext`
+
+A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback) and `creative` whether the player is in creative mode.
+
+```rust
+use pluto_lib::{ServerPlayer, UseItemOnBlockContext};
+
+let used = UseItemOnBlockContext {
+    item: "example:grass_seeds".into(),
+    count: 3,
+    pos: [1, 64, 1],
+    face: [0, 1, 0],
+    dimension: "minecraft:overworld".into(),
+    player: ServerPlayer { uuid: 1, name: "Alex".into() },
+    creative: false,
+};
+assert_eq!((used.count, used.pos, used.face), (3, [1, 64, 1], [0, 1, 0]));
+assert_eq!(used.item, "example:grass_seeds");
+assert_eq!(used.dimension, "minecraft:overworld");
+assert_eq!(used.player.name, "Alex");
+assert!(!used.creative);
+```
+
+### `UseItemOnBlockCallback`
+
+A player used an item on a block, before the game handles it. Answer `Success` after doing the job and the game does not handle it; the first answer that is not `Pass` wins.
+
+```rust
+use pluto_lib::{ActionResult, UseItemOnBlockCallback};
+
+UseItemOnBlockCallback::EVENT.register(|used| if used.item == "example:wand" { ActionResult::Success } else { ActionResult::Pass });
+```
+
+### `UseItemOnBlockCallback::EVENT`
+
+The event itself, to register on or to invoke in a test.
+
+```rust
+use pluto_lib::{ActionResult, ServerPlayer, UseItemOnBlockCallback, UseItemOnBlockContext};
+
+UseItemOnBlockCallback::EVENT.register(|used| if used.item == "example:probe_item" { ActionResult::Fail } else { ActionResult::Pass });
+let used = UseItemOnBlockContext {
+    item: "example:probe_item".into(), count: 1, pos: [0, 0, 0], face: [0, 1, 0], dimension: "minecraft:overworld".into(),
+    player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true,
+};
+assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
 ### `AttackEntityCallback`

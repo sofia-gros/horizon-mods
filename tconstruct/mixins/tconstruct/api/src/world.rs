@@ -1,5 +1,5 @@
 //! The world: the slime vines. Ported from the original `SlimeVineBlock`; the block's look, loot and states are content files.
-use pluto_lib::{BlockBehavior, BlockBehaviors, BlockEditor, BlockState, BlockView, Direction, Identifier, Placement};
+use pluto_lib::{ActionResult, BlockBehavior, BlockBehaviors, BlockEditor, BlockState, BlockView, Direction, Identifier, Placement, UseItemOnBlockCallback, World};
 
 const HORIZONTAL: [Direction; 4] = [Direction::North, Direction::East, Direction::South, Direction::West];
 const LEAVES: &str = "tconstruct:slimy_leaves";
@@ -353,4 +353,42 @@ pub fn register_grass() {
             );
         }
     }
+}
+
+/// The seeds (`SlimeGrassSeedItem`): used on dirt they make it grass of their foliage, used on vines they make slime vines (sky and ender).
+pub fn register_seeds() {
+    UseItemOnBlockCallback::EVENT.register(|used| {
+        let Some(foliage) = used.item.strip_prefix("tconstruct:").and_then(|name| name.strip_suffix("_slime_grass_seeds")) else {
+            return ActionResult::Pass;
+        };
+        if !FOLIAGE.contains(&foliage) {
+            return ActionResult::Pass;
+        }
+        let world = World::new(&used.dimension);
+        let Some(old) = world.get_block_state(used.pos) else { return ActionResult::Pass };
+        // try vines first
+        let mut new_state = None;
+        let mut sound = "minecraft:block.slime_block.place";
+        if old.block.to_string() == "minecraft:vine" && matches!(foliage, "sky" | "ender") {
+            if let Ok(mut vine) = BlockState::parse(&format!("tconstruct:{foliage}_slime_vine[stage=start]")) {
+                for side in ["up", "north", "east", "south", "west"] {
+                    if old.property(side) == Some("true") {
+                        vine = vine.with(side, "true");
+                    }
+                }
+                new_state = Some(vine);
+                sound = "minecraft:block.grass.place";
+            }
+        }
+        // if vines did not succeed, try grass
+        let Some(new_state) = new_state.or_else(|| grass_on(&old, foliage)) else { return ActionResult::Pass };
+        if !world.set_block_state(used.pos, &new_state) {
+            return ActionResult::Pass;
+        }
+        world.play_sound(sound, [f64::from(used.pos[0]) + 0.5, f64::from(used.pos[1]) + 0.5, f64::from(used.pos[2]) + 0.5], 1.0, 1.0);
+        if !used.creative {
+            used.player.take_item(&used.item, 1);
+        }
+        ActionResult::Success
+    });
 }
