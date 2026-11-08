@@ -2,6 +2,54 @@
 
 A block entity renderer runs on the client once a frame for each block entity of its block that is in view (within 64 blocks and in the frustum) and adds geometry. It draws under a pose stack that starts at the block's lower north-west corner, in blocks, and sees the data the server sent of the block entity (see `BlockEntityType::update_tag` and `sync_data` in `block-entity.md`; without them the data is empty on the client).
 
+## Basic Example
+
+Draw a glowing lamp on top of a block entity's block:
+
+```rust
+use pluto_lib::{BlockEntityRendererRegistry, Identifier};
+
+BlockEntityRendererRegistry::register(Identifier::new("example", "lamp").unwrap(), |render| {
+    render.canvas.cube([0.3, 1.0, 0.3], [0.7, 1.4, 0.7], "example:block/lamp", 0xFFEEAA);
+    render.canvas.keep();
+});
+```
+
+The renderer runs on the client once a frame for each block entity of the block in view (within 64 blocks). Positions are in blocks from the block's lower north-west corner.
+
+## Moving and Turning
+
+`push` and `pop` save and restore the pose, so a part can be moved and turned without disturbing the next:
+
+```rust
+use pluto_lib::{BlockEntityRendererRegistry, Identifier};
+
+BlockEntityRendererRegistry::register(Identifier::new("example", "fan").unwrap(), |render| {
+    render.canvas.push();
+    render.canvas.translate([0.5, 0.5, 0.5]);
+    render.canvas.rotate_about([0.0, 1.0, 0.0], 45.0, [0.0, 0.0, 0.0]);
+    render.canvas.cube([-0.4, -0.05, -0.05], [0.4, 0.05, 0.05], "example:block/blade", 0xFFFFFF);
+    render.canvas.pop();
+});
+```
+
+## Drawing What the Server Knows
+
+The renderer sees the block entity's *update tag*, the data the server chose to send (`sync_data` or `update_tag` on the block entity type). A tank that shows its level needs the level in the tag:
+
+```rust
+use pluto_lib::{BlockEntityRendererRegistry, Identifier, NbtCompoundExt};
+
+BlockEntityRendererRegistry::register(Identifier::new("example", "gauge").unwrap(), |render| {
+    let level = render.data.get_int("level", 0) as f32 / 1000.0;
+    render.canvas.cube([0.2, 0.0, 0.2], [0.8, level, 0.8], "example:block/liquid", 0x3366FF);
+});
+```
+
+> **Use with Caution.** The renderer runs every frame for every block entity in view. Call `keep()` when the picture only changes with the block entity's data, so an idle machine costs nothing per frame.
+
+## Reference
+
 ### `BlockEntityCanvas`
 
 The surface a renderer draws on; PlutoLib passes one to the renderer, and a test can implement it to check what a renderer draws.

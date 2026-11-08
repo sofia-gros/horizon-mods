@@ -2,6 +2,35 @@
 
 Be told after resources reload, to rebuild whatever a mod derived from them.
 
+## Basic Example
+
+Rebuild something you derived from the resources after every reload:
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+
+ResourceManagerHelper::get(ResourceType::ClientResources)
+    .register_reload_listener(Identifier::new("example", "rebuild_cache").unwrap(), || {
+        // models, textures or language files changed: rebuild
+    });
+```
+
+## Order Between Listeners
+
+Each listener has an id, which is its phase, so two listeners can be ordered with `reload_event`: the one that builds a table before the one that reads it.
+
+```rust
+use pluto_lib::{reload_event, Identifier, ResourceType};
+
+let tables = Identifier::new("example", "tables").unwrap();
+let users = Identifier::new("example", "users").unwrap();
+reload_event(ResourceType::ClientResources).add_phase_ordering(tables, users).unwrap();
+```
+
+> **Use with Caution.** `ResourceType::ServerData` (recipes, loot tables, tags) is accepted but its listeners are not called yet; Horizon reports no matching reload (support matrix).
+
+## Reference
+
 ### `ResourceType`
 
 Which kind of resources a listener follows. `ClientResources` are assets (models, textures, language files) and work. `ServerData` is data (recipes, loot tables, tags) and is a stub: listeners are accepted and not invoked yet (support matrix).

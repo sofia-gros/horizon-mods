@@ -33,6 +33,10 @@ pub fn hooks() -> ModHooks {
 
 (This one block is not compiled by the page tests, because `ModHooks` and `hooks()` belong to the game-facing half of PlutoLib. Everything else on these pages is.)
 
+## How these pages are written
+
+Each page starts with a **Basic Example** and then walks through the feature one section at a time: what it is for, the code, and what to watch out for. The **Reference** at the end of a page lists every public item with its types, its arguments and an example for each form. All code on these pages is compiled and run by the test suite, so it does what it says.
+
 ## Pages
 
 | Page | What it covers |

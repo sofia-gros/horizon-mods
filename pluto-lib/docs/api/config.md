@@ -4,6 +4,48 @@ PlutoLib extra (Fabric API has none; NeoForge has `ModConfigEvent`). Register a 
 
 Register inside your mod's `hooks()`, before the game asks which configs exist.
 
+## Basic Example
+
+Ask for a config file with its default text; hear when it is loaded. Parsing is yours (TOML by convention):
+
+```rust
+use pluto_lib::{ConfigEvents, ConfigKind, ConfigRegistry};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static GREET: AtomicBool = AtomicBool::new(true);
+
+ConfigRegistry::register("example", ConfigKind::Common, "greet = true\n");
+ConfigEvents::LOADING.register(|config| {
+    if config.mod_id == "example" {
+        GREET.store(!config.text.contains("greet = false"), Ordering::Relaxed);
+    }
+});
+```
+
+The file is `config/example-common.toml`, created from the default text when it is missing.
+
+## Which Kind
+
+`ConfigKind::Client` is read by the window when the game starts, `Common` once per process (the window or a dedicated server), `Server` for each world the server opens. Put a setting where it is used: a drawing option is `Client`, a gameplay rule that every player must share is `Server`.
+
+## Changing the File While Playing
+
+The game looks at the file once a second. When the text changes, `ConfigEvents::RELOADING` fires with the new text, and `UNLOADING` fires when a `Server` config is dropped as its world closes:
+
+```rust
+use pluto_lib::ConfigEvents;
+
+ConfigEvents::RELOADING.register(|config| {
+    if config.mod_id == "example" {
+        println!("{} changed", config.file);
+    }
+});
+```
+
+> **Tip.** Every mod hears every config, so always check `config.mod_id` first. A file saved again with the same text fires nothing.
+
+## Reference
+
 ### `ConfigKind`
 
 Which side reads a config and when. `Client` loads on the window when the game starts, `Common` once per process (the window or a dedicated server), `Server` for each world the server opens.

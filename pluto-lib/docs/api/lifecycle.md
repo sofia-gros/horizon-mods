@@ -2,6 +2,55 @@
 
 Be told when the server starts and stops, when each tick begins and ends, and when chunks load. Callbacks receive small owned values (not game objects); to drive a callback in a test, build the value and call `invoke`.
 
+## Basic Example
+
+Run code when the server starts and stops:
+
+```rust
+use pluto_lib::ServerLifecycleEvents;
+
+ServerLifecycleEvents::SERVER_STARTING.register(|server| {
+    println!("starting a {} server", if server.dedicated { "dedicated" } else { "integrated" });
+});
+ServerLifecycleEvents::SERVER_STOPPING.register(|_| { /* save your own data */ });
+```
+
+## Doing Something Every Tick
+
+The tick events run twenty times a second, so a callback that does a little work each time adds up:
+
+```rust
+use pluto_lib::ServerTickEvents;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TICKS: AtomicU64 = AtomicU64::new(0);
+ServerTickEvents::END_SERVER_TICK.register(|_| {
+    if TICKS.fetch_add(1, Ordering::Relaxed) % 20 == 0 {
+        // once a second
+    }
+});
+```
+
+> **Tip.** Prefer a counter and do real work every few ticks. For work tied to one block, use a block entity ticker instead (see [block-entity](block-entity.md)).
+
+## Chunks
+
+`CHUNK_LOAD` and `CHUNK_UNLOAD` carry the dimension and chunk coordinates; on load, `newly_generated` tells fresh terrain from a chunk read from disk.
+
+```rust
+use pluto_lib::ServerChunkEvents;
+
+ServerChunkEvents::CHUNK_LOAD.register(|chunk| {
+    if chunk.newly_generated {
+        // decorate new terrain
+    }
+});
+```
+
+> **Use with Caution.** `SERVER_STARTED` and `SERVER_STOPPED` are accepted but not called yet (support matrix).
+
+## Reference
+
 ## Data
 
 ### `ServerInfo`

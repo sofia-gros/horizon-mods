@@ -2,6 +2,29 @@
 
 Horizon's loot tables are JSON. PlutoLib hands the callback the table's JSON and takes back whatever the callback leaves in it.
 
+## Basic Example
+
+Change a loot table as it loads. The table is JSON; edit it in place:
+
+```rust
+use pluto_lib::LootTableEvents;
+use serde_json::json;
+
+LootTableEvents::MODIFY.register(|context| {
+    if context.id == "minecraft:blocks/stone" {
+        context.table.borrow_mut()["random_sequence"] = json!("example:stone");
+    }
+});
+```
+
+## Choosing Which Tables
+
+The callback runs for every table, so check `context.id` first and return quickly for the others. Several callbacks edit the same table in registration order, each seeing what the earlier ones left.
+
+> **Tip.** To add a drop, push a pool onto `table["pools"]`; to remove drops, set the pools to an empty list. The shape of the JSON is the game's own loot table format.
+
+## Reference
+
 ### `LootTableContext`
 
 A loot table being loaded. `id` is the table id such as `minecraft:blocks/stone`; `table` holds the table's JSON in a `RefCell`, so a callback edits it in place with `borrow_mut`.

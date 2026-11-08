@@ -4,6 +4,52 @@ Add tabs to the creative inventory, with stacks that carry data (a finished tool
 
 Register in your mod's `hooks()`, before the creative inventory is loaded.
 
+## Basic Example
+
+A creative tab is an `ItemGroup`: an id, a title, an icon and the stacks in it. Register it once; the player sees it in the creative inventory and takes stacks out like from any tab.
+
+```rust
+use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
+
+let item = |name: &str| ItemStack::new(Identifier::new("minecraft", name).unwrap(), 1);
+ItemGroupRegistry::register(
+    ItemGroup::new(Identifier::new("example", "tools").unwrap(), "Example Tools", item("iron_pickaxe"))
+        .entries(["iron_pickaxe", "iron_axe", "iron_shovel"].map(item)),
+);
+```
+
+## Stacks That Carry Data
+
+A finished tool, a named item or a potion is a stack with data components. Give them as an SNBT compound; the player can take exactly that stack out:
+
+```rust
+use pluto_lib::{Identifier, ItemStack};
+
+let wand = ItemStack::new(Identifier::new("minecraft", "stick").unwrap(), 1)
+    .with_components("{\"minecraft:custom_name\":'\"Wand\"'}");
+assert!(wand.to_snbt().contains("components"));
+```
+
+## Adding to a Tab That Exists
+
+Your items can also go into a tab someone else made, vanilla's included:
+
+```rust
+use pluto_lib::{Identifier, ItemGroupEvents, ItemStack};
+
+ItemGroupEvents::modify_entries_event(Identifier::new("minecraft", "ingredients").unwrap(), |entries| {
+    entries.added.borrow_mut().push(ItemStack::new(Identifier::new("example", "gem").unwrap(), 1));
+});
+```
+
+## More Tabs Than Fit
+
+The game pages mod tabs, ten to a page, with arrows on the screen; you do nothing for it. Every stack is also findable in the search tab.
+
+> **Use with Caution.** Register tabs while your mod starts (in `hooks()`), before the creative inventory is first built. A tab registered later appears the next time the game builds it.
+
+## Reference
+
 ### `ItemStack`
 
 A stack of an item, optionally with data. `item` is the item, `count` how many, `components` the stack's data components as an SNBT compound (None for a plain stack).

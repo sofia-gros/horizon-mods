@@ -2,18 +2,64 @@
 
 A block with item slots can open a menu when a player uses it. The slots come from the block entity (`BlockEntityType::item_slots`); a screen is the window around them: where the slots and the player's inventory sit, what is drawn, which presses are menu buttons, what the tooltips say and what the server does when a button is pressed.
 
-Register the screen in your mod's `hooks()`, together with the block entity type:
+Register the screen in your mod's `hooks()`, together with the block entity type. This page first walks through using screens, then lists every item in the [Reference](#reference).
+
+## Basic Example
+
+A screen is the window around a block's menu slots. The block entity declares the slots and the menu; the screen says where they sit and what is drawn:
 
 ```rust
 use pluto_lib::{BlockEntityType, Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
 
 let oven = Identifier::new("example", "oven").unwrap();
 BlockEntityType::new(oven.clone()).item_slots(3).menu("minecraft:furnace"); // the menu type the game opens
-ScreenHandlerRegistry::register(ScreenHandlerType::new(
-    oven,
-    ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).slot(56.0, 53.0).slot(116.0, 35.0),
-));
+ScreenHandlerRegistry::register(
+    ScreenHandlerType::new(oven, ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).slot(56.0, 53.0).slot(116.0, 35.0))
+        .on_draw(|draw| {
+            let [x, y] = draw.origin;
+            draw.canvas.text("Oven", [x + 8.0, y + 6.0], 0x404040, false);
+        }),
+);
 ```
+
+## A Button That Reaches the Server
+
+A press on the window is handled on the client first. `on_click` decides whether it is on one of your buttons and answers with an id; the game sends that id to the server, where `on_button` changes the block entity:
+
+```rust
+use pluto_lib::{Identifier, Nbt, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
+
+ScreenHandlerRegistry::register(
+    ScreenHandlerType::new(Identifier::new("example", "switch_box").unwrap(), ScreenLayout::new(176.0, 100.0))
+        .on_click(|press| ((150.0..170.0).contains(&press.at[0]) && !press.right).then_some(1))
+        .on_tooltip(|tip| {
+            if (150.0..170.0).contains(&tip.at[0]) {
+                tip.lines.push("Toggle".to_owned());
+            }
+        })
+        .on_button(|press| {
+            press.data.insert("on".to_owned(), Nbt::Byte(1));
+        }),
+);
+```
+
+## Reading the Machine's State
+
+The draw, click and tooltip callbacks get the menu's *data slots*, the numbers the block entity shares with its menu (a flame and an arrow in a furnace). They are empty until the server's first values arrive, so read them with `get`:
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(), ScreenLayout::new(176.0, 166.0)).on_draw(|draw| {
+    let flame = draw.data.first().copied().unwrap_or(0);
+    draw.canvas.fill([draw.origin[0] + 57.0, draw.origin[1] + 37.0, 14.0, flame.min(14) as f32], 0xFFFF6600);
+});
+let _ = window;
+```
+
+> **Use with Caution.** The slot count of the menu type must match the block entity's `item_slots`. The window is drawn over the game's panel; set `with_own_background` on the layout if you draw your own.
+
+## Reference
 
 ### `ScreenLayout`
 
