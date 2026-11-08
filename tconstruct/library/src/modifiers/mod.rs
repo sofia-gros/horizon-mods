@@ -163,6 +163,9 @@ impl ModuleRegistry {
     pub fn register_stat_modules(&mut self, stats: Arc<crate::tools::stat::ToolStats>) {
         self.register("tconstruct:stat_boost", stat_modules::stat_boost_loader(stats));
         self.register("tconstruct:trait", stat_modules::trait_loader());
+        for (kind, loader) in stat_modules::volatile_loaders() {
+            self.register(kind, loader);
+        }
     }
 
     pub fn knows(&self, kind: &str) -> bool {

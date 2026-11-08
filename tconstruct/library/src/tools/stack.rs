@@ -7,7 +7,7 @@ use std::sync::Arc;
 use super::definition::{part_stat_type, PartStatsModule, ToolDefinitionData, ToolTraitsModule};
 use super::stat::{ModifierStatsBuilder, StatValue, ToolStatId, ToolStats};
 use crate::materials::{MaterialId, MaterialRegistry};
-use crate::modifiers::stat_modules::{ModifierTraitModule, StatBoostModule, ToolContext};
+use crate::modifiers::stat_modules::{add_volatile_data, ModifierTraitModule, StatBoostModule, ToolContext, VolatileData};
 use crate::modifiers::{ModifierEntry, ModifierId, ModifierManager};
 
 /// `ModifierNBT.Builder`: entries of the same modifier add their levels; the result is sorted by priority, highest first, and entries
@@ -89,8 +89,10 @@ pub struct RebuiltTool {
     pub stats: BTreeMap<ToolStatId, StatValue>,
     /// The factors kept for values added later (`multiplyAll`, `MULTIPLY_CONDITIONAL`).
     pub multipliers: BTreeMap<ToolStatId, f32>,
-    /// Modifier slots from the definition (`VOLATILE_DATA`).
+    /// Modifier slots: the definition's and those the modifiers add (`VOLATILE_DATA`).
     pub slots: BTreeMap<String, i32>,
+    /// The rest of the volatile data: flags and whole numbers such as the rarity.
+    pub volatile: VolatileData,
 }
 
 /// `ToolStack.rebuildStats`: `upgrades` are the modifiers added by recipes.
@@ -110,6 +112,18 @@ pub fn rebuild_stats(
         traits.add(entry);
     }
     let all = merge_modifiers(traits.entries, modifiers);
+    // volatile data first, the definition's slots and then each modifier's
+    let mut volatile = VolatileData::default();
+    for (slot, count) in definition.slots() {
+        volatile.add_slots(&slot, count);
+    }
+    for entry in &all {
+        if let Some(modifier) = modifiers.get(&entry.modifier) {
+            for module in &modifier.modules {
+                add_volatile_data(module.as_ref(), context, entry, &mut volatile);
+            }
+        }
+    }
     let mut builder = ModifierStatsBuilder::new(stats);
     definition.add_material_stats(&mut builder, materials, registry);
     definition.add_tool_stats(&mut builder);
@@ -121,7 +135,7 @@ pub fn rebuild_stats(
             }
         }
     }
-    RebuiltTool { modifiers: all, stats: builder.build(), multipliers: builder.build_multipliers(), slots: definition.slots() }
+    RebuiltTool { modifiers: all, stats: builder.build(), multipliers: builder.build_multipliers(), slots: volatile.slots.clone(), volatile }
 }
 
 #[cfg(test)]

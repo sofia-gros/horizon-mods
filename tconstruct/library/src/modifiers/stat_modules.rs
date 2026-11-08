@@ -192,3 +192,189 @@ pub fn trait_loader() -> ModuleLoader {
         Ok(Arc::new(ModifierTraitModule { modifier, fixed_level, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
     })
 }
+
+/// `ToolDataNBT`: the volatile data of a tool, worked out again on every rebuild: flags, whole numbers and modifier slots.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VolatileData {
+    pub flags: std::collections::BTreeSet<String>,
+    pub ints: std::collections::BTreeMap<String, i32>,
+    pub slots: std::collections::BTreeMap<String, i32>,
+}
+
+impl VolatileData {
+    /// `putBoolean(flag, true)`.
+    pub fn set_flag(&mut self, flag: &str) {
+        self.flags.insert(flag.to_owned());
+    }
+
+    /// `getInt(key)`: 0 when missing.
+    pub fn int(&self, key: &str) -> i32 {
+        self.ints.get(key).copied().unwrap_or(0)
+    }
+
+    /// `addSlots(type, count)`.
+    pub fn add_slots(&mut self, slot: &str, count: i32) {
+        *self.slots.entry(slot.to_owned()).or_insert(0) += count;
+    }
+}
+
+fn leveling_int(object: &Map<String, Value>) -> Result<(i32, i32), String> {
+    let number = |key: &str| match object.get(key) {
+        None => Ok(0),
+        Some(value) => value.as_i64().map(|v| v as i32).ok_or_else(|| format!("'{key}' must be a whole number")),
+    };
+    Ok((number("flat")?, number("each_level")?))
+}
+
+/// `VolatileFlagModule` (`tconstruct:volatile_flag`): sets a flag while the modifier is on the tool.
+#[derive(Clone, Debug, PartialEq)]
+pub struct VolatileFlagModule {
+    pub flag: String,
+    pub condition: Condition,
+}
+
+/// `VolatileIntModule` (`tconstruct:volatile_int`): adds `flat + each_level * level` to a whole number.
+#[derive(Clone, Debug, PartialEq)]
+pub struct VolatileIntModule {
+    pub key: String,
+    pub flat: i32,
+    pub each_level: i32,
+    pub condition: Condition,
+}
+
+/// `ModifierSlotModule` (`tconstruct:modifier_slot`): adds slots of a type for a level above 0 (`LevelingInt.computeForLevel`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ModifierSlotModule {
+    pub slot: String,
+    pub flat: i32,
+    pub each_level: i32,
+    pub condition: Condition,
+}
+
+/// `RarityModule` (`tconstruct:rarity`): raises the tool's rarity to at least this one (kept as the rarity's index).
+#[derive(Clone, Debug, PartialEq)]
+pub struct RarityModule {
+    pub rarity: crate::materials::Rarity,
+}
+
+/// The key `RarityModule.RARITY` keeps the rarity under.
+pub const RARITY_KEY: &str = "tconstruct:rarity";
+
+/// The index of a rarity (`Rarity.ordinal`).
+pub fn rarity_index(rarity: crate::materials::Rarity) -> i32 {
+    use crate::materials::Rarity::{Common, Epic, Rare, Uncommon};
+    match rarity {
+        Common => 0,
+        Uncommon => 1,
+        Rare => 2,
+        Epic => 3,
+    }
+}
+
+/// The volatile-data hook of the modules above.
+pub fn add_volatile_data(module: &dyn ModifierModule, context: &dyn ToolContext, entry: &ModifierEntry, data: &mut VolatileData) {
+    let any = module.as_any();
+    if let Some(m) = any.downcast_ref::<VolatileFlagModule>() {
+        if m.condition.matches(context, entry) {
+            data.set_flag(&m.flag);
+        }
+    } else if let Some(m) = any.downcast_ref::<VolatileIntModule>() {
+        if m.condition.matches(context, entry) {
+            let total = data.int(&m.key) + m.flat + m.each_level * entry.level;
+            data.ints.insert(m.key.clone(), total);
+        }
+    } else if let Some(m) = any.downcast_ref::<ModifierSlotModule>() {
+        if m.condition.matches(context, entry) && entry.level > 0 {
+            data.add_slots(&m.slot, m.flat + m.each_level * entry.level);
+        }
+    } else if let Some(m) = any.downcast_ref::<RarityModule>() {
+        let index = rarity_index(m.rarity);
+        if index > data.int(RARITY_KEY) {
+            data.ints.insert(RARITY_KEY.to_owned(), index);
+        }
+    }
+}
+
+macro_rules! impl_module {
+    ($type:ty, $kind:expr, $priority:expr) => {
+        impl ModifierModule for $type {
+            fn kind(&self) -> &str {
+                $kind
+            }
+            fn priority(&self) -> Option<i32> {
+                $priority
+            }
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+        }
+    };
+}
+
+impl_module!(VolatileFlagModule, "tconstruct:volatile_flag", None);
+impl_module!(VolatileIntModule, "tconstruct:volatile_int", None);
+impl_module!(ModifierSlotModule, "tconstruct:modifier_slot", Some(50));
+impl_module!(RarityModule, "tconstruct:rarity", None);
+
+/// The loaders of the volatile-data modules.
+pub fn volatile_loaders() -> Vec<(&'static str, ModuleLoader)> {
+    let flag: ModuleLoader = Arc::new(|json| {
+        let flag = json.get("flag").and_then(Value::as_str).ok_or("volatile_flag needs a 'flag'")?.to_owned();
+        Ok(Arc::new(VolatileFlagModule { flag, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    });
+    let int: ModuleLoader = Arc::new(|json| {
+        let key = json.get("flag").and_then(Value::as_str).ok_or("volatile_int needs a 'flag'")?.to_owned();
+        let (flat, each_level) = leveling_int(json)?;
+        Ok(Arc::new(VolatileIntModule { key, flat, each_level, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    });
+    let slot: ModuleLoader = Arc::new(|json| {
+        let slot = json.get("name").and_then(Value::as_str).ok_or("modifier_slot needs a 'name'")?.to_owned();
+        let (flat, each_level) = leveling_int(json)?;
+        Ok(Arc::new(ModifierSlotModule { slot, flat, each_level, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    });
+    let rarity: ModuleLoader = Arc::new(|json| {
+        let rarity = json.get("rarity").and_then(Value::as_str).and_then(crate::materials::Rarity::from_name).ok_or("rarity needs a 'rarity'")?;
+        Ok(Arc::new(RarityModule { rarity }) as Arc<dyn ModifierModule>)
+    });
+    vec![("tconstruct:volatile_flag", flag), ("tconstruct:volatile_int", int), ("tconstruct:modifier_slot", slot), ("tconstruct:rarity", rarity)]
+}
+
+#[cfg(test)]
+mod volatile_tests {
+    use super::*;
+
+    struct Anything;
+    impl ToolContext for Anything {
+        fn item_in_tag(&self, _: &str) -> bool {
+            true
+        }
+    }
+
+    fn entry(level: i32) -> ModifierEntry {
+        ModifierEntry { modifier: crate::modifiers::ModifierId::try_parse("tconstruct:test").unwrap(), level }
+    }
+
+    #[test]
+    fn flags_ints_slots_and_rarity_accumulate() {
+        let mut data = VolatileData::default();
+        let condition = Condition::default();
+        add_volatile_data(&VolatileFlagModule { flag: "tconstruct:ballista".into(), condition: condition.clone() }, &Anything, &entry(1), &mut data);
+        add_volatile_data(&VolatileIntModule { key: "tconstruct:expanded".into(), flat: 1, each_level: 2, condition: condition.clone() }, &Anything, &entry(3), &mut data);
+        add_volatile_data(&VolatileIntModule { key: "tconstruct:expanded".into(), flat: 0, each_level: 1, condition: condition.clone() }, &Anything, &entry(1), &mut data);
+        add_volatile_data(&ModifierSlotModule { slot: "upgrades".into(), flat: 0, each_level: 1, condition: condition.clone() }, &Anything, &entry(2), &mut data);
+        add_volatile_data(&RarityModule { rarity: crate::materials::Rarity::Rare }, &Anything, &entry(1), &mut data);
+        add_volatile_data(&RarityModule { rarity: crate::materials::Rarity::Uncommon }, &Anything, &entry(1), &mut data);
+        assert!(data.flags.contains("tconstruct:ballista"));
+        assert_eq!(data.int("tconstruct:expanded"), 8, "(1 + 2 x 3) + 1");
+        assert_eq!(data.slots["upgrades"], 2);
+        assert_eq!(data.int(RARITY_KEY), 2, "the rarer one stays");
+    }
+
+    #[test]
+    fn a_condition_keeps_a_module_from_applying() {
+        let mut data = VolatileData::default();
+        let condition = Condition { min_level: Some(2), ..Condition::default() };
+        add_volatile_data(&VolatileFlagModule { flag: "tconstruct:piglin_neutral".into(), condition }, &Anything, &entry(1), &mut data);
+        assert!(data.flags.is_empty());
+    }
+}
