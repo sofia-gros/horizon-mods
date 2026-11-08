@@ -1,6 +1,6 @@
 {
   "tconstruct": {
-    "max": 261,
+    "max": 260,
     "known_overlaps": [
       "source-copper-gauge-placement",
       "source-copper-gauge-update",

@@ -147,16 +147,16 @@
       "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
     },
     "client/SlimeColorizer.java": {
-      "status": "todo",
-      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+      "status": "parked",
+      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
     },
     "client/SlimeColorReloadListener.java": {
-      "status": "todo",
-      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+      "status": "parked",
+      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
     },
     "WorldClientEvents.java": {
-      "status": "todo",
-      "note": "foliage tinting: an old injection loads the colour maps; not read against the Java"
+      "status": "parked",
+      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
     },
     "data/StructureRepalleter.java": {
       "status": "not-code",

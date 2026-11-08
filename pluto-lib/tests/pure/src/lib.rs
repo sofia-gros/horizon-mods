@@ -26,6 +26,7 @@ mod api_pages {
     page!(Items, "items.md");
     page!(Creative, "creative.md");
     page!(BlockEntity, "block-entity.md");
+    page!(Color, "color.md");
     page!(BlockBehavior, "block.md");
     page!(Screen, "screen.md");
     page!(Renderer, "renderer.md");

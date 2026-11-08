@@ -5,6 +5,7 @@ pub mod base;
 pub mod block_api_v1;
 pub mod block_entity_api_v1;
 pub mod block_entity_renderer_api_v1;
+pub mod color_provider_api_v1;
 pub mod command_api_v2;
 pub mod config_api;
 pub mod data_attachment_api_v1;
