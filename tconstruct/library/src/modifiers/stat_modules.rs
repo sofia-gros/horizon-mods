@@ -149,3 +149,46 @@ pub fn stat_boost_loader(stats: Arc<ToolStats>) -> ModuleLoader {
         Ok(Arc::new(StatBoostModule { stat: id, operation, amount: LevelingValue::from_json(json)?, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
     })
 }
+
+/// `ModifierTraitModule` (`tconstruct:trait`): while the tool has this modifier, it also has another one. With `fixed_level` the trait
+/// is added once at its own level; otherwise it is added at its level times this modifier's level.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ModifierTraitModule {
+    pub modifier: ModifierEntry,
+    pub fixed_level: bool,
+    pub condition: Condition,
+}
+
+impl ModifierTraitModule {
+    /// `addTraits`: the entry to add, if the module applies. `first_encounter` is whether this modifier was met for the first time.
+    pub fn trait_for(&self, context: &dyn ToolContext, own: &ModifierEntry, first_encounter: bool) -> Option<ModifierEntry> {
+        if !self.condition.matches(context, own) {
+            return None;
+        }
+        if self.fixed_level {
+            first_encounter.then(|| self.modifier.clone())
+        } else if own.level == 1 {
+            Some(self.modifier.clone())
+        } else {
+            Some(ModifierEntry { modifier: self.modifier.modifier.clone(), level: self.modifier.level * own.level })
+        }
+    }
+}
+
+impl ModifierModule for ModifierTraitModule {
+    fn kind(&self) -> &str {
+        "tconstruct:trait"
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/// The loader of `tconstruct:trait`.
+pub fn trait_loader() -> ModuleLoader {
+    Arc::new(|json| {
+        let modifier = ModifierEntry::from_json(&Value::Object(json.clone()))?;
+        let fixed_level = json.get("fixed_level").and_then(Value::as_bool).ok_or("trait needs 'fixed_level'")?;
+        Ok(Arc::new(ModifierTraitModule { modifier, fixed_level, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    })
+}
