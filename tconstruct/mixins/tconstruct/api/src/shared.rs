@@ -1,5 +1,5 @@
 //! Shared blocks: the platforms. Ported from the original `PlatformBlock`; the shapes, models and loot are content files.
-use pluto_lib::{ActionResult, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, Identifier, Placement, UseItemOnBlockCallback, World};
+use pluto_lib::{UseItemFinishCallback, ActionResult, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, Identifier, Placement, UseItemOnBlockCallback, World};
 
 /// Every platform and the family its vertical neighbours must belong to (the copper ones connect across weathering and waxing).
 fn platforms() -> Vec<(String, &'static str)> {
@@ -189,4 +189,21 @@ pub fn register_glow() {
                 if supported(c.view, c.pos, facing) { None } else { BlockState::parse("minecraft:air").ok() }
             }),
     );
+}
+
+/// The original's `CheeseItem.removeRandomEffect`: eating cheese takes one random effect off the player.
+pub fn register_cheese() {
+    UseItemFinishCallback::EVENT.register(|done| {
+        if !matches!(done.item.as_str(), "tconstruct:cheese_ingot" | "tconstruct:cheese_block") {
+            return;
+        }
+        let effects = done.player.effects();
+        if effects.is_empty() {
+            return;
+        }
+        // the player's uuid and the effects' remaining ticks are as random as a cure needs to be
+        let seed = effects.iter().fold(done.player.uuid as u64 ^ 0x9E37_79B9, |acc, e| acc.rotate_left(5) ^ e.duration as u64);
+        let pick = &effects[(seed % effects.len() as u64) as usize];
+        done.player.remove_effect(&pick.id);
+    });
 }

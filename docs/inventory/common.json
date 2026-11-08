@@ -3,264 +3,264 @@
   "java": "slimeknights/tconstruct/common",
   "classes": {
     "ClientEventBase.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "config/Config.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "config/ConfigurableAction.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "data/advancement/AdvancementIds.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/advancement/FunctionProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/AdvancementsProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/BaseRecipeProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/ConfigurationDataProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/CountRequirementsStrategy.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/DamageTypeProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/FakeRegistryEntry.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/AdvancementLootTableProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/BlockLootTableProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/EntityLootTableProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/GlobalLootModifiersProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/LootTableInjectionProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/loot/TConstructLootTableProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/model/MaterialModelBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/model/ModelSpriteProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/model/TinkerBlockStateProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/model/TinkerItemModelProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/model/TinkerSpriteSourceProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/render/RenderFluidProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/render/RenderItemProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/StructureUpdater.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/BiomeTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/BlockEntityTypeTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/BlockTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/CreativeTabTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/DamageTypeTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/EnchantmentTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/EntityTypeTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/FluidTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/InstrumentTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/ItemTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/MaterialTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/MenuTypeTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/ModifierTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "data/tags/PotionTagProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator of the original build (advancements, loot, models, recipes, tags, structures and render data are written out as files); the port ships the results as content files, compared as each feature is ported"
     },
     "json/BlockOrEntityCondition.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "a recipe and loot condition type; Horizon content has no mod condition types"
     },
     "json/ConfigEnabledCondition.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "a recipe and loot condition type; Horizon content has no mod condition types"
     },
     "multiblock/IMasterLogic.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the multiblock base of the smeltery and the tanks; ported with phase H"
     },
     "multiblock/IServantLogic.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the multiblock base of the smeltery and the tanks; ported with phase H"
     },
     "multiblock/ServantTileEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the multiblock base of the smeltery and the tanks; ported with phase H"
     },
     "network/InventorySlotSyncPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the packets are ported with the feature that sends them (tables, smeltery, tools) on the networking API of PlutoLib that exists"
     },
     "network/SyncPersistentDataPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the packets are ported with the feature that sends them (tables, smeltery, tools) on the networking API of PlutoLib that exists"
     },
     "network/TinkerNetwork.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the packets are ported with the feature that sends them (tables, smeltery, tools) on the networking API of PlutoLib that exists"
     },
     "network/UpdateNeighborsPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the packets are ported with the feature that sends them (tables, smeltery, tools) on the networking API of PlutoLib that exists"
     },
     "recipe/LoadableFinishedRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "recipe/RecipeCacheInvalidator.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/ArgumentTypeDeferredRegister.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "registration/AttributeDeferredRegister.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "Horizon content cannot register new entity attributes (see TinkerAttributes in shared)"
     },
     "registration/BlockDeferredRegisterExtension.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/CastItemObject.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/EnumDeferredRegister.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/FluidDeferredRegisterExtension.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/GeodeItemObject.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/ItemDeferredRegisterExtension.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "registration/PotionDeferredRegister.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "Horizon content has no potion definitions for mods yet"
     },
     "Sounds.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "SoundUtils.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "ported with the feature that uses it (command arguments with the command tree in phase I, each config option where it is read, sounds as content and play_sound); not complete yet"
     },
     "TinkerDamageTypes.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "compared with the Java: all 16 single and 8 paired (melee and ranged) damage types exist as content files with the original names (32 files)"
     },
     "TinkerEffect.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "TinkerModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "Forge registration, recipe-cache or base-class glue; blocks, items and effects are content files in the port"
     },
     "TinkerTags.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "compared with the Java by script: 255 of the 344 block, item, fluid, modifier and material tag keys have a content file. The missing ones are the modifier and material tags (phase I), the tool item tags (modifiable/multipart/single, armor/golden, embellishment/slime, show_hand, boss_trophies; phase I), the fluid spilling and tooltip tags (phase H and I) and the uranium ingot tag (a mod integration, not ported)"
     }
   }
 }

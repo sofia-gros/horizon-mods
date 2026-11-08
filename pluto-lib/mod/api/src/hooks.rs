@@ -8,7 +8,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
-    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
+    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -837,6 +837,16 @@ impl Hooks for PlutoHooks {
             player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
         };
         cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
+    }
+
+    fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
+        if event.entity.is_some() { return; }
+        let Some(player) = host.acting_player() else { return };
+        let context = events_interaction_v0::UseItemFinishContext {
+            item: event.stack.item.to_string(),
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+        };
+        scoped(host, || events_interaction_v0::use_item_finish(&context));
     }
 
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {

@@ -19,8 +19,8 @@
       "note": "compared with the Java: the content panes exist; the multipart connected-texture state (IMultipartConnectedBlock: which neighbours the glass joins) and the beacon colour multiplier of the stained ones are not carried"
     },
     "block/entity/TableBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "block/GlowBlock.java": {
       "status": "ported",
@@ -59,8 +59,8 @@
       "note": "compared with the Java: the content blocks exist; the support shape of the block, the pane's empty collision with its own support shape and the not-pathfindable rule are not carried"
     },
     "block/TableBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "block/WaxedPlatformBlock.java": {
       "status": "partial",
@@ -71,180 +71,180 @@
       "note": "weathering by random tick (vanilla's rule over the copper within four blocks) and waxing with honeycomb are done and checked in game with a real click; scraping with an axe is not (it needs item damage and a tool-modification hook)"
     },
     "client/ClientGeneratePartTexturesCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "client/FluidParticle.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "Horizon content has no mod particle types; the fluid drip and splash particles wait for them"
     },
     "command/argument/MaterialArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/MaterialStatsArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/MaterialTagSource.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/MaterialVariantArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/ModifierArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/ModifierHookArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/ModifierTagSource.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/SlotTypeArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/TinkerSuggestionProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/ToolStatArgument.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/HeldModifiableItemIterator.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/DurabilityCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/GenerateHiddenFluidsCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "command/subcommand/GenerateMeltingRecipesCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "command/subcommand/GeneratePartTexturesCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "command/subcommand/MaterialsCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/ModifierPriorityCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/ModifiersCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/ModifierUsageCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/SlotsCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/StatsCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/TConstructCommand.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "CommonsClientEvents.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "registry and event glue of the shared package; each registration is ported with the feature that uses it (content for blocks and items, API crate for behaviour); the remainder follows with phases F to I"
     },
     "CommonsEvents.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "registry and event glue of the shared package; each registration is ported with the feature that uses it (content for blocks and items, API crate for behaviour); the remainder follows with phases F to I"
     },
     "data/CommonRecipeProvider.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "effect/AntigravityEffect.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "the effect logic (floating up, teleporting back after a fall) needs mob effects with tick behaviour, which Horizon content mob effects do not have; the effects themselves exist as content (see TinkerEffects)"
     },
     "effect/ReturningEffect.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "the effect logic (floating up, teleporting back after a fall) needs mob effects with tick behaviour, which Horizon content mob effects do not have; the effects themselves exist as content (see TinkerEffects)"
     },
     "inventory/BlockContainerOpenedTrigger.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "inventory/ConfigurableInvWrapperCapability.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "inventory/TriggeringBaseContainerMenu.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "inventory/TriggeringMultiModuleContainerMenu.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "base classes of the table blocks and their menus; ported with phase G (tables), where the screens and slot rules are built"
     },
     "item/CheeseBlockItem.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "eaten over 32 ticks, feeds 3, leaves 3 cheese ingots (ItemUse remainder), and takes a random effect like the ingot (register_cheese; the callback is shared with the ingot, which was the game check). Not carried: the milk-curable filter and the tooltip line"
     },
     "item/CheeseItem.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "eating takes one random effect off the player (UseItemFinishCallback, register_cheese; checked in game: the one effect was removed). Not carried: only effects that milk cures are picked (Horizon does not say which are curable, so any effect may go) and the grey tooltip line"
     },
     "item/TinkerBookItem.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the book item exists only after the book screen (phase G, tables and the library); not done yet"
     },
     "network/GeneratePartTexturesPacket.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "particle/FluidParticleData.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "Horizon content has no mod particle types; the fluid drip and splash particles wait for them"
     },
     "TinkerAttributes.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "parked",
+      "note": "Horizon content has no way to register new entity attributes (bouncy, jump count, protection cap, experience multiplier and the others); revisit when it has"
     },
     "TinkerClient.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "registry and event glue of the shared package; each registration is ported with the feature that uses it (content for blocks and items, API crate for behaviour); the remainder follows with phases F to I"
     },
     "TinkerCommons.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "registry and event glue of the shared package; each registration is ported with the feature that uses it (content for blocks and items, API crate for behaviour); the remainder follows with phases F to I"
     },
     "TinkerEffects.java": {
       "status": "partial",
       "note": "the 14 shared and modifier effects (experienced, ricochet, enderference, bouncy, double jump, antigravity, returning, bleeding, magnetic, self destructing, repulsive, pierce, conductive, venom) exist as content mob effects with the original's category, colour and icon, and the slime bottles use them; Horizon's mob effects have no tick behaviour or attribute modifiers yet, so they do nothing by themselves (the attributes, tick logic and potions are not carried)"
     },
     "TinkerFood.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "compared with the Java: bacon, cheese, jeweled apple, meat soup and the slime bottles carry the original nutrition, saturation (nutrition x modifier x 2), effects and durations as item components. The cake foods belong to the parked cake blocks (gadgets)"
     },
     "TinkerMaterials.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "registry and event glue of the shared package; each registration is ported with the feature that uses it (content for blocks and items, API crate for behaviour); the remainder follows with phases F to I"
     }
   }
 }
