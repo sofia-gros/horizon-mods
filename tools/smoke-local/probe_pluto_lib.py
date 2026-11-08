@@ -25,6 +25,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE fluids tconstruct=42',
             'PLUTO-PROBE punji east=Some("true")',
             'PLUTO-PROBE signs placed=[true, true, true, true]',
+            'PLUTO-PROBE platform down=Some("true") up=Some("true")',
             'PLUTO-PROBE punji after_support_removed_later=Some("minecraft:air")',
             'PLUTO-PROBE world set=true read=Some("minecraft:glass")',
             'PLUTO-PROBE projectile kind=minecraft:snowball',

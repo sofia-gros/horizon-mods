@@ -84,6 +84,13 @@ pub fn hooks() -> Box<dyn Hooks> {
                 })
                 .collect();
             println!("PLUTO-PROBE signs placed={signs:?}");
+            // a platform learns of the stone below it and of the platform above it
+            let platform = pluto_lib::BlockState::parse("tconstruct:iron_platform").unwrap();
+            world.set_block_state([12, 81, 12], &platform);
+            world.set_block_state([12, 80, 12], &stone);
+            world.set_block_state([12, 82, 12], &platform);
+            let read = |key: &str| world.get_block_state([12, 81, 12]).and_then(|s| s.property(key).map(str::to_owned));
+            println!("PLUTO-PROBE platform down={:?} up={:?}", read("down"), read("up"));
             println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
             1
         });

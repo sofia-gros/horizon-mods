@@ -66,6 +66,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "a Horizon call that names a state's block, and reads its properties, from a block hook",
     },
     SupportEntry {
+        api: "tconstruct platforms (BlockBehavior random_tick for weathering, lateral connections)",
+        support: Support::Stub,
+        behaviour: "copper platforms never weather; platforms do not connect sideways to ladders, bars, fences and the like",
+        unblocked_by: "Horizon block hooks that can place a different block (random tick writes only properties) and that can name or tag a neighbour",
+    },
+    SupportEntry {
         api: "player_api::ServerPlayer::add_food",
         support: Support::Stub,
         behaviour: "does nothing and returns false; the food level is unchanged",
