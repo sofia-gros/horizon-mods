@@ -43,8 +43,13 @@ def main(argv):
     failed = incomplete = False
     for path in files:
         domain, count, open_, problems = report(path)
-        summary = ', '.join(f'{count[s]} {s}' for s in STATUSES if count[s])
-        print(f'{domain}: {"INCOMPLETE" if open_ else "complete"} ({summary})')
+        # not done (ours to implement or check) is kept apart from parked (Horizon cannot do it)
+        todo = [f'{count[s]} {s}' for s in ('todo', 'partial', 'ported-unchecked') if count[s]]
+        rest = [f'{count[s]} {s}' for s in ('ported', 'not-code') if count[s]]
+        parts = [f'NOT DONE: {", ".join(todo)}' if todo else 'NOT DONE: none']
+        parts.append(f'PARKED (Horizon limit): {count["parked"]}')
+        parts.extend(rest)
+        print(f'{domain}: {"INCOMPLETE" if open_ else "complete"} | ' + ' | '.join(parts))
         for line in problems:
             print('  ' + line)
         failed |= bool(problems)
