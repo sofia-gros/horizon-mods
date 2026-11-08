@@ -162,6 +162,7 @@ pub fn library() -> &'static ToolLibrary {
 
 /// Called once at start: loads the library and says how much it holds, so a broken link or a broken data file shows in the log.
 pub fn register() {
+    register_break_speed();
     let library = library();
     println!(
         "tconstruct: library linked, {} tool stats, {} material stat types",
@@ -214,4 +215,24 @@ pub fn build_command(ctx: &pluto_lib::CommandContext) -> i32 {
             0
         }
     }
+}
+
+/// A tool digs with the mining speed of its own stats (`tconstruct:stats` in the stack's data) where the game says the dig is faster than
+/// by hand, which it takes from the item the tool stands on. The original works out whether a tool is effective from its definition's
+/// `is_effective` module and the harvest tier; that is not carried yet.
+pub fn register_break_speed() {
+    use pluto_lib::{BreakSpeedCallback, Nbt};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static SAID: AtomicBool = AtomicBool::new(false);
+    BreakSpeedCallback::EVENT.register(|dig| {
+        let Some(held) = &dig.held else { return };
+        let Some(Nbt::Compound(stats)) = held.custom_data.get("tconstruct:stats") else { return };
+        let Some(Nbt::Float(mining)) = stats.get("tconstruct:mining_speed") else { return };
+        if dig.original > 1.0 {
+            dig.speed.set(*mining);
+            if !SAID.swap(true, Ordering::Relaxed) {
+                println!("tconstruct: break speed original={} now={mining} on {}", dig.original, dig.block.block);
+            }
+        }
+    });
 }
