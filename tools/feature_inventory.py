@@ -2,7 +2,7 @@
 r"""The feature inventory of a domain: every class of the original Java package and where its port stands.
 
 A phase of the roadmap is complete only when every class in `docs/inventory/<domain>.json` is `ported` (checked in game), `not-code`
-or `parked` with a reason. `todo` and `partial` keep the phase incomplete; a class of the original that is not in the file is an error,
+or `parked` with a reason. `todo`, `partial` and `ported-unchecked` (written by Codex, not yet checked in game) keep the phase incomplete; a class of the original that is not in the file is an error,
 so a feature cannot be forgotten by not listing it.
 
 Usage: feature_inventory.py [domain ...]   (default: every file in docs/inventory); --strict exits 1 while a phase is incomplete.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / '.local/tconstruct-source/src/main/java'
-STATUSES = ('ported', 'not-code', 'parked', 'partial', 'todo')
+STATUSES = ('ported', 'ported-unchecked', 'not-code', 'parked', 'partial', 'todo')
 
 
 def report(path):
@@ -24,7 +24,7 @@ def report(path):
     for name, entry in classes.items():
         if entry['status'] not in STATUSES:
             problems.append(f'{name}: unknown status {entry["status"]}')
-        if entry['status'] in ('parked', 'todo', 'partial', 'not-code') and not entry.get('note'):
+        if entry['status'] in ('parked', 'todo', 'partial', 'not-code', 'ported-unchecked') and not entry.get('note'):
             problems.append(f'{name}: a {entry["status"]} class needs a note')
     package = JAVA / data['java']
     if package.exists():
@@ -32,7 +32,7 @@ def report(path):
         problems += [f'{n}: in the original but not in the inventory' for n in sorted(found - set(classes))]
         problems += [f'{n}: in the inventory but not in the original' for n in sorted(set(classes) - found)]
     count = Counter(e['status'] for e in classes.values())
-    open_ = count['todo'] + count['partial']
+    open_ = count['todo'] + count['partial'] + count['ported-unchecked']
     return data['domain'], count, open_, problems
 
 

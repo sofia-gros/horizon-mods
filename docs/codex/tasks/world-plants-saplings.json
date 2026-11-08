@@ -1,0 +1,66 @@
+{
+  "id": "world-plants-saplings",
+  "title": "Slime saplings, fungus and the ender propagule on PlutoLib behaviours",
+  "goal": "Port SlimeSaplingBlock, SlimeFungusBlock, SlimePropaguleBlock and SlimePropaguleLeavesBlock from the original Java onto PlutoLib behaviours (random_tick, bonemeal, can_survive) in tconstruct/mixins/tconstruct/api/src/world.rs (function register_saplings). Growing a tree needs world generation, which PlutoLib does not have yet: keep the growth step as a call to a function `grow_tree(world, pos, kind)` that you leave as a documented stub returning false, and mark the classes partial. Delete only the injections whose whole behaviour you ported.",
+  "read_first": [
+    "AGENTS.md",
+    "docs/codex.md",
+    "pluto-lib/docs/api/block.md",
+    "tconstruct/mixins/tconstruct/api/src/world.rs",
+    "tconstruct/mixins/tconstruct/api/src/gadgets.rs"
+  ],
+  "java": [
+    "slimeknights/tconstruct/world/block/SlimeSaplingBlock.java",
+    "slimeknights/tconstruct/world/block/SlimeFungusBlock.java",
+    "slimeknights/tconstruct/world/block/SlimePropaguleBlock.java",
+    "slimeknights/tconstruct/world/block/SlimePropaguleLeavesBlock.java"
+  ],
+  "replaces_in_manifest": [
+    "source-sapling-random",
+    "source-sapling-survive",
+    "source-sapling-bonemeal-valid",
+    "source-sapling-bonemeal-success",
+    "source-sapling-bonemeal-perform",
+    "source-slime-fungus-survive",
+    "source-slime-fungus-valid",
+    "source-slime-fungus-success",
+    "source-slime-fungus-perform",
+    "source-ender-propagule-random",
+    "source-ender-propagule-survive",
+    "source-ender-propagule-valid",
+    "source-ender-propagule-success",
+    "source-ender-propagule-perform"
+  ],
+  "inventory": {
+    "file": "docs/inventory/world.json",
+    "classes": [
+      "block/SlimeSaplingBlock.java",
+      "block/SlimeFungusBlock.java",
+      "block/SlimePropaguleBlock.java",
+      "block/SlimePropaguleLeavesBlock.java"
+    ]
+  },
+  "allowed_paths": [
+    "tconstruct/mixins/tconstruct/api/src/**",
+    "tconstruct/mixins/tconstruct/horizon-mixin.toml",
+    "tconstruct/mixins/tconstruct/source-*.rs",
+    "docs/inventory/world.json",
+    "tools/injection_limits.json"
+  ],
+  "may_delete": [
+    "tconstruct/mixins/tconstruct/source-*.rs"
+  ],
+  "max_files": 40,
+  "max_changed_lines": 3500,
+  "verify": [
+    "python tools/check_line_endings.py",
+    "python tools/check_injection_ownership.py",
+    "python tools/feature_inventory.py world",
+    "python tools/lint_forbidden_api.py"
+  ],
+  "stop_and_report_if": [
+    "a PlutoLib behaviour API call you need does not exist",
+    "removing an injection would remove the tree growth that nothing else replaces: keep that injection and say so"
+  ],
+  "notes": "The tree growth modules (source-sapling-tree, source-slime-tree-shape, source-ender-tree-*, island modules) stay: world generation is a later task. Same rules for helper files, modules and tools/injection_limits.json as in world-plants-grass."
+}

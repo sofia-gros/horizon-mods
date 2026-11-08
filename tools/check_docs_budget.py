@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED = [
     'README.md', 'README.ja.md', 'AGENTS.md', 'CLAUDE.md',
-    'docs/architecture.md', 'docs/development.md', 'docs/releasing.md', 'docs/roadmap.md', 'docs/migration/pr-classification.md',
+    'docs/architecture.md', 'docs/development.md', 'docs/releasing.md', 'docs/roadmap.md', 'docs/codex.md', 'docs/migration/pr-classification.md',
     'pluto-lib/README.md', 'pluto-lib/docs/design-principles.md', 'pluto-lib/docs/fabric-api-design.md',
     'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md', 'pluto-lib/docs/api/*.md',
     'tconstruct/README.md',
