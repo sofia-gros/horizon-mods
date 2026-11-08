@@ -52,3 +52,39 @@ target = "horizon_client::creative::Creative::rebuild"
 kind = "HEAD"
 helper = "pluto-creative-rebuild.rs"
 bindings = [{ name = "this", ty = "&mut crate::creative::Creative", value = "&mut *self" }]
+
+# Block behaviours (BlockBehaviors): where a mod's block may stand, the state it is placed in and how its neighbours change it. The only
+# places in the game that ask the behaviours; the game side reads states with the game's own answers.
+[[module]]
+id = "pluto-block"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_block"
+source = "pluto-block.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-block-level"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_block_level"
+source = "pluto-block-level.rs"
+
+[[injection]]
+id = "pluto-block-survive"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
+kind = "HEAD"
+helper = "pluto-block-survive.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
+
+[[injection]]
+id = "pluto-block-placement"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
+kind = "HEAD"
+helper = "pluto-block-placement.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
+
+[[injection]]
+id = "pluto-block-update-shape"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
+kind = "HEAD"
+helper = "pluto-block-update-shape.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "neighbour_pos", ty = "BlockPos", value = "neighbour_pos" }, { name = "neighbour", ty = "BlockStateId", value = "neighbour" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]

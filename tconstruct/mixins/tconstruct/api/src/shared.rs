@@ -26,21 +26,32 @@ fn vertical_connect(view: &dyn BlockView, family: &str, pos: [i32; 3], exact: Op
     })
 }
 
+/// The original's `connected`: whether the block at `pos` (next to the platform in `direction`) is one a platform joins.
+fn joins(view: &dyn BlockView, pos: [i32; 3], direction: Direction) -> bool {
+    if !view.is_in_tag(pos, "tconstruct:platform_connections") {
+        return false;
+    }
+    let Some(state) = view.block_state(pos) else { return false };
+    // a block with a side of its own says whether it is joined
+    if let Some(side) = state.property(direction.opposite().name()) {
+        return side == "true";
+    }
+    // fixed to a floor or ceiling, not a wall
+    if state.property("face").is_some_and(|face| face != "wall") {
+        return false;
+    }
+    // any facing it has must be this way
+    state.property("facing").is_none_or(|facing| facing == direction.name())
+}
+
 fn flag(on: bool) -> &'static str {
     if on { "true" } else { "false" }
 }
 
 pub fn register() {
-    let sides = ["false", "true"];
     for (name, family) in platforms() {
         let exact = (family != "copper").then(|| name.clone());
-        let behavior = {
-            let mut b = BlockBehavior::new(Identifier::new("tconstruct", &name).expect("valid id")).sturdy(false);
-            for property in ["down", "up", "north", "south", "west", "east"] {
-                b = b.property(property, &sides);
-            }
-            b
-        };
+        let behavior = BlockBehavior::new(Identifier::new("tconstruct", &name).expect("valid id"));
         let on_place = (family, exact.clone());
         let on_update = (family, exact);
         BlockBehaviors::register(
@@ -49,12 +60,15 @@ pub fn register() {
                     let (family, exact) = &on_place;
                     let above = Direction::Up.relative(c.pos);
                     let below = Direction::Down.relative(c.pos);
-                    Placement::State(
-                        c.state
-                            .clone()
-                            .with("up", flag(vertical_connect(c.view, family, above, exact.as_deref())))
-                            .with("down", flag(vertical_connect(c.view, family, below, exact.as_deref()) || c.view.is_face_sturdy(below, Direction::Up))),
-                    )
+                    let mut state = c
+                        .state
+                        .clone()
+                        .with("up", flag(vertical_connect(c.view, family, above, exact.as_deref())))
+                        .with("down", flag(vertical_connect(c.view, family, below, exact.as_deref()) || c.view.is_face_sturdy(below, Direction::Up)));
+                    for side in [Direction::North, Direction::South, Direction::West, Direction::East] {
+                        state = state.with(side.name(), flag(joins(c.view, side.relative(c.pos), side)));
+                    }
+                    Placement::State(state)
                 })
                 .update_shape(move |c| {
                     let (family, exact) = &on_update;
@@ -66,7 +80,7 @@ pub fn register() {
                             "down",
                             vertical_connect(c.view, family, c.neighbour_pos, exact.as_deref()) || c.view.is_face_sturdy(c.neighbour_pos, Direction::Up),
                         ),
-                        _ => None,
+                        side => connected(&c.state, side.name(), joins(c.view, c.neighbour_pos, side)),
                     }
                 }),
         );

@@ -51,17 +51,8 @@ fn survives(view: &dyn BlockView, facing: Direction, pos: [i32; 3]) -> bool {
 }
 
 pub fn register() {
-    let sides = ["down", "up", "north", "south", "east", "west"];
-    let flags = ["false", "true"];
     BlockBehaviors::register(
         BlockBehavior::new(Identifier::new("tconstruct", PUNJI).expect("valid id"))
-            .property("facing", &sides)
-            .property("north", &flags)
-            .property("east", &flags)
-            .property("northeast", &flags)
-            .property("northwest", &flags)
-            .property("age", &["0"])
-            .sturdy(false)
             .can_survive(|c| facing_of(&c.state).is_some_and(|facing| survives(c.view, facing, c.pos)))
             .state_for_placement(|c| {
                 let wanted = c.face.opposite();

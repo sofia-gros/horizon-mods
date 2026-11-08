@@ -11,27 +11,11 @@ use pluto_lib::{BlockBehavior, BlockBehaviors, Direction, Identifier};
 
 BlockBehaviors::register(
     BlockBehavior::new(Identifier::new("example", "hook").unwrap())
-        .sturdy(false)
         .can_survive(|c| c.view.is_face_sturdy(Direction::Up.relative(c.pos), Direction::Down)),
 );
 ```
 
 `c.view` looks at the blocks around; `Direction::Up.relative(c.pos)` is the block above. The game asks again whenever a neighbour changes, so the hook is removed (and drops its item) as soon as the block above stops being solid.
-
-## Declaring the Properties
-
-A callback reads and writes a block's state as text, such as `example:post[facing=north]`. For PlutoLib to know every state of your block, list each state property with all the values it can take, the template's properties too:
-
-```rust
-use pluto_lib::{BlockBehavior, Identifier};
-
-let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap())
-    .property("facing", &["north", "south", "east", "west"])
-    .property("lit", &["false", "true"]);
-assert_eq!(behavior.properties().len(), 2);
-```
-
-> **Use with Caution.** A state whose property is not declared is unknown to PlutoLib: the callbacks are not called for it and the game's own rule applies. Declare every property the block has.
 
 ## Choosing the State When Placed
 
@@ -41,7 +25,6 @@ assert_eq!(behavior.properties().len(), 2);
 use pluto_lib::{BlockBehavior, Identifier, Placement};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap())
-    .property("facing", &["north", "south", "east", "west"])
     .state_for_placement(|c| {
         if c.in_water {
             return Placement::Refuse;
@@ -59,7 +42,6 @@ assert_eq!(behavior.block().to_string(), "example:post");
 use pluto_lib::{BlockBehavior, Direction, Identifier};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap())
-    .property("joined", &["false", "true"])
     .update_shape(|c| {
         if c.direction != Direction::North {
             return None;
@@ -185,7 +167,7 @@ assert_eq!(Direction::West.relative([5, 64, 5]), [4, 64, 5]);
 
 ### `BlockView`
 
-What a behaviour can see of the blocks around: `block_state(pos) -> Option<BlockState>` is the state with its properties for a block that has a behaviour (None for any other block), `is_air(pos) -> bool` and `is_face_sturdy(pos, face) -> bool` can be asked of every block. The game cannot say how sturdy a face is, so every block counts as sturdy except air, fluids and blocks whose behaviour says `sturdy(false)`.
+What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, and `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction};
@@ -198,6 +180,7 @@ impl BlockView for OneStone {
     }
     fn is_air(&self, pos: [i32; 3]) -> bool { pos != [0, 0, 0] }
     fn is_face_sturdy(&self, pos: [i32; 3], _face: Direction) -> bool { pos == [0, 0, 0] }
+    fn is_in_tag(&self, _pos: [i32; 3], tag: &str) -> bool { tag == "minecraft:base_stone_overworld" }
 }
 
 assert!(OneStone.is_face_sturdy([0, 0, 0], Direction::Up));
@@ -206,7 +189,7 @@ assert!(OneStone.is_air([1, 0, 0]));
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass).
+A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -322,7 +305,7 @@ What one block of the mod does. Build it with the methods below, then give it to
 use pluto_lib::{BlockBehavior, Identifier};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap());
-assert!(behavior.properties().is_empty());
+assert_eq!(behavior.block().path(), "post");
 ```
 
 ### `BlockBehavior::new`
@@ -334,39 +317,6 @@ use pluto_lib::{BlockBehavior, Identifier};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap());
 assert_eq!(behavior.block().to_string(), "example:post");
-```
-
-### `BlockBehavior::property`
-
-`fn property(self, name: &str, values: &[&str]) -> BlockBehavior`. Tells PlutoLib one state property the block has and every value it can take. List every property of the block, the template's too.
-
-```rust
-use pluto_lib::{BlockBehavior, Identifier};
-
-let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap()).property("lit", &["false", "true"]);
-assert_eq!(behavior.properties()[0].0, "lit");
-assert_eq!(behavior.properties()[0].1, ["false", "true"]);
-```
-
-### `BlockBehavior::sturdy`
-
-`fn sturdy(self, sturdy: bool) -> BlockBehavior`. Whether other blocks can be fixed to this block's faces; true unless said otherwise. Say `false` for a small or hollow block (a punji, a plant), because the game cannot tell a behaviour how sturdy a block is.
-
-```rust
-use pluto_lib::{BlockBehavior, Identifier};
-
-let plant = BlockBehavior::new(Identifier::new("example", "fern").unwrap()).sturdy(false);
-assert!(!plant.is_sturdy());
-```
-
-### `BlockBehavior::is_sturdy`
-
-`fn is_sturdy(&self) -> bool`. Whether other blocks can be fixed to this block (see `sturdy`).
-
-```rust
-use pluto_lib::{BlockBehavior, Identifier};
-
-assert!(BlockBehavior::new(Identifier::new("example", "slab").unwrap()).is_sturdy());
 ```
 
 ### `BlockBehavior::can_survive`
@@ -403,14 +353,13 @@ assert!(behavior.block().path() == "post");
 use pluto_lib::{BlockBehavior, Identifier};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap())
-    .property("powered", &["false", "true"])
     .update_shape(|c| (c.state.property("powered") == Some("true")).then(|| c.state.clone().with("powered", "false")));
 assert!(behavior.block().path() == "post");
 ```
 
 ### `BlockBehavior::entity_inside`
 
-`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. Heard on the server.
+`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. Stub: the callbacks are accepted and not called yet (see the support matrix).
 
 ```rust
 use pluto_lib::{BlockBehavior, Identifier};
@@ -429,17 +378,6 @@ use pluto_lib::{BlockBehavior, Identifier};
 
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap());
 assert_eq!(behavior.block().namespace(), "example");
-```
-
-### `BlockBehavior::properties`
-
-`fn properties(&self) -> &[(String, Vec<String>)]`. The declared properties with their values, in the order they were declared.
-
-```rust
-use pluto_lib::{BlockBehavior, Identifier};
-
-let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap()).property("lit", &["false", "true"]);
-assert_eq!(behavior.properties().len(), 1);
 ```
 
 ### `BlockBehaviors`
@@ -461,9 +399,9 @@ assert!(BlockBehaviors::get("example:registry_page").is_some());
 use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier};
 
 let id = Identifier::new("example", "twice").unwrap();
-BlockBehaviors::register(BlockBehavior::new(id.clone()).property("a", &["x"]));
-BlockBehaviors::register(BlockBehavior::new(id).property("b", &["y"]));
-assert_eq!(BlockBehaviors::get("example:twice").unwrap().properties()[0].0, "b");
+BlockBehaviors::register(BlockBehavior::new(id.clone()).can_survive(|_| false));
+BlockBehaviors::register(BlockBehavior::new(id).can_survive(|_| true));
+assert_eq!(BlockBehaviors::registered().iter().filter(|b| b.block().to_string() == "example:twice").count(), 1);
 ```
 
 ### `BlockBehaviors::get`
