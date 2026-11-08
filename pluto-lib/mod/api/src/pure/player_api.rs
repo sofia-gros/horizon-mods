@@ -34,6 +34,28 @@ pub trait PlayerOps {
     fn effects(&mut self, player: u128) -> Option<Vec<EffectInstance>>;
     /// The player's food level (0 to 20), saturation and exhaustion; None if the player is not known.
     fn food(&mut self, player: u128) -> Option<FoodStatus>;
+    /// The stack in main inventory `slot` (0 to 35, the hotbar first), with its custom data; None for an empty or unknown slot.
+    fn stack(&mut self, _player: u128, _slot: i32) -> Option<StackData> {
+        None
+    }
+    /// Replaces count, damage and custom data of the stack in `slot` if it still holds `expected_item`; true if it did.
+    fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
+        false
+    }
+}
+
+/// An item stack as a mod sees it: what it is, how many, how worn, and the data a mod keeps on it (Minecraft: `ItemStack` with the
+/// `minecraft:custom_data` component).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StackData {
+    /// The item id, such as `tconstruct:pickaxe`.
+    pub item: String,
+    /// How many.
+    pub count: u32,
+    /// Damage taken, 0 for a new item.
+    pub damage: u32,
+    /// The custom data compound, empty for none.
+    pub custom_data: crate::pure::base::NbtCompound,
 }
 
 thread_local! {
@@ -176,6 +198,17 @@ impl ServerPlayer {
         false
     }
 
+    /// The stack in main inventory slot `slot` (0 to 35, the hotbar first) with its custom data; None for an empty slot, or outside a callback.
+    pub fn stack(&self, slot: i32) -> Option<StackData> {
+        with_current(None, |ops| ops.stack(self.uuid, slot))
+    }
+
+    /// Writes back count, damage and custom data of the stack in `slot`, if it still holds the item `new.item`. True if it was written;
+    /// false outside a callback, for an empty slot, or when the slot holds another item.
+    pub fn update_stack(&self, slot: i32, new: &StackData) -> bool {
+        with_current(false, |ops| ops.update_stack(self.uuid, slot, &new.item, new))
+    }
+
     /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
@@ -200,6 +233,8 @@ pub struct MemoryPlayerOps {
     pub effects: std::collections::BTreeMap<(u128, String), EffectInstance>,
     /// The food status every player has; None means a full, saturated player.
     pub food: Option<FoodStatus>,
+    /// The main inventory slots of every player, by player; a missing player has none.
+    pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
 }
 
 impl PlayerOps for MemoryPlayerOps {
@@ -248,6 +283,54 @@ impl PlayerOps for MemoryPlayerOps {
     }
     fn food(&mut self, _player: u128) -> Option<FoodStatus> {
         Some(self.food.unwrap_or(FoodStatus { level: 20, saturation: 5.0, exhaustion: 0.0 }))
+    }
+    fn stack(&mut self, player: u128, slot: i32) -> Option<StackData> {
+        self.stacks.get(&player)?.get(usize::try_from(slot).ok()?)?.clone().filter(|s| s.count > 0)
+    }
+    fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &StackData) -> bool {
+        let Some(held) = usize::try_from(slot).ok().and_then(|i| self.stacks.get_mut(&player)?.get_mut(i)) else { return false };
+        match held {
+            Some(current) if current.item == expected_item && new.item == expected_item => {
+                *held = if new.count == 0 { None } else { Some(new.clone()) };
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod stack_tests {
+    use super::*;
+    use crate::pure::base::Nbt;
+
+    fn pickaxe(damage: u32) -> StackData {
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, custom_data: [("stats".to_owned(), Nbt::Int(60))].into() }
+    }
+
+    #[test]
+    fn a_stack_can_be_read_and_written_back_with_its_data() {
+        let mut ops = MemoryPlayerOps::default();
+        ops.stacks.insert(1, vec![None, Some(pickaxe(0))]);
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        with_ops(&mut ops, || {
+            assert_eq!(player.stack(0), None);
+            let mut stack = player.stack(1).unwrap();
+            assert_eq!(stack.custom_data["stats"], Nbt::Int(60));
+            stack.damage = 7;
+            stack.custom_data.insert("stats".into(), Nbt::Int(61));
+            assert!(player.update_stack(1, &stack));
+            assert_eq!(player.stack(1).unwrap().damage, 7);
+            // another item in the slot is left alone
+            let other = StackData { item: "minecraft:stick".into(), ..stack.clone() };
+            assert!(!player.update_stack(1, &other));
+            assert!(!player.update_stack(5, &stack), "no such slot");
+            // a count of 0 empties the slot
+            let empty = StackData { count: 0, ..stack };
+            assert!(player.update_stack(1, &empty));
+            assert_eq!(player.stack(1), None);
+        });
+        assert_eq!(player.stack(1), None, "outside a callback there is nothing");
     }
 }
 

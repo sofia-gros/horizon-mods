@@ -320,9 +320,56 @@ with_ops(&mut game, || {
 
 ## For hosts and tests
 
+### `StackData`
+
+An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item) and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component; in Horizon PlutoLib registers its own component type, `pluto_lib:custom_data`, for it, which the stack keeps when saved and sent). A tool mod keeps its materials and stats here.
+
+```rust
+use pluto_lib::{Nbt, StackData};
+
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, custom_data: [("durability".to_owned(), Nbt::Int(60))].into() };
+assert_eq!(tool.custom_data["durability"], Nbt::Int(60));
+assert_eq!((tool.count, tool.damage), (1, 0));
+```
+
+### `ServerPlayer::stack`
+
+`fn stack(&self, slot: i32) -> Option<StackData>`. The stack in main inventory slot `slot` (0 to 35, the hotbar first) with its custom data; None for an empty slot, and outside a callback that carries the player.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, custom_data: [("level".to_owned(), Nbt::Int(2))].into() };
+game.stacks.insert(1, vec![Some(tool)]);
+with_ops(&mut game, || {
+    assert_eq!(player.stack(0).unwrap().custom_data["level"], Nbt::Int(2));
+    assert!(player.stack(1).is_none());
+});
+```
+
+### `ServerPlayer::update_stack`
+
+`fn update_stack(&self, slot: i32, new: &StackData) -> bool`. Writes count, damage and custom data of the stack in `slot` back, if it still holds the item `new.item`. A count of 0 empties the slot. True if it was written; false for an empty slot, another item, a slot that does not exist, or outside a callback.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+game.stacks.insert(1, vec![Some(StackData { item: "example:pickaxe".into(), count: 1, damage: 0, ..Default::default() })]);
+with_ops(&mut game, || {
+    let mut tool = player.stack(0).unwrap();
+    tool.damage += 1; // one use
+    assert!(player.update_stack(0, &tool));
+    assert_eq!(player.stack(0).unwrap().damage, 1);
+});
+```
+
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`.
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>` and `update_stack(player, slot, expected_item, &StackData) -> bool`.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};
@@ -369,7 +416,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 ### `MemoryPlayerOps`
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)` and `food` the hunger every player has (None means full).
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
