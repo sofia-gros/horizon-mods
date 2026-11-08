@@ -8,7 +8,7 @@ pub use crate::pure::base::{
     default_phase,
 };
 pub use crate::pure::block_api_v1::{
-    self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
+    self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PickContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
     SurviveContext,
 };
 pub use crate::pure::block_entity_api_v1::{self, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
@@ -19,7 +19,7 @@ pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::entity_events_v1::{self, EntityInfo, LivingDamage, ServerEntityEvents, ServerLivingEntityEvents};
 pub use crate::pure::events_interaction_v0::{
-    self, AttackEntityCallback, AttackEntityContext, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
+    self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
     UseItemCallback, UseItemContext, UseItemOnBlockCallback, UseItemOnBlockContext,
 };
 pub use crate::pure::lifecycle_events_v1::{

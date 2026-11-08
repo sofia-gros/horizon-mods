@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 
 use super::base::Identifier;
 use super::block_entity_api_v1::BlockPos;
+use super::item_group_api_v1::ItemStack;
 use super::world_api_v1::BlockState;
 
 /// One of the six block faces (Minecraft: `Direction`).
@@ -417,6 +418,15 @@ type SurviveFn = Arc<dyn Fn(&SurviveContext<'_>) -> bool + Send + Sync>;
 type PlacementFn = Arc<dyn Fn(&PlacementContext<'_>) -> Placement + Send + Sync>;
 type ShapeFn = Arc<dyn Fn(&ShapeUpdateContext<'_>) -> Option<BlockState> + Send + Sync>;
 type InsideFn = Arc<dyn Fn(&EntityInsideContext) + Send + Sync>;
+/// A player picks the block (middle click in creative; Minecraft: `getCloneItemStack`).
+pub struct PickContext {
+    /// The block's state.
+    pub state: BlockState,
+    /// The position.
+    pub pos: BlockPos,
+}
+
+type PickFn = Arc<dyn Fn(&PickContext) -> Option<ItemStack> + Send + Sync>;
 type TickFn = Arc<dyn Fn(&mut TickContext<'_>) + Send + Sync>;
 type BonemealCheckFn = Arc<dyn Fn(&BonemealContext<'_>) -> bool + Send + Sync>;
 type BonemealSuccessFn = Arc<dyn Fn(&mut TickContext<'_>) -> bool + Send + Sync>;
@@ -436,12 +446,13 @@ pub struct BlockBehavior {
     bonemeal_success: Option<BonemealSuccessFn>,
     on_bonemeal: Option<TickFn>,
     may_place_on: Option<PlaceOnFn>,
+    pick_stack: Option<PickFn>,
 }
 
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None }
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -507,6 +518,13 @@ impl BlockBehavior {
     /// plant that asks, such as a crop or a sapling.
     pub fn may_place_on(mut self, f: impl Fn(&PlaceOnContext<'_>) -> bool + Send + Sync + 'static) -> Self {
         self.may_place_on = Some(Arc::new(f));
+        self
+    }
+
+    /// The stack a player gets when picking the block (middle click in creative; Minecraft: `getCloneItemStack`, Fabric: `Block.getPickStack`):
+    /// answer `Some(stack)`, with data components if you like, or `None` for the game's own choice.
+    pub fn pick_stack(mut self, f: impl Fn(&PickContext) -> Option<ItemStack> + Send + Sync + 'static) -> Self {
+        self.pick_stack = Some(Arc::new(f));
         self
     }
 
@@ -590,6 +608,10 @@ pub(crate) fn on_bonemeal(block: &str, context: &mut TickContext<'_>) {
 
 pub(crate) fn may_place_on(block: &str, context: &PlaceOnContext<'_>) -> Option<bool> {
     BlockBehaviors::get(block)?.may_place_on.map(|f| f(context))
+}
+
+pub(crate) fn pick(block: &str, context: &PickContext) -> Option<ItemStack> {
+    BlockBehaviors::get(block)?.pick_stack.and_then(|f| f(context))
 }
 
 pub(crate) fn inside(block: &str, context: &EntityInsideContext) {

@@ -39,8 +39,8 @@
       "note": "not yet compared with the port"
     },
     "block/PlatformBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "shapes (the 64 combinations as content), connection above and below and sideways to the platform_connections blocks are done and the vertical part checked in game (shared.rs); waterlogging is not"
     },
     "block/SlimesteelBlock.java": {
       "status": "todo",
@@ -63,12 +63,12 @@
       "note": "not yet compared with the port"
     },
     "block/WaxedPlatformBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "a waxed platform exists and does not weather; taking the wax off with an axe is not done"
     },
     "block/WeatheringPlatformBlock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "weathering by random tick (vanilla's rule over the copper within four blocks) and waxing with honeycomb are done and checked in game with a real click; scraping with an axe is not (it needs item damage and a tool-modification hook)"
     },
     "client/ClientGeneratePartTexturesCommand.java": {
       "status": "todo",

@@ -8,7 +8,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
-    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, UseItemEvent, UseItemOnEvent,
+    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -839,6 +839,20 @@ impl Hooks for PlutoHooks {
         cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
     }
 
+    fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
+        let Some(level) = host.level(host.dimension()) else { return };
+        let Some(block) = host.level_block_state(level, event.pos).and_then(|text| BlockState::parse(&text).ok()) else { return };
+        event.speed = events_interaction_v0::break_speed(event.pos, block, event.original, event.speed);
+    }
+
+    fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {
+        let level = host.level(host.dimension())?;
+        let state = BlockState::parse(&host.level_block_state(level, event.pos)?).ok()?;
+        let picked = block_api_v1::pick(event.block, &block_api_v1::PickContext { state, pos: event.pos })?;
+        // data components of the picked stack are not carried over yet
+        Some(ItemStack::new(&picked.item.to_string(), picked.count))
+    }
+
     fn right_click_block(&self, _host: &mut dyn Host, event: &mut RightClickBlockEvent) -> Flow {
         cancel_if(events_interaction_v0::use_block(event.pos, event.face))
     }
@@ -864,6 +878,19 @@ impl Hooks for PlutoHooks {
 
     fn client_resources_reloaded(&self, _host: &mut dyn Host, _event: &mut ClientResourcesReloadedEvent) {
         resource_loader_v0::client_resources_reloaded();
+    }
+
+    fn living_death(&self, host: &mut dyn Host, event: &mut LivingDeathEvent<'_>) -> Flow {
+        let death = LivingDamage {
+            entity: event.entity as i32,
+            kind: event.kind.to_owned(),
+            damage_type: event.damage_type.to_owned(),
+            attacker: if event.attacker == 0 { -1 } else { event.attacker as i32 },
+            direct: -1,
+            amount: 0.0,
+        };
+        scoped(host, || entity_events_v1::after_death(&death));
+        Flow::Continue
     }
 
     fn living_incoming_damage(&self, event: &mut LivingIncomingDamageEvent<'_>) -> Flow {

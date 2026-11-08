@@ -155,6 +155,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE chime played={chime}");
             let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE sapling grew={tree:?}");
+            let waxed = pluto_lib::World::new("minecraft:overworld").get_block_state([30, 79, 29]).map(|s| s.block.to_string());
+            let weathered = pluto_lib::World::new("minecraft:overworld").get_block_state([27, 79, 29]).is_some_and(|s| s.block.path() != "copper_platform");
+            println!("PLUTO-PROBE copper waxed={waxed:?} weathered={weathered}");
             let mut drunk: Vec<String> = ctx.source.effects().into_iter().map(|e| e.id).filter(|id| id != "minecraft:speed").collect();
             drunk.sort();
             println!("PLUTO-PROBE bottle effects={drunk:?}");
@@ -181,6 +184,17 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE real seeds_grass={seeds_grass} bonemeal_plants={plants} sapling_tree={tree} fungus={fungus}");
             1
         });
+    });
+    // picking a block and digging one in survival reach the callbacks
+    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "earth_slime_dirt").unwrap()).pick_stack(|pick| {
+        println!("PLUTO-PROBE pick called block={}", pick.state.block);
+        Some(ItemStack::new(Identifier::new("minecraft", "bone_meal").unwrap(), 1))
+    }));
+    pluto_lib::BreakSpeedCallback::EVENT.register(|dig| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE break_speed block={} original={}", dig.block.block, dig.original);
+        }
     });
     // a random tick on a block the game ticks at random: the callback may write blocks and roll the level's dice
     pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "enderbark_roots").unwrap()).random_tick(|c| {

@@ -26,7 +26,7 @@ ServerLivingEntityEvents::ALLOW_DAMAGE.register(|damage: &LivingDamage| damage.d
 
 `attacker` and `direct` are entity ids, negative when there is none: a skeleton's arrow has the skeleton as `attacker` and the arrow as `direct`.
 
-> **Use with Caution.** `AFTER_DEATH` is accepted but not called yet: Horizon's death hook points are not mapped (see the support matrix). Register for it anyway; it starts working without a change in your mod.
+> **Tip.** `AFTER_DEATH` is called when a living entity's death goes ahead, just before it is removed (Horizon's death hook can still cancel it for other mods). `attacker` is the killer's id, negative when there is none; `direct` is always negative and `amount` 0 here. Players are not reported yet.
 
 ## Reference
 
@@ -123,7 +123,7 @@ assert!(ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&hit));
 
 ### `ServerLivingEntityEvents::AFTER_DEATH`
 
-Stub: an entity died. Accepted, not invoked yet (support matrix).
+An entity died: called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;

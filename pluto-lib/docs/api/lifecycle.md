@@ -47,7 +47,7 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk| {
 });
 ```
 
-> **Use with Caution.** `SERVER_STARTED` and `SERVER_STOPPED` are accepted but not called yet (support matrix).
+> **Use with Caution.** `SERVER_STARTED` is called at the first server tick after the server started, because Horizon has no earlier point. `SERVER_STOPPED` is accepted but not called yet (support matrix).
 
 ## Reference
 
@@ -100,7 +100,7 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk: &ServerChunk| {
 
 ### `ServerLifecycleEvents`
 
-The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` work. `SERVER_STARTED` and `SERVER_STOPPED` are accepted but never invoked yet (see the support matrix: Horizon has no matching hook point).
+The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` work. `SERVER_STARTED` is invoked at the first server tick after the server started; `SERVER_STOPPED` is accepted but never invoked yet (see the support matrix: Horizon has no matching hook point).
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -122,12 +122,12 @@ ServerLifecycleEvents::SERVER_STARTING.invoke(&ServerInfo { dedicated: false });
 
 ### `ServerLifecycleEvents::SERVER_STARTED`
 
-Stub: the server has finished starting. Callbacks are accepted and not invoked yet.
+The server has finished starting: called at the first server tick after it started.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
 
-ServerLifecycleEvents::SERVER_STARTED.register(|_| {}); // accepted; runs once Horizon reports it
+ServerLifecycleEvents::SERVER_STARTED.register(|server| println!("started, dedicated={}", server.dedicated));
 ```
 
 ### `ServerLifecycleEvents::SERVER_STOPPING`

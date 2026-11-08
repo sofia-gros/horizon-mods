@@ -3,8 +3,11 @@
 //! Callback data is reduced and owned (Fabric passes player, world, hand and hit result). Results follow Fabric: the first
 //! callback that does not return `ActionResult::Pass` decides; any other result stops the game's own handling.
 
+use std::cell::Cell;
+
 use super::base::{ActionResult, Event};
 use super::player_api::ServerPlayer;
+use super::world_api_v1::BlockState;
 
 /// A player used an item.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,6 +44,19 @@ pub struct UseItemOnBlockContext {
     pub creative: bool,
 }
 
+/// How fast the player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).
+#[derive(Debug)]
+pub struct BreakSpeedContext {
+    /// The block being dug.
+    pub pos: [i32; 3],
+    /// Its state.
+    pub block: BlockState,
+    /// The speed as vanilla works it out (the tool, efficiency, haste and fatigue, the water); it does not change.
+    pub original: f32,
+    /// The speed now, which callbacks may change with `set`; every callback is called in turn, each seeing the last one's.
+    pub speed: Cell<f32>,
+}
+
 /// A player attacked an entity.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttackEntityContext {
@@ -58,6 +74,7 @@ pub struct BlockBreakContext {
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
 static USE_BLOCK: Event<UseBlockContext, ActionResult> = Event::first_not_pass();
 static USE_ITEM_ON_BLOCK: Event<UseItemOnBlockContext, ActionResult> = Event::first_not_pass();
+static BREAK_SPEED: Event<BreakSpeedContext, ()> = Event::void();
 static ATTACK_ENTITY: Event<AttackEntityContext, ActionResult> = Event::first_not_pass();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
@@ -83,6 +100,13 @@ pub struct UseItemOnBlockCallback;
 
 impl UseItemOnBlockCallback {
     pub const EVENT: &'static Event<UseItemOnBlockContext, ActionResult> = &USE_ITEM_ON_BLOCK;
+}
+
+/// How fast a player digs a block (NeoForge: `PlayerEvent.BreakSpeed`). Not asked in creative mode or for an unbreakable block.
+pub struct BreakSpeedCallback;
+
+impl BreakSpeedCallback {
+    pub const EVENT: &'static Event<BreakSpeedContext, ()> = &BREAK_SPEED;
 }
 
 /// Fabric: `AttackEntityCallback.EVENT`.
@@ -119,6 +143,13 @@ pub(crate) fn use_block(pos: [i32; 3], face: [i32; 3]) -> bool {
 
 pub(crate) fn use_item_on_block(context: &UseItemOnBlockContext) -> bool {
     handled(USE_ITEM_ON_BLOCK.invoke(context))
+}
+
+/// The dig speed after every callback has had its say.
+pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32) -> f32 {
+    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed) };
+    BREAK_SPEED.invoke(&context);
+    context.speed.get()
 }
 
 pub(crate) fn attack_entity(entity: i32, kind: &str, pos: [f64; 3]) -> bool {

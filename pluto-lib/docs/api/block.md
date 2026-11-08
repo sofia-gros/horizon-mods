@@ -594,6 +594,30 @@ let behavior = BlockBehavior::new(Identifier::new("example", "fern").unwrap()).m
 assert_eq!(behavior.block().path(), "fern");
 ```
 
+### `PickContext`
+
+A player picks the block. `state` is the block's state and `pos` its position.
+
+```rust
+use pluto_lib::{BlockState, PickContext};
+
+let pick = PickContext { state: BlockState::parse("example:post[lit=true]").unwrap(), pos: [0, 64, 0] };
+assert_eq!(pick.pos, [0, 64, 0]);
+assert_eq!(pick.state.property("lit"), Some("true"));
+```
+
+### `BlockBehavior::pick_stack`
+
+`fn pick_stack(self, f: impl Fn(&PickContext) -> Option<ItemStack> + Send + Sync + 'static) -> BlockBehavior`. The stack a player gets when picking the block (middle click in creative; Fabric: `Block.getPickStack`). Answer `Some(stack)`, with data components if you like, or `None` for the game's own choice.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier, ItemStack};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "lamp").unwrap())
+    .pick_stack(|pick| (pick.state.property("lit") == Some("true")).then(|| ItemStack::new(Identifier::new("example", "lit_lamp").unwrap(), 1)));
+assert_eq!(behavior.block().path(), "lamp");
+```
+
 ### `BlockBehavior::block`
 
 `fn block(&self) -> &Identifier`. The block this behaviour belongs to.
