@@ -5,35 +5,11 @@ use std::collections::{BTreeMap, HashMap};
 use serde_json::Value;
 
 use super::ids::{MaterialId, MaterialStatsId};
+use crate::modifiers::ModifierEntry;
 use crate::resource::ResourceId;
 
 /// `MaterialTraitsManager.FOLDER`.
 pub const FOLDER: &str = "tinkering/materials/traits";
-
-/// `ModifierEntry`: a modifier and its level. (The modifier registry arrives with the modifiers; the id is kept as it was written.)
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ModifierEntry {
-    pub modifier: ResourceId,
-    pub level: i32,
-}
-
-impl ModifierEntry {
-    /// The data writes `{"name": "tconstruct:unburdened", "level": 1}`; a bare string is level 1.
-    pub fn from_json(value: &Value) -> Result<Self, String> {
-        match value {
-            Value::String(name) => Ok(Self { modifier: ResourceId::try_parse(name).ok_or_else(|| format!("bad modifier id '{name}'"))?, level: 1 }),
-            Value::Object(object) => {
-                let name = object.get("name").or_else(|| object.get("id")).and_then(Value::as_str).ok_or("a modifier entry needs a 'name'")?;
-                let level = object.get("level").and_then(Value::as_i64).unwrap_or(1) as i32;
-                if level < 1 {
-                    return Err(format!("modifier level of {name} must be at least 1"));
-                }
-                Ok(Self { modifier: ResourceId::try_parse(name).ok_or_else(|| format!("bad modifier id '{name}'"))?, level })
-            }
-            _ => Err("a modifier entry must be an object".to_owned()),
-        }
-    }
-}
 
 fn entries(value: &Value) -> Result<Vec<ModifierEntry>, String> {
     value.as_array().ok_or("traits must be a list")?.iter().map(ModifierEntry::from_json).collect()

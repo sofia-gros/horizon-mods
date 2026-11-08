@@ -1659,8 +1659,8 @@
       "note": "not yet compared with the port"
     },
     "modifiers/impl/ComposableModifier.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/modifiers/mod.rs: the loader (level_display, tooltip_display, priority with the first module's preference, modules, translation_key); modules are carried one type at a time, the rest are kept as raw data"
     },
     "modifiers/impl/DurabilityShieldModifier.java": {
       "status": "todo",
@@ -1679,24 +1679,24 @@
       "note": "not yet compared with the port"
     },
     "modifiers/Modifier.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/modifiers/mod.rs: the modifier as data (id, level display, tooltip display, priority, modules, translation key, in-code flag); the hook dispatch (getHook and the ModifierHooks table) is not done"
     },
     "modifiers/ModifierEntry.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/modifiers/mod.rs: id and level, both JSON shapes, EMPTY; the lazy binding to the registry, the optional entry and the display name are not done"
     },
     "modifiers/ModifierHooks.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "modifiers/ModifierId.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "tconstruct/library/src/modifiers/mod.rs: ModifierId"
     },
     "modifiers/ModifierManager.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/modifiers/mod.rs: definitions with redirects, conditions and modules, tags, the enchantment mapping, static modifiers by id; all 308 of the original's modifier files, their tags and the enchantment map load without problems. Not done: the client sync packet, the registration event, per-enchantment lookups by item"
     },
     "modifiers/modules/armor/AdjustDamageModule.java": {
       "status": "todo",
@@ -1987,8 +1987,8 @@
       "note": "not yet compared with the port"
     },
     "modifiers/modules/ModifierModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tconstruct/library/src/modifiers/mod.rs: the trait and the registry of the 165 module types the original registers (each raw data until ported)"
     },
     "modifiers/modules/technical/ArmorLevelModule.java": {
       "status": "todo",

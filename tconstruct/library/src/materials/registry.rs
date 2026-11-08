@@ -7,7 +7,8 @@ use super::ids::{MaterialId, MaterialStatsId, MaterialVariantId};
 use super::manager::MaterialManager;
 use super::material::Material;
 use super::stats::{MaterialStatType, MaterialStats, MaterialStatsManager};
-use super::traits::{MaterialTraitsManager, ModifierEntry};
+use super::traits::MaterialTraitsManager;
+use crate::modifiers::ModifierEntry;
 use crate::resource::ResourceId;
 
 /// The materials, their stats and their traits.

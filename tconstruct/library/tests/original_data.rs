@@ -76,3 +76,18 @@ fn the_originals_stats_load_with_every_registered_type() {
     let head = tconstruct_library::materials::MaterialStatsId::try_parse("tconstruct:head").unwrap();
     assert!(registry.material_stats(&flint, &head).is_some());
 }
+
+#[test]
+fn the_originals_modifiers_load_without_problems() {
+    use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
+    let Some(root) = data_root() else { return };
+    let files = read_all(&root.join("modifiers"));
+    let tags = read_all(&root.join("tags/modifiers"));
+    assert!(files.len() > 300, "{} modifier files", files.len());
+    let enchantments = fs::read(root.join("enchantments_to_modifiers.json")).map(|b| serde_json::from_slice::<Value>(&b).unwrap()).into_iter().collect::<Vec<_>>();
+    let (manager, problems) = ModifierManager::load(&files, &tags, &enchantments, &ModuleRegistry::with_original_types(), &EmptyContext);
+    assert!(problems.is_empty(), "{:?}", &problems[..problems.len().min(8)]);
+    assert!(manager.ids().len() > 280, "{} modifiers", manager.ids().len());
+    // nothing is carried yet: every module of every modifier is still raw data
+    assert!(manager.uncarried_modules() > 400, "{} modules", manager.uncarried_modules());
+}
