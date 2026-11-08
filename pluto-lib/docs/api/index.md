@@ -46,6 +46,7 @@ pub fn hooks() -> ModHooks {
 | [resources](resources.md) | resource reload listeners |
 | [items](items.md) | tooltips, using items over time |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |
+| [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
 | [player](player.md) | messages and items for a player, and testing with `MemoryPlayerOps` |
 | [attachments](attachments.md) | values saved with a player |

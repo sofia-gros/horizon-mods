@@ -1,16 +1,26 @@
 //! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
 use horizon_client::mod_api::Hooks;
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, FluidStack, Nbt, NbtCompoundExt, AttachmentRegistry, ItemGroup, ItemGroupRegistry, ItemStack, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    BlockEntityType, BlockEntityTypeRegistry, FluidStack, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, Nbt, NbtCompoundExt, AttachmentRegistry, ItemGroup, ItemGroupRegistry, ItemStack, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
     ServerTickEvents,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    ScreenHandlerRegistry::register(
+        ScreenHandlerType::new(Identifier::new("tconstruct", "seared_melter").unwrap(), ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).slot(56.0, 53.0).slot(116.0, 35.0))
+            .on_draw(|d| {
+                static ONCE: AtomicBool = AtomicBool::new(false);
+                if !ONCE.swap(true, Ordering::Relaxed) {
+                    println!("PLUTO-PROBE screen_draw origin_set={}", d.origin[0] >= 0.0);
+                }
+            }),
+    );
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(Identifier::new("tconstruct", "seared_stone").unwrap())
+        BlockEntityType::new(Identifier::new("tconstruct", "seared_melter").unwrap())
             .with_id(Identifier::new("pluto_probe", "stone_entity").unwrap())
-            .item_slots(2)
+            .item_slots(3)
+            .menu("minecraft:furnace")
             .fluid_tanks([2000])
             .ticker(|tick| {
                 let ticks = tick.data.get_int("ticks", 0) + 1;
