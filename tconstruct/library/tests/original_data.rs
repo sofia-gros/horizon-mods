@@ -91,3 +91,31 @@ fn the_originals_modifiers_load_without_problems() {
     // nothing is carried yet: every module of every modifier is still raw data
     assert!(manager.uncarried_modules() > 400, "{} modules", manager.uncarried_modules());
 }
+
+#[test]
+fn the_originals_tool_definitions_load_without_problems() {
+    use tconstruct_library::tools::definition::{ToolDefinitionData, ToolModuleRegistry};
+    use tconstruct_library::tools::stat::{HarvestTiers, ModifierStatsBuilder, StatValue, ToolStatId, ToolStats};
+    let Some(root) = data_root() else { return };
+    let files = read_all(&root.join("tool_definitions"));
+    assert!(files.len() >= 45, "{} tool definitions", files.len());
+    let registry = ToolModuleRegistry::with_original_types();
+    let stats = ToolStats::tinkers(HarvestTiers::vanilla());
+    let mut uncarried = 0;
+    for (id, json) in &files {
+        let data = ToolDefinitionData::from_json(json, &registry, &stats).unwrap_or_else(|e| panic!("{id}: {e}"));
+        uncarried += data.uncarried_modules();
+    }
+    assert!(uncarried > 100, "{uncarried} modules are still raw data");
+    // the pickaxe: attack damage 0.5 and speed 1.2 set outright, 1 ability and 3 upgrade slots, the pierce trait, three parts
+    let pickaxe = files.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
+    let data = ToolDefinitionData::from_json(&pickaxe.1, &registry, &stats).unwrap();
+    let mut builder = ModifierStatsBuilder::new(&stats);
+    data.add_tool_stats(&mut builder);
+    assert_eq!(builder.get(&ToolStatId::tconstruct("attack_damage")), StatValue::Float(0.5));
+    assert_eq!(builder.get(&ToolStatId::tconstruct("attack_speed")), StatValue::Float(1.2));
+    assert_eq!((data.slots()["upgrades"], data.slots()["abilities"]), (3, 1));
+    assert_eq!(data.traits()[0].modifier.to_string(), "tconstruct:pierce");
+    assert_eq!(data.parts().len(), 3);
+    assert!(data.can_perform("pickaxe_dig"));
+}
