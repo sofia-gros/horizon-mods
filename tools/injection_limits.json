@@ -1,0 +1,6 @@
+{
+  "tconstruct": {
+    "max": 284,
+    "known_overlaps": ["source-slurping-finish", "source-tasty-finish"]
+  }
+}

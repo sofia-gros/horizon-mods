@@ -19,6 +19,7 @@ Quick, no game, no network:
 ```sh
 python tools/check_line_endings.py
 python tools/check_docs_budget.py                       # markdown files must be on the allow list
+python tools/check_injection_ownership.py              # mods on PlutoLib add no injections and take none of PlutoLib's places
 python tools/check_api_docs.py                          # every public PlutoLib item has a section and an example in pluto-lib/docs/api
 python tools/lint_forbidden_api.py
 python -m unittest discover -s tests
