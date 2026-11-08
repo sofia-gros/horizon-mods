@@ -92,6 +92,8 @@ Every direct injection still in Tinkers marks a thing PlutoLib cannot do yet. Gr
 | Worldgen (islands and the ender tree) | 2 | a world generation API in PlutoLib: custom feature types and structure starts | D |
 | Everything else (single cases: wear, tank drops, comparators, amplifying hooks) | 85 | looked at when the phase using it starts | G, H, I |
 
+**Menus first.** The biggest group (81) is the stations' menus, and Horizon already has most of what they do by hand: content menu types with slot rules (`native_menu_slot_rules`: may place, maximum stack), shift-click routing (`native_menu_quick_move`), menu buttons with the cursor stack (`native_menu_button_v2`), extra data when a block opens its menu (`native_menu_extra_data`), input slots, and LAN guests going through the same server code. So the first PlutoLib design for phases G and H is `screen_handler_api_v1` growing slot rules, quick move, buttons with the cursor and open-with-data on these hooks (and the result slot of a crafting station as a slot that takes only), after which the stations are rebuilt on it and the hand-written click, drag and LAN injections go. Written down here so that the design is not started from the existing Rust.
+
 ## 2. Overnight run (unattended)
 
 The agent keeps working without stopping until the owner is back. It decides for itself inside the limits below, records each non-obvious decision in the log at the end of this file, and never waits for an answer it can replace with the conservative default.
