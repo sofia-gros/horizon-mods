@@ -19,32 +19,32 @@
       "note": "enums: their values are the content block names"
     },
     "block/SlimeFungusBlock.java": {
-      "status": "ported-unchecked",
-      "note": "PlutoLib behaviour (trees.rs register_fungus) for the blood and ichor fungi: ground, bone meal chance 0.4, placing the huge fungus of the ground through place_feature; Horizon's huge fungus takes one base block, so each ground has its own configured feature (the content has 66). Not watched in game"
+      "status": "ported",
+      "note": "PlutoLib behaviour (trees.rs register_fungus). Checked in game with real bone meal clicks: a blood fungus grew a huge fungus (bloodshroom logs). Each ground has its own configured feature because Horizon's huge fungus takes one base block"
     },
     "block/SlimeGrassBlock.java": {
-      "status": "ported-unchecked",
-      "note": "PlutoLib behaviour (world.rs register_grass): spreading, dying under cover, bone meal. Checked in game: covered grass turns into its dirt on a random tick. Spreading and bone meal were not watched"
+      "status": "ported",
+      "note": "PlutoLib behaviour (world.rs register_grass). Checked in game: covered grass turns to dirt on a random tick; a real bone meal click scattered ferns and tall grass. Spreading to nearby dirt was not watched"
     },
     "block/SlimeNyliumBlock.java": {
       "status": "ported-unchecked",
       "note": "same code path as the grass (nether foliage): dies when covered, bone meal spreads foliage and may place a sapling; not watched in game"
     },
     "block/SlimePropaguleBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "partial",
+      "note": "the five old injections still run it (hanging growth, survival, bone meal, tree growth); its tree is the ender (mangrove style) tree, which is native worldgen code; to move onto PlutoLib it needs the world generation extension point below"
     },
     "block/SlimePropaguleLeavesBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "partial",
+      "note": "its bone meal puts a hanging propagule under the leaves; runs through the old propagule injections"
     },
     "block/SlimeSaplingBlock.java": {
       "status": "ported",
-      "note": "PlutoLib behaviour (trees.rs): stage change, tree growth on random tick and bone meal, ground. Checked in game: a stage-1 earth sapling on slime dirt grew into a greenheart log"
+      "note": "PlutoLib behaviour (trees.rs): stage change, tree growth on random tick and bone meal, ground. Checked in game: a stage-1 sapling grew into a tree by a random tick and by real bone meal clicks"
     },
     "block/SlimeTallGrassBlock.java": {
-      "status": "ported-unchecked",
-      "note": "survives on the slime dirts and grasses (the ferns and tall grass); shearing drops and the plant type are the template's; not watched in game"
+      "status": "ported",
+      "note": "ferns and tall grass survive on the slime dirts and grasses (world.rs); checked in game: the plants a bone meal scattered stayed. Shearing drops are the template's"
     },
     "block/SlimeRootsBlock.java": {
       "status": "not-code",
@@ -63,16 +63,16 @@
       "note": "same code path as CrystalBlock (the chime on a projectile hit, also for the steel, cobalt and knightmetal clusters); not tried in game"
     },
     "block/CongealedSlimeBlock.java": {
-      "status": "todo",
-      "note": "compared with the Java: bouncing off the sides (entityInside), the bounce after a fall, no fall damage, the shorter collision box and the sticky path type all need an entity motion API (velocity, fall distance, hurt marker) that PlutoLib does not have yet; the content block is a plain block"
+      "status": "parked",
+      "note": "compared with the Java: bouncing off the sides, the bounce after a fall, no fall damage and the shorter collision box need to change an entity's velocity from a block hook; Horizon's block entity-contact hooks carry no host, so no mod can touch the entity (the host has entity_set_velocity but these hooks cannot reach it). The content block is a plain block"
     },
     "block/SlimeDirtBlock.java": {
       "status": "ported-unchecked",
       "note": "compared with the Java: it only sustains slime plants and ordinary plains plants; the slime plants stand on it through PlutoLib (world.rs supports), and ordinary plants through the dirt template; not tried in game"
     },
     "block/StickySlimeBlock.java": {
-      "status": "partial",
-      "note": "compared with the Java: the block is a slime block that sticks to what the predicate allows; the content uses the slime block template, so it sticks to everything a slime block does and the per-type sticky predicate is not applied"
+      "status": "parked",
+      "note": "compared with the Java: the per-type sticky predicate (which neighbours a slime block pulls) needs a piston hook Horizon does not offer; the content block uses the slime block template, which sticks to everything a slime block does"
     },
     "block/PiglinHeadBlock.java": {
       "status": "parked",
@@ -171,60 +171,60 @@
       "note": "data generators: their output is the worldgen, recipe and structure files in the content (compared by count, not file by file)"
     },
     "item/SlimeGrassSeedItem.java": {
-      "status": "ported-unchecked",
-      "note": "PlutoLib UseItemOnBlockCallback (world.rs register_seeds): dirt to grass, vine to slime vine, sound, one seed used up outside creative. Checked in game by invoking the event on slime dirt (it became grass); the game hook that calls the event was not driven by a real click"
+      "status": "ported",
+      "note": "PlutoLib UseItemOnBlockCallback (world.rs register_seeds). Checked in game with real clicks: seeds in hand on slime dirt made grass. The vine case was not tried"
     },
     "logic/AncientToolItemListing.java": {
-      "status": "todo",
-      "note": "villager trades and world events: not looked at yet"
+      "status": "parked",
+      "note": "builds a random ancient tool and prices it by tier: needs tool building and materials of phase I, and a wandering trader offer hook; ported with phase I"
     },
     "WorldEvents.java": {
-      "status": "todo",
-      "note": "villager trades and world events: not looked at yet"
+      "status": "parked",
+      "note": "its three handlers are the head visibility and the creeper head drop (heads: Horizon has no skull blocks for mods) and the wandering trader offering ancient tools (needs the tools of phase I)"
     },
     "TinkerWorld.java": {
       "status": "partial",
       "note": "registrations: blocks, items and fluids exist as content; the list is checked by tools/gap_report.py"
     },
     "TinkerStructures.java": {
-      "status": "todo",
-      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/islands/IslandPiece.java": {
-      "status": "todo",
-      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/islands/IslandPlacement.java": {
-      "status": "todo",
-      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/islands/IslandStructure.java": {
-      "status": "todo",
-      "note": "old injections (slime-island-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/trees/config/SlimeFungusConfig.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/trees/config/SlimeTreeConfig.java": {
       "status": "partial",
       "note": "the three configs of the sapling and island trees are constants in trees.rs; the island generation does not read them yet"
     },
     "worldgen/trees/ExtraRootVariantPlacer.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/trees/feature/SlimeFungusFeature.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/trees/feature/SlimeTreeFeature.java": {
       "status": "ported-unchecked",
-      "note": "trees.rs ports the whole feature over BlockEditor and uses it for the earth and sky saplings; the canopy and the leaf distances were not inspected in game; the island generation still calls the old shape code"
+      "note": "trees.rs ports the whole feature over BlockEditor for the earth and sky saplings; checked in game that the trunk grows (greenheart logs); the canopy and the leaf distances were not inspected; the island generation still calls the old shape code"
     },
     "worldgen/trees/LeaveVineDecorator.java": {
-      "status": "todo",
-      "note": "old injections (slime-tree-*, ender-tree-*); needs a world generation API in PlutoLib first"
+      "status": "parked",
+      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
     },
     "worldgen/trees/SlimeTree.java": {
       "status": "partial",

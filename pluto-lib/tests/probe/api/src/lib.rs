@@ -105,7 +105,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             world.set_block_state([46, 81, 44], &leaves);
             let distance = |x: i32| world.get_block_state([x, 81, 44]).and_then(|s| s.property("distance").map(str::to_owned));
             println!("PLUTO-PROBE leaves near={:?} next={:?}", distance(45), distance(46));
-            world.set_block_state([30, 81, 30], &pluto_lib::BlockState::parse("tconstruct:enderbark_roots").unwrap());
+            world.set_block_state([30, 96, 30], &pluto_lib::BlockState::parse("tconstruct:enderbark_roots").unwrap());
             let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
                 .iter()
                 .enumerate()
@@ -155,6 +155,27 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE chime played={chime}");
             let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
             println!("PLUTO-PROBE sapling grew={tree:?}");
+            // what real clicks did: seeds on dirt, bone meal on grass, on a sapling and on a fungus
+            let w = pluto_lib::World::new("minecraft:overworld");
+            let name = |pos| w.get_block_state(pos).map(|s| s.block.to_string()).unwrap_or_default();
+            let count = |from: [i32; 3], to: [i32; 3], pred: &dyn Fn(&str) -> bool| {
+                let mut n = 0;
+                for x in from[0]..=to[0] {
+                    for y in from[1]..=to[1] {
+                        for z in from[2]..=to[2] {
+                            if pred(&name([x, y, z])) {
+                                n += 1;
+                            }
+                        }
+                    }
+                }
+                n
+            };
+            let seeds_grass = name([28, 79, 30]) == "tconstruct:sky_earth_slime_grass";
+            let plants = count([27, 80, 28], [33, 81, 32], &|b| b.ends_with("_slime_fern") || b.ends_with("_slime_tall_grass")) > 0;
+            let tree = count([30, 80, 28], [34, 95, 32], &|b| b == "tconstruct:greenheart_log") > 0;
+            let fungus = count([34, 80, 26], [44, 100, 36], &|b| b == "tconstruct:bloodshroom_log") > 0;
+            println!("PLUTO-PROBE real seeds_grass={seeds_grass} bonemeal_plants={plants} sapling_tree={tree} fungus={fungus}");
             1
         });
     });
