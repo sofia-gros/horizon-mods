@@ -19,8 +19,8 @@
       "note": "enums: their values are the content block names"
     },
     "block/SlimeFungusBlock.java": {
-      "status": "todo",
-      "note": "still the old injections (not read against this class); to be rewritten from the Java on PlutoLib behaviours"
+      "status": "ported-unchecked",
+      "note": "PlutoLib behaviour (trees.rs register_fungus) for the blood and ichor fungi: ground, bone meal chance 0.4, placing the huge fungus of the ground through place_feature; Horizon's huge fungus takes one base block, so each ground has its own configured feature (the content has 66). Not watched in game"
     },
     "block/SlimeGrassBlock.java": {
       "status": "ported-unchecked",

@@ -3658,40 +3658,6 @@ helper = "source-ender-propagule-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
 
 [[module]]
-id = "source-slime-fungus"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_slime_fungus"
-source = "source-slime-fungus.rs"
-
-[[injection]]
-id = "source-slime-fungus-survive"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
-kind = "HEAD"
-helper = "source-slime-fungus-survive.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
-
-[[injection]]
-id = "source-slime-fungus-valid"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
-kind = "HEAD"
-helper = "source-slime-fungus-valid.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
-
-[[injection]]
-id = "source-slime-fungus-success"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
-kind = "HEAD"
-helper = "source-slime-fungus-success.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
-
-[[injection]]
-id = "source-slime-fungus-perform"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
-kind = "HEAD"
-helper = "source-slime-fungus-perform.rs"
-bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
-
-[[module]]
 id = "island-slime-fungus"
 file = "crates/horizon-world/src/worldgen/structure/start.rs"
 name = "tconstruct_island_slime_fungus"

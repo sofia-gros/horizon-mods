@@ -508,6 +508,10 @@ impl block_api_v1::BlockEditor for GameEditor<'_> {
     fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool {
         self.0.schedule_tick(pos, block, delay)
     }
+
+    fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
+        self.0.place_feature(feature, pos)
+    }
 }
 
 fn direction(face: u8) -> block_api_v1::Direction {

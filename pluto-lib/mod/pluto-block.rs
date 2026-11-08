@@ -47,6 +47,8 @@ pub trait LevelEdit: LevelView {
     fn random_float(&mut self) -> f32;
     /// Schedules a tick of `block` at `pos` after `delay` game ticks.
     fn schedule_tick(&mut self, pos: [i32; 3], block: &str, delay: i32) -> bool;
+    /// Places the configured feature `feature` (a data-driven worldgen feature, such as `tconstruct:slime_fungus/blood_earth`) at `pos`.
+    fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool;
 }
 
 pub struct ShapeUpdate {
