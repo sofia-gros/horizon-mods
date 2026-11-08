@@ -44,7 +44,8 @@ pub fn hooks() -> ModHooks {
 | [entities](entities.md) | entities entering and leaving worlds, damage, death |
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | resource reload listeners |
-| [items](items.md) | tooltips |
+| [items](items.md) | tooltips, using items over time |
+| [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
 | [player](player.md) | messages and items for a player, and testing with `MemoryPlayerOps` |
 | [attachments](attachments.md) | values saved with a player |
 | [config](config.md) | config files |

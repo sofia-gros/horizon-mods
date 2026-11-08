@@ -18,6 +18,7 @@ EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_lo
             'PLUTO-PROBE config_loading pluto_probe-common.toml text=',
             'tconstruct: gave the starting book to',
             'PLUTO-PROBE command ping arg=hello source=',
+            'pluto_lib: creative tabs added, tabs=',
             'PLUTO-PROBE item_use game_side=Some(Spec { food: Some((4, 0.5)), can_always_eat: false, remainder: Some(("minecraft:stick", 2)) })',
             'tconstruct: parts crafted for', 'tconstruct: pickaxe assembled for')
 # reported but not required: not seen firing yet in this offscreen run; promoted to EXPECTED once seen
@@ -100,7 +101,7 @@ with game_log.open('w') as log:
     finally:
         if proc.poll() is None:
             proc.terminate()
-lines = [l for l in game_log.read_text(errors='replace').splitlines() if 'PLUTO-PROBE' in l or l.startswith('tconstruct:')]
+lines = [l for l in game_log.read_text(errors='replace').splitlines() if 'PLUTO-PROBE' in l or l.startswith(('tconstruct:', 'pluto_lib:'))]
 missing = [e for e in EXPECTED if not any(e in l for l in lines)]
 if missing:
     sys.exit(f'PROBE FAIL: events that did not fire: {missing}; saw {lines}; log {game_log}')

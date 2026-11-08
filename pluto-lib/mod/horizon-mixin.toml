@@ -37,3 +37,18 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use
 kind = "HEAD"
 helper = "pluto-item-use-finish.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+# Creative inventory tabs (ItemGroupRegistry, ItemGroupEvents): the one place that edits the creative inventory data as it loads.
+[[module]]
+id = "pluto-creative"
+file = "crates/horizon-client/src/creative.rs"
+name = "pluto_creative"
+source = "pluto-creative.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-creative-rebuild"
+target = "horizon_client::creative::Creative::rebuild"
+kind = "HEAD"
+helper = "pluto-creative-rebuild.rs"
+bindings = [{ name = "this", ty = "&mut crate::creative::Creative", value = "&mut *self" }]

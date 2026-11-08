@@ -24,6 +24,7 @@ mod api_pages {
     page!(Loot, "loot.md");
     page!(Resources, "resources.md");
     page!(Items, "items.md");
+    page!(Creative, "creative.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");
