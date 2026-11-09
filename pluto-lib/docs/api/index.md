@@ -48,7 +48,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [entities](entities.md) | entities entering and leaving worlds, damage (allow it or change its amount, with the attacker's stack), death |
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | resource reload listeners |
-| [items](items.md) | tooltips, using items over time |
+| [items](items.md) | tooltips (with the stack's damage and data), using items over time |
 | [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
 | [color](color.md) | the tint of a block's faces, which may depend on where the block stands (stub: the game does not ask yet) |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |

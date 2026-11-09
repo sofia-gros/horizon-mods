@@ -29,6 +29,8 @@ pub struct ItemTooltipContext {
     /// The item id, such as `tconstruct:flint_pickaxe`.
     pub item: String,
     pub count: u32,
+    /// The stack the tooltip is for, with its damage, max damage and custom data.
+    pub stack: super::player_api::StackData,
     /// Lines callbacks want added after the game's own.
     pub added: RefCell<Vec<TooltipLine>>,
 }
@@ -44,8 +46,8 @@ impl ItemTooltipCallback {
 }
 
 /// Runs the tooltip callbacks and returns the lines they added.
-pub(crate) fn item_tooltip(item: &str, count: u32) -> Vec<TooltipLine> {
-    let context = ItemTooltipContext { item: item.to_owned(), count, added: RefCell::new(Vec::new()) };
+pub(crate) fn item_tooltip(stack: super::player_api::StackData) -> Vec<TooltipLine> {
+    let context = ItemTooltipContext { item: stack.item.clone(), count: stack.count, stack, added: RefCell::new(Vec::new()) };
     ITEM_TOOLTIP.invoke(&context);
     context.added.into_inner()
 }
@@ -175,6 +177,7 @@ pub(crate) fn use_animation(item: &str) -> Option<UseAction> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pure::player_api::StackData;
 
     #[test]
     fn a_registered_item_gets_its_use_time_and_pose_and_others_keep_the_games() {
@@ -195,8 +198,8 @@ mod tests {
             }
         });
         ItemTooltipCallback::EVENT.register(|c| c.added.borrow_mut().push(TooltipLine::grey(format!("x{}", c.count))));
-        let lines = item_tooltip("tconstruct:flint_pickaxe", 1);
+        let lines = item_tooltip(StackData { item: "tconstruct:flint_pickaxe".into(), count: 1, ..Default::default() });
         assert_eq!(lines.iter().map(|l| l.text.as_str()).collect::<Vec<_>>(), ["Tinkers tool", "x1"]);
-        assert_eq!(item_tooltip("minecraft:stone", 3).len(), 1);
+        assert_eq!(item_tooltip(StackData { item: "minecraft:stone".into(), count: 3, ..Default::default() }).len(), 1);
     }
 }

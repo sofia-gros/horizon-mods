@@ -218,6 +218,7 @@ pub fn library() -> &'static ToolLibrary {
 /// Called once at start: loads the library and says how much it holds, so a broken link or a broken data file shows in the log.
 pub fn register() {
     register_break_speed();
+    register_tooltip();
     register_attack_damage();
     let library = library();
     println!(
@@ -448,7 +449,7 @@ pub fn upgrade_command(ctx: &pluto_lib::CommandContext) -> i32 {
         match library().upgrade(&tool, modifier) {
             Ok(upgraded) => {
                 if ctx.source.update_stack(slot, &upgraded) {
-                    println!("tconstruct: upgraded {} with {modifier} in slot {slot}, max damage {:?}, slots {:?}", upgraded.item, upgraded.max_damage, upgraded.custom_data.get("tconstruct:slots"));
+                    println!("tconstruct: upgraded {} with {modifier} in slot {slot}: {}", upgraded.item, tooltip_lines(&upgraded).join(" | "));
                     return 1;
                 }
             }
@@ -458,4 +459,49 @@ pub fn upgrade_command(ctx: &pluto_lib::CommandContext) -> i32 {
     ctx.source.send_message(&reason);
     println!("tconstruct: upgrade refused: {reason}");
     0
+}
+
+/// The lines that describe a tool made by the library: its durability, its stats, its modifiers and the slots it has left, read from the
+/// stack's data. Empty for a stack that is not such a tool.
+pub fn tooltip_lines(stack: &pluto_lib::StackData) -> Vec<String> {
+    use pluto_lib::Nbt;
+    let data = &stack.custom_data;
+    let Some(Nbt::Compound(stats)) = data.get("tconstruct:stats") else { return Vec::new() };
+    let mut lines = Vec::new();
+    if let Some(max) = stack.max_damage {
+        lines.push(format!("Durability: {} / {max}", max - stack.damage as i32));
+    }
+    for (name, value) in stats {
+        let Some(name) = name.strip_prefix("tconstruct:") else { continue };
+        if name == "durability" {
+            continue;
+        }
+        match value {
+            Nbt::Float(v) => lines.push(format!("{}: {}", name.replace('_', " "), (v * 100.0).round() / 100.0)),
+            Nbt::String(t) => lines.push(format!("{}: {t}", name.replace('_', " "))),
+            _ => {}
+        }
+    }
+    if let Some(Nbt::List(modifiers)) = data.get("tconstruct:modifiers") {
+        let names: Vec<String> = modifiers.iter().filter_map(|m| if let Nbt::String(s) = m { Some(s.replace("tconstruct:", "").replace('#', " x")) } else { None }).collect();
+        if !names.is_empty() {
+            lines.push(format!("Modifiers: {}", names.join(", ")));
+        }
+    }
+    if let Some(Nbt::Compound(free)) = data.get("tconstruct:slots") {
+        let slots: Vec<String> = free.iter().filter_map(|(k, v)| if let Nbt::Int(n) = v { Some(format!("{k} {n}")) } else { None }).collect();
+        lines.push(format!("Slots left: {}", slots.join(", ")));
+    }
+    lines
+}
+
+/// The tooltip of a tool made by the library.
+pub fn register_tooltip() {
+    use pluto_lib::{ItemTooltipCallback, TooltipLine};
+    ItemTooltipCallback::EVENT.register(|tip| {
+        let mut added = tip.added.borrow_mut();
+        for line in tooltip_lines(&tip.stack) {
+            added.push(TooltipLine::grey(line));
+        }
+    });
 }

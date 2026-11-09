@@ -1000,7 +1000,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn tooltip(&self, _host: &dyn Host, event: &mut TooltipEvent<'_>) {
-        for line in item_api_v1::item_tooltip(&event.stack.item, event.stack.count) {
+        for line in item_api_v1::item_tooltip(read_stack(event.stack)) {
             event.lines.push((Text::literal(line.text), line.color));
         }
     }
