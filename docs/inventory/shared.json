@@ -79,8 +79,8 @@
       "note": "Horizon content has no mod particle types; the fluid drip and splash particles wait for them"
     },
     "command/argument/MaterialArgument.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "a Brigadier argument type; the port's commands take a word and the library checks the id and says what is wrong"
     },
     "command/argument/MaterialStatsArgument.java": {
       "status": "partial",
@@ -91,12 +91,12 @@
       "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/MaterialVariantArgument.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "a Brigadier argument type; the port's commands take a word and the library checks the id and says what is wrong"
     },
     "command/argument/ModifierArgument.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "a Brigadier argument type; the port's commands take a word and the library checks the id and says what is wrong"
     },
     "command/argument/ModifierHookArgument.java": {
       "status": "partial",
@@ -107,8 +107,8 @@
       "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/argument/SlotTypeArgument.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "a Brigadier argument type; the port's commands take a word and the library checks the id and says what is wrong"
     },
     "command/argument/TinkerSuggestionProvider.java": {
       "status": "partial",
@@ -123,8 +123,8 @@
       "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
     },
     "command/subcommand/DurabilityCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "ported",
+      "note": "`/tconstruct durability add|set <amount>`, checked in game; first tool in the inventory"
     },
     "command/subcommand/GenerateHiddenFluidsCommand.java": {
       "status": "not-code",
@@ -139,24 +139,24 @@
       "note": "a developer data generator (writes textures, fluids or recipes for the original build); the port ships those as content files instead"
     },
     "command/subcommand/MaterialsCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "ported",
+      "note": "`/tconstruct materials set <index> <material>`, checked in game; the stats and traits subcommands only write dump files for the original's developers (not code in the port)"
     },
     "command/subcommand/ModifierPriorityCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "writes a dump file of module priorities, for the original's developers"
     },
     "command/subcommand/ModifiersCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "ported",
+      "note": "`/tconstruct modifiers add|remove <modifier> [level]`, checked in game (full probe); acts on the first tool in the inventory, not the held tool of selected targets"
     },
     "command/subcommand/ModifierUsageCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "not-code",
+      "note": "writes dump files of where modifiers are used, for the original's developers"
     },
     "command/subcommand/SlotsCommand.java": {
-      "status": "partial",
-      "note": "the command tree needs materials, modifiers and tool stats; ported with phase I (tools), on the command API of PlutoLib that exists"
+      "status": "ported",
+      "note": "`/tconstruct slots add|set <type> [count]`, checked in game; extra slots stay on the tool through rebuilds; first tool in the inventory"
     },
     "command/subcommand/StatsCommand.java": {
       "status": "partial",
