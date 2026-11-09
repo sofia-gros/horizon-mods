@@ -239,8 +239,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/MeltingModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the slot state machine (set stack, can heat, heat, cool, wait for room, progress kept for the same item) is library `smeltery::melting::MeltingSlot` with unit tests; the block entity that owns the slots, the sync packet and the ore rate are not done"
     },
     "block/entity/module/MeltingModuleInventory.java": {
       "status": "todo",
