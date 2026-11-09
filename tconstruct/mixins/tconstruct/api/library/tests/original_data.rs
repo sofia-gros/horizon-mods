@@ -310,3 +310,24 @@ fn the_originals_alloy_recipes_all_load_and_the_ones_without_mod_gates_stay() {
     assert!(kept.iter().any(|k| k.ends_with("molten_obsidian")), "{kept:?}");
     assert!(kept.len() < recipes.len());
 }
+
+#[test]
+fn the_originals_plain_melting_recipes_load() {
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/smeltery/melting"));
+    let (mut plain, mut loaded) = (0, 0);
+    for (id, json) in &recipes {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:melting") {
+            continue; // damagable, ore and conditional recipes are not ported yet
+        }
+        match tconstruct_library::smeltery::melting::MeltingRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(Some(_)) => loaded += 1,
+            Ok(None) => {}
+            Err(error) if error.contains("unknown condition") || error.contains("unsupported ingredient type") => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+        plain += 1;
+    }
+    assert!(plain > 400, "{plain}");
+    assert!(loaded > 100, "{loaded}");
+}

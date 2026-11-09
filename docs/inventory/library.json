@@ -2391,8 +2391,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/melting/IMeltingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the lookup is the trait `MeltingRecipes` in library `smeltery::melting`; the ore rate and byproduct choice are not done"
     },
     "recipe/melting/MaterialMeltingRecipe.java": {
       "status": "todo",
@@ -2403,8 +2403,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/melting/MeltingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `smeltery::melting::MeltingRecipe`: ingredient (item, tag, list, no_container), result, byproducts, temperature, time and data conditions; checked by test over the original's plain melting files. The damagable and ore melting kinds and the item_exists condition are not done"
     },
     "recipe/melting/MeltingRecipeBuilder.java": {
       "status": "todo",
