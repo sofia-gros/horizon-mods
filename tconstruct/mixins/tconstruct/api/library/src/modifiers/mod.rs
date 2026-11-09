@@ -165,6 +165,7 @@ impl ModuleRegistry {
         let mut carried: Vec<(String, ModuleLoader)> = vec![
             ("tconstruct:stat_boost".to_owned(), stat_modules::stat_boost_loader(stats)),
             ("tconstruct:trait".to_owned(), stat_modules::trait_loader()),
+            ("tconstruct:protection".to_owned(), stat_modules::protection_loader()),
         ];
         carried.extend(stat_modules::volatile_loaders().into_iter().map(|(kind, loader)| (kind.to_owned(), loader)));
         if let Some(raw) = self.loaders.get("tconstruct:attribute").cloned() {
