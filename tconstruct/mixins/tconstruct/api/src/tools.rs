@@ -217,22 +217,41 @@ pub fn build_command(ctx: &pluto_lib::CommandContext) -> i32 {
     }
 }
 
-/// A tool digs with the mining speed of its own stats (`tconstruct:stats` in the stack's data) where the game says the dig is faster than
-/// by hand, which it takes from the item the tool stands on. The original works out whether a tool is effective from its definition's
-/// `is_effective` module and the harvest tier; that is not carried yet.
+/// A tool digs with the mining speed of its own stats (`tconstruct:stats` in the stack's data) the blocks its definition calls effective
+/// (`is_effective`) when its harvest tier can harvest them (the block is not in `incorrect_for_<tier>_tool`); a block it is effective on but
+/// cannot harvest digs at hand speed. Other blocks keep the game's speed. Haste and fatigue are not combined yet.
 pub fn register_break_speed() {
     use pluto_lib::{BreakSpeedCallback, Nbt};
-    use std::sync::atomic::{AtomicBool, Ordering};
-    static SAID: AtomicBool = AtomicBool::new(false);
-    BreakSpeedCallback::EVENT.register(|dig| {
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+    static SAID: Mutex<Option<HashSet<&'static str>>> = Mutex::new(None);
+    let say = |case: &'static str, text: String| {
+        if let Ok(mut said) = SAID.lock() {
+            if said.get_or_insert_with(HashSet::new).insert(case) {
+                println!("tconstruct: break speed {case}: {text}");
+            }
+        }
+    };
+    BreakSpeedCallback::EVENT.register(move |dig| {
         let Some(held) = &dig.held else { return };
+        let Some(definition) = ResourceId::try_parse(&held.item).and_then(|id| library().definitions.get(&id)) else { return };
         let Some(Nbt::Compound(stats)) = held.custom_data.get("tconstruct:stats") else { return };
         let Some(Nbt::Float(mining)) = stats.get("tconstruct:mining_speed") else { return };
-        if dig.original > 1.0 {
+        if !definition.is_effective(&|tag| dig.block.is_in_tag(tag)) {
+            return;
+        }
+        let tier = match stats.get("tconstruct:harvest_tier") {
+            Some(Nbt::String(tier)) => tier.clone(),
+            _ => "minecraft:wood".to_owned(),
+        };
+        let name = tier.strip_prefix("minecraft:").unwrap_or(&tier);
+        let tag = format!("minecraft:incorrect_for_{}_tool", if name == "wood" { "wooden" } else { name });
+        if dig.block.is_in_tag(&tag) {
+            dig.speed.set(1.0);
+            say("tier too low", format!("{tier} on {}", dig.block.block));
+        } else {
             dig.speed.set(*mining);
-            if !SAID.swap(true, Ordering::Relaxed) {
-                println!("tconstruct: break speed original={} now={mining} on {}", dig.original, dig.block.block);
-            }
+            say("effective", format!("original={} now={mining} on {}", dig.original, dig.block.block));
         }
     });
 }

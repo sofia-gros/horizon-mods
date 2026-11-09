@@ -187,6 +187,22 @@ impl ToolModule for PartStatsModule {
     }
 }
 
+/// `IsEffectiveModule` (`is_effective`): the blocks the tool digs well, by a predicate over the block (`{"predicate_type": "mantle:tag",
+/// "tag": "minecraft:mineable/pickaxe"}`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct IsEffectiveModule {
+    pub predicate: Value,
+}
+
+impl ToolModule for IsEffectiveModule {
+    fn kind(&self) -> &str {
+        "tconstruct:is_effective"
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 /// Reads a module of one type from its JSON object.
 pub type ToolModuleLoader = Arc<dyn Fn(&Map<String, Value>, &ToolStats) -> Result<Arc<dyn ToolModule>, String> + Send + Sync>;
 
@@ -289,6 +305,18 @@ impl ToolModuleRegistry {
                 Ok(Arc::new(PartStatsModule { parts, primary_part }) as Arc<dyn ToolModule>)
             }),
         );
+        loaders.insert(
+            "tconstruct:is_effective".to_owned(),
+            Arc::new(|json, _| {
+                // the predicate sits in the module beside its type: `predicate_type` names the type, the rest are its fields
+                let kind = json.get("predicate_type").and_then(Value::as_str).ok_or("is_effective needs a 'predicate_type'")?;
+                let mut predicate = json.clone();
+                predicate.remove("type");
+                predicate.remove("predicate_type");
+                predicate.insert("type".to_owned(), Value::String(kind.to_owned()));
+                Ok(Arc::new(IsEffectiveModule { predicate: Value::Object(predicate) }) as Arc<dyn ToolModule>)
+            }),
+        );
         Self { loaders }
     }
 
@@ -373,6 +401,18 @@ impl ToolDefinitionData {
                 }
             }
         }
+    }
+
+    /// The `IS_EFFECTIVE` hook: whether the tool digs the block well, given a way to ask whether the block is in a tag. A tool with no such
+    /// module digs nothing well; any module that says yes is enough.
+    pub fn is_effective(&self, block_in_tag: &dyn Fn(&str) -> bool) -> bool {
+        self.all::<IsEffectiveModule>().any(|m| {
+            crate::predicate::test(&m.predicate, &|kind, object| match kind {
+                "mantle:tag" => Ok(object.get("tag").and_then(Value::as_str).is_some_and(block_in_tag)),
+                other => Err(format!("unsupported block predicate {other}")),
+            })
+            .unwrap_or(false)
+        })
     }
 
     /// How many modules are kept as data only.
@@ -477,6 +517,16 @@ mod tests {
         assert_eq!(data.parts().len(), 2);
         assert_eq!((data.parts()[0].scale, data.parts()[1].scale), (0.25, 1.0));
         assert_eq!(data.uncarried_modules(), 0);
+    }
+
+    #[test]
+    fn a_tool_is_effective_on_the_blocks_its_predicate_names() {
+        let data = data(vec![json!({"type": "tconstruct:is_effective", "predicate_type": "mantle:tag", "tag": "minecraft:mineable/pickaxe"})]);
+        assert!(data.is_effective(&|tag| tag == "minecraft:mineable/pickaxe"));
+        assert!(!data.is_effective(&|tag| tag == "minecraft:mineable/axe"));
+        assert!(!ToolDefinitionData::default().is_effective(&|_| true), "no module, nothing is effective");
+        let inverted = self::data(vec![json!({"type": "tconstruct:is_effective", "predicate_type": "mantle:inverted", "inverted_type": "mantle:tag", "tag": "minecraft:mineable/axe"})]);
+        assert!(inverted.is_effective(&|tag| tag == "minecraft:mineable/pickaxe"));
     }
 
     #[test]

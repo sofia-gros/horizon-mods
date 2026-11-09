@@ -38,6 +38,13 @@ impl BlockState {
     }
 
     /// Reads `minecraft:oak_stairs[facing=east,half=bottom]` (the brackets are optional).
+    /// Whether this block is in the block tag (`minecraft:mineable/pickaxe`, `tconstruct:mineable/hand_axe`); false for an unknown tag and
+    /// outside a `with_world` scope.
+    pub fn is_in_tag(&self, tag: &str) -> bool {
+        let block = self.block.to_string();
+        with_current(false, |ops| ops.block_in_tag(&block, tag))
+    }
+
     pub fn parse(text: &str) -> Result<BlockState, IdentifierError> {
         let (name, rest) = match text.split_once('[') {
             Some((name, rest)) => (name, rest.trim_end_matches(']')),
@@ -72,6 +79,10 @@ pub trait WorldOps {
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
     /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
     fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool;
+    /// Whether the block (`minecraft:stone`) is in the block tag (`minecraft:mineable/pickaxe`); false for an unknown tag.
+    fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
+        false
+    }
 }
 
 thread_local! {
@@ -144,6 +155,8 @@ pub struct MemoryWorldOps {
     pub blocks: BTreeMap<(String, BlockPos), String>,
     /// The sounds played so far: sound event and position.
     pub sounds: Vec<(String, [f64; 3])>,
+    /// The `(block, tag)` pairs that are true for `block_in_tag`.
+    pub tags: Vec<(String, String)>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -154,6 +167,10 @@ impl WorldOps for MemoryWorldOps {
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool {
         self.blocks.insert((dimension.to_owned(), pos), state.to_owned());
         true
+    }
+
+    fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
+        self.tags.iter().any(|(b, t)| b == block && t == tag)
     }
 
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], _volume: f32, _pitch: f32) -> bool {
