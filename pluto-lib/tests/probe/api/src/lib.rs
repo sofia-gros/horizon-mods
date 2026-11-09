@@ -252,7 +252,8 @@ pub fn hooks() -> Box<dyn Hooks> {
     }));
     pluto_lib::BreakSpeedCallback::EVENT.register(|dig| {
         static ONCE: AtomicBool = AtomicBool::new(false);
-        if !ONCE.swap(true, Ordering::Relaxed) {
+        // Isolated soil: the seed/grass checks may spread to their neighboring dirt before digging.
+        if dig.pos == [29, 79, 33] && !ONCE.swap(true, Ordering::Relaxed) {
             println!("PLUTO-PROBE break_speed block={} original={}", dig.block.block, dig.original);
         }
     });
@@ -273,7 +274,18 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE config_loading {} text={:?}", c.file, c.text);
         }
     });
-    ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
+    ServerLifecycleEvents::SERVER_STARTING.register(|s| {
+        println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated);
+        // All consumers have registered by startup; keep the world's existing leaf callbacks.
+        let id = Identifier::new("tconstruct", "earth_slime_leaves").unwrap();
+        let behavior = pluto_lib::BlockBehaviors::get(&id.to_string()).unwrap_or_else(|| pluto_lib::BlockBehavior::new(id));
+        pluto_lib::BlockBehaviors::register(behavior.entity_inside(|c| {
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if c.pos == [18, 81, 18] && c.kind == "minecraft:zombie" && !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE inside dimension={} kind={} pos={:?} block={} distance={:?} persistent={:?} entity={}", c.dimension, c.kind, c.pos, c.state.block, c.state.property("distance"), c.state.property("persistent"), c.entity);
+            }
+        }));
+    });
     ServerLifecycleEvents::SERVER_STOPPING.register(|s| println!("PLUTO-PROBE server_stopping dedicated={}", s.dedicated));
     ServerLifecycleEvents::SERVER_STOPPED.register(|s| println!("PLUTO-PROBE server_stopped dedicated={}", s.dedicated));
     ServerPlayConnectionEvents::JOIN.register(|p| {

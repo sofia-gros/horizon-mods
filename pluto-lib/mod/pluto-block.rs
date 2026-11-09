@@ -85,6 +85,8 @@ pub struct Sink {
     pub survives: fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>,
     pub placement: fn(&dyn LevelView, &Placement) -> PlacementAnswer,
     pub update_shape: fn(&dyn LevelView, &ShapeUpdate) -> Option<StateInfo>,
+    /// An authoritative entity contact; observation only, with the complete block state.
+    pub entity_inside: fn(&str, &StateInfo, [i32; 3], i32, &str),
     /// A random tick; true when a behaviour handled it (the game's own tick is skipped).
     pub random_tick: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> bool,
     /// A scheduled tick; true when a behaviour handled it.
@@ -94,6 +96,26 @@ pub struct Sink {
     pub bonemeal_perform: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]),
     /// A plant, the ground below it and the ground's position.
     pub may_place_on: fn(&dyn LevelView, &StateInfo, &StateInfo, [i32; 3]) -> Option<bool>,
+}
+
+// Horizon's assets own this registry for the process lifetime. Refresh the reference
+// on every server start so a later pack cannot leave numeric state ids stale.
+static REGISTRY: Mutex<Option<&'static horizon_world::registry::BlockRegistry>> = Mutex::new(None);
+
+pub fn set_contact_registry(registry: &'static horizon_world::registry::BlockRegistry) {
+    if let Ok(mut slot) = REGISTRY.lock() { *slot = Some(registry); }
+}
+
+pub fn entity_inside(dimension: &str, entity: i32, kind: &str, state: horizon_world::registry::BlockStateId, position: [i32; 3]) {
+    let registry = REGISTRY.lock().ok().and_then(|slot| *slot);
+    let Some(state) = registry.and_then(|registry| registry.state(state)) else { return };
+    let Some(sink) = sink() else { return };
+    let info = StateInfo {
+        block: state.name.to_string(),
+        properties: state.properties.iter().map(|(key, value)| (key.to_string(), value.to_string())).collect(),
+    };
+    // Never call mod code under either registry/sink mutex.
+    (sink.entity_inside)(dimension, &info, position, entity, kind);
 }
 
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);
