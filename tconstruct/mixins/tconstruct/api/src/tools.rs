@@ -694,3 +694,30 @@ pub fn modifiers_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
     println!("tconstruct: modifiers refused: {reason}");
     0
 }
+
+/// `/tconstruct durability add|set <amount>`: adds durability to the first tool in the inventory (a negative amount wears it), or sets the
+/// durability it has left, as the original's `DurabilityCommand` does on the held tool.
+pub fn durability_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
+    let Some(amount) = ctx.args.first().and_then(|a| a.parse::<i64>().ok()) else { return 0 };
+    if adding && amount == 0 {
+        ctx.source.send_message("the amount to add must not be 0");
+        return 0;
+    }
+    if !adding && amount < 0 {
+        ctx.source.send_message("the durability to set must not be negative");
+        return 0;
+    }
+    for slot in 0..36 {
+        let Some(mut tool) = ctx.source.stack(slot) else { continue };
+        let Some(max) = tool.max_damage.filter(|_| tool.custom_data.contains_key("tconstruct:stats")) else { continue };
+        // damage counts up from 0, so adding durability lowers it; the original clamps it at 0
+        let damage = if adding { i64::from(tool.damage) - amount } else { i64::from(max) - amount };
+        tool.damage = damage.clamp(0, i64::from(max)) as u32;
+        if ctx.source.update_stack(slot, &tool) {
+            println!("tconstruct: durability {}: {} / {max} left", if adding { "add" } else { "set" }, i64::from(max) - i64::from(tool.damage));
+            return 1;
+        }
+    }
+    ctx.source.send_message("you carry no tool made by /tconstruct build or craft");
+    0
+}

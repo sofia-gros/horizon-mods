@@ -63,6 +63,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
         registrar.register("tconstruct upgrade <modifier:word>", tools::upgrade_command);
         registrar.register("tconstruct modifiers add <modifier:word> [level:integer]", |ctx| tools::modifiers_command(ctx, true));
         registrar.register("tconstruct modifiers remove <modifier:word> [level:integer]", |ctx| tools::modifiers_command(ctx, false));
+        registrar.register("tconstruct durability add <amount:integer>", |ctx| tools::durability_command(ctx, true));
+        registrar.register("tconstruct durability set <amount:integer>", |ctx| tools::durability_command(ctx, false));
         registrar.register("tconstruct build <tool:word> <material:word> [second:word] [third:word] [fourth:word]", tools::build_command);
         registrar.register("tconstruct assemble", assemble);
     });
