@@ -38,7 +38,7 @@ In `mod/` (built with Horizon's official launcher):
 - `events_interaction_v0`: `UseItemCallback`, `UseBlockCallback`, `AttackEntityCallback`, `PlayerBlockBreakEvents::BEFORE` (a veto cancels the break).
 - `entity_events_v1`: `ServerEntityEvents` (`ENTITY_LOAD`, `ENTITY_UNLOAD`), `ServerLivingEntityEvents::ALLOW_DAMAGE` and `MODIFY_DAMAGE` (change the amount; it carries the stack a player attacked with).
 - `loot_api_v2`: `LootTableEvents::MODIFY` (edit a loading loot table's JSON).
-- `resource_loader_v0`: `ResourceManagerHelper` listeners for client resources and server data (initial world load and `/reload` rebuilds), with phase ordering.
+- `resource_loader_v0`: `ResourceManagerHelper` reads active client asset bytes (`read_client_resource`) and decoded PNG pixels (`read_client_image`, owned top-first RGBA `ResourceImage`), respecting pack overrides. Client listeners run after initial setup and successful resource reloads; initial/refresh reads, pack priority and owned snapshots are verified in game. Server initial-load and `/reload` notifications remain separate, with phase ordering.
 - `item_api_v1`: `ItemTooltipCallback` (`with_lines` reads, reorders, removes and replaces existing entries through `TooltipText`, preserving untouched rich text; the original `added` list still appends plain/translated lines). The context carries stack damage/data. `ItemUseRegistry` handles use over time.
 - `world_api_v1`: `BlockState::is_in_tag` (block tags) beside reading and changing blocks and playing sounds.
 - `block_entity_api_v1`: `ItemSlot` keeps damage, max damage and custom data of each stack in a block entity's item slots, so a block can take tools and tool parts that carry data.
