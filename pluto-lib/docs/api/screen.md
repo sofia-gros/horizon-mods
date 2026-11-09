@@ -75,7 +75,7 @@ let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(),
     .on_quick_move(|moved| {
         // fuel goes to the second slot
         if moved.stack.item.to_string() == "minecraft:coal" && moved.items.get(1).is_some_and(|slot| slot.is_none()) {
-            moved.items[1] = Some(ItemSlot { item: moved.stack.item.clone(), count: moved.stack.count });
+            moved.items[1] = Some(ItemSlot::new(moved.stack.item.clone(), moved.stack.count));
             moved.stack.count = 0;
             return true;
         }
@@ -276,7 +276,7 @@ A shift-click on a slot. `pos` is the block entity's position, `slot` the menu's
 ```rust
 use pluto_lib::{Identifier, ItemSlot, NbtCompound, QuickMove};
 
-let mut stack = ItemSlot { item: Identifier::new("minecraft", "coal").unwrap(), count: 12 };
+let mut stack = ItemSlot::new(Identifier::new("minecraft", "coal").unwrap(), 12);
 let mut data = NbtCompound::new();
 let mut items = vec![None, None];
 let mut moved = QuickMove { pos: [0, 64, 0], slot: 30, container_slots: 2, stack: &mut stack, data: &mut data, items: &mut items };

@@ -422,7 +422,7 @@ mod tests {
 
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
-        let mut carried = Some(ItemSlot { item: Identifier::parse("test:fuel").unwrap(), count: 3 });
+        let mut carried = Some(ItemSlot::new(Identifier::parse("test:fuel").unwrap(), 3));
         assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried));
         assert_eq!(data.get_int("pressed", 0), 7);
         assert_eq!(items.len(), 1);
@@ -440,11 +440,11 @@ mod tests {
         slot_rules("test:none", 0, "test:fuel", 1, &mut may, &mut max);
         assert_eq!((may, max), (false, 5), "no window: the game's answer stays");
 
-        let mut fuel = ItemSlot { item: Identifier::parse("test:fuel").unwrap(), count: 8 };
+        let mut fuel = ItemSlot::new(Identifier::parse("test:fuel").unwrap(), 8);
         let mut items = Vec::new();
         assert!(quick_move("test:oven", [0; 3], 40, 2, &mut fuel, &mut data, &mut items));
         assert_eq!((fuel.count, items[1].as_ref().map(|s| s.count)), (0, Some(8)));
-        let mut stone = ItemSlot { item: Identifier::parse("test:stone").unwrap(), count: 8 };
+        let mut stone = ItemSlot::new(Identifier::parse("test:stone").unwrap(), 8);
         assert!(!quick_move("test:oven", [0; 3], 40, 2, &mut stone, &mut data, &mut items));
 
         assert!(accepts("test:oven", [0; 3], 0, "test:coal", 1, None));

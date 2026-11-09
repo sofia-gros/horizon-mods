@@ -13,14 +13,27 @@ use super::base::{Identifier, Nbt, NbtCompound};
 /// A block position `[x, y, z]`.
 pub type BlockPos = [i32; 3];
 
-/// One stack in an item slot, reduced to the item and the count. A stack whose item is not changed keeps its data when only the count
-/// is changed.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// One stack in an item slot: the item, the count, and what a mod keeps on the stack. A stack whose item is not changed keeps all of its
+/// other data when only the count is changed.
+#[derive(Clone, Debug, PartialEq)]
 pub struct ItemSlot {
     /// The item.
     pub item: Identifier,
     /// How many.
     pub count: u32,
+    /// Damage taken, 0 for a new item.
+    pub damage: u32,
+    /// The most damage the stack takes before it breaks, when it differs from the item's (the `minecraft:max_damage` component).
+    pub max_damage: Option<i32>,
+    /// The stack's `minecraft:custom_data`, empty for none.
+    pub custom_data: NbtCompound,
+}
+
+impl ItemSlot {
+    /// A plain stack of `count` of `item`, with no damage and no data.
+    pub fn new(item: Identifier, count: u32) -> Self {
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new() }
+    }
 }
 
 /// Fluid in a tank: which fluid and how many millibuckets (a bucket is a thousand).
@@ -287,7 +300,7 @@ mod tests {
         assert_eq!(fluid_tanks("test:tank"), Some(vec![4000, 1, 1_000_000]), "capacities are clamped to 1..=1 000 000");
         assert_eq!(item_slots("test:nothing"), None);
         let mut data = NbtCompound::new();
-        let mut items = vec![None, Some(ItemSlot { item: id("minecraft:stick"), count: 2 }), None];
+        let mut items = vec![None, Some(ItemSlot::new(id("minecraft:stick"), 2)), None];
         let mut tick = BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items };
         assert_eq!(tick.fluid(1), None);
         tick.set_fluid(1, Some(FluidStack { fluid: id("minecraft:lava"), amount: 250 }));
