@@ -93,6 +93,24 @@ impl MeltingRecipe {
     /// Reads a `tconstruct:melting` file. `Ok(None)` when its data conditions are not met.
     pub fn from_json(id: ResourceId, json: &Value, conditions: &dyn ConditionContext) -> Result<Option<Self>, String> {
         let type_name = json.get("type").and_then(Value::as_str).unwrap_or("");
+        // Forge's conditional recipe: the wrapper's own conditions, then the first entry whose conditions hold is the recipe
+        if type_name == "forge:conditional" {
+            for c in json.get("conditions").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+                if !condition::test(c, conditions)? {
+                    return Ok(None);
+                }
+            }
+            for entry in json.get("recipes").and_then(Value::as_array).ok_or("a conditional recipe needs 'recipes'")? {
+                let mut holds = true;
+                for c in entry.get("conditions").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+                    holds &= condition::test(c, conditions)?;
+                }
+                if holds {
+                    return Self::from_json(id, entry.get("recipe").ok_or("a conditional entry needs a 'recipe'")?, conditions);
+                }
+            }
+            return Ok(None);
+        }
         if !matches!(type_name, "tconstruct:melting" | "tconstruct:damagable_melting" | "tconstruct:ore_melting") {
             return Err("not a melting recipe".to_owned());
         }
@@ -238,6 +256,17 @@ mod tests {
         let mut stone = MeltingSlot::default();
         stone.set_stack(Some((id("minecraft:stone"), 1)), &Recipes);
         assert_eq!(stone.required_time, 0, "no recipe, nothing to heat");
+    }
+
+    #[test]
+    fn a_conditional_wrapper_gives_the_first_entry_whose_conditions_hold() {
+        let wrapper = json!({"type": "forge:conditional", "conditions": [{"type": "forge:true"}], "recipes": [
+            {"conditions": [{"type": "forge:false"}], "recipe": {"type": "tconstruct:melting", "ingredient": {"item": "a:x"}, "result": {"amount": 1, "fluid": "a:first"}, "temperature": 1, "time": 1}},
+            {"conditions": [{"type": "forge:true"}], "recipe": {"type": "tconstruct:melting", "ingredient": {"item": "a:x"}, "result": {"amount": 2, "fluid": "a:second"}, "temperature": 1, "time": 1}}]});
+        let recipe = MeltingRecipe::from_json(id("a:w"), &wrapper, &EmptyContext).unwrap().unwrap();
+        assert_eq!(recipe.result.amount, 2);
+        let gated = json!({"type": "forge:conditional", "conditions": [{"type": "forge:false"}], "recipes": []});
+        assert_eq!(MeltingRecipe::from_json(id("a:g"), &gated, &EmptyContext), Ok(None), "the wrapper's own conditions come first");
     }
 
     #[test]
