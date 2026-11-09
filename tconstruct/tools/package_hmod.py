@@ -44,6 +44,8 @@ def package(output):
     runtime = 'assets/tconstruct/runtime/'
     add(runtime + 'forge-harvest-tags.zip', (MOD / 'content/reference/forge-47.4.0-harvest-tags.zip').read_bytes())
     add(runtime + 'tconstruct-melter-fluids.json', (MOD / 'content/reference/tconstruct-melter-fluids.json').read_bytes())
+    # The Tinker Station's window is drawn by PlutoLib's screen (`station::register`) from this sprite, `tconstruct:gui/tinker_station`.
+    add('assets/tconstruct/textures/gui/tinker_station.png', (MOD / 'assets/tconstruct/gui/tinker_station.png').read_bytes())
     for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel', 'blank_extra_row'):
         add(runtime + 'gui/tconstruct_' + name + '.png', (MOD / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
     icon_sources = json.loads((MOD / 'content/assets/tconstruct/runtime/modifier-icon-sources.json').read_text())

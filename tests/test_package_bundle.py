@@ -29,6 +29,13 @@ class TinkersPackageSlice(unittest.TestCase):
             pkg.package(out)
             with zipfile.ZipFile(out) as z:
                 manifest = tomllib.loads(z.read('mixins/tconstruct_native/horizon-mixin.toml').decode())
+                names = set(z.namelist())
+                self.assertLessEqual(len(names), pkg.MAX_ENTRIES)
+                for kind, key in [('module', 'source'), ('injection', 'helper')]:
+                    for entry in manifest.get(kind, []):
+                        if key in entry:
+                            self.assertIn('mixins/tconstruct_native/' + entry[key], names)
+                self.assertIn('mixins/tconstruct_native/api/src/lib.rs', names)
         ids = {i['id'] for i in manifest['injection']}
         self.assertFalse(ids & {'source-host-mining-context', 'source-client-mining-context', 'tinkers-chest-pick-color'})
         self.assertGreater(len(ids), 100)  # most injections ship; the count falls as they move onto PlutoLib

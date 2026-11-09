@@ -152,8 +152,53 @@ fn stack_to_slot(stack: &StackData) -> Option<pluto_lib::ItemSlot> {
     Some(pluto_lib::ItemSlot { item: pluto_lib::Identifier::parse(&stack.item).ok()?, count: stack.count, damage: stack.damage, max_damage: stack.max_damage, custom_data: stack.custom_data.clone() })
 }
 
-/// The slots of the Tinker Station: five inputs, then the result.
-const RESULT_SLOT: usize = 5;
+/// The wooden station has a tool slot and three inputs; its separate result is last in the menu.
+const RESULT_SLOT: usize = 4;
+
+struct StationLayout {
+    name: String,
+    slots: [Option<[f32; 2]>; 4],
+}
+
+fn layouts() -> &'static [StationLayout] {
+    static ALL: std::sync::OnceLock<Vec<StationLayout>> = std::sync::OnceLock::new();
+    ALL.get_or_init(|| {
+        let mut layouts = Vec::new();
+        for &(kind, id, json) in crate::tinkering_data::FILES {
+            if kind != "station_layouts" { continue; }
+            let json: serde_json::Value = serde_json::from_str(json).expect("generated station layout");
+            let inputs = json["input_slots"].as_array().expect("layout inputs");
+            if inputs.len() > 3 || id.ends_with(":scorched_anvil") { continue; }
+            let position = |v: &serde_json::Value| Some([v["x"].as_f64()? as f32, v["y"].as_f64()? as f32]);
+            let mut slots = [None; 4];
+            slots[0] = position(&json["tool_slot"]);
+            for (i, input) in inputs.iter().enumerate() { slots[i + 1] = position(input); }
+            layouts.push((json["sortIndex"].as_i64().unwrap_or(0), id.to_owned(), StationLayout {
+                name: id.trim_start_matches("tconstruct:").replace('_', " "), slots,
+            }));
+        }
+        layouts.sort_by(|a, b| (a.1 != "tconstruct:tinker_station", a.0, &a.1).cmp(&(b.1 != "tconstruct:tinker_station", b.0, &b.1)));
+        layouts.into_iter().map(|(_, _, layout)| layout).collect()
+    })
+}
+
+fn slot_positions(selection: usize, occupied: u32) -> Vec<Option<[f32; 2]>> {
+    let layout = &layouts()[selection.min(layouts().len() - 1)];
+    let mut dormant = 0;
+    let mut slots: Vec<_> = layout.slots.iter().enumerate().map(|(i, slot)| {
+        if slot.is_some() { return *slot; }
+        // TinkerStationScreen's still-filled row: do not strand an item when its layout is no longer active.
+        let at = [112.0 - 18.0 * dormant as f32, 62.0];
+        dormant += 1;
+        (occupied & (1 << i) != 0).then_some(at)
+    }).collect();
+    slots.push(Some([114.0, 38.0]));
+    slots
+}
+
+fn selected(data: &[i32]) -> usize {
+    data.first().copied().unwrap_or(0).max(0) as usize
+}
 
 /// Every tick of a Tinker Station block entity: puts what the inputs make in the result slot, and when the player has taken the result,
 /// takes the inputs it was made of.
@@ -161,8 +206,21 @@ fn station_tick(tick: &mut pluto_lib::BlockEntityTick<'_>) {
     if tick.items.len() <= RESULT_SLOT {
         tick.items.resize(RESULT_SLOT + 1, None);
     }
+    let occupied = tick.items[..RESULT_SLOT].iter().enumerate().fold(0, |mask, (i, slot)| mask | if slot.is_some() { 1 << i } else { 0 });
+    tick.set_menu_data(1, occupied);
+    let selection = tick.data.get_int("layout", 0).max(0) as usize;
+    tick.set_menu_data(0, selection.min(layouts().len() - 1) as i32);
     let inputs: Vec<Option<StackData>> = tick.items[..RESULT_SLOT].iter().map(|s| s.as_ref().map(slot_to_stack)).collect();
-    let plan = library().station_plan(&inputs, &|stack, tag| library().in_forge_tag(&stack.item, tag));
+    let plan = if inputs[0].as_ref().is_some_and(is_tool) {
+        library().upgrade_plan(&inputs, 0, &|stack, tag| library().in_forge_tag(&stack.item, tag))
+    } else if inputs[0].is_none() {
+        library().build_plan(&inputs[1..]).map(|mut plan| {
+            for (slot, _) in &mut plan.consumed { *slot += 1; }
+            plan
+        })
+    } else {
+        Err("the tool slot contains no modifiable tool".to_owned())
+    };
     let made = tick.data.get_int("made", 0) == 1;
     if made && tick.items[RESULT_SLOT].is_none() {
         // the result was taken: the inputs it was made of go
@@ -197,20 +255,59 @@ fn station_tick(tick: &mut pluto_lib::BlockEntityTick<'_>) {
     }
 }
 
+/// Draws the Tinker Station's window: the GUI texture's 176 x 184 panel, a frame behind each slot and the two labels.
+fn draw_window(draw: &mut pluto_lib::ScreenDraw<'_>) {
+    let [x, y] = draw.origin;
+    if !draw.canvas.sprite("tconstruct:gui/tinker_station", [0.0, 0.0, 176.0, 184.0], [x, y, 176.0, 184.0]) {
+        draw.canvas.fill([x, y, 176.0, 184.0], 0xFFC6C6C6);
+    }
+    for [sx, sy] in slot_positions(selected(draw.data), draw.data.get(1).copied().unwrap_or(0) as u32).into_iter().flatten() {
+        let (fx, fy) = (x + sx - 1.0, y + sy - 1.0);
+        draw.canvas.fill([fx, fy, 18.0, 18.0], 0xFF373737);
+        draw.canvas.fill([fx + 1.0, fy + 1.0, 17.0, 17.0], 0xFFFFFFFF);
+        draw.canvas.fill([fx + 1.0, fy + 1.0, 16.0, 16.0], 0xFF8B8B8B);
+    }
+    for (i, _) in layouts().iter().enumerate() {
+        let bx = x - 116.0 + (i % 6) as f32 * 18.0;
+        let by = y + 8.0 + (i / 6) as f32 * 18.0;
+        draw.canvas.fill([bx, by, 17.0, 17.0], if selected(draw.data) == i { 0xFF88BB88 } else { 0xFFAAAAAA });
+        draw.canvas.text(&(i + 1).to_string(), [bx + 3.0, by + 4.0], 0x202020, false);
+    }
+    draw.canvas.text(&layouts()[selected(draw.data).min(layouts().len() - 1)].name, [x + 8.0, y + 6.0], 0x404040, false);
+    draw.canvas.text("Inventory", [x + 8.0, y + 90.0], 0x404040, false);
+}
+
 /// Registers the Tinker Station's menu and block entity: PlutoLib owns both, the legacy station code is not involved.
 pub fn register() {
     use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
     let id = Identifier::new("tconstruct", "tinker_station").unwrap();
-    let mut layout = ScreenLayout::new(176.0, 166.0);
-    for (x, y) in [(28.0, 25.0), (46.0, 25.0), (64.0, 25.0), (28.0, 43.0), (46.0, 43.0), (124.0, 34.0)] {
-        layout = layout.slot(x, y);
-    }
-    ScreenHandlerRegistry::register(ScreenHandlerType::new(id.clone(), layout).on_slot_rule(|rule| {
+    let mut layout = ScreenLayout::new(176.0, 184.0).with_own_background().with_own_labels().inventory_at(8.0, 102.0);
+    layout.slots = slot_positions(0, 0);
+    ScreenHandlerRegistry::register(ScreenHandlerType::new(id.clone(), layout).on_draw(draw_window)
+        .on_dynamic_slots(|state| {
+            let occupied = state.items.iter().take(RESULT_SLOT).enumerate().fold(0, |mask, (i, slot)| mask | if slot.is_some() { 1 << i } else { 0 });
+            Some(slot_positions(selected(state.data), occupied))
+        })
+        .on_click(|click| {
+            if click.right || click.at[0] < -116.0 || click.at[0] >= -8.0 || click.at[1] < 8.0 { return None; }
+            let col = ((click.at[0] + 116.0) / 18.0) as usize;
+            let row = ((click.at[1] - 8.0) / 18.0) as usize;
+            let id = row * 6 + col;
+            (id < layouts().len()).then_some(id as i32)
+        })
+        .on_button(|button| {
+            if button.id >= 0 && (button.id as usize) < layouts().len() {
+                button.data.insert("layout".to_owned(), Nbt::Int(button.id));
+                button.set_data(0, button.id);
+                println!("tconstruct: station layout {}", layouts()[button.id as usize].name);
+            }
+        })
+        .on_slot_rule(|rule| {
         if rule.slot == RESULT_SLOT {
             rule.may_place = false; // the result slot only gives
         }
     }));
-    BlockEntityTypeRegistry::register(BlockEntityType::new(id).item_slots(6).menu("tconstruct:tinker_station").ticker(station_tick));
+    BlockEntityTypeRegistry::register(BlockEntityType::new(id).item_slots((RESULT_SLOT + 1) as u32).menu("tconstruct:tinker_station").ticker(station_tick));
 }
 
 /// `/tconstruct station`: says what a station would make of the 36 main inventory stacks, without changing anything.

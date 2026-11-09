@@ -75,8 +75,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/table/TinkerStationBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "api/src/station.rs registers the wooden station's tool slot plus three inputs and a result, builds tools and upgrades through the library. station_layout.py checked material-bearing part insertion, pickaxe result and input consumption in game. Repair, part swapping, naming, full recipe matching and transactional result handling are not ported."
     },
     "block/GenericTableBlock.java": {
       "status": "todo",
@@ -155,8 +155,8 @@
       "note": "not yet compared with the port"
     },
     "client/inventory/TinkerStationScreen.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "api/src/station.rs loads the original's station_layouts with at most three inputs and selects them through PlutoLib menu data. station_layout.py checked repair/pickaxe/sword coordinates, occupied dormant slot retrieval, empty slot hiding and reopen in game; eight screenshots captured. Buttons are numbered, not source icons. Naming, equipment slots, tabs and information panels remain unported; no LAN or save/reload check yet."
     },
     "client/inventory/ToolTableScreen.java": {
       "status": "todo",
@@ -243,8 +243,8 @@
       "note": "not yet compared with the port"
     },
     "menu/TinkerStationContainerMenu.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "The PlutoLib content menu now separates tool slot 0, inputs 1..3 and take-only result 4. station_layout.py checked server selection synchronization, dynamic slot hitboxes, crafting and static-screen regression in a real game. Equipment/offhand convenience slots, per-selection server ingredient filters and source result quick-move semantics are not ported."
     },
     "network/StationTabPacket.java": {
       "status": "todo",

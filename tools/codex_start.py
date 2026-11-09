@@ -38,7 +38,7 @@ def main():
     if result.returncode != 0:
         sys.exit('The original source could not be fetched (the container needs internet access for this one step).')
     base = git('rev-parse', 'HEAD')
-    (Path(git('rev-parse', '--absolute-git-dir')) / 'codex-base').write_text(base + '\n', encoding='utf-8')
+    (Path(git('rev-parse', '--absolute-git-dir')) / 'codex-base').write_text(base + '\n', encoding='utf-8', newline='\n')
     print(f'TASK {task_id}: {task["title"]}  [{task.get("kind", "library")}]')
     print(f'STARTS FROM: {base[:10]}')
     print(f'JAVA (read only): {ROOT / ".local/tconstruct-source/src/main/java"}')

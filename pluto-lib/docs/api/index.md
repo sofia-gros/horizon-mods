@@ -51,8 +51,8 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [items](items.md) | tooltips (with the stack's damage and data), using items over time |
 | [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
 | [color](color.md) | the tint of a block's faces, which may depend on where the block stands (stub: the game does not ask yet) |
-| [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients) |
-| [screen](screen.md) | windows for a block's menu: layout, drawing, clicks, tooltips, menu buttons, what each slot takes, shift-click routing, what a hopper may put in |
+| [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients and menu data slots) |
+| [screen](screen.md) | windows for a block's menu: static and dynamic slot positions, drawing, clicks, tooltips, menu buttons, what each slot takes, shift-click routing, what a hopper may put in |
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |
 | [fluid](fluid.md) | fluids a mod defines: id, temperature, light, density, viscosity, colour |
 | [i18n](i18n.md) | translations: text per language, the language in use, switching |

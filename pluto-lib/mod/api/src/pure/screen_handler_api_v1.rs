@@ -81,6 +81,14 @@ impl ScreenLayout {
     }
 }
 
+/// The state a dynamic screen-slot layout can inspect. `items` are the menu's container slots only, in slot order; `data` are its menu data slots.
+pub struct ScreenLayoutContext<'a> {
+    /// The menu's data slots.
+    pub data: &'a [i32],
+    /// The block entity's current item slots, in menu order.
+    pub items: &'a [Option<ItemSlot>],
+}
+
 /// What the draw callback receives.
 pub struct ScreenDraw<'a> {
     /// The window's top left in GUI pixels.
@@ -123,6 +131,13 @@ pub struct MenuButton<'a> {
     pub items: &'a mut Vec<Option<ItemSlot>>,
     /// The stack on the pressing player's cursor, which the callback may change (Minecraft: `Player.containerMenu.getCarried`).
     pub carried: &'a mut Option<ItemSlot>,
+}
+
+impl MenuButton<'_> {
+    /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
+    pub fn set_data(&mut self, index: usize, value: i32) {
+        super::block_entity_api_v1::set_menu_data(self.data, index, value);
+    }
 }
 
 /// What a slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). Change `may_place` and `max_stack`; they come in with the
@@ -171,6 +186,7 @@ pub struct ContainerAccept<'a> {
 }
 
 type Draw = Arc<dyn Fn(&mut ScreenDraw<'_>) + Send + Sync>;
+type DynamicSlots = Arc<dyn Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync>;
 type Click = Arc<dyn Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync>;
 type Tooltip = Arc<dyn Fn(&mut ScreenTooltip<'_>) + Send + Sync>;
 type Button = Arc<dyn Fn(&mut MenuButton<'_>) + Send + Sync>;
@@ -186,6 +202,7 @@ pub struct ScreenHandlerType {
     /// The window's layout.
     pub layout: ScreenLayout,
     draw: Option<Draw>,
+    dynamic_slots: Option<DynamicSlots>,
     click: Option<Click>,
     tooltip: Option<Tooltip>,
     button: Option<Button>,
@@ -197,12 +214,19 @@ pub struct ScreenHandlerType {
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None }
+        Self { block, layout, draw: None, dynamic_slots: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
     pub fn on_draw(mut self, draw: impl Fn(&mut ScreenDraw<'_>) + Send + Sync + 'static) -> Self {
         self.draw = Some(Arc::new(draw));
+        self
+    }
+
+    /// The same window, `dynamic_slots` choosing the container-slot positions from the current menu data and item slots. Return `None` to
+    /// keep the static positions; return exactly one position per container slot to update them.
+    pub fn on_dynamic_slots(mut self, dynamic_slots: impl Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync + 'static) -> Self {
+        self.dynamic_slots = Some(Arc::new(dynamic_slots));
         self
     }
 
@@ -267,6 +291,20 @@ impl ScreenHandlerRegistry {
     pub fn get(block: &str) -> Option<ScreenHandlerType> {
         HANDLERS.lock().ok()?.as_ref()?.get(block).cloned()
     }
+}
+
+/// Whether a registered screen has opted into dynamic container-slot positions.
+pub(crate) fn has_dynamic_slots(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|handler| handler.dynamic_slots.is_some())
+}
+
+/// Resolves dynamic container-slot positions for the current menu state. Invalid slot counts leave the registered static layout intact.
+pub(crate) fn dynamic_slots(block: &str, data: &[i32], items: &[Option<ItemSlot>]) -> Option<Vec<Option<[f32; 2]>>> {
+    let handler = ScreenHandlerRegistry::get(block)?;
+    let resolve = handler.dynamic_slots?;
+    let positions = resolve(&ScreenLayoutContext { data, items });
+    Some(positions.filter(|slots| slots.len() == handler.layout.slots.len() && slots.iter().flatten().all(|p| p.iter().all(|v| v.is_finite())))
+        .unwrap_or(handler.layout.slots))
 }
 
 /// The layout for a block, if it has a window.
@@ -361,6 +399,36 @@ mod tests {
     }
 
     #[test]
+    fn dynamic_slot_positions_follow_current_container_items_without_changing_the_static_layout() {
+        let block = Identifier::parse("test:dynamic_chest").unwrap();
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(block, ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).slot(26.0, 8.0))
+                .on_dynamic_slots(|state| {
+                    match state.data.first() {
+                        Some(1) => return None,
+                        Some(2) => return Some(vec![]),
+                        Some(3) => return Some(vec![Some([f32::NAN, 0.0]), None]),
+                        _ => {}
+                    }
+                    let first = state.items.first().and_then(Option::as_ref).map(|stack| stack.item.to_string());
+                    Some(if first.as_deref() == Some("test:wide_part") {
+                        vec![Some([8.0, 44.0]), Some([44.0, 8.0])]
+                    } else {
+                        vec![Some([8.0, 8.0]), Some([26.0, 8.0])]
+                    })
+                }),
+        );
+        assert!(has_dynamic_slots("test:dynamic_chest"));
+        let item = ItemSlot::new(Identifier::parse("test:wide_part").unwrap(), 1);
+        assert_eq!(dynamic_slots("test:dynamic_chest", &[], &[Some(item)]), Some(vec![Some([8.0, 44.0]), Some([44.0, 8.0])]));
+        assert_eq!(layout("test:dynamic_chest").unwrap().slots, vec![Some([8.0, 8.0]), Some([26.0, 8.0])]);
+        assert_eq!(dynamic_slots("test:dynamic_chest", &[], &[None]), Some(vec![Some([8.0, 8.0]), Some([26.0, 8.0])]));
+        for data in [1, 2, 3] {
+            assert_eq!(dynamic_slots("test:dynamic_chest", &[data], &[]), Some(vec![Some([8.0, 8.0]), Some([26.0, 8.0])]));
+        }
+    }
+
+    #[test]
     fn a_window_has_its_layout_draws_answers_clicks_adds_tooltips_and_handles_the_server_button() {
         ScreenHandlerRegistry::register(
             ScreenHandlerType::new(Identifier::parse("test:oven").unwrap(), ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).hidden_slot())
@@ -376,6 +444,9 @@ mod tests {
                     }
                 })
                 .on_button(|b| {
+                    b.set_data(0, b.id);
+                    b.set_data(1, 100_000);
+                    b.set_data(256, 4);
                     b.data.insert("pressed".into(), Nbt::Int(b.id));
                     b.items.push(None);
                     *b.carried = None;
@@ -425,6 +496,7 @@ mod tests {
         let mut carried = Some(ItemSlot::new(Identifier::parse("test:fuel").unwrap(), 3));
         assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried));
         assert_eq!(data.get_int("pressed", 0), 7);
+        assert_eq!(data.get("pluto:menu_data"), Some(&Nbt::IntArray(vec![7, 32767])));
         assert_eq!(items.len(), 1);
         assert_eq!(carried, None, "the button took what was on the cursor");
         assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried));

@@ -55,7 +55,22 @@ pub struct BlockEntityTick<'a> {
     pub items: &'a mut Vec<Option<ItemSlot>>,
 }
 
+/// Stores one menu data slot in saved data; Horizon synchronizes it to viewers of the content menu.
+pub(crate) fn set_menu_data(data: &mut NbtCompound, index: usize, value: i32) {
+    if index >= 256 { return; }
+    let slots = data.entry("pluto:menu_data".to_owned()).or_insert_with(|| Nbt::IntArray(Vec::new()));
+    if let Nbt::IntArray(slots) = slots {
+        slots.resize(slots.len().max(index + 1), 0);
+        slots[index] = value.clamp(i16::MIN as i32, i16::MAX as i32);
+    }
+}
+
 impl BlockEntityTick<'_> {
+    /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
+    pub fn set_menu_data(&mut self, index: usize, value: i32) {
+        set_menu_data(self.data, index, value);
+    }
+
     /// The fluid in tank `index`, if it holds any (tanks are declared with [`BlockEntityType::fluid_tanks`]).
     pub fn fluid(&self, index: usize) -> Option<FluidStack> {
         let tank = self.data.get("fluids")?.as_list()?.get(index)?.as_compound()?;

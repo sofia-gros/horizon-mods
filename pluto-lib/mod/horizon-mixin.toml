@@ -130,3 +130,32 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_may_place_on
 kind = "HEAD"
 helper = "pluto-block-may-place-on.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "ground", ty = "BlockStateId", value = "ground" }, { name = "ground_pos", ty = "BlockPos", value = "ground_pos" }, { name = "may", ty = "&mut Option<bool>", value = "&mut *may" }]
+
+# Optional dynamic slot positions. Shipped in the standalone PlutoLib bundle, not the legacy bundle.
+[[module]]
+id = "dynamic-screen-slots-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_dynamic_screen_slots"
+source = "dynamic-screen-slots-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "dynamic-screen-slots"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_dynamic_screen_slots"
+source = "dynamic-screen-slots.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "dynamic-screen-slots-update"
+target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
+kind = "RETURN"
+helper = "dynamic-screen-slots-update.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dynamic-screen-slots-data-update"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_data"
+kind = "RETURN"
+helper = "dynamic-screen-slots-data-update.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

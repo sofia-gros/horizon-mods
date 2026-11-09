@@ -18,7 +18,7 @@ SALVAGE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstru
 RECIPES = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers'
 ITEM_TAGS = ROOT / 'tconstruct/content/data/tconstruct/tags/item'
 FORGE_TAGS = ROOT / 'tconstruct/content/data/forge/tags/item'
-KINDS = ('materials/definition', 'materials/stats', 'materials/traits', 'tags/materials', 'modifiers', 'tags/modifiers', 'tool_definitions')
+KINDS = ('materials/definition', 'materials/stats', 'materials/traits', 'tags/materials', 'modifiers', 'tags/modifiers', 'tool_definitions', 'station_layouts')
 
 
 def main(argv):
