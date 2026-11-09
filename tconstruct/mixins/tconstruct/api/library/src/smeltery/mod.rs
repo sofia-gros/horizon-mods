@@ -8,3 +8,4 @@ pub mod tank;
 pub mod heating;
 pub mod channel;
 pub mod faucet;
+pub mod can;

@@ -439,20 +439,20 @@
       "note": "not yet compared with the port"
     },
     "item/CopperCanFluidHandler.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::can::CanStack`: capacity of an ingot for each can in the stack, fill only an empty can with at least the capacity (takes exactly it), drain the whole content, a named drain needing the same fluid and data, and the crafting remainder; unit-tested. Registering it as the item's capability is the item's part"
     },
     "item/CopperCanItem.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the stack data (`fluid` and `fluid_tag`, set and remove) is library `smeltery::can::CanContents`; the item class, its tooltip and its crafting remainder registration are not done"
     },
     "item/DummyMaterialItem.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "item/ScaledFluidTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::can::ScaledTank`: capacity and amounts in whole units of the scale, fill and drain rounded down to whole units, saved in units; unit-tested"
     },
     "item/TankItem.java": {
       "status": "todo",
