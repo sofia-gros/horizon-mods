@@ -7,3 +7,4 @@ pub mod casting;
 pub mod tank;
 pub mod heating;
 pub mod channel;
+pub mod faucet;

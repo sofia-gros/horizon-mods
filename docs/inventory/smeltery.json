@@ -159,8 +159,8 @@
       "note": "the tick (four phases: find fuel, heat or cool the slots, alloy, burn fuel and show the active state; cooling when there is no fuel tank; the size setting the capacity, the slots and the fuel rate) is library `smeltery::heating::Heating::heat_tick` with five unit tests, over the library's melting, fuel, alloy and tank parts; the block entity, the structure check calls, the entity melting, the expansion check, the sync and the servants are not done"
     },
     "block/entity/FaucetBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the pouring logic (a click starts, stops at the end of the packet, or switches a waiting faucet off; the redstone wait; a packet of 90 poured 10 a tick; only what the output takes is drained; no output resets; the syncs for the clients) is library `smeltery::faucet::Faucet` with five unit tests; the block entity, the neighbor handler lookup and caches, the saved form and the activation packet are not done"
     },
     "block/entity/FluidCannonBlockEntity.java": {
       "status": "todo",
