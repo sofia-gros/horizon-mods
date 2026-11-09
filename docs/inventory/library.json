@@ -2263,12 +2263,12 @@
       "note": "not yet compared with the port"
     },
     "recipe/entitymelting/EntityMeltingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::entity_melting::EntityMeltingRecipe`: the entity as a type, a list of types, a tag or a list of those, the fluid with the data it carries, the damage (default 2), data conditions; loads all 32 of the original's entity melting files (by test)"
     },
     "recipe/entitymelting/EntityMeltingRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder"
     },
     "recipe/entitymelting/EntityMeltingRecipeCache.java": {
       "status": "todo",
