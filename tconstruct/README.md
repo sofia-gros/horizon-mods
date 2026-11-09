@@ -23,9 +23,9 @@ These commands run in a real game (`tools/smoke-local`, the full probe checks ea
 | `/tconstruct build <tool> <materials...>` | gives a tool, one material for each part in order (the last covers the rest) |
 | `/tconstruct part <part> <material>` | gives a tool part that carries its material |
 | `/tconstruct craft` | makes the first tool whose parts are in the inventory, from the materials they carry |
-| `/tconstruct upgrade <modifier>` | adds a level of a modifier to the first tool with the slots for it (slot cost and tools from the original's recipes) |
+| `/tconstruct upgrade <modifier>` | adds a level of a modifier to the first tool with the slots for it (slot cost, tools and the items it takes from the original's recipes; the items are taken from your inventory) |
 
-A tool made this way acts in play: it digs with its mining speed where its definition says it is effective and its harvest tier can harvest the block, it wears against its own max damage, it hits for its attack damage, and its tooltip describes it. Not yet: haste and fatigue, the game's cooldown scaling on hits, ranged tools, armor, the Tinker Station and Part Builder screens on PlutoLib (the legacy ones still work on their own data), the material costs of upgrades, removing modifiers, and most of the modifier modules (6 of 165 carry behaviour; the rest are kept as data). The roadmap ([docs/roadmap.md](../docs/roadmap.md)) has the plan and the decision log.
+A tool made this way acts in play: it digs with its mining speed where its definition says it is effective and its harvest tier can harvest the block, it wears against its own max damage, it hits for its attack damage, and its tooltip describes it. Not yet: haste and fatigue, the game's cooldown scaling on hits, ranged tools, armor, the Tinker Station and Part Builder screens on PlutoLib (the legacy ones still work on their own data), the item costs of the multi-level and swappable modifier recipes, removing modifiers, and most of the modifier modules (6 of 165 carry behaviour; the rest are kept as data). The roadmap ([docs/roadmap.md](../docs/roadmap.md)) has the plan and the decision log.
 
 ## What exists but has not been run in a game
 

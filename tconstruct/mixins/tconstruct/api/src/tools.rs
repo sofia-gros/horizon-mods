@@ -43,8 +43,61 @@ pub struct ToolLibrary {
     pub item_tags: BTreeMap<ResourceId, Vec<ResourceId>>,
     /// For each modifier a recipe adds: the slots it costs and the item tag of the tools it goes on.
     pub salvage: HashMap<tconstruct_library::modifiers::ModifierId, (BTreeMap<String, i32>, String)>,
+    /// For each modifier: the recipes that add a level of it, with the items each costs.
+    pub recipes: HashMap<tconstruct_library::modifiers::ModifierId, Vec<ModifierRecipe>>,
     /// What loading found wrong, as the original would log it.
     pub problems: Vec<String>,
+}
+
+/// What one level of a modifier costs in items: an item (`minecraft:leather`) or an item tag (`#forge:string`) and how many.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Ingredient {
+    Item(String),
+    Tag(String),
+}
+
+/// A recipe that adds one level of a modifier: the levels it can give and the items it takes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ModifierRecipe {
+    pub min_level: i32,
+    pub max_level: i32,
+    pub inputs: Vec<(Ingredient, u32)>,
+}
+
+fn ingredient(json: &Value) -> Option<Ingredient> {
+    if let Some(item) = json.get("item").and_then(Value::as_str) {
+        return Some(Ingredient::Item(item.to_owned()));
+    }
+    Some(Ingredient::Tag(json.get("tag").and_then(Value::as_str)?.to_owned()))
+}
+
+/// Reads a `tconstruct:modifier` or `tconstruct:incremental_modifier` recipe; None for a shape that is not carried.
+pub fn parse_recipe(json: &Value) -> Option<(tconstruct_library::modifiers::ModifierId, ModifierRecipe)> {
+    let modifier = tconstruct_library::modifiers::ModifierId::try_parse(json.get("result")?.as_str()?)?;
+    let (min_level, max_level) = match json.get("level") {
+        Some(Value::Number(n)) => (n.as_i64()? as i32, n.as_i64()? as i32),
+        Some(Value::Object(o)) => (o.get("min").and_then(Value::as_i64).unwrap_or(1) as i32, o.get("max").and_then(Value::as_i64).unwrap_or(i32::MAX as i64) as i32),
+        _ => (1, 1),
+    };
+    let mut inputs: Vec<(Ingredient, u32)> = Vec::new();
+    let mut add = |what: Ingredient, count: u32| match inputs.iter_mut().find(|(i, _)| *i == what) {
+        Some((_, n)) => *n += count,
+        None => inputs.push((what, count)),
+    };
+    match json.get("type")?.as_str()? {
+        "tconstruct:modifier" => {
+            for input in json.get("inputs")?.as_array()? {
+                add(ingredient(input)?, 1);
+            }
+        }
+        "tconstruct:incremental_modifier" => {
+            let needed = json.get("needed_per_level")?.as_u64()? as u32;
+            let each = json.get("amount_per_item").and_then(Value::as_u64).unwrap_or(1).max(1) as u32;
+            add(ingredient(json.get("input")?)?, needed.div_ceil(each));
+        }
+        _ => return None,
+    }
+    Some((modifier, ModifierRecipe { min_level, max_level, inputs }))
 }
 
 fn files(kind: &str) -> Vec<(ResourceId, Value)> {
@@ -92,7 +145,13 @@ impl ToolLibrary {
             let tag = json.get("tools").and_then(|t| t.get("tag")).and_then(Value::as_str).unwrap_or("tconstruct:modifiable").to_owned();
             salvage.insert(modifier, (slots, tag));
         }
-        Self { stats, materials, modifiers, definitions, item_tags, salvage, problems }
+        let mut recipes: HashMap<_, Vec<ModifierRecipe>> = HashMap::new();
+        for (_, json) in files("modifier_recipes") {
+            if let Some((modifier, recipe)) = parse_recipe(&json) {
+                recipes.entry(modifier).or_default().push(recipe);
+            }
+        }
+        Self { stats, materials, modifiers, definitions, item_tags, salvage, recipes, problems }
     }
 }
 
@@ -401,6 +460,13 @@ pub fn craft_command(ctx: &pluto_lib::CommandContext) -> i32 {
 impl ToolLibrary {
     /// The tool stack with one more level of `modifier`, if the tool has the slots and the modifier goes on it. Err with the reason.
     pub fn upgrade(&self, tool: &pluto_lib::StackData, modifier: &str) -> Result<pluto_lib::StackData, String> {
+        self.upgrade_paying(tool, modifier, &mut |_| Ok(()))
+    }
+
+    /// Like [`upgrade`](Self::upgrade), and the items of the recipe for the new level are paid through `pay` once the slots and the tool fit:
+    /// `pay` gets the inputs of one recipe, returns Ok when it took them, Err with the reason when it could not. Each recipe that can give the
+    /// level is tried in turn; a modifier without a carried recipe costs no items.
+    pub fn upgrade_paying(&self, tool: &pluto_lib::StackData, modifier: &str, pay: &mut dyn FnMut(&[(Ingredient, u32)]) -> Result<(), String>) -> Result<pluto_lib::StackData, String> {
         use pluto_lib::Nbt;
         use tconstruct_library::modifiers::{ModifierEntry, ModifierId};
         let id = ModifierId::try_parse(&format!("tconstruct:{}", modifier.trim_start_matches("tconstruct:"))).ok_or("bad modifier id")?;
@@ -426,6 +492,29 @@ impl ToolLibrary {
                 return Err(format!("not enough {slot} slots: {left} left, {count} needed"));
             }
         }
+        let new_level = upgrades.iter().find(|u| u.modifier == id).map_or(1, |u| u.level + 1);
+        if let Some(candidates) = self.recipes.get(&id) {
+            let fitting: Vec<&ModifierRecipe> = candidates.iter().filter(|r| r.min_level <= new_level && new_level <= r.max_level).collect();
+            if fitting.is_empty() {
+                return Err(format!("no recipe gives {id} level {new_level}"));
+            }
+            let mut first_error = None;
+            let mut paid = false;
+            for recipe in fitting {
+                match pay(&recipe.inputs) {
+                    Ok(()) => {
+                        paid = true;
+                        break;
+                    }
+                    Err(error) => {
+                        first_error.get_or_insert(error);
+                    }
+                }
+            }
+            if !paid {
+                return Err(first_error.unwrap_or_default());
+            }
+        }
         match upgrades.iter_mut().find(|u| u.modifier == id) {
             Some(existing) => existing.level += 1,
             None => upgrades.push(ModifierEntry { modifier: id, level: 1 }),
@@ -446,7 +535,26 @@ pub fn upgrade_command(ctx: &pluto_lib::CommandContext) -> i32 {
         if !tool.custom_data.contains_key("tconstruct:stats") {
             continue;
         }
-        match library().upgrade(&tool, modifier) {
+        let player = &ctx.source;
+        let mut pay = |inputs: &[(Ingredient, u32)]| -> Result<(), String> {
+            let have = |what: &Ingredient| match what {
+                Ingredient::Item(item) => player.count_item(item),
+                Ingredient::Tag(tag) => player.count_in_tag(tag.trim_start_matches('#')),
+            };
+            for (what, need) in inputs {
+                if have(what) < *need {
+                    return Err(format!("needs {need} of {what:?}, you carry {}", have(what)));
+                }
+            }
+            for (what, need) in inputs {
+                match what {
+                    Ingredient::Item(item) => player.take_item(item, *need),
+                    Ingredient::Tag(tag) => player.take_in_tag(tag.trim_start_matches('#'), *need),
+                };
+            }
+            Ok(())
+        };
+        match library().upgrade_paying(&tool, modifier, &mut pay) {
             Ok(upgraded) => {
                 if ctx.source.update_stack(slot, &upgraded) {
                     println!("tconstruct: upgraded {} with {modifier} in slot {slot}: {}", upgraded.item, tooltip_lines(&upgraded).join(" | "));

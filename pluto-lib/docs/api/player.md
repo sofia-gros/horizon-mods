@@ -158,6 +158,41 @@ with_ops(&mut game, || {
 });
 ```
 
+### `ServerPlayer::count_in_tag`
+
+`fn count_in_tag(&self, tag: &str) -> u32`. How many items of the item tag `tag` the player carries in the main inventory. 0 outside a callback.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+game.item_tags.insert("minecraft:planks".into(), vec!["minecraft:oak_planks".into(), "minecraft:birch_planks".into()]);
+with_ops(&mut game, || {
+    player.give_item("minecraft:oak_planks", 3);
+    player.give_item("minecraft:birch_planks", 2);
+    assert_eq!(player.count_in_tag("minecraft:planks"), 5);
+});
+```
+
+### `ServerPlayer::take_in_tag`
+
+`fn take_in_tag(&self, tag: &str, count: u32) -> u32`. Takes up to `count` items of the item tag `tag` and returns how many were taken. 0 outside a callback.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+game.item_tags.insert("minecraft:planks".into(), vec!["minecraft:oak_planks".into(), "minecraft:birch_planks".into()]);
+with_ops(&mut game, || {
+    player.give_item("minecraft:oak_planks", 3);
+    player.give_item("minecraft:birch_planks", 2);
+    assert_eq!(player.take_in_tag("minecraft:planks", 4), 4);
+    assert_eq!(player.count_in_tag("minecraft:planks"), 1);
+});
+```
+
 ### `ServerPlayer::language`
 
 `fn language(&self) -> String`. The language option of the player's client (`en_us`, `ja_jp`, ...); `en_us` outside a callback that carries this player. Use it to write a message in the player's language with `I18n::translate_in` (see [i18n](i18n.md)).
@@ -432,7 +467,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 ### `MemoryPlayerOps`
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player.
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
