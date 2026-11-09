@@ -508,7 +508,9 @@ assert!(behavior.block().path() == "post");
 
 ### `BlockBehavior::entity_inside`
 
-`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. Stub: the callbacks are accepted and not called yet (see the support matrix).
+`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. Observe an entity touching the mod block on its authoritative server. PlutoLib's pinned source Mixins resolve the numeric state against that server's asset registry, preserving the block's properties, dimension, position, entity id and entity type. This callback does not cancel the game's contact handling or provide mutable player/world operations.
+
+> **Use with Caution.** Idle overlap can notify again on later ticks; this is not an enter/leave event. Horizon suppresses repeated sweep hits within one contact pass and only dispatches these contacts for non-`minecraft` blocks. Unknown state ids or an unavailable registry are ignored rather than guessed.
 
 ```rust
 use pluto_lib::{BlockBehavior, Identifier};

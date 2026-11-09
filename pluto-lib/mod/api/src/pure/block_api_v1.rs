@@ -691,6 +691,22 @@ mod tests {
     }
 
     #[test]
+    fn inside_keeps_state_properties_and_entity_identity_without_calling_other_blocks() {
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        BlockBehaviors::register(BlockBehavior::new(id("example:contact")).entity_inside(move |c| log.lock().unwrap().push(c.clone())));
+        let context = EntityInsideContext {
+            dimension: "minecraft:the_nether".to_owned(),
+            state: BlockState::parse("example:contact[facing=west,powered=true]").unwrap(),
+            pos: [-2, 65, 7], entity: 41, kind: "minecraft:zombie".to_owned(),
+        };
+        inside("example:unregistered_contact", &context);
+        assert!(seen.lock().unwrap().is_empty());
+        inside("example:contact", &context);
+        assert_eq!(*seen.lock().unwrap(), [context]);
+    }
+
+    #[test]
     fn directions_turn_and_step_as_the_game_does() {
         assert_eq!(Direction::North.clockwise(), Direction::East);
         assert_eq!(Direction::Up.clockwise(), Direction::Up);

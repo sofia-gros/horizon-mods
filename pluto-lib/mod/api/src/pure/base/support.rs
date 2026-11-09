@@ -42,12 +42,6 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "horizon-mixins accepting an injection into the mesher's face tint (E_UNSUPPORTED_CONTROL_FLOW today)",
     },
     SupportEntry {
-        api: "block_api_v1::BlockBehavior::entity_inside",
-        support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked",
-        unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
-    },
-    SupportEntry {
         api: "player_api::ServerPlayer::add_food",
         support: Support::Stub,
         behaviour: "does nothing and returns false; the food level is unchanged",

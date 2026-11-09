@@ -696,6 +696,13 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         };
         block_api_v1::shape_update(&block, &context).map(|changed| to_info(&changed))
     }
+    fn entity_inside(dimension: &str, state: &StateInfo, pos: [i32; 3], entity: i32, kind: &str) {
+        let Some(state) = to_state(state) else { return };
+        let block = state.block.to_string();
+        block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
+            dimension: dimension.to_owned(), state, pos, entity, kind: kind.to_owned(),
+        });
+    }
     fn random_tick(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> bool {
         let Some(state) = to_state(state) else { return false };
         let block = state.block.to_string();
@@ -731,6 +738,7 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         survives,
         placement,
         update_shape,
+        entity_inside,
         random_tick,
         scheduled_tick,
         bonemeal_valid,
