@@ -43,7 +43,7 @@ impl ServerLifecycleEvents {
     pub const SERVER_STARTED: &'static Event<ServerInfo, ()> = &SERVER_STARTED;
     /// Fabric: `SERVER_STOPPING`.
     pub const SERVER_STOPPING: &'static Event<ServerInfo, ()> = &SERVER_STOPPING;
-    /// Fabric: `SERVER_STOPPED`. Stub: Horizon has no matching hook point yet.
+    /// Fabric: `SERVER_STOPPED`. The server finished a successful final save and teardown; no live player operations are available.
     pub const SERVER_STOPPED: &'static Event<ServerInfo, ()> = &SERVER_STOPPED;
 }
 
@@ -76,8 +76,10 @@ impl ServerChunkEvents {
 // The dispatchers below are what the Horizon hook translation (hooks.rs) calls.
 
 static STARTED_PENDING: std::sync::Mutex<Option<bool>> = std::sync::Mutex::new(None);
+static STOPPING_PENDING: std::sync::Mutex<Option<bool>> = std::sync::Mutex::new(None);
 
 pub(crate) fn server_starting(dedicated: bool) {
+    if let Ok(mut pending) = STOPPING_PENDING.lock() { *pending = None; }
     SERVER_STARTING.invoke(&ServerInfo { dedicated });
     if let Ok(mut pending) = STARTED_PENDING.lock() {
         *pending = Some(dedicated);
@@ -85,7 +87,17 @@ pub(crate) fn server_starting(dedicated: bool) {
 }
 
 pub(crate) fn server_stopping(dedicated: bool) {
+    if let Ok(mut pending) = STARTED_PENDING.lock() { *pending = None; }
+    if let Ok(mut pending) = STOPPING_PENDING.lock() { *pending = Some(dedicated); }
     SERVER_STOPPING.invoke(&ServerInfo { dedicated });
+}
+
+/// Called only after the host's stop routine returns successfully, not when saving fails.
+pub(crate) fn server_stopped(dedicated: bool) {
+    let ready = STOPPING_PENDING.lock().ok().and_then(|mut pending| {
+        if *pending == Some(dedicated) { pending.take() } else { None }
+    });
+    if ready.is_some() { SERVER_STOPPED.invoke(&ServerInfo { dedicated }); }
 }
 
 pub(crate) fn server_tick(start: bool) {
@@ -136,6 +148,25 @@ mod tests {
         server_tick(true);
         server_tick(true);
         assert_eq!(*seen.lock().unwrap(), [true], "once");
+
+        let stopped = Arc::new(Mutex::new(Vec::new()));
+        let log = stopped.clone();
+        ServerLifecycleEvents::SERVER_STOPPED.register(move |server| log.lock().unwrap().push(server.dedicated));
+        server_stopped(true);
+        assert!(stopped.lock().unwrap().is_empty(), "not before stopping");
+        server_stopping(true);
+        assert!(stopped.lock().unwrap().is_empty(), "stopping is not stopped");
+        server_stopped(false);
+        assert!(stopped.lock().unwrap().is_empty(), "not another server kind");
+        server_stopped(true);
+        server_stopped(true);
+        assert_eq!(*stopped.lock().unwrap(), [true], "only one stopped notification");
+        server_starting(false);
+        server_stopping(false);
+        server_tick(true);
+        assert_eq!(*seen.lock().unwrap(), [true], "an early stop cancels the queued started event");
+        server_stopped(false);
+        assert_eq!(*stopped.lock().unwrap(), [true, false]);
     }
 
     #[test]

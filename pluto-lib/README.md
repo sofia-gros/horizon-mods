@@ -29,7 +29,7 @@ ServerPlayConnectionEvents::JOIN.register(|player| println!("{} joined", player.
 In `mod/` (built with Horizon's official launcher):
 
 - `base`: `Event` (phases, ordering, combiners), `Identifier`, `ActionResult`, and the support matrix: the list of calls that exist but do nothing yet because the host cannot do them.
-- `lifecycle_events_v1`: `ServerLifecycleEvents` (`SERVER_STARTING`, `SERVER_STOPPING`), `ServerTickEvents` (server and world tick start and end), `ServerChunkEvents` (`CHUNK_LOAD`, `CHUNK_UNLOAD`).
+- `lifecycle_events_v1`: `ServerLifecycleEvents` (`SERVER_STARTING`, `SERVER_STARTED`, `SERVER_STOPPING`, `SERVER_STOPPED` after successful teardown), `ServerTickEvents` (server and world tick start and end), `ServerChunkEvents` (`CHUNK_LOAD`, `CHUNK_UNLOAD`).
 - `networking_api_v1`: `ServerPlayConnectionEvents` (`JOIN`, `DISCONNECT`); callbacks receive a `ServerPlayer`.
 - `player_api`: `ServerPlayer` with `send_message`, `give_item` and the stacks of its inventory (`stack`, `give_stack`, `update_stack` with damage, max damage and custom data per stack). The handle is plain data; its methods reach the game only while a callback that carries a player runs (outside, they do nothing and say so).
 - `data_attachment_api_v1`: `AttachmentRegistry::create(id, default)` and `has_attached` / `get_attached` / `get_attached_existing` / `set_attached` on `ServerPlayer`; values are serde types saved with the player. Players only so far; worlds, chunks, block entities and other entities follow.
@@ -44,9 +44,9 @@ In `mod/` (built with Horizon's official launcher):
 - `block_entity_api_v1`: `ItemSlot` keeps damage, max damage and custom data of each stack in a block entity's item slots, so a block can take tools and tool parts that carry data.
 - `events_interaction_v0` also has `UseItemOnBlockCallback`, `BreakSpeedCallback` and `UseItemFinishCallback`; `screen_handler_api_v1` keeps static `ScreenLayout` and adds opt-in dynamic container-slot positions, alongside slot rules, shift-click routing and hopper acceptance. `MenuButton::set_data` and `BlockEntityTick::set_menu_data` synchronize menu values for drawing and layouts.
 
-Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
+Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members still exist as stubs (`PlayerBlockBreakEvents::AFTER` and `CANCELED`, for example); the list is `base/support.rs`.
 
-**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `CHUNK_LOAD`, `JOIN`, `END_SERVER_TICK` and `LootTableEvents::MODIFY` in the game log, and from the `JOIN` callback it sent the player a message and gave them an item (`send_message=true give_left=0`). The other events compile and follow the same path but have not been seen firing yet (the client-resources reload did not fire in the offscreen test run).
+**Verified in a running game:** a mod that depends on PlutoLib and uses only its API (`tests/probe`, run by `tools/smoke-local/probe_pluto_lib.py`) saw `SERVER_STARTING`, `SERVER_STOPPING` and `SERVER_STOPPED` exactly once in order on a clean integrated-server shutdown, plus `CHUNK_LOAD`, `JOIN`, `END_SERVER_TICK` and `LootTableEvents::MODIFY`. From `JOIN` it sent a message and gave an item (`send_message=true give_left=0`). Dedicated shutdown compiles but its separate runtime check has not run; it requires an owner-accepted EULA. Client-resources reload did not fire in the offscreen run.
 The old unified bundle in `mixins/` (creative tabs, inventory, fluids, protection, tool rules and more) still ships and is migrated into `mod/` module by module.
 Of its eleven composition guards only `protection` passes on the current Horizon; the rest need re-review ([docs/migration/](../docs/migration/)).
 

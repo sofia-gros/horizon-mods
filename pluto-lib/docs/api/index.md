@@ -42,7 +42,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | Page | What it covers |
 |---|---|
 | [base](base.md) | `Event`, `Identifier`, `ActionResult`, the support matrix |
-| [lifecycle](lifecycle.md) | server start and stop, ticks, chunk load and unload |
+| [lifecycle](lifecycle.md) | server start, stopping and successful stopped events, ticks, chunk load and unload |
 | [networking](networking.md) | a player joins or leaves |
 | [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, breaking blocks and how fast |
 | [entities](entities.md) | entities entering and leaving worlds, damage (allow it or change its amount, with the attacker's stack), death |

@@ -47,7 +47,7 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk| {
 });
 ```
 
-> **Use with Caution.** `SERVER_STARTED` is called at the first server tick after the server started, because Horizon has no earlier point. `SERVER_STOPPED` is accepted but not called yet (support matrix).
+> **Use with Caution.** `SERVER_STARTED` is called at the first server tick after the server started, because Horizon has no earlier point. `SERVER_STOPPED` runs after the integrated or dedicated server's successful final save and teardown, through PlutoLib's pinned source Mixins. A failed save does not report successful completion. No live player operations are available there.
 
 ## Reference
 
@@ -100,7 +100,7 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk: &ServerChunk| {
 
 ### `ServerLifecycleEvents`
 
-The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` work. `SERVER_STARTED` is invoked at the first server tick after the server started; `SERVER_STOPPED` is accepted but never invoked yet (see the support matrix: Horizon has no matching hook point).
+The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` run before startup and teardown; `SERVER_STARTED` is invoked at the first server tick after startup. `SERVER_STOPPED` runs once after a successful final save and teardown of an integrated or dedicated server. It is not emitted when the stop routine returns a save/teardown error.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -143,7 +143,7 @@ ServerLifecycleEvents::SERVER_STOPPING.invoke(&ServerInfo { dedicated: true });
 
 ### `ServerLifecycleEvents::SERVER_STOPPED`
 
-Stub: the server has finished stopping. Callbacks are accepted and not invoked yet.
+The server has finished its successful final save and teardown. The callback receives `ServerInfo { dedicated }`; use it to release mod-owned resources, not to operate on departed players. A crash or failed final save is not reported as successful shutdown.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;

@@ -270,6 +270,8 @@ pub fn hooks() -> Box<dyn Hooks> {
         }
     });
     ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
+    ServerLifecycleEvents::SERVER_STOPPING.register(|s| println!("PLUTO-PROBE server_stopping dedicated={}", s.dedicated));
+    ServerLifecycleEvents::SERVER_STOPPED.register(|s| println!("PLUTO-PROBE server_stopped dedicated={}", s.dedicated));
     ServerPlayConnectionEvents::JOIN.register(|p| {
         println!("PLUTO-PROBE join name={}", p.name);
         println!(

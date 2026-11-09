@@ -12,7 +12,7 @@ import argparse, json, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED = ('PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
+EXPECTED = ('PLUTO-PROBE server_stopping dedicated=false', 'PLUTO-PROBE server_stopped dedicated=false', 'PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
             'PLUTO-PROBE loot_modify', 'PLUTO-PROBE player send_message=true give_left=0',
             'PLUTO-PROBE attachment stored=true now=',
             'PLUTO-PROBE effects gave=true have=["minecraft:speed:1"]',
@@ -163,6 +163,9 @@ lines = [l for l in game_log.read_text(errors='replace').splitlines() if 'PLUTO-
 missing = [e for e in EXPECTED if not any(e in l for l in lines)]
 if missing:
     sys.exit(f'PROBE FAIL: events that did not fire: {missing}; saw {lines}; log {game_log}')
+lifecycle = [f'PLUTO-PROBE server_{phase} dedicated=false' for phase in ('starting', 'stopping', 'stopped')]
+if any(sum(line == event for line in lines) != 1 for event in lifecycle) or [lines.index(event) for event in lifecycle] != sorted(lines.index(event) for event in lifecycle):
+    sys.exit(f'PROBE FAIL: lifecycle events must fire once, in starting/stopping/stopped order; log {game_log}')
 print('PROBE PASS')
 for l in lines:
     print(' ', l)
