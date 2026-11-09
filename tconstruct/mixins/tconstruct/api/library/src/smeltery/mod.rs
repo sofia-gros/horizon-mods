@@ -10,3 +10,4 @@ pub mod channel;
 pub mod faucet;
 pub mod can;
 pub mod casting_station;
+pub mod entity_melting;

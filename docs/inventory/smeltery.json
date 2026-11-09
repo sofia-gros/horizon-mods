@@ -231,8 +231,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/EntityMeltingModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the decision for one entity (not melted when dead, on the blacklist, protected from the fire, or when the structure cannot melt now; else the damage and fluid of its recipe, or two damage and 50 mB of liquid soul) is library `smeltery::entity_melting::melt` with unit tests; finding the entities in the structure's box, hurting them and adding the fluid, and moving item entities into the structure are not done"
     },
     "block/entity/module/FuelModule.java": {
       "status": "partial",

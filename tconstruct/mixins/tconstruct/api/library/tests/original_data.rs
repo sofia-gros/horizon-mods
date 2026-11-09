@@ -388,3 +388,25 @@ fn the_originals_filling_duplication_and_potion_casting_recipes_load() {
     }
     assert_eq!(counts, [14, 1, 4]);
 }
+
+#[test]
+fn the_originals_entity_melting_recipes_load() {
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/smeltery/entity_melting"));
+    let mut loaded = 0;
+    let mut entity_files = 0;
+    for (id, json) in &recipes {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:entity_melting") {
+            continue; // the mob head recipes beside them are plain melting recipes
+        }
+        entity_files += 1;
+        match tconstruct_library::smeltery::entity_melting::EntityMeltingRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(Some(_)) => loaded += 1,
+            Ok(None) => {}
+            Err(error) if error.contains("unknown condition") => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert_eq!(entity_files, 32);
+    assert!(loaded > 20, "{loaded}");
+}
