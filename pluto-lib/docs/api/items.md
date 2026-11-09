@@ -1,6 +1,6 @@
 # Items: tooltips
 
-Add lines to an item's tooltip. Callbacks can add lines after the game's own; reading or editing the lines already there is a stub (support matrix).
+Read, reorder, remove or replace an item's existing tooltip lines with `with_lines`, or keep using `added` to append simple lines. Untouched or moved existing entries retain their native rich text rather than being flattened and rebuilt.
 
 ## Basic Example
 
@@ -35,7 +35,7 @@ ItemUseRegistry::register(
 
 A player who is not hungry cannot start a feeding item unless you add `.can_always_eat()`. When one is used up, the remainder is handed back (the use is refused if it would not fit).
 
-> **Use with Caution.** A callback cannot read the lines already in a tooltip, only add to them (listed in the support matrix).
+> **Use with Caution.** `with_lines` is available only while this context is being dispatched by the game. It returns `None` for a manually invoked event or if the same list is already borrowed. Nested tooltips have separate lists. Legacy `added` entries are appended after all callbacks; they are not part of the editable list during dispatch.
 
 ## Reference
 
@@ -90,6 +90,94 @@ ItemTooltipCallback::EVENT.invoke(&tip);
 assert_eq!(tip.added.borrow()[0].text, "x8");
 ```
 
+### `ItemTooltipContext::with_lines`
+
+`fn with_lines<R>(&self, edit: impl FnOnce(&mut Vec<TooltipText>) -> R) -> Option<R>`. Read or mutate the current list in place; `Some(result)` contains the closure's result. Callbacks see earlier edits in event order. Remove, reorder or clone existing entries without losing their styling. To change their text, replace them with a new literal or translated entry; that deliberately replaces the old content/style. The public context fields and `added` behavior are unchanged.
+
+```rust
+use pluto_lib::{ItemTooltipCallback, TooltipText};
+ItemTooltipCallback::EVENT.register(|tip| {
+    if tip.item == "minecraft:diamond" {
+        tip.with_lines(|lines| {
+            if let Some(first) = lines.first_mut() {
+                *first = TooltipText::literal("Edited diamond").with_color(0x55FF55FF);
+            }
+            lines.retain(|line| line.plain_text() != "Hide this detail");
+        });
+    }
+});
+```
+
+### `TooltipText`
+
+An owned editable entry. Existing entries preserve their complete native text internally, including styling not represented by a simple string. Entries can be cloned or cached without referring to a slot index from an earlier tooltip. New entries can be literal or translated; arbitrary rich-component mutation is not exposed here. `component()` provides a read-only copy for inspection.
+
+```rust
+use pluto_lib::TooltipText;
+let line = TooltipText::literal("Detail");
+assert_eq!(line.clone().plain_text(), "Detail");
+```
+
+### `TooltipText::literal`
+
+`fn literal(text: impl Into<String>) -> TooltipText`. A literal entry with grey base tint.
+
+```rust
+use pluto_lib::TooltipText;
+assert_eq!(TooltipText::literal("Detail").plain_text(), "Detail");
+```
+
+### `TooltipText::translatable`
+
+`fn translatable(key: impl Into<String>) -> TooltipText`. A translated entry with grey base tint. The native renderer resolves the key in the client's language; `plain_text()` uses PlutoLib's current language lookup.
+
+```rust
+use pluto_lib::TooltipText;
+let line = TooltipText::translatable("item.minecraft.diamond");
+assert_eq!(line.component()["translate"], "item.minecraft.diamond");
+```
+
+### `TooltipText::plain_text`
+
+`fn plain_text(&self) -> String`. Visible text without decoration. For existing entries this is the native text's resolved snapshot, not a guessed translation of its component.
+
+```rust
+use pluto_lib::TooltipText;
+assert_eq!(TooltipText::literal("Read me").plain_text(), "Read me");
+```
+
+### `TooltipText::component`
+
+`fn component(&self) -> serde_json::Value`. A copy of the text component, retaining the original rich structure for existing entries. Editing the returned JSON does not change the entry. The separate base tint is read with `color()`.
+
+```rust
+use pluto_lib::TooltipText;
+let line = TooltipText::literal("Original");
+let mut component = line.component();
+component["text"] = "Copy only".into();
+assert_eq!(line.plain_text(), "Original");
+```
+
+### `TooltipText::color`
+
+`fn color(&self) -> u32`. The base line tint as `0xRRGGBBAA`; embedded rich-text colors can override it.
+
+```rust
+use pluto_lib::TooltipText;
+assert_eq!(TooltipText::literal("Grey").color(), 0xAAAAAAFF);
+```
+
+### `TooltipText::with_color`
+
+`fn with_color(self, color: u32) -> TooltipText`. Change the base tint without reconstructing the rich text. For unstyled new text the tint is the visible color; existing embedded span colors retain their precedence.
+
+```rust
+use pluto_lib::TooltipText;
+let line = TooltipText::literal("Green").with_color(0x55FF55FF);
+assert_eq!(line.color(), 0x55FF55FF);
+assert_eq!(line.plain_text(), "Green");
+```
+
 ### `ItemTooltipCallback`
 
 Holder of the tooltip event.
@@ -102,7 +190,7 @@ ItemTooltipCallback::EVENT.register(|_| {});
 
 ### `ItemTooltipCallback::EVENT`
 
-Runs whenever the game builds a tooltip. Add lines to `added`.
+Runs whenever the game builds a tooltip. Edit current lines with `with_lines` or append simple lines to `added`. Manual `EVENT.invoke` still supports `added` but does not create a native editable-list scope.
 
 ```rust
 use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, StackData, TooltipLine};

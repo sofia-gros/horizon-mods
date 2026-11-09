@@ -53,12 +53,6 @@ pub const MATRIX: &[SupportEntry] = &[
         behaviour: "callbacks are accepted and never invoked; BEFORE and its veto notification CANCELED work",
         unblocked_by: "wiring Horizon's block-destroyed notifications (a hook point to map, not yet done)",
     },
-    SupportEntry {
-        api: "item_api_v1::ItemTooltipCallback (reading or editing the lines already there)",
-        support: Support::Stub,
-        behaviour: "callbacks can add lines but do not see the existing ones",
-        unblocked_by: "a PlutoLib text type that can be read back from Horizon's Text (add-only works today)",
-    },
 ];
 
 /// Rows for a given support class.

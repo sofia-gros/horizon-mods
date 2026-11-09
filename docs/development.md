@@ -62,7 +62,7 @@ For a focused player-food gate, build the native probe with `--build-only`, then
 python tools/smoke-local/player_food.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
 ```
 
-This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. Add `--server-reloads 2` to also require one initial server-data notification before player join and one after each of two actual `/reload` commands, without duplicates. It does not run the broad menu/plant probe.
+This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. Add `--server-reloads 2` to also require one initial server-data notification before player join and one after each of two actual `/reload` commands, without duplicates. Add `--tooltip` to exercise a real hovered inventory tooltip: replace a line, remove the advanced item id, retain a moved styled title, and append translated/legacy lines. It saves `tooltip.png`, which must also be inspected; callback logs alone do not prove rendering. It does not run the broad menu/plant probe.
 
 PlutoLib through the official launcher (the way players get mods):
 
