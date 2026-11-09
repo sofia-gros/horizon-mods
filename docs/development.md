@@ -48,7 +48,7 @@ python tools/smoke-local/probe_pluto_lib.py --launcher <horizon-launcher> --reso
 
 With `--full <extracted legacy PlutoLib folder>` the probe also builds the whole sliced Tinkers (about 7 minutes with the launcher's `dev` profile; without it the probe takes about 2).
 
-The probe also requires exactly one starting, stopping and stopped notification in order, after a clean integrated-server shutdown. To check the dedicated-server path separately, use an already accepted EULA file (the harness never accepts one for you):
+The probe checks that a protected real block stays, a neighboring allowed block breaks, and only the vetoed attempt reports one `CANCELED` notification. It also requires exactly one starting, stopping and stopped notification in order, after a clean integrated-server shutdown. To check the dedicated-server path separately, use an already accepted EULA file (the harness never accepts one for you):
 
 ```sh
 python tools/smoke-local/lifecycle_dedicated.py --game <built horizon-engine> --resources RESOURCES_DIR --eula <owner-accepted-eula.txt>

@@ -44,7 +44,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [base](base.md) | `Event`, `Identifier`, `ActionResult`, the support matrix |
 | [lifecycle](lifecycle.md) | server start, stopping and successful stopped events, ticks, chunk load and unload |
 | [networking](networking.md) | a player joins or leaves |
-| [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, breaking blocks and how fast |
+| [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, break vetoes and cancellation notifications, digging speed |
 | [entities](entities.md) | entities entering and leaving worlds, damage (allow it or change its amount, with the attacker's stack), death |
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | resource reload listeners |
