@@ -67,38 +67,33 @@ pub struct ModifierRecipe {
     pub inputs: Vec<(Ingredient, u32)>,
 }
 
-fn ingredient(json: &Value) -> Option<Ingredient> {
-    if let Some(item) = json.get("item").and_then(Value::as_str) {
-        return Some(Ingredient::Item(item.to_owned()));
-    }
-    Some(Ingredient::Tag(json.get("tag").and_then(Value::as_str)?.to_owned()))
-}
-
-/// Reads a `tconstruct:modifier` or `tconstruct:incremental_modifier` recipe; None for a shape that is not carried.
-pub fn parse_recipe(json: &Value) -> Option<(tconstruct_library::modifiers::ModifierId, ModifierRecipe)> {
-    let modifier = tconstruct_library::modifiers::ModifierId::try_parse(json.get("result")?.as_str()?)?;
-    let (min_level, max_level) = match json.get("level") {
-        Some(Value::Number(n)) => (n.as_i64()? as i32, n.as_i64()? as i32),
-        Some(Value::Object(o)) => (o.get("min").and_then(Value::as_i64).unwrap_or(1) as i32, o.get("max").and_then(Value::as_i64).unwrap_or(i32::MAX as i64) as i32),
-        _ => (1, 1),
+/// The recipe that adds a level of a modifier, in the form `/tconstruct upgrade` uses: the levels it can give and the items it takes, from the
+/// library's `ModifierRecipe`. None for a recipe that is not carried: a kind that is not used here (swappable, overslime), data conditions that
+/// are not met, or an input that is not one plain item or tag.
+pub fn parse_recipe(id: ResourceId, json: &Value) -> Option<(tconstruct_library::modifiers::ModifierId, ModifierRecipe)> {
+    use tconstruct_library::recipes::modifier::{Kind, ModifierRecipe as Library};
+    use tconstruct_library::smeltery::melting::ItemMatch;
+    let recipe = Library::from_json(id, json, &GameConditions).ok()??;
+    let modifier = recipe.result.clone()?;
+    let (min_level, max_level) = match &recipe.kind {
+        Kind::Swappable { .. } | Kind::Overslime { .. } => return None,
+        Kind::Multilevel { levels } | Kind::MultilevelIncremental { levels, .. } => (levels.iter().map(|(r, _)| r.min).min()?, levels.iter().map(|(r, _)| r.max).max()?),
+        _ => (recipe.levels.min, recipe.levels.max),
     };
+    let per_level = recipe.items_per_level();
     let mut inputs: Vec<(Ingredient, u32)> = Vec::new();
-    let mut add = |what: Ingredient, count: u32| match inputs.iter_mut().find(|(i, _)| *i == what) {
-        Some((_, n)) => *n += count,
-        None => inputs.push((what, count)),
-    };
-    match json.get("type")?.as_str()? {
-        "tconstruct:modifier" => {
-            for input in json.get("inputs")?.as_array()? {
-                add(ingredient(input)?, 1);
-            }
+    for input in &recipe.inputs {
+        let [one] = input.item.as_slice() else { return None };
+        let what = match one {
+            ItemMatch::Item(item) => Ingredient::Item(item.to_string()),
+            ItemMatch::Tag(tag) => Ingredient::Tag(tag.to_string()),
+            ItemMatch::Except { .. } => return None,
+        };
+        let count = per_level.map_or(input.amount, |n| n as u32);
+        match inputs.iter_mut().find(|(i, _)| *i == what) {
+            Some((_, n)) => *n += count,
+            None => inputs.push((what, count)),
         }
-        "tconstruct:incremental_modifier" => {
-            let needed = json.get("needed_per_level")?.as_u64()? as u32;
-            let each = json.get("amount_per_item").and_then(Value::as_u64).unwrap_or(1).max(1) as u32;
-            add(ingredient(json.get("input")?)?, needed.div_ceil(each));
-        }
-        _ => return None,
     }
     Some((modifier, ModifierRecipe { min_level, max_level, inputs }))
 }
@@ -151,8 +146,8 @@ impl ToolLibrary {
         let (forge_tags, forge_problems) = tconstruct_library::tags::load(&files("tags/forge_item"), &|_| true);
         problems.extend(forge_problems);
         let mut recipes: HashMap<_, Vec<ModifierRecipe>> = HashMap::new();
-        for (_, json) in files("modifier_recipes") {
-            if let Some((modifier, recipe)) = parse_recipe(&json) {
+        for (id, json) in files("modifier_recipes") {
+            if let Some((modifier, recipe)) = parse_recipe(id, &json) {
                 recipes.entry(modifier).or_default().push(recipe);
             }
         }
