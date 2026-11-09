@@ -2332,7 +2332,7 @@
     },
     "recipe/material/IMaterialValue.java": {
       "status": "ported",
-      "note": "the value and needed fields are in library `recipes::material::MaterialRecipe`"
+      "note": "library `recipes::material::MaterialRecipe`: value, needed, `items_used`, `remainder`, `leftover_for` and `material_value`; unit-tested"
     },
     "recipe/material/MaterialRecipe.java": {
       "status": "ported",
@@ -2547,24 +2547,24 @@
       "note": "not yet compared with the port"
     },
     "recipe/partbuilder/ItemPartRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::part_builder::ItemPartRecipe`: with a material (cost required) or an empty material slot, `matches` and `items_used`; loads the original's 5 files (by test). The title and information texts are not done"
     },
     "recipe/partbuilder/ItemPartRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder"
     },
     "recipe/partbuilder/PartRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::part_builder::PartRecipe`: pattern, pattern items (default pattern tag), cost, allow uncraftable, the part and its count; `matches`, `partial_match` and `parts_made` (a valuable item makes several parts unless it has a leftover); loads the original's 24 files (by test). The display lists and the container interface are not done"
     },
     "recipe/partbuilder/PartRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder"
     },
     "recipe/partbuilder/Pattern.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "a pattern is a `ResourceId` in the library's part recipes"
     },
     "recipe/partbuilder/recycle/PartBuilderRecycle.java": {
       "status": "todo",
