@@ -74,7 +74,7 @@ with_ops(&mut game, || {
 
 > **Tip.** A duration is in ticks: 20 are one second. `-1` never ends.
 
-> **Use with Caution.** `add_food` is a documented stub: Horizon lets a mod read a player's food level but not change it, so `add_food` does nothing and returns `false` until it does. Give an effect such as `minecraft:saturation` instead.
+> **Use with Caution.** `add_food` uses vanilla `FoodData.eat` arithmetic: its second argument is a saturation modifier, not a number of saturation points. It preserves exhaustion and caps saturation at the resulting food level. Non-finite inputs/calculations fail without changing the player; outside a player callback it returns `false`.
 
 ## Testing
 
@@ -328,14 +328,32 @@ with_ops(&mut game, || assert_eq!(player.food().unwrap().level, 4));
 
 ### `ServerPlayer::add_food`
 
-`fn add_food(&self, nutrition: i32, saturation: f32) -> bool`. Stub: Horizon offers no way to change a player's food level yet, so this does nothing and returns `false`, inside a callback too.
+`fn add_food(&self, nutrition: i32, saturation: f32) -> bool`. Add food as vanilla `FoodData.eat`: add `nutrition` to the food level and clamp to 0–20; add `nutrition * saturation * 2` to saturation and clamp to 0–the new food level. Exhaustion is unchanged. Returns `false` for an unavailable player, outside a player scope, an unsupported backend, or a non-finite calculation, without writing anything.
 
 ```rust
-use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+use pluto_lib::{with_ops, FoodStatus, MemoryPlayerOps, ServerPlayer};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
-let mut game = MemoryPlayerOps::default();
-with_ops(&mut game, || assert!(!player.add_food(4, 0.6)));
+let mut game = MemoryPlayerOps { food: Some(FoodStatus { level: 12, saturation: 2.0, exhaustion: 3.0 }), ..Default::default() };
+with_ops(&mut game, || {
+    assert!(player.add_food(4, 0.5));
+    assert_eq!(player.food(), Some(FoodStatus { level: 16, saturation: 6.0, exhaustion: 3.0 }));
+    assert!(!player.add_food(4, f32::NAN));
+});
+assert!(!player.add_food(4, 0.5));
+```
+
+> **Use with Caution.** As in vanilla, finite negative values can reduce food/saturation, and integer addition follows Java's wrapping arithmetic before clamping. This is not a direct setter. The native adapter uses the pinned host's existing player-status setter; no extra Mixin is needed.
+
+For custom `PlayerOps` backends:
+
+`fn add_food(&mut self, player: u128, nutrition: i32, saturation: f32) -> bool`. Backend operation for the same feeding semantics. `player` is the UUID; `saturation` is a modifier. The default implementation returns `false`, keeping existing custom backends compatible. `MemoryPlayerOps` implements it for tests.
+
+```rust
+use pluto_lib::{FoodStatus, MemoryPlayerOps, PlayerOps};
+let mut backend = MemoryPlayerOps { food: Some(FoodStatus { level: 10, saturation: 0.0, exhaustion: 1.0 }), ..Default::default() };
+assert!(backend.add_food(1, 2, 0.5));
+assert_eq!(backend.food(1).unwrap().saturation, 2.0);
 ```
 
 ### `ServerPlayer::empty_slots`

@@ -48,12 +48,6 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
     },
     SupportEntry {
-        api: "player_api::ServerPlayer::add_food",
-        support: Support::Stub,
-        behaviour: "does nothing and returns false; the food level is unchanged",
-        unblocked_by: "Horizon offering a way to change a player's food level (it can only read it today)",
-    },
-    SupportEntry {
         api: "events_interaction_v0::PlayerBlockBreakEvents::AFTER",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked; BEFORE and its veto notification CANCELED work",

@@ -42,6 +42,10 @@ pub trait PlayerOps {
     fn effects(&mut self, player: u128) -> Option<Vec<EffectInstance>>;
     /// The player's food level (0 to 20), saturation and exhaustion; None if the player is not known.
     fn food(&mut self, player: u128) -> Option<FoodStatus>;
+    /// Feeds a reached player as FoodData.eat; false if unsupported or invalid.
+    fn add_food(&mut self, _player: u128, _nutrition: i32, _saturation: f32) -> bool {
+        false
+    }
     /// The stack in main inventory `slot` (0 to 35, the hotbar first), with its custom data; None for an empty or unknown slot.
     fn stack(&mut self, _player: u128, _slot: i32) -> Option<StackData> {
         None
@@ -54,6 +58,17 @@ pub trait PlayerOps {
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
     }
+}
+
+/// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
+pub(crate) fn fed_food(before: FoodStatus, nutrition: i32, modifier: f32) -> Option<FoodStatus> {
+    let gained = nutrition as f32 * modifier * 2.0;
+    let saturation = before.saturation + gained;
+    if !modifier.is_finite() || !before.saturation.is_finite() || !before.exhaustion.is_finite() || !saturation.is_finite() {
+        return None;
+    }
+    let level = before.level.wrapping_add(nutrition).clamp(0, 20);
+    Some(FoodStatus { level, saturation: saturation.clamp(0.0, level as f32), exhaustion: before.exhaustion })
 }
 
 /// An item stack as a mod sees it: what it is, how many, how worn, and the data a mod keeps on it (Minecraft: `ItemStack` with the
@@ -216,11 +231,11 @@ impl ServerPlayer {
         with_current(None, |ops| ops.food(self.uuid))
     }
 
-    /// Feeds the player `nutrition` hunger points and `saturation`. Stub: Horizon offers no way to change a player's food level yet, so
-    /// this does nothing and returns false (see the support matrix).
+    /// Feeds the player as FoodData.eat: saturation is a modifier, adding nutrition * modifier * 2 before capping at the new food level.
+    /// Exhaustion is preserved. False outside a player scope, for an unavailable player or a non-finite calculation.
     pub fn add_food(&self, nutrition: i32, saturation: f32) -> bool {
-        let _ = (nutrition, saturation);
-        false
+        if !saturation.is_finite() { return false; }
+        with_current(false, |ops| ops.add_food(self.uuid, nutrition, saturation))
     }
 
     /// The stack in main inventory slot `slot` (0 to 35, the hotbar first) with its custom data; None for an empty slot, or outside a callback.
@@ -330,6 +345,11 @@ impl PlayerOps for MemoryPlayerOps {
     }
     fn food(&mut self, _player: u128) -> Option<FoodStatus> {
         Some(self.food.unwrap_or(FoodStatus { level: 20, saturation: 5.0, exhaustion: 0.0 }))
+    }
+    fn add_food(&mut self, player: u128, nutrition: i32, saturation: f32) -> bool {
+        let Some(after) = self.food(player).and_then(|before| fed_food(before, nutrition, saturation)) else { return false };
+        self.food = Some(after);
+        true
     }
     fn stack(&mut self, player: u128, slot: i32) -> Option<StackData> {
         self.stacks.get(&player)?.get(usize::try_from(slot).ok()?)?.clone().filter(|s| s.count > 0)
@@ -465,6 +485,27 @@ mod tests {
 
     fn player() -> ServerPlayer {
         ServerPlayer { uuid: 7, name: "Alex".into() }
+    }
+
+    #[test]
+    fn feeding_uses_vanilla_caps_preserves_exhaustion_and_rejects_invalid_values() {
+        let mut ops = MemoryPlayerOps { food: Some(FoodStatus { level: 12, saturation: 2.0, exhaustion: 3.0 }), ..Default::default() };
+        with_ops(&mut ops, || {
+            assert!(player().add_food(4, 0.5));
+            assert_eq!(player().food(), Some(FoodStatus { level: 16, saturation: 6.0, exhaustion: 3.0 }));
+            assert!(player().add_food(40, 1.0));
+            assert_eq!(player().food(), Some(FoodStatus { level: 20, saturation: 20.0, exhaustion: 3.0 }));
+            assert!(player().add_food(-5, 0.5));
+            assert_eq!(player().food(), Some(FoodStatus { level: 15, saturation: 15.0, exhaustion: 3.0 }));
+            let before = player().food();
+            for modifier in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, f32::MAX] {
+                assert!(!player().add_food(4, modifier));
+                assert_eq!(player().food(), before);
+            }
+        });
+        assert!(!player().add_food(4, 0.5), "a stored handle has no authority");
+        let mut unavailable = Recorder::default();
+        assert!(!with_ops(&mut unavailable, || player().add_food(4, 0.5)), "unsupported backends stay false");
     }
 
     #[test]
