@@ -264,7 +264,7 @@
     },
     "block/entity/multiblock/MultiblockCuboid.java": {
       "status": "partial",
-      "note": "detection (the controller's center, the four edges, the size limit, the layers down and up, the floor and the ceiling caps, the frame checks, the blocks inside that are not air) is library `smeltery::multiblock::Cuboid::detect` over a `Level` trait, with unit tests for the frameless box with a floor; the frame paths are ported but have no test yet; the tag read/write, `shouldUpdate` and the subclasses (smeltery, foundry, heating structure) are not done"
+      "note": "detection (the controller's center, the four edges, the size limit, the layers down and up, the floor and the ceiling caps, the frame checks, the blocks inside that are not air) is library `smeltery::multiblock::Cuboid::detect` over a `Level` trait, with unit tests for the frameless box with a floor and for a framed box with a floor and a ceiling (a bad corner post, ceiling plate and floor frame are reported where they are); the tag read/write, `shouldUpdate` and the subclasses (smeltery, foundry, heating structure) are not done"
     },
     "block/entity/multiblock/MultiblockResult.java": {
       "status": "todo",
