@@ -1056,8 +1056,23 @@ impl Hooks for PlutoHooks {
     }
 
     fn tooltip(&self, _host: &dyn Host, event: &mut TooltipEvent<'_>) {
-        for line in item_api_v1::item_tooltip(read_stack(event.stack)) {
-            event.lines.push((if line.translate { Text::translate(&line.text, &[]) } else { Text::literal(line.text) }, line.color));
+        let lines = event.lines.iter().map(|(text, color)| {
+            item_api_v1::TooltipText::existing(text.plain(), text.component(), color.swap_bytes(), text.clone())
+        }).collect();
+        // Keep the host list intact until callbacks finish, including if one unwinds.
+        let edited = item_api_v1::item_tooltip(read_stack(event.stack), lines);
+        event.lines.clear();
+        for line in edited {
+            if let Some(text) = line.native::<Text>() {
+                event.lines.push((text.clone(), line.color().swap_bytes()));
+            } else if let Some(simple) = line.simple() {
+                let text = if simple.translate {
+                    Text::literal(crate::pure::i18n_api::I18n::translate(&simple.text))
+                        .with_component(serde_json::json!({ "translate": simple.text }))
+                } else { Text::literal(simple.text.clone()) };
+                // Public colors are RRGGBBAA; Horizon's HUD stores AABBGGRR.
+                event.lines.push((text, line.color().swap_bytes()));
+            }
         }
     }
 

@@ -14,7 +14,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         }
         true
     });
-    pluto_lib::Translations::register("en_us", [("pluto_probe.hello".to_owned(), "Hello from the probe".to_owned())]);
+    pluto_lib::Translations::register("en_us", [("pluto_probe.hello".to_owned(), "Hello from the probe".to_owned()), ("pluto_probe.tooltip".to_owned(), "Translated tooltip".to_owned())]);
     pluto_lib::Translations::register("ja_jp", [("pluto_probe.hello".to_owned(), "プローブからこんにちは".to_owned())]);
     BlockEntityRendererRegistry::register(Identifier::new("tconstruct", "seared_melter").unwrap(), |render| {
         static ONCE: AtomicBool = AtomicBool::new(false);
@@ -335,6 +335,26 @@ pub fn hooks() -> Box<dyn Hooks> {
         if !ONCE.swap(true, Ordering::Relaxed) {
             println!("PLUTO-PROBE loot_modify id={}", c.id);
         }
+    });
+    pluto_lib::ItemTooltipCallback::EVENT.register(|tip| {
+        if tip.item != "minecraft:diamond" { return; }
+        tip.with_lines(|lines| {
+            let Some(original) = lines.first().cloned() else { return };
+            let plain = original.plain_text();
+            let component = original.component();
+            let before = lines.len();
+            lines.retain(|line| line.plain_text() != "minecraft:diamond");
+            let removed = lines.len() < before;
+            lines[0] = pluto_lib::TooltipText::literal("Edited diamond").with_color(0x55FF55FF);
+            lines.insert(1, original);
+            lines.insert(2, pluto_lib::TooltipText::translatable("pluto_probe.tooltip"));
+            let preserved = lines[1].component() == component && lines[1].plain_text() == plain;
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if plain == "Styled diamond" && removed && !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE tooltip existing={plain:?} removed_id={removed} preserved={preserved} component={component}");
+            }
+        });
+        tip.added.borrow_mut().push(pluto_lib::TooltipLine::grey("Legacy tooltip addition"));
     });
     ResourceManagerHelper::get(ResourceType::ServerData).register_reload_listener(
         Identifier::new("pluto_probe", "server_reload").expect("valid id"),
