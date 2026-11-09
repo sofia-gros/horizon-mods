@@ -2404,7 +2404,7 @@
     },
     "recipe/melting/MeltingRecipe.java": {
       "status": "partial",
-      "note": "library `smeltery::melting::MeltingRecipe`: ingredient (item, tag, list, no_container), result, byproducts, temperature, time and data conditions, with the plain, damagable (the scaling by durability left, in units) and ore (the rate named) kinds; reads `forge:conditional` wrappers; loads all 810 of the original's top-level melting files (by test). Not done: the ore rate behaviour and the byproduct choice"
+      "note": "library `smeltery::melting::MeltingRecipe`: ingredient (item, tag, list, no_container), result, byproducts, temperature, time and data conditions, with the plain, damagable (the scaling by durability left, in units) and ore (the rate named) kinds; reads `forge:conditional` wrappers; loads all 810 of the original's top-level melting files (by test). The ore rates (`OreRate::MELTER`, `FOUNDRY`, `FOUNDRY_BYPRODUCT`, metal and gem, the byproduct's own rate or the ore's) are applied by `output_amount` and `byproduct_amounts`, unit-tested. Not done: filling the byproducts into a tank, and the config values of the rates (the defaults are used)"
     },
     "recipe/melting/MeltingRecipeBuilder.java": {
       "status": "todo",

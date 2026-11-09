@@ -24,8 +24,62 @@ pub enum MeltingKind {
     Plain,
     /// A tool or armor piece: the amount follows the durability left, in steps of `unit_size` (one for each byproduct as well).
     Damagable { unit_size: i32, byproduct_sizes: Vec<i32> },
-    /// An ore: the amount follows the ore rate named here (`metal`, `gem`, ...).
-    Ore { rate: String },
+    /// An ore: the amount follows the ore rate of the structure for this kind of ore, and so does each byproduct (by its own kind, or the
+    /// ore's when it names none).
+    Ore { rate: OreRateType, byproduct_rates: Vec<OreRateType> },
+}
+
+/// The kind of ore a recipe melts (`OreRateType`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OreRateType {
+    None,
+    Metal,
+    Gem,
+    /// Only for a byproduct: the ore's own kind.
+    Default,
+}
+
+impl OreRateType {
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(Self::None),
+            "metal" => Some(Self::Metal),
+            "gem" => Some(Self::Gem),
+            "default" => Some(Self::Default),
+            _ => None,
+        }
+    }
+
+    /// `orElse`.
+    pub fn or_else(self, other: Self) -> Self {
+        if self == Self::Default { other } else { self }
+    }
+}
+
+/// How much more than one ingot or gem an ore gives, for one kind of structure (`Config.OreRate`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OreRate {
+    /// Nuggets per metal ore unit; 9 would give one ingot.
+    pub nuggets_per_metal: i32,
+    /// Shards per gem ore unit; 4 would give one gem.
+    pub shards_per_gem: i32,
+}
+
+impl OreRate {
+    /// The melter and the smeltery.
+    pub const MELTER: Self = Self { nuggets_per_metal: 12, shards_per_gem: 8 };
+    pub const SMELTERY: Self = Self::MELTER;
+    pub const FOUNDRY: Self = Self { nuggets_per_metal: 9, shards_per_gem: 4 };
+    pub const FOUNDRY_BYPRODUCT: Self = Self { nuggets_per_metal: 3, shards_per_gem: 4 };
+
+    /// `applyOreBoost`.
+    pub fn apply(&self, rate: OreRateType, amount: i32) -> i32 {
+        match rate {
+            OreRateType::Metal => amount * self.nuggets_per_metal / 9,
+            OreRateType::Gem => amount * self.shards_per_gem / 4,
+            _ => amount,
+        }
+    }
 }
 
 /// `DamageableMeltingRecipe.scaleOutput`: `amount` scaled by the durability left, never below one unit, in whole units.
@@ -134,10 +188,46 @@ impl MeltingRecipe {
                 let byproduct_sizes = json.get("byproducts").and_then(Value::as_array).map(|list| list.iter().map(unit).collect()).unwrap_or_default();
                 MeltingKind::Damagable { unit_size, byproduct_sizes }
             }
-            "tconstruct:ore_melting" => MeltingKind::Ore { rate: json.get("rate").and_then(Value::as_str).unwrap_or("metal").to_owned() },
+            "tconstruct:ore_melting" => {
+                let rate_of = |v: Option<&Value>, default: OreRateType| match v.and_then(Value::as_str) {
+                    None => Ok(default),
+                    Some(name) => OreRateType::from_name(name).ok_or_else(|| format!("unknown ore rate '{name}'")),
+                };
+                let rate = rate_of(json.get("rate"), OreRateType::Metal)?;
+                let byproduct_rates = json
+                    .get("byproducts")
+                    .and_then(Value::as_array)
+                    .map(|list| list.iter().map(|b| rate_of(b.get("rate"), OreRateType::Default)).collect::<Result<Vec<_>, _>>())
+                    .transpose()?
+                    .unwrap_or_default();
+                MeltingKind::Ore { rate, byproduct_rates }
+            }
             _ => MeltingKind::Plain,
         };
         Ok(Some(Self { id, ingredient, result: fluid_output(json.get("result").ok_or("a melting recipe needs a 'result'")?)?, byproducts, temperature, time, kind }))
+    }
+}
+
+impl MeltingRecipe {
+    /// The fluid one melting gives: the result, scaled for an ore by the structure's ore rate.
+    pub fn output_amount(&self, ore_rate: &OreRate) -> i32 {
+        match &self.kind {
+            MeltingKind::Ore { rate, .. } => ore_rate.apply(*rate, self.result.amount),
+            _ => self.result.amount,
+        }
+    }
+
+    /// The amounts of the byproducts of one melting; an ore's follow the byproduct rate of the structure.
+    pub fn byproduct_amounts(&self, byproduct_rate: &OreRate) -> Vec<i32> {
+        match &self.kind {
+            MeltingKind::Ore { rate, byproduct_rates } => self
+                .byproducts
+                .iter()
+                .enumerate()
+                .map(|(i, b)| byproduct_rate.apply(byproduct_rates.get(i).copied().unwrap_or(OreRateType::Default).or_else(*rate), b.amount))
+                .collect(),
+            _ => self.byproducts.iter().map(|b| b.amount).collect(),
+        }
     }
 }
 
@@ -286,7 +376,22 @@ mod tests {
         let recipe = MeltingRecipe::from_json(id("a:d"), &damagable, &EmptyContext).unwrap().unwrap();
         assert_eq!(recipe.kind, MeltingKind::Damagable { unit_size: 25, byproduct_sizes: vec![10] });
         let ore = json!({"type": "tconstruct:ore_melting", "ingredient": {"item": "a:bud"}, "rate": "gem", "result": {"amount": 300, "fluid": "a:molten"}, "temperature": 950, "time": 194});
-        assert_eq!(MeltingRecipe::from_json(id("a:o"), &ore, &EmptyContext).unwrap().unwrap().kind, MeltingKind::Ore { rate: "gem".to_owned() });
+        assert_eq!(MeltingRecipe::from_json(id("a:o"), &ore, &EmptyContext).unwrap().unwrap().kind, MeltingKind::Ore { rate: OreRateType::Gem, byproduct_rates: vec![] });
+    }
+
+    #[test]
+    fn an_ore_gives_more_than_an_ingot_in_the_melter_and_follows_the_foundry_rates_there() {
+        let ore = json!({"type": "tconstruct:ore_melting", "ingredient": {"item": "a:raw"}, "rate": "metal", "result": {"amount": 90, "fluid": "a:molten"},
+            "byproducts": [{"amount": 90, "fluid": "a:other"}, {"amount": 100, "fluid": "a:gem", "rate": "gem"}], "temperature": 800, "time": 100});
+        let recipe = MeltingRecipe::from_json(id("a:r"), &ore, &EmptyContext).unwrap().unwrap();
+        assert_eq!(recipe.output_amount(&OreRate::MELTER), 120, "12 nuggets, a third more than 9");
+        assert_eq!(recipe.output_amount(&OreRate::FOUNDRY), 90);
+        // the first byproduct has no rate of its own and takes the ore's (metal); the second names gem
+        assert_eq!(recipe.byproduct_amounts(&OreRate::FOUNDRY_BYPRODUCT), vec![30, 100]);
+        let plain = json!({"type": "tconstruct:melting", "ingredient": {"item": "a:x"}, "result": {"amount": 90, "fluid": "a:molten"}, "temperature": 1, "time": 1});
+        assert_eq!(MeltingRecipe::from_json(id("a:p"), &plain, &EmptyContext).unwrap().unwrap().output_amount(&OreRate::MELTER), 90);
+        assert_eq!(OreRate::MELTER.apply(OreRateType::None, 90), 90);
+        assert!(MeltingRecipe::from_json(id("a:b"), &json!({"type": "tconstruct:ore_melting", "ingredient": {"item": "a:x"}, "rate": "lumpy", "result": {"amount": 1, "fluid": "a:m"}, "temperature": 1, "time": 1}), &EmptyContext).is_err());
     }
 
     #[test]
