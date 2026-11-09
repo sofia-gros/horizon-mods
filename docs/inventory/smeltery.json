@@ -235,8 +235,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/FuelModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the state (fuel, quality, temperature, rate), burning down, the liquid fuel step and the tag round trip are library `smeltery::fuel::FuelState` with unit tests; the tank handlers, listeners and the UI sync are not done"
     },
     "block/entity/module/MeltingModule.java": {
       "status": "partial",

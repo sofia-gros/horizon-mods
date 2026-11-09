@@ -2283,8 +2283,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/fuel/MeltingFuel.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::fuel::MeltingFuel` (liquid and solid forms, the duration rule) and the lookup as the trait `FuelLookup`; unit tests (the original's fuel recipe files were not found in the generated data, so none are loaded by test)"
     },
     "recipe/fuel/MeltingFuelBuilder.java": {
       "status": "todo",
