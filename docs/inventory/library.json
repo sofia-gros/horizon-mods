@@ -2623,12 +2623,12 @@
       "note": "not yet compared with the port"
     },
     "recipe/tinkerstation/building/ToolBuildingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::tool_building::ToolBuildingRecipe`: the data fields (result and count, slot layout, extra requirements, parts override, extra materials), `matches` (parts in the first slots in the tool's order, then the extra requirements, the one-item recipe in any slot), `result_materials`, `count` and `requires_anvil`; loads the original's 25 files (by test). The validation of the built tool, the craft-count hook and the layout and display lists are not done. The older `station::plan` in the Tinkers API crate matches parts in any order, where this follows the original"
     },
     "recipe/tinkerstation/building/ToolBuildingRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder"
     },
     "recipe/tinkerstation/building/ToolMaterialSwappingRecipe.java": {
       "status": "todo",
