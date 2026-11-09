@@ -17,7 +17,7 @@ pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ColorProvi
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};
 pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry, ConfigSpec, ModConfig};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
-pub use crate::pure::entity_events_v1::{self, EntityInfo, LivingDamage, ServerEntityEvents, ServerLivingEntityEvents};
+pub use crate::pure::entity_events_v1::{self, DamageModification, EntityInfo, LivingDamage, ServerEntityEvents, ServerLivingEntityEvents};
 pub use crate::pure::events_interaction_v0::{
     self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
     UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext,

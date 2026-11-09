@@ -7,7 +7,7 @@ use horizon_client::mod_api::{
     AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
-    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
+    RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
@@ -999,7 +999,9 @@ impl Hooks for PlutoHooks {
         cancel_if(events_interaction_v0::use_block(event.pos, event.face))
     }
 
-    fn attack_entity(&self, _host: &mut dyn Host, event: &mut AttackEntityEvent<'_>) -> Flow {
+    fn attack_entity(&self, host: &mut dyn Host, event: &mut AttackEntityEvent<'_>) -> Flow {
+        let held = host.acting_player().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        entity_events_v1::attack_started(event.entity, held);
         cancel_if(events_interaction_v0::attack_entity(event.entity, event.kind, event.pos))
     }
 
@@ -1033,6 +1035,18 @@ impl Hooks for PlutoHooks {
         };
         scoped(host, || entity_events_v1::after_death(&death));
         Flow::Continue
+    }
+
+    fn living_damage_pre(&self, event: &mut LivingDamagePreEvent<'_>) {
+        let damage = LivingDamage {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            damage_type: event.damage_type.to_owned(),
+            attacker: event.causing,
+            direct: event.direct,
+            amount: event.amount,
+        };
+        event.amount = entity_events_v1::modify_damage(&damage);
     }
 
     fn living_incoming_damage(&self, event: &mut LivingIncomingDamageEvent<'_>) -> Flow {
