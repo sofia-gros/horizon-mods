@@ -86,8 +86,15 @@ def package(output):
 
     files = [('horizon-native.json', (json.dumps(manifest, indent=2) + '\n').encode())]
     manifest_payload = sliced_manifest()
+    sliced = tomllib.loads(manifest_payload.decode('utf-8'))
+    # Do not ship orphaned root helpers of excluded injections. Keep every API/crate
+    # subtree intact; only manifest-addressed root sources are subject to this filter.
+    roots = {entry[key] for kind in ('module', 'injection') for entry in sliced.get(kind, [])
+             for key in ('source', 'helper') if key in entry}
     for rel, source in tracked('tconstruct/mixins/tconstruct'):
         inside = rel.relative_to('tconstruct/mixins/tconstruct')
+        if len(inside.parts) == 1 and inside.suffix == '.rs' and inside.as_posix() not in roots:
+            continue
         if source.suffix not in ('.rs', '.toml') and source.name != 'Cargo.lock':
             raise ValueError(f'unsupported native source: {rel}')
         # Generated accessors are namespaced by the native mod ID.

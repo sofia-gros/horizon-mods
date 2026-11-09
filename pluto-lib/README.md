@@ -42,7 +42,7 @@ In `mod/` (built with Horizon's official launcher):
 - `item_api_v1`: `ItemTooltipCallback` (add tooltip lines, plain or by translation key with `TooltipLine::translatable`; the context carries the stack with its damage and data), `ItemUseRegistry` (use over time).
 - `world_api_v1`: `BlockState::is_in_tag` (block tags) beside reading and changing blocks and playing sounds.
 - `block_entity_api_v1`: `ItemSlot` keeps damage, max damage and custom data of each stack in a block entity's item slots, so a block can take tools and tool parts that carry data.
-- `events_interaction_v0` also has `UseItemOnBlockCallback`, `BreakSpeedCallback` and `UseItemFinishCallback`; `screen_handler_api_v1` has slot rules, shift-click routing and what a hopper may put in.
+- `events_interaction_v0` also has `UseItemOnBlockCallback`, `BreakSpeedCallback` and `UseItemFinishCallback`; `screen_handler_api_v1` keeps static `ScreenLayout` and adds opt-in dynamic container-slot positions, alongside slot rules, shift-click routing and hopper acceptance. `MenuButton::set_data` and `BlockEntityTick::set_menu_data` synchronize menu values for drawing and layouts.
 
 Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
 

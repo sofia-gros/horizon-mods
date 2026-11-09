@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import codex_guard as guard  # noqa: E402
 
 TASK = {
+    'id': 'world-test',
     'allowed_paths': ['tconstruct/mixins/tconstruct/api/src/**', 'docs/inventory/world.json', 'tools/injection_limits.json'],
     'max_files': 3,
     'max_changed_lines': 100,
@@ -45,11 +46,11 @@ class CodexGuard(unittest.TestCase):
 
     def test_the_inventory_may_only_change_for_named_classes_and_never_to_ported(self):
         before = {'classes': {'block/SlimeGrassBlock.java': {'status': 'todo', 'note': 'x'}, 'block/SlimeDirtBlock.java': {'status': 'todo', 'note': 'x'}}}
-        ok = {'classes': {**before['classes'], 'block/SlimeGrassBlock.java': {'status': 'ported-unchecked', 'note': 'done'}}}
+        ok = {'classes': {**before['classes'], 'block/SlimeGrassBlock.java': {'status': 'ported-unchecked', 'note': 'World block behavior implemented; probe checks growth [world-test]'}}}
         self.assertEqual(guard.violations(TASK, [], before, ok), [])
         ported = {'classes': {**before['classes'], 'block/SlimeGrassBlock.java': {'status': 'ported', 'note': 'done'}}}
         self.assertTrue(guard.violations(TASK, [], before, ported))
-        other = {'classes': {**before['classes'], 'block/SlimeDirtBlock.java': {'status': 'ported-unchecked', 'note': 'done'}}}
+        other = {'classes': {**before['classes'], 'block/SlimeDirtBlock.java': {'status': 'ported-unchecked', 'note': 'World block behavior implemented; probe checks growth [world-test]'}}}
         self.assertTrue(guard.violations(TASK, [], before, other))
 
 

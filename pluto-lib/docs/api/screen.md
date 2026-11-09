@@ -59,6 +59,28 @@ let _ = window;
 
 > **Use with Caution.** The slot count of the menu type must match the block entity's `item_slots`. The window is drawn over the game's panel; set `with_own_background` on the layout if you draw your own.
 
+## Dynamic Slot Positions
+
+The ordinary `ScreenLayout` remains the static layout: its dimensions, inventory position, labels, background and initial slot positions are unchanged. Add `on_dynamic_slots` only when container-slot positions must respond to the menu's current data or item stacks. It runs after the client receives menu-slot or data-slot updates; return one position per container slot, or `None` to keep the static positions.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(
+    Identifier::new("example", "bench").unwrap(),
+    ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0),
+)
+.on_dynamic_slots(|state| {
+    let wide_part = state.items.first().and_then(Option::as_ref)
+        .is_some_and(|stack| stack.item.to_string() == "example:wide_part");
+    Some(vec![Some(if wide_part { [44.0, 8.0] } else { [8.0, 8.0] })])
+});
+let _ = ItemSlot::new(Identifier::new("example", "wide_part").unwrap(), 1);
+let _ = window;
+```
+
+> **Use with Caution.** The dynamic resolver is called as synchronized menu contents change. Keep it quick and deterministic, and return exactly one position per container slot; an absent result, non-finite coordinates or a wrong-length result restores the static layout. Item slots include damage and custom data. Static screens never invoke a resolver.
+
 ## What the Slots Take
 
 `on_slot_rule` decides what each slot of the menu takes and how many it holds. A result slot, which only gives, answers `may_place = false`; a fuel slot can take fewer. `on_quick_move` says where a shift-clicked stack goes, and `on_accepts` whether a hopper may put an item in:
@@ -188,6 +210,19 @@ assert_eq!(canvas.0, 2);
 assert_eq!(canvas.text_width("ab"), 12.0);
 ```
 
+### `ScreenLayoutContext`
+
+What `ScreenHandlerType::on_dynamic_slots` receives. `data` are the menu's data slots; `items` are the block entity's current item slots only, in menu-slot order. Return positions in that same order.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, ScreenLayoutContext};
+
+let item = ItemSlot::new(Identifier::new("example", "part").unwrap(), 1);
+let state = ScreenLayoutContext { data: &[2], items: &[Some(item)] };
+assert_eq!(state.data[0], 2);
+assert_eq!(state.items[0].as_ref().unwrap().count, 1);
+```
+
 ### `ScreenDraw`
 
 What the draw callback receives. `origin` is the window's top left in GUI pixels, `data` the menu's data slots (what the block entity set; empty until the server's first values arrive, so read it with `get`), `canvas` where to draw.
@@ -253,6 +288,19 @@ let mut items = Vec::new();
 let mut carried = None;
 toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
 assert!(data.contains_key("lit"));
+```
+
+### `MenuButton::set_data`
+
+`fn set_data(&mut self, index: usize, value: i32)`. Changes a synchronized menu data slot on the server. The content menu JSON must declare at least `index + 1` data slots. Indices 256 and above are ignored; values are clamped to the signed 16-bit wire range. The value is saved with the block entity and reaches drawing, clicking and dynamic-layout callbacks on all viewers; selection is shared by viewers of this block.
+
+```rust
+use pluto_lib::{MenuButton, NbtCompound};
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut carried = None;
+let mut button = MenuButton { pos: [0, 64, 0], id: 2, data: &mut data, items: &mut items, carried: &mut carried };
+button.set_data(0, button.id);
 ```
 
 ### `SlotRule`
@@ -337,7 +385,7 @@ let _ = window;
 
 ### `ScreenHandlerType`
 
-The window of a block's menu. `block` is the block it belongs to and `layout` its layout; the callbacks are added with `on_draw`, `on_click`, `on_tooltip`, `on_button`, `on_slot_rule`, `on_quick_move` and `on_accepts`.
+The window of a block's menu. `block` is the block it belongs to and `layout` its static layout; the callbacks are added with `on_draw`, `on_dynamic_slots`, `on_click`, `on_tooltip`, `on_button`, `on_slot_rule`, `on_quick_move` and `on_accepts`.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -356,6 +404,18 @@ use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
 
 let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(), ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0));
 assert_eq!(window.layout.slots.len(), 1);
+```
+
+### `ScreenHandlerType::on_dynamic_slots`
+
+`fn on_dynamic_slots(self, resolve: impl Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync + 'static) -> ScreenHandlerType`. The resolver receives the container's current items and data after menu updates. Return one position per container slot; `None`, non-finite coordinates or a vector of the wrong length restores the static layout. The static `ScreenLayout` still provides the initial positions and all other window geometry.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "bench").unwrap(), ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0))
+    .on_dynamic_slots(|state| Some(vec![Some([8.0, 8.0 + state.items.len() as f32])]));
+let _ = window;
 ```
 
 ### `ScreenHandlerType::on_draw`

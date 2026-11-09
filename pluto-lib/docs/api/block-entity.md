@@ -57,6 +57,19 @@ let kind = BlockEntityType::new(Identifier::new("example", "tank_display").unwra
 let _ = kind;
 ```
 
+## Synchronized Menu Values
+
+A content menu declares `data_slots` in its JSON. Set those integer values from a ticker with `set_menu_data`; the game's menu synchronization delivers them to the screen's `data`, including dynamic layouts. These values are saved with the block entity, separately from its update tag; `sync_data()` is not needed for this path.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier};
+let oven = BlockEntityType::new(Identifier::parse("example:oven").unwrap())
+    .ticker(|tick| tick.set_menu_data(0, 200));
+let _ = oven;
+```
+
+> **Use with Caution.** Each value is clamped to -32768..32767, the menu protocol's signed short. Use several data slots for a larger value. Values are shared by every viewer of the block's menu.
+
 ## Items and Fluids
 
 Add `item_slots(n)` for slots that hoppers and menus can reach and `fluid_tanks([...])` for tanks other blocks can fill and drain; the ticker reads and changes both (see [Item slots and fluid tanks](#item-slots-and-fluid-tanks)).
@@ -420,6 +433,18 @@ let kind = BlockEntityType::new(Identifier::new("example", "melter").unwrap())
         }
     });
 let _ = kind;
+```
+
+### `BlockEntityTick::set_menu_data`
+
+`fn set_menu_data(&mut self, index: usize, value: i32)`. Sets a synchronized integer of the block's menu; declare the data slot in the content menu JSON. Indices 0..256 are supported (256 excluded); larger indices do nothing. Values are clamped to the signed 16-bit wire range and saved with the block entity.
+
+```rust
+use pluto_lib::{BlockEntityTick, NbtCompound};
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items };
+tick.set_menu_data(0, 120);
 ```
 
 ### `BlockEntityTick::fluid`

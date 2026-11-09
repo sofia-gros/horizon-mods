@@ -8,13 +8,13 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
-use crate::pure::base::{Nbt, NbtCompound};
+use crate::pure::base::{Identifier, Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, ItemSlot};
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
@@ -45,6 +45,21 @@ pub fn hooks() -> Box<dyn Hooks> {
         );
     });
     Box::new(PlutoHooks)
+}
+
+fn resolve_dynamic_screen_slots(
+    block: &str,
+    data: &[i32],
+    stacks: &[Option<ItemStack>],
+) -> Option<Vec<Option<[f32; 2]>>> {
+    let items = stacks
+        .iter()
+        .map(|stack| match stack {
+            Some(stack) => slot_of(stack).map(Some),
+            None => Some(None),
+        })
+        .collect::<Option<Vec<_>>>()?;
+    screen_handler_api_v1::dynamic_slots(block, data, &items)
 }
 
 struct PlutoHooks;
@@ -394,6 +409,9 @@ fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompoun
     let before_items = items.clone();
     let ran = f(&mut data, &mut items);
     if ran {
+        if let Some(Nbt::IntArray(values)) = data.get("pluto:menu_data") {
+            entity.data = values.iter().take(256).map(|v| (*v).clamp(i16::MIN as i32, i16::MAX as i32)).collect();
+        }
         if data != before {
             entity.nbt = compound_to_tag(&data);
         }
@@ -824,15 +842,18 @@ impl Hooks for PlutoHooks {
 
     fn screen(&self, _host: &dyn Host, event: &mut ScreenEvent<'_>) -> Option<NativeScreen> {
         let layout = screen_handler_api_v1::layout(event.block)?;
-        Some(NativeScreen {
-            width: layout.width,
-            height: layout.height,
-            slots: layout.slots,
-            inventory_y: layout.inventory_y,
-            inventory_x: layout.inventory_x,
-            own_labels: layout.own_labels,
-            own_background: layout.own_background,
-        })
+        let mut screen = NativeScreen::default();
+        screen.width = layout.width;
+        screen.height = layout.height;
+        screen.slots = layout.slots;
+        screen.inventory_y = layout.inventory_y;
+        screen.inventory_x = layout.inventory_x;
+        screen.own_labels = layout.own_labels;
+        screen.own_background = layout.own_background;
+        if screen_handler_api_v1::has_dynamic_slots(event.block) {
+            horizon_client::game::pluto_dynamic_screen_slots::set_resolver(resolve_dynamic_screen_slots);
+        }
+        Some(screen)
     }
 
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {

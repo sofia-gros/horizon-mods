@@ -3583,6 +3583,14 @@ name = "tconstruct_source_fluid_cloud"
 source = "source-fluid-cloud.rs"
 visibility = "pub"
 
+# The pure shape helpers are also needed by the game-side propagule code;
+# the worldgen copy lives in a different crate and is not a sibling here.
+[[module]]
+id = "propagule-shape"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_propagule_shape"
+source = "source-slime-tree-shape.rs"
+
 [[module]]
 id = "source-ender-propagule"
 file = "crates/horizon-client/src/game.rs"

@@ -26,6 +26,7 @@ python -m unittest discover -s tests
 python -m unittest discover -s pluto-lib/tests          # about 30 s
 cargo test --manifest-path pluto-lib/tests/pure/Cargo.toml   # PlutoLib's host-independent part and every code example of pluto-lib/docs/api (doctests), seconds
 cargo test --manifest-path tconstruct/mixins/tconstruct/api/library/Cargo.toml     # the library of the original Tinkers (materials, stats, traits) as plain Rust, seconds
+cargo test --locked --manifest-path tconstruct/tests/world-behavior/Cargo.toml   # current PlutoLib plant/grass behavior, not removed legacy helpers
 ```
 
 Tinkers' Python tests: `python -m unittest discover -s tconstruct/tests` (26 tests, about 75 s; nine of them skip unless `rustc` and their fixture folders are set up).
