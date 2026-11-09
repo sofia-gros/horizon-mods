@@ -27,13 +27,13 @@ let users = Identifier::new("example", "users").unwrap();
 reload_event(ResourceType::ClientResources).add_phase_ordering(tables, users).unwrap();
 ```
 
-> **Use with Caution.** `ResourceType::ServerData` (recipes, loot tables, tags) is accepted but its listeners are not called yet; Horizon reports no matching reload (support matrix).
+> **Use with Caution.** `ResourceType::ServerData` runs after the server's initial data load (before chunks and players) and after each `/reload` rebuild, when the new tables are available. It is a server notification, not a client-assets reload, and provides no live player scope. Keep listeners suitable for both initial load and reload; use phase ordering for dependencies.
 
 ## Reference
 
 ### `ResourceType`
 
-Which kind of resources a listener follows. `ClientResources` are assets (models, textures, language files) and work. `ServerData` is data (recipes, loot tables, tags) and is a stub: listeners are accepted and not invoked yet (support matrix).
+Which kind of resources a listener follows. `ClientResources` are client assets (models, textures, language files). `ServerData` covers the server's data-table load/rebuild notification (recipes, loot tables, tags): initial world opening and subsequent `/reload`, through the pinned native server-data-loaded hook. Reloading one resource type does not invoke the other's listeners.
 
 ```rust
 use pluto_lib::ResourceType;
