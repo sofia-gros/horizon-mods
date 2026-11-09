@@ -2419,8 +2419,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/AbstractModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/AbstractModifierRecipeBuilder.java": {
       "status": "todo",
@@ -2431,44 +2431,44 @@
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/DisplayModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/IDisplayModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/IModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/IncrementalModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/IncrementalModifierRecipeBuilder.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/ModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/ModifierRecipeBuilder.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/MultilevelIncrementalModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/MultilevelIncrementalModifierRecipeBuilder.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/MultilevelModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/MultilevelModifierRecipeBuilder.java": {
       "status": "todo",
@@ -2479,16 +2479,16 @@
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/OverslimeModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/OverslimeModifierRecipeBuilder.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "recipe/modifiers/adding/SwappableModifierRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::modifier::ModifierRecipe` reads the six kinds (single, incremental, multilevel, multilevel incremental, swappable, overslime): inputs with amounts, the result, levels, slots (per level for the multilevel kinds), tools, crystal and trait-level flags; loads the original's modifier recipe files (by test). Matching the station's slots against the inputs, applying the result to a tool and the validation are not done"
     },
     "recipe/modifiers/adding/SwappableModifierRecipeBuilder.java": {
       "status": "todo",
