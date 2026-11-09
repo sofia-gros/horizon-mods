@@ -193,6 +193,11 @@ pub fn register_glow() {
 
 /// The original's `CheeseItem.removeRandomEffect`: eating cheese takes one random effect off the player.
 pub fn register_cheese() {
+    pluto_lib::ItemTooltipCallback::EVENT.register(|tip| {
+        if matches!(tip.item.as_str(), "tconstruct:cheese_ingot" | "tconstruct:cheese_block") {
+            tip.added.borrow_mut().push(pluto_lib::TooltipLine::translatable("item.tconstruct.cheese.tooltip"));
+        }
+    });
     UseItemFinishCallback::EVENT.register(|done| {
         if !matches!(done.item.as_str(), "tconstruct:cheese_ingot" | "tconstruct:cheese_block") {
             return;
