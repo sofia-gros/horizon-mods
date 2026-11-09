@@ -41,13 +41,25 @@ A player who is not hungry cannot start a feeding item unless you add `.can_alwa
 
 ### `TooltipLine`
 
-One tooltip line to add. `text` is the line, `color` is `0xRRGGBBAA`.
+One tooltip line to add. `text` is the line (or a translation key when `translate` is true), `color` is `0xRRGGBBAA`.
 
 ```rust
 use pluto_lib::TooltipLine;
 
-let gold = TooltipLine { text: "Rare".to_owned(), color: 0xFFAA00FF };
+let gold = TooltipLine { text: "Rare".to_owned(), color: 0xFFAA00FF, translate: false };
 assert_eq!(gold.color >> 24, 0xFF);
+```
+
+### `TooltipLine::translatable`
+
+`fn translatable(key: impl Into<String>) -> TooltipLine`. A grey line whose text is the translation `key` from your mod's language files, shown in the player's language.
+
+```rust
+use pluto_lib::TooltipLine;
+
+let line = TooltipLine::translatable("item.example.cheese.tooltip");
+assert!(line.translate);
+assert_eq!(line.text, "item.example.cheese.tooltip");
 ```
 
 ### `TooltipLine::grey`

@@ -15,12 +15,19 @@ pub struct TooltipLine {
     pub text: String,
     /// The line colour as `0xRRGGBBAA`.
     pub color: u32,
+    /// True when `text` is a translation key, shown in the player's language.
+    pub translate: bool,
 }
 
 impl TooltipLine {
     /// A grey line, like most tooltip text.
     pub fn grey(text: impl Into<String>) -> Self {
-        Self { text: text.into(), color: 0xAAAA_AAFF }
+        Self { text: text.into(), color: 0xAAAA_AAFF, translate: false }
+    }
+
+    /// A grey line whose text is the translation `key` (from the mod's language files), shown in the player's language.
+    pub fn translatable(key: impl Into<String>) -> Self {
+        Self { text: key.into(), color: 0xAAAA_AAFF, translate: true }
     }
 }
 

@@ -204,11 +204,11 @@
     },
     "item/CheeseBlockItem.java": {
       "status": "partial",
-      "note": "eaten over 32 ticks, feeds 3, leaves 3 cheese ingots (ItemUse remainder), and takes a random effect like the ingot (register_cheese; the callback is shared with the ingot, which was the game check). Not carried: the milk-curable filter and the tooltip line"
+      "note": "eaten over 32 ticks, feeds 3, leaves 3 cheese ingots (ItemUse remainder), and takes a random effect like the ingot (register_cheese; the callback is shared with the ingot, which was the game check). Not carried: the milk-curable filter"
     },
     "item/CheeseItem.java": {
       "status": "partial",
-      "note": "eating takes one random effect off the player (UseItemFinishCallback, register_cheese; checked in game: the one effect was removed). Not carried: only effects that milk cures are picked (Horizon does not say which are curable, so any effect may go) and the grey tooltip line"
+      "note": "eating takes one random effect off the player (UseItemFinishCallback, register_cheese; checked in game: the one effect was removed). Not carried: only effects that milk cures are picked (Horizon does not say which are curable, so any effect may go). The grey tooltip line (`item.tconstruct.cheese.tooltip`) is added with PlutoLib's `TooltipLine::translatable` (drawing on a client window not checked)"
     },
     "item/TinkerBookItem.java": {
       "status": "partial",
