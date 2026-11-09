@@ -12,6 +12,7 @@ mod gadgets;
 mod shared;
 mod trees;
 mod tinkering_data;
+mod station;
 mod tools;
 mod world;
 mod fluids_table;
@@ -57,6 +58,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
         registrar.register("tconstruct preview <tool:word> <material:word>", tools::preview_command);
         registrar.register("tconstruct part <part:word> <material:word>", tools::part_command);
         registrar.register("tconstruct craft", tools::craft_command);
+        registrar.register("tconstruct station", station::station_command);
         registrar.register("tconstruct upgrade <modifier:word>", tools::upgrade_command);
         registrar.register("tconstruct build <tool:word> <material:word> [second:word] [third:word] [fourth:word]", tools::build_command);
         registrar.register("tconstruct assemble", assemble);
