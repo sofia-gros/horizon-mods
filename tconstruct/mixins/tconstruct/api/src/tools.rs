@@ -163,6 +163,7 @@ pub fn library() -> &'static ToolLibrary {
 /// Called once at start: loads the library and says how much it holds, so a broken link or a broken data file shows in the log.
 pub fn register() {
     register_break_speed();
+    register_attack_damage();
     let library = library();
     println!(
         "tconstruct: library linked, {} tool stats, {} material stat types",
@@ -252,6 +253,27 @@ pub fn register_break_speed() {
         } else {
             dig.speed.set(*mining);
             say("effective", format!("original={} now={mining} on {}", dig.original, dig.block.block));
+        }
+    });
+}
+
+/// A player's attack with a tool hits for the attack damage of the tool's stats plus the 1 a hand gives. The game's cooldown scaling,
+/// critical hits and enchantments are not combined yet (the game's amount is replaced).
+pub fn register_attack_damage() {
+    use pluto_lib::{Nbt, ServerLivingEntityEvents};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static SAID: AtomicBool = AtomicBool::new(false);
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+        let Some(stack) = &hit.attacker_stack else { return };
+        if ResourceId::try_parse(&stack.item).and_then(|id| library().definitions.get(&id)).is_none() {
+            return;
+        }
+        let Some(Nbt::Compound(stats)) = stack.custom_data.get("tconstruct:stats") else { return };
+        let Some(Nbt::Float(attack)) = stats.get("tconstruct:attack_damage") else { return };
+        let amount = attack + 1.0;
+        hit.amount.set(amount);
+        if !SAID.swap(true, Ordering::Relaxed) {
+            println!("tconstruct: attack damage original={} now={amount} with {}", hit.damage.amount, stack.item);
         }
     });
 }

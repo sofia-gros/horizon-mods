@@ -121,6 +121,35 @@ let hit = LivingDamage { entity: 2, kind: "minecraft:cow".into(), damage_type: "
 assert!(ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&hit));
 ```
 
+### `DamageModification`
+
+Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it.
+
+```rust
+use pluto_lib::{DamageModification, LivingDamage};
+use std::cell::Cell;
+
+let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
+let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None };
+hit.amount.set(hit.amount.get() + 2.0);
+assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
+assert!(hit.attacker_stack.is_none());
+```
+
+### `ServerLivingEntityEvents::MODIFY_DAMAGE`
+
+NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount with `amount.set`. For a player's attack on the server it carries the stack used.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+    if hit.attacker_stack.as_ref().is_some_and(|stack| stack.item == "example:sword") {
+        hit.amount.set(hit.amount.get() * 2.0);
+    }
+});
+```
+
 ### `ServerLivingEntityEvents::AFTER_DEATH`
 
 An entity died: called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.

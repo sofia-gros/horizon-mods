@@ -2,7 +2,10 @@
 //!
 //! Entities are identified by their numeric id (Fabric passes entity objects); PlutoLib grows the data as modules need it.
 
+use std::cell::{Cell, RefCell};
+
 use super::base::Event;
+use super::player_api::StackData;
 
 /// An entity entering or leaving a world.
 #[derive(Clone, Debug, PartialEq)]
@@ -38,6 +41,18 @@ impl ServerEntityEvents {
     pub const ENTITY_UNLOAD: &'static Event<EntityInfo, ()> = &ENTITY_UNLOAD;
 }
 
+/// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
+#[derive(Clone, Debug)]
+pub struct DamageModification {
+    /// What is known of the damage; its `amount` is the amount as the game works it out and does not change.
+    pub damage: LivingDamage,
+    /// The amount now, which callbacks may change with `set`; every callback is called in turn, each seeing the last one's.
+    pub amount: Cell<f32>,
+    /// When a player's attack caused it: the stack the player attacked with (damage, max damage, custom data); None otherwise.
+    pub attacker_stack: Option<StackData>,
+}
+
+static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
 static ALLOW_DAMAGE: Event<LivingDamage, bool> = Event::allow_all();
 static AFTER_DEATH: Event<LivingDamage, ()> = Event::void();
 
@@ -47,6 +62,9 @@ pub struct ServerLivingEntityEvents;
 impl ServerLivingEntityEvents {
     /// Fabric: `ALLOW_DAMAGE`: return `false` to cancel the damage.
     pub const ALLOW_DAMAGE: &'static Event<LivingDamage, bool> = &ALLOW_DAMAGE;
+    /// NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount
+    /// with `amount.set`. For a player's attack on the server it carries the stack used.
+    pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
 }
@@ -62,6 +80,32 @@ pub(crate) fn entity_unloaded(id: u32, kind: &str, dimension: &str) {
 /// True when the damage may be applied.
 pub(crate) fn after_death(death: &LivingDamage) {
     AFTER_DEATH.invoke(death);
+}
+
+thread_local! {
+    static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
+}
+
+/// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
+pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
+    PENDING_ATTACK.with(|pending| *pending.borrow_mut() = stack.map(|s| (entity, s)));
+}
+
+/// The amount after the callbacks; the stack of the attack that is being applied to `damage.entity`, if there is one.
+pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
+    let attacker_stack = PENDING_ATTACK.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match pending.take() {
+            Some((entity, stack)) if entity == damage.entity => Some(stack),
+            other => {
+                *pending = other;
+                None
+            }
+        }
+    });
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack };
+    MODIFY_DAMAGE.invoke(&modification);
+    modification.amount.get()
 }
 
 pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
