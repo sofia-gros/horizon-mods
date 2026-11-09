@@ -44,13 +44,13 @@ def main(argv):
         name = path.relative_to(SALVAGE).with_suffix('').as_posix()
         lines.append(f'    ("modifier_salvage", "tconstruct:{name}", r####"{json.dumps(data, separators=(",", ":"), ensure_ascii=False)}"####),')
         count += 1
-    # what a modifier costs in items: the recipes that add one level (single-level and incremental ones; the others are not carried yet)
+    # what a modifier costs in items: the recipes that add one level (single, incremental and the two multilevel kinds; swappable and overslime are not used)
     for folder in ('upgrade', 'ability', 'defense'):
         for path in sorted((RECIPES / folder).glob('*.json')):
             data = json.loads(path.read_bytes().decode('utf-8'))
-            if data.get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier'):
+            if data.get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier'):
                 continue
-            keep = {k: data[k] for k in ('type', 'result', 'level', 'inputs', 'input', 'needed_per_level', 'amount_per_item') if k in data}
+            keep = data
             lines.append(f'    ("modifier_recipes", "tconstruct:{folder}/{path.stem}", r####"{json.dumps(keep, separators=(",", ":"), ensure_ascii=False)}"####),')
             count += 1
     # the item tags the recipes name (forge:), with the tags they nest, so a station can tell what an ingredient accepts
