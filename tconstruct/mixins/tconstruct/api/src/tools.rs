@@ -16,6 +16,7 @@ use tconstruct_library::tools::definition::{ToolDefinitionData, ToolModuleRegist
 use tconstruct_library::tools::stat::{HarvestTiers, ToolStats};
 
 use crate::tinkering_data;
+use crate::tool_data::ToolData;
 
 /// What the data's conditions ask the game. The port has no mod integration: nothing else is installed, no tag of another mod has
 /// members and the integration switches are off.
@@ -504,12 +505,8 @@ impl ToolLibrary {
         if !item.item_in_tag(tag) {
             return Err(format!("{id} does not go on this tool"));
         }
-        let Some(Nbt::List(materials)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
-        let materials: Vec<MaterialId> = materials.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
-        let mut upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
-            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
-            _ => Vec::new(),
-        };
+        let mut data = ToolData::read(tool)?;
+        let mut upgrades = data.upgrades.clone();
         let Some(Nbt::Compound(free)) = tool.custom_data.get("tconstruct:slots") else { return Err("this tool has no slot data".to_owned()) };
         for (slot, count) in cost {
             let left = match free.get(slot) {
@@ -547,10 +544,8 @@ impl ToolLibrary {
             Some(existing) => existing.level += 1,
             None => upgrades.push(ModifierEntry { modifier: id, level: 1 }),
         }
-        let mut made = self.make_with(&definition_id, materials, &upgrades, &extra_slots(tool))?;
-        made.item = tool.item.clone();
-        made.damage = tool.damage;
-        Ok(made)
+        data.upgrades = upgrades;
+        data.rebuild(self)
     }
 }
 
@@ -653,30 +648,13 @@ impl ToolLibrary {
             return Err(format!("no modifier {id}"));
         }
         let definition_id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
-        let Some(Nbt::List(materials)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
-        let materials: Vec<MaterialId> = materials.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
-        let mut upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
-            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
-            _ => Vec::new(),
-        };
-        let current = upgrades.iter().find(|u| u.modifier == id).map_or(0, |u| u.level);
+        let mut data = ToolData::read(tool)?;
+        let current = data.level_of(&id);
         if change < 0 && current == 0 {
             return Err(format!("the tool has no {id} to take off"));
         }
-        let target = if change == i32::MIN { 0 } else { (current + change).max(0) };
-        upgrades.retain(|u| u.modifier != id);
-        if target > 0 {
-            upgrades.push(ModifierEntry { modifier: id.clone(), level: target });
-        }
-        let mut made = self.make_with(&definition_id, materials, &upgrades, &extra_slots(tool))?;
-        if let Some(Nbt::Compound(free)) = made.custom_data.get("tconstruct:slots") {
-            if let Some((slot, _)) = free.iter().find(|(_, v)| matches!(v, Nbt::Int(n) if *n < 0)) {
-                return Err(format!("the tool would have too many {slot} modifiers"));
-            }
-        }
-        made.item = tool.item.clone();
-        made.damage = tool.damage;
-        Ok(made)
+        data.set_level(&id, if change == i32::MIN { 0 } else { (current + change).max(0) });
+        data.rebuild(self)
     }
 }
 
@@ -738,15 +716,6 @@ pub fn durability_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 
     0
 }
 
-/// The slots `/tconstruct slots` added to a tool (negative when it took some away).
-pub fn extra_slots(tool: &pluto_lib::StackData) -> BTreeMap<String, i32> {
-    use pluto_lib::Nbt;
-    match tool.custom_data.get("tconstruct:extra_slots") {
-        Some(Nbt::Compound(map)) => map.iter().filter_map(|(k, v)| if let Nbt::Int(n) = v { Some((k.clone(), *n)) } else { None }).collect(),
-        _ => BTreeMap::new(),
-    }
-}
-
 /// `/tconstruct slots add|set <slot_type> [count]`: gives the first tool in the inventory more slots of a type (`add`), or makes it have
 /// exactly `count` free (`set`), as the original's `SlotsCommand` does on the held tool.
 pub fn slots_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
@@ -772,30 +741,12 @@ pub fn slots_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
             Some(Nbt::Int(v)) => *v,
             _ => 0,
         };
-        let mut extra = extra_slots(&tool);
-        *extra.entry(slot_type.clone()).or_insert(0) += if adding { count } else { count - left };
-        let rebuilt = (|| {
-            let materials: Vec<MaterialId> = match tool.custom_data.get("tconstruct:materials") {
-                Some(Nbt::List(list)) => list.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect(),
-                _ => return Err("this tool has no materials".to_owned()),
-            };
-            let entries: Vec<tconstruct_library::modifiers::ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
-                Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(tconstruct_library::modifiers::ModifierEntry { modifier: tconstruct_library::modifiers::ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
-                _ => Vec::new(),
-            };
-            let id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
-            library().make_with(&id, materials, &entries, &extra)
-        })();
+        let rebuilt = ToolData::read(&tool).and_then(|mut data| {
+            *data.extra_slots.entry(slot_type.clone()).or_insert(0) += if adding { count } else { count - left };
+            data.rebuild(library())
+        });
         match rebuilt {
-            Ok(mut made) => {
-                if let Some(Nbt::Compound(now)) = made.custom_data.get("tconstruct:slots") {
-                    if let Some((kind, _)) = now.iter().find(|(_, v)| matches!(v, Nbt::Int(n) if *n < 0)) {
-                        reason = format!("the tool would have too many {kind} modifiers");
-                        continue;
-                    }
-                }
-                made.item = tool.item.clone();
-                made.damage = tool.damage;
+            Ok(made) => {
                 if ctx.source.update_stack(slot, &made) {
                     println!("tconstruct: slots {} {slot_type}: {}", if adding { "add" } else { "set" }, tooltip_lines(&made).join(" | "));
                     return 1;
@@ -818,26 +769,12 @@ impl ToolLibrary {
         if self.materials.materials.material(&material).is_none() {
             return Err(format!("no material {material}"));
         }
-        let Some(Nbt::List(list)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
-        let mut materials: Vec<MaterialId> = list.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
-        if index >= materials.len() {
-            return Err(format!("the tool has {} parts, there is no part {index}", materials.len()));
+        let mut data = ToolData::read(tool)?;
+        if index >= data.materials.len() {
+            return Err(format!("the tool has {} parts, there is no part {index}", data.materials.len()));
         }
-        materials[index] = material;
-        let upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
-            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
-            _ => Vec::new(),
-        };
-        let id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
-        let mut made = self.make_with(&id, materials, &upgrades, &extra_slots(tool))?;
-        if let Some(Nbt::Compound(free)) = made.custom_data.get("tconstruct:slots") {
-            if let Some((slot, _)) = free.iter().find(|(_, v)| matches!(v, Nbt::Int(n) if *n < 0)) {
-                return Err(format!("the tool would have too many {slot} modifiers"));
-            }
-        }
-        made.item = tool.item.clone();
-        made.damage = made.max_damage.map_or(tool.damage, |max| tool.damage.min(max.max(0) as u32));
-        Ok(made)
+        data.materials[index] = material;
+        data.rebuild(self)
     }
 }
 
