@@ -808,3 +808,60 @@ pub fn slots_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
     println!("tconstruct: slots refused: {reason}");
     0
 }
+
+impl ToolLibrary {
+    /// The tool with the material of part `index` replaced, rebuilt with its upgrades and extra slots. Err with the reason.
+    pub fn set_material(&self, tool: &pluto_lib::StackData, index: usize, material: &str) -> Result<pluto_lib::StackData, String> {
+        use pluto_lib::Nbt;
+        use tconstruct_library::modifiers::{ModifierEntry, ModifierId};
+        let material = MaterialId::try_parse(&format!("tconstruct:{}", material.trim_start_matches("tconstruct:"))).ok_or("bad material id")?;
+        if self.materials.materials.material(&material).is_none() {
+            return Err(format!("no material {material}"));
+        }
+        let Some(Nbt::List(list)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
+        let mut materials: Vec<MaterialId> = list.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
+        if index >= materials.len() {
+            return Err(format!("the tool has {} parts, there is no part {index}", materials.len()));
+        }
+        materials[index] = material;
+        let upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
+            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
+            _ => Vec::new(),
+        };
+        let id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
+        let mut made = self.make_with(&id, materials, &upgrades, &extra_slots(tool))?;
+        if let Some(Nbt::Compound(free)) = made.custom_data.get("tconstruct:slots") {
+            if let Some((slot, _)) = free.iter().find(|(_, v)| matches!(v, Nbt::Int(n) if *n < 0)) {
+                return Err(format!("the tool would have too many {slot} modifiers"));
+            }
+        }
+        made.item = tool.item.clone();
+        made.damage = made.max_damage.map_or(tool.damage, |max| tool.damage.min(max.max(0) as u32));
+        Ok(made)
+    }
+}
+
+/// `/tconstruct materials set <index> <material>`: replaces the material of one part of the first tool in the inventory, as the original's
+/// `MaterialsCommand set` does on the held tool.
+pub fn materials_set_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    let (Some(index), Some(material)) = (ctx.args.first().and_then(|i| i.parse::<usize>().ok()), ctx.args.get(1)) else { return 0 };
+    let mut reason = String::from("you carry no tool made by /tconstruct build or craft");
+    for slot in 0..36 {
+        let Some(tool) = ctx.source.stack(slot) else { continue };
+        if !tool.custom_data.contains_key("tconstruct:stats") {
+            continue;
+        }
+        match library().set_material(&tool, index, material) {
+            Ok(changed) => {
+                if ctx.source.update_stack(slot, &changed) {
+                    println!("tconstruct: materials set part {index} to {material}: {}", tooltip_lines(&changed).join(" | "));
+                    return 1;
+                }
+            }
+            Err(error) => reason = error,
+        }
+    }
+    ctx.source.send_message(&reason);
+    println!("tconstruct: materials refused: {reason}");
+    0
+}
