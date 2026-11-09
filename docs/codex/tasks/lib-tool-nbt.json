@@ -1,0 +1,83 @@
+{
+  "id": "lib-tool-nbt",
+  "order": 3,
+  "title": "The tool's stored data: the tool stack model, its NBT parts and the tool context",
+  "goal": "Port `tools/nbt` (MaterialNBT, ModifierNBT, StatsNBT, ToolDataNBT and kin) and `tools/context` as plain Rust: the tool stack's data model, the operations the original's `ToolStack` has (add and remove a modifier, replace a material, set the damage, rebuild the stats, copy, validate) and the read and write of the parts as plain values. The Tinkers API crate keeps its own `ToolData` (tconstruct/mixins/tconstruct/api/src/tool_data.rs) for the game side; do not touch it, but make your model able to replace it later (the same fields, the same keys: tconstruct:materials, tconstruct:upgrades, tconstruct:extra_slots, tconstruct:stats).",
+  "depends_on": [],
+  "read_first": [
+    "AGENTS.md",
+    "docs/codex.md",
+    "tconstruct/mixins/tconstruct/api/library/src/lib.rs",
+    "tconstruct/mixins/tconstruct/api/library/src/smeltery/melting.rs",
+    "tconstruct/mixins/tconstruct/api/library/src/recipes/material.rs",
+    "tconstruct/mixins/tconstruct/api/library/src/tools/stack.rs",
+    "tconstruct/mixins/tconstruct/api/src/tool_data.rs"
+  ],
+  "java": [
+    "slimeknights/tconstruct/library/tools/context/EquipmentChangeContext.java",
+    "slimeknights/tconstruct/library/tools/context/EquipmentContext.java",
+    "slimeknights/tconstruct/library/tools/context/EquipmentIterator.java",
+    "slimeknights/tconstruct/library/tools/context/LootingContext.java",
+    "slimeknights/tconstruct/library/tools/context/ToolAttackContext.java",
+    "slimeknights/tconstruct/library/tools/context/ToolHarvestContext.java",
+    "slimeknights/tconstruct/library/tools/context/ToolRebuildContext.java",
+    "slimeknights/tconstruct/library/tools/nbt/DummyToolStack.java",
+    "slimeknights/tconstruct/library/tools/nbt/IModDataView.java",
+    "slimeknights/tconstruct/library/tools/nbt/IToolContext.java",
+    "slimeknights/tconstruct/library/tools/nbt/IToolStackView.java",
+    "slimeknights/tconstruct/library/tools/nbt/LazyToolStack.java",
+    "slimeknights/tconstruct/library/tools/nbt/MaterialIdNBT.java",
+    "slimeknights/tconstruct/library/tools/nbt/MaterialNBT.java",
+    "slimeknights/tconstruct/library/tools/nbt/ModDataNBT.java",
+    "slimeknights/tconstruct/library/tools/nbt/MultiplierNBT.java",
+    "slimeknights/tconstruct/library/tools/nbt/StatsNBT.java",
+    "slimeknights/tconstruct/library/tools/nbt/ToolDataNBT.java"
+  ],
+  "inventory": {
+    "file": "docs/inventory/library.json",
+    "classes": [
+      "tools/context/EquipmentChangeContext.java",
+      "tools/context/EquipmentContext.java",
+      "tools/context/EquipmentIterator.java",
+      "tools/context/LootingContext.java",
+      "tools/context/ToolAttackContext.java",
+      "tools/context/ToolHarvestContext.java",
+      "tools/context/ToolRebuildContext.java",
+      "tools/nbt/DummyToolStack.java",
+      "tools/nbt/IModDataView.java",
+      "tools/nbt/IToolContext.java",
+      "tools/nbt/IToolStackView.java",
+      "tools/nbt/LazyToolStack.java",
+      "tools/nbt/MaterialIdNBT.java",
+      "tools/nbt/MaterialNBT.java",
+      "tools/nbt/ModDataNBT.java",
+      "tools/nbt/MultiplierNBT.java",
+      "tools/nbt/StatsNBT.java",
+      "tools/nbt/ToolDataNBT.java"
+    ]
+  },
+  "allowed_paths": [
+    "tconstruct/mixins/tconstruct/api/library/src/**",
+    "tconstruct/mixins/tconstruct/api/library/tests/original_data.rs",
+    "docs/inventory/library.json"
+  ],
+  "may_delete": [],
+  "max_files": 21,
+  "auto_merge": true,
+  "build_files_allowed": [],
+  "max_changed_lines": 5258,
+  "max_new_tests": 27,
+  "max_new_files": 21,
+  "verify": [
+    "cargo test --locked --manifest-path tconstruct/mixins/tconstruct/api/library/Cargo.toml",
+    "python tools/check_line_endings.py",
+    "python tools/feature_inventory.py library"
+  ],
+  "stop_and_report_if": [
+    "the Java needs the game (a world, an entity, a block entity, rendering, networking): port the part that is plain computation behind a small trait the caller implements, and leave the class partial with the reason",
+    "a library type the port needs does not exist yet and is not in your task: leave that class todo and say which type",
+    "cargo test fails and the cause is not in your change",
+    "you are about to touch a path that is not allowed"
+  ],
+  "notes": "The library is plain Rust with no game dependency (see src/smeltery and src/recipes for the style: a struct for the data, `from_json` for the original's generated JSON, plain methods for the behaviour, game questions behind a small trait). Put the port in a new folder src/<name>/ (one file per Java class, or per few small ones) and add one `pub mod <name>;` line to src/lib.rs. Unit tests go in a `#[cfg(test)] mod tests` at the bottom of the file they test, in the existing style: one test per behaviour, written from what the Java does, not from your code; check once that a test fails when the code is broken; no test of getters. For a class that reads the original's data files, add one test to the existing tests/original_data.rs that loads every file of that kind from .local/tconstruct-source (the junction codex_start.py makes) and asserts how many loaded; files that need another mod are skipped through the condition context, as the other tests there do. Mod integration (the plugin package, compat) is not ported. In the inventory, set each class you ported to ported-unchecked with a note of one or two sentences: where the port is, what is tested, what was left."
+}
