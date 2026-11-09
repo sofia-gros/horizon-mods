@@ -41,6 +41,8 @@ pub struct ToolLibrary {
     pub definitions: HashMap<ResourceId, ToolDefinitionData>,
     /// The members of the `modifiable/*` item tags, with nested tags resolved (an item that does not exist is not checked).
     pub item_tags: BTreeMap<ResourceId, Vec<ResourceId>>,
+    /// For each modifier a recipe adds: the slots it costs and the item tag of the tools it goes on.
+    pub salvage: HashMap<tconstruct_library::modifiers::ModifierId, (BTreeMap<String, i32>, String)>,
     /// What loading found wrong, as the original would log it.
     pub problems: Vec<String>,
 }
@@ -83,7 +85,14 @@ impl ToolLibrary {
         }
         let (item_tags, tag_problems) = tconstruct_library::tags::load(&files("tags/item"), &|_| true);
         problems.extend(tag_problems);
-        Self { stats, materials, modifiers, definitions, item_tags, problems }
+        let mut salvage = HashMap::new();
+        for (_, json) in files("modifier_salvage") {
+            let (Some(modifier), Some(slots)) = (json.get("modifier").and_then(Value::as_str).and_then(tconstruct_library::modifiers::ModifierId::try_parse), json.get("slots").and_then(Value::as_object)) else { continue };
+            let slots = slots.iter().filter_map(|(k, v)| Some((k.clone(), i32::try_from(v.as_i64()?).ok()?))).collect();
+            let tag = json.get("tools").and_then(|t| t.get("tag")).and_then(Value::as_str).unwrap_or("tconstruct:modifiable").to_owned();
+            salvage.insert(modifier, (slots, tag));
+        }
+        Self { stats, materials, modifiers, definitions, item_tags, salvage, problems }
     }
 }
 
@@ -118,14 +127,14 @@ impl ToolLibrary {
         let last = materials.last().cloned().ok_or("give at least one material")?;
         materials.resize(definition.parts().len().max(1), last);
         materials.truncate(definition.parts().len());
-        self.make(&id, materials)
+        self.make(&id, materials, &[])
     }
 
     /// The stack of the tool `id` made of the given materials, one for each part in order.
-    pub fn make(&self, id: &ResourceId, materials: Vec<MaterialId>) -> Result<pluto_lib::StackData, String> {
+    pub fn make(&self, id: &ResourceId, materials: Vec<MaterialId>, upgrades: &[tconstruct_library::modifiers::ModifierEntry]) -> Result<pluto_lib::StackData, String> {
         use pluto_lib::Nbt;
         let definition = self.definitions.get(id).ok_or_else(|| format!("no tool {id}"))?;
-        let rebuilt = rebuild_stats(definition, &materials, &[], &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
+        let rebuilt = rebuild_stats(definition, &materials, upgrades, &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
         let mut stats = pluto_lib::NbtCompound::new();
         for (stat, value) in &rebuilt.stats {
             stats.insert(stat.0.to_string(), match value {
@@ -143,6 +152,14 @@ impl ToolLibrary {
         data.insert("tconstruct:materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
         data.insert("tconstruct:modifiers".to_owned(), Nbt::List(rebuilt.modifiers.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
         data.insert("tconstruct:stats".to_owned(), Nbt::Compound(stats));
+        // the upgrades the player added (not the traits), to rebuild from; the slots left are those of the tool less what they cost
+        data.insert("tconstruct:upgrades".to_owned(), Nbt::List(upgrades.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
+        let mut free = pluto_lib::NbtCompound::new();
+        for (slot, count) in &rebuilt.slots {
+            let used: i32 = upgrades.iter().filter_map(|u| Some((self.salvage.get(&u.modifier)?, u.level))).map(|((slots, _), level)| slots.get(slot).copied().unwrap_or(0) * level).sum();
+            free.insert(slot.clone(), Nbt::Int(count - used));
+        }
+        data.insert("tconstruct:slots".to_owned(), Nbt::Compound(free));
         Ok(pluto_lib::StackData { item: tconstruct_library::tools::definition::item_of_tool(id), count: 1, damage: 0, max_damage: durability, custom_data: data })
     }
 
@@ -365,7 +382,7 @@ pub fn craft_command(ctx: &pluto_lib::CommandContext) -> i32 {
         return 0;
     };
     let materials: Vec<MaterialId> = used.iter().map(|i| found[*i].3.clone()).collect();
-    let Ok(made) = library.make(&tool, materials) else { return 0 };
+    let Ok(made) = library.make(&tool, materials, &[]) else { return 0 };
     let item = made.item.clone();
     for i in &used {
         let (slot, stack, _, _) = &found[*i];
@@ -378,4 +395,67 @@ pub fn craft_command(ctx: &pluto_lib::CommandContext) -> i32 {
     }
     println!("tconstruct: crafted {item} from {} parts", used.len());
     1
+}
+
+impl ToolLibrary {
+    /// The tool stack with one more level of `modifier`, if the tool has the slots and the modifier goes on it. Err with the reason.
+    pub fn upgrade(&self, tool: &pluto_lib::StackData, modifier: &str) -> Result<pluto_lib::StackData, String> {
+        use pluto_lib::Nbt;
+        use tconstruct_library::modifiers::{ModifierEntry, ModifierId};
+        let id = ModifierId::try_parse(&format!("tconstruct:{}", modifier.trim_start_matches("tconstruct:"))).ok_or("bad modifier id")?;
+        let (cost, tag) = self.salvage.get(&id).ok_or_else(|| format!("{id} is not a modifier a recipe adds"))?;
+        let definition_id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
+        let item = ToolItem { library: self, item: definition_id.clone() };
+        if !item.item_in_tag(tag) {
+            return Err(format!("{id} does not go on this tool"));
+        }
+        let Some(Nbt::List(materials)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
+        let materials: Vec<MaterialId> = materials.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
+        let mut upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
+            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
+            _ => Vec::new(),
+        };
+        let Some(Nbt::Compound(free)) = tool.custom_data.get("tconstruct:slots") else { return Err("this tool has no slot data".to_owned()) };
+        for (slot, count) in cost {
+            let left = match free.get(slot) {
+                Some(Nbt::Int(v)) => *v,
+                _ => 0,
+            };
+            if left < *count {
+                return Err(format!("not enough {slot} slots: {left} left, {count} needed"));
+            }
+        }
+        match upgrades.iter_mut().find(|u| u.modifier == id) {
+            Some(existing) => existing.level += 1,
+            None => upgrades.push(ModifierEntry { modifier: id, level: 1 }),
+        }
+        let mut made = self.make(&definition_id, materials, &upgrades)?;
+        made.item = tool.item.clone();
+        made.damage = tool.damage;
+        Ok(made)
+    }
+}
+
+/// `/tconstruct upgrade <modifier>`: adds a level of a modifier to the first tool in the inventory that has the slots for it.
+pub fn upgrade_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    let Some(modifier) = ctx.args.first() else { return 0 };
+    let mut reason = String::from("you carry no tool made by /tconstruct build or craft");
+    for slot in 0..36 {
+        let Some(tool) = ctx.source.stack(slot) else { continue };
+        if !tool.custom_data.contains_key("tconstruct:stats") {
+            continue;
+        }
+        match library().upgrade(&tool, modifier) {
+            Ok(upgraded) => {
+                if ctx.source.update_stack(slot, &upgraded) {
+                    println!("tconstruct: upgraded {} with {modifier} in slot {slot}, max damage {:?}, slots {:?}", upgraded.item, upgraded.max_damage, upgraded.custom_data.get("tconstruct:slots"));
+                    return 1;
+                }
+            }
+            Err(error) => reason = error,
+        }
+    }
+    ctx.source.send_message(&reason);
+    println!("tconstruct: upgrade refused: {reason}");
+    0
 }
