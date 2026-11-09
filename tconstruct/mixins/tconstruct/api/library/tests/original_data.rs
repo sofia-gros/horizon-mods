@@ -338,7 +338,7 @@ fn the_originals_item_casting_recipes_load() {
     let recipes = read_all(&root.join("../recipes/smeltery/casting"));
     let (mut item_recipes, mut loaded) = (0, 0);
     for (id, json) in &recipes {
-        if !matches!(json.get("type").and_then(Value::as_str), Some("tconstruct:casting_table" | "tconstruct:casting_basin")) {
+        if !matches!(json.get("type").and_then(Value::as_str), Some("tconstruct:casting_table" | "tconstruct:casting_basin" | "tconstruct:retextured_casting_basin")) {
             continue; // filling, duplication and potion recipes are other kinds
         }
         item_recipes += 1;
@@ -349,6 +349,25 @@ fn the_originals_item_casting_recipes_load() {
             Err(error) => panic!("{id}: {error}"),
         }
     }
-    assert_eq!(item_recipes, 392 + 130);
+    assert_eq!(item_recipes, 392 + 130 + 2);
     assert!(loaded > 200, "{loaded}");
+}
+
+#[test]
+fn the_originals_filling_duplication_and_potion_casting_recipes_load() {
+    use tconstruct_library::smeltery::casting::{DuplicationRecipe, FillingRecipe, PotionRecipe};
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/smeltery/casting"));
+    let mut counts = [0; 3];
+    for (id, json) in &recipes {
+        let kind = json.get("type").and_then(Value::as_str).unwrap_or("");
+        let result = match kind {
+            "tconstruct:table_filling" | "tconstruct:basin_filling" => FillingRecipe::from_json(id.clone(), json).map(|_| 0),
+            "tconstruct:table_duplication" => DuplicationRecipe::from_json(id.clone(), json).map(|_| 1),
+            "tconstruct:casting_table_potion" => PotionRecipe::from_json(id.clone(), json).map(|_| 2),
+            _ => continue,
+        };
+        counts[result.unwrap_or_else(|e| panic!("{id}: {e}"))] += 1;
+    }
+    assert_eq!(counts, [14, 1, 4]);
 }

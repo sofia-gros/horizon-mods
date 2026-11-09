@@ -38,6 +38,93 @@ pub struct CastingRecipe {
     pub cooling_time: i32,
 }
 
+/// Filling a container with fluid (`ContainerFillingRecipe`): the container item takes `fluid_amount` of whatever fluid it is given.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FillingRecipe {
+    pub id: ResourceId,
+    pub kind: CastingKind,
+    pub container: ResourceId,
+    pub fluid_amount: i32,
+}
+
+impl FillingRecipe {
+    /// Reads a `tconstruct:table_filling` or `tconstruct:basin_filling` file.
+    pub fn from_json(id: ResourceId, json: &Value) -> Result<Self, String> {
+        let kind = match json.get("type").and_then(Value::as_str) {
+            Some("tconstruct:table_filling") => CastingKind::Table,
+            Some("tconstruct:basin_filling") => CastingKind::Basin,
+            _ => return Err("not a filling recipe".to_owned()),
+        };
+        Ok(Self {
+            id,
+            kind,
+            container: ResourceId::try_parse(json.get("container").and_then(Value::as_str).ok_or("a filling recipe needs a 'container'")?).ok_or("bad container id")?,
+            fluid_amount: json.get("fluid_amount").and_then(Value::as_i64).filter(|a| *a >= 1).ok_or("a filling recipe needs a positive 'fluid_amount'")? as i32,
+        })
+    }
+}
+
+/// Copying a cast or template with fluid (`CastingTableDuplicationRecipe`): the item in the table is given back twice.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DuplicationRecipe {
+    pub id: ResourceId,
+    pub cast: Vec<ItemMatch>,
+    pub fluid: FluidMatch,
+    pub fluid_amount: i32,
+    pub cooling_time: i32,
+}
+
+impl DuplicationRecipe {
+    pub fn from_json(id: ResourceId, json: &Value) -> Result<Self, String> {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:table_duplication") {
+            return Err("not a duplication recipe".to_owned());
+        }
+        let (fluid, fluid_amount) = fluid_and_amount(json.get("fluid").ok_or("a duplication recipe needs a 'fluid'")?)?;
+        Ok(Self {
+            id,
+            cast: ingredient_matches(json.get("cast").ok_or("a duplication recipe needs a 'cast'")?)?,
+            fluid,
+            fluid_amount,
+            cooling_time: json.get("cooling_time").and_then(Value::as_i64).filter(|t| *t >= 1).ok_or("a duplication recipe needs a 'cooling_time'")? as i32,
+        })
+    }
+}
+
+/// Filling a bottle with a potion fluid (`PotionCastingRecipe`): the bottle becomes the result and the potion is carried over.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PotionRecipe {
+    pub id: ResourceId,
+    pub bottle: Vec<ItemMatch>,
+    pub fluid: FluidMatch,
+    pub fluid_amount: i32,
+    pub result: ResourceId,
+}
+
+impl PotionRecipe {
+    pub fn from_json(id: ResourceId, json: &Value) -> Result<Self, String> {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:casting_table_potion") {
+            return Err("not a potion casting recipe".to_owned());
+        }
+        let (fluid, fluid_amount) = fluid_and_amount(json.get("fluid").ok_or("a potion recipe needs a 'fluid'")?)?;
+        Ok(Self {
+            id,
+            bottle: ingredient_matches(json.get("bottle").ok_or("a potion recipe needs a 'bottle'")?)?,
+            fluid,
+            fluid_amount,
+            result: ResourceId::try_parse(json.get("result").and_then(Value::as_str).ok_or("a potion recipe needs a 'result' item id")?).ok_or("bad result id")?,
+        })
+    }
+}
+
+fn fluid_and_amount(fluid: &Value) -> Result<(FluidMatch, i32), String> {
+    let kind = if let Some(name) = fluid.get("fluid").and_then(Value::as_str) {
+        FluidMatch::Fluid(ResourceId::try_parse(name).ok_or("bad fluid id")?)
+    } else {
+        FluidMatch::Tag(ResourceId::try_parse(fluid.get("tag").and_then(Value::as_str).ok_or("the fluid needs 'fluid' or 'tag'")?).ok_or("bad fluid tag id")?)
+    };
+    Ok((kind, fluid.get("amount").and_then(Value::as_i64).filter(|a| *a >= 1).ok_or("the fluid needs a positive 'amount'")? as i32))
+}
+
 /// Which items and fluids belong to a tag.
 pub trait CastingTags {
     fn items(&self, tag: &ResourceId) -> Vec<ResourceId>;
@@ -49,7 +136,8 @@ impl CastingRecipe {
     pub fn from_json(id: ResourceId, json: &Value, conditions: &dyn ConditionContext) -> Result<Option<Self>, String> {
         let kind = match json.get("type").and_then(Value::as_str) {
             Some("tconstruct:casting_table") => CastingKind::Table,
-            Some("tconstruct:casting_basin") => CastingKind::Basin,
+            // the retextured basin casts the same way; the cast's texture goes onto the result (not carried)
+            Some("tconstruct:casting_basin" | "tconstruct:retextured_casting_basin") => CastingKind::Basin,
             _ => return Err("not an item casting recipe".to_owned()),
         };
         for c in json.get("conditions").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
@@ -175,10 +263,22 @@ mod tests {
     }
 
     #[test]
+    fn filling_duplication_and_potion_recipes_read_their_fields() {
+        let filling = FillingRecipe::from_json(id("a:f"), &json!({"type": "tconstruct:basin_filling", "container": "tconstruct:gauge", "fluid_amount": 250})).unwrap();
+        assert_eq!((filling.kind, filling.fluid_amount), (CastingKind::Basin, 250));
+        let copy = DuplicationRecipe::from_json(id("a:d"), &json!({"type": "tconstruct:table_duplication", "cast": [{"item": "a:template"}, {"tag": "a:templates"}], "cooling_time": 186, "fluid": {"amount": 500, "tag": "a:molten"}})).unwrap();
+        assert_eq!((copy.cast.len(), copy.fluid_amount, copy.cooling_time), (2, 500, 186));
+        let potion = PotionRecipe::from_json(id("a:p"), &json!({"type": "tconstruct:casting_table_potion", "bottle": {"item": "minecraft:glass_bottle"}, "fluid": {"amount": 250, "tag": "forge:potion"}, "result": "minecraft:potion"})).unwrap();
+        assert_eq!((potion.fluid_amount, potion.result.to_string().as_str()), (250, "minecraft:potion"));
+        assert!(FillingRecipe::from_json(id("a:x"), &json!({"type": "tconstruct:table_filling", "container": "a:b"})).is_err());
+    }
+
+    #[test]
     fn missing_fields_are_errors_and_other_recipe_types_are_refused() {
         let no_time = json!({"type": "tconstruct:casting_table", "fluid": {"amount": 1, "fluid": "a:b"}, "result": {"item": "a:c"}});
         assert!(CastingRecipe::from_json(id("a:x"), &no_time, &EmptyContext).is_err());
         let filling = json!({"type": "tconstruct:table_filling"});
         assert!(CastingRecipe::from_json(id("a:y"), &filling, &EmptyContext).is_err());
+        let _ = &filling;
     }
 }
