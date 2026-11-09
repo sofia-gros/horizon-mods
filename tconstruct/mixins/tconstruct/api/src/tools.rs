@@ -118,6 +118,13 @@ impl ToolLibrary {
         let last = materials.last().cloned().ok_or("give at least one material")?;
         materials.resize(definition.parts().len().max(1), last);
         materials.truncate(definition.parts().len());
+        self.make(&id, materials)
+    }
+
+    /// The stack of the tool `id` made of the given materials, one for each part in order.
+    pub fn make(&self, id: &ResourceId, materials: Vec<MaterialId>) -> Result<pluto_lib::StackData, String> {
+        use pluto_lib::Nbt;
+        let definition = self.definitions.get(id).ok_or_else(|| format!("no tool {id}"))?;
         let rebuilt = rebuild_stats(definition, &materials, &[], &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
         let mut stats = pluto_lib::NbtCompound::new();
         for (stat, value) in &rebuilt.stats {
@@ -136,7 +143,29 @@ impl ToolLibrary {
         data.insert("tconstruct:materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
         data.insert("tconstruct:modifiers".to_owned(), Nbt::List(rebuilt.modifiers.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
         data.insert("tconstruct:stats".to_owned(), Nbt::Compound(stats));
-        Ok(pluto_lib::StackData { item: tconstruct_library::tools::definition::item_of_tool(&id), count: 1, damage: 0, max_damage: durability, custom_data: data })
+        Ok(pluto_lib::StackData { item: tconstruct_library::tools::definition::item_of_tool(id), count: 1, damage: 0, max_damage: durability, custom_data: data })
+    }
+
+    /// The tool definitions whose parts can all be taken from `available` (part item and its material, one entry for each stack), each
+    /// with the stacks to take from, tried in the order of the tools' ids; the first is what a station would make.
+    pub fn tool_for_parts(&self, available: &[(ResourceId, MaterialId)]) -> Option<(ResourceId, Vec<usize>)> {
+        let mut ids: Vec<&ResourceId> = self.definitions.keys().collect();
+        ids.sort();
+        'tools: for id in ids {
+            let parts = self.definitions[id].parts();
+            if parts.is_empty() {
+                continue;
+            }
+            let mut used = Vec::new();
+            for part in &parts {
+                match available.iter().enumerate().find(|(i, (item, _))| *item == part.item && !used.contains(i)) {
+                    Some((i, _)) => used.push(i),
+                    None => continue 'tools,
+                }
+            }
+            return Some((id.clone(), used));
+        }
+        None
     }
 
     /// A tool of `definition` (a tool item such as `tconstruct:pickaxe`) with every part made of `material`: the stats and the modifiers it
@@ -288,4 +317,65 @@ pub fn register_attack_damage() {
             println!("tconstruct: attack damage original={} now={amount} with {}", hit.damage.amount, stack.item);
         }
     });
+}
+
+/// `/tconstruct part <part> <material>`: gives a tool part made of a material, which carries the material as the original's parts do
+/// (`Material` in the stack's data).
+pub fn part_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    use pluto_lib::Nbt;
+    let (Some(part), Some(material)) = (ctx.args.first(), ctx.args.get(1)) else { return 0 };
+    let Some(item) = ResourceId::try_parse_in("tconstruct", part) else { return 0 };
+    let Some(material) = MaterialId::try_parse(&format!("tconstruct:{}", material.trim_start_matches("tconstruct:"))) else { return 0 };
+    if library().materials.materials.material(&material).is_none() || tconstruct_library::tools::definition::part_stat_type(&item).is_none() {
+        ctx.source.send_message("no such part or material");
+        return 0;
+    }
+    let stack = pluto_lib::StackData {
+        item: item.to_string(),
+        count: 1,
+        damage: 0,
+        max_damage: None,
+        custom_data: [("Material".to_owned(), Nbt::String(material.to_string()))].into(),
+    };
+    if ctx.source.give_stack(stack).is_some() {
+        ctx.source.send_message("no room for the part");
+        return 0;
+    }
+    println!("tconstruct: part {item} of {material}");
+    1
+}
+
+/// `/tconstruct craft`: makes the first tool whose parts are in the inventory (parts that carry a material), using one of each.
+pub fn craft_command(ctx: &pluto_lib::CommandContext) -> i32 {
+    use pluto_lib::Nbt;
+    let library = library();
+    let mut found = Vec::new(); // (slot, stack, part item, material)
+    for slot in 0..36 {
+        let Some(stack) = ctx.source.stack(slot) else { continue };
+        let Some(Nbt::String(material)) = stack.custom_data.get("Material") else { continue };
+        let (Some(item), Some(material)) = (ResourceId::try_parse(&stack.item), MaterialId::try_parse(material)) else { continue };
+        if tconstruct_library::tools::definition::part_stat_type(&item).is_none() {
+            continue;
+        }
+        found.push((slot, stack.clone(), item, material));
+    }
+    let available: Vec<(ResourceId, MaterialId)> = found.iter().map(|(_, _, item, material)| (item.clone(), material.clone())).collect();
+    let Some((tool, used)) = library.tool_for_parts(&available) else {
+        ctx.source.send_message("no tool can be made of the parts you carry");
+        return 0;
+    };
+    let materials: Vec<MaterialId> = used.iter().map(|i| found[*i].3.clone()).collect();
+    let Ok(made) = library.make(&tool, materials) else { return 0 };
+    let item = made.item.clone();
+    for i in &used {
+        let (slot, stack, _, _) = &found[*i];
+        let mut left = stack.clone();
+        left.count -= 1;
+        ctx.source.update_stack(*slot, &left);
+    }
+    if ctx.source.give_stack(made).is_some() {
+        ctx.source.send_message("no room for the tool");
+    }
+    println!("tconstruct: crafted {item} from {} parts", used.len());
+    1
 }
