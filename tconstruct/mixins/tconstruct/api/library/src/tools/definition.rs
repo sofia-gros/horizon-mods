@@ -440,6 +440,22 @@ pub fn part_stat_type(part: &ResourceId) -> Option<MaterialStatsId> {
     MaterialStatsId::try_parse(&format!("tconstruct:{name}"))
 }
 
+/// The item id of a tool definition: the same name, but the slime chestplate keeps the id the original gave its item, `slimy_chestplate`.
+pub fn item_of_tool(definition: &ResourceId) -> String {
+    match definition.path() {
+        "slime_chestplate" => format!("{}:slimy_chestplate", definition.namespace()),
+        _ => definition.to_string(),
+    }
+}
+
+/// The tool definition an item id belongs to: the inverse of `item_of_tool`.
+pub fn tool_of_item(item: &ResourceId) -> ResourceId {
+    match item.path() {
+        "slimy_chestplate" => ResourceId::try_new(item.namespace(), "slime_chestplate").unwrap_or_else(|| item.clone()),
+        _ => item.clone(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -527,6 +543,13 @@ mod tests {
         assert!(!ToolDefinitionData::default().is_effective(&|_| true), "no module, nothing is effective");
         let inverted = self::data(vec![json!({"type": "tconstruct:is_effective", "predicate_type": "mantle:inverted", "inverted_type": "mantle:tag", "tag": "minecraft:mineable/axe"})]);
         assert!(inverted.is_effective(&|tag| tag == "minecraft:mineable/pickaxe"));
+    }
+
+    #[test]
+    fn the_slime_chestplate_is_the_slimy_chestplate_item() {
+        assert_eq!(item_of_tool(&ResourceId::try_parse("tconstruct:slime_chestplate").unwrap()), "tconstruct:slimy_chestplate");
+        assert_eq!(item_of_tool(&ResourceId::try_parse("tconstruct:pickaxe").unwrap()), "tconstruct:pickaxe");
+        assert_eq!(tool_of_item(&ResourceId::try_parse("tconstruct:slimy_chestplate").unwrap()).to_string(), "tconstruct:slime_chestplate");
     }
 
     #[test]

@@ -136,7 +136,7 @@ impl ToolLibrary {
         data.insert("tconstruct:materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
         data.insert("tconstruct:modifiers".to_owned(), Nbt::List(rebuilt.modifiers.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
         data.insert("tconstruct:stats".to_owned(), Nbt::Compound(stats));
-        Ok(pluto_lib::StackData { item: id.to_string(), count: 1, damage: 0, max_damage: durability, custom_data: data })
+        Ok(pluto_lib::StackData { item: tconstruct_library::tools::definition::item_of_tool(&id), count: 1, damage: 0, max_damage: durability, custom_data: data })
     }
 
     /// A tool of `definition` (a tool item such as `tconstruct:pickaxe`) with every part made of `material`: the stats and the modifiers it
@@ -247,7 +247,7 @@ pub fn register_break_speed() {
     };
     BreakSpeedCallback::EVENT.register(move |dig| {
         let Some(held) = &dig.held else { return };
-        let Some(definition) = ResourceId::try_parse(&held.item).and_then(|id| library().definitions.get(&id)) else { return };
+        let Some(definition) = ResourceId::try_parse(&held.item).and_then(|id| library().definitions.get(&tconstruct_library::tools::definition::tool_of_item(&id))) else { return };
         let Some(Nbt::Compound(stats)) = held.custom_data.get("tconstruct:stats") else { return };
         let Some(Nbt::Float(mining)) = stats.get("tconstruct:mining_speed") else { return };
         if !definition.is_effective(&|tag| dig.block.is_in_tag(tag)) {
@@ -277,7 +277,7 @@ pub fn register_attack_damage() {
     static SAID: AtomicBool = AtomicBool::new(false);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
         let Some(stack) = &hit.attacker_stack else { return };
-        if ResourceId::try_parse(&stack.item).and_then(|id| library().definitions.get(&id)).is_none() {
+        if ResourceId::try_parse(&stack.item).and_then(|id| library().definitions.get(&tconstruct_library::tools::definition::tool_of_item(&id))).is_none() {
             return;
         }
         let Some(Nbt::Compound(stats)) = stack.custom_data.get("tconstruct:stats") else { return };
