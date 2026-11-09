@@ -477,3 +477,26 @@ fn the_originals_tool_building_recipes_all_load() {
     }
     assert_eq!(loaded, 25);
 }
+
+#[test]
+fn the_originals_modifier_recipes_all_load() {
+    use tconstruct_library::recipes::modifier::ModifierRecipe;
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/tools"));
+    let (mut seen, mut kept) = (0, 0);
+    for (id, json) in &recipes {
+        let kind = json.get("type").and_then(Value::as_str).unwrap_or("");
+        if !matches!(kind, "tconstruct:modifier" | "tconstruct:incremental_modifier" | "tconstruct:multilevel_modifier" | "tconstruct:multilevel_incremental_modifier" | "tconstruct:swappable_modifier" | "tconstruct:overslime_modifier") {
+            continue;
+        }
+        seen += 1;
+        match ModifierRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(Some(_)) => kept += 1,
+            Ok(None) => {}
+            Err(error) if error.contains("unknown condition") || error.contains("unsupported ingredient type") => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert!(seen > 200, "{seen}");
+    assert!(kept > 100, "{kept}");
+}
