@@ -4,6 +4,7 @@ pub mod formula;
 pub mod materials;
 pub mod modifiers;
 pub mod predicate;
+pub mod recipes;
 pub mod resource;
 pub mod smeltery;
 pub mod tags;

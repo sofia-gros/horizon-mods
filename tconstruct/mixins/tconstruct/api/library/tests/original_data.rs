@@ -410,3 +410,30 @@ fn the_originals_entity_melting_recipes_load() {
     assert_eq!(entity_files, 32);
     assert!(loaded > 20, "{loaded}");
 }
+
+#[test]
+fn the_originals_material_recipes_all_load() {
+    use tconstruct_library::recipes::material::{MaterialFluidRecipe, MaterialMeltingRecipe, MaterialRecipe};
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/tools/materials"));
+    let mut counts = [0usize; 3];
+    let mut kept = [0usize; 3];
+    for (id, json) in &recipes {
+        let kind = json.get("type").and_then(Value::as_str).unwrap_or("");
+        let (slot, result) = match kind {
+            "tconstruct:material" => (0, MaterialRecipe::from_json(id.clone(), json, &EmptyContext).map(|r| r.is_some())),
+            "tconstruct:material_fluid" => (1, MaterialFluidRecipe::from_json(json, &EmptyContext).map(|r| r.is_some())),
+            "tconstruct:material_melting" => (2, MaterialMeltingRecipe::from_json(json, &EmptyContext).map(|r| r.is_some())),
+            _ => continue,
+        };
+        counts[slot] += 1;
+        match result {
+            Ok(true) => kept[slot] += 1,
+            Ok(false) => {}
+            Err(error) if error.contains("unknown condition") || error.contains("unsupported ingredient type") => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert_eq!(counts, [217, 73, 48]);
+    assert!(kept[0] > 100 && kept[1] > 20 && kept[2] > 5, "{kept:?}");
+}
