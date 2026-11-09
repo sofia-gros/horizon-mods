@@ -5,3 +5,4 @@ pub mod fuel;
 pub mod multiblock;
 pub mod casting;
 pub mod tank;
+pub mod heating;
