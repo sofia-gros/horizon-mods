@@ -105,6 +105,27 @@ impl HostOps {
     }
 }
 
+/// A world that only answers block tags, over a host that can only be read.
+struct ReadOnlyTags<'a>(&'a dyn Host);
+
+impl WorldOps for ReadOnlyTags<'_> {
+    fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> {
+        None
+    }
+
+    fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool {
+        false
+    }
+
+    fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool {
+        false
+    }
+
+    fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
+        self.0.block_name_in_tag(block, tag).unwrap_or(false)
+    }
+}
+
 /// The world's blocks over the host.
 struct HostWorld(HostHandle);
 
@@ -961,7 +982,9 @@ impl Hooks for PlutoHooks {
         let Some(level) = host.level(host.dimension()) else { return };
         let Some(block) = host.level_block_state(level, event.pos).and_then(|text| BlockState::parse(&text).ok()) else { return };
         let held = host.acting_player().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
-        event.speed = events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held);
+        // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
+        let mut tags = ReadOnlyTags(host);
+        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held));
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {

@@ -123,6 +123,23 @@ assert_eq!(state.property("age"), Some("3"));
 assert_eq!(state.property("facing"), None);
 ```
 
+### `BlockState::is_in_tag`
+
+`fn is_in_tag(&self, tag: &str) -> bool`. Whether the block is in a block tag, such as `minecraft:mineable/pickaxe`. False for an unknown tag, and outside a `with_world` scope. Inside the break-speed callback the scope is open.
+
+```rust
+use pluto_lib::{with_world, BlockState, MemoryWorldOps};
+
+let stone = BlockState::parse("minecraft:stone").unwrap();
+let mut ops = MemoryWorldOps::default();
+ops.tags.push(("minecraft:stone".into(), "minecraft:mineable/pickaxe".into()));
+with_world(&mut ops, || {
+    assert!(stone.is_in_tag("minecraft:mineable/pickaxe"));
+    assert!(!stone.is_in_tag("minecraft:mineable/axe"));
+});
+assert!(!stone.is_in_tag("minecraft:mineable/pickaxe")); // no scope
+```
+
 ### `BlockState::parse`
 
 `fn parse(text: &str) -> Result<BlockState, IdentifierError>`. Reads `minecraft:oak_stairs[facing=east,half=bottom]`; the brackets are optional and a block without a namespace is `minecraft:`.
@@ -136,7 +153,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded) `set_block_state(dimension, pos, state) -> bool` and `play_sound(dimension, sound, at, volume, pitch) -> bool`. PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded) `set_block_state(dimension, pos, state) -> bool` `play_sound(dimension, sound, at, volume, pitch) -> bool`, and, with a default of false, `block_in_tag(block, tag) -> bool`. PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -166,7 +183,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), every sound played in `sounds`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};

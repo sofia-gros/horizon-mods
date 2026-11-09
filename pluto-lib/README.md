@@ -40,6 +40,7 @@ In `mod/` (built with Horizon's official launcher):
 - `loot_api_v2`: `LootTableEvents::MODIFY` (edit a loading loot table's JSON).
 - `resource_loader_v0`: `ResourceManagerHelper` reload listeners for client resources.
 - `item_api_v1`: `ItemTooltipCallback` (add tooltip lines), `ItemUseRegistry` (use over time).
+- `world_api_v1`: `BlockState::is_in_tag` (block tags) beside reading and changing blocks and playing sounds.
 - `events_interaction_v0` also has `UseItemOnBlockCallback`, `BreakSpeedCallback` and `UseItemFinishCallback`; `screen_handler_api_v1` has slot rules, shift-click routing and what a hopper may put in.
 
 Each is fed from Horizon's stable native hook points (`hooks.rs`). Callbacks receive reduced, owned data. Some Fabric members exist as stubs (`SERVER_STARTED`, `SERVER_STOPPED`, `PlayerBlockBreakEvents::AFTER` and `CANCELED`, `AFTER_DEATH`); the list is `base/support.rs`.
