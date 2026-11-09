@@ -412,6 +412,28 @@ fn the_originals_entity_melting_recipes_load() {
 }
 
 #[test]
+fn the_originals_part_builder_recipes_all_load() {
+    use tconstruct_library::recipes::part_builder::{ItemPartRecipe, PartRecipe};
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/tools"));
+    let (mut parts, mut items) = (0, 0);
+    for (id, json) in &recipes {
+        match json.get("type").and_then(Value::as_str) {
+            Some("tconstruct:part_builder") => match PartRecipe::from_json(id.clone(), json, &EmptyContext) {
+                Ok(_) => parts += 1,
+                Err(error) => panic!("{id}: {error}"),
+            },
+            Some("tconstruct:item_part_builder") => match ItemPartRecipe::from_json(id.clone(), json, &EmptyContext) {
+                Ok(_) => items += 1,
+                Err(error) => panic!("{id}: {error}"),
+            },
+            _ => {}
+        }
+    }
+    assert_eq!((parts, items), (24, 5));
+}
+
+#[test]
 fn the_originals_material_recipes_all_load() {
     use tconstruct_library::recipes::material::{MaterialFluidRecipe, MaterialMeltingRecipe, MaterialRecipe};
     let Some(root) = data_root() else { return };

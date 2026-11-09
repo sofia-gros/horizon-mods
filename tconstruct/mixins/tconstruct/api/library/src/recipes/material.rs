@@ -67,6 +67,35 @@ impl MaterialRecipe {
     }
 }
 
+impl MaterialRecipe {
+    /// `getMaterialValue`: how much material a stack of `count` items is worth, in units of a part's worth.
+    pub fn material_value(&self, count: u32) -> f32 {
+        count as f32 * self.value as f32 / self.needed as f32
+    }
+
+    /// `getItemsUsed`: how many items a part of `item_cost` takes, rounded up.
+    pub fn items_used(&self, item_cost: i32) -> i32 {
+        let needed = item_cost * self.needed;
+        needed / self.value + i32::from(needed % self.value != 0)
+    }
+
+    /// `getRemainder`: how much of the last item is not used by a part of `item_cost`.
+    pub fn remainder(&self, item_cost: i32) -> i32 {
+        if self.value == 0 {
+            return 0;
+        }
+        (self.value - item_cost * self.needed).rem_euclid(self.value)
+    }
+
+    /// `getLeftover(itemCost)`: what is given back for the unused part of the last item, in proportion (a block that was worth 9 and
+    /// is used for a cost of 2 gives 7 of its ingot back).
+    pub fn leftover_for(&self, item_cost: i32) -> Option<(&ItemMatch, u32)> {
+        let remainder = self.remainder(item_cost);
+        let (item, count) = self.leftover.as_ref().filter(|_| remainder > 0)?;
+        Some((item, *count * remainder as u32 / self.needed as u32))
+    }
+}
+
 /// The material recipes, found by item (`MaterialRecipeCache`).
 pub struct MaterialRecipes {
     recipes: Vec<MaterialRecipe>,
@@ -189,6 +218,21 @@ mod tests {
         let recipes = MaterialRecipes::new(vec![ingot, block]);
         assert_eq!(recipes.find(&id("a:copper_block"), &no_tags).map(|r| r.value), Some(9));
         assert!(recipes.find(&id("a:stick"), &no_tags).is_none());
+    }
+
+    #[test]
+    fn the_items_a_part_takes_round_up_and_the_rest_of_a_block_comes_back_as_ingots() {
+        let ingot = recipe(json!({"type": "tconstruct:material", "ingredient": {"item": "a:ingot"}, "material": "tconstruct:copper", "needed": 1, "value": 1}));
+        let block = recipe(json!({"type": "tconstruct:material", "ingredient": {"item": "a:block"}, "leftover": {"item": "a:ingot"}, "material": "tconstruct:copper", "needed": 1, "value": 9}));
+        assert_eq!((ingot.items_used(3), ingot.remainder(3)), (3, 0));
+        assert_eq!((block.items_used(2), block.remainder(2)), (1, 7));
+        assert_eq!(block.leftover_for(2).map(|(_, n)| n), Some(7), "one block for a cost of 2 gives 7 ingots back");
+        assert_eq!(block.leftover_for(9), None, "nothing is left over");
+        assert_eq!(block.items_used(10), 2);
+        // a part that needs 2 units of a recipe worth 1 per item takes 2 items per unit of cost
+        let two = recipe(json!({"type": "tconstruct:material", "ingredient": {"item": "a:x"}, "material": "tconstruct:copper", "needed": 2, "value": 1}));
+        assert_eq!(two.items_used(3), 6);
+        assert!((two.material_value(4) - 2.0).abs() < 1e-6);
     }
 
     #[test]
