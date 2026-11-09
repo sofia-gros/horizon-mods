@@ -54,12 +54,6 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "Horizon offering a way to change a player's food level (it can only read it today)",
     },
     SupportEntry {
-        api: "lifecycle_events_v1::ServerLifecycleEvents::SERVER_STOPPED",
-        support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked",
-        unblocked_by: "a Horizon hook point that reports the server having stopped (only stopping exists)",
-    },
-    SupportEntry {
         api: "events_interaction_v0::PlayerBlockBreakEvents::AFTER / CANCELED",
         support: Support::Stub,
         behaviour: "callbacks are accepted and never invoked; BEFORE works",
