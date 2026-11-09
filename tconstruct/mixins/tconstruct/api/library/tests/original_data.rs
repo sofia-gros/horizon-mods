@@ -459,3 +459,21 @@ fn the_originals_material_recipes_all_load() {
     assert_eq!(counts, [217, 73, 48]);
     assert!(kept[0] > 100 && kept[1] > 20 && kept[2] > 5, "{kept:?}");
 }
+
+#[test]
+fn the_originals_tool_building_recipes_all_load() {
+    use tconstruct_library::recipes::tool_building::ToolBuildingRecipe;
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/tools"));
+    let mut loaded = 0;
+    for (id, json) in &recipes {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:tool_building") {
+            continue;
+        }
+        match ToolBuildingRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(_) => loaded += 1,
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert_eq!(loaded, 25);
+}
