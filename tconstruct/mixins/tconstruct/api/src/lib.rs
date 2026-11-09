@@ -61,6 +61,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
         registrar.register("tconstruct craft", tools::craft_command);
         registrar.register("tconstruct station", station::station_command);
         registrar.register("tconstruct upgrade <modifier:word>", tools::upgrade_command);
+        registrar.register("tconstruct modifiers add <modifier:word> [level:integer]", |ctx| tools::modifiers_command(ctx, true));
+        registrar.register("tconstruct modifiers remove <modifier:word> [level:integer]", |ctx| tools::modifiers_command(ctx, false));
         registrar.register("tconstruct build <tool:word> <material:word> [second:word] [third:word] [fourth:word]", tools::build_command);
         registrar.register("tconstruct assemble", assemble);
     });

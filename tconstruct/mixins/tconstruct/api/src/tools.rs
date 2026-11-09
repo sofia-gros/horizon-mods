@@ -625,3 +625,72 @@ pub fn register_tooltip() {
         }
     });
 }
+
+impl ToolLibrary {
+    /// The tool stack with `change` levels of `modifier` added (positive) or taken off (negative; `i32::MIN` takes all of it), as
+    /// `/tconstruct modifiers` does: no slot cost and no recipe, but the tool must still fit its slots. Err with the reason.
+    pub fn change_modifier(&self, tool: &pluto_lib::StackData, modifier: &str, change: i32) -> Result<pluto_lib::StackData, String> {
+        use pluto_lib::Nbt;
+        use tconstruct_library::modifiers::{ModifierEntry, ModifierId};
+        let id = ModifierId::try_parse(&format!("tconstruct:{}", modifier.trim_start_matches("tconstruct:"))).ok_or("bad modifier id")?;
+        if self.modifiers.get(&id).is_none() {
+            return Err(format!("no modifier {id}"));
+        }
+        let definition_id = tconstruct_library::tools::definition::tool_of_item(&ResourceId::try_parse(&tool.item).ok_or("not a tool")?);
+        let Some(Nbt::List(materials)) = tool.custom_data.get("tconstruct:materials") else { return Err("this tool has no materials".to_owned()) };
+        let materials: Vec<MaterialId> = materials.iter().filter_map(|m| if let Nbt::String(s) = m { MaterialId::try_parse(s) } else { None }).collect();
+        let mut upgrades: Vec<ModifierEntry> = match tool.custom_data.get("tconstruct:upgrades") {
+            Some(Nbt::List(list)) => list.iter().filter_map(|u| if let Nbt::String(s) = u { let (name, level) = s.split_once('#')?; Some(ModifierEntry { modifier: ModifierId::try_parse(name)?, level: level.parse().ok()? }) } else { None }).collect(),
+            _ => Vec::new(),
+        };
+        let current = upgrades.iter().find(|u| u.modifier == id).map_or(0, |u| u.level);
+        if change < 0 && current == 0 {
+            return Err(format!("the tool has no {id} to take off"));
+        }
+        let target = if change == i32::MIN { 0 } else { (current + change).max(0) };
+        upgrades.retain(|u| u.modifier != id);
+        if target > 0 {
+            upgrades.push(ModifierEntry { modifier: id.clone(), level: target });
+        }
+        let mut made = self.make(&definition_id, materials, &upgrades)?;
+        if let Some(Nbt::Compound(free)) = made.custom_data.get("tconstruct:slots") {
+            if let Some((slot, _)) = free.iter().find(|(_, v)| matches!(v, Nbt::Int(n) if *n < 0)) {
+                return Err(format!("the tool would have too many {slot} modifiers"));
+            }
+        }
+        made.item = tool.item.clone();
+        made.damage = tool.damage;
+        Ok(made)
+    }
+}
+
+/// `/tconstruct modifiers add|remove <modifier> [level]`: changes the modifiers of the first tool in the inventory (the original changes
+/// the tool in the hand of each target).
+pub fn modifiers_command(ctx: &pluto_lib::CommandContext, adding: bool) -> i32 {
+    let Some(modifier) = ctx.args.first() else { return 0 };
+    let level: Option<i32> = ctx.args.get(1).and_then(|l| l.parse().ok());
+    let change = match (adding, level) {
+        (true, level) => level.unwrap_or(1).max(1),
+        (false, Some(level)) => -level.max(1),
+        (false, None) => i32::MIN,
+    };
+    let mut reason = String::from("you carry no tool made by /tconstruct build or craft");
+    for slot in 0..36 {
+        let Some(tool) = ctx.source.stack(slot) else { continue };
+        if !tool.custom_data.contains_key("tconstruct:stats") {
+            continue;
+        }
+        match library().change_modifier(&tool, modifier, change) {
+            Ok(changed) => {
+                if ctx.source.update_stack(slot, &changed) {
+                    println!("tconstruct: modifiers {} {modifier}: {}", if adding { "add" } else { "remove" }, tooltip_lines(&changed).join(" | "));
+                    return 1;
+                }
+            }
+            Err(error) => reason = error,
+        }
+    }
+    ctx.source.send_message(&reason);
+    println!("tconstruct: modifiers refused: {reason}");
+    0
+}
