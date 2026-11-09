@@ -1,0 +1,10 @@
+[package]
+name = "tconstruct-world-behavior-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pluto_lib = { package = "pluto-lib-pure-tests", path = "../../../pluto-lib/tests/pure" }
+
+[workspace]

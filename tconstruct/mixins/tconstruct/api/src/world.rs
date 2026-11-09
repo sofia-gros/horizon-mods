@@ -4,6 +4,10 @@ use pluto_lib::{ActionResult, BlockBehavior, BlockBehaviors, BlockEditor, BlockS
 const HORIZONTAL: [Direction; 4] = [Direction::North, Direction::East, Direction::South, Direction::West];
 const LEAVES: &str = "tconstruct:slimy_leaves";
 
+#[cfg(test)]
+#[path = "world_tests.rs"]
+mod tests;
+
 fn side(direction: Direction) -> &'static str {
     direction.name()
 }
