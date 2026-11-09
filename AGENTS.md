@@ -2,6 +2,8 @@
 
 For every agent (Codex, Claude Code, others) and human working here. `CLAUDE.md` points to this file.
 
+> **If you are Codex:** do not choose your own work. Read [docs/codex.md](docs/codex.md) completely, then follow its "The only workflow" (`python tools/codex_next.py` names your task). Do not read or change `docs/roadmap.md`, do not write documents, and write few tests with expected values worked out from the original Java. The rules below apply to you as well; where `docs/codex.md` is stricter, it wins.
+
 ## What this repository is
 
 Two products in one repository: **PlutoLib** (`pluto-lib/`), Horizon's Fabric API, and **Tinkers' Construct for Horizon** (`tconstruct/`).

@@ -1,2 +1,2 @@
-Task files for Codex go here, one JSON file per job (see docs/codex.md).
-None are written yet: the owner wants Codex for phases G (tables), H (smeltery) and I (tools), and the tasks are written when their PlutoLib API exists.
+Task files for Codex, one JSON file per job, written by the owner's agent (see docs/codex.md for how they are used).
+The order and the dependencies are in each file ("order", "depends_on"); `python tools/codex_next.py` says which one is next. `python tools/codex_guard.py --lint` checks them.
