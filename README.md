@@ -26,6 +26,7 @@ What has been run on a real game today (Windows, Horizon `ebcfa226`):
 
 - The game starts with the mod loaded, and a survival player can craft a flint pickaxe from its parts.
 - The Part Builder block opens its screen.
+- Tools made on the original's library (`/tconstruct build`, `craft`, `upgrade`) dig, wear, hit and describe themselves by their materials and modifiers ([details](tconstruct/README.md#the-library-and-the-tools-made-on-it-new)).
 
 <p align="center">
   <img src="docs/images/part-builder.png" alt="The Part Builder screen in game" width="48%">
