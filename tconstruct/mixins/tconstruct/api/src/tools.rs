@@ -43,6 +43,8 @@ pub struct ToolLibrary {
     pub item_tags: BTreeMap<ResourceId, Vec<ResourceId>>,
     /// For each modifier a recipe adds: the slots it costs and the item tag of the tools it goes on.
     pub salvage: HashMap<tconstruct_library::modifiers::ModifierId, (BTreeMap<String, i32>, String)>,
+    /// The `forge:` item tags the recipes name, with nested tags resolved.
+    pub forge_tags: BTreeMap<ResourceId, Vec<ResourceId>>,
     /// For each modifier: the recipes that add a level of it, with the items each costs.
     pub recipes: HashMap<tconstruct_library::modifiers::ModifierId, Vec<ModifierRecipe>>,
     /// What loading found wrong, as the original would log it.
@@ -145,13 +147,15 @@ impl ToolLibrary {
             let tag = json.get("tools").and_then(|t| t.get("tag")).and_then(Value::as_str).unwrap_or("tconstruct:modifiable").to_owned();
             salvage.insert(modifier, (slots, tag));
         }
+        let (forge_tags, forge_problems) = tconstruct_library::tags::load(&files("tags/forge_item"), &|_| true);
+        problems.extend(forge_problems);
         let mut recipes: HashMap<_, Vec<ModifierRecipe>> = HashMap::new();
         for (_, json) in files("modifier_recipes") {
             if let Some((modifier, recipe)) = parse_recipe(&json) {
                 recipes.entry(modifier).or_default().push(recipe);
             }
         }
-        Self { stats, materials, modifiers, definitions, item_tags, salvage, recipes, problems }
+        Self { stats, materials, modifiers, definitions, item_tags, salvage, recipes, forge_tags, problems }
     }
 }
 
@@ -455,6 +459,14 @@ pub fn craft_command(ctx: &pluto_lib::CommandContext) -> i32 {
     }
     println!("tconstruct: crafted {item} from {} parts", used.len());
     1
+}
+
+impl ToolLibrary {
+    /// Whether `item` is in the `forge:` item tag `tag` (false for a tag the library does not carry).
+    pub fn in_forge_tag(&self, item: &str, tag: &str) -> bool {
+        let (Some(tag), Some(item)) = (ResourceId::try_parse(tag), ResourceId::try_parse(item)) else { return false };
+        self.forge_tags.get(&tag).is_some_and(|members| members.contains(&item))
+    }
 }
 
 impl ToolLibrary {

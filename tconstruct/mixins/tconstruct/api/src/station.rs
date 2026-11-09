@@ -1,6 +1,6 @@
 //! What the Tinker Station makes of the stacks in its slots, as a function that does not touch the game: the slots go in, the result and
 //! what it consumes come out. Two operations so far: building a tool from parts, and upgrading a tool with a modifier recipe's items.
-use pluto_lib::{Nbt, StackData};
+use pluto_lib::{Nbt, NbtCompoundExt, StackData};
 use tconstruct_library::materials::MaterialId;
 use tconstruct_library::resource::ResourceId;
 
@@ -142,6 +142,75 @@ mod tests {
     fn nothing_in_the_slots_makes_nothing() {
         assert!(plan(&[None, None], &tags).is_err());
     }
+}
+
+fn slot_to_stack(slot: &pluto_lib::ItemSlot) -> StackData {
+    StackData { item: slot.item.to_string(), count: slot.count, damage: slot.damage, max_damage: slot.max_damage, custom_data: slot.custom_data.clone() }
+}
+
+fn stack_to_slot(stack: &StackData) -> Option<pluto_lib::ItemSlot> {
+    Some(pluto_lib::ItemSlot { item: pluto_lib::Identifier::parse(&stack.item).ok()?, count: stack.count, damage: stack.damage, max_damage: stack.max_damage, custom_data: stack.custom_data.clone() })
+}
+
+/// The slots of the Tinker Station: five inputs, then the result.
+const RESULT_SLOT: usize = 5;
+
+/// Every tick of a Tinker Station block entity: puts what the inputs make in the result slot, and when the player has taken the result,
+/// takes the inputs it was made of.
+fn station_tick(tick: &mut pluto_lib::BlockEntityTick<'_>) {
+    if tick.items.len() <= RESULT_SLOT {
+        tick.items.resize(RESULT_SLOT + 1, None);
+    }
+    let inputs: Vec<Option<StackData>> = tick.items[..RESULT_SLOT].iter().map(|s| s.as_ref().map(slot_to_stack)).collect();
+    let plan = library().station_plan(&inputs, &|stack, tag| library().in_forge_tag(&stack.item, tag));
+    let made = tick.data.get_int("made", 0) == 1;
+    if made && tick.items[RESULT_SLOT].is_none() {
+        // the result was taken: the inputs it was made of go
+        if let Ok(plan) = plan {
+            for (slot, count) in plan.consumed {
+                if let Some(held) = tick.items[slot].as_mut() {
+                    held.count = held.count.saturating_sub(count);
+                    if held.count == 0 {
+                        tick.items[slot] = None;
+                    }
+                }
+            }
+        }
+        println!("tconstruct: station block took its inputs");
+        tick.data.insert("made".to_owned(), Nbt::Int(0));
+        return;
+    }
+    match plan.ok().and_then(|plan| stack_to_slot(&plan.result)) {
+        Some(result) => {
+            if tick.items[RESULT_SLOT].as_ref() != Some(&result) {
+                println!("tconstruct: station block made {}", result.item);
+                tick.items[RESULT_SLOT] = Some(result);
+            }
+            tick.data.insert("made".to_owned(), Nbt::Int(1));
+        }
+        None => {
+            if made {
+                tick.items[RESULT_SLOT] = None;
+            }
+            tick.data.insert("made".to_owned(), Nbt::Int(0));
+        }
+    }
+}
+
+/// Registers the Tinker Station's menu and block entity: PlutoLib owns both, the legacy station code is not involved.
+pub fn register() {
+    use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
+    let id = Identifier::new("tconstruct", "tinker_station").unwrap();
+    let mut layout = ScreenLayout::new(176.0, 166.0);
+    for (x, y) in [(28.0, 25.0), (46.0, 25.0), (64.0, 25.0), (28.0, 43.0), (46.0, 43.0), (124.0, 34.0)] {
+        layout = layout.slot(x, y);
+    }
+    ScreenHandlerRegistry::register(ScreenHandlerType::new(id.clone(), layout).on_slot_rule(|rule| {
+        if rule.slot == RESULT_SLOT {
+            rule.may_place = false; // the result slot only gives
+        }
+    }));
+    BlockEntityTypeRegistry::register(BlockEntityType::new(id).item_slots(6).menu("tconstruct:tinker_station").ticker(station_tick));
 }
 
 /// `/tconstruct station`: says what a station would make of the 36 main inventory stacks, without changing anything.
