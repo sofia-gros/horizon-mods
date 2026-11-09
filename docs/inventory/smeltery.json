@@ -107,8 +107,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/CastingBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the casting itself (a recipe chosen by the fluid and the cast, a tank of that recipe's size that takes only its fluid, the cooling timer, the result into the slot the redstone chooses, a consumed cast, switching slots, casting over a finished item, swap, reset) is library `smeltery::casting_station::CastingStation` with six unit tests; molding recipes, the item handler and sided access, the analog signal, sounds, the client tick and the saved form are not done"
     },
     "block/entity/CastingTankBlockEntity.java": {
       "status": "todo",
@@ -283,8 +283,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/tank/CastingFluidHandler.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::casting_station::CastingStation::{fill, drain}`: the tank takes the recipe's amount of one fluid and resets when emptied; unit-tested; registering it as a capability is the block entity's part"
     },
     "block/entity/tank/ChannelSideTank.java": {
       "status": "todo",
