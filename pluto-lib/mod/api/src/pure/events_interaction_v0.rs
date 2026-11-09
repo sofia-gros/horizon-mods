@@ -145,7 +145,7 @@ impl PlayerBlockBreakEvents {
     pub const BEFORE: &'static Event<BlockBreakContext, bool> = &BEFORE_BLOCK_BREAK;
     /// Fabric: `AFTER`. Stub: no matching Horizon hook point is wired yet (see the support matrix).
     pub const AFTER: &'static Event<BlockBreakContext, ()> = &AFTER_BLOCK_BREAK;
-    /// Fabric: `CANCELED`. Stub: no matching Horizon hook point is wired yet.
+    /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
 }
 
@@ -183,7 +183,10 @@ pub(crate) fn attack_entity(entity: i32, kind: &str, pos: [f64; 3]) -> bool {
 
 /// True when the break may go ahead.
 pub(crate) fn before_block_break(pos: [i32; 3]) -> bool {
-    BEFORE_BLOCK_BREAK.invoke(&BlockBreakContext { pos })
+    let context = BlockBreakContext { pos };
+    let allowed = BEFORE_BLOCK_BREAK.invoke(&context);
+    if !allowed { BLOCK_BREAK_CANCELED.invoke(&context); }
+    allowed
 }
 
 #[cfg(test)]
@@ -199,8 +202,14 @@ mod tests {
 
     #[test]
     fn a_veto_before_a_block_break_cancels_it() {
+        let canceled = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen = canceled.clone();
+        PlayerBlockBreakEvents::CANCELED.register(move |c| seen.lock().unwrap().push(c.pos));
         PlayerBlockBreakEvents::BEFORE.register(|c| c.pos[1] >= 0);
+        PlayerBlockBreakEvents::BEFORE.register(|c| c.pos[1] >= -1);
         assert!(before_block_break([0, 64, 0]));
+        assert!(canceled.lock().unwrap().is_empty(), "allowed breaks are not canceled");
         assert!(!before_block_break([0, -5, 0]));
+        assert_eq!(*canceled.lock().unwrap(), [[0, -5, 0]], "two vetoes still report one cancellation");
     }
 }

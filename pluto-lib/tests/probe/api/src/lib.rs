@@ -220,6 +220,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             // what real clicks did: seeds on dirt, bone meal on grass, on a sapling and on a fungus
             let w = pluto_lib::World::new("minecraft:overworld");
             let name = |pos| w.get_block_state(pos).map(|s| s.block.to_string()).unwrap_or_default();
+            println!("PLUTO-PROBE break protected={} allowed={}", name([28, 79, 31]) == "minecraft:stone", name([29, 79, 31]) == "minecraft:air");
             let count = |from: [i32; 3], to: [i32; 3], pred: &dyn Fn(&str) -> bool| {
                 let mut n = 0;
                 for x in from[0]..=to[0] {
@@ -241,6 +242,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             1
         });
     });
+    // A vetoed real break keeps its block and reports CANCELED, unlike an allowed break.
+    pluto_lib::PlayerBlockBreakEvents::BEFORE.register(|c| c.pos != [28, 79, 31]);
+    pluto_lib::PlayerBlockBreakEvents::CANCELED.register(|c| println!("PLUTO-PROBE break_canceled pos={:?}", c.pos));
     // picking a block and digging one in survival reach the callbacks
     pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "earth_slime_dirt").unwrap()).pick_stack(|pick| {
         println!("PLUTO-PROBE pick called block={}", pick.state.block);

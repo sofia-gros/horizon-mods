@@ -76,7 +76,7 @@ use pluto_lib::PlayerBlockBreakEvents;
 PlayerBlockBreakEvents::BEFORE.register(|broken| broken.pos != [0, 64, 0]);
 ```
 
-> **Use with Caution.** `AFTER` and `CANCELED` are accepted but not called yet (support matrix).
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` remains a stub (support matrix).
 
 ## Reference
 
@@ -331,7 +331,7 @@ assert!(!AttackEntityCallback::EVENT.invoke(&attack).is_accepted());
 
 ### `PlayerBlockBreakEvents`
 
-The block-break events. `BEFORE` works; `AFTER` and `CANCELED` are accepted but never invoked yet (support matrix).
+The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt. `AFTER` remains accepted but never invoked (support matrix).
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
@@ -363,7 +363,7 @@ PlayerBlockBreakEvents::AFTER.register(|_| {});
 
 ### `PlayerBlockBreakEvents::CANCELED`
 
-Stub: a break was canceled. Accepted, not invoked yet.
+A break was vetoed by `BEFORE`. Receives the same `BlockBreakContext { pos }` once per rejected attempt, even when multiple listeners would reject it. Allowed attempts do not emit this event. The block has not been removed. Rejections outside PlutoLib's `BEFORE` event are not reported here.
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
