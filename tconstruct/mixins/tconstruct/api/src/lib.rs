@@ -67,6 +67,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
         registrar.register("tconstruct durability set <amount:integer>", |ctx| tools::durability_command(ctx, false));
         registrar.register("tconstruct slots add <slot_type:word> [count:integer]", |ctx| tools::slots_command(ctx, true));
         registrar.register("tconstruct slots set <slot_type:word> <count:integer>", |ctx| tools::slots_command(ctx, false));
+        registrar.register("tconstruct materials set <index:integer> <material:word>", tools::materials_set_command);
         registrar.register("tconstruct build <tool:word> <material:word> [second:word] [third:word] [fourth:word]", tools::build_command);
         registrar.register("tconstruct assemble", assemble);
     });
