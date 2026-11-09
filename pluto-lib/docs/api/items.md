@@ -62,10 +62,10 @@ assert_eq!(TooltipLine::grey("Hello").text, "Hello");
 
 ### `ItemTooltipContext`
 
-The tooltip being built for an item stack. `item` is the item id (`tconstruct:flint_pickaxe`), `count` the stack size, `added` the lines callbacks want after the game's own (push onto it with `borrow_mut`).
+The tooltip being built for an item stack. `item` is the item id (`tconstruct:flint_pickaxe`), `count` the stack size, `stack` the stack itself (damage, max damage, custom data) and `added` the lines callbacks want after the game's own (push onto it with `borrow_mut`).
 
 ```rust
-use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, TooltipLine};
+use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, StackData, TooltipLine};
 use std::cell::RefCell;
 
 ItemTooltipCallback::EVENT.register(|tip: &ItemTooltipContext| {
@@ -73,7 +73,7 @@ ItemTooltipCallback::EVENT.register(|tip: &ItemTooltipContext| {
         tip.added.borrow_mut().push(TooltipLine::grey(format!("x{}", tip.count)));
     }
 });
-let tip = ItemTooltipContext { item: "minecraft:stick".into(), count: 8, added: RefCell::new(Vec::new()) };
+let tip = ItemTooltipContext { item: "minecraft:stick".into(), count: 8, stack: StackData { item: "minecraft:stick".into(), count: 8, ..Default::default() }, added: RefCell::new(Vec::new()) };
 ItemTooltipCallback::EVENT.invoke(&tip);
 assert_eq!(tip.added.borrow()[0].text, "x8");
 ```
@@ -93,7 +93,7 @@ ItemTooltipCallback::EVENT.register(|_| {});
 Runs whenever the game builds a tooltip. Add lines to `added`.
 
 ```rust
-use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, TooltipLine};
+use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, StackData, TooltipLine};
 use std::cell::RefCell;
 
 ItemTooltipCallback::EVENT.register(|tip| {
@@ -101,7 +101,7 @@ ItemTooltipCallback::EVENT.register(|tip| {
         tip.added.borrow_mut().push(TooltipLine::grey("Shiny"));
     }
 });
-let tip = ItemTooltipContext { item: "minecraft:diamond".into(), count: 1, added: RefCell::new(vec![]) };
+let tip = ItemTooltipContext { item: "minecraft:diamond".into(), count: 1, stack: StackData { item: "minecraft:diamond".into(), count: 1, ..Default::default() }, added: RefCell::new(vec![]) };
 ItemTooltipCallback::EVENT.invoke(&tip);
 assert_eq!(tip.added.borrow().len(), 1);
 ```
