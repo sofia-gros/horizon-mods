@@ -354,6 +354,23 @@ fn the_originals_item_casting_recipes_load() {
 }
 
 #[test]
+fn the_originals_molding_recipes_load() {
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes"));
+    let mut molding = 0;
+    for (id, json) in &recipes {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:molding_table") {
+            continue;
+        }
+        match tconstruct_library::smeltery::casting::MoldingRecipe::from_json(id.clone(), json) {
+            Ok(_) => molding += 1,
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert_eq!(molding, 58);
+}
+
+#[test]
 fn the_originals_filling_duplication_and_potion_casting_recipes_load() {
     use tconstruct_library::smeltery::casting::{DuplicationRecipe, FillingRecipe, PotionRecipe};
     let Some(root) = data_root() else { return };
