@@ -80,14 +80,14 @@ impl HostHandle {
     }
 }
 
-/// The component type PlutoLib registers to keep a mod's data on an item stack (`StackData::custom_data`). The game's own
-/// `minecraft:custom_data` is not reachable from a mod, so PlutoLib adds one of its own.
-const STACK_DATA_COMPONENT: &str = "pluto_lib:custom_data";
+/// A stack as PlutoLib's `StackData`: its damage, max damage and the `minecraft:custom_data` the stack carries.
+fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
+    read_stack(stack)
+}
 
-/// A stack as PlutoLib's `StackData`: its damage, max damage and the data PlutoLib keeps on it.
-fn stack_data_of(host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
-    let custom_data = match host.component(stack, STACK_DATA_COMPONENT) {
-        Ok(Some(Tag::Compound(compound))) => compound_from_tag(compound),
+fn read_stack(stack: &ItemStack) -> player_api::StackData {
+    let custom_data = match stack.data().and_then(|d| d.other("minecraft:custom_data")) {
+        Some(Tag::Compound(compound)) => compound_from_tag(compound),
         _ => NbtCompound::new(),
     };
     let max_damage = match stack.data().and_then(|d| d.other("minecraft:max_damage")) {
@@ -95,6 +95,16 @@ fn stack_data_of(host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
         _ => None,
     };
     player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data }
+}
+
+/// Writes count, damage, max damage and custom data of `new` onto `stack` (the item is not changed).
+fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
+    stack.count = new.count;
+    stack.damage = new.damage;
+    // the stack's own durability: a component the game reads before the item's
+    stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
+    stack.data_mut().set_other("minecraft:custom_data", (!new.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&new.custom_data))));
+    stack.tidy();
 }
 
 struct HostOps(HostHandle);
@@ -170,49 +180,20 @@ impl PlayerOps for HostOps {
 
     fn stack(&mut self, player: u128, slot: i32) -> Option<player_api::StackData> {
         let _ = player; // the host reaches the acting player, who is the one the handle names
-        let stack = self.host().carried_stack(slot).filter(|s| s.count > 0).map(|s| s.clone())?;
-        let custom_data = match self.host().component(&stack, STACK_DATA_COMPONENT) {
-            Ok(Some(Tag::Compound(compound))) => compound_from_tag(compound),
-            _ => NbtCompound::new(),
-        };
-        let max_damage = match stack.data().and_then(|d| d.other("minecraft:max_damage")) {
-            Some(Tag::Int(value)) => Some(*value),
-            _ => None,
-        };
-        Some(player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data })
+        self.host().carried_stack(slot).filter(|s| s.count > 0).map(|s| read_stack(s))
     }
 
     fn give_stack(&mut self, player: u128, stack: player_api::StackData) -> Option<player_api::StackData> {
         let mut made = ItemStack::new(&stack.item, stack.count);
-        made.damage = stack.damage;
-        made.data_mut().set_other("minecraft:max_damage", stack.max_damage.filter(|m| *m > 0).map(Tag::Int));
-        made.tidy();
-        if !stack.custom_data.is_empty() && self.host().set_component(&mut made, STACK_DATA_COMPONENT, Tag::Compound(compound_to_tag(&stack.custom_data))).is_err() {
-            return Some(stack);
-        }
+        write_stack(&mut made, &stack);
         self.host().give_stack(player, made).map(|left| player_api::StackData { count: left.count, ..stack })
     }
 
     fn update_stack(&mut self, player: u128, slot: i32, expected_item: &str, new: &player_api::StackData) -> bool {
         let _ = player;
-        let Some(mut stack) = self.host().carried_stack(slot).filter(|s| &*s.item == expected_item && s.count > 0).map(|s| s.clone()) else { return false };
-        stack.count = new.count;
-        stack.damage = new.damage;
-        // the stack's own durability, as a component the game reads before the item's
-        stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
-        stack.tidy();
-        let host = self.host();
-        let result = if new.custom_data.is_empty() {
-            host.remove_component(&mut stack, STACK_DATA_COMPONENT)
-        } else {
-            host.set_component(&mut stack, STACK_DATA_COMPONENT, Tag::Compound(compound_to_tag(&new.custom_data)))
-        };
-        if result.is_err() {
-            return false;
-        }
-        match host.carried_stack(slot) {
-            Some(slot) => {
-                *slot = stack;
+        match self.host().carried_stack(slot).filter(|s| &*s.item == expected_item && s.count > 0) {
+            Some(stack) => {
+                write_stack(stack, new);
                 true
             }
             None => false,
@@ -970,12 +951,6 @@ impl Hooks for PlutoHooks {
             player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
         };
         scoped(host, || events_interaction_v0::use_item_finish(&context));
-    }
-
-    fn component_types(&self, event: &mut horizon_client::mod_api::ComponentTypesEvent<'_>) {
-        if !event.types.iter().any(|t| t == STACK_DATA_COMPONENT) {
-            event.types.push(STACK_DATA_COMPONENT.to_owned());
-        }
     }
 
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
