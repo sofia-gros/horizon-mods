@@ -2119,8 +2119,8 @@
       "note": "library `smeltery::alloy::AlloyTank` (the read and the mutable half together)"
     },
     "recipe/casting/AbstractCastingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "its fields (cast, consumed, switch slots, group) are in library `smeltery::casting::CastingRecipe`"
     },
     "recipe/casting/CastDuplicationRecipe.java": {
       "status": "todo",
@@ -2155,8 +2155,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/casting/ItemCastingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::casting::CastingRecipe` (table and basin): cast ingredient or an empty slot, consumed cast, switch slots, fluid with amount, result as item, tag or id string with a count, cooling time, data conditions; loads all 522 of the original's table and basin recipe files (by test). Not in game"
     },
     "recipe/casting/ItemCastingRecipeBuilder.java": {
       "status": "todo",

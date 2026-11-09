@@ -3,3 +3,4 @@ pub mod alloy;
 pub mod melting;
 pub mod fuel;
 pub mod multiblock;
+pub mod casting;

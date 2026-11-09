@@ -331,3 +331,24 @@ fn the_originals_plain_melting_recipes_load() {
     assert!(plain > 400, "{plain}");
     assert!(loaded > 100, "{loaded}");
 }
+
+#[test]
+fn the_originals_item_casting_recipes_load() {
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/smeltery/casting"));
+    let (mut item_recipes, mut loaded) = (0, 0);
+    for (id, json) in &recipes {
+        if !matches!(json.get("type").and_then(Value::as_str), Some("tconstruct:casting_table" | "tconstruct:casting_basin")) {
+            continue; // filling, duplication and potion recipes are other kinds
+        }
+        item_recipes += 1;
+        match tconstruct_library::smeltery::casting::CastingRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(Some(_)) => loaded += 1,
+            Ok(None) => {}
+            Err(error) if error.contains("unknown condition") || error.contains("unsupported ingredient type") => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    assert_eq!(item_recipes, 392 + 130);
+    assert!(loaded > 200, "{loaded}");
+}
