@@ -10,7 +10,7 @@ Repeat until `codex_next.py` says nothing is left:
 2. `python tools/codex_start.py <id>` makes the worktree `../codex-<id>` on the branch `codex/<id>` and links the original's Java source. Work only there. Set `TMP`, `TEMP`, `CARGO_HOME` and `CARGO_TARGET_DIR` to folders on drive A: outside the worktree first (C: is full).
 3. Read, in this order: `AGENTS.md`, this page, every file under `read_first` in `docs/codex/tasks/<id>.json`, then the Java files under `java` (in `.local/tconstruct-source/src/main/java/`, read only). **The Java is the specification.** The existing Rust is of unknown quality; copy its style (see `src/smeltery/` and `src/recipes/` in the library), not its content.
 4. Port the classes of the task one group at a time, in the order of the task. Commit after each group (message in a file, `git commit -F`). After each group run `cargo test --locked --manifest-path tconstruct/mixins/tconstruct/api/library/Cargo.toml`.
-5. When every class is ported or honestly left, run the `verify` commands of the task yourself, write the final message to a file, and run `python tools/codex_finish.py <id> --final-message FILE`.
+5. When every class is ported or honestly left, run the `verify` commands of the task yourself, write the final message to a file, and run `python tools/codex_finish.py <id> --final-message FILE` from inside the worktree. Steps 1 and 2 (`codex_next.py`, `codex_start.py`) are run from the main checkout `A:\Project\horizon-mods`.
 6. `codex_finish.py` checks everything. If it prints `GATE FAILED`, fix the cause in the branch and run it again. After three failed tries stop and report; never work around a gate.
 7. When it merges (or leaves a draft), go back to step 1.
 
