@@ -42,7 +42,7 @@ fn fluid_output(json: &Value) -> Result<AlloyOutput, String> {
 
 /// The items an ingredient accepts: an item, a tag, a list of those, or `tconstruct:no_container` around one (the container remainder is
 /// the recipe's business, not the match's).
-fn ingredient_matches(ingredient: &Value) -> Result<Vec<ItemMatch>, String> {
+pub(crate) fn ingredient_matches(ingredient: &Value) -> Result<Vec<ItemMatch>, String> {
     match ingredient {
         Value::Array(list) => Ok(list.iter().map(ingredient_matches).collect::<Result<Vec<_>, _>>()?.into_iter().flatten().collect()),
         Value::Object(object) => {
