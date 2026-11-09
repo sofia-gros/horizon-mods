@@ -223,8 +223,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/alloying/SmelteryAlloyTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::tank::SmelteryAlloyTank` (the smeltery tank at the structure's temperature as an `AlloyTank`); an alloy recipe runs on it in a unit test"
     },
     "block/entity/module/ByproductMeltingModuleInventory.java": {
       "status": "todo",
@@ -299,16 +299,16 @@
       "note": "not yet compared with the port"
     },
     "block/entity/tank/ISmelteryTankHandler.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "its tank half is library `smeltery::tank`; the notification of the block entity and the display listeners are not done"
     },
     "block/entity/tank/ProxyItemTank.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "block/entity/tank/SmelteryTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::tank::SmelteryTank`: one capacity for many fluids in the order they came, fill (with simulate), drain the first or a named fluid, move to the bottom, set fluids, the pipe-facing tanks and capacities, the saved form, and the changes for the owner to send; six unit tests. The sync packet and the listeners are the block entity's part"
     },
     "block/FaucetBlock.java": {
       "status": "todo",
