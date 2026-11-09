@@ -62,7 +62,7 @@ For a focused player-food gate, build the native probe with `--build-only`, then
 python tools/smoke-local/player_food.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
 ```
 
-This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. It does not run the broad menu/plant probe.
+This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. Add `--server-reloads 2` to also require one initial server-data notification before player join and one after each of two actual `/reload` commands, without duplicates. It does not run the broad menu/plant probe.
 
 PlutoLib through the official launcher (the way players get mods):
 

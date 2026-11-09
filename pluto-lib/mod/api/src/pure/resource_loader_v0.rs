@@ -10,7 +10,7 @@ use super::base::{Event, Identifier};
 pub enum ResourceType {
     /// Assets: models, textures, language files. Reloaded on the client.
     ClientResources,
-    /// Data: recipes, loot tables, tags. Stub: Horizon reports no matching reload yet (see the support matrix).
+    /// Data: recipes, loot tables, tags. Called after the server's initial data load and subsequent reloads.
     ServerData,
 }
 
@@ -47,6 +47,10 @@ pub(crate) fn client_resources_reloaded() {
     CLIENT_RELOAD.invoke(&());
 }
 
+pub(crate) fn server_data_reloaded() {
+    SERVER_RELOAD.invoke(&());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,7 +58,7 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
-    fn a_listener_runs_after_each_client_reload_and_not_for_server_data() {
+    fn reload_types_notify_only_their_own_listeners_on_every_load() {
         let count = Arc::new(AtomicUsize::new(0));
         let seen = Arc::clone(&count);
         ResourceManagerHelper::get(ResourceType::ClientResources)
@@ -64,7 +68,19 @@ mod tests {
         client_resources_reloaded();
         client_resources_reloaded();
         assert_eq!(count.load(Ordering::SeqCst), 2);
-        SERVER_RELOAD.invoke(&());
+        let server_count = Arc::new(AtomicUsize::new(0));
+        let seen = server_count.clone();
+        ResourceManagerHelper::get(ResourceType::ServerData)
+            .register_reload_listener(Identifier::new("test", "server_counter").unwrap(), move || {
+                seen.fetch_add(1, Ordering::SeqCst);
+            });
+        assert_eq!(server_count.load(Ordering::SeqCst), 0);
+        server_data_reloaded();
+        server_data_reloaded();
+        assert_eq!(server_count.load(Ordering::SeqCst), 2);
         assert_eq!(count.load(Ordering::SeqCst), 2);
+        client_resources_reloaded();
+        assert_eq!(count.load(Ordering::SeqCst), 3);
+        assert_eq!(server_count.load(Ordering::SeqCst), 2);
     }
 }

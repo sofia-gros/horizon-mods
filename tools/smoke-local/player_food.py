@@ -16,7 +16,10 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
+    parser.add_argument('--server-reloads', type=int, default=0, help='also require one initial server-data event and one per /reload')
     args = parser.parse_args()
+    if args.server_reloads < 0:
+        parser.error('--server-reloads must be nonnegative')
     report = json.loads((args.game.resolve().parent / 'native-mods.json').read_text(encoding='utf-8'))
     # Explicit pins are checked below; this gate never accepts silently left-out mods.
     if report.get('horizon') != 'ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0' or report.get('horizon_mixins') != '5a64af938ec86b00d53d16a408aabc0038fb3e57':
@@ -51,6 +54,16 @@ def main():
                 time.sleep(.2)
             ctl('wait-ready', '120', timeout=125)
             ctl('command', 'pluto_probe feed')
+            if args.server_reloads:
+                for count in range(1, args.server_reloads + 2):
+                    if count > 1:
+                        ctl('command', 'reload', timeout=90)
+                    marker = f'PLUTO-PROBE server_data_reloaded count={count}'
+                    deadline = time.monotonic() + 60
+                    while marker not in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines():
+                        if proc.poll() is not None or time.monotonic() > deadline:
+                            raise RuntimeError(f'missing server data notification {count}: {run / "game.log"}')
+                        time.sleep(.1)
             state = ctl('state')
             assert state['player']['food'] == 14, state['player']
             ctl('screenshot', str(run / 'food.png'))
@@ -71,7 +84,14 @@ def main():
     lifecycle = [f'PLUTO-PROBE server_{phase} dedicated=false' for phase in ('starting', 'stopping', 'stopped')]
     assert all(lines.count(event) == 1 for event in lifecycle), lifecycle
     assert [lines.index(event) for event in lifecycle] == sorted(lines.index(event) for event in lifecycle)
-    print(json.dumps({'result': 'PLAYER FOOD PASS', 'run': str(run), 'feeding': feeding[0], 'food': state['player']['food']}, indent=2))
+    if args.server_reloads:
+        reloaded = [line for line in lines if line.startswith('PLUTO-PROBE server_data_reloaded ')]
+        expected = [f'PLUTO-PROBE server_data_reloaded count={count}' for count in range(1, args.server_reloads + 2)]
+        assert reloaded == expected, (reloaded, expected)
+        joined = next(index for index, line in enumerate(lines) if line.startswith('PLUTO-PROBE join name='))
+        assert lines.index(expected[0]) < joined, 'initial data load must precede player join'
+    result = 'SERVER DATA RELOAD PASS' if args.server_reloads else 'PLAYER FOOD PASS'
+    print(json.dumps({'result': result, 'run': str(run), 'feeding': feeding[0], 'food': state['player']['food'], 'server_reloads': args.server_reloads}, indent=2))
 
 
 if __name__ == '__main__':

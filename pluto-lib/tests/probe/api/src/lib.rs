@@ -336,6 +336,14 @@ pub fn hooks() -> Box<dyn Hooks> {
             println!("PLUTO-PROBE loot_modify id={}", c.id);
         }
     });
+    ResourceManagerHelper::get(ResourceType::ServerData).register_reload_listener(
+        Identifier::new("pluto_probe", "server_reload").expect("valid id"),
+        || {
+            static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let count = COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+            println!("PLUTO-PROBE server_data_reloaded count={count}");
+        },
+    );
     ResourceManagerHelper::get(ResourceType::ClientResources).register_reload_listener(
         Identifier::new("pluto_probe", "reload").expect("valid id"),
         || {

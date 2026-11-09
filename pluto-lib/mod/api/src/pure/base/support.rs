@@ -54,12 +54,6 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "wiring Horizon's block-destroyed notifications (a hook point to map, not yet done)",
     },
     SupportEntry {
-        api: "resource_loader_v0::ResourceType::ServerData",
-        support: Support::Stub,
-        behaviour: "listeners are accepted and never invoked; ClientResources works",
-        unblocked_by: "a Horizon hook point that reports a data reload (recipes, loot tables, tags)",
-    },
-    SupportEntry {
         api: "item_api_v1::ItemTooltipCallback (reading or editing the lines already there)",
         support: Support::Stub,
         behaviour: "callbacks can add lines but do not see the existing ones",
