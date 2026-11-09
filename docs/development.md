@@ -56,6 +56,14 @@ python tools/smoke-local/lifecycle_dedicated.py --game <built horizon-engine> --
 
 This test uses a fresh server folder and an ephemeral loopback-only port. A build of the dedicated path is not evidence that this test ran.
 
+For a focused player-food gate, build the native probe with `--build-only`, then run:
+
+```sh
+python tools/smoke-local/player_food.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
+```
+
+This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. It does not run the broad menu/plant probe.
+
 PlutoLib through the official launcher (the way players get mods):
 
 ```sh

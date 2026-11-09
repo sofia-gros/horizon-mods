@@ -294,6 +294,12 @@ impl PlayerOps for HostOps {
         self.host().player_food(player).map(|(level, saturation, exhaustion)| FoodStatus { level, saturation, exhaustion })
     }
 
+    fn add_food(&mut self, player: u128, nutrition: i32, saturation: f32) -> bool {
+        let Some(before) = self.food(player) else { return false };
+        let Some(after) = player_api::fed_food(before, nutrition, saturation) else { return false };
+        self.host().set_player_status(player, None, Some((after.level, after.saturation, after.exhaustion)), None)
+    }
+
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
         let kind = json_attachment(id)?;
         match kind.get_existing(self.host(), Holder::Player(player)) {

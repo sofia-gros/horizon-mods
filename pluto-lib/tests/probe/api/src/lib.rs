@@ -163,6 +163,24 @@ pub fn hooks() -> Box<dyn Hooks> {
         });
     });
     CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe feed", |ctx| {
+            let drained = ctx.source.add_food(-10, 0.0);
+            let before = ctx.source.food();
+            let added = ctx.source.add_food(4, 0.25);
+            let after = ctx.source.food();
+            let invalid = !ctx.source.add_food(4, f32::NAN) && ctx.source.food() == after;
+            let absent = pluto_lib::ServerPlayer { uuid: u128::MAX, name: "Absent probe player".to_owned() };
+            let missing = !absent.add_food(4, 0.25) && ctx.source.food() == after;
+            let exact = match (before, after) {
+                (Some(before), Some(after)) => before.level == 10 && after.level == 14
+                    && after.saturation == (before.saturation + 2.0).min(14.0)
+                    && after.exhaustion == before.exhaustion,
+                _ => false,
+            };
+            let passed = drained && added && invalid && missing && exact;
+            println!("PLUTO-PROBE feed pass={passed} before={before:?} after={after:?} invalid={invalid} missing={missing}");
+            i32::from(passed)
+        });
         registrar.register("pluto_probe tool", |ctx| {
             // the wear of a tool after it dug: the game counts damage against the stack's own max damage
             let tool = (0..36).filter_map(|slot| ctx.source.stack(slot)).find(|s| s.item == "tconstruct:pickaxe");

@@ -59,7 +59,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [world](world.md) | reading and changing blocks of a world, block tags |
 | [projectile](projectile.md) | a projectile hits something: act on the world, cancel the hit |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
-| [player](player.md) | messages, items and item stacks with their data (damage, max damage, custom data) for a player, effects, hunger, and testing with `MemoryPlayerOps` |
+| [player](player.md) | messages, stack data, effects, reading hunger and feeding players with `add_food`, testing with `MemoryPlayerOps` |
 | [attachments](attachments.md) | values saved with a player |
 | [config](config.md) | config files |
 | [commands](commands.md) | commands |
