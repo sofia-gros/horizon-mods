@@ -37,4 +37,4 @@ pub use crate::pure::screen_handler_api_v1::{
 };
 pub use crate::pure::projectile_events_v1::{self, ProjectileEvents, ProjectileImpact};
 pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, World, WorldOps, with_world};
-pub use crate::pure::resource_loader_v0::{self, ResourceManagerHelper, ResourceType, reload_event};
+pub use crate::pure::resource_loader_v0::{self, ResourceImage, ResourceManagerHelper, ResourceType, reload_event};

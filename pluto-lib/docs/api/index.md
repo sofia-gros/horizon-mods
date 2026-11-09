@@ -47,10 +47,10 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, break vetoes and cancellation notifications, digging speed |
 | [entities](entities.md) | entities entering and leaving worlds, damage (allow it or change its amount, with the attacker's stack), death |
 | [loot](loot.md) | change loot tables as they load |
-| [resources](resources.md) | separate client-assets and server-data reload listeners, including initial server load |
+| [resources](resources.md) | active client asset/image reads, initial and refreshed client handles, separate server-data reload listeners |
 | [items](items.md) | edit existing tooltip entries without flattening rich text, append simple/translated lines, use items over time |
 | [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
-| [color](color.md) | the tint of a block's faces, which may depend on where the block stands (stub: the game does not ask yet) |
+| [color](color.md) | block tint registration/direct lookup; world-render hookup unimplemented after two rejected seams, other rendering paths unconnected |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients and menu data slots) |
 | [screen](screen.md) | windows for a block's menu: static and dynamic slot positions, drawing, clicks, tooltips, menu buttons, what each slot takes, shift-click routing, what a hopper may put in |
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |

@@ -7,6 +7,21 @@ use pluto_lib::{
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub fn hooks() -> Box<dyn Hooks> {
+    pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
+        if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE block_color pos=[0, 101, 0] tint=0 persistent={:?}", context.state.property("persistent"));
+            }
+            Some(0xFF00FF)
+        } else {
+            if context.pos == Some([3, 101, 0]) && context.tint_index == 0 {
+                static ONCE: AtomicBool = AtomicBool::new(false);
+                if !ONCE.swap(true, Ordering::Relaxed) { println!("PLUTO-PROBE block_color fallback pos=[3, 101, 0]"); }
+            }
+            None
+        }
+    });
     pluto_lib::ProjectileEvents::IMPACT.register(|hit| {
         static ONCE: AtomicBool = AtomicBool::new(false);
         if !ONCE.swap(true, Ordering::Relaxed) {
@@ -367,10 +382,19 @@ pub fn hooks() -> Box<dyn Hooks> {
     ResourceManagerHelper::get(ResourceType::ClientResources).register_reload_listener(
         Identifier::new("pluto_probe", "reload").expect("valid id"),
         || {
-            static ONCE: AtomicBool = AtomicBool::new(false);
-            if !ONCE.swap(true, Ordering::Relaxed) {
-                println!("PLUTO-PROBE client_resources_reloaded");
-            }
+            static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let count = COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+            let image_id = Identifier::parse("tconstruct:textures/colormap/earth_grass_color.png").unwrap();
+            let bytes = ResourceManagerHelper::read_client_resource(&image_id);
+            let image = ResourceManagerHelper::read_client_image(&image_id);
+            let missing = Identifier::parse("pluto_probe:textures/not_present.png").unwrap();
+            let valid = bytes.as_ref().is_some_and(|bytes| bytes.starts_with(b"\x89PNG\r\n\x1a\n"))
+                && image.as_ref().is_some_and(|image| image.width == 256 && image.height == 256 && image.rgba.len() == 256 * 256 * 4)
+                && ResourceManagerHelper::read_client_resource(&missing).is_none()
+                && ResourceManagerHelper::read_client_image(&missing).is_none();
+            println!("PLUTO-PROBE client_resources count={count} pass={valid}");
+            assert!(valid, "native client resource facade did not read the actual colormap");
+            if count == 1 { println!("PLUTO-PROBE client_resources_reloaded"); }
         },
     );
     Box::new(Probe)

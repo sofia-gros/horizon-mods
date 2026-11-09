@@ -4,7 +4,7 @@
 //! `Flow::Cancel` when the PlutoLib callbacks say so.
 
 use horizon_client::mod_api::{
-    AttackEntityEvent, ChunkLoadEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
+    AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
@@ -32,6 +32,10 @@ pub fn hooks() -> Box<dyn Hooks> {
         code: horizon_client::lang::code,
         get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
     });
+    horizon_client::mesher::pluto_block_colors::set_provider(
+        crate::pure::color_provider_api_v1::has_block_provider,
+        crate::pure::color_provider_api_v1::block_color_from_host,
+    );
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
     horizon_client::entry::pluto_block::set_sink(block_sink());
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
@@ -61,6 +65,17 @@ fn resolve_dynamic_screen_slots(
         })
         .collect::<Option<Vec<_>>>()?;
     screen_handler_api_v1::dynamic_slots(block, data, &items)
+}
+
+fn refresh_client_resources(host: &dyn Host) {
+    let resources = host.client_resources();
+    let images = resources.clone();
+    resource_loader_v0::set_client_resource_backend(Some(resource_loader_v0::ClientResourceBackend {
+        read: std::sync::Arc::new(move |path| resources.read(path)),
+        image: std::sync::Arc::new(move |name| images.texture(name).map(|image| resource_loader_v0::ResourceImage {
+            width: image.width, height: image.height, rgba: image.rgba,
+        })),
+    }));
 }
 
 struct PlutoHooks;
@@ -1085,7 +1100,13 @@ impl Hooks for PlutoHooks {
         resource_loader_v0::server_data_reloaded();
     }
 
-    fn client_resources_reloaded(&self, _host: &mut dyn Host, _event: &mut ClientResourcesReloadedEvent) {
+    fn client_start(&self, host: &mut dyn Host, _event: &mut ClientStartEvent) {
+        refresh_client_resources(host);
+        resource_loader_v0::client_resources_reloaded();
+    }
+
+    fn client_resources_reloaded(&self, host: &mut dyn Host, _event: &mut ClientResourcesReloadedEvent) {
+        refresh_client_resources(host);
         resource_loader_v0::client_resources_reloaded();
     }
 
