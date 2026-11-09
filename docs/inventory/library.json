@@ -2375,8 +2375,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/melting/DamageableMeltingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::melting`: `MeltingKind::Damagable` and `scale_output` (unit-tested); filling the byproducts into a tank is the block entity's part"
     },
     "recipe/melting/DisplayMeltingRecipe.java": {
       "status": "todo",
@@ -2404,7 +2404,7 @@
     },
     "recipe/melting/MeltingRecipe.java": {
       "status": "partial",
-      "note": "library `smeltery::melting::MeltingRecipe`: ingredient (item, tag, list, no_container), result, byproducts, temperature, time and data conditions; checked by test over the original's plain melting files. The damagable and ore melting kinds and the item_exists condition are not done"
+      "note": "library `smeltery::melting::MeltingRecipe`: ingredient (item, tag, list, no_container), result, byproducts, temperature, time and data conditions, with the plain, damagable (the scaling by durability left, in units) and ore (the rate named) kinds; loads the original's 749 top-level melting files (by test). Not done: the `forge:conditional` wrappers (61 files), the ore rate behaviour and the byproduct choice"
     },
     "recipe/melting/MeltingRecipeBuilder.java": {
       "status": "todo",
