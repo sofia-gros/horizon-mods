@@ -107,6 +107,104 @@ impl FuelState {
     }
 }
 
+/// The fuel tanks of a structure, in the order the structure lists them (`MultitankFuelModule`'s tank supplier).
+pub trait FuelTanks {
+    fn count(&self) -> usize;
+    /// The fluid in tank `index` and its amount, None when it is empty or not there.
+    fn fluid(&self, index: usize) -> Option<(ResourceId, i32)>;
+    /// Takes `amount` of the fluid out of tank `index`; true when it all came out.
+    fn drain(&mut self, index: usize, amount: i32) -> bool;
+}
+
+/// `MultitankFuelModule`: finds fuel in the structure's tanks, trying the tank that gave fuel last time first so a tank is emptied before
+/// the next is started.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MultitankFuel {
+    last: Option<usize>,
+}
+
+impl MultitankFuel {
+    fn try_tank(&mut self, index: usize, state: &mut FuelState, tanks: &mut dyn FuelTanks, lookup: &dyn FuelLookup, consume: bool) -> i32 {
+        let Some((fluid, amount)) = tanks.fluid(index) else { return 0 };
+        let mut taken = false;
+        let temperature = {
+            let tanks = &mut *tanks;
+            state.try_liquid_fuel(Some((&fluid, amount)), lookup, consume, &mut |portion| {
+                taken = tanks.drain(index, portion);
+                taken
+            })
+        };
+        if temperature > 0 {
+            self.last = Some(index);
+        }
+        temperature
+    }
+
+    /// `findFuel`: the temperature of the fuel found (0 for none). With `consume`, a portion is taken and the state set; when none is
+    /// found the state's temperature and rate go to 0.
+    pub fn find_fuel(&mut self, state: &mut FuelState, tanks: &mut dyn FuelTanks, lookup: &dyn FuelLookup, consume: bool) -> i32 {
+        if let Some(last) = self.last.filter(|l| *l < tanks.count()) {
+            let temperature = self.try_tank(last, state, tanks, lookup, consume);
+            if temperature > 0 {
+                return temperature;
+            }
+        }
+        for index in 0..tanks.count() {
+            if Some(index) == self.last {
+                continue;
+            }
+            let temperature = self.try_tank(index, state, tanks, lookup, consume);
+            if temperature > 0 {
+                return temperature;
+            }
+        }
+        if consume {
+            state.temperature = 0;
+            state.rate = 0;
+        }
+        0
+    }
+}
+
+/// The item slots of a heater (`IItemHandler`) as solid fuel sees them.
+pub trait FuelSlots {
+    fn count(&self) -> usize;
+    fn stack(&self, index: usize) -> Option<(ResourceId, u32)>;
+    /// The burn time in ticks of the item as furnace fuel (0 when it does not burn).
+    fn burn_time(&self, item: &ResourceId) -> i32;
+    /// Takes one item out of slot `index`, giving back what it leaves (a bucket for a lava bucket); true when one came out.
+    fn extract_one(&mut self, index: usize) -> bool;
+}
+
+/// `SolidFuelModule.trySolidFuel`: the first item that burns gives a quarter of its furnace burn time as fuel at the solid fuel recipe's
+/// temperature and rate. Returns the temperature (0 when nothing burns).
+pub fn try_solid_fuel(state: &mut FuelState, slots: &mut dyn FuelSlots, solid: &MeltingFuel, consume: bool) -> i32 {
+    for index in 0..slots.count() {
+        let Some((item, _)) = slots.stack(index) else { continue };
+        let time = slots.burn_time(&item) / 4;
+        if time > 0 {
+            if consume && slots.extract_one(index) {
+                state.add_solid(time, solid);
+            }
+            return solid.temperature;
+        }
+    }
+    0
+}
+
+/// `SolidFuelModule.findFuel`: the heater's tank first, then its items; when nothing is found and fuel is consumed, the heat goes to 0.
+pub fn find_heater_fuel(state: &mut FuelState, tank: Option<(&ResourceId, i32)>, lookup: &dyn FuelLookup, drain: &mut dyn FnMut(i32) -> bool, slots: &mut dyn FuelSlots, solid: &MeltingFuel, consume: bool) -> i32 {
+    let mut temperature = state.try_liquid_fuel(tank, lookup, consume, drain);
+    if temperature == 0 {
+        temperature = try_solid_fuel(state, slots, solid, consume);
+    }
+    if temperature == 0 && consume {
+        state.temperature = 0;
+        state.rate = 0;
+    }
+    temperature
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,6 +257,102 @@ mod tests {
         let tag = FuelState { fuel: 7, temperature: 800, rate: 4, ..FuelState::default() }.to_tag();
         loaded.read_tag(Some(tag[0].1), Some(tag[1].1), Some(tag[2].1));
         assert_eq!(loaded, FuelState { fuel: 7, quality: 0, temperature: 800, rate: 4 });
+    }
+
+    struct Tanks(Vec<Option<(ResourceId, i32)>>);
+    impl FuelTanks for Tanks {
+        fn count(&self) -> usize {
+            self.0.len()
+        }
+        fn fluid(&self, index: usize) -> Option<(ResourceId, i32)> {
+            self.0[index].clone()
+        }
+        fn drain(&mut self, index: usize, amount: i32) -> bool {
+            match self.0[index].as_mut() {
+                Some((_, have)) if *have >= amount => {
+                    *have -= amount;
+                    true
+                }
+                _ => false,
+            }
+        }
+    }
+
+    #[test]
+    fn several_tanks_are_tried_in_order_and_the_one_that_gave_fuel_last_is_tried_first() {
+        let mut tanks = Tanks(vec![Some((id("minecraft:water"), 500)), Some((id("minecraft:lava"), 120)), Some((id("minecraft:lava"), 500))]);
+        let (mut state, mut finder) = (FuelState::default(), MultitankFuel::default());
+        assert_eq!(finder.find_fuel(&mut state, &mut tanks, &Lava, true), 1000, "the water is not fuel; the second tank is");
+        assert_eq!(tanks.0[1].as_ref().map(|t| t.1), Some(70));
+        // the next time the same tank is used first, while it still holds a portion
+        finder.find_fuel(&mut state, &mut tanks, &Lava, true);
+        assert_eq!((tanks.0[1].as_ref().map(|t| t.1), tanks.0[2].as_ref().map(|t| t.1)), (Some(20), Some(500)));
+        // 20 is under a portion, so the third tank gives
+        finder.find_fuel(&mut state, &mut tanks, &Lava, true);
+        assert_eq!(tanks.0[2].as_ref().map(|t| t.1), Some(450));
+    }
+
+    #[test]
+    fn with_no_fuel_the_heat_goes_to_zero_only_when_fuel_is_consumed() {
+        let mut tanks = Tanks(vec![Some((id("minecraft:water"), 500)), None]);
+        let mut state = FuelState { fuel: 0, quality: 0, temperature: 800, rate: 5 };
+        let mut finder = MultitankFuel::default();
+        assert_eq!(finder.find_fuel(&mut state, &mut tanks, &Lava, false), 0);
+        assert_eq!((state.temperature, state.rate), (800, 5));
+        assert_eq!(finder.find_fuel(&mut state, &mut tanks, &Lava, true), 0);
+        assert_eq!((state.temperature, state.rate), (0, 0));
+    }
+
+    struct Slots(Vec<Option<(ResourceId, u32)>>);
+    impl FuelSlots for Slots {
+        fn count(&self) -> usize {
+            self.0.len()
+        }
+        fn stack(&self, index: usize) -> Option<(ResourceId, u32)> {
+            self.0[index].clone()
+        }
+        fn burn_time(&self, item: &ResourceId) -> i32 {
+            match item.to_string().as_str() {
+                "minecraft:coal" => 1600,
+                "minecraft:stick" => 100,
+                _ => 0,
+            }
+        }
+        fn extract_one(&mut self, index: usize) -> bool {
+            let Some((_, count)) = self.0[index].as_mut() else { return false };
+            *count -= 1;
+            if *count == 0 {
+                self.0[index] = None;
+            }
+            true
+        }
+    }
+
+    #[test]
+    fn solid_fuel_burns_a_quarter_of_the_furnace_time_and_the_tank_goes_first() {
+        let solid = MeltingFuel::from_json(id("tconstruct:solid"), &json!({"temperature": 800, "rate": 5})).unwrap();
+        let mut slots = Slots(vec![Some((id("minecraft:dirt"), 3)), Some((id("minecraft:coal"), 2))]);
+        let mut state = FuelState::default();
+        let lava = id("minecraft:lava");
+        // an empty tank: the coal burns, 1600 / 4 = 400 ticks
+        assert_eq!(find_heater_fuel(&mut state, None, &Lava, &mut |_| true, &mut slots, &solid, true), 800);
+        assert_eq!((state.fuel, state.quality, state.rate, slots.0[1].as_ref().map(|s| s.1)), (400, 400, 5, Some(1)));
+        // lava in the tank is used before the items
+        let mut drained = 0;
+        let hot = find_heater_fuel(&mut state, Some((&lava, 50)), &Lava, &mut |a| {
+            drained = a;
+            true
+        }, &mut slots, &solid, true);
+        assert_eq!((hot, drained, slots.0[1].as_ref().map(|s| s.1)), (1000, 50, Some(1)));
+        // nothing burns: the heat goes to 0
+        let mut nothing = Slots(vec![Some((id("minecraft:dirt"), 1))]);
+        assert_eq!(find_heater_fuel(&mut state, None, &Lava, &mut |_| true, &mut nothing, &solid, true), 0);
+        assert_eq!((state.temperature, state.rate), (0, 0));
+        // a stick burns 100 / 4 = 25 ticks
+        let mut sticks = Slots(vec![Some((id("minecraft:stick"), 1))]);
+        let mut fresh = FuelState::default();
+        try_solid_fuel(&mut fresh, &mut sticks, &solid, true);
+        assert_eq!(fresh.fuel, 25);
     }
 
     #[test]

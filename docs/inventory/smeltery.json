@@ -247,12 +247,12 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/MultitankFuelModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the finding (the tank that gave fuel last time first, then the others in order, the heat going to 0 when nothing is found and fuel is consumed) is library `smeltery::fuel::MultitankFuel` over a `FuelTanks` trait, unit-tested; the capability lookups and listeners, the tank handler face of the class and the saved last position are not done"
     },
     "block/entity/module/SolidFuelModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the finding (the heater's tank first, then items; a quarter of the furnace burn time at the solid fuel recipe's heat and rate; the heat going to 0 when nothing burns and fuel is consumed) is library `smeltery::fuel::{find_heater_fuel, try_solid_fuel}` over a `FuelSlots` trait, unit-tested; the item return of a container, the handler lookups and the UI info are not done"
     },
     "block/entity/multiblock/FoundryMultiblock.java": {
       "status": "todo",
