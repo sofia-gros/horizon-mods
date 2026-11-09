@@ -14,7 +14,7 @@ fn set_property(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state:
     let Ok(next)=level.registry.resolve(&next) else {return;};let b=level.behaviours;b.set_block(level,ticks,pos,next,flags);
 }
 fn growth_chunks_loaded(level: &GameLevel<'_>, pos: BlockPos) -> bool {
-    super::tconstruct_slime_tree_shape::chunks_loaded(pos.x, pos.z, 24, |x, z| level.world.loaded(x, z))
+    super::tconstruct_propagule_shape::chunks_loaded(pos.x, pos.z, 24, |x, z| level.world.loaded(x, z))
 }
 fn advance(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state: BlockStateId) {
     let stage=block(level,state).and_then(|b|b.properties.get("stage")).map(String::as_str);
@@ -51,7 +51,7 @@ pub(super) fn valid(level: &GameLevel<'_>,pos: BlockPos,state: BlockStateId,resu
     if leaves(level,state) {*result=Some(below(pos).is_some_and(|p|level.behaviours.is_air(level.block_state(p))));}
     else if sapling(level,state) {
         let stage=block(level,state).and_then(|b|b.properties.get("stage")).map(String::as_str);
-        *result = Some(super::tconstruct_slime_tree_shape::propagule_bonemeal_ready(
+        *result = Some(super::tconstruct_propagule_shape::propagule_bonemeal_ready(
             hanging(level,state), age(level,state), stage, || growth_chunks_loaded(level,pos)));
     }
 }
