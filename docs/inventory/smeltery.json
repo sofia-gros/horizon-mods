@@ -263,8 +263,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/multiblock/MultiblockCuboid.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "detection (the controller's center, the four edges, the size limit, the layers down and up, the floor and the ceiling caps, the frame checks, the blocks inside that are not air) is library `smeltery::multiblock::Cuboid::detect` over a `Level` trait, with unit tests for the frameless box with a floor; the frame paths are ported but have no test yet; the tag read/write, `shouldUpdate` and the subclasses (smeltery, foundry, heating structure) are not done"
     },
     "block/entity/multiblock/MultiblockResult.java": {
       "status": "todo",
