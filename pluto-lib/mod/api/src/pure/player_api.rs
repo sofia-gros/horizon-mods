@@ -22,6 +22,14 @@ pub trait PlayerOps {
     fn count_item(&mut self, player: u128, item: &str) -> u32;
     /// Takes up to `count` plain `item` from the player; returns how many were taken.
     fn take_item(&mut self, player: u128, item: &str, count: u32) -> u32;
+    /// How many items of the item tag `tag` (`minecraft:logs`, `c:gems/diamond`) the player carries in the main inventory.
+    fn count_in_tag(&mut self, _player: u128, _tag: &str) -> u32 {
+        0
+    }
+    /// Takes up to `count` items of the item tag `tag` from the player; returns how many were taken.
+    fn take_in_tag(&mut self, _player: u128, _tag: &str, _count: u32) -> u32 {
+        0
+    }
     /// How many of the 36 main inventory slots are empty.
     fn empty_slots(&mut self, player: u128) -> u32;
     /// The language option of the player's client (`en_us`, `ja_jp`, ...); None if the player is not known.
@@ -166,6 +174,16 @@ impl ServerPlayer {
         with_current(0, |ops| ops.count_item(self.uuid, item))
     }
 
+    /// How many items of the item tag `tag` the player carries in the main inventory (0 outside a callback).
+    pub fn count_in_tag(&self, tag: &str) -> u32 {
+        with_current(0, |ops| ops.count_in_tag(self.uuid, tag))
+    }
+
+    /// Takes up to `count` items of the item tag `tag` from the player; returns how many were taken (0 outside a callback).
+    pub fn take_in_tag(&self, tag: &str, count: u32) -> u32 {
+        with_current(0, |ops| ops.take_in_tag(self.uuid, tag, count))
+    }
+
     /// Fabric: `PlayerInventory.remove` (by item): takes up to `count`; returns how many were taken (0 outside a callback).
     pub fn take_item(&self, item: &str, count: u32) -> u32 {
         with_current(0, |ops| ops.take_item(self.uuid, item, count))
@@ -236,6 +254,8 @@ pub struct MemoryPlayerOps {
     pub told: Vec<(u128, String)>,
     /// Items each player carries, by `(player, item id)`.
     pub items: std::collections::HashMap<(u128, String), u32>,
+    /// The members of each item tag, for `count_in_tag` and `take_in_tag`.
+    pub item_tags: std::collections::HashMap<String, Vec<String>>,
     /// JSON stored per `(player, attachment id)`.
     pub attachments: std::collections::HashMap<(u128, String), String>,
     /// How many of the 36 main slots are empty for every player (set it to test full inventories).
@@ -273,6 +293,20 @@ impl PlayerOps for MemoryPlayerOps {
         let have = self.items.entry((player, item.to_owned())).or_default();
         let taken = (*have).min(count);
         *have -= taken;
+        taken
+    }
+    fn count_in_tag(&mut self, player: u128, tag: &str) -> u32 {
+        self.item_tags.get(tag).map(|members| members.iter().map(|item| self.items.get(&(player, item.clone())).copied().unwrap_or(0)).sum()).unwrap_or(0)
+    }
+    fn take_in_tag(&mut self, player: u128, tag: &str, count: u32) -> u32 {
+        let members = self.item_tags.get(tag).cloned().unwrap_or_default();
+        let mut taken = 0;
+        for item in members {
+            if taken >= count {
+                break;
+            }
+            taken += self.take_item(player, &item, count - taken);
+        }
         taken
     }
     fn empty_slots(&mut self, _player: u128) -> u32 {

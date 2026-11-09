@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering'
 OUT = ROOT / 'tconstruct/mixins/tconstruct/api/src/tinkering_data.rs'
 SALVAGE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers/salvage'
+RECIPES = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers'
 ITEM_TAGS = ROOT / 'tconstruct/content/data/tconstruct/tags/item'
 KINDS = ('materials/definition', 'materials/stats', 'materials/traits', 'tags/materials', 'modifiers', 'tags/modifiers', 'tool_definitions')
 
@@ -42,6 +43,15 @@ def main(argv):
         name = path.relative_to(SALVAGE).with_suffix('').as_posix()
         lines.append(f'    ("modifier_salvage", "tconstruct:{name}", r####"{json.dumps(data, separators=(",", ":"), ensure_ascii=False)}"####),')
         count += 1
+    # what a modifier costs in items: the recipes that add one level (single-level and incremental ones; the others are not carried yet)
+    for folder in ('upgrade', 'ability', 'defense'):
+        for path in sorted((RECIPES / folder).glob('*.json')):
+            data = json.loads(path.read_bytes().decode('utf-8'))
+            if data.get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier'):
+                continue
+            keep = {k: data[k] for k in ('type', 'result', 'level', 'inputs', 'input', 'needed_per_level', 'amount_per_item') if k in data}
+            lines.append(f'    ("modifier_recipes", "tconstruct:{folder}/{path.stem}", r####"{json.dumps(keep, separators=(",", ":"), ensure_ascii=False)}"####),')
+            count += 1
     # the item tags the tool stats and modifiers name (the content owns them)
     for path in sorted((ITEM_TAGS / 'modifiable').rglob('*.json')) + [ITEM_TAGS / 'modifiable.json']:
         name = path.relative_to(ITEM_TAGS).with_suffix('').as_posix()

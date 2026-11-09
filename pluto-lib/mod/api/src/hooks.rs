@@ -210,6 +210,34 @@ impl PlayerOps for HostOps {
         self.host().take_items(item, count)
     }
 
+    fn count_in_tag(&mut self, player: u128, tag: &str) -> u32 {
+        let _ = player;
+        let mut total = 0;
+        for slot in 0..36 {
+            let Some(stack) = self.host().carried_stack(slot).cloned() else { continue };
+            if self.host().server_item_in_tag(&stack, tag).unwrap_or(false) {
+                total += stack.count;
+            }
+        }
+        total
+    }
+
+    fn take_in_tag(&mut self, player: u128, tag: &str, count: u32) -> u32 {
+        let _ = player;
+        let mut taken = 0;
+        for slot in 0..36 {
+            if taken >= count {
+                break;
+            }
+            let Some(stack) = self.host().carried_stack(slot).cloned() else { continue };
+            if self.host().server_item_in_tag(&stack, tag).unwrap_or(false) {
+                let item = stack.item.to_string();
+                taken += self.host().take_items(&item, (count - taken).min(stack.count));
+            }
+        }
+        taken
+    }
+
     fn empty_slots(&mut self, player: u128) -> u32 {
         let _ = player;
         (0..36).filter(|slot| self.host().carried_stack(*slot).is_none()).count() as u32
