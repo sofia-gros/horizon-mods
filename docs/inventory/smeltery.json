@@ -115,8 +115,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/ChannelBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the flow (pour down first, else share the horizontal outputs at most one nugget a tick each, the flow flags that last two ticks, what is returned for the clients) is library `smeltery::channel::Channel::tick` with six unit tests; the block entity, the side handlers and capabilities, the neighbor caches, the saved form and the sync are not done"
     },
     "block/entity/component/DrainBlockEntity.java": {
       "status": "todo",
@@ -291,8 +291,8 @@
       "note": "not yet compared with the port"
     },
     "block/entity/tank/ChannelTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::channel::ChannelTank` (one fluid, the fluid that came in this tick locked until the tick ends); unit-tested; the saved form and the update packet are the block entity's part"
     },
     "block/entity/tank/IDisplayFluidListener.java": {
       "status": "todo",
