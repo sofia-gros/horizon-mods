@@ -9,3 +9,4 @@ pub mod heating;
 pub mod channel;
 pub mod faucet;
 pub mod can;
+pub mod casting_station;
