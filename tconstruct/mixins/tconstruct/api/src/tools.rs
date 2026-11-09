@@ -102,15 +102,22 @@ impl ToolContext for ToolItem<'_> {
 impl ToolLibrary {
     /// The stack of a tool made of `material` in every part: the tool's item, its durability as the stack's max damage and its materials,
     /// modifiers and stats as the stack's data (`tconstruct:materials`, `tconstruct:modifiers`, `tconstruct:stats` in the custom data).
-    pub fn build(&self, tool: &str, material: &str) -> Result<pluto_lib::StackData, String> {
+    pub fn build(&self, tool: &str, given: &[&str]) -> Result<pluto_lib::StackData, String> {
         use pluto_lib::Nbt;
         let id = ResourceId::try_parse_in("tconstruct", tool).ok_or("bad tool id")?;
         let definition = self.definitions.get(&id).ok_or_else(|| format!("no tool {id}"))?;
-        let material = MaterialId::try_parse(&format!("tconstruct:{}", material.trim_start_matches("tconstruct:"))).ok_or("bad material id")?;
-        if self.materials.materials.material(&material).is_none() {
-            return Err(format!("no material {material}"));
+        // one material for each part in order; the last one given covers the parts after it
+        let mut materials = Vec::new();
+        for name in given {
+            let material = MaterialId::try_parse(&format!("tconstruct:{}", name.trim_start_matches("tconstruct:"))).ok_or("bad material id")?;
+            if self.materials.materials.material(&material).is_none() {
+                return Err(format!("no material {material}"));
+            }
+            materials.push(material);
         }
-        let materials = vec![material; definition.parts().len()];
+        let last = materials.last().cloned().ok_or("give at least one material")?;
+        materials.resize(definition.parts().len().max(1), last);
+        materials.truncate(definition.parts().len());
         let rebuilt = rebuild_stats(definition, &materials, &[], &self.materials, &self.modifiers, &self.stats, &ToolItem { library: self, item: id.clone() });
         let mut stats = pluto_lib::NbtCompound::new();
         for (stat, value) in &rebuilt.stats {
@@ -198,10 +205,13 @@ pub fn preview_command(ctx: &pluto_lib::CommandContext) -> i32 {
     }
 }
 
-/// `/tconstruct build <tool> <material>`: gives a tool made of one material, with its stats on the stack.
+/// `/tconstruct build <tool> <material> [more materials]`: gives a tool with its stats on the stack; one material for each part in order,
+/// the last one given covering the parts after it.
 pub fn build_command(ctx: &pluto_lib::CommandContext) -> i32 {
-    let (Some(tool), Some(material)) = (ctx.args.first(), ctx.args.get(1)) else { return 0 };
-    match library().build(tool, material) {
+    let Some(tool) = ctx.args.first() else { return 0 };
+    let materials: Vec<&str> = ctx.args[1..].iter().map(String::as_str).collect();
+    let material = materials.join(" ");
+    match library().build(tool, &materials) {
         Ok(stack) => {
             let (item, max) = (stack.item.clone(), stack.max_damage);
             if ctx.source.give_stack(stack).is_some() {

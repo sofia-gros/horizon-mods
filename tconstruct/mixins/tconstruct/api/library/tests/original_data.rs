@@ -247,3 +247,48 @@ fn every_item_tag_a_tool_stat_names_exists_in_the_content() {
         assert!(content.join(format!("{path}.json")).is_file(), "no content file for the item tag {tag}");
     }
 }
+
+#[test]
+fn every_original_tool_can_be_rebuilt_from_wood_and_from_iron() {
+    use std::sync::Arc;
+    use tconstruct_library::modifiers::stat_modules::ToolContext;
+    use tconstruct_library::modifiers::{ModifierManager, ModuleRegistry};
+    use tconstruct_library::tools::definition::{ToolDefinitionData, ToolModuleRegistry};
+    use tconstruct_library::tools::stack::rebuild_stats;
+    use tconstruct_library::tools::stat::{HarvestTiers, ToolStatId, ToolStats};
+    struct Anything;
+    impl ToolContext for Anything {
+        fn item_in_tag(&self, _: &str) -> bool {
+            true
+        }
+    }
+    let Some(root) = data_root() else { return };
+    let stats = Arc::new(ToolStats::tinkers(HarvestTiers::vanilla()));
+    let mut materials = tconstruct_library::materials::MaterialRegistry::with_tinkers_stats();
+    assert!(materials.stats.load(&read_all(&root.join("materials/stats"))).is_empty());
+    assert!(materials.traits.load(&read_all(&root.join("materials/traits"))).is_empty());
+    let mut modules = ModuleRegistry::with_original_types();
+    modules.register_stat_modules(stats.clone());
+    let (modifiers, _) = ModifierManager::load(&read_all(&root.join("modifiers")), &[], &[], &modules, &EmptyContext);
+    let registry = ToolModuleRegistry::with_original_types();
+    let durability = ToolStatId::tconstruct("durability");
+    let mut checked = 0;
+    for (id, json) in read_all(&root.join("tool_definitions")) {
+        let definition = ToolDefinitionData::from_json(&json, &registry, &stats).unwrap();
+        for material in ["wood", "iron"] {
+            let material = MaterialId::try_parse(&format!("tconstruct:{material}")).unwrap();
+            let materials_list = vec![material; definition.parts().len()];
+            let rebuilt = rebuild_stats(&definition, &materials_list, &[], &materials, &modifiers, &stats, &Anything);
+            // a tool with parts has a durability from them, unless it is a fixed-stat tool without part stats
+            let has_durable_part = definition.parts().iter().filter_map(|p| tconstruct_library::tools::definition::part_stat_type(&p.item)).any(|k| {
+                let name = k.resource().path();
+                name == "head" || name == "limb"
+            });
+            if has_durable_part && rebuilt.stats.get(&durability).is_none() {
+                panic!("{id} made of {materials_list:?} has no durability");
+            }
+        }
+        checked += 1;
+    }
+    assert!(checked >= 45, "{checked} tools");
+}
