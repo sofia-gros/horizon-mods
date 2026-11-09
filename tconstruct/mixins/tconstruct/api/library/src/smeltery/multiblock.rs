@@ -292,6 +292,7 @@ mod tests {
         Air,
         StructureAir,
         Wall,
+        Frame,
         Stone,
     }
 
@@ -334,6 +335,7 @@ mod tests {
         fn is_valid(&self, pos: Pos, _: Side, frame: bool) -> bool {
             match self.get(pos) {
                 B::Wall => !frame,
+                B::Frame => true,
                 _ => false,
             }
         }
@@ -384,6 +386,67 @@ mod tests {
         let mut big = World::box_of(20, 3, 3);
         big.blocks.insert(Pos::new(1, 2, 3), B::Wall);
         assert!(matches!(smeltery().detect(&big, Pos::new(1, 2, 3), Facing::South).unwrap_err().problem, Problem::TooLarge { .. }));
+    }
+
+    /// A foundry-like world: a frame of `Frame` blocks on the edges of the floor, ceiling and corners, walls between, floor and ceiling
+    /// plates, `h` layers of air inside a `w` x `d` box.
+    fn framed(w: i32, d: i32, h: i32) -> World {
+        let mut blocks = HashMap::new();
+        for y in 0..=h + 1 {
+            for x in -1..=w {
+                for z in -1..=d {
+                    let on_x_edge = x == -1 || x == w;
+                    let on_z_edge = z == -1 || z == d;
+                    let cap = y == 0 || y == h + 1;
+                    let b = if cap {
+                        if on_x_edge || on_z_edge { B::Frame } else { B::Wall }
+                    } else if on_x_edge && on_z_edge {
+                        B::Frame
+                    } else if on_x_edge || on_z_edge {
+                        B::Wall
+                    } else {
+                        B::Air
+                    };
+                    blocks.insert(Pos::new(x, y, z), b);
+                }
+            }
+        }
+        World { blocks }
+    }
+
+    fn foundry() -> Cuboid {
+        Cuboid { has_floor: true, has_frame: true, has_ceiling: true, max_height: 64, inner_limit: 14 }
+    }
+
+    #[test]
+    fn a_framed_box_with_a_floor_and_a_ceiling_is_found_between_its_caps() {
+        let mut world = framed(3, 3, 3);
+        let master = Pos::new(1, 2, 3);
+        world.blocks.insert(master, B::Wall);
+        let found = foundry().detect(&world, master, Facing::South).unwrap();
+        assert_eq!((found.min, found.max), (Pos::new(-1, 0, -1), Pos::new(3, 4, 3)));
+    }
+
+    #[test]
+    fn a_missing_frame_block_or_cap_plate_is_reported_where_it_is() {
+        let master = Pos::new(1, 2, 3);
+        let mut no_corner = framed(3, 3, 3);
+        no_corner.blocks.insert(master, B::Wall);
+        no_corner.blocks.insert(Pos::new(-1, 2, -1), B::Wall); // a wall block where the corner post should be
+        let error = foundry().detect(&no_corner, master, Facing::South).unwrap_err();
+        assert_eq!((error.pos, error.problem), (Some(Pos::new(-1, 2, -1)), Problem::InvalidWallFrame));
+
+        let mut no_ceiling = framed(3, 3, 3);
+        no_ceiling.blocks.insert(master, B::Wall);
+        no_ceiling.blocks.insert(Pos::new(1, 4, 1), B::Stone);
+        let error = foundry().detect(&no_ceiling, master, Facing::South).unwrap_err();
+        assert_eq!((error.pos, error.problem), (Some(Pos::new(1, 4, 1)), Problem::InvalidCeilingBlock));
+
+        let mut no_floor_frame = framed(3, 3, 3);
+        no_floor_frame.blocks.insert(master, B::Wall);
+        no_floor_frame.blocks.insert(Pos::new(1, 0, -1), B::Stone);
+        let error = foundry().detect(&no_floor_frame, master, Facing::South).unwrap_err();
+        assert_eq!((error.pos, error.problem), (Some(Pos::new(1, 0, -1)), Problem::InvalidFloorFrame));
     }
 
     #[test]
