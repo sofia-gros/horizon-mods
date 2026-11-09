@@ -2187,8 +2187,8 @@
       "note": "not yet compared with the port"
     },
     "recipe/casting/material/MaterialFluidRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `recipes::material::MaterialFluidRecipe`; loads the original's 73 files (by test)"
     },
     "recipe/casting/material/MaterialFluidRecipeBuilder.java": {
       "status": "todo",
@@ -2331,20 +2331,20 @@
       "note": "not yet compared with the port"
     },
     "recipe/material/IMaterialValue.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "the value and needed fields are in library `recipes::material::MaterialRecipe`"
     },
     "recipe/material/MaterialRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `recipes::material::MaterialRecipe`: ingredient, material variant, value, needed, the leftover only when worth more than one unit (item id, object or tag), data conditions; loads the original's 217 material files (by test). Not in game"
     },
     "recipe/material/MaterialRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder"
     },
     "recipe/material/MaterialRecipeCache.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `recipes::material::MaterialRecipes`: find by item, the recipes of a material ordered by value then units needed, the known materials; the visibility filter and the display lists are not done"
     },
     "recipe/material/MaterialsConsumerBuilder.java": {
       "status": "todo",
@@ -2395,8 +2395,8 @@
       "note": "the lookup is the trait `MeltingRecipes` in library `smeltery::melting`; the ore rate and byproduct choice are not done"
     },
     "recipe/melting/MaterialMeltingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `recipes::material::MaterialMeltingRecipe`; loads the original's 48 files (by test)"
     },
     "recipe/melting/MaterialMeltingRecipeBuilder.java": {
       "status": "todo",
