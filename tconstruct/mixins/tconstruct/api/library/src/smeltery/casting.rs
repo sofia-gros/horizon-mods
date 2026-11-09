@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 use super::alloy::FluidMatch;
-use super::melting::{ingredient_matches, ItemMatch};
+use super::melting::{accepts_item, ingredient_matches, ItemMatch};
 use crate::condition::{self, ConditionContext};
 use crate::resource::ResourceId;
 
@@ -125,6 +125,48 @@ fn fluid_and_amount(fluid: &Value) -> Result<(FluidMatch, i32), String> {
     Ok((kind, fluid.get("amount").and_then(Value::as_i64).filter(|a| *a >= 1).ok_or("the fluid needs a positive 'amount'")? as i32))
 }
 
+/// Pressing a pattern into a material on the molding table (`MoldingRecipe`): the material in the table and the pattern in the hand
+/// make the result; the pattern is used up when the recipe says so.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MoldingRecipe {
+    pub id: ResourceId,
+    pub material: Vec<ItemMatch>,
+    /// What must be in the hand; None when the hand must be empty (picking the cast up).
+    pub pattern: Option<Vec<ItemMatch>>,
+    pub pattern_consumed: bool,
+    pub result: ResourceId,
+}
+
+impl MoldingRecipe {
+    /// Reads a `tconstruct:molding_table` file.
+    pub fn from_json(id: ResourceId, json: &Value) -> Result<Self, String> {
+        if json.get("type").and_then(Value::as_str) != Some("tconstruct:molding_table") {
+            return Err("not a molding recipe".to_owned());
+        }
+        Ok(Self {
+            id,
+            material: ingredient_matches(json.get("material").ok_or("a molding recipe needs a 'material'")?)?,
+            pattern: json.get("pattern").map(ingredient_matches).transpose()?,
+            pattern_consumed: json.get("pattern_consumed").and_then(Value::as_bool).unwrap_or(false),
+            result: ResourceId::try_parse(json.get("result").and_then(Value::as_str).ok_or("a molding recipe needs a 'result' item id")?).ok_or("bad result id")?,
+        })
+    }
+
+    fn accepts(list: &[ItemMatch], item: &ResourceId, tags: &dyn CastingTags) -> bool {
+        accepts_item(list, item, &|tag| tags.items(tag))
+    }
+
+    /// `matches`: the item on the table is the material and the item in the hand is the pattern.
+    pub fn matches(&self, on_table: &ResourceId, in_hand: Option<&ResourceId>, tags: &dyn CastingTags) -> bool {
+        Self::accepts(&self.material, on_table, tags)
+            && match (&self.pattern, in_hand) {
+                (None, None) => true,
+                (Some(pattern), Some(item)) => Self::accepts(pattern, item, tags),
+                _ => false,
+            }
+    }
+}
+
 /// Which items and fluids belong to a tag.
 pub trait CastingTags {
     fn items(&self, tag: &ResourceId) -> Vec<ResourceId>;
@@ -176,10 +218,7 @@ impl CastingRecipe {
     }
 
     fn item_in(&self, matches: &[ItemMatch], item: &ResourceId, tags: &dyn CastingTags) -> bool {
-        matches.iter().any(|m| match m {
-            ItemMatch::Item(id) => id == item,
-            ItemMatch::Tag(tag) => tags.items(tag).contains(item),
-        })
+        accepts_item(matches, item, &|tag| tags.items(tag))
     }
 
     /// `matches`: the cast slot holds what the recipe wants (nothing, when it wants nothing) and the fluid is the recipe's.
@@ -201,6 +240,7 @@ impl CastingRecipe {
         let id = match &self.result.item {
             ItemMatch::Item(id) => id.clone(),
             ItemMatch::Tag(tag) => tags.items(tag).into_iter().next()?,
+            ItemMatch::Except { .. } => return None,
         };
         Some((id, self.result.count))
     }
@@ -260,6 +300,29 @@ mod tests {
         assert_eq!(recipe.kind, CastingKind::Basin);
         assert!(recipe.matches(None, &id("tconstruct:molten_iron"), &Tags));
         assert!(!recipe.matches(Some(&id("tconstruct:ingot_cast")), &id("tconstruct:molten_iron"), &Tags));
+    }
+
+    #[test]
+    fn a_molding_recipe_matches_the_material_on_the_table_and_the_pattern_in_the_hand() {
+        let json = json!({"type": "tconstruct:molding_table", "material": {"tag": "tconstruct:casts/red_sand"}, "pattern": {"type": "tconstruct:material", "item": "tconstruct:adze_head"}, "result": "tconstruct:adze_head_red_sand_cast"});
+        let recipe = MoldingRecipe::from_json(id("a:m"), &json).unwrap();
+        struct SandTags;
+        impl CastingTags for SandTags {
+            fn items(&self, tag: &ResourceId) -> Vec<ResourceId> {
+                if tag.to_string() == "tconstruct:casts/red_sand" { vec![id("minecraft:red_sand")] } else { Vec::new() }
+            }
+            fn fluids(&self, _: &ResourceId) -> Vec<ResourceId> {
+                Vec::new()
+            }
+        }
+        assert!(recipe.matches(&id("minecraft:red_sand"), Some(&id("tconstruct:adze_head")), &SandTags));
+        assert!(!recipe.matches(&id("minecraft:sand"), Some(&id("tconstruct:adze_head")), &SandTags));
+        assert!(!recipe.matches(&id("minecraft:red_sand"), Some(&id("tconstruct:pick_head")), &SandTags));
+        assert!(!recipe.matches(&id("minecraft:red_sand"), None, &SandTags), "this one needs a pattern");
+        let pickup = MoldingRecipe::from_json(id("a:p"), &json!({"type": "tconstruct:molding_table", "material": {"tag": "tconstruct:casts/red_sand"}, "result": "tconstruct:blank_red_sand_cast"})).unwrap();
+        assert!(pickup.matches(&id("minecraft:red_sand"), None, &SandTags) && !pickup.matches(&id("minecraft:red_sand"), Some(&id("tconstruct:adze_head")), &SandTags), "picking up needs an empty hand");
+        assert!(!recipe.pattern_consumed);
+        assert!(MoldingRecipe::from_json(id("a:x"), &json!({"type": "tconstruct:casting_table"})).is_err());
     }
 
     #[test]

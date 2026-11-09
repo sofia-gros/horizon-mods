@@ -15,6 +15,17 @@ pub const NO_SPACE: i32 = -1;
 pub enum ItemMatch {
     Item(ResourceId),
     Tag(ResourceId),
+    /// What `base` accepts except what `subtracted` accepts (`forge:difference`).
+    Except { base: Vec<ItemMatch>, subtracted: Vec<ItemMatch> },
+}
+
+/// Whether any of the matches accepts `item`; `tag_items` says which items a tag holds.
+pub fn accepts_item(matches: &[ItemMatch], item: &ResourceId, tag_items: &dyn Fn(&ResourceId) -> Vec<ResourceId>) -> bool {
+    matches.iter().any(|m| match m {
+        ItemMatch::Item(id) => id == item,
+        ItemMatch::Tag(tag) => tag_items(tag).contains(item),
+        ItemMatch::Except { base, subtracted } => accepts_item(base, item, tag_items) && !accepts_item(subtracted, item, tag_items),
+    })
 }
 
 /// How the recipe gives its fluid.
@@ -129,6 +140,14 @@ pub(crate) fn ingredient_matches(ingredient: &Value) -> Result<Vec<ItemMatch>, S
                         if let Some(inner) = object.get("match") {
                             return ingredient_matches(inner);
                         }
+                    }
+                    // a part of any material (or of the one named): for matching the item is what counts
+                    "tconstruct:material" => {}
+                    "forge:difference" => {
+                        return Ok(vec![ItemMatch::Except {
+                            base: ingredient_matches(object.get("base").ok_or("a difference needs a 'base'")?)?,
+                            subtracted: ingredient_matches(object.get("subtracted").ok_or("a difference needs a 'subtracted'")?)?,
+                        }]);
                     }
                     other => return Err(format!("unsupported ingredient type {other}")),
                 }

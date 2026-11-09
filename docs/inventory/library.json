@@ -2523,12 +2523,12 @@
       "note": "not yet compared with the port"
     },
     "recipe/molding/MoldingRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "library `smeltery::casting::MoldingRecipe` for the molding table: the material on the table, the pattern in the hand (or an empty hand to pick a cast up), pattern consumed, the result; loads all 58 of the original's molding table files (by test). The basin form, the container interface and the mold-in-place behaviour of the table are not done"
     },
     "recipe/molding/MoldingRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder; the port reads the original's generated recipe files"
     },
     "recipe/partbuilder/DisplayPartRecipe.java": {
       "status": "todo",
