@@ -322,7 +322,7 @@ with_ops(&mut game, || {
 
 ### `StackData`
 
-An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component; in Horizon PlutoLib registers its own component type, `pluto_lib:custom_data`, for it, which the stack keeps when saved and sent). A tool mod keeps its materials and stats here.
+An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here.
 
 ```rust
 use pluto_lib::{Nbt, StackData};

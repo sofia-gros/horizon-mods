@@ -131,6 +131,8 @@ impl ToolLibrary {
             _ => None,
         };
         let mut data = pluto_lib::NbtCompound::new();
+        // the form the renderer reads the materials of a tool in (`tic_materials`, as the original keeps them)
+        data.insert("tic_materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
         data.insert("tconstruct:materials".to_owned(), Nbt::List(materials.iter().map(|m| Nbt::String(m.to_string())).collect()));
         data.insert("tconstruct:modifiers".to_owned(), Nbt::List(rebuilt.modifiers.iter().map(|m| Nbt::String(format!("{}#{}", m.modifier, m.level))).collect()));
         data.insert("tconstruct:stats".to_owned(), Nbt::Compound(stats));
