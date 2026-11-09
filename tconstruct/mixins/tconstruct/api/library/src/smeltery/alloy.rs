@@ -185,6 +185,12 @@ impl AlloyRecipe {
     }
 }
 
+/// `SingleAlloyingModule.findRecipe`: the first recipe that can run now and whose result fits the tank (the melter and the alloyer
+/// have one tank, so the recipe that works on it is the one used).
+pub fn find_single<'a>(recipes: &'a [AlloyRecipe], tank: &dyn AlloyTank, tags: &dyn FluidTags) -> Option<&'a AlloyRecipe> {
+    recipes.iter().find(|r| r.can_perform(tank, tags))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +290,17 @@ mod tests {
         assert!(recipe.perform(&mut tank, &Tags));
         assert_eq!((tank.amount("minecraft:water"), tank.amount("minecraft:lava"), tank.amount("tconstruct:molten_obsidian")), (300, 50, 100));
         assert!(!recipe.can_perform(&Tank::of(&[("minecraft:water", 100), ("minecraft:lava", 150)], 1100, 4000), &Tags), "water short of the catalyst amount");
+    }
+
+    #[test]
+    fn the_single_alloying_module_runs_the_first_recipe_that_can_run() {
+        let obsidian = AlloyRecipe::from_json(id("a:obsidian"), &json!({"type": "tconstruct:alloy", "inputs": [{"amount": 250, "catalyst": true, "fluid": "minecraft:water"}, {"amount": 100, "fluid": "minecraft:lava"}],
+            "result": {"amount": 100, "fluid": "tconstruct:molten_obsidian"}, "temperature": 1000}), &EmptyContext).unwrap().unwrap();
+        let recipes = [bronze(), obsidian];
+        let hot = Tank::of(&[("minecraft:water", 300), ("minecraft:lava", 150)], 1100, 4000);
+        assert_eq!(find_single(&recipes, &hot, &Tags).map(|r| r.id.to_string()), Some("a:obsidian".to_owned()));
+        let cold = Tank::of(&[("minecraft:water", 300), ("minecraft:lava", 150)], 900, 4000);
+        assert!(find_single(&recipes, &cold, &Tags).is_none());
     }
 
     #[test]

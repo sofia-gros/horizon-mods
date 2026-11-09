@@ -215,12 +215,12 @@
       "note": "not yet compared with the port"
     },
     "block/entity/module/alloying/MultiAlloyingModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "the smeltery's alloying is `Heating::do_alloy` over `AlloyRecipe` in library `smeltery::heating` (recipes tried in the given order, not shuffled as the original does); unit-tested through the heating tick"
     },
     "block/entity/module/alloying/SingleAlloyingModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::alloy::find_single` (the first recipe that can run and whose result fits); unit-tested"
     },
     "block/entity/module/alloying/SmelteryAlloyTank.java": {
       "status": "ported",
@@ -267,16 +267,16 @@
       "note": "detection (the controller's center, the four edges, the size limit, the layers down and up, the floor and the ceiling caps, the frame checks, the blocks inside that are not air) is library `smeltery::multiblock::Cuboid::detect` over a `Level` trait, with unit tests for the frameless box with a floor and for a framed box with a floor and a ceiling (a bad corner post, ceiling plate and floor frame are reported where they are); the tag read/write, `shouldUpdate` and the subclasses (smeltery, foundry, heating structure) are not done"
     },
     "block/entity/multiblock/MultiblockResult.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::multiblock::{Failure, Problem}` (the problem and the position); the translated messages are the screen's part"
     },
     "block/entity/multiblock/MultiblockStructureData.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "block/entity/multiblock/SmelteryMultiblock.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "a smeltery is `Cuboid::new(true, false, false)` (floor, no frame, no ceiling) in library `smeltery::multiblock`; the block tags it checks (smeltery, floor, tanks, wall) are content tags and come with the blocks"
     },
     "block/entity/ProxyTankBlockEntity.java": {
       "status": "todo",
