@@ -17,6 +17,28 @@ pub enum ItemMatch {
     Tag(ResourceId),
 }
 
+/// How the recipe gives its fluid.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MeltingKind {
+    /// The same amount every time.
+    Plain,
+    /// A tool or armor piece: the amount follows the durability left, in steps of `unit_size` (one for each byproduct as well).
+    Damagable { unit_size: i32, byproduct_sizes: Vec<i32> },
+    /// An ore: the amount follows the ore rate named here (`metal`, `gem`, ...).
+    Ore { rate: String },
+}
+
+/// `DamageableMeltingRecipe.scaleOutput`: `amount` scaled by the durability left, never below one unit, in whole units.
+pub fn scale_output(amount: i32, damage: i32, max_damage: i32, unit_size: i32) -> i32 {
+    let mut scaled = (amount as i64 * (max_damage - damage) as i64 / max_damage as i64) as i32;
+    if scaled <= unit_size {
+        scaled = unit_size.max(1);
+    } else if unit_size > 1 {
+        scaled -= scaled % unit_size;
+    }
+    scaled
+}
+
 /// A melting recipe: an ingredient, the fluid it gives, the temperature it needs and the time it takes (the original's units; the module
 /// counts ten times that many ticks of heat).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,6 +51,7 @@ pub struct MeltingRecipe {
     pub byproducts: Vec<AlloyOutput>,
     pub temperature: i32,
     pub time: i32,
+    pub kind: MeltingKind,
 }
 
 fn fluid_output(json: &Value) -> Result<AlloyOutput, String> {
@@ -69,7 +92,8 @@ pub(crate) fn ingredient_matches(ingredient: &Value) -> Result<Vec<ItemMatch>, S
 impl MeltingRecipe {
     /// Reads a `tconstruct:melting` file. `Ok(None)` when its data conditions are not met.
     pub fn from_json(id: ResourceId, json: &Value, conditions: &dyn ConditionContext) -> Result<Option<Self>, String> {
-        if json.get("type").and_then(Value::as_str) != Some("tconstruct:melting") {
+        let type_name = json.get("type").and_then(Value::as_str).unwrap_or("");
+        if !matches!(type_name, "tconstruct:melting" | "tconstruct:damagable_melting" | "tconstruct:ore_melting") {
             return Err("not a melting recipe".to_owned());
         }
         for c in json.get("conditions").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
@@ -85,7 +109,17 @@ impl MeltingRecipe {
         };
         let temperature = json.get("temperature").and_then(Value::as_i64).filter(|t| *t >= 0).ok_or("a melting recipe needs a 'temperature'")? as i32;
         let time = json.get("time").and_then(Value::as_i64).filter(|t| *t >= 1).ok_or("a melting recipe needs a 'time' of at least 1")? as i32;
-        Ok(Some(Self { id, ingredient, result: fluid_output(json.get("result").ok_or("a melting recipe needs a 'result'")?)?, byproducts, temperature, time }))
+        let kind = match type_name {
+            "tconstruct:damagable_melting" => {
+                let unit = |v: &Value| v.get("unit_size").and_then(Value::as_i64).filter(|u| *u >= 1).unwrap_or(1) as i32;
+                let unit_size = unit(json.get("result").ok_or("a melting recipe needs a 'result'")?);
+                let byproduct_sizes = json.get("byproducts").and_then(Value::as_array).map(|list| list.iter().map(unit).collect()).unwrap_or_default();
+                MeltingKind::Damagable { unit_size, byproduct_sizes }
+            }
+            "tconstruct:ore_melting" => MeltingKind::Ore { rate: json.get("rate").and_then(Value::as_str).unwrap_or("metal").to_owned() },
+            _ => MeltingKind::Plain,
+        };
+        Ok(Some(Self { id, ingredient, result: fluid_output(json.get("result").ok_or("a melting recipe needs a 'result'")?)?, byproducts, temperature, time, kind }))
     }
 }
 
@@ -204,6 +238,26 @@ mod tests {
         let mut stone = MeltingSlot::default();
         stone.set_stack(Some((id("minecraft:stone"), 1)), &Recipes);
         assert_eq!(stone.required_time, 0, "no recipe, nothing to heat");
+    }
+
+    #[test]
+    fn a_damaged_tool_gives_less_fluid_in_whole_units_and_never_less_than_one_unit() {
+        // 300 for a new tool, in units of 25: half worn gives 150, a quarter left rounds down to whole units
+        assert_eq!(scale_output(300, 0, 100, 25), 300);
+        assert_eq!(scale_output(300, 50, 100, 25), 150);
+        assert_eq!(scale_output(300, 63, 100, 25), 100, "111 rounds down to 100");
+        assert_eq!(scale_output(300, 99, 100, 25), 25, "nearly broken still gives one unit");
+        assert_eq!(scale_output(90, 99, 100, 1), 1);
+    }
+
+    #[test]
+    fn damagable_and_ore_recipes_carry_their_extra_fields() {
+        let damagable = json!({"type": "tconstruct:damagable_melting", "ingredient": {"tag": "a:tools"}, "result": {"amount": 300, "fluid": "a:molten", "unit_size": 25},
+            "byproducts": [{"amount": 90, "fluid": "a:other", "unit_size": 10}], "temperature": 1450, "time": 137});
+        let recipe = MeltingRecipe::from_json(id("a:d"), &damagable, &EmptyContext).unwrap().unwrap();
+        assert_eq!(recipe.kind, MeltingKind::Damagable { unit_size: 25, byproduct_sizes: vec![10] });
+        let ore = json!({"type": "tconstruct:ore_melting", "ingredient": {"item": "a:bud"}, "rate": "gem", "result": {"amount": 300, "fluid": "a:molten"}, "temperature": 950, "time": 194});
+        assert_eq!(MeltingRecipe::from_json(id("a:o"), &ore, &EmptyContext).unwrap().unwrap().kind, MeltingKind::Ore { rate: "gem".to_owned() });
     }
 
     #[test]

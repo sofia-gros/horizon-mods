@@ -1,5 +1,5 @@
 //! Data conditions (`ICondition` of Forge, Mantle and Tinkers) as they appear in the original's data files: `forge:or`, `forge:and`,
-//! `forge:not`, `forge:true`, `forge:false`, `forge:mod_loaded`, `mantle:tag_filled` and `tconstruct:config`.
+//! `forge:not`, `forge:true`, `forge:false`, `forge:mod_loaded`, `forge:item_exists`, `mantle:tag_filled` and `tconstruct:config`.
 use serde_json::Value;
 
 /// What a condition asks the game.
@@ -10,6 +10,10 @@ pub trait ConditionContext {
     fn tag_filled(&self, tag: &str) -> bool;
     /// The value of a Tinkers config switch (`force_integration_materials`).
     fn config(&self, prop: &str) -> bool;
+    /// Whether an item exists in the game (`forge:item_exists`). The port has no mod integration, so an item of another mod does not.
+    fn item_exists(&self, _item: &str) -> bool {
+        false
+    }
 }
 
 /// A context in which nothing is installed, no tag has members and every switch is off.
@@ -38,6 +42,7 @@ pub fn test(condition: &Value, context: &dyn ConditionContext) -> Result<bool, S
         "forge:mod_loaded" => Ok(context.mod_loaded(text("modid")?)),
         "mantle:tag_filled" => Ok(context.tag_filled(text("tag")?)),
         "tconstruct:config" => Ok(context.config(text("prop")?)),
+        "forge:item_exists" => Ok(context.item_exists(text("item")?)),
         "forge:not" => Ok(!test(object.get("value").ok_or("forge:not needs 'value'")?, context)?),
         "forge:and" | "forge:or" => {
             let values = object.get("values").and_then(Value::as_array).ok_or_else(|| format!("{kind} needs 'values'"))?;
@@ -67,6 +72,29 @@ mod tests {
         fn config(&self, prop: &str) -> bool {
             prop == "on"
         }
+    }
+
+    #[test]
+    fn an_item_exists_only_when_the_context_says_so_and_by_default_no_item_of_another_mod_does() {
+        struct HasStick;
+        impl ConditionContext for HasStick {
+            fn mod_loaded(&self, _: &str) -> bool {
+                false
+            }
+            fn tag_filled(&self, _: &str) -> bool {
+                false
+            }
+            fn config(&self, _: &str) -> bool {
+                false
+            }
+            fn item_exists(&self, item: &str) -> bool {
+                item == "minecraft:stick"
+            }
+        }
+        let stick = json!({"type": "forge:item_exists", "item": "minecraft:stick"});
+        let hammer = json!({"type": "forge:item_exists", "item": "tools_complement:diamond_hammer"});
+        assert!(test(&stick, &HasStick).unwrap() && !test(&hammer, &HasStick).unwrap());
+        assert!(!test(&stick, &Switches).unwrap(), "the default answers no");
     }
 
     #[test]

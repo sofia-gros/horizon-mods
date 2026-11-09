@@ -317,8 +317,8 @@ fn the_originals_plain_melting_recipes_load() {
     let recipes = read_all(&root.join("../recipes/smeltery/melting"));
     let (mut plain, mut loaded) = (0, 0);
     for (id, json) in &recipes {
-        if json.get("type").and_then(Value::as_str) != Some("tconstruct:melting") {
-            continue; // damagable, ore and conditional recipes are not ported yet
+        if !matches!(json.get("type").and_then(Value::as_str), Some("tconstruct:melting" | "tconstruct:damagable_melting" | "tconstruct:ore_melting")) {
+            continue; // the conditional wrappers are not ported yet
         }
         match tconstruct_library::smeltery::melting::MeltingRecipe::from_json(id.clone(), json, &EmptyContext) {
             Ok(Some(_)) => loaded += 1,
@@ -328,8 +328,8 @@ fn the_originals_plain_melting_recipes_load() {
         }
         plain += 1;
     }
-    assert!(plain > 400, "{plain}");
-    assert!(loaded > 100, "{loaded}");
+    assert_eq!(plain, 472 + 183 + 94);
+    assert!(loaded > 250, "{loaded}");
 }
 
 #[test]
