@@ -1,0 +1,86 @@
+{
+  "id": "game-common-partials",
+  "order": 23,
+  "kind": "game",
+  "title": "Common package: the partial classes",
+  "goal": "Finish the partial classes of the common package: the config options (read each option where the Java reads it), the sounds, the network packets and the multiblock base classes (IMasterLogic, IServantLogic, ServantTileEntity) on PlutoLib and the library's structure code (src/smeltery/multiblock.rs). Each class named in the inventory has a note saying what is missing; start from it.",
+  "depends_on": [
+    "game-smeltery-entities"
+  ],
+  "read_first": [
+    "AGENTS.md",
+    "docs/codex.md",
+    "docs/development.md",
+    "pluto-lib/README.md",
+    "pluto-lib/docs/api/index.md",
+    "pluto-lib/docs/api/block.md",
+    "pluto-lib/docs/api/block-entity.md",
+    "pluto-lib/docs/api/screen.md",
+    "tconstruct/mixins/tconstruct/api/src/lib.rs",
+    "tconstruct/mixins/tconstruct/api/src/station.rs",
+    "tconstruct/mixins/tconstruct/api/src/tools.rs",
+    "tconstruct/mixins/tconstruct/api/src/world.rs"
+  ],
+  "java": [
+    "slimeknights/tconstruct/common/ClientEventBase.java",
+    "slimeknights/tconstruct/common/SoundUtils.java",
+    "slimeknights/tconstruct/common/Sounds.java",
+    "slimeknights/tconstruct/common/TinkerTags.java",
+    "slimeknights/tconstruct/common/config/Config.java",
+    "slimeknights/tconstruct/common/config/ConfigurableAction.java",
+    "slimeknights/tconstruct/common/multiblock/IMasterLogic.java",
+    "slimeknights/tconstruct/common/multiblock/IServantLogic.java",
+    "slimeknights/tconstruct/common/multiblock/ServantTileEntity.java",
+    "slimeknights/tconstruct/common/network/InventorySlotSyncPacket.java",
+    "slimeknights/tconstruct/common/network/SyncPersistentDataPacket.java",
+    "slimeknights/tconstruct/common/network/TinkerNetwork.java",
+    "slimeknights/tconstruct/common/network/UpdateNeighborsPacket.java",
+    "slimeknights/tconstruct/common/registration/ArgumentTypeDeferredRegister.java"
+  ],
+  "inventory": {
+    "file": "docs/inventory/common.json",
+    "classes": [
+      "ClientEventBase.java",
+      "SoundUtils.java",
+      "Sounds.java",
+      "TinkerTags.java",
+      "config/Config.java",
+      "config/ConfigurableAction.java",
+      "multiblock/IMasterLogic.java",
+      "multiblock/IServantLogic.java",
+      "multiblock/ServantTileEntity.java",
+      "network/InventorySlotSyncPacket.java",
+      "network/SyncPersistentDataPacket.java",
+      "network/TinkerNetwork.java",
+      "network/UpdateNeighborsPacket.java",
+      "registration/ArgumentTypeDeferredRegister.java"
+    ]
+  },
+  "allowed_paths": [
+    "tconstruct/mixins/tconstruct/api/src/**",
+    "tconstruct/content/**",
+    "tools/smoke-local/probe_pluto_lib.py",
+    "pluto-lib/tests/probe/**",
+    "docs/inventory/common.json"
+  ],
+  "may_delete": [],
+  "auto_merge": false,
+  "max_files": 35,
+  "max_new_files": 35,
+  "max_changed_lines": 3080,
+  "max_new_tests": 0,
+  "build_files_allowed": [],
+  "verify": [
+    "python tools/check_line_endings.py",
+    "python tools/feature_inventory.py common",
+    "python tools/codex_guard.py --lint"
+  ],
+  "stop_and_report_if": [
+    "a PlutoLib API the port needs is missing (name the call and the PlutoLib page where it belongs): leave the class todo, never use a direct injection and never change pluto-lib",
+    "Horizon cannot do what the Java does (a world fluid for a mod, a menu opened from a block, an item model hook, entity predicates, a combat hook that reaches a tool): leave the class partial or todo and name what is missing",
+    "the Java needs a library type that does not exist yet (the library tasks may not be merged): leave the class todo and name the type",
+    "you are about to touch a path that is not allowed, or to delete an existing injection or file (this task adds, it does not remove)",
+    "a rule in docs/codex.md conflicts with the task"
+  ],
+  "notes": "This is game-facing code in the Tinkers API crate (tconstruct/mixins/tconstruct/api/src) on PlutoLib's API only; content (blocks, items, menus, models, loot, tags, languages) is files under tconstruct/content. The API crate cannot be built in your environment (it needs the game launcher), so you cannot compile it: write small, careful changes in the style of station.rs and world.rs, check every PlutoLib call against pluto-lib/docs/api/*.md and the examples there, and use only calls that page documents. The owner builds and runs it on the PC (tools/codex_pc_check.py) and gives you the compiler errors or the probe log as a follow-up; fix exactly those. Wire each new behaviour into the game probe so the owner's run proves it: add its commands to the command list and its log line to EXPECTED in tools/smoke-local/probe_pluto_lib.py (the existing entries show the pattern; keep their order, add yours before the closing `pluto_probe check`), and print the line from your code with println!. Use the library (tconstruct/mixins/tconstruct/api/library) for every rule that is plain computation instead of rewriting it; if the library lacks a rule the Java has, stop and report. Do not remove or edit the existing legacy injections (source-*.rs, horizon-mixin.toml): they are removed later, after the owner has run the new code. No unit tests (the API crate cannot run them); the probe is the proof. In the inventory, set each class you ported to ported-unchecked with a note of one or two sentences: where the port is, which probe line proves it, what was left. End every inventory note you write with the task tag in square brackets, e.g. [TASKID]: that tag is how the task counts as done (a class left partial with the tag is final for this task)."
+}
