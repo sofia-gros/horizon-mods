@@ -2103,20 +2103,20 @@
       "note": "not yet compared with the port"
     },
     "recipe/alloying/AlloyRecipe.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::alloy::AlloyRecipe`: matches, can_perform, perform, conditions and `forge:conditional`; unit tests and all 24 of the original's recipes load (checked by test, not in game)"
     },
     "recipe/alloying/AlloyRecipeBuilder.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "not-code",
+      "note": "a data generator builder; the port reads the original's generated recipe files"
     },
     "recipe/alloying/IAlloyTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::alloy::AlloyTank` (the read and the mutable half together)"
     },
     "recipe/alloying/IMutableAlloyTank.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "ported",
+      "note": "library `smeltery::alloy::AlloyTank` (the read and the mutable half together)"
     },
     "recipe/casting/AbstractCastingRecipe.java": {
       "status": "todo",

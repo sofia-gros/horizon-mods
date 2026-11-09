@@ -292,3 +292,21 @@ fn every_original_tool_can_be_rebuilt_from_wood_and_from_iron() {
     }
     assert!(checked >= 45, "{checked} tools");
 }
+
+#[test]
+fn the_originals_alloy_recipes_all_load_and_the_ones_without_mod_gates_stay() {
+    let Some(root) = data_root() else { return };
+    let recipes = read_all(&root.join("../recipes/smeltery/alloys"));
+    assert_eq!(recipes.len(), 24);
+    let mut kept = Vec::new();
+    for (id, json) in &recipes {
+        match tconstruct_library::smeltery::alloy::AlloyRecipe::from_json(id.clone(), json, &EmptyContext) {
+            Ok(Some(recipe)) => kept.push(recipe.id.path().to_owned()),
+            Ok(None) => {}
+            Err(error) => panic!("{id}: {error}"),
+        }
+    }
+    // without mod integration, the recipes gated on a mod's ingot tag are skipped; those on vanilla fluids stay
+    assert!(kept.iter().any(|k| k.ends_with("molten_obsidian")), "{kept:?}");
+    assert!(kept.len() < recipes.len());
+}
