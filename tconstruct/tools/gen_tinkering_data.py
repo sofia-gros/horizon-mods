@@ -17,6 +17,7 @@ OUT = ROOT / 'tconstruct/mixins/tconstruct/api/src/tinkering_data.rs'
 SALVAGE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers/salvage'
 RECIPES = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers'
 ITEM_TAGS = ROOT / 'tconstruct/content/data/tconstruct/tags/item'
+FORGE_TAGS = ROOT / 'tconstruct/content/data/forge/tags/item'
 KINDS = ('materials/definition', 'materials/stats', 'materials/traits', 'tags/materials', 'modifiers', 'tags/modifiers', 'tool_definitions')
 
 
@@ -52,6 +53,20 @@ def main(argv):
             keep = {k: data[k] for k in ('type', 'result', 'level', 'inputs', 'input', 'needed_per_level', 'amount_per_item') if k in data}
             lines.append(f'    ("modifier_recipes", "tconstruct:{folder}/{path.stem}", r####"{json.dumps(keep, separators=(",", ":"), ensure_ascii=False)}"####),')
             count += 1
+    # the item tags the recipes name (forge:), with the tags they nest, so a station can tell what an ingredient accepts
+    wanted, seen = set(), set()
+    for line in lines:
+        wanted.update(t for t in __import__('re').findall(r'"tag":"(forge:[^"]+)"', line) if line.startswith('    ("modifier_recipes"'))
+    while wanted:
+        tag = wanted.pop()
+        seen.add(tag)
+        path = FORGE_TAGS / (tag.split(':', 1)[1] + '.json')
+        if not path.exists():
+            continue
+        data = json.dumps(json.loads(path.read_bytes().decode('utf-8')), separators=(',', ':'), ensure_ascii=False)
+        lines.append(f'    ("tags/forge_item", "{tag}", r####"{data}"####),')
+        count += 1
+        wanted.update(t[1:] for t in __import__('re').findall(r'"(#forge:[^"]+)"', data) if t[1:] not in seen)
     # the item tags the tool stats and modifiers name (the content owns them)
     for path in sorted((ITEM_TAGS / 'modifiable').rglob('*.json')) + [ITEM_TAGS / 'modifiable.json']:
         name = path.relative_to(ITEM_TAGS).with_suffix('').as_posix()

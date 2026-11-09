@@ -19,6 +19,7 @@ mod fluids_table;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     tools::register();
+    station::register();
     fluids::register();
     gadgets::register();
     shared::register();
