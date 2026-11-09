@@ -514,3 +514,99 @@ mod attribute_tests {
         assert_eq!(attribute_loader(raw)(json.as_object().unwrap()).err().as_deref(), Some("raw"));
     }
 }
+
+/// `ProtectionModule` (`tconstruct:protection`) in its flat form: armor protection of `flat + each_level x level` against the damage
+/// sources the `damage_source` predicate accepts. The `wearing_entity` and `attacker` predicates and the formula form need the
+/// entity predicates and variable loaders and stay raw data.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProtectionModule {
+    pub damage_source: Option<Value>,
+    pub amount: LevelingValue,
+    pub condition: Condition,
+}
+
+/// What the game tells about a damage source: whether it is in a damage type tag.
+pub trait DamageSourceContext {
+    fn in_tag(&self, tag: &str) -> bool;
+}
+
+impl ProtectionModule {
+    /// `getProtectionModifier`: `value` plus this module's protection when the tool and the damage source match.
+    pub fn apply(&self, tool: &dyn ToolContext, source: &dyn DamageSourceContext, entry: &ModifierEntry, value: f32) -> f32 {
+        if !self.condition.matches(tool, entry) {
+            return value;
+        }
+        let accepts = match &self.damage_source {
+            // Mantle's default is `can_protect`: the damage is not one that goes through armor and enchantments
+            None => can_protect(source),
+            Some(predicate) => predicate::test(predicate, &|kind, object| match kind {
+                "mantle:can_protect" => Ok(can_protect(source)),
+                "mantle:tag" => Ok(object.get("tag").and_then(Value::as_str).is_some_and(|tag| source.in_tag(tag))),
+                other => Err(format!("unsupported damage source predicate {other}")),
+            })
+            .unwrap_or(false),
+        };
+        if accepts { value + self.amount.compute(entry.level as f32) } else { value }
+    }
+}
+
+fn can_protect(source: &dyn DamageSourceContext) -> bool {
+    !source.in_tag("minecraft:bypasses_invulnerability") && !source.in_tag("minecraft:bypasses_enchantments")
+}
+
+impl ModifierModule for ProtectionModule {
+    fn kind(&self) -> &str {
+        "tconstruct:protection"
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/// The loader of `tconstruct:protection`.
+pub fn protection_loader() -> ModuleLoader {
+    Arc::new(|json| {
+        if json.contains_key("formula") || json.contains_key("wearing_entity") || json.contains_key("attacker") {
+            return Err(UNSUPPORTED.to_owned());
+        }
+        Ok(Arc::new(ProtectionModule { damage_source: json.get("damage_source").cloned(), amount: LevelingValue::from_json(json)?, condition: Condition::from_json(json)? }) as Arc<dyn ModifierModule>)
+    })
+}
+
+#[cfg(test)]
+mod protection_tests {
+    use super::*;
+
+    struct Anything;
+    impl ToolContext for Anything {
+        fn item_in_tag(&self, _: &str) -> bool {
+            true
+        }
+    }
+    struct Source(&'static [&'static str]);
+    impl DamageSourceContext for Source {
+        fn in_tag(&self, tag: &str) -> bool {
+            self.0.contains(&tag)
+        }
+    }
+
+    fn module() -> ProtectionModule {
+        let json = serde_json::json!({"type": "tconstruct:protection", "each_level": 3.0, "damage_source": {"type": "mantle:and", "predicates": ["mantle:can_protect", {"type": "mantle:tag", "tag": "tconstruct:protection/blast"}]}});
+        let module = protection_loader()(json.as_object().unwrap()).unwrap();
+        module.as_any().downcast_ref::<ProtectionModule>().unwrap().clone()
+    }
+
+    #[test]
+    fn protection_adds_by_level_for_the_sources_it_names() {
+        let entry = ModifierEntry { modifier: crate::modifiers::ModifierId::try_parse("tconstruct:blast_protection").unwrap(), level: 2 };
+        assert_eq!(module().apply(&Anything, &Source(&["tconstruct:protection/blast"]), &entry, 4.0), 10.0);
+        assert_eq!(module().apply(&Anything, &Source(&["minecraft:is_fire"]), &entry, 4.0), 4.0);
+        assert_eq!(module().apply(&Anything, &Source(&["tconstruct:protection/blast", "minecraft:bypasses_enchantments"]), &entry, 4.0), 4.0, "damage that bypasses enchantments cannot be protected against");
+    }
+
+    #[test]
+    fn the_entity_and_formula_forms_stay_raw() {
+        let json = serde_json::json!({"type": "tconstruct:protection", "attacker": "tconstruct:airborne", "flat": 2.5});
+        assert_eq!(protection_loader()(json.as_object().unwrap()).err().as_deref(), Some(UNSUPPORTED));
+    }
+}
