@@ -147,16 +147,16 @@
       "note": "not yet compared with the port"
     },
     "block/entity/controller/HeatingStructureBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the tick (four phases: find fuel, heat or cool the slots, alloy, burn fuel and show the active state; cooling when there is no fuel tank; the size setting the capacity, the slots and the fuel rate) is library `smeltery::heating::Heating::heat_tick` with five unit tests, over the library's melting, fuel, alloy and tank parts; the block entity, the structure check calls, the entity melting, the expansion check, the sync and the servants are not done"
     },
     "block/entity/controller/MelterBlockEntity.java": {
       "status": "todo",
       "note": "not yet compared with the port"
     },
     "block/entity/controller/SmelteryBlockEntity.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "the tick (four phases: find fuel, heat or cool the slots, alloy, burn fuel and show the active state; cooling when there is no fuel tank; the size setting the capacity, the slots and the fuel rate) is library `smeltery::heating::Heating::heat_tick` with five unit tests, over the library's melting, fuel, alloy and tank parts; the block entity, the structure check calls, the entity melting, the expansion check, the sync and the servants are not done"
     },
     "block/entity/FaucetBlockEntity.java": {
       "status": "todo",
