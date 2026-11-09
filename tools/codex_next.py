@@ -4,63 +4,55 @@
     python tools/codex_next.py          # the table of tasks and the one to do
     python tools/codex_next.py --id     # only the id (empty when nothing is left)
 
-A task is done when none of its inventory classes is `todo` on `origin/main`. The next task is the one in progress (a local branch `codex/<id>` that is
-not merged), else the lowest `order` whose dependencies are done. Nothing else may be started.
+A task is done when none of its inventory classes is `todo` in the checked-out tree, which is `main` when a run starts. The next task is the
+lowest `order` whose dependencies are done. Nothing else may be started. The previous task's pull request must be merged before the next run.
 """
 import json
-import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import codex_guard as guard  # noqa: E402
+ROOT = Path(__file__).resolve().parents[1]
+TASKS = ROOT / 'docs/codex/tasks'
 
-ROOT = guard.ROOT
+
+def class_done(entry, task_id):
+    """A class is done when it is no longer todo, and a class still partial counts only with the task's tag `[task-id]` in its note."""
+    status = entry.get('status')
+    if status == 'todo':
+        return False
+    if status == 'partial':
+        return f'[{task_id}]' in entry.get('note', '')
+    return True
 
 
 def tasks():
-    out = []
-    for path in sorted((ROOT / 'docs/codex/tasks').glob('*.json')):
-        out.append(json.loads(path.read_text(encoding='utf-8')))
+    out = [json.loads(p.read_text(encoding='utf-8')) for p in sorted(TASKS.glob('*.json'))]
     return sorted(out, key=lambda t: (t.get('order', 999), t['id']))
 
 
-def fetch():
-    subprocess.run(['git', 'fetch', '-q', 'origin'], cwd=ROOT, capture_output=True)
+def done_ids():
+    """The tasks none of whose classes is todo in the tree."""
+    done = set()
+    cache = {}
+    for t in tasks():
+        inv = t.get('inventory')
+        if not inv:
+            continue
+        data = cache.setdefault(inv['file'], json.loads((ROOT / inv['file']).read_text(encoding='utf-8')))
+        if all(class_done(data['classes'].get(c, {}), t['id']) for c in inv['classes']):
+            done.add(t['id'])
+    return done
 
 
-def open_branches(base='origin/main'):
-    rows = subprocess.run(['git', 'branch', '--list', 'codex/*', '--format=%(refname:short)'], cwd=ROOT, capture_output=True, text=True).stdout.split()
-    merged = subprocess.run(['git', 'branch', '--list', 'codex/*', '--merged', base, '--format=%(refname:short)'], cwd=ROOT, capture_output=True, text=True).stdout.split()
-    return [b[len('codex/'):] for b in rows if b not in merged]
-
-
-def choose(base='origin/main'):
-    fetch()
-    done = guard.merged_tasks(base)
-    in_progress = [t for t in open_branches(base) if t not in done]
-    table = []
-    nxt = None
+def choose():
+    done = done_ids()
+    table, nxt = [], None
     for t in tasks():
         waiting = [d for d in t.get('depends_on', []) if d not in done]
-        if t['id'] in done:
-            state = 'done'
-        elif t['id'] in in_progress:
-            state = 'IN PROGRESS'
-        elif waiting:
-            state = 'waits for ' + ', '.join(waiting)
-        else:
-            state = 'ready'
-        table.append((t.get('order', 0), t['id'], state, len(t['inventory']['classes'])))
-    for t in tasks():
-        if t['id'] in in_progress:
+        state = 'done' if t['id'] in done else ('waits for ' + ', '.join(waiting) if waiting else 'ready')
+        table.append((t.get('order', 0), t['id'], state, len(t['inventory']['classes']), t.get('kind', 'library')))
+        if nxt is None and state == 'ready':
             nxt = t['id']
-            break
-    if nxt is None:
-        for order, id_, state, _ in table:
-            if state == 'ready':
-                nxt = id_
-                break
     return table, nxt
 
 
@@ -69,8 +61,8 @@ def main():
     if '--id' in sys.argv:
         print(nxt or '')
         return 0 if nxt else 1
-    for order, id_, state, classes in table:
-        print(f'{order:3}  {id_:38} {classes:3} classes  {state}')
+    for order, id_, state, classes, kind in table:
+        print(f'{order:3}  {id_:40} {kind:8} {classes:3} classes  {state}')
     print()
     print(f'NEXT: {nxt}' if nxt else 'NEXT: nothing. Every task is done or waits for one that is not. Stop and write the final message; do not start other work.')
     return 0

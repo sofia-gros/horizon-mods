@@ -58,6 +58,8 @@ def matches(path, globs):
 BUILD_FILES = re.compile(r'(^|/)(Cargo\.toml|Cargo\.lock|rust-toolchain(\.toml)?|\.cargo/.*|build\.rs)$')
 PLACEHOLDERS = re.compile(r'\b(todo!|unimplemented!|dbg!)\s*\(|#!?\[allow\(|#\[ignore|println!\s*\(|eprintln!\s*\(')
 VACUOUS = re.compile(r'assert!\(\s*true\s*\)|assert_eq!\(\s*(\w+)\s*,\s*\1\s*\)|assert_ne!\(\s*(\w+)\s*,\s*\2\s*\)|assert!\(\s*!\s*false\s*\)')
+PRINTING = re.compile(r'\bprintln!\s*\(')
+PLACEHOLDERS_NO_PRINT = re.compile(r'\b(todo!|unimplemented!|dbg!)\s*\(|#!?\[allow\(|#\[ignore|eprintln!\s*\(')
 TEST_ATTR = re.compile(r'^\s*#\[test\]')
 ASSERTION = re.compile(r'\bassert(?:_eq|_ne)?!\(|\bpanic!\(|\.unwrap_err\(\)|\bassert_matches!\(')
 MAX_COMMENT_RATIO = 0.35
@@ -66,7 +68,7 @@ MAX_COMMENT_RATIO = 0.35
 def diff_lines(base):
     """{path: (added_lines, removed_lines)} of the text of the diff."""
     out, path = {}, None
-    for line in git('diff', '--no-renames', '-U0', f'{base}...HEAD').splitlines():
+    for line in git('diff', '--cached', '--no-renames', '-U0', base).splitlines():
         if line.startswith('+++ b/'):
             path = line[6:]
             out.setdefault(path, ([], []))
@@ -95,7 +97,8 @@ def text_violations(task, texts):
         if tests_here and asserts_here < tests_here:
             found.append(f'{path}: {tests_here} new tests but only {asserts_here} assertions; every test must assert something')
         for l in added:
-            if PLACEHOLDERS.search(l):
+            printing = PRINTING.search(l) and task.get('kind') == 'game' and path.startswith('tconstruct/mixins/tconstruct/api/src/')
+            if PLACEHOLDERS.search(l) and not (printing and not PLACEHOLDERS_NO_PRINT.search(l)):
                 found.append(f'{path}: placeholder or debugging code: {l.strip()[:80]}')
             if VACUOUS.search(l):
                 found.append(f'{path}: a test that cannot fail: {l.strip()[:80]}')
@@ -163,8 +166,10 @@ def violations(task, changes, inventory_before=None, inventory_after=None, texts
                     found.append(f'inventory: {name} marked ported; Codex may write at most ported-unchecked (the owner\'s agent checks in game)')
                 elif not entry.get('note'):
                     found.append(f'inventory: {name} needs a note')
-                elif entry['status'] in ('ported-unchecked', 'partial') and (len(entry['note']) < 40 or 'test' not in entry['note'].lower()):
-                    found.append(f'inventory: the note of {name} must say where the port is and what is tested (at least 40 characters, mention the test)')
+                elif entry['status'] in ('ported-unchecked', 'partial', 'not-code') and f'[{task["id"]}]' not in entry['note']:
+                    found.append(f'inventory: the note of {name} must end with the task tag [{task["id"]}]')
+                elif entry['status'] in ('ported-unchecked', 'partial') and (len(entry['note']) < 40 or not any(w in entry['note'].lower() for w in ('test', 'probe'))):
+                    found.append(f'inventory: the note of {name} must say where the port is and what is tested (at least 40 characters, mention the test or the probe line)')
                 elif entry['status'] not in ('ported-unchecked', 'partial', 'not-code', 'todo'):
                     found.append(f'inventory: {name} has the status {entry["status"]}; Codex may write ported-unchecked, partial, not-code or leave todo')
         for name in inventory_before['classes']:
@@ -179,9 +184,9 @@ def git(*args):
 
 def collect(base):
     changes = []
-    rows = git('diff', '--name-status', '--no-renames', f'{base}...HEAD').splitlines()
+    rows = git('diff', '--cached', '--name-status', '--no-renames', base).splitlines()
     numstat = {}
-    for line in git('diff', '--numstat', '--no-renames', f'{base}...HEAD').splitlines():
+    for line in git('diff', '--cached', '--numstat', '--no-renames', base).splitlines():
         added, removed, path = line.split('\t', 2)
         numstat[path] = (0 if added == '-' else int(added), 0 if removed == '-' else int(removed))
     for row in rows:
@@ -236,12 +241,22 @@ def lint():
                 for rel in task.get('java', []):
                     if not (java_root / rel).exists():
                         problems.append(f'{name}: java {rel} does not exist in the original\'s source')
-        if task.get('max_new_tests', 0) < 1:
-            problems.append(f'{name}: max_new_tests must be set (a number above 0)')
+        minimum = 0 if task.get('kind') == 'game' else 1
+        if task.get('max_new_tests', -1) < minimum:
+            problems.append(f'{name}: max_new_tests must be set (at least {minimum})')
     for line in problems:
         print(line)
     print(f'codex guard lint: {len(problems)} problem(s) in {len(ids)} task file(s)')
     return 1 if problems else 0
+
+
+def class_done(entry, task_id):
+    status = entry.get('status')
+    if status == 'todo':
+        return False
+    if status == 'partial':
+        return f'[{task_id}]' in entry.get('note', '')
+    return True
 
 
 def merged_tasks(base):
@@ -254,7 +269,7 @@ def merged_tasks(base):
             done.add(path.stem)
             continue
         data = json.loads(git('show', f'{base}:{inv["file"]}'))
-        if all(data['classes'].get(c, {}).get('status') != 'todo' for c in inv['classes']):
+        if all(class_done(data['classes'].get(c, {}), path.stem) for c in inv['classes']):
             done.add(path.stem)
     return done
 
@@ -262,7 +277,7 @@ def merged_tasks(base):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('task', nargs='?')
-    p.add_argument('--base', default='origin/main')
+    p.add_argument('--base', default=None, help='the commit the work started from (default: the one codex_start.py remembered, else origin/main)')
     p.add_argument('--lint', action='store_true')
     a = p.parse_args()
     if a.lint:
@@ -270,13 +285,16 @@ def main():
     if not a.task:
         p.error('a task id, or --lint')
     task = json.loads((ROOT / 'docs/codex/tasks' / f'{a.task}.json').read_text(encoding='utf-8'))
+    if a.base is None:
+        remembered = Path(git('rev-parse', '--absolute-git-dir').strip()) / 'codex-base'
+        a.base = remembered.read_text(encoding='utf-8').strip() if remembered.exists() else 'origin/main'
+    git('add', '-A')  # the work is read from the index, so uncommitted and untracked changes count
     before = after = None
     inv = task.get('inventory')
     if inv:
         before = json.loads(git('show', f'{a.base}:{inv["file"]}'))
         after = json.loads((ROOT / inv['file']).read_text(encoding='utf-8'))
-    branch = git('rev-parse', '--abbrev-ref', 'HEAD').strip()
-    found = violations(task, collect(a.base), before, after, diff_lines(a.base), merged_tasks(a.base), branch)
+    found = violations(task, collect(a.base), before, after, diff_lines(a.base), merged_tasks(a.base), None)
     for line in found:
         print(line)
     print(f'codex guard: {len(found)} problem(s)')
