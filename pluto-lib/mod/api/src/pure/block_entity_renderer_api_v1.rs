@@ -135,7 +135,7 @@ mod tests {
             r.canvas.translate([0.0, 0.25, 0.0]);
             r.canvas.cube([0.1, 0.0, 0.1], [0.9, level, 0.9], "test:block/liquid", 0xFFFFFF);
             r.canvas.pop();
-            r.canvas.item(&ItemSlot { item: Identifier::parse("minecraft:stick").unwrap(), count: 1 });
+            r.canvas.item(&ItemSlot::new(Identifier::parse("minecraft:stick").unwrap(), 1));
             r.canvas.keep();
         });
         assert!(BlockEntityRendererRegistry::has("test:tank"));

@@ -342,6 +342,17 @@ fn compound_to_tag(compound: &NbtCompound) -> Compound {
     compound.iter().map(|(key, nbt)| (key.as_str().into(), tag_from_nbt(nbt))).collect()
 }
 
+/// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
+fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
+    let data = read_stack(stack);
+    Some(ItemSlot { item: crate::pure::base::Identifier::parse(&stack.item).ok()?, count: data.count, damage: data.damage, max_damage: data.max_damage, custom_data: data.custom_data })
+}
+
+/// Writes an item slot's count, damage, max damage and custom data onto a stack of the same item.
+fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
+    write_stack(stack, &player_api::StackData { item: stack.item.to_string(), count: slot.count, damage: slot.damage, max_damage: slot.max_damage, custom_data: slot.custom_data.clone() });
+}
+
 /// Runs `f` on a block entity's data and item slots as PlutoLib's types and writes back what changed; a slot whose item is unchanged keeps
 /// its data and only takes the new count. True if `f` did something (its own answer).
 fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompound, &mut Vec<Option<ItemSlot>>) -> bool) -> bool {
@@ -350,7 +361,7 @@ fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompoun
     let original: Vec<Option<ItemStack>> = entity.items.clone();
     let mut items: Vec<Option<ItemSlot>> = original
         .iter()
-        .map(|slot| slot.as_ref().and_then(|s| Some(ItemSlot { item: crate::pure::base::Identifier::parse(&s.item).ok()?, count: s.count })))
+        .map(|slot| slot.as_ref().and_then(slot_of))
         .collect();
     let before_items = items.clone();
     let ran = f(&mut data, &mut items);
@@ -366,10 +377,14 @@ fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompoun
                     (None, _) => None,
                     (Some(slot), Some(old)) if old.item.as_ref() == slot.item.to_string() => {
                         let mut kept = old.clone();
-                        kept.count = slot.count;
+                        write_slot(&mut kept, slot);
                         Some(kept)
                     }
-                    (Some(slot), _) => Some(ItemStack::new(&slot.item.to_string(), slot.count)),
+                    (Some(slot), _) => {
+                        let mut made = ItemStack::new(&slot.item.to_string(), slot.count);
+                        write_slot(&mut made, slot);
+                        Some(made)
+                    }
                 })
                 .collect();
         }
@@ -733,7 +748,7 @@ impl Hooks for PlutoHooks {
     fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
         let (pos, button) = (event.pos, event.id);
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
-        let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(|s| Some(ItemSlot { item: crate::pure::base::Identifier::parse(&s.item).ok()?, count: s.count }));
+        let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(slot_of);
         let before = carried.clone();
         with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
         if carried != before {
@@ -749,7 +764,7 @@ impl Hooks for PlutoHooks {
     fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
         let Ok(item) = crate::pure::base::Identifier::parse(&event.stack.item) else { return Flow::Continue };
-        let mut moved = ItemSlot { item, count: event.stack.count };
+        let mut moved = ItemSlot::new(item, event.stack.count);
         let (pos, slot, container_slots) = (event.pos, event.slot, event.container_slots);
         let mut handled = false;
         with_block_entity(event.entity, |data, items| {

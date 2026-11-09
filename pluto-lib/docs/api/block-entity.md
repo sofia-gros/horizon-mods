@@ -334,14 +334,30 @@ assert!(BlockEntityTypeRegistry::get("example:found").is_some());
 
 ### `ItemSlot`
 
-One stack in an item slot, reduced to the item and the count. A slot whose item is unchanged keeps its data when only `count` is changed.
+One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). A slot whose item is unchanged keeps all its other data when only `count` is changed. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, Nbt};
+
+let mut part = ItemSlot::new(Identifier::new("example", "pick_head").unwrap(), 1);
+part.custom_data.insert("material".to_owned(), Nbt::String("example:flint".into()));
+part.max_damage = Some(60);
+assert_eq!(part.item.path(), "pick_head");
+assert_eq!((part.count, part.damage, part.max_damage), (1, 0, Some(60)));
+assert_eq!(part.custom_data["material"], Nbt::String("example:flint".into()));
+```
+
+### `ItemSlot::new`
+
+`fn new(item: Identifier, count: u32) -> ItemSlot`. A plain stack of `count` of `item`, with no damage, no max damage and no data.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
 
-let slot = ItemSlot { item: Identifier::new("minecraft", "coal").unwrap(), count: 8 };
+let slot = ItemSlot::new(Identifier::new("minecraft", "coal").unwrap(), 8);
 assert_eq!(slot.count, 8);
 assert_eq!(slot.item.path(), "coal");
+assert!(slot.custom_data.is_empty() && slot.max_damage.is_none());
 ```
 
 ### `FluidStack`
