@@ -64,6 +64,14 @@ python tools/smoke-local/player_food.py --game <built horizon-engine> --ctl <bui
 
 This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. Add `--server-reloads 2` to also require one initial server-data notification before player join and one after each of two actual `/reload` commands, without duplicates. Add `--tooltip` to exercise a real hovered inventory tooltip: replace a line, remove the advanced item id, retain a moved styled title, and append translated/legacy lines. It saves `tooltip.png`, which must also be inspected; callback logs alone do not prove rendering. It does not run the broad menu/plant probe.
 
+For client resource reads, use the same native probe build:
+
+```sh
+python tools/smoke-local/client_resources.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR --pack-override
+```
+
+This gate requires an initial notification before join and another after actual F3+T, decoded colormap/missing-resource checks, and clean lifecycle shutdown. The optional pack mode selects conflicting lower/higher packs, checks exact bytes and top-first non-premultiplied RGBA before/after editing the higher pack, and checks that an old image snapshot stays unchanged. Inspect its saved screenshots separately. It does not prove block-color-provider rendering, which is a different path.
+
 PlutoLib through the official launcher (the way players get mods):
 
 ```sh
