@@ -245,7 +245,7 @@ assert!(OneStone.is_air([1, 0, 0]));
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed.
+A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -280,6 +280,21 @@ assert_eq!(world.features[0].0, "example:big_shoot");
 ```
 
 > **Use with Caution.** `place_feature` delegates live placement to the active native catalog through PlutoLib's concrete level boundary, preserving the native level RNG and updates. Four real bone-meal fungus-growth cases have been checked. This call does not register new feature types, root placers or decorators, and does not connect a custom algorithm to natural generation. `MemoryBlockView` records requests; it does not generate terrain.
+
+### Explicit Update Flags
+
+`fn set_block_state_with_flags(&mut self, pos: BlockPos, state: &BlockState, flags: i32) -> bool`. Write with explicit Minecraft flags instead of the ordinary `set_block_state` flags=3. The live adapter forwards the value unchanged: 1 notifies neighbours, 2 clients, and 16 marks a known shape (skipping neighbour shape updates). For example, 19 is 1 | 2 | 16. Other engine flag bits remain the engine's contract; this method does not normalize the mask.
+
+```rust
+use pluto_lib::{BlockEditor, BlockState, MemoryBlockView};
+
+let mut world = MemoryBlockView::default();
+let root = BlockState::parse("minecraft:mangrove_roots").unwrap();
+assert!(world.set_block_state_with_flags([-3, 65, 8], &root, 1 | 2 | 16));
+assert_eq!(world.writes, vec![([-3, 65, 8], root, 19)]);
+```
+
+> **Use with Caution.** Real bone-meal feature placement checked shape notifications for masks 3/2 and suppression for 18/19; other flag effects are unverified. `MemoryBlockView` records exact flags but does not emulate the engine's update queues. Existing third-party editors keep a conservative default: flags=3 calls their existing setter; any other value returns false without a write, never silently substituting 3. Override the method to support additional masks. Writes may have side effects and do not form a rollback transaction.
 
 ### `TickContext`
 

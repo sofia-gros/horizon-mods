@@ -40,33 +40,56 @@ fn register_feature_probe() {
         }));
         return;
     }
-    if mode != "column" { return; }
-    assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:column").unwrap(), |config| {
+    let flags_mode = mode == "flags";
+    if mode != "column" && !flags_mode { return; }
+    if flags_mode {
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:diamond_block").unwrap())
+            .update_shape(|context| {
+                println!("PLUTO-PROBE flag_shape pos={:?}", context.pos);
+                None
+            }));
+    }
+    assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:column").unwrap(), move |config| {
         let height = config.get("height").and_then(serde_json::Value::as_u64)
             .filter(|height| (1..=8).contains(height)).ok_or_else(|| "probe height must be 1..=8".to_owned())?;
         let state = config.get("state").and_then(serde_json::Value::as_str)
             .and_then(|text| BlockState::parse(text).ok()).ok_or_else(|| "probe block state missing".to_owned())?;
         let nested = config.get("nested").and_then(serde_json::Value::as_str).map(str::to_owned);
+        let flags = match config.get("flags") {
+            Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok())
+                .ok_or_else(|| "probe flags must fit i32".to_owned())?,
+            None => 3,
+        };
         Ok(ConfiguredFeature::new(move |context| {
             if let Some(nested) = &nested { return context.world.place_feature(nested, context.origin); }
             let roll = context.world.random_int(7);
+            if flags_mode { println!("PLUTO-PROBE flags_begin flags={flags} origin={:?}", context.origin); }
             for dy in 0..height as i32 {
                 let Some(y) = context.origin[1].checked_add(dy) else { return false };
-                if !context.world.set_block_state([context.origin[0], y, context.origin[2]], &state) { return false; }
+                let pos = [context.origin[0], y, context.origin[2]];
+                let set = if flags_mode || flags != 3 { context.world.set_block_state_with_flags(pos, &state, flags) }
+                    else { context.world.set_block_state(pos, &state) };
+                if !set { return false; }
             }
-            println!("PLUTO-PROBE custom_feature origin={:?} height={height} rng_in_range={}", context.origin, (0..7).contains(&roll));
+            println!("PLUTO-PROBE custom_feature origin={:?} height={height} rng_in_range={} flags={flags}", context.origin, (0..7).contains(&roll));
             true
         }))
     }));
     BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
         .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true)
-        .on_bonemeal(|context| {
-            let name = match context.pos[0] {
+        .on_bonemeal(move |context| {
+            let name = if flags_mode { match context.pos[0] {
+                0 => "pluto_probe:flags_3",
+                6 => "pluto_probe:flags_2",
+                12 => "pluto_probe:flags_18",
+                18 => "pluto_probe:flags_19",
+                _ => return,
+            }} else { match context.pos[0] {
                 -2 => "pluto_probe:column_valid",
                 4 => "pluto_probe:column_bad",
                 10 => "pluto_probe:column_recursive",
                 _ => return,
-            };
+            }};
             let pos = [context.pos[0], context.pos[1] + 1, context.pos[2]];
             let placed = context.world.place_feature(name, pos);
             println!("PLUTO-PROBE feature_request name={name} placed={placed}");
