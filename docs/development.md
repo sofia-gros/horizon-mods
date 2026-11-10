@@ -92,6 +92,8 @@ For explicit block update masks, run the same feature harness with `--mode flags
 
 For explicit decorator dispatch, run `feature_registry.py` with `--mode decorator` against a full probe build including Tinkers. It invokes the registered Java leaf-vine adapter on one supplied anchor, checking all four attachment faces, five-block length, a blocked column, probability zero, invalid configuration before writes and unknown-block write failure after the anchor. Inspect all five images. This is not a generated Ender tree or native decorator dispatch.
 
+For the native tree/extra-decorator boundary, run `feature_registry.py --mode native_tree` against a matching full probe. It uses the active oak configuration plus the registered Java vine decorator, checks trunk/leaves/vines and final leaf distances, then verifies native edge-shape callbacks beside an extra tracked marker. A decorator error keeps earlier writes but skips finalization; a non-tree config must not write or invoke decorators. Nested feature/tree calls inside extra decorators must reject without writes. Inspect all three images; this is an oak-based boundary fixture, not Ender Tree parity.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

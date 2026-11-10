@@ -131,6 +131,36 @@ kind = "HEAD"
 helper = "pluto-block-may-place-on.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "ground", ty = "BlockStateId", value = "ground" }, { name = "ground_pos", ty = "BlockPos", value = "ground_pos" }, { name = "may", ty = "&mut Option<bool>", value = "&mut *may" }]
 
+# Shared editor below the client crate; no reverse world -> client dependency.
+[[module]]
+id = "pluto-block-access"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "pluto_block_access"
+source = "pluto-block-access.rs"
+visibility = "pub"
+
+# Native tree orchestration: callbacks stay before final distances/edge shapes.
+[[module]]
+id = "pluto-tree-placement"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "pluto_tree_placement"
+source = "pluto-tree-placement.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-tree-catalog"
+file = "crates/horizon-world/src/worldgen/live.rs"
+name = "pluto_tree_catalog"
+source = "pluto-tree-catalog.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-tree-level"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "pluto_tree_level"
+source = "pluto-tree-level.rs"
+visibility = "pub"
+
 # Live configured features: PlutoLib owns the native level boundary; no consumer injections.
 [[module]]
 id = "pluto-worldgen-level"

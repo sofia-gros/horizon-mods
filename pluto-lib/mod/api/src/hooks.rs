@@ -685,6 +685,16 @@ impl block_api_v1::BlockEditor for GameEditor<'_> {
     fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
         self.0.place_feature(feature, pos)
     }
+
+    fn place_tree(&mut self, configuration: &serde_json::Value, pos: [i32; 3], decorators: &[crate::pure::worldgen_api_v1::TreeDecorator]) -> bool {
+        self.0.place_tree(configuration, pos, &mut |world, logs, leaves, roots| {
+            let mut editor = GameEditor(world);
+            for decorator in decorators {
+                decorator.decorate(&mut crate::pure::worldgen_api_v1::TreeDecoratorContext { world: &mut editor, logs, leaves, roots })?;
+            }
+            Ok(())
+        })
+    }
 }
 
 fn direction(face: u8) -> block_api_v1::Direction {
