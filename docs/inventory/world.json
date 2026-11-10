@@ -20,7 +20,7 @@
     },
     "block/SlimeFungusBlock.java": {
       "status": "ported",
-      "note": "PlutoLib behaviour (trees.rs register_fungus). Checked in game with real bone meal clicks: a blood fungus grew a huge fungus (bloodshroom logs). Each ground has its own configured feature because Horizon's huge fungus takes one base block"
+      "note": "PlutoLib behaviour (trees.rs register_fungus). Current-pin concrete live-feature boundary checked by actual bone meal for Blood/Ichor fungi on Earth/Ichor dirt: stem and matching cap states, unchanged bases, four whole-fungus images inspected. Each ground has its own native configured feature. This is not custom-feature, Ender-tree or natural-generation parity."
     },
     "block/SlimeGrassBlock.java": {
       "status": "ported",

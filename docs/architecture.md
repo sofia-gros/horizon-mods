@@ -42,6 +42,14 @@ docs/                  roadmap, architecture, development, releasing, migration/
 .github/workflows/     CI (mixins.yml), per-product release workflows, weekly upstream drift
 ```
 
+## World generation boundaries
+
+`BlockEditor::place_feature` now passes through PlutoLib's concrete live-level adapter into the active native configured-feature catalog. Native code still owns the level RNG copy/write-back, updates and placement result. Four real bone-meal fungus cases check this boundary; they do not prove custom feature registration or natural generation.
+
+The next extension is a general feature-type/codec boundary, not an Ender-tree-specific hook. It must retain active configuration, original holder/provider identities, ordered root matching, native parent fallback, waterlogging and the supplied feature RNG. Root/decorator callbacks must run inside the feature's placement context, never by scanning completed chunks or retaining borrowed state in TLS. The Java root-selection and leaf-vine loops currently have pure tests only; no public root/decorator registry or game integration is claimed.
+
+The pinned Mixins accepts root decoding but still rejects generic root placement. Decoding a custom type into an approximate native tree would lose those semantics. Live placement and generation-worker registration must therefore be reviewed separately; a successful live adapter is not permission to replace natural-generation timing with chunk-load callbacks.
+
 ## Where the work is going
 
 [docs/roadmap.md](roadmap.md) is the plan: finish PlutoLib's modules in Fabric API order, move Tinkers' direct injections onto them (the lint baseline shrinks to zero), then re-absorb the open pull requests per [docs/migration/pr-classification.md](migration/pr-classification.md).
