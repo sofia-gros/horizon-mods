@@ -188,23 +188,23 @@
     },
     "TinkerStructures.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "Re-reviewed 2026-11-11: PlutoLib already registers explicit feature types and production Ender growth. Two direct structure-start/resume Mixins plan/apply, but start.rs reprinting corrupts 0. ..=1. into invalid 0...=1.; no upstream or unsafe-file exemption was changed. Alternative StructureState structure_start/build_starts/use_saved_start probes apply, parse and cargo-check horizon-world on the exact pin; original start.rs remains byte-identical. Custom structure registration, candidate selection/cache integration and runtime generation remain unimplemented. Parked pending that implementation, not a permanent missing-hook limitation."
     },
     "worldgen/islands/IslandPiece.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "Re-reviewed against Java 2026-11-11: one template piece ignores entities and structure blocks, handles vine/tree/grass markers, counts only successful trees up to three, and persists tree choice/count plus rotation/mirror. Existing frozen legacy code is not a validated PlutoLib port. A safe manager-side saved-start Mixin compiles on the pin; generic template/marker editing, serialized piece restoration and save/reload runtime remain unimplemented. Parked pending implementation, not because no extension path exists."
     },
     "worldgen/islands/IslandPlacement.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "Re-reviewed against Java 2026-11-11: SKY samples four rotated surface corners at chunk block 7, adds 60 + nextInt(50), clamps to generator depth minus 20; SEA uses max(sea level minus 7, 0). The Java piece's extra sea-water rejection is commented out and must not be enabled as an approximation. Manager-side context borrowing compiles; height/RNG exposure through a general PlutoLib structure context and live height fixtures remain unimplemented. Not a permanent native-API limit."
     },
     "worldgen/islands/IslandStructure.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "Re-reviewed against Java 2026-11-11: weighted template choice, rotation, placement height, chunk middle target, mirror and weighted tree choice occur in that order. Direct start.rs transformation has a measured float-range syntax failure; the manager-side explicit/natural/resume context probes apply, parse and cargo-check without touching start.rs. No registered structure algorithm or game island was executed. Weighted native selection, biome policy, starts cache and piece persistence must be preserved before dispatch is enabled; no post-chunk scan or extra per-mod injection."
     },
     "worldgen/trees/config/SlimeFungusConfig.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "PlutoLib now offers explicit FeatureTypeRegistry dispatch; absence of a native feature-type hook is no longer a sufficient parking reason. The live Blood/Ichor sapling path has four checked native huge-fungus fixtures, but the original island SlimeFungusConfig/SlimeFungusFeature algorithm and its generation-worker routing are not yet validated on PlutoLib. Frozen island helper code is not runtime evidence. Parked pending original-algorithm/worker re-review, not a permanent missing-extension limit."
     },
     "worldgen/trees/config/SlimeTreeConfig.java": {
       "status": "partial",
@@ -216,7 +216,7 @@
     },
     "worldgen/trees/feature/SlimeFungusFeature.java": {
       "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "note": "PlutoLib now offers explicit FeatureTypeRegistry dispatch; absence of a native feature-type hook is no longer a sufficient parking reason. The live Blood/Ichor sapling path has four checked native huge-fungus fixtures, but the original island SlimeFungusConfig/SlimeFungusFeature algorithm and its generation-worker routing are not yet validated on PlutoLib. Frozen island helper code is not runtime evidence. Parked pending original-algorithm/worker re-review, not a permanent missing-extension limit."
     },
     "worldgen/trees/feature/SlimeTreeFeature.java": {
       "status": "ported-unchecked",
