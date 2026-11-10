@@ -108,6 +108,8 @@ For real Ender sapling/leaf gameplay, use `feature_registry.py --mode propagules
 
 For explicit structures, run `structures.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR` against a matching full probe. Then run `structure_markers.py` with the same arguments and resources prepared from current content. The latter checks cross-chunk piece state, rotation/mirror, callback errors retaining earlier writes, invalid state before any piece writes, and the production IslandPiece markers on fixed-anchor End templates. Inspect every image. Existing runtime palettes omit the custom Ender slime fluid; neither gate proves full island parity, natural starts or saved-start reloads.
 
+For the production island planner, run `island_planner.py` with the same game/control/resource arguments. It requires the original unmodified structure settings and calls `/place structure tconstruct:end_slime_island` in the Overworld and the End, observes either original soil palette, saves two images and checks clean shutdown. Explicit native commands intentionally use `biome -> true`; this is not a natural-biome rejection test. Only unloaded destinations receive bounded waits/retries; placement errors are not hidden. Inspect both images; custom fluid, natural starts/cache and saved-start reloads remain outside this gate.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh
