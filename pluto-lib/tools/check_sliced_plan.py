@@ -32,6 +32,7 @@ GUARDS = {
                              native.terrain.check_source(w, native.terrain.metadata())),
     "cloud": lambda p, w: native.cloud.check(p, w),
     "station": lambda p, w: native.station.check(p, w),
+    "structures": lambda p, w: native.structure.check(p, w),
 }
 
 
@@ -41,6 +42,12 @@ def main(argv):
         return 2
     plan = json.loads(Path(argv[0]).read_text())
     names = [n for n in argv[2].split(",") if n]
+    kept_structure_boundary = any(entry.get('mod_id') == 'pluto_lib'
+                                  and entry.get('module_id', entry.get('injection_id', '')).startswith('pluto-structure-')
+                                  for entry in plan.get('modules', []) + plan.get('injections', []))
+    if kept_structure_boundary and 'structures' not in names:
+        print('kept structure adapters require the structures guard', file=sys.stderr)
+        return 2
     unknown = [n for n in names if n not in GUARDS]
     if unknown or not names:
         print(f"unknown or empty guard list: {unknown or names}", file=sys.stderr)

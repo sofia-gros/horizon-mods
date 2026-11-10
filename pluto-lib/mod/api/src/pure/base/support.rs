@@ -30,6 +30,12 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
+        api: "worldgen_api_v1::StructureTypeRegistry (natural generation, native-kind overrides, shared-resource source changes and custom piece/marker codecs)",
+        support: Support::Stub,
+        behaviour: "custom explicit placement/plain-template restoration adapters are under verification; natural starts, native-kind overrides and custom marker codecs remain unconnected; ambiguous shared-resource source snapshots reject",
+        unblocked_by: "verified native/game adapters preserving candidate weighting, biome policy, caching, template markers and saved-piece state",
+    },
+    SupportEntry {
         api: "worldgen_api_v1::RootPlacementTypeRegistry (ordinary native JSON and natural generation)",
         support: Support::Stub,
         behaviour: "explicit per-root callbacks bind holders/providers before placement; ordinary native root JSON/natural generation does not decode registered overrides",

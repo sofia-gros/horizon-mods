@@ -8,6 +8,8 @@ use std::sync::Mutex;
 // same editor contract without introducing a world -> client dependency.
 #[cfg(not(test))]
 pub use horizon_world::level::pluto_worldgen_level::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_structure_access as structures;
 
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]

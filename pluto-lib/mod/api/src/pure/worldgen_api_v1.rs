@@ -9,6 +9,10 @@ use super::base::Identifier;
 use super::block_api_v1::BlockEditor;
 use super::block_entity_api_v1::BlockPos;
 
+#[path = "structure_api.rs"]
+mod structures;
+pub use structures::{ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld};
+
 /// The supplied live placement world and origin. Random draws go through this world's
 /// BlockEditor, never a newly seeded generator. This borrowed context cannot be retained.
 pub struct FeatureContext<'a> {

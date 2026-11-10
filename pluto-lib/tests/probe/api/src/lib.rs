@@ -360,8 +360,11 @@ fn register_feature_probe() {
         }));
 }
 
+mod structures;
+
 pub fn hooks() -> Box<dyn Hooks> {
     register_feature_probe();
+    structures::register();
     pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
         if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
             static ONCE: AtomicBool = AtomicBool::new(false);

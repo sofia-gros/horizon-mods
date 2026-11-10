@@ -139,6 +139,52 @@ name = "pluto_block_access"
 source = "pluto-block-access.rs"
 visibility = "pub"
 
+# Structure planning transport and borrowed native queries; host dispatch and
+# template-piece placement remain unconnected until the complete adapter exists.
+[[module]]
+id = "pluto-structure-access"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "pluto_structure_access"
+source = "pluto-structure-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-context"
+file = "crates/horizon-world/src/worldgen/generator_structures.rs"
+name = "pluto_structure_context"
+source = "pluto-structure-context.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-piece"
+file = "crates/horizon-world/src/worldgen/structure.rs"
+name = "pluto_structure_piece"
+source = "pluto-structure-piece.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-sources"
+target = "horizon_world::worldgen::generator_structures::StructureState::new"
+kind = "HEAD"
+helper = "pluto-structure-sources.rs"
+bindings = [{ name = "data", ty = "&Arc<GeneratorData>", value = "data" }]
+
+[[injection]]
+id = "pluto-structure-start"
+target = "horizon_world::worldgen::generator_structures::StructureState::structure_start"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-start.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "&str", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }]
+
+[[injection]]
+id = "pluto-structure-saved-piece"
+target = "horizon_world::worldgen::generator_structures::StructureState::saved_pool_piece"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-saved-piece.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "piece", ty = "&crate::nbt::Tag", value = "piece" }]
+
 # Native tree orchestration: callbacks stay before final distances/edge shapes.
 [[module]]
 id = "pluto-tree-placement"

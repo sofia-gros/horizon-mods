@@ -170,7 +170,7 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 | 2026-11-10 | Owner requested Codex automatic code/security reviews OFF for this repository; saved and reload-confirmed. Other repos unchanged. | Prevent automatic PR review token use. |
 | 2026-11-10 | Nylium: ten variants pass decay, air/glass survival, occupied rejection and bone-meal plants/spread; 3 images inspected. Tint later fixed by #1117. | nylium-game3 PASS; exact RNG, slab parity, LAN/save-reload unverified. |
 | 2026-11-11 | #1130 merged: propagules; pure 62/docs 457/world 13, full build, 12 game gates, 43 inspected images; 121 inputs identical. | Two aim failures corrected; common menu passed unchanged retry. Islands/natural next. |
-| 2026-11-11 | Island seams re-reviewed: direct start transform fails range syntax; manager explicit/natural/resume probes apply, parse and cargo-check. | Original start.rs unchanged; no guard/exemption changes. Candidate attachment only, not island runtime. |
+| 2026-11-11 | Structures: pure65/docs468/world16, Python52/146/26 (9 skipped), native build and live placement pass. | 4 mods/130 matching inputs; common smoke + 11 structure cases; 13 images inspected. Saved starts, island pieces and natural starts pending. |
 | 2026-11-10 | Ender config merged: 11 game gates, 37 inspected images. | 8 cases/44 propagules; 119 identical inputs. Survival passed unchanged retry; superseded by #1130. |
 | 2026-11-10 | Ordered decoration merged: 10 game gates, 29 inspected images. | 118 identical inputs; superseded by Ender checks. |
 | 2026-11-10 | #1127 merged: roots; build + 9 game gates pass; 26 images inspected, 118 Rust inputs identical. | Selection/waterlogging/parent/errors checked; extra-root partial. |

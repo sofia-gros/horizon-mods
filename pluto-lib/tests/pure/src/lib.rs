@@ -10,6 +10,10 @@ pub use exports::*;
 #[path = "../../../mod/pluto-block-access.rs"]
 mod block_access_tests;
 
+#[cfg(test)]
+#[path = "../../../mod/pluto-structure-access.rs"]
+mod structure_access_tests;
+
 // Exercise the actual host-independent bridge bookkeeping, not a copied model.
 #[cfg(test)]
 #[path = "../../../mod/pluto-block.rs"]

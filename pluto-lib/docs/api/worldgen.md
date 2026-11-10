@@ -99,6 +99,22 @@ assert_eq!(roots.bindings().state_providers.len(), 1);
 
 > **Use with Caution.** The native build and five live root fixtures pass: first-match weighted providers, waterlogging, native muddy-root fallback, selected-provider no-state failure and invalid unselected bindings; all five images were inspected. This is not full Ender Tree parity. This is a per-position override, not a replacement for native root simulation. Ordinary native JSON/natural generation does not resolve registered custom root types. Descriptors use the pinned host's codec schema; older Java data needs schema conversion, not a silent reinterpretation. Holder/provider binding counts are limited to 256 each, with the native provider node budget. Memory editors report binding queries as unsupported; custom editors reject tree placement unless overridden. Nested feature/tree placement inside root callbacks is also rejected without writes until nested tracking exists. Successful earlier writes are never rolled back after a callback/provider error.
 
+## Structure Planning
+
+A registered `StructureType` codec decodes immutable settings into `ConfiguredStructure`. Its planner receives a borrowed `StructureContext` with the attempt's chunk, height/biome queries and existing random stream. It returns an owned `StructureStart` and piece descriptors; this phase does not write blocks. Keep the biome-check origin separate from individual template anchors and reject the biome before piece-building draws where the original algorithm requires that order.
+
+```rust
+use pluto_lib::{ConfiguredStructure, Identifier, StructureTypeRegistry};
+let id = Identifier::parse("example:disabled_structure").unwrap();
+assert!(StructureTypeRegistry::register(id.clone(), |value| {
+    if !value.is_null() { return Err("expected null settings".into()); }
+    Ok(ConfiguredStructure::new(|_| Ok(None)))
+}));
+assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is_some());
+```
+
+> **Use with Caution.** Explicit native structure placement and marker-free template piece decoding/placement pass the complete native facade build and eleven real-game cases (all images inspected): rotation/mirror geometry and stair properties, explicit air, rejected/error/invalid planners, pre-write piece validation, marker/entity rejection and preserved built-in placement. Saved-piece restoration is implemented but not yet exercised through persisted starts. Natural generation and custom piece/marker codecs are unconnected. Unknown registry types return `Ok(None)`; a decoded planner returning `Ok(None)` rejects its candidate, and errors remain errors, never native fallback. No registration or successful plan proves that an island or any other structure was generated. A non-cancellable constructor callback captures owned source data under a weak resource identity rather than reading source files or retaining borrowed contexts. Different source data sharing the same resource identity is ambiguous and custom placement rejects; existing owned snapshots are not overwritten. Shared-resource reload/concurrent-world parity is therefore not complete. Built-in native structure kinds are not overridden by this adapter; only registered custom types decoded by the host as unsupported are dispatched. It binds every piece before publishing a start. Native candidate weighting/cache policy for natural starts remains unfinished.
+
 ## Reference
 
 ### `FeatureContext`
@@ -385,4 +401,170 @@ use pluto_lib::{Identifier, RootPlacementTypeRegistry};
 let id = Identifier::parse("example:invalid_root_override").unwrap();
 RootPlacementTypeRegistry::register(id.clone(), |_| Err("invalid root settings".into()));
 assert_eq!(RootPlacementTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("invalid root settings"));
+```
+
+### `StructureWorld`
+
+Borrowed query/RNG interface for one structure attempt. These required methods have no guessed default implementation:
+
+| Method | Return and meaning |
+|---|---|
+| `top_of_chunk_center(&mut self, chunk: [i32; 2])` | `Result<Option<BlockPos>, String>`: native WORLD_SURFACE center; `None` when the column has no possible valid biome |
+| `is_valid_biome(&mut self, pos: BlockPos)` | `Result<bool, String>`: the attempt's native biome predicate at a block position; explicit placement retains its accept-all predicate |
+| `first_occupied_height(&mut self, x: i32, z: i32)` | `Result<i32, String>`: occupied WORLD_SURFACE_WG height, not first free Y |
+| `generation_depth(&self)` | `i32`: generator depth, not maximum build Y |
+| `sea_level(&self)` | `i32`: generator sea level |
+| `random_int(&mut self, bound: i32)` | `Result<i32, String>`: one draw from the existing structure RNG, for a positive bound |
+
+The following in-memory example supplies explicit answers, not a model of native terrain generation:
+
+```rust
+use pluto_lib::StructureWorld;
+struct Queries;
+impl StructureWorld for Queries {
+    fn top_of_chunk_center(&mut self, _: [i32; 2]) -> Result<Option<[i32; 3]>, String> { Ok(Some([8, 70, 8])) }
+    fn is_valid_biome(&mut self, _: [i32; 3]) -> Result<bool, String> { Ok(true) }
+    fn first_occupied_height(&mut self, _: i32, _: i32) -> Result<i32, String> { Ok(70) }
+    fn generation_depth(&self) -> i32 { 384 }
+    fn sea_level(&self) -> i32 { 63 }
+    fn random_int(&mut self, bound: i32) -> Result<i32, String> {
+        if bound == 5 { Ok(3) } else { Err("unexpected bound".into()) }
+    }
+}
+let mut world = Queries;
+assert_eq!(world.top_of_chunk_center([0, 0]), Ok(Some([8, 70, 8])));
+assert_eq!(world.is_valid_biome([8, 70, 8]), Ok(true));
+assert_eq!(world.first_occupied_height(7, 7), Ok(70));
+assert_eq!(world.generation_depth(), 384);
+assert_eq!(world.sea_level(), 63);
+assert_eq!(world.random_int(5), Ok(3));
+assert!(world.random_int(0).is_err());
+```
+
+> **Use with Caution.** Explicit native commands provide a real borrowed structure context; natural-start dispatch remains unconnected. Do not implement unavailable columns as height zero, replace a failed draw, reseed per method or retain borrowed contexts in globals/TLS.
+
+### `StructureContext`
+
+`StructureContext<'a> { world: &'a mut dyn StructureWorld, chunk: [i32; 2] }`. The `chunk` identifies the generation attempt, and `world` supplies that attempt's queries/randomness. There is deliberately no block-writing editor during planning.
+
+```rust
+use pluto_lib::{StructureContext, StructureWorld};
+struct Unavailable;
+impl StructureWorld for Unavailable {
+    fn top_of_chunk_center(&mut self, _: [i32; 2]) -> Result<Option<[i32; 3]>, String> { Err("unavailable".into()) }
+    fn is_valid_biome(&mut self, _: [i32; 3]) -> Result<bool, String> { Err("unavailable".into()) }
+    fn first_occupied_height(&mut self, _: i32, _: i32) -> Result<i32, String> { Err("unavailable".into()) }
+    fn generation_depth(&self) -> i32 { 384 }
+    fn sea_level(&self) -> i32 { 63 }
+    fn random_int(&mut self, _: i32) -> Result<i32, String> { Err("unavailable".into()) }
+}
+let mut world = Unavailable;
+let context = StructureContext { world: &mut world, chunk: [-2, 3] };
+assert_eq!(context.chunk, [-2, 3]);
+assert!(context.world.first_occupied_height(-25, 55).is_err());
+```
+
+### `StructurePiece`
+
+`StructurePiece { kind: Identifier, configuration: serde_json::Value }`. The owned `kind` selects a piece codec; `configuration` carries its settings and anchors, not host registry IDs. The native adapter under verification accepts only `pluto_lib:template_piece`, with exactly `template` (namespaced ID), `origin` (three i32 coordinates), `rotation` (`NONE`, `CLOCKWISE_90`, `CLOCKWISE_180`, `COUNTERCLOCKWISE_90`) and `mirror` (`NONE`, `LEFT_RIGHT`, `FRONT_BACK`). All four fields are required. Empty/missing templates, entities, structure markers, jigsaws, unsafe template paths and overflowing transformed bounds reject before start publication. Structure void blocks are ignored; native plain-template placement supplies flags 2. Custom piece codecs are not connected. Starts are bounded to 1–256 pieces; descriptors are limited to depth 128, 65,536 nodes and 1 MiB of strings, with encoded piece settings also capped at 1 MiB. Settings are saved with piece version 1 and decoded again on restore; saved bounds do not override recomputed bounds. The explicit placement subset passes eleven live cases; persistence, every possible rotation/mirror combination and all descriptor-budget boundaries have not been runtime-verified.
+
+```rust
+use pluto_lib::{Identifier, StructurePiece};
+let piece = StructurePiece {
+    kind: Identifier::parse("pluto_lib:template_piece").unwrap(),
+    configuration: serde_json::json!({"template":"example:house", "origin":[8,80,8], "rotation":"NONE", "mirror":"NONE"}),
+};
+assert_eq!(piece.clone().configuration["origin"], serde_json::json!([8,80,8]));
+```
+
+### `StructureStart`
+
+`StructureStart { position: BlockPos, pieces: Vec<StructurePiece> }`. `position` is the generation stub's biome-check origin. `pieces` are owned codec descriptors in the planner's order; template anchors may be elsewhere inside their configuration. This value is not a native cached start and does not write or save any blocks.
+
+```rust
+use pluto_lib::{Identifier, StructurePiece, StructureStart};
+let start = StructureStart { position: [8,70,8], pieces: vec![StructurePiece {
+    kind: Identifier::parse("example:template_piece").unwrap(),
+    configuration: serde_json::json!({"origin":[8,130,8]}),
+}] };
+assert_ne!(start.position[1], start.pieces[0].configuration["origin"][1].as_i64().unwrap() as i32);
+assert_eq!(start.clone(), start);
+```
+
+### `ConfiguredStructure`
+
+A cloneable decoded structure algorithm with owned immutable captures. Each invocation uses the caller's `StructureContext`; cloning does not duplicate a world/random stream or cache a native start.
+
+```rust
+use pluto_lib::ConfiguredStructure;
+let structure = ConfiguredStructure::new(|_| Ok(None));
+let _snapshot = structure.clone();
+```
+
+### `ConfiguredStructure::new`
+
+`fn new(plan: impl Fn(&mut StructureContext<'_>) -> Result<Option<StructureStart>, String> + Send + Sync + 'static) -> ConfiguredStructure`. Capture already-validated settings. `Ok(None)` rejects the current attempt; `Err` propagates a query/planning failure rather than requesting another implementation. The planner must not place blocks.
+
+```rust
+use pluto_lib::ConfiguredStructure;
+let enabled = false;
+let _structure = ConfiguredStructure::new(move |_| {
+    if !enabled { return Ok(None); }
+    Err("no enabled planner supplied".into())
+});
+```
+
+### `ConfiguredStructure::find_generation_point`
+
+`fn find_generation_point(&self, context: &mut StructureContext<'_>) -> Result<Option<StructureStart>, String>`. Execute the decoded planner, preserving its rejection or error. Direct execution is not natural generation, command dispatch, template placement or piece persistence.
+
+```rust
+use pluto_lib::{ConfiguredStructure, StructureContext, StructureWorld};
+struct EmptyColumn;
+impl StructureWorld for EmptyColumn {
+    fn top_of_chunk_center(&mut self, _: [i32; 2]) -> Result<Option<[i32; 3]>, String> { Ok(None) }
+    fn is_valid_biome(&mut self, _: [i32; 3]) -> Result<bool, String> { panic!("no candidate") }
+    fn first_occupied_height(&mut self, _: i32, _: i32) -> Result<i32, String> { panic!("no candidate") }
+    fn generation_depth(&self) -> i32 { 384 }
+    fn sea_level(&self) -> i32 { 63 }
+    fn random_int(&mut self, _: i32) -> Result<i32, String> { panic!("no candidate") }
+}
+let structure = ConfiguredStructure::new(|context| {
+    let Some(_position) = context.world.top_of_chunk_center(context.chunk)? else { return Ok(None); };
+    Err("unexpected candidate".into())
+});
+let mut world = EmptyColumn;
+assert_eq!(structure.find_generation_point(&mut StructureContext { world: &mut world, chunk: [0,0] }), Ok(None));
+```
+
+### `StructureTypeRegistry`
+
+Namespaced structure-type codecs. Registration is process-local; decoded snapshots retain their captures when a type is replaced. Codecs and replaced-capture destructors run outside registry locks. Explicit native placement is implemented under verification; natural generation remains unconnected. Registration does not verify either path.
+
+```rust
+use pluto_lib::{Identifier, StructureTypeRegistry};
+let id = Identifier::parse("example:unknown_structure").unwrap();
+assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is_none());
+```
+
+### `StructureTypeRegistry::register`
+
+`fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<ConfiguredStructure, String> + Send + Sync + 'static) -> bool`. Register or replace a decoder. False reports a poisoned registry lock. Validate settings before querying a world or consuming structure RNG.
+
+```rust
+use pluto_lib::{ConfiguredStructure, Identifier, StructureTypeRegistry};
+assert!(StructureTypeRegistry::register(Identifier::parse("example:empty_structure").unwrap(), |_| {
+    Ok(ConfiguredStructure::new(|_| Ok(None)))
+}));
+```
+
+### `StructureTypeRegistry::decode`
+
+`fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructure>, String>`. Unknown types return `Ok(None)`; registered types return their snapshot or a codec error. A registered error is never permission for native fallback. This method does not query or write a world.
+
+```rust
+use pluto_lib::{Identifier, StructureTypeRegistry};
+let id = Identifier::parse("example:bad_structure").unwrap();
+StructureTypeRegistry::register(id.clone(), |_| Err("bad template weights".into()));
+assert_eq!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("bad template weights"));
 ```

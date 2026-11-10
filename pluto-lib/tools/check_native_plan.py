@@ -29,6 +29,7 @@ matching = _load("check_crafting_match_plan")
 terrain = _load("check_terrain_binding_plan")
 cloud = _load("check_cloud_insertion_plan")
 station = _load("check_station_ingredient_plan")
+structure = _load("check_structure_plan")
 
 
 def check(plan, workspace):
@@ -52,6 +53,7 @@ def check(plan, workspace):
     terrain.check_source(Path(workspace), metadata)
     cloud.check(plan, Path(workspace))
     station.check(plan, Path(workspace))
+    structure.check(plan, Path(workspace))
 
 
 def main(argv=None):

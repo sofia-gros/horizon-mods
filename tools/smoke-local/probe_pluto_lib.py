@@ -11,6 +11,7 @@ HORIZON_LAUNCHER_HOME / HORIZON_HOME / XDG_* / TMP / CARGO_HOME if the defaults 
 import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, tomllib
 from pathlib import Path
 from native_build_report import require_report
+from native_preflight import check as check_native_preflight
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = ('PLUTO-PROBE break protected=true allowed=true', 'PLUTO-PROBE break_canceled pos=[28, 79, 31]', 'PLUTO-PROBE server_stopping dedicated=false', 'PLUTO-PROBE server_stopped dedicated=false', 'PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
@@ -64,7 +65,11 @@ p.add_argument('--work', type=Path, default=ROOT / '.local/pluto-probe')
 p.add_argument('--full', type=Path, metavar='PLUTO_INSTALLED',
                help='also build the whole sliced Tinkers (every injection the pinned Mixins accepts) with the legacy PlutoLib slice made from '
                     'this extracted legacy bundle folder (build.py leaves one at <work>/pluto-installed)')
-p.add_argument('--build-only', action='store_true', help='build the probe bundles and leave the binaries for a focused game harness')
+verification = p.add_mutually_exclusive_group()
+verification.add_argument('--build-only', action='store_true', help='build the probe bundles and leave the binaries for a focused game harness')
+verification.add_argument('--preflight-only', action='store_true', help='validate the exact installed composition without native compilation or launch')
+p.add_argument('--preflight-workspace', type=Path, default=ROOT / '.local/upstream/horizon', help='official checkout at the native Horizon pin for mandatory composition checks')
+p.add_argument('--mixins-cli', type=Path, default=ROOT / 'target/mixins-cli-build/release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins'), help='pinned Mixins CLI built by the guarded staging route')
 a = p.parse_args()
 
 if a.work.exists():
@@ -106,6 +111,18 @@ if a.full:
     for name in sorted(names & set((a.work / 'tokens.txt').read_text().split())):
         command += ['--keep-module-name', name]
     subprocess.run(command, check=True)
+preflight_log = a.work / 'native-preflight.log'
+with preflight_log.open('w', encoding='utf-8') as log:
+    try:
+        check_native_preflight(a.mixins_cli, a.preflight_workspace, bundles, a.work,
+                               config.get('pluto_guards', []) if a.full else [],
+                               pins['horizon_revision'], pins['mixins_revision'], log)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        print(f'Native preflight rejected: {error}', file=log)
+        sys.exit(f'PROBE FAIL (preflight, native build not started): see {preflight_log}')
+if a.preflight_only:
+    print(f'PROBE PREFLIGHT PASS (not built or launched): {preflight_log}')
+    sys.exit(0)
 build_log = a.work / 'native-build.log'
 with build_log.open('w') as log:
     build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code', '--profile', 'dev'],

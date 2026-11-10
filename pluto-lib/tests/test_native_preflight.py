@@ -33,9 +33,10 @@ class NativePreflightTests(unittest.TestCase):
              patch.object(MODULE.terrain, "check", side_effect=lambda p, m: calls.append(("terrain", p, m))), \
              patch.object(MODULE.terrain, "check_source", side_effect=lambda w, m: calls.append(("terrain-source", w, m))), \
              patch.object(MODULE.cloud, "check", side_effect=lambda p, w: calls.append(("cloud", p, w))), \
-             patch.object(MODULE.station, "check", side_effect=lambda p, w: calls.append(("station", p, w))):
+             patch.object(MODULE.station, "check", side_effect=lambda p, w: calls.append(("station", p, w))), \
+             patch.object(MODULE.structure, "check", side_effect=lambda p, w: calls.append(("structure", p, w))):
             MODULE.check(plan, "pristine")
-        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine"))])
+        self.assertEqual(calls, [("protection", plan), ("advancement", plan, Path("pristine")), ("order", plan, entries), ("source", plan, Path("pristine"), entries), ("payload", plan, metadata), ("payload-source", Path("pristine"), metadata), ("placement", plan, Path("pristine")), ("book", plan, metadata), ("book-source", Path("pristine"), metadata), ("wire-snapshot", plan, Path("pristine")), ("matching", plan, Path("pristine")), ("terrain", plan, metadata), ("terrain-source", Path("pristine"), metadata), ("cloud", plan, Path("pristine")), ("station", plan, Path("pristine")), ("structure", plan, Path("pristine"))])
 
     def test_advancement_failure_stops_before_equipment_application_checks(self):
         with patch.object(MODULE.protection, "check"), \
@@ -128,7 +129,7 @@ class NativePreflightTests(unittest.TestCase):
 
     def test_new_guard_failures_cannot_skip_through_to_success(self):
         from contextlib import ExitStack
-        for failing in (MODULE.cloud, MODULE.station):
+        for failing in (MODULE.cloud, MODULE.station, MODULE.structure):
             with self.subTest(guard=failing.__name__), ExitStack() as stack:
                 for module, name in [(MODULE.protection, "check"), (MODULE.advancement, "check"),
                                      (MODULE.equipment, "check_order"), (MODULE.equipment, "verify_source"),
@@ -137,10 +138,12 @@ class NativePreflightTests(unittest.TestCase):
                                      (MODULE.current_book, "check_source"), (MODULE.wire_snapshot, "check"),
                                      (MODULE.matching, "check"), (MODULE.terrain, "check"),
                                      (MODULE.terrain, "check_source"), (MODULE.cloud, "check"),
-                                     (MODULE.station, "check")]:
+                                     (MODULE.station, "check"), (MODULE.structure, "check")]:
                     stack.enter_context(patch.object(module, name))
                 stack.enter_context(patch.object(failing, "check", side_effect=ValueError("new boundary conflict")))
                 with self.assertRaisesRegex(ValueError, "new boundary conflict"):
                     MODULE.check({}, "pristine")
                 if failing is MODULE.cloud:
                     MODULE.station.check.assert_not_called()
+                if failing is not MODULE.structure:
+                    MODULE.structure.check.assert_not_called()

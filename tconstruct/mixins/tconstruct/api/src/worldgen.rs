@@ -8,6 +8,8 @@
 
 #[path = "source_tree.rs"]
 mod source_tree;
+#[path = "islands.rs"]
+mod islands;
 
 /// Grow the source-defined normal/tall Ender tree using only PlutoLib.
 pub fn grow_ender_tree(world: &mut dyn pluto_lib::BlockEditor, origin: [i32; 3], tall: bool) -> bool {
@@ -161,6 +163,7 @@ pub fn register() {
         }))
     }), "tree decorator registration failed");
     source_tree::register();
+    islands::register();
 }
 
 /// ExtraRootVariantPlacer.placeRoot: bind original holders/providers without
