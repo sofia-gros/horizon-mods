@@ -4,5 +4,5 @@
   "mixins_repository": "https://github.com/horizon-rust/horizon-mixins.git",
   "tconstruct_repository": "https://github.com/SlimeKnights/TinkersConstruct.git",
   "tconstruct_revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
-  "mixins_revision": "5a64af938ec86b00d53d16a408aabc0038fb3e57"
+  "mixins_revision": "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 }
