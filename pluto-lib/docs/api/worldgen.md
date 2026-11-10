@@ -2,7 +2,7 @@
 
 A feature type supplies a codec that validates data, then a generator that uses the supplied world and origin. This follows Minecraft/Fabric's registered `Feature` and `ConfiguredFeature` concepts. Rust closures capture the decoded settings; random draws use the supplied `BlockEditor` rather than a newly seeded RNG.
 
-> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs only through PlutoLib's live `BlockEditor::place_feature`. Registering a type is not evidence that those paths invoke it; see the support matrix. Root-placer and decorator registries are separate work.
+> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs only through PlutoLib's live `BlockEditor::place_feature`. Registering a type is not evidence that those paths invoke it; see the support matrix. Root placers remain separate work. Decorator codecs can be invoked explicitly by a mod's feature generator; native tree decoding and placement do not dispatch them.
 
 ## Basic Example
 
@@ -53,6 +53,27 @@ assert_eq!(FeatureTypeRegistry::generate(&kind, &serde_json::json!({"enabled": t
 ```
 
 > **Use with Caution.** This direct call exercises the registry, not a renderer, game world or generation worker. Live placement uses the current callback's world, updates and RNG. Recursive live custom-feature requests are bounded at 64; recursion bookkeeping is restored on unwind before rethrowing the original panic. Prior world writes are not rolled back. No borrowed world/context is retained in globals or TLS. Register during initialization, before placement begins. Callbacks execute without registry locks; replacement takes effect on subsequent lookups.
+
+## Tree Decorators
+
+Register a decorator codec, decode it before the tree writes anything, then invoke the returned `TreeDecorator` inside that tree's generation algorithm. Supply the same editor/RNG and the original ordered position lists. The registry neither discovers a canopy nor connects native tree generation automatically.
+
+```rust
+use pluto_lib::{Identifier, TreeDecorator, TreeDecoratorTypeRegistry};
+
+TreeDecoratorTypeRegistry::register(Identifier::parse("example:check_leaves").unwrap(), |value| {
+    if !value.is_null() { return Err("expected null".into()); }
+    Ok(TreeDecorator::new(|context| {
+        if context.leaves.is_empty() { return Err("no leaves".into()); }
+        Ok(())
+    }))
+});
+let decorator = TreeDecoratorTypeRegistry::decode(&Identifier::parse("example:check_leaves").unwrap(), &serde_json::Value::Null)
+    .unwrap().unwrap();
+let _snapshot = decorator.clone();
+```
+
+> **Use with Caution.** This is an explicit-call API. Native tree decoding/placement, placement-set tracking, leaf-distance/edge-shape finalization and natural-generation dispatch remain the generator/host adapter's responsibility. Failed decorators preserve prior writes; their error is not permission to fall back to a second algorithm. Position lists are not sorted or deduplicated here. An independent live feature fixture checked Tinkers' registered leaf-vine loop: vanilla/configured vine blocks, attachment faces, five-block limit, obstruction, zero probability, invalid configuration and write-error ownership; its five images were inspected. Tinkers' leaf-vine codec syntax-checks its block ID; block/property existence is resolved on write, unlike Java's registry-bound decode. Its full registry/parity integration is unfinished.
 
 ## Reference
 
@@ -140,4 +161,82 @@ let mut world = MemoryBlockView::default();
 let mut context = FeatureContext { world: &mut world, origin: [0, 64, 0] };
 let missing = Identifier::parse("example:not_registered").unwrap();
 assert_eq!(FeatureTypeRegistry::generate(&missing, &serde_json::Value::Null, &mut context), Ok(None));
+```
+
+### `TreeDecoratorContext`
+
+`TreeDecoratorContext<'a> { world: &'a mut dyn BlockEditor, logs: &'a [BlockPos], leaves: &'a [BlockPos], roots: &'a [BlockPos] }`. Borrowed tree positions and the generator's editor/RNG; the context cannot be retained by a decorator. The caller provides the required iteration order, including stable ordering of equal-height positions where its algorithm requires it.
+
+```rust
+use pluto_lib::{MemoryBlockView, TreeDecoratorContext};
+let mut world = MemoryBlockView::default();
+let context = TreeDecoratorContext { world: &mut world, logs: &[[0, 64, 0]], leaves: &[[0, 65, 0]], roots: &[] };
+assert_eq!(context.leaves[0], [0, 65, 0]);
+```
+
+### `TreeDecorator`
+
+An immutable decoded algorithm. Cloning shares its thread-safe captured settings, never a borrowed world. Decode every decorator before starting a tree's writes.
+
+```rust
+use pluto_lib::TreeDecorator;
+let decorator = TreeDecorator::new(|_| Ok(()));
+let _snapshot = decorator.clone();
+```
+
+### `TreeDecorator::new`
+
+`fn new(decorate: impl Fn(&mut TreeDecoratorContext<'_>) -> Result<(), String> + Send + Sync + 'static) -> TreeDecorator`. Capture validated settings. Return `Err` for failed reads/writes; no rollback or fallback is implied. Use explicit update flags when the algorithm needs them.
+
+```rust
+use pluto_lib::{BlockState, TreeDecorator};
+let marker = BlockState::parse("minecraft:stone").unwrap();
+let _decorator = TreeDecorator::new(move |context| {
+    for &pos in context.roots {
+        if !context.world.set_block_state_with_flags(pos, &marker, 19) {
+            return Err("root marker write failed".into());
+        }
+    }
+    Ok(())
+});
+```
+
+### `TreeDecorator::decorate`
+
+`fn decorate(&self, context: &mut TreeDecoratorContext<'_>) -> Result<(), String>`. Run against the supplied lists without decoding, registering or rearranging them. Successful prior writes remain after an error.
+
+```rust
+use pluto_lib::{MemoryBlockView, TreeDecorator, TreeDecoratorContext};
+let decorator = TreeDecorator::new(|_| Err("declined".into()));
+let mut world = MemoryBlockView::default();
+assert_eq!(decorator.decorate(&mut TreeDecoratorContext { world: &mut world, logs: &[], leaves: &[], roots: &[] }), Err("declined".into()));
+```
+
+### `TreeDecoratorTypeRegistry`
+
+Namespaced codec registry for explicit tree-generator calls. Later registration replaces the codec for that ID; already decoded decorators retain their previous algorithm. Callbacks and replaced capture destructors run outside registry locks.
+
+```rust
+use pluto_lib::{Identifier, TreeDecoratorTypeRegistry};
+assert!(TreeDecoratorTypeRegistry::decode(&Identifier::parse("example:missing_decorator").unwrap(), &serde_json::Value::Null).unwrap().is_none());
+```
+
+### `TreeDecoratorTypeRegistry::register`
+
+`fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<TreeDecorator, String> + Send + Sync + 'static) -> bool`. Register or replace a codec; false means the registry could not be written. Codecs validate configuration without any world access.
+
+```rust
+use pluto_lib::{Identifier, TreeDecorator, TreeDecoratorTypeRegistry};
+assert!(TreeDecoratorTypeRegistry::register(Identifier::parse("example:noop_decorator").unwrap(), |_| Ok(TreeDecorator::new(|_| Ok(())))));
+```
+
+### `TreeDecoratorTypeRegistry::decode`
+
+`fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<TreeDecorator>, String>`. Return `Ok(None)` for unknown types, a decoded decorator for registered valid configuration, or `Err` for a codec/registry failure. A registered type's error must not silently select another algorithm.
+
+```rust
+use pluto_lib::{Identifier, TreeDecoratorTypeRegistry};
+let id = Identifier::parse("example:invalid_decorator").unwrap();
+TreeDecoratorTypeRegistry::register(id.clone(), |_| Err("bad configuration".into()));
+assert_eq!(TreeDecoratorTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("bad configuration"));
 ```

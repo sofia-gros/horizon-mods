@@ -17,6 +17,7 @@ mod station;
 mod tool_data;
 mod tools;
 mod world;
+mod worldgen;
 mod fluids_table;
 
 pub fn hooks() -> pluto_lib::ModHooks {
@@ -36,6 +37,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world::register_crystal_chimes();
     trees::register();
     trees::register_fungus();
+    worldgen::register();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {

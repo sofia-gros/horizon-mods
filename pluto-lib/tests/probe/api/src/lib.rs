@@ -40,6 +40,32 @@ fn register_feature_probe() {
         }));
         return;
     }
+    if mode == "decorator" {
+        use pluto_lib::{TreeDecoratorContext, TreeDecoratorTypeRegistry};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:decorator_fixture").unwrap(), |configuration| {
+            let decorator = TreeDecoratorTypeRegistry::decode(&Identifier::parse("tconstruct:leave_vines").unwrap(), configuration)?
+                .ok_or_else(|| "Tinkers decorator is not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let leaf = [context.origin[0], context.origin[1] + 6, context.origin[2]];
+                if !context.world.set_block_state_with_flags(leaf, &BlockState::parse("minecraft:oak_leaves[persistent=true]").unwrap(), 19) { return false; }
+                let result = decorator.decorate(&mut TreeDecoratorContext { world: context.world, logs: &[], leaves: &[leaf], roots: &[] });
+                println!("PLUTO-PROBE decorator origin={:?} result={result:?}", context.origin);
+                result.is_ok()
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true)
+            .on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:decorator_full", 8 => "pluto_probe:decorator_obstructed",
+                    16 => "pluto_probe:decorator_zero", 24 => "pluto_probe:decorator_invalid",
+                    32 => "pluto_probe:decorator_write_fail", _ => return,
+                };
+                let placed = context.world.place_feature(name, [context.pos[0], context.pos[1] + 1, context.pos[2]]);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
     let flags_mode = mode == "flags";
     if mode != "column" && !flags_mode { return; }
     if flags_mode {

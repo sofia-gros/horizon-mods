@@ -2,8 +2,9 @@
 //!
 //! The caller retains the source order of root variants and leaves and supplies
 //! the feature's RNG, block/tag matching, provider sampling and world access.
+//! The registered leaf-vine decorator uses the caller's editor and flags=19.
 //! This core does not sample root providers, waterlog roots, run the parent
-//! mangrove algorithm, register features or prove native tree integration.
+//! mangrove algorithm or prove native tree integration.
 
 /// One ordered root predicate/provider pair. `Matches` may retain block IDs,
 /// tags or a parsed holder set; `Provider` may retain the original provider JSON.
@@ -108,10 +109,81 @@ pub fn decorate_vines<W: VineWorld>(
     Ok(())
 }
 
+/// Bind the Java loop to the supplied editor. Live resolution fills the vine's
+/// default properties before applying its one attachment property. A failed
+/// explicit-flags write is an error; earlier vines are not rolled back.
+struct EditorVines<'a> {
+    world: &'a mut dyn pluto_lib::BlockEditor,
+    vine: &'a pluto_lib::BlockState,
+}
+
+impl VineWorld for EditorVines<'_> {
+    type Error = String;
+    fn next_float(&mut self) -> f32 { self.world.random_float() }
+    fn is_air(&mut self, pos: [i32; 3]) -> Result<bool, String> {
+        self.world.block_state(pos).ok_or_else(|| format!("vine position unavailable: {pos:?}"))?;
+        Ok(self.world.is_air(pos))
+    }
+    fn place_vine(&mut self, pos: [i32; 3], face: HorizontalDirection) -> Result<(), String> {
+        let property = match face {
+            HorizontalDirection::North => "north", HorizontalDirection::East => "east",
+            HorizontalDirection::South => "south", HorizontalDirection::West => "west",
+        };
+        let state = self.vine.clone().with(property, "true");
+        if self.world.set_block_state_with_flags(pos, &state, 19) { Ok(()) }
+        else { Err(format!("vine write failed: {pos:?}")) }
+    }
+}
+
+/// Register the original custom decorator, not an approximation of the native
+/// fixed-vine decorator. Callers must supply the tree's ordered leaf list.
+pub fn register() {
+    use pluto_lib::{Identifier, BlockState, TreeDecorator, TreeDecoratorTypeRegistry};
+    assert!(TreeDecoratorTypeRegistry::register(Identifier::parse("tconstruct:leave_vines").expect("fixed id"), |configuration| {
+        let vine = configuration.get("vines").and_then(|v| v.as_str())
+            .and_then(|text| Identifier::parse(text).ok())
+            .ok_or_else(|| "vines must be a block identifier".to_owned())?;
+        let probability = configuration.get("probability").and_then(|v| v.as_f64()).map(|p| p as f32)
+            .filter(|p| p.is_finite() && (0.0..=1.0).contains(p))
+            .ok_or_else(|| "probability must be in 0..=1".to_owned())?;
+        let vine = BlockState { block: vine, properties: Default::default() };
+        Ok(TreeDecorator::new(move |context| {
+            decorate_vines(&mut EditorVines { world: context.world, vine: &vine }, context.leaves, probability)
+        }))
+    }), "tree decorator registration failed");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, VecDeque};
+
+    #[test]
+    fn registered_vines_validate_configuration_and_use_exact_flags_and_five_block_limit() {
+        use pluto_lib::{BlockState, Identifier, MemoryBlockView, TreeDecoratorContext, TreeDecoratorTypeRegistry};
+        register();
+        let id = Identifier::parse("tconstruct:leave_vines").unwrap();
+        for bad in [r#"{"vines":"minecraft:vine[north=true]","probability":1}"#, r#"{"vines":"minecraft:vine","probability":1.1}"#, r#"{"vines":"minecraft:vine"}"#] {
+            assert!(TreeDecoratorTypeRegistry::decode(&id, &bad.parse().unwrap()).is_err());
+        }
+        // Java Codec.FLOAT converts to float before its range check.
+        assert!(TreeDecoratorTypeRegistry::decode(&id, &r#"{"vines":"minecraft:vine","probability":1.000000001}"#.parse().unwrap()).is_ok());
+        let configuration = r#"{"vines":"minecraft:vine","probability":1}"#.parse().unwrap();
+        let decorator = TreeDecoratorTypeRegistry::decode(&id, &configuration).unwrap().unwrap();
+        let mut world = MemoryBlockView::default();
+        // Occupied north position: the next side (east) is the first write.
+        world.blocks.insert([0, 10, -1], BlockState::parse("minecraft:stone").unwrap());
+        decorator.decorate(&mut TreeDecoratorContext { world: &mut world, logs: &[], leaves: &[[0, 10, 0]], roots: &[] }).unwrap();
+        assert_eq!(world.writes.len(), 15);
+        assert_eq!(world.writes[0].0, [1, 10, 0]);
+        assert_eq!(world.writes[0].1.property("west"), Some("true"));
+        assert_eq!(world.writes[5].0, [0, 10, 1]);
+        assert_eq!(world.writes[5].1.property("north"), Some("true"));
+        assert_eq!(world.writes[10].0, [-1, 10, 0]);
+        assert_eq!(world.writes[10].1.property("east"), Some("true"));
+        assert!(world.writes.iter().all(|(_, state, flags)| *flags == 19 && state.properties.len() == 1));
+        assert!(!world.blocks.contains_key(&[1, 5, 0]));
+    }
 
     #[test]
     fn root_variants_keep_order_provider_identity_and_parent_fallback() {

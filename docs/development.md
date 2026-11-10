@@ -90,6 +90,8 @@ The column mode checks configuration, exact block properties, a negative origin,
 
 For explicit block update masks, run the same feature harness with `--mode flags`. It uses flags 3, 2, 18 and 19 through real bone-meal feature placement and observes a registered neighbour's shape-update callback. Masks with known-shape bit 16 must suppress those shape callbacks; 3 and 2 must notify. The memory test records flags but is not a substitute for this native effect check. Saved images need inspection.
 
+For explicit decorator dispatch, run `feature_registry.py` with `--mode decorator` against a full probe build including Tinkers. It invokes the registered Java leaf-vine adapter on one supplied anchor, checking all four attachment faces, five-block length, a blocked column, probability zero, invalid configuration before writes and unknown-block write failure after the anchor. Inspect all five images. This is not a generated Ender tree or native decorator dispatch.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh
