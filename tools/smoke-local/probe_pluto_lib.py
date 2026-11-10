@@ -8,8 +8,9 @@ HORIZON_LAUNCHER_HOME / HORIZON_HOME / XDG_* / TMP / CARGO_HOME if the defaults 
 
   probe_pluto_lib.py --launcher horizon-launcher.exe --resources RESOURCES [--work DIR]
 """
-import argparse, json, os, re, shutil, subprocess, sys, tempfile, time
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, tomllib
 from pathlib import Path
+from native_build_report import require_report
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = ('PLUTO-PROBE break protected=true allowed=true', 'PLUTO-PROBE break_canceled pos=[28, 79, 31]', 'PLUTO-PROBE server_stopping dedicated=false', 'PLUTO-PROBE server_stopped dedicated=false', 'PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
@@ -69,7 +70,15 @@ a = p.parse_args()
 if a.work.exists():
     shutil.rmtree(a.work)
 bundles, out = a.work / 'bundles', a.work / 'out'
-shutil.copytree(ROOT / 'pluto-lib/mod', bundles / 'pluto_lib')
+# Raw horizon-mixin.toml bundles do not pin Mixins in the official launcher.
+# Its native wrapper supplies the actual tool revision, not just the host pin.
+pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
+mod = tomllib.loads((ROOT / 'pluto-lib/mod/horizon-mixin.toml').read_text(encoding='utf-8'))['mod']
+shutil.copytree(ROOT / 'pluto-lib/mod', bundles / 'pluto_lib/mixins/pluto_lib')
+(bundles / 'pluto_lib/horizon-native.json').write_bytes((json.dumps({
+    'schema': 1, 'id': mod['id'], 'version': mod['version'], 'game': '26.3',
+    'horizon': pins['horizon_revision'], 'mixins': pins['mixins_revision'],
+}) + '\n').encode('utf-8'))
 shutil.copytree(ROOT / 'pluto-lib/tests/probe', bundles / 'pluto_probe')
 # Tinkers' PlutoLib-only part: its manifest header (no injections, so Mixins has nothing to apply) and its api crate
 tinkers = ROOT / 'tconstruct/mixins/tconstruct'
@@ -79,7 +88,6 @@ header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding=
 shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
 if a.full:
     EXPECTED += ("PLUTO-PROBE built max_damage=Some(60) materials=3", "tconstruct: break speed effective: original=3.5 now=2 on minecraft:stone", "tconstruct: attack damage original=", "tconstruct: break speed tier too low: minecraft:wood on minecraft:diamond_ore", "PLUTO-PROBE tool damage=1 max=Some(60)", "tconstruct: built tconstruct:sword of flint wood iron with max damage Some(98)", "tconstruct: crafted tconstruct:pickaxe from 3 parts", "Modifiers: sharpness x3, cultivated x3, pierce x1 | Slots left: abilities 1, upgrades 0", "tconstruct: a station would make tconstruct:pickaxe taking 3 slots", "tconstruct: materials set part 0 to iron: ", "tconstruct: materials refused: the tool has 3 parts", "tconstruct: slots add upgrades: ", "tconstruct: slots set upgrades: ", "tconstruct: durability set: 10 / ", "tconstruct: durability add: 15 / ", "tconstruct: durability add: 0 / ", "tconstruct: modifiers remove sharpness: ", "tconstruct: modifiers add sharpness: ", "tconstruct: upgrade refused: needs 9 of Tag", "tconstruct: upgrade refused: not enough upgrades slots: 0 left, 1 needed", "max damage Some(250), slots Some(Compound({\"abilities\": Int(1), \"upgrades\": Int(0)}))", "tconstruct: library linked, 25 tool stats, 23 material stat types", "tconstruct: library loaded, 83 materials, 329 modifiers, 45 tool definitions, 0 problems", "tconstruct: preview pickaxe wood: tconstruct:pickaxe: attack_damage=1, attack_speed=1.2, durability=60, mining_speed=2; modifiers cultivatedx3, piercex1; slots")
-    import json, tomllib
     config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
     shutil.rmtree(bundles / 'tconstruct')
     command = [sys.executable, str(ROOT / 'tools/slice_manifest.py'), '--tokens-out', str(a.work / 'tokens.txt'), '--out', str(bundles / 'tconstruct')]
@@ -104,6 +112,11 @@ with build_log.open('w') as log:
                            stdout=log, stderr=subprocess.STDOUT)
 if build.returncode != 0 or not (out / 'horizon-engine.exe').is_file() and not (out / 'horizon-engine').is_file():
     sys.exit(f'PROBE FAIL (build): see {build_log}')
+try:
+    require_report(out, pins['horizon_revision'], pins['mixins_revision'],
+                   {'pluto_lib', 'pluto_probe', 'tconstruct'} | ({'pluto_native_creative'} if a.full else set()))
+except (OSError, ValueError, KeyError, TypeError) as error:
+    sys.exit(f'PROBE FAIL (build report): {error}')
 if a.build_only:
     print(f'PROBE BUILD PASS: {out}')
     sys.exit(0)
