@@ -200,3 +200,6 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[path = "../../../mixins/tconstruct/source-dragonfall.rs"]
+mod source_dragonfall;
