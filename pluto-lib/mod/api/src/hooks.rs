@@ -32,6 +32,10 @@ pub fn hooks() -> Box<dyn Hooks> {
         code: horizon_client::lang::code,
         get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
     });
+    horizon_client::mesher::pluto_block_colors::set_provider(
+        crate::pure::color_provider_api_v1::has_block_provider,
+        crate::pure::color_provider_api_v1::block_color_from_host,
+    );
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
     horizon_client::entry::pluto_block::set_sink(block_sink());
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);

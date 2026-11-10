@@ -7,6 +7,7 @@ use pluto_lib::{AttachmentRegistry, CommandContext, ItemUse, ItemUseRegistry, Us
 /// `config/tconstruct-common.toml`, `[gameplay] shouldSpawnWithTinkersBook` (default true), as in the original mod.
 static SPAWN_WITH_BOOK: AtomicBool = AtomicBool::new(true);
 
+mod colors;
 mod fluids;
 mod gadgets;
 mod shared;
@@ -27,6 +28,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     shared::register_glow();
     shared::register_cheese();
     world::register();
+    colors::register();
     world::register_leaves();
     world::register_grass();
     world::register_seeds();
