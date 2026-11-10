@@ -614,9 +614,9 @@ impl block_api_v1::BlockView for GameView<'_> {
 }
 
 /// The game's view of the blocks around, with the right to change them.
-struct GameEditor<'a>(&'a mut dyn horizon_client::entry::pluto_block::LevelEdit);
+struct GameEditor<'a, T: horizon_client::entry::pluto_block::LevelEdit + ?Sized = dyn horizon_client::entry::pluto_block::LevelEdit + 'a>(&'a mut T);
 
-impl block_api_v1::BlockView for GameEditor<'_> {
+impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::BlockView for GameEditor<'_, T> {
     fn block_state(&self, pos: [i32; 3]) -> Option<BlockState> {
         self.0.state(pos).as_ref().and_then(to_state)
     }
@@ -661,7 +661,7 @@ impl block_api_v1::BlockView for GameEditor<'_> {
     }
 }
 
-impl block_api_v1::BlockEditor for GameEditor<'_> {
+impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::BlockEditor for GameEditor<'_, T> {
     fn set_block_state(&mut self, pos: [i32; 3], state: &BlockState) -> bool {
         self.set_block_state_with_flags(pos, state, 3)
     }
@@ -686,6 +686,21 @@ impl block_api_v1::BlockEditor for GameEditor<'_> {
         self.0.place_feature(feature, pos)
     }
 
+    fn place_tree_with_roots(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: &crate::pure::worldgen_api_v1::RootPlacement, decorators: &[crate::pure::worldgen_api_v1::TreeDecorator]) -> bool {
+        use horizon_client::entry::pluto_block::RootBindings;
+        let bindings = RootBindings { block_sets: roots.bindings().block_sets.clone(), state_providers: roots.bindings().state_providers.clone() };
+        self.0.place_tree_with_roots(configuration, pos, &bindings, &mut |world, pos| {
+            roots.place(&mut crate::pure::worldgen_api_v1::RootPlacementContext { world: &mut GameEditor(world), pos })
+                .map(|state| state.as_ref().map(to_info))
+        }, &mut |world, logs, leaves, root_positions| {
+            let mut editor = GameEditor(world);
+            for decorator in decorators {
+                decorator.decorate(&mut crate::pure::worldgen_api_v1::TreeDecoratorContext { world: &mut editor, logs, leaves, roots: root_positions })?;
+            }
+            Ok(())
+        })
+    }
+
     fn place_tree(&mut self, configuration: &serde_json::Value, pos: [i32; 3], decorators: &[crate::pure::worldgen_api_v1::TreeDecorator]) -> bool {
         self.0.place_tree(configuration, pos, &mut |world, logs, leaves, roots| {
             let mut editor = GameEditor(world);
@@ -694,6 +709,14 @@ impl block_api_v1::BlockEditor for GameEditor<'_> {
             }
             Ok(())
         })
+    }
+}
+
+impl<T: horizon_client::entry::pluto_block::RootEdit + ?Sized> crate::pure::worldgen_api_v1::RootPlacementWorld for GameEditor<'_, T> {
+    fn matches_block_set(&mut self, index: usize, pos: [i32; 3]) -> Result<bool, String> { self.0.matches_block_set(index, pos) }
+    fn sample_state_provider(&mut self, index: usize, pos: [i32; 3]) -> Result<BlockState, String> {
+        let state = self.0.sample_state_provider(index, pos)?;
+        to_state(&state).ok_or_else(|| "invalid sampled block identifier".to_owned())
     }
 }
 

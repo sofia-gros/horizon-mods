@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator', 'native_tree'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -76,11 +76,37 @@ def main():
                 ('native_tree_error', {'tree': oak, 'fail': True}),
                 ('native_tree_invalid', {'tree': {'type': 'minecraft:no_op', 'config': {}}, 'remove': False}),
             )
+        if args.mode == 'roots':
+            mangrove = json.loads(definitions['minecraft:mangrove'])
+            config = mangrove.get('config', mangrove)
+            config['decorators'] = []
+            config['root_placer']['trunk_offset_y'] = 1
+            placement = config['root_placer']['mangrove_root_placement']
+            placement['can_grow_through'] = ['minecraft:water', 'minecraft:mud', 'minecraft:mangrove_roots', 'minecraft:muddy_mangrove_roots']
+            placement['random_skew_chance'] = 0
+            config['trunk_placer'].update(base_height=4, height_rand_a=0, height_rand_b=0, place_branch_per_log_probability=0)
+            weighted = {'type': 'minecraft:weighted', 'entries': [
+                {'weight': 1, 'data': {'id': 'minecraft:oak_log', 'properties': {'axis': 'x'}}},
+                {'weight': 2, 'data': {'id': 'minecraft:birch_log', 'properties': {'axis': 'z'}}},
+            ]}
+            def simple(name, **properties):
+                return {'type': 'minecraft:simple', 'state': {'id': name, 'properties': properties}}
+            def variant(matches, provider):
+                return {'matches': matches, 'state_provider': provider}
+            diamond = simple('minecraft:diamond_block')
+            cases = {
+                'weighted': [variant(['minecraft:air'], weighted), variant(['minecraft:air'], diamond)],
+                'water': [variant(['minecraft:water'], simple('minecraft:mangrove_roots', waterlogged='false')), variant(['minecraft:water'], diamond)],
+                'parent': [variant(['minecraft:stone'], diamond)],
+                'no_state': [variant(['minecraft:air'], {'type': 'minecraft:rule_based', 'rules': []}), variant(['minecraft:air'], diamond)],
+                'invalid_binding': [variant(['minecraft:air'], weighted), variant(['minecraft:stone'], simple('pluto_probe:missing_root'))],
+            }
+            fixtures = tuple((f'roots_{case}', {'case': case, 'tree': mangrove, 'roots': {'root_variants': variants}}) for case, variants in cases.items())
         for name, config in fixtures:
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture'}.get(args.mode, 'pluto_probe:column')
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture'}.get(args.mode, 'pluto_probe:column')
             definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
@@ -118,9 +144,9 @@ def main():
     def text():
         return game_log.read_text(encoding='utf-8', errors='replace')
 
-    def fixture(x, ground, plant):
-        for command in (f'fill {x - 3} 99 -3 {x + 3} 99 4 minecraft:stone',
-                        f'fill {x - 3} 100 -3 {x + 3} 132 4 minecraft:air',
+    def fixture(x, ground, plant, radius=3, top=132):
+        for command in (f'fill {x - radius} 99 {-radius} {x + radius} 99 {radius + 1} minecraft:stone',
+                        f'fill {x - radius} 100 {-radius} {x + radius} {top} {radius + 1} minecraft:air',
                         f'setblock {x} 100 0 {ground}', f'setblock {x} 101 0 {plant}',
                         f'setblock {x} 102 3 minecraft:stone', f'tp @s {x + 0.5} 103 3.5'):
             ctl('command', command)
@@ -189,6 +215,37 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'roots':
+                import re
+                for x, case, success in ((0, 'weighted', True), (40, 'water', True), (80, 'parent', True), (120, 'no_state', False), (160, 'invalid_binding', False)):
+                    ctl('command', f'tp @s {x + 0.5} 150 15.5')
+                    ctl('wait', 40)
+                    fixture(x, 'minecraft:dirt', 'minecraft:dead_bush', radius=12, top=140)
+                    name = f'pluto_probe:roots_{case}'
+                    clicks = click_until(x, f'PLUTO-PROBE feature_request name={name} placed={str(success).lower()}')
+                    observed = text()
+                    match = re.search(r'PLUTO-PROBE root_case case=' + case + r' placed=(true|false) calls=(\d+) selected=(\d+) parent=(\d+) errors=(\d+) weighted_ok=(true|false) center=(\S+)', observed)
+                    if not match or (match.group(1) == 'true') != success:
+                        raise RuntimeError(f'root case observation missing: {case}; run={run}')
+                    calls, selected, parent, errors = map(int, match.group(2, 3, 4, 5))
+                    center = block(x, 101, 0)
+                    if case == 'weighted' and (selected == 0 or match.group(6) != 'true' or center.split('[', 1)[0] not in ('minecraft:oak_log', 'minecraft:birch_log')):
+                        raise RuntimeError(f'first weighted provider was not preserved: {center}; run={run}')
+                    if case == 'water' and (not center.startswith('minecraft:mangrove_roots[') or 'waterlogged=true' not in center):
+                        raise RuntimeError(f'custom root was not waterlogged: {center}; run={run}')
+                    if case == 'parent' and (selected != 0 or parent == 0 or not center.startswith('minecraft:muddy_mangrove_roots[')):
+                        raise RuntimeError(f'native muddy-root parent fallback missing: {center}; run={run}')
+                    if case == 'no_state' and (calls != 1 or errors != 1 or center != 'minecraft:air'):
+                        raise RuntimeError(f'selected-provider failure fell through: {center}; run={run}')
+                    if case == 'invalid_binding' and (calls != 0 or not center.startswith('minecraft:dead_bush')):
+                        raise RuntimeError(f'invalid unselected provider was not rejected before writes: {center}; run={run}')
+                    observations.append({'case': case, 'clicks': clicks, 'placed': success, 'calls': calls, 'selected': selected, 'parent': parent, 'errors': errors, 'center': center})
+                    photograph(x, f'roots-{case}.png', player_y=103, camera_z=20)
+                observed = text()
+                if 'PlutoLib: root binding failed:' not in observed or 'PlutoLib: tree placement failed:' not in observed:
+                    raise RuntimeError(f'root binding/provider failure diagnostics missing; run={run}')
+                if 'Horizon: feature pluto_probe:' in observed:
+                    raise RuntimeError(f'root failure reached native feature fallback; run={run}')
             elif args.mode == 'native_tree':
                 import re
                 for x, case, success in ((0, 'valid', True), (16, 'error', False), (32, 'invalid', False)):

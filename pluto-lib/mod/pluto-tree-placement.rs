@@ -18,20 +18,26 @@ pub struct Positions<'a> {
 /// The concrete live adapter invokes this entry; its oak fixture checks extra
 /// vines, final leaf distances, edge updates and callback failure ownership.
 /// Errors preserve earlier writes, just like native trees.
-pub fn place_with<W, R>(
-    tree: &TreeFeature,
-    world: &mut W,
-    random: &mut R,
-    origin: [i32; 3],
-    nested: &mut NestedPlacer<'_, W, R>,
+pub fn place_with<W: FeatureWorld + PlacementContext, R: RandomSource>(
+    tree: &TreeFeature, world: &mut W, random: &mut R, origin: [i32; 3], nested: &mut NestedPlacer<'_, W, R>,
     extra: impl FnOnce(&mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
-) -> TreeResult<bool, W::Error>
-where
-    W: FeatureWorld + PlacementContext,
-    R: RandomSource,
-{
+) -> TreeResult<bool, W::Error> {
+    place_with_root_override(tree, world, random, origin, nested, None, extra)
+}
+
+pub type RootOverride<'a, W, R> = dyn FnMut(&mut W, &mut R, [i32; 3], &mut Vec<[i32; 3]>) -> TreeResult<Option<BlockStateId>, <W as FeatureWorld>::Error> + 'a;
+
+pub fn place_with_root_override<W: FeatureWorld + PlacementContext, R: RandomSource>(
+    tree: &TreeFeature, world: &mut W, random: &mut R, origin: [i32; 3], nested: &mut NestedPlacer<'_, W, R>,
+    roots: Option<&mut RootOverride<'_, W, R>>,
+    extra: impl FnOnce(&mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
+) -> TreeResult<bool, W::Error> {
     let mut run = Run { world, random, sets: Sets::default(), track: true };
-    if !tree.do_place(&mut run, origin)? || (run.sets.trunks.is_empty() && run.sets.foliage.is_empty()) {
+    let placed = match roots {
+        Some(roots) => do_place_with_roots(tree, &mut run, origin, roots)?,
+        None => tree.do_place(&mut run, origin)?,
+    };
+    if !placed || (run.sets.trunks.is_empty() && run.sets.foliage.is_empty()) {
         return Ok(false);
     }
     let lists = decorator::Lists::new(
@@ -58,5 +64,58 @@ where
     let Some((low, high)) = bounds else { return Ok(false) };
     let shape = update_leaves(&mut run, &tree.blocks, low, high)?;
     update_shape_at_edge(run.world, &shape, low, 3)?;
+    Ok(true)
+}
+
+// Same native tree orchestration, with only RootPlacer.placeRoot overridden.
+// Native simulation, clipping, RNG order, trunk and foliage remain unchanged.
+fn do_place_with_roots<W: FeatureWorld + PlacementContext, R: RandomSource>(
+    tree: &TreeFeature, run: &mut Run<'_, W, R>, origin: [i32; 3], callback: &mut RootOverride<'_, W, R>,
+) -> TreeResult<bool, W::Error> {
+    let tree_height = tree.trunk_placer.tree_height(run.random)?;
+    let foliage_height = tree.foliage_placer.foliage_height(run.random, tree_height)?;
+    let trunk_height = tree_height.wrapping_sub(foliage_height);
+    let leaf_radius = tree.foliage_placer.foliage_radius(run.random, trunk_height)?;
+    let trunk_origin = match &tree.root_placer {
+        Some(root) => tb::offset(origin, 0, root.trunk_offset_y.sample(run.random)?, 0), None => origin,
+    };
+    let min_y = origin[1].min(trunk_origin[1]);
+    let max_y = origin[1].max(trunk_origin[1]).wrapping_add(tree_height).wrapping_add(1);
+    let world_min = run.world.min_y().map_err(FeatureExecutionError::Query)?;
+    let world_max = run.world.max_y().map_err(FeatureExecutionError::Query)?;
+    if min_y < world_min.wrapping_add(1) || max_y > world_max.wrapping_add(1) { return Ok(false) }
+    let clipped = tree.max_free_tree_height(run, tree_height, trunk_origin)?;
+    if clipped < tree_height && tree.min_clipped_height.is_none_or(|min| clipped < min) { return Ok(false) }
+    if let Some(root) = &tree.root_placer {
+        let mut column = origin;
+        while column[1] < trunk_origin[1] {
+            if !root.can_place_root(run, tree, column)? { return Ok(false) }
+            column[1] = column[1].wrapping_add(1);
+        }
+        let mut positions = vec![tb::offset(trunk_origin, 0, -1, 0)];
+        for direction in tb::HORIZONTAL {
+            let start = tb::relative(trunk_origin, direction, 1);
+            let mut branch = Vec::new();
+            if !root.simulate(run, tree, start, direction, trunk_origin, &mut branch, 0)? { return Ok(false) }
+            positions.extend(branch);
+            positions.push(start);
+        }
+        for pos in positions {
+            let mut written = Vec::new();
+            let replacement = callback(run.world, run.random, pos, &mut written)?;
+            for pos in written { run.sets.roots.insert(pos); }
+            match replacement {
+                Some(state) => {
+                    let state = RootPlacer::waterlogged(tree, run.world, pos, state)?;
+                    run.set(Layer::Root, pos, state)?;
+                }
+                None => root.place_root(run, tree, pos)?,
+            }
+        }
+    }
+    let attachments = tree.trunk_placer.place_trunk(run, tree, clipped, trunk_origin)?;
+    for attachment in attachments {
+        tree.foliage_placer.create_foliage(run, tree, clipped, attachment, foliage_height, leaf_radius)?;
+    }
     Ok(true)
 }

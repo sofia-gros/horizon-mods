@@ -1,6 +1,6 @@
 // Live native trees with borrowed, tracked decorator callbacks.
 use super::{Behaviours, LevelAccess, Ticks, feature_world::LevelFeatureWorld};
-use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, MAX_FEATURE_DEPTH};
+use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, RootBindings, RootEdit, RootCallback, MAX_FEATURE_DEPTH};
 use crate::registry::BlockStateId;
 use crate::worldgen::{feature_graph::{FeatureDefinition, FeatureExecutionError}, placement::PlacementQueryError};
 use crate::worldgen::live::pluto_tree_catalog;
@@ -13,6 +13,7 @@ struct TreeEditor<'a, 's, 'l, L: LevelAccess + ?Sized> {
     world: &'a mut LevelFeatureWorld<'s, 'l, L>,
     random: &'a mut LegacyRandom,
     written: &'a mut Vec<[i32; 3]>,
+    bound_roots: Option<&'a pluto_tree_catalog::BoundRoots>,
 }
 
 impl<L: LevelAccess + ?Sized> TreeEditor<'_, '_, '_, L> {
@@ -102,21 +103,50 @@ impl<L: LevelAccess + ?Sized> LevelEdit for TreeEditor<'_, '_, '_, L> {
     }
 }
 
+impl<L: LevelAccess + ?Sized> RootEdit for TreeEditor<'_, '_, '_, L> {
+    fn matches_block_set(&mut self, index: usize, pos: [i32; 3]) -> Result<bool, String> {
+        let set = self.bound_roots.and_then(|b| b.block_sets.get(index)).ok_or_else(|| "root block-set binding unavailable".to_owned())?;
+        if !self.world.sim.level.is_loaded(at(pos)) { return Err("root position not loaded".into()) }
+        Ok(set.contains(&self.world.sim.state(at(pos))))
+    }
+    fn sample_state_provider(&mut self, index: usize, pos: [i32; 3]) -> Result<StateInfo, String> {
+        let provider = self.bound_roots.and_then(|b| b.state_providers.get(index)).ok_or_else(|| "root provider binding unavailable".to_owned())?;
+        let state = provider.get_optional_state(self.world, self.random, pos).map_err(|e| e.to_string())?
+            .ok_or_else(|| "selected root provider produced no state".to_owned())?;
+        self.info(state).ok_or_else(|| "sampled root state unavailable".to_owned())
+    }
+}
+
 fn on_world<L: LevelAccess + ?Sized>(
     world: &mut LevelFeatureWorld<'_, '_, L>, random: &mut LegacyRandom,
-    configuration: &Value, pos: [i32; 3], decorate: &mut TreeCallback<'_>,
+    configuration: &Value, pos: [i32; 3], mut roots: Option<(&RootBindings, &mut RootCallback<'_>)>, decorate: &mut TreeCallback<'_>,
 ) -> bool {
     let tree = match pluto_tree_catalog::decode_tree(world.features, configuration) {
         Ok(tree) => tree,
         Err(error) => { eprintln!("PlutoLib: tree configuration failed: {error}"); return false }
     };
+    let bound = match roots.as_ref() {
+        Some((bindings, _)) => match pluto_tree_catalog::bind_roots(world.features, bindings) {
+            Ok(bound) => Some(bound),
+            Err(error) => { eprintln!("PlutoLib: root binding failed: {error}"); return false }
+        },
+        None => None,
+    };
+    let has_roots = roots.is_some();
     let blocks = pluto_tree_catalog::feature_blocks(world.features);
     let mut nested = |feature: &FeatureDefinition, world: &mut LevelFeatureWorld<'_, '_, L>, random: &mut LegacyRandom, pos| {
         feature.place(world, random, pos, blocks)
     };
-    let result = crate::worldgen::tree::pluto_tree_placement::place_with(&tree, world, random, pos, &mut nested,
+    let mut root_override = |world: &mut LevelFeatureWorld<'_, '_, L>, random: &mut LegacyRandom, pos, written: &mut Vec<[i32; 3]>| {
+        let mut editor = TreeEditor { world, random, written, bound_roots: bound.as_ref() };
+        let callback = &mut *roots.as_mut().expect("root callback exists").1;
+        let selected = callback(&mut editor, pos).map_err(|error| FeatureExecutionError::Query(PlacementQueryError::Failed(error)))?;
+        selected.map(|state| editor.resolve(&state).ok_or_else(|| FeatureExecutionError::Query(PlacementQueryError::Failed("root override state invalid".into())))).transpose()
+    };
+    let root_override: Option<&mut crate::worldgen::tree::pluto_tree_placement::RootOverride<'_, _, _>> = if has_roots { Some(&mut root_override) } else { None };
+    let result = crate::worldgen::tree::pluto_tree_placement::place_with_root_override(&tree, world, random, pos, &mut nested, root_override,
         |world, random, positions, written| {
-            let mut editor = TreeEditor { world, random, written };
+            let mut editor = TreeEditor { world, random, written, bound_roots: None };
             decorate(&mut editor, positions.logs, positions.leaves, positions.roots)
                 .map_err(|error| FeatureExecutionError::Query(PlacementQueryError::Failed(error)))
         });
@@ -132,11 +162,25 @@ pub fn place(
     behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
     configuration: &Value, pos: [i32; 3], depth: u8, decorate: &mut TreeCallback<'_>,
 ) -> bool {
+    place_bound(behaviours, level, ticks, configuration, pos, depth, None, decorate)
+}
+
+pub fn place_with_roots(
+    behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
+    configuration: &Value, pos: [i32; 3], depth: u8, bindings: &RootBindings, root: &mut RootCallback<'_>, decorate: &mut TreeCallback<'_>,
+) -> bool {
+    place_bound(behaviours, level, ticks, configuration, pos, depth, Some((bindings, root)), decorate)
+}
+
+fn place_bound(
+    behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
+    configuration: &Value, pos: [i32; 3], depth: u8, roots: Option<(&RootBindings, &mut RootCallback<'_>)>, decorate: &mut TreeCallback<'_>,
+) -> bool {
     if depth == 0 || depth > MAX_FEATURE_DEPTH { return false }
     let Some(features) = behaviours.live_features() else { return false };
     let mut sim = behaviours.sim(level, ticks);
     super::pluto_block_access::with_random(&mut sim, |sim| sim.random(), |sim, random| {
         let mut world = LevelFeatureWorld { sim, features, entities: Vec::new() };
-        on_world(&mut world, random, configuration, pos, decorate)
+        on_world(&mut world, random, configuration, pos, roots, decorate)
     })
 }

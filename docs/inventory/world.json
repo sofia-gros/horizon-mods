@@ -211,8 +211,8 @@
       "note": "the three configs of the sapling and island trees are constants in trees.rs; the island generation does not read them yet"
     },
     "worldgen/trees/ExtraRootVariantPlacer.java": {
-      "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "status": "partial",
+      "note": "Re-reviewed through PlutoLib modules: per-position root override and ordered holder/provider bindings passed the native build and five live fixtures (weighted selection, waterlogging, parent fallback, no-state error, invalid unselected binding); five images inspected. Java first-match selection samples only that provider; no match delegates to native parent, and errors never fall through. Native root simulation/offset and waterlogging/tracking stay in the host. Original Java JSON still needs host-schema conversion; full Ender Tree/data integration and parity remain unfinished. Not a permanent missing-hook limit."
     },
     "worldgen/trees/feature/SlimeFungusFeature.java": {
       "status": "parked",

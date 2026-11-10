@@ -138,6 +138,7 @@ impl VineWorld for EditorVines<'_> {
 /// Register the original custom decorator, not an approximation of the native
 /// fixed-vine decorator. Callers must supply the tree's ordered leaf list.
 pub fn register() {
+    register_roots();
     use pluto_lib::{Identifier, BlockState, TreeDecorator, TreeDecoratorTypeRegistry};
     assert!(TreeDecoratorTypeRegistry::register(Identifier::parse("tconstruct:leave_vines").expect("fixed id"), |configuration| {
         let vine = configuration.get("vines").and_then(|v| v.as_str())
@@ -151,6 +152,28 @@ pub fn register() {
             decorate_vines(&mut EditorVines { world: context.world, vine: &vine }, context.leaves, probability)
         }))
     }), "tree decorator registration failed");
+}
+
+/// ExtraRootVariantPlacer.placeRoot: bind original holders/providers without
+/// reducing them to a block map, then select first and sample only that provider.
+fn register_roots() {
+    use pluto_lib::{Identifier, RootPlacement, RootPlacementTypeRegistry, WorldgenBindings};
+    assert!(RootPlacementTypeRegistry::register(Identifier::parse("tconstruct:extra_root_variants").expect("fixed id"), |configuration| {
+        let entries = configuration.get("root_variants").and_then(|v| v.as_array())
+            .ok_or_else(|| "root_variants must be a list".to_owned())?;
+        let mut bindings = WorldgenBindings::default();
+        let mut variants = Vec::new();
+        for (index, entry) in entries.iter().enumerate() {
+            bindings.block_sets.push(entry.get("matches").cloned().ok_or_else(|| "root matches missing".to_owned())?);
+            bindings.state_providers.push(entry.get("state_provider").cloned().ok_or_else(|| "root provider missing".to_owned())?);
+            variants.push(RootVariant { matches: index, provider: index });
+        }
+        Ok(RootPlacement::new(bindings, move |context| {
+            let pos = context.pos;
+            let provider = select_root_variant(&variants, |index| context.world.matches_block_set(*index, pos))?;
+            provider.map(|index| context.world.sample_state_provider(*index, pos)).transpose()
+        }))
+    }), "root placement registration failed");
 }
 
 #[cfg(test)]

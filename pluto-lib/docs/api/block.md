@@ -322,7 +322,21 @@ assert!(!grow_with_marker(&mut world, &serde_json::Value::Null));
 assert!(world.writes.is_empty());
 ```
 
-> **Use with Caution.** A live oak fixture checked logs/leaves/vines, final leaf distances, tracked extra-write edge updates, callback failure ownership and invalid-config rejection; its three images were inspected. Extra decorators are appended, not interleaved with native decorators. Writes use the same native placement RNG and are tracked for native finalization; on an error earlier writes remain and finalization stops. The advanced RNG is written back even on unwind, then the original panic resumes. Existing custom editors and `MemoryBlockView` return false without writing or invoking decorators. Inside a live tree's extra callback, nested `place_feature` and `place_tree` return false without writing until nested write tracking is implemented. Natural generation, custom roots and automatic decoding of registered decorators inside native tree JSON remain unconnected.
+> **Use with Caution.** A live oak fixture checked logs/leaves/vines, final leaf distances, tracked extra-write edge updates, callback failure ownership and invalid-config rejection; its three images were inspected. Extra decorators are appended, not interleaved with native decorators. Writes use the same native placement RNG and are tracked for native finalization; on an error earlier writes remain and finalization stops. The advanced RNG is written back even on unwind, then the original panic resumes. Existing custom editors and `MemoryBlockView` return false without writing or invoking decorators. Inside a live tree's extra callback, nested `place_feature` and `place_tree` return false without writing until nested write tracking is implemented. Custom root overrides use the separate method below. Natural generation and automatic decoding of registered decorators inside native tree JSON remain unconnected.
+
+### Root Placement Overrides
+
+`fn place_tree_with_roots(&mut self, configuration: &serde_json::Value, pos: BlockPos, roots: &RootPlacement, decorators: &[TreeDecorator]) -> bool`. Like `place_tree`, but run a per-position override before native parent root placement. The base tree still selects its native root simulator/shape. Every holder/provider descriptor binds to the active registry before the tree writes anything. `Some(state)` is waterlogged and tracked as a root, `None` calls the native parent for that position, and `Err` stops without parent fallback or rollback. Extra decorators still run after native decorators and before finalization.
+
+```rust
+use pluto_lib::{BlockEditor, MemoryBlockView, RootPlacement, WorldgenBindings};
+let roots = RootPlacement::new(WorldgenBindings::default(), |_| panic!("unsupported editor must not call roots"));
+let mut world = MemoryBlockView::default();
+assert!(!world.place_tree_with_roots(&serde_json::Value::Null, [0, 64, 0], &roots, &[]));
+assert!(world.writes.is_empty());
+```
+
+> **Use with Caution.** Five live fixtures checked weighted first-match selection, waterlogging, native parent fallback, no-state provider errors and eager rejection of invalid unselected bindings; all five images were inspected. Custom/memory editors default to false without writes/callbacks. This method does not replace native root simulation, automatically decode custom root types inside native JSON, or connect natural generation. Nested tree/feature requests inside root callbacks are rejected until their writes can be merged into outer tracking. Provider failure must never select another provider or request parent placement. See [worldgen](worldgen.md) for binding descriptors and codecs.
 
 ### `TickContext`
 

@@ -57,6 +57,19 @@ mod tests {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct RootBindings {
+    pub block_sets: Vec<serde_json::Value>,
+    pub state_providers: Vec<serde_json::Value>,
+}
+
+pub trait RootEdit: LevelEdit {
+    fn matches_block_set(&mut self, index: usize, pos: [i32; 3]) -> Result<bool, String>;
+    fn sample_state_provider(&mut self, index: usize, pos: [i32; 3]) -> Result<StateInfo, String>;
+}
+
+pub type RootCallback<'a> = dyn FnMut(&mut dyn RootEdit, [i32; 3]) -> Result<Option<StateInfo>, String> + 'a;
+
 pub type TreeCallback<'a> = dyn FnMut(&mut dyn LevelEdit, &[[i32; 3]], &[[i32; 3]], &[[i32; 3]]) -> Result<(), String> + 'a;
 
 pub trait LevelEdit: LevelView {
@@ -70,4 +83,5 @@ pub trait LevelEdit: LevelView {
     /// Native tree followed by extra decorators, before native finalization.
     /// Unsupported editors fail without writing.
     fn place_tree(&mut self, _configuration: &serde_json::Value, _pos: [i32; 3], _decorate: &mut TreeCallback<'_>) -> bool { false }
+    fn place_tree_with_roots(&mut self, _configuration: &serde_json::Value, _pos: [i32; 3], _bindings: &RootBindings, _root: &mut RootCallback<'_>, _decorate: &mut TreeCallback<'_>) -> bool { false }
 }

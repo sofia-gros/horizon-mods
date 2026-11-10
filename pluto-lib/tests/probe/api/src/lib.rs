@@ -40,6 +40,64 @@ fn register_feature_probe() {
         }));
         return;
     }
+    if mode == "roots" {
+        use pluto_lib::{RootPlacement, RootPlacementTypeRegistry};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:root_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let case = configuration.get("case").and_then(|v| v.as_str()).ok_or_else(|| "root case missing".to_owned())?.to_owned();
+            let root = RootPlacementTypeRegistry::decode(&Identifier::parse("tconstruct:extra_root_variants").unwrap(), configuration.get("roots").ok_or_else(|| "roots missing".to_owned())?)?
+                .ok_or_else(|| "Tinkers root override not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let origin = context.origin;
+                let snapshot = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+                let capture = snapshot.clone();
+                let root = root.clone();
+                let traced = RootPlacement::new(root.bindings().clone(), move |context| {
+                    let answer = root.place(context);
+                    capture.lock().unwrap().push((context.pos, answer.clone()));
+                    answer
+                });
+                if case != "invalid_binding" {
+                    let initial = match case.as_str() { "water" => "minecraft:water", "parent" => "minecraft:mud", _ => "minecraft:air" };
+                    if !context.world.set_block_state_with_flags(origin, &BlockState::parse(initial).unwrap(), 19) { return false; }
+                }
+                let placed = context.world.place_tree_with_roots(&tree, origin, &traced, &[]);
+                let calls = snapshot.lock().unwrap();
+                let selected = calls.iter().filter(|(_, answer)| matches!(answer, Ok(Some(_)))).count();
+                let parent = calls.iter().filter(|(_, answer)| matches!(answer, Ok(None))).count();
+                let errors = calls.iter().filter(|(_, answer)| answer.is_err()).count();
+                let weighted_ok = calls.iter().all(|(_, answer)| match answer {
+                    Ok(Some(state)) => matches!(state.block.to_string().as_str(), "minecraft:oak_log" | "minecraft:birch_log"),
+                    Ok(None) => true, Err(_) => false,
+                });
+                let center = context.world.block_state(origin).map(|s| {
+                    let properties = s.properties.iter().map(|(k,v)| format!("{k}={v}")).collect::<Vec<_>>().join(",");
+                    format!("{}[{properties}]", s.block)
+                }).unwrap_or_else(|| "unavailable".into());
+                println!("PLUTO-PROBE root_case case={case} placed={placed} calls={} selected={selected} parent={parent} errors={errors} weighted_ok={weighted_ok} center={center}", calls.len());
+                let valid = match case.as_str() {
+                    "weighted" => placed && selected > 0 && errors == 0 && weighted_ok,
+                    "water" => placed && selected > 0 && errors == 0 && center.contains("minecraft:mangrove_roots[") && center.contains("waterlogged=true"),
+                    "parent" => placed && selected == 0 && parent > 0 && errors == 0 && center.contains("minecraft:muddy_mangrove_roots["),
+                    "no_state" => !placed && calls.len() == 1 && errors == 1 && center.starts_with("minecraft:air["),
+                    "invalid_binding" => !placed && calls.is_empty() && center.starts_with("minecraft:dead_bush["),
+                    _ => false,
+                };
+                assert!(valid, "root fixture observation failed: {case}");
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:roots_weighted", 40 => "pluto_probe:roots_water", 80 => "pluto_probe:roots_parent",
+                    120 => "pluto_probe:roots_no_state", 160 => "pluto_probe:roots_invalid_binding", _ => return,
+                };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
     if mode == "native_tree" {
         use pluto_lib::{TreeDecorator, TreeDecoratorTypeRegistry};
         BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:gold_block").unwrap()).update_shape(|context| {

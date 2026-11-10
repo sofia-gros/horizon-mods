@@ -30,6 +30,18 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
+        api: "worldgen_api_v1::RootPlacementTypeRegistry (ordinary native JSON and natural generation)",
+        support: Support::Stub,
+        behaviour: "explicit per-root callbacks bind holders/providers before placement; ordinary native root JSON/natural generation does not decode registered overrides",
+        unblocked_by: "registry-aware root codecs and generation-context integration without changing native simulation semantics",
+    },
+    SupportEntry {
+        api: "block_api_v1::BlockEditor::place_tree_with_roots / worldgen_api_v1::RootPlacementWorld (custom/memory editors and nested callback placement)",
+        support: Support::Stub,
+        behaviour: "unsupported tree editors reject without writes; unbound holder/provider queries return errors; nested callback feature/tree placement is rejected",
+        unblocked_by: "editor implementations with real registry bindings and nested placement tracking",
+    },
+    SupportEntry {
         api: "block_api_v1::BlockEditor::place_tree (custom/memory editors; nested tree-callback placement)",
         support: Support::Stub,
         behaviour: "default/custom-memory editors reject trees; live extra-decorator editors reject nested features/trees without writing",
