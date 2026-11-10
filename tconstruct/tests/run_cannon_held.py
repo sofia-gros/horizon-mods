@@ -8,7 +8,7 @@ from fixture_pluto_dependency import add_inventory_api, inventory_api_identity
 import os, pathlib, subprocess, tempfile, tomllib
 root = pathlib.Path(__file__).resolve().parents[1]
 host = pathlib.Path(os.environ["HORIZON_HOST"]).resolve()
-expected = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+expected = "1453e0e614af4b2d04dd0d228a94162b5d459910"
 actual = subprocess.check_output(["git", "-C", str(host), "rev-parse", "HEAD"], text=True).strip()
 dirty = subprocess.check_output(["git", "-C", str(host), "status", "--porcelain", "--untracked-files=no"], text=True)
 if actual != expected or dirty:

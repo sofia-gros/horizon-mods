@@ -1,5 +1,5 @@
 // Use the existing authoritative player break path for each source AOE block.
-fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std::ops::ControlFlow<Result<()>> {
+fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std::ops::ControlFlow<Result<bool>> {
     use horizon_world::nbt::Tag;
     use std::ops::ControlFlow::{Break, Continue};
     if game.remote.is_some() { return Continue(()); }
@@ -37,9 +37,9 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         _ => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_area_shape::plane(pos, face, game.yaw)) else { return Continue(()); }; Area::Box(positions.into_iter()) }
     };
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().insert(actor);
-    let result = (|| -> Result<()> {
-        game.break_block_as_player(pos)?;
-        if game.world.block(pos[0], pos[1], pos[2]) == state { return Ok(()); }
+    let result = (|| -> Result<bool> {
+        let removed = game.break_block_as_player(pos)?;
+        if !removed || game.world.block(pos[0], pos[1], pos[2]) == state { return Ok(removed); }
         let mut area = area;
         loop {
             // Stop before removing another block if the original tool has broken
@@ -63,7 +63,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
             if is_box && (!crate::game::tconstruct_source_area_shape::compatible_hardness(hardness, facts.hardness) || !effective(game, &facts.name)) { continue; }
             game.break_block_as_player(extra)?;
         }
-        Ok(())
+        Ok(removed)
     })();
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().remove(&actor);
     game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent_mut().remove(&actor);

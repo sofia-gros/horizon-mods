@@ -3,7 +3,7 @@ id = "pluto_tool_rules"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+horizon_revision = "1453e0e614af4b2d04dd0d228a94162b5d459910"
 [[module]]
 id = "api"
 file = "crates/horizon-items/src/items.rs"
@@ -18,7 +18,7 @@ helper = "speed.rs"
 bindings = [
   { name = "value", ty = "f32", value = "$value" },
   { name = "items", ty = "&Items", value = "self" },
-  { name = "held", ty = "Option<&ItemStack>", value = "held" },
+  { name = "held", ty = "Option<&ItemStack>", value = "$local:held:0" },
   { name = "block", ty = "&str", value = "block" },
 ]
 [[injection]]
@@ -29,6 +29,6 @@ helper = "drops.rs"
 bindings = [
   { name = "value", ty = "bool", value = "$value" },
   { name = "items", ty = "&Items", value = "self" },
-  { name = "held", ty = "Option<&ItemStack>", value = "held" },
+  { name = "held", ty = "Option<&ItemStack>", value = "$local:held:0" },
   { name = "block", ty = "&str", value = "block" },
 ]
