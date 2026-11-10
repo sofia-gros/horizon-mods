@@ -162,6 +162,9 @@ pub trait BlockView {
 pub struct MemoryBlockView {
     /// The blocks set so far.
     pub blocks: BTreeMap<BlockPos, BlockState>,
+    /// Successful writes in order: position, state and exact update flags. This records
+    /// requests only; MemoryBlockView does not simulate neighbour/client updates.
+    pub writes: Vec<(BlockPos, BlockState, i32)>,
     /// Positions that hold a block but not a sturdy one (a slab's top, glass).
     pub weak: BTreeSet<BlockPos>,
     /// The tags each position's block is in.
@@ -234,6 +237,13 @@ pub trait BlockEditor: BlockView {
     /// Sets the block at `pos` to `state` (Minecraft: `setBlock` with the flags that update neighbours and clients); false if it could
     /// not be set (not loaded, unknown block).
     fn set_block_state(&mut self, pos: BlockPos, state: &BlockState) -> bool;
+    /// Sets a block with explicit Minecraft update flags. The live adapter forwards
+    /// flags unchanged (1 neighbours, 2 clients, 16 known shape). Existing custom
+    /// editors support only flags=3 by default; others fail without writing rather
+    /// than silently changing update semantics. MemoryBlockView records the flags.
+    fn set_block_state_with_flags(&mut self, pos: BlockPos, state: &BlockState, flags: i32) -> bool {
+        flags == 3 && self.set_block_state(pos, state)
+    }
     /// Replaces the block at `pos` with air.
     fn remove_block(&mut self, pos: BlockPos) -> bool {
         match BlockState::parse("minecraft:air") {
@@ -255,6 +265,11 @@ pub trait BlockEditor: BlockView {
 
 impl BlockEditor for MemoryBlockView {
     fn set_block_state(&mut self, pos: BlockPos, state: &BlockState) -> bool {
+        self.set_block_state_with_flags(pos, state, 3)
+    }
+
+    fn set_block_state_with_flags(&mut self, pos: BlockPos, state: &BlockState, flags: i32) -> bool {
+        self.writes.push((pos, state.clone(), flags));
         if state.block.to_string() == "minecraft:air" {
             self.blocks.remove(&pos);
         } else {
@@ -626,6 +641,43 @@ mod tests {
 
     fn id(text: &str) -> Identifier {
         Identifier::parse(text).unwrap()
+    }
+
+    #[test]
+    fn explicit_write_flags_are_recorded_and_legacy_editors_reject_unsupported_flags() {
+        struct Legacy { writes: usize }
+        impl BlockView for Legacy {
+            fn block_state(&self, _: BlockPos) -> Option<BlockState> { unreachable!() }
+            fn is_air(&self, _: BlockPos) -> bool { unreachable!() }
+            fn is_face_sturdy(&self, _: BlockPos, _: Direction) -> bool { unreachable!() }
+            fn is_in_tag(&self, _: BlockPos, _: &str) -> bool { unreachable!() }
+            fn brightness(&self, _: BlockPos) -> u8 { unreachable!() }
+            fn light_passes_up(&self, _: BlockPos) -> bool { unreachable!() }
+            fn is_water(&self, _: BlockPos) -> bool { unreachable!() }
+            fn is_fluid_full(&self, _: BlockPos) -> bool { unreachable!() }
+            fn is_area_loaded(&self, _: BlockPos, _: i32) -> bool { unreachable!() }
+            fn is_full_block(&self, _: BlockPos) -> bool { unreachable!() }
+            fn build_height(&self) -> [i32; 2] { unreachable!() }
+        }
+        impl BlockEditor for Legacy {
+            fn set_block_state(&mut self, _: BlockPos, _: &BlockState) -> bool { self.writes += 1; true }
+            fn random_int(&mut self, _: i32) -> i32 { unreachable!() }
+            fn random_float(&mut self) -> f32 { unreachable!() }
+            fn schedule_tick(&mut self, _: BlockPos, _: &str, _: i32) -> bool { unreachable!() }
+            fn place_feature(&mut self, _: &str, _: BlockPos) -> bool { unreachable!() }
+        }
+        let state = BlockState::parse("minecraft:oak_log[axis=x]").unwrap();
+        let pos = [-4, 70, 9];
+        let mut legacy = Legacy { writes: 0 };
+        assert!(!legacy.set_block_state_with_flags(pos, &state, 18));
+        assert_eq!(legacy.writes, 0, "never silently substitute default flags");
+        assert!(legacy.set_block_state_with_flags(pos, &state, 3));
+        assert_eq!(legacy.writes, 1);
+        let mut memory = MemoryBlockView::default();
+        assert!(memory.set_block_state(pos, &state));
+        assert!(memory.set_block_state_with_flags(pos, &state, 18));
+        assert!(memory.set_block_state_with_flags(pos, &state, 19));
+        assert_eq!(memory.writes, vec![(pos, state.clone(), 3), (pos, state.clone(), 18), (pos, state, 19)]);
     }
 
     #[test]

@@ -88,6 +88,8 @@ python tools/smoke-local/feature_registry.py --game <built horizon-engine> --ctl
 
 The column mode checks configuration, exact block properties, a negative origin, RNG bounds, invalid-height rejection and bounded recursive placement. It clones prepared resources and detaches only the clone's `worldgen/features.json` before adding fixtures; the original bundle is byte-checked unchanged. Also run `--mode decline` and `--mode invalid`: the throwaway consumer registers the native fungus type and must prevent native growth after a false result or codec error. Inspect all three saved images, then use the ordinary fungus gate to check unregistered native fallback. These are live BlockEditor callbacks, not native-command, natural-generation or nested-native-graph coverage.
 
+For explicit block update masks, run the same feature harness with `--mode flags`. It uses flags 3, 2, 18 and 19 through real bone-meal feature placement and observes a registered neighbour's shape-update callback. Masks with known-shape bit 16 must suppress those shape callbacks; 3 and 2 must notify. The memory test records flags but is not a substitute for this native effect check. Saved images need inspection.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

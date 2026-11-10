@@ -663,7 +663,11 @@ impl block_api_v1::BlockView for GameEditor<'_> {
 
 impl block_api_v1::BlockEditor for GameEditor<'_> {
     fn set_block_state(&mut self, pos: [i32; 3], state: &BlockState) -> bool {
-        self.0.set_state(pos, &to_info(state), 3)
+        self.set_block_state_with_flags(pos, state, 3)
+    }
+
+    fn set_block_state_with_flags(&mut self, pos: [i32; 3], state: &BlockState, flags: i32) -> bool {
+        self.0.set_state(pos, &to_info(state), flags)
     }
 
     fn random_int(&mut self, bound: i32) -> i32 {

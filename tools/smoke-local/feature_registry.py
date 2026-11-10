@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode == 'column':
+    if args.mode in ('column', 'flags'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -53,11 +53,15 @@ def main():
         bundle = resources / 'worldgen/features.json'
         original_bytes = bundle.read_bytes()
         definitions = json.loads(original_bytes)
-        for name, config in (
+        fixtures = (
             ('column_valid', {'height': 3, 'state': 'minecraft:oak_log[axis=x]'}),
             ('column_bad', {'height': 0, 'state': 'minecraft:glass'}),
             ('column_recursive', {'height': 1, 'state': 'minecraft:glass', 'nested': 'pluto_probe:column_recursive'}),
-        ):
+        ) if args.mode == 'column' else tuple(
+            (f'flags_{flags}', {'height': 1, 'state': 'minecraft:stone', 'flags': flags})
+            for flags in (3, 2, 18, 19)
+        )
+        for name, config in fixtures:
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
@@ -169,6 +173,26 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'flags':
+                for x, flags in ((0, 3), (6, 2), (12, 18), (18, 19)):
+                    fixture(x, 'minecraft:stone', 'minecraft:dead_bush')
+                    ctl('setblock', x + 1, 102, 0, 'minecraft:diamond_block')
+                    ctl('wait', 20)
+                    name = f'pluto_probe:flags_{flags}'
+                    clicks = click_until(x, f'PLUTO-PROBE feature_request name={name} placed=true')
+                    ctl('wait', 10)
+                    if block(x, 102, 0) != 'minecraft:stone' or block(x + 1, 102, 0) != 'minecraft:diamond_block':
+                        raise RuntimeError(f'flagged write or observer state mismatch: {flags}; run={run}')
+                    begin = f'PLUTO-PROBE flags_begin flags={flags} origin=[{x}, 102, 0]'
+                    if text().count(begin) != 1:
+                        raise RuntimeError(f'expected one flagged generation: {flags}; run={run}')
+                    fragment = text().split(begin, 1)[1]
+                    callbacks = fragment.count(f'PLUTO-PROBE flag_shape pos=[{x + 1}, 102, 0]')
+                    known_shape = bool(flags & 16)
+                    if (known_shape and callbacks != 0) or (not known_shape and callbacks == 0):
+                        raise RuntimeError(f'wrong neighbour shape notification for flags={flags}: {callbacks}; run={run}')
+                    observations.append({'flags': flags, 'clicks': clicks, 'shape_callbacks': callbacks})
+                    photograph(x, f'flags-{flags}.png')
             else:
                 fixture(0, 'tconstruct:ichor_slime_dirt', 'tconstruct:blood_slime_sapling')
                 marker = 'PLUTO-PROBE native_feature declined' if args.mode == 'decline' else 'probe deliberately invalid native feature configuration'

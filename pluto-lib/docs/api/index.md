@@ -49,7 +49,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | pack-aware client asset bytes/PNG pixels, initial and refreshed client handles, separate server-data reload listeners |
 | [items](items.md) | edit existing tooltip entries without flattening rich text, append simple/translated lines, use items over time |
-| [block](block.md) | block behaviour and live native configured-feature placement; not custom root/decorator registration |
+| [block](block.md) | block behaviour, explicit write flags (live shape notifications checked), live native feature placement; not custom root/decorator registration |
 | [worldgen](worldgen.md) | feature types/codecs, verified live BlockEditor generation; native command/natural/nested-native paths unconnected |
 | [color](color.md) | block tint registration/direct lookup; verified world-chunk base-face dispatch/native fallback, other rendering paths unconnected |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients and menu data slots) |
