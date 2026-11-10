@@ -72,6 +72,14 @@ python tools/smoke-local/client_resources.py --game <built horizon-engine> --ctl
 
 This gate requires an initial notification before join and another after actual F3+T, decoded colormap/missing-resource checks, and clean lifecycle shutdown. The optional pack mode selects conflicting lower/higher packs, checks exact bytes and top-first non-premultiplied RGBA before/after editing the higher pack, and checks that an old image snapshot stays unchanged. Inspect its saved screenshots separately. It does not prove block-color-provider rendering, which is a different path.
 
+For the existing world-domain nylium consumer, use a matching native probe build:
+
+```sh
+python tools/smoke-local/nylium.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
+```
+
+It checks ten ichor/blood × soil variants: covered decay to the correct dirt, air/glass survival, occupied-above bone-meal rejection, then actual bone-meal clicks producing matching plants and nearby nylium. Random-tick changes are restored and stochastic growth has bounded retries. Saved screenshots need inspection. Slab results are observations, not a claim of Java light-engine parity; rare outcomes, exact RNG, LAN and save/reload remain separate checks.
+
 PlutoLib through the official launcher (the way players get mods):
 
 ```sh
