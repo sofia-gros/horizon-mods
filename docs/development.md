@@ -46,7 +46,7 @@ A mod that uses only PlutoLib, in a running game (builds PlutoLib and a throwawa
 python tools/smoke-local/probe_pluto_lib.py --launcher <horizon-launcher> --resources RESOURCES_DIR
 ```
 
-With `--full <extracted legacy PlutoLib folder>` the probe also builds the whole sliced Tinkers (about 7 minutes with the launcher's `dev` profile; without it the probe takes about 2).
+With `--full <extracted legacy PlutoLib folder>` the probe also builds the whole sliced Tinkers (about 7 minutes with the launcher's `dev` profile; without it the probe takes about 2). The probe supplies the Mixins pin through a native bundle wrapper and checks the output's `native-mods.json` for both exact revisions, all required mods and `left_out=[]` before accepting a build. A raw Mixin folder alone lets the launcher select its own Mixins revision.
 
 The probe checks that a protected real block stays, a neighboring allowed block breaks, and only the vetoed attempt reports one `CANCELED` notification. It also requires exactly one starting, stopping and stopped notification in order, after a clean integrated-server shutdown. To check the dedicated-server path separately, use an already accepted EULA file (the harness never accepts one for you):
 
@@ -63,6 +63,22 @@ python tools/smoke-local/player_food.py --game <built horizon-engine> --ctl <bui
 ```
 
 This checks actual food/saturation changes, preserved exhaustion, invalid-input and unavailable-player rejection, then clean lifecycle shutdown. Add `--server-reloads 2` to also require one initial server-data notification before player join and one after each of two actual `/reload` commands, without duplicates. Add `--tooltip` to exercise a real hovered inventory tooltip: replace a line, remove the advanced item id, retain a moved styled title, and append translated/legacy lines. It saves `tooltip.png`, which must also be inspected; callback logs alone do not prove rendering. It does not run the broad menu/plant probe.
+
+For client resource reads, use the same native probe build:
+
+```sh
+python tools/smoke-local/client_resources.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR --pack-override
+```
+
+This gate requires an initial notification before join and another after actual F3+T, decoded colormap/missing-resource checks, and clean lifecycle shutdown. The optional pack mode selects conflicting lower/higher packs, checks exact bytes and top-first non-premultiplied RGBA before/after editing the higher pack, and checks that an old image snapshot stays unchanged. Inspect its saved screenshots separately. It does not prove block-color-provider rendering, which is a different path.
+
+For the existing world-domain nylium consumer, use a matching native probe build:
+
+```sh
+python tools/smoke-local/nylium.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
+```
+
+It checks ten ichor/blood × soil variants: covered decay to the correct dirt, air/glass survival, occupied-above bone-meal rejection, then actual bone-meal clicks producing matching plants and nearby nylium. Random-tick changes are restored and stochastic growth has bounded retries. Saved screenshots need inspection. Slab results are observations, not a claim of Java light-engine parity; rare outcomes, exact RNG, LAN and save/reload remain separate checks.
 
 PlutoLib through the official launcher (the way players get mods):
 

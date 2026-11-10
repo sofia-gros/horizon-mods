@@ -72,7 +72,9 @@ impl ResourceManagerHelper {
     /// Decode `namespace:textures/...png` from the effective client resources. The path includes `textures/` and `.png`.
     /// Rows remain top-first and colors non-premultiplied; missing/malformed images or inconsistent dimensions return None.
     pub fn read_client_image(id: &Identifier) -> Option<ResourceImage> {
-        if !plain_resource_id(id) { return None; }
+        // The native texture decoder reserves this namespace for OptiFine CIT paths,
+        // not assets/horizon_cit/textures. Never silently read a different resource.
+        if !plain_resource_id(id) || id.namespace() == "horizon_cit" { return None; }
         let path = id.path().strip_prefix("textures/")?.strip_suffix(".png")?;
         if path.is_empty() { return None; }
         let backend = client_backend()?;
@@ -151,6 +153,7 @@ mod tests {
             assert_eq!(ResourceManagerHelper::read_client_image(&id), None);
         }
         assert_eq!(ResourceManagerHelper::read_client_resource(&Identifier::new("..", "secret").unwrap()), None);
+        assert_eq!(ResourceManagerHelper::read_client_image(&Identifier::new("horizon_cit", "textures/test.png").unwrap()), None);
         for path in ["colormap/test.png", "textures/test.jpg", "textures/.png"] {
             assert_eq!(ResourceManagerHelper::read_client_image(&Identifier::new("example", path).unwrap()), None);
         }

@@ -47,7 +47,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [interaction](interaction.md) | using items and blocks, finishing eating or drinking, attacking, break vetoes and cancellation notifications, digging speed |
 | [entities](entities.md) | entities entering and leaving worlds, damage (allow it or change its amount, with the attacker's stack), death |
 | [loot](loot.md) | change loot tables as they load |
-| [resources](resources.md) | active client asset/image reads, initial and refreshed client handles, separate server-data reload listeners |
+| [resources](resources.md) | pack-aware client asset bytes/PNG pixels, initial and refreshed client handles, separate server-data reload listeners |
 | [items](items.md) | edit existing tooltip entries without flattening rich text, append simple/translated lines, use items over time |
 | [block](block.md) | where a mod's block may stand, which state it is placed in, how neighbours change it, entities inside it |
 | [color](color.md) | block tint registration/direct lookup; world-render hookup unimplemented after two rejected seams, other rendering paths unconnected |

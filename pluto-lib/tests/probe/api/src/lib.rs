@@ -6,6 +6,26 @@ use pluto_lib::{
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 
+fn check_resource_pack(count: usize) {
+    if std::env::var("PLUTO_PROBE_RESOURCE_PACK").as_deref() != Ok("1") { return; }
+    let id = Identifier::parse("pluto_probe:probe.txt").unwrap();
+    let image_id = Identifier::parse("pluto_probe:textures/resource_probe.png").unwrap();
+    let raw = ResourceManagerHelper::read_client_resource(&id);
+    let image = ResourceManagerHelper::read_client_image(&image_id);
+    let initial = [200, 100, 50, 128, 0, 0, 255, 255];
+    let reloaded = [1, 2, 3, 255, 4, 5, 6, 64];
+    let expected_raw: &[u8] = if count == 1 { b"initial" } else { b"reloaded" };
+    let expected_pixels = if count == 1 { &initial } else { &reloaded };
+    let mut valid = raw.as_deref() == Some(expected_raw)
+        && image.as_ref().is_some_and(|image| image.width == 1 && image.height == 2 && image.rgba == expected_pixels.as_slice());
+    static SNAPSHOT: std::sync::Mutex<Option<pluto_lib::ResourceImage>> = std::sync::Mutex::new(None);
+    let mut snapshot = SNAPSHOT.lock().unwrap();
+    if count == 1 { *snapshot = image; }
+    else { valid &= snapshot.as_ref().is_some_and(|old| old.rgba == initial); }
+    println!("PLUTO-PROBE client_pack count={count} pass={valid}");
+    assert!(valid, "native resource pack priority/reload/snapshot mismatch");
+}
+
 pub fn hooks() -> Box<dyn Hooks> {
     pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
         if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
@@ -394,6 +414,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 && ResourceManagerHelper::read_client_image(&missing).is_none();
             println!("PLUTO-PROBE client_resources count={count} pass={valid}");
             assert!(valid, "native client resource facade did not read the actual colormap");
+            check_resource_pack(count);
             if count == 1 { println!("PLUTO-PROBE client_resources_reloaded"); }
         },
     );

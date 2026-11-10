@@ -49,7 +49,7 @@ ResourceManagerHelper::get(ResourceType::ClientResources)
 
 Client-resource listeners receive an initial notification after the client backend is installed, then a notification after each successful client reload installs a fresh resource handle. Read again inside the listener; an old byte vector or image remains an owned snapshot and does not update itself. `ServerData` retains its initial-load and server `/reload` behaviour; it does not refresh client assets.
 
-> **Use with Caution.** The new client-read/initial-notification bridge is awaiting local build and game validation in this slice. Reads return `None` without an installed client backend or when the resource cannot be read/decoded, so a headless server or a pure test must not assume an image exists. Triggering `reload_event(...).invoke(&())` in a test only calls listeners; it does not reload packs or install a fresh client handle.
+> **Use with Caution.** The native bridge has been built and checked in an integrated client: initial notification before join, one after actual F3+T, conflicting-pack priority, exact raw bytes/RGBA and unchanged old image snapshots. Reads return `None` without an installed client backend or when the resource cannot be read/decoded; a headless server or pure test must not assume an image exists. Triggering `reload_event(...).invoke(&())` only calls listeners: it does not reload packs or install a fresh handle. Dedicated/LAN and malformed native-pack reloads were not exercised.
 
 ## Reference
 
@@ -105,7 +105,7 @@ assert_eq!(RELOADS.load(Ordering::Relaxed), 1);
 
 ### `ResourceManagerHelper::read_client_resource`
 
-`fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed or the asset could not be read. This does not read server datapacks, and does not validate the file's format.
+`fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -119,7 +119,7 @@ if let Some(bytes) = ResourceManagerHelper::read_client_resource(&id) {
 
 ### `ResourceManagerHelper::read_client_image`
 
-`fn read_client_image(id: &Identifier) -> Option<ResourceImage>`. Read and decode an image from the active client resources. The `id` names the asset file, for example `tconstruct:textures/colormap/earth_grass_color.png`. Pixels are top-row-first, non-premultiplied RGBA bytes; each pixel occupies four consecutive bytes. `None` covers a missing client backend, missing/unreadable resource or an image that cannot be decoded.
+`fn read_client_image(id: &Identifier) -> Option<ResourceImage>`. Read and decode a PNG from the active client resources. The path must start with `textures/` and end in `.png`, for example `tconstruct:textures/colormap/earth_grass_color.png`. Pixels are top-row-first, gamma-encoded, non-premultiplied RGBA bytes; each pixel occupies four consecutive bytes. `None` covers an unsupported/non-plain id, missing client backend, missing/unreadable resource, decode failure, zero dimensions or an inconsistent pixel-buffer length.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -133,9 +133,11 @@ if let Some(image) = ResourceManagerHelper::read_client_image(&id) {
 // No image is required in the host-independent doctest environment.
 ```
 
+> **Use with Caution.** `read_client_image` explicitly returns `None` for the `horizon_cit` namespace: Horizon's texture decoder treats it as an OptiFine-specific path, not the ordinary `assets/horizon_cit/` namespace. The facade does not silently redirect an image read or install a separate decoder. `read_client_resource` can still read raw bytes from the normal `assets/horizon_cit/<path>` location when that resource exists.
+
 ### `ResourceImage`
 
-An owned decoded image: `width: u32` and `height: u32` count pixels; `rgba: Vec<u8>` stores top-row-first, non-premultiplied red/green/blue/alpha bytes. For a valid image the vector contains `width * height` pixels, four bytes each. A copied image is a snapshot, not a live view of future pack reloads. When constructing one manually, keep its dimensions and buffer consistent.
+An owned decoded image: `width: u32` and `height: u32` count pixels; `rgba: Vec<u8>` stores top-row-first, gamma-encoded, non-premultiplied red/green/blue/alpha bytes. For a valid image the vector contains `width * height` pixels, four bytes each. A copied image is a snapshot, not a live view of future pack reloads. When constructing one manually, keep its dimensions and buffer consistent.
 
 ```rust
 use pluto_lib::ResourceImage;
