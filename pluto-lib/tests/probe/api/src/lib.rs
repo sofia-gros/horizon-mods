@@ -40,6 +40,61 @@ fn register_feature_probe() {
         }));
         return;
     }
+    if mode == "ender" {
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let index = context.pos[0] / 48;
+                if !(0..8).contains(&index) || context.pos[0] % 48 != 0 { return }
+                let name = format!("pluto_probe:ender_{index}");
+                if !context.world.set_block_state_with_flags(context.pos, &BlockState::parse("minecraft:air").unwrap(), 19) { return }
+                let placed = context.world.place_feature(&name, context.pos);
+                if !placed {
+                    // Only restore the fixture trigger; failed tree writes, if any,
+                    // remain. This is not a rollback implementation.
+                    context.world.set_block_state_with_flags(context.pos, &BlockState::parse("minecraft:dead_bush").unwrap(), 19);
+                    println!("PLUTO-PROBE feature_request name={name} placed=false");
+                    return;
+                }
+                let flavor = ["earth", "sky", "ichor", "ender"][(index / 2) as usize];
+                let expected = format!("tconstruct:{flavor}_enderbark_roots");
+                let (mut logs, mut leaves, mut vines, mut propagules, mut roots, mut variants) = (0,0,0,0,0,0);
+                let mut states_ok = true;
+                let mut supported_leaves = 0;
+                for x in context.pos[0]-16..=context.pos[0]+16 {
+                    for y in 99..=145 {
+                        for z in -16..=16 {
+                            let Some(state) = context.world.block_state([x,y,z]) else { states_ok = false; continue };
+                            let block = state.block.to_string();
+                            match block.as_str() {
+                                "tconstruct:enderbark_log" => logs += 1,
+                                "tconstruct:ender_slime_leaves" => {
+                                    leaves += 1;
+                                    match state.property("distance").and_then(|v| v.parse::<u8>().ok()) {
+                                        Some(1..=6) => supported_leaves += 1,
+                                        Some(7) => {},
+                                        _ => states_ok = false,
+                                    }
+                                }
+                                "tconstruct:ender_slime_vine" => vines += 1,
+                                "tconstruct:ender_slime_sapling" => {
+                                    propagules += 1;
+                                    states_ok &= state.property("hanging") == Some("true")
+                                        && state.property("age").and_then(|v| v.parse::<u8>().ok()).is_some_and(|age| age <= 4);
+                                }
+                                "tconstruct:enderbark_roots" => roots += 1,
+                                block if block.ends_with("_enderbark_roots") => { roots += 1; if block == expected { variants += 1; } },
+                                _ => {},
+                            }
+                        }
+                    }
+                }
+                states_ok &= supported_leaves > 0;
+                println!("PLUTO-PROBE ender_case index={index} placed={placed} logs={logs} leaves={leaves} vines={vines} propagules={propagules} roots={roots} variants={variants} states_ok={states_ok}");
+                assert!(logs > 0 && leaves > 0 && vines > 0 && roots > 0 && variants > 0 && states_ok, "Ender tree fixture failed: {index}");
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
     if mode == "ordered" {
         use pluto_lib::{TreeDecoration, TreeDecorator};
         assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:ordered_fixture").unwrap(), |configuration| {

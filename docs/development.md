@@ -98,6 +98,8 @@ For per-position roots, run `feature_registry.py --mode roots` with a matching f
 
 For ordered decoration, run `feature_registry.py --mode ordered` with a matching full probe. The planned success case puts custom callbacks before, between and after two native attached-to-logs decorators, deliberately reversing their native-array order. Each custom callback checks the preceding world's writes. The other cases require an error to stop later callbacks and a duplicate/omitted native index to reject before any callback or tree write. Inspect all three images. This boundary fixture is not Ender Tree parity.
 
+For original Ender configuration placement, use `feature_registry.py --mode ender` with a matching full probe. It passes the repository's source-reference normal/tall JSON unchanged to the Tinkers `tconstruct:source_tree` codec, on earth/sky/ichor/ender congealed ground. Eight real bone-meal fixtures require logs, leaves, configured vines, roots, the matching ground variant and valid state properties; hanging propagules must appear across the run. A missing-propagule run is a failure even when the tree geometry looks complete; check the Java hanging support rule against slimy leaves, not the vanilla mangrove tag. Inspect all eight images. Compare the reference JSON to the pinned Java revision before claiming source-data parity. This does not migrate real sapling/island/natural-generation dispatch or prove exact Java RNG parity.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

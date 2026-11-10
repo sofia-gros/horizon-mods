@@ -30,6 +30,25 @@ fn seed_callback_preserves_vine_sides_and_consumes_only_successful_survival_use(
 
 fn state(id: &str) -> BlockState { BlockState::parse(id).unwrap() }
 
+#[test]
+fn hanging_propagules_require_slimy_leaves_while_grounded_keep_slime_soil_rules() {
+    for (hanging, above, tagged, ground, expected) in [
+        (true, "tconstruct:ender_slime_leaves", true, "minecraft:air", true),
+        (true, "minecraft:mangrove_leaves", false, "minecraft:air", false),
+        (true, "minecraft:air", false, "tconstruct:sky_slime_dirt", false),
+        (false, "minecraft:air", false, "tconstruct:sky_slime_dirt", true),
+        (false, "tconstruct:ender_slime_leaves", true, "minecraft:air", false),
+        (false, "minecraft:air", false, "minecraft:stone", false),
+    ] {
+        let mut world = MemoryBlockView::default();
+        world.blocks.insert([0, 65, 0], state(above));
+        world.blocks.insert([0, 63, 0], state(ground));
+        if tagged { world.tags.insert([0, 65, 0], [LEAVES.to_owned()].into_iter().collect()); }
+        let sapling = state("tconstruct:ender_slime_sapling").with("hanging", if hanging { "true" } else { "false" });
+        assert_eq!(propagule_can_survive(&world, &sapling, [0, 64, 0]), expected);
+    }
+}
+
 // SlimeGrassBlock.growGrass: plant == 0 is a sapling only when enabled;
 // otherwise plant < 6 is a fern, with the remaining 26 choices tall grass.
 #[test]

@@ -99,6 +99,7 @@ name = "tconstruct-world-behavior-tests"
 version = "0.0.0"
 dependencies = [
  "pluto-lib-pure-tests",
+ "serde_json",
 ]
 
 [[package]]

@@ -196,6 +196,22 @@ pub fn register_leaves() {
     }
 }
 
+/// SlimePropaguleBlock.canSurvive: hanging uses slimy leaves, not the
+/// template mangrove propagule's vanilla support tag. Grounded keeps the
+/// original SlimeSaplingBlock soil rule. Native shape/water tick logic remains.
+fn propagule_can_survive(view: &dyn BlockView, state: &BlockState, pos: [i32; 3]) -> bool {
+    if state.property("hanging") == Some("true") {
+        view.is_in_tag(Direction::Up.relative(pos), LEAVES)
+    } else {
+        plant_can_stand(view, pos)
+    }
+}
+
+pub fn register_ender_propagule_survival() {
+    BlockBehaviors::register(BlockBehavior::new(Identifier::parse("tconstruct:ender_slime_sapling").expect("fixed id"))
+        .can_survive(|context| propagule_can_survive(context.view, &context.state, context.pos)));
+}
+
 // ---- slime grass, nylium and the short plants
 
 const FOLIAGE: [&str; 5] = ["earth", "sky", "ichor", "ender", "blood"];
