@@ -29,6 +29,9 @@ fn check_resource_pack(count: usize) {
 fn register_feature_probe() {
     use pluto_lib::{BlockBehavior, BlockBehaviors, BlockState, ConfiguredFeature, FeatureTypeRegistry};
     let Ok(mode) = std::env::var("PLUTO_PROBE_FEATURE_MODE") else { return };
+    // The production propagule fixture must use Tinkers' real callbacks, not
+    // throwaway probe behaviours or a replacement tree grower.
+    if mode == "propagules" { return; }
     if mode == "decline" || mode == "invalid" {
         let invalid = mode == "invalid";
         assert!(FeatureTypeRegistry::register(Identifier::parse("minecraft:huge_fungus").unwrap(), move |_| {

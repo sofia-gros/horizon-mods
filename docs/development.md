@@ -100,6 +100,8 @@ For ordered decoration, run `feature_registry.py --mode ordered` with a matching
 
 For original Ender configuration placement, use `feature_registry.py --mode ender` with a matching full probe. It passes the repository's source-reference normal/tall JSON unchanged to the Tinkers `tconstruct:source_tree` codec, on earth/sky/ichor/ender congealed ground. Eight real bone-meal fixtures require logs, leaves, configured vines, roots, the matching ground variant and valid state properties; hanging propagules must appear across the run. A missing-propagule run is a failure even when the tree geometry looks complete; check the Java hanging support rule against slimy leaves, not the vanilla mangrove tag. Inspect all eight images. Compare the reference JSON to the pinned Java revision before claiming source-data parity. This does not migrate real sapling/island/natural-generation dispatch or prove exact Java RNG parity.
 
+For real Ender sapling/leaf gameplay, use `feature_registry.py --mode propagules` with a matching full probe. Unlike the throwaway tree-trigger fixtures, this mode installs no replacement probe behaviour: actual item placement must set age 4 and preserve waterlogging, leaf bone meal creates age 0 hanging saplings, repeated bone meal matures them without replacing occupied/mature targets, removing support removes them, and both bone meal and accelerated native random ticks must grow grounded saplings into Ender logs. Inspect six images. The two runtime configuration constants are regenerated from source-reference JSON with `tconstruct/tools/gen_ender_tree_data.py`; the native file allowlist stays unchanged.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

@@ -32,11 +32,11 @@
     },
     "block/SlimePropaguleBlock.java": {
       "status": "partial",
-      "note": "Java hanging slimy-leaf and grounded slime-soil survival is now registered through PlutoLib, with a passing behaviour regression. The first Ender-tree run produced no surviving propagules; after the support fix, eight normal/tall x ground fixtures pass with 44 surviving propagules and inspected images. Placement, random/bonemeal growth and real sapling routing are not migrated by this change; frozen legacy handlers remain. Full class parity is not claimed."
+      "note": "Java hanging slimy-leaf and grounded slime-soil survival is now registered through PlutoLib, with a passing behaviour regression. The first Ender-tree run produced no surviving propagules; after the support fix, eight normal/tall x ground fixtures pass with 44 surviving propagules and inspected images. Production callbacks use the original bundled settings. Full native build and real-game dry/waterlogged item placement, hanging ages 0–4, support removal, two-stage bone-meal growth and native random-tick maturation/growth passed; six gameplay images inspected. Exact RNG/unloaded-boundary and multiplayer/save parity remain unverified. Frozen legacy handlers remain. Full class parity is not claimed."
     },
     "block/SlimePropaguleLeavesBlock.java": {
       "status": "partial",
-      "note": "its bone meal puts a hanging propagule under the leaves; runs through the old propagule injections"
+      "note": "Leaf bone meal is now connected through PlutoLib while retaining the existing distance/placement callbacks. Full native build and real-game creation of an age-0 hanging propagule, maturation and occupied-target rejection passed; gameplay images inspected. Multiplayer/save and complete inherited-leaf parity remain unverified. No completed class parity claim."
     },
     "block/SlimeSaplingBlock.java": {
       "status": "ported",
@@ -224,11 +224,11 @@
     },
     "worldgen/trees/LeaveVineDecorator.java": {
       "status": "partial",
-      "note": "Java ordered leaf/side/RNG loop and explicit-flags editor adapter registered as tconstruct:leave_vines through PlutoLib's TreeDecoratorTypeRegistry. Pure trace/adapter tests and independent live fixture pass (20 vanilla vines, 16 configured vines with obstruction, zero probability, invalid codec and write failure); five images inspected. Native oak tracking/finalization and ordered decoration fixtures pass. The explicit original-configuration Ender adapter passes its native build and eight live fixtures, with 44 surviving propagules and images inspected; actual sapling/island dispatch is not migrated. Block identifiers are syntax-checked at decode; native block/property existence is checked on write, not at codec time. Not completed parity."
+      "note": "Java ordered leaf/side/RNG loop and explicit-flags editor adapter registered as tconstruct:leave_vines through PlutoLib's TreeDecoratorTypeRegistry. Pure trace/adapter tests and independent live fixture pass (20 vanilla vines, 16 configured vines with obstruction, zero probability, invalid codec and write failure); five images inspected. Native oak tracking/finalization and ordered decoration fixtures pass. The explicit original-configuration Ender adapter passes its native build and eight live fixtures, with 44 surviving propagules and images inspected; production Ender sapling dispatch also passed bone-meal and native random-tick game checks; island/natural dispatch is not migrated. Block identifiers are syntax-checked at decode; native block/property existence is checked on write, not at codec time. Not completed parity."
     },
     "worldgen/trees/SlimeTree.java": {
       "status": "partial",
-      "note": "earth and sky saplings choose their tree; ender (mangrove style tree), blood and ichor (fungus) are still on the old code"
+      "note": "Earth/sky select their existing consumer trees; blood/ichor use the live native fungus boundary. Ender now selects the original tall configuration for random_float < 0.85 and the normal one otherwise; the boundary/restore test and real sapling bone-meal/native random-tick growth pass. Island/natural routing remains unfinished."
     }
   }
 }

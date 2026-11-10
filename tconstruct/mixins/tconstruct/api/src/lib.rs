@@ -18,6 +18,7 @@ mod tool_data;
 mod tools;
 mod world;
 mod worldgen;
+mod propagules;
 mod fluids_table;
 
 pub fn hooks() -> pluto_lib::ModHooks {
@@ -39,6 +40,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     trees::register();
     trees::register_fungus();
     worldgen::register();
+    propagules::register();
     ConfigRegistry::register("tconstruct", ConfigKind::Common, "");
     ConfigEvents::LOADING.register(|config| {
         if config.mod_id == "tconstruct" {
