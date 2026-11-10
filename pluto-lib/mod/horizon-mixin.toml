@@ -139,8 +139,8 @@ name = "pluto_block_access"
 source = "pluto-block-access.rs"
 visibility = "pub"
 
-# Structure planning transport and borrowed native queries; host dispatch and
-# template-piece placement remain unconnected until the complete adapter exists.
+# Structure planning and explicit plain-template placement. Registered marker
+# pieces are in progress and require the typed placement adapter and guard review.
 [[module]]
 id = "pluto-structure-access"
 file = "crates/horizon-world/src/level/mod.rs"
@@ -161,6 +161,42 @@ file = "crates/horizon-world/src/worldgen/structure.rs"
 name = "pluto_structure_piece"
 source = "pluto-structure-piece.rs"
 visibility = "pub"
+
+[[module]]
+id = "pluto-structure-registered-piece"
+file = "crates/horizon-world/src/worldgen/structure.rs"
+name = "pluto_registered_piece"
+source = "pluto-registered-piece.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-markers"
+file = "crates/horizon-world/src/worldgen/structure/legacy.rs"
+name = "pluto_structure_markers"
+source = "pluto-structure-markers.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-level"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "pluto_structure_level"
+source = "pluto-structure-level.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-command"
+file = "crates/horizon-client/src/game/commands/place.rs"
+name = "pluto_structure_command"
+source = "pluto-structure-command.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-command-head"
+target = "horizon_client::game::commands::place::Game<'_>::cmd_place_generated"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-command-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "id", ty = "&str", value = "id" }, { name = "context", ty = "&Context", value = "ctx" }]
 
 [[injection]]
 id = "pluto-structure-sources"

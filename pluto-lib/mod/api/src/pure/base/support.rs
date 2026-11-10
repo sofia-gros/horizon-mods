@@ -30,9 +30,15 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
-        api: "worldgen_api_v1::StructureTypeRegistry (natural generation, native-kind overrides, shared-resource source changes and custom piece/marker codecs)",
+        api: "worldgen_api_v1::StructurePieceTypeRegistry (natural generation and saved-start lifecycle)",
         support: Support::Stub,
-        behaviour: "custom explicit placement/plain-template restoration adapters are under verification; natural starts, native-kind overrides and custom marker codecs remain unconnected; ambiguous shared-resource source snapshots reject",
+        behaviour: "explicit registered templates dispatch clipped DATA markers with shared world/RNG, configured features and per-piece state; natural placement is unconnected and saved-start reloads are unverified",
+        unblocked_by: "natural start/cache integration and verified saved-start restoration across lifecycle/resource changes",
+    },
+    SupportEntry {
+        api: "worldgen_api_v1::StructureTypeRegistry (natural generation, native-kind overrides and shared-resource source changes)",
+        support: Support::Stub,
+        behaviour: "custom explicit planning and plain/registered template placement work; natural starts are unconnected, native-kind overrides are unsupported, saved-start reloads are unverified and ambiguous shared-resource source snapshots reject",
         unblocked_by: "verified native/game adapters preserving candidate weighting, biome policy, caching, template markers and saved-piece state",
     },
     SupportEntry {

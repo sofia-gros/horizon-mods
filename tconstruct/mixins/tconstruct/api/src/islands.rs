@@ -5,6 +5,9 @@
 use pluto_lib::{ConfiguredStructure, Identifier, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld};
 use serde_json::Value;
 
+#[path = "island_piece.rs"]
+mod piece;
+
 type Pos = [i32; 3];
 
 /// Narrow consumer-side contract; not a host interface or a public PlutoLib API.
@@ -66,9 +69,13 @@ impl Choices {
         Ok(Self { entries, total })
     }
     fn choose(&self, context: &mut dyn Context) -> Result<Option<&str>, String> {
+        self.choose_with(|bound| draw(context, bound))
+    }
+    fn choose_with(&self, mut random: impl FnMut(i32) -> Result<i32, String>) -> Result<Option<&str>, String> {
         // SimpleWeightedRandomList makes no random draw with zero total weight.
         if self.total == 0 { return Ok(None); }
-        let mut value = draw(context, self.total)?;
+        let mut value = random(self.total)?;
+        if !(0..self.total).contains(&value) { return Err("invalid structure random result".into()); }
         for (id, weight) in &self.entries {
             value -= weight;
             if value < 0 { return Ok(Some(id)); }
@@ -159,6 +166,7 @@ impl IslandSpec {
 /// Register only the configuration/planning codec. Native structure dispatch,
 /// piece placement and saved-piece reconstruction are still unconnected.
 pub(super) fn register() {
+    piece::register();
     assert!(StructureTypeRegistry::register(Identifier::parse("tconstruct:island").expect("fixed structure type"),|configuration| {
         let spec=IslandSpec::decode(configuration)?;
         Ok(ConfiguredStructure::new(move |context| spec.plan(context)))

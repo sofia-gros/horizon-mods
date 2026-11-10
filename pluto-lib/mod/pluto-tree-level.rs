@@ -9,19 +9,25 @@ use serde_json::Value;
 
 fn at([x, y, z]: [i32; 3]) -> BlockPos { BlockPos::new(x, y, z) }
 
-struct TreeEditor<'a, 's, 'l, L: LevelAccess + ?Sized> {
+pub(super) struct TreeEditor<'a, 's, 'l, L: LevelAccess + ?Sized> {
     world: &'a mut LevelFeatureWorld<'s, 'l, L>,
     random: &'a mut LegacyRandom,
     written: &'a mut Vec<[i32; 3]>,
     bound_roots: Option<&'a pluto_tree_catalog::BoundRoots>,
 }
 
-impl<L: LevelAccess + ?Sized> TreeEditor<'_, '_, '_, L> {
+impl<'a,'s,'l,L: LevelAccess + ?Sized> TreeEditor<'a,'s,'l,L> {
+    pub(super) fn for_markers(world:&'a mut LevelFeatureWorld<'s,'l,L>,random:&'a mut LegacyRandom,written:&'a mut Vec<[i32;3]>)->Self {
+        Self {world,random,written,bound_roots:None}
+    }
+    pub(super) fn with_world<T>(&mut self,body:impl FnOnce(&mut LevelFeatureWorld<'s,'l,L>,&mut LegacyRandom)->T)->T {
+        body(self.world,self.random)
+    }
     fn info(&self, id: BlockStateId) -> Option<StateInfo> {
         let state = self.world.features.data().registry().state(id)?;
         Some(StateInfo { block: state.name.to_string(), properties: state.properties.iter().map(|(k,v)| (k.to_string(),v.to_string())).collect() })
     }
-    fn resolve(&self, wanted: &StateInfo) -> Option<BlockStateId> {
+    pub(super) fn resolve(&self, wanted: &StateInfo) -> Option<BlockStateId> {
         let registry = self.world.features.data().registry();
         let mut state = registry.state(registry.default_state(&wanted.block)?)?.clone();
         for (key, value) in &wanted.properties { state.properties.insert(key.as_str().into(), value.as_str().into()); }
@@ -117,7 +123,7 @@ impl<L: LevelAccess + ?Sized> RootEdit for TreeEditor<'_, '_, '_, L> {
     }
 }
 
-fn on_world<L: LevelAccess + ?Sized>(
+pub(super) fn on_world<L: LevelAccess + ?Sized>(
     world: &mut LevelFeatureWorld<'_, '_, L>, random: &mut LegacyRandom,
     configuration: &Value, pos: [i32; 3], mut roots: Option<(&RootBindings, &mut RootCallback<'_>)>, plan: Option<&[TreeStep]>, decorate: &mut PlannedTreeCallback<'_>,
 ) -> bool {

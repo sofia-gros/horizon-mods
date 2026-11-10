@@ -7,7 +7,16 @@
     "crates/horizon-world/src/worldgen/structure/start.rs": "4e9be43f2a630e187993b3fa25498fd7104bc86d001b4636fe42946a2b179644",
     "crates/horizon-world/src/worldgen/structure/legacy.rs": "3c9bc2471ba0f2177adf43637ced35bb8155a295b0649553dd6643d1ec2fce2c",
     "crates/horizon-world/src/worldgen/structure/simple.rs": "ffb56060a3b261e73334df9f3cc3d0ae7e8c54ba06af80c72500ac9857f1e073",
-    "crates/horizon-world/src/worldgen/structure/template.rs": "5d92ef71234c7552cd666e05122e898cfbaf8f100bc9564db267fa50f530370c"
+    "crates/horizon-world/src/worldgen/structure/template.rs": "5d92ef71234c7552cd666e05122e898cfbaf8f100bc9564db267fa50f530370c",
+    "crates/horizon-world/src/level/mod.rs": "aa89cc980327150c24ac030db03a7a83ec0dae8ec2b65f8ed66d32f03580b222",
+    "crates/horizon-world/src/level/growth.rs": "c4f4e97ff5db47a935c114115018f29424cdfca1c58701f84345205df85031c2",
+    "crates/horizon-world/src/level/feature_world.rs": "2c171cefbdf3ff1b151ad84b15500bf11936774f57e4fb046c3ee9feae84e42a",
+    "crates/horizon-world/src/level/survive.rs": "0b002f7d4fe3bf93d714fc1f3bc26222dbf3cd47d1f033b7cb502ef496656cfb",
+    "crates/horizon-world/src/level/classes.rs": "34e1e692b9ab01189a94bda6d6c883c7cb868b1ea86c54daad2e160b01a88638",
+    "crates/horizon-world/src/worldgen/live.rs": "42e8a379d25af4aff232677ee984c8bd996b19c5816f61a1290a11fe77e0e6dd",
+    "crates/horizon-world/src/worldgen/tree.rs": "08ee801c3cdc6e37c05c42dac8272eee9137c5174ab5a70bff5ab428f799a749",
+    "crates/horizon-client/src/game/commands/place.rs": "3ab8cbd70089cb0219404ae4792a6cfb5daf61d54e63130eddf89cfe8b855111",
+    "crates/horizon-client/src/entry.rs": "6b698b969a8acca6d6aea3dee051e692b45099f4bda8fb58e5731299ca7f75fe"
   },
   "modules": [
     {
@@ -16,7 +25,7 @@
       "name": "pluto_structure_access",
       "visibility": "pub",
       "source_file": "pluto-structure-access.rs",
-      "source_sha256": "d5f1e325e1543d8f981b1310c3a2ca198db2465cf09d9384895da735023abaaa"
+      "source_sha256": "42a87a01f245174ee1aad1faf89c7e7221ee12c6689a347ff048350fb51b2d5b"
     },
     {
       "module_id": "pluto-structure-context",
@@ -24,7 +33,7 @@
       "name": "pluto_structure_context",
       "visibility": "pub",
       "source_file": "pluto-structure-context.rs",
-      "source_sha256": "efc9c6f21160e1db99551cf2ddd829f384d928faa6402de1e3ba11ed287ac747"
+      "source_sha256": "8418ea3d77dc2d8c9e4ba8e5d6f2b30532b74a7388c2794e132e3451b3b3c32b"
     },
     {
       "module_id": "pluto-structure-piece",
@@ -32,10 +41,105 @@
       "name": "pluto_structure_piece",
       "visibility": "pub",
       "source_file": "pluto-structure-piece.rs",
-      "source_sha256": "fd84367e05b17b67fb5e7f67b5565f37fb73d6ae180694de70434a0f9b62accf"
+      "source_sha256": "fdf910d06ec42695a5e5e0ade6253719fed58d9ec942a25b8ccf70c8b4b1e6e5"
+    },
+    {
+      "module_id": "pluto-structure-registered-piece",
+      "file": "crates/horizon-world/src/worldgen/structure.rs",
+      "name": "pluto_registered_piece",
+      "visibility": "pub",
+      "source_file": "pluto-registered-piece.rs",
+      "source_sha256": "b113acd8e3bcc2d9461ea3b7324ff92184a12448c2696f6c4c76a85f0589565c"
+    },
+    {
+      "module_id": "pluto-structure-markers",
+      "file": "crates/horizon-world/src/worldgen/structure/legacy.rs",
+      "name": "pluto_structure_markers",
+      "visibility": "pub",
+      "source_file": "pluto-structure-markers.rs",
+      "source_sha256": "e4426e0a59d0b8282de41a387621ef2f9ba8b68d86c9da88cde347004c45d49b"
+    },
+    {
+      "module_id": "pluto-structure-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_structure_level",
+      "visibility": "pub",
+      "source_file": "pluto-structure-level.rs",
+      "source_sha256": "0384248f76c3f5e5e68332b67d91875f080290b1d2c066661dcc4ca9690e3a56"
+    },
+    {
+      "module_id": "pluto-structure-command",
+      "file": "crates/horizon-client/src/game/commands/place.rs",
+      "name": "pluto_structure_command",
+      "visibility": "pub",
+      "source_file": "pluto-structure-command.rs",
+      "source_sha256": "7c4d509d1146eaa8ac57efe0f0aaef2355cf00b517141c037b4032238370907c"
+    },
+    {
+      "module_id": "pluto-block-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_block_access",
+      "visibility": "pub",
+      "source_file": "pluto-block-access.rs",
+      "source_sha256": "eb4daeb0db83146becb4113dc5dd4b050b07c29ce5169192df9c5a6f6405e146"
+    },
+    {
+      "module_id": "pluto-block",
+      "file": "crates/horizon-client/src/entry.rs",
+      "name": "pluto_block",
+      "visibility": "pub",
+      "source_file": "pluto-block.rs",
+      "source_sha256": "d1d7734ebf029bd3d81ed95a6c54c59a429f6fe265a2cd499a9bc03799d662d1"
+    },
+    {
+      "module_id": "pluto-tree-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_tree_level",
+      "visibility": "pub",
+      "source_file": "pluto-tree-level.rs",
+      "source_sha256": "c9c064c16023c9fafc06d535e8a86745afbc19185a54b02f1738be18d3c02b81"
+    },
+    {
+      "module_id": "pluto-tree-placement",
+      "file": "crates/horizon-world/src/worldgen/tree.rs",
+      "name": "pluto_tree_placement",
+      "visibility": "pub",
+      "source_file": "pluto-tree-placement.rs",
+      "source_sha256": "7a1d8270441d640b34e9e86eb6e0070769fb811923f1760efcb9408471151f88"
+    },
+    {
+      "module_id": "pluto-tree-catalog",
+      "file": "crates/horizon-world/src/worldgen/live.rs",
+      "name": "pluto_tree_catalog",
+      "visibility": "pub",
+      "source_file": "pluto-tree-catalog.rs",
+      "source_sha256": "b65f26deff09f6280efb0ab612e03feb870b9471292b74cd20a6e640d032cbc2"
+    },
+    {
+      "module_id": "pluto-worldgen-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_worldgen_level",
+      "visibility": "pub",
+      "source_file": "pluto-worldgen-level.rs",
+      "source_sha256": "09ab4485409a82d48dd15a993e840fda060a69e4b3f6679899c5513bfa7b223f"
     }
   ],
   "injections": [
+    {
+      "injection_id": "pluto-structure-command-head",
+      "target": "horizon_client::game::commands::place::Game<'_>::cmd_place_generated",
+      "file": "crates/horizon-client/src/game/commands/place.rs",
+      "function_fingerprint": "ad7b253bb782eaf9f616ae92a3de0ba591ef82424626e31cdc64a85f4b240689",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "game", "ty": "&mut Game<'_>", "value": "self" },
+        { "name": "id", "ty": "&str", "value": "id" },
+        { "name": "context", "ty": "&Context", "value": "ctx" }
+      ],
+      "source_file": "pluto-structure-command-head.rs",
+      "source_sha256": "a4968c3d55ad39f0d084ed3e958d8d44dbba3a62edd384874a069046b76a35b1"
+    },
     {
       "injection_id": "pluto-structure-sources",
       "target": "horizon_world::worldgen::generator_structures::StructureState::new",
@@ -110,6 +214,8 @@
   ],
   "exclusive_files": [
     "crates/horizon-world/src/worldgen/generator_structures.rs",
-    "crates/horizon-world/src/worldgen/structure.rs"
+    "crates/horizon-world/src/worldgen/structure.rs",
+    "crates/horizon-world/src/worldgen/structure/legacy.rs",
+    "crates/horizon-client/src/game/commands/place.rs"
   ]
 }

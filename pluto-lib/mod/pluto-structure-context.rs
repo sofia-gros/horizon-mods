@@ -114,8 +114,12 @@ pub fn saved_piece(state:&StructureState,piece:&crate::nbt::Tag)->std::ops::Cont
     use std::ops::ControlFlow::{Break,Continue};
     use super::super::structure::pluto_structure_piece;
     let value=tag_json(piece);
-    if value.get("id").and_then(Value::as_str)!=Some(pluto_structure_piece::TEMPLATE_KIND) {return Continue(())}
-    match pluto_structure_piece::restore(&state.resources,&value) {
+    let restored=match value.get("id").and_then(Value::as_str) {
+        Some(pluto_structure_piece::TEMPLATE_KIND)=>pluto_structure_piece::restore(&state.resources,&value),
+        Some(super::super::structure::pluto_registered_piece::KIND)=>super::super::structure::pluto_registered_piece::restore(&state.resources,&value),
+        _=>return Continue(()),
+    };
+    match restored {
         Ok(piece)=>Break(Some(piece)),
         Err(error)=>{eprintln!("pluto_lib: saved structure piece rejected: {error}"); Break(None)},
     }
