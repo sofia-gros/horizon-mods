@@ -200,3 +200,7 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-insatiable.rs"]
+mod tconstruct_insatiable;
