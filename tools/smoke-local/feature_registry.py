@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'propagules'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -227,6 +227,121 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'propagules':
+                sapling = 'tconstruct:ender_slime_sapling'
+                leaf = 'tconstruct:ender_slime_leaves'
+                ctl('command', f'give @s {sapling} 8')
+
+                def setup(x):
+                    ctl('command', f'tp @s {x+0.5} 150 15.5')
+                    ctl('wait', 40)
+                    fixture(x, 'tconstruct:ender_slime_dirt', 'minecraft:air', radius=12, top=140)
+
+                def use(x, y, small=False):
+                    if small:
+                        # aim_block samples only cube centre-lines. Hanging
+                        # propagules have a thin XZ-offset outline; aim at a
+                        # visible point and verify the real crosshair ray before
+                        # a normal mouse-use action. No forced hit or occlusion
+                        # override, and the server-state assertions stay intact.
+                        for dx in (.5, .375, .625, .25, .75):
+                            for dz in (.5, .375, .625, .25, .75):
+                                ctl('look-at', x+dx, y+.94, dz)
+                                ctl('wait', 1)
+                                target = ctl('looking-at')
+                                hit = target.get('block') or {}
+                                if target.get('kind') == 'block' and hit.get('pos') == [x, y, 0] and hit.get('block') == sapling:
+                                    ctl('use-item')
+                                    ctl('wait', 8)
+                                    return
+                        raise RuntimeError(f'no visible propagule outline point: {x}/{y}; run={run}')
+                    ctl('look-at-block', x, y, 0)
+                    ctl('interact', x, y, 0)
+                    ctl('wait', 8)
+
+                def require_state(x, y, kind, **properties):
+                    actual = block(x, y, 0)
+                    if actual.split('[', 1)[0] != kind or any(f'{key}={value}' not in actual for key, value in properties.items()):
+                        raise RuntimeError(f'propagule state mismatch: {x}/{y}: {actual}; run={run}')
+                    return actual
+
+                # Real bone meal on Ender leaves, then on the hanging sapling.
+                setup(0)
+                ctl('setblock', 0, 104, 0, leaf + '[persistent=true]')
+                ctl('select', 'minecraft:bone_meal')
+                use(0, 104)
+                require_state(0, 103, sapling, age=0, hanging='true')
+                # Age-0 geometry is tucked under the leaf. Look from below it,
+                # rather than trying to click through the supporting leaf.
+                ctl('setblock', 0, 102, 3, 'minecraft:air')
+                ctl('setblock', 0, 100, 3, 'minecraft:stone')
+                ctl('command', 'tp @s 0.5 101 3.5')
+                ctl('wait', 20)
+                for age in range(1, 5):
+                    use(0, 103, small=True)
+                    require_state(0, 103, sapling, age=age, hanging='true')
+                mature = block(0, 103, 0)
+                use(0, 103, small=True); use(0, 104)
+                if block(0, 103, 0) != mature:
+                    raise RuntimeError(f'mature/occupied target was changed; run={run}')
+                photograph(0, 'propagule-mature.png', player_y=103, camera_z=5)
+                ctl('setblock', 0, 104, 0, 'minecraft:air')
+                ctl('wait', 20)
+                require_state(0, 103, 'minecraft:air')
+                observations.append({'case': 'leaf-bonemeal-maturation-support', 'ages': list(range(5)), 'removed_without_leaf': True})
+
+                for x, water in ((48, False), (96, True)):
+                    setup(x)
+                    if water: ctl('setblock', x, 101, 0, 'minecraft:water')
+                    ctl('select', sapling)
+                    use(x, 100)
+                    require_state(x, 101, sapling, age=4, stage=0, hanging='false', waterlogged=str(water).lower())
+                    photograph(x, f'propagule-placement-{water}.png', player_y=102, camera_z=6)
+                    observations.append({'case': 'placement', 'waterlogged': water, 'age': 4})
+                    if water: continue
+                    ctl('command', f'tp @s {x+0.5} 103 3.5')
+                    ctl('setblock', x, 102, 3, 'minecraft:stone')
+                    ctl('select', 'minecraft:bone_meal')
+                    saw_stage = False
+                    for attempt in range(32):
+                        use(x, 101)
+                        actual = block(x, 101, 0)
+                        saw_stage |= actual.startswith(sapling + '[') and 'stage=1' in actual
+                        if not actual.startswith(sapling + '['): break
+                    logs = sum(block(x, y, 0).split('[', 1)[0] == 'tconstruct:enderbark_log' for y in range(102, 133))
+                    if not saw_stage or not logs:
+                        raise RuntimeError(f'ground sapling did not advance into an Ender tree; run={run}')
+                    photograph(x, 'propagule-bonemeal-tree.png', player_y=109, camera_z=24)
+                    observations.append({'case': 'bonemeal-growth', 'requests': attempt+1, 'stage_one_seen': saw_stage, 'logs': logs})
+
+                setup(144)
+                ctl('setblock', 144, 104, 0, leaf + '[persistent=true]')
+                ctl('setblock', 144, 103, 0, sapling + '[hanging=true,age=0,stage=0,waterlogged=false]')
+                ctl('command', 'gamerule random_tick_speed 4096')
+                try:
+                    for _ in range(24):
+                        ctl('wait', 40)
+                        if 'age=4' in block(144, 103, 0): break
+                    require_state(144, 103, sapling, age=4, hanging='true')
+                finally:
+                    ctl('command', 'gamerule random_tick_speed 0')
+                photograph(144, 'propagule-random-mature.png', player_y=103, camera_z=5)
+                observations.append({'case': 'random-hanging-maturation', 'age': 4})
+
+                setup(192)
+                ctl('setblock', 192, 101, 0, sapling + '[hanging=false,age=4,stage=0,waterlogged=false]')
+                ctl('command', 'gamerule random_tick_speed 4096')
+                try:
+                    for _ in range(24):
+                        ctl('wait', 40)
+                        if not block(192, 101, 0).startswith(sapling + '['): break
+                finally:
+                    ctl('command', 'gamerule random_tick_speed 0')
+                logs = sum(block(192, y, 0).split('[', 1)[0] == 'tconstruct:enderbark_log' for y in range(102, 133))
+                if not logs:
+                    raise RuntimeError(f'random ground growth did not generate Ender logs; run={run}')
+                photograph(192, 'propagule-random-tree.png', player_y=109, camera_z=24)
+                observations.append({'case': 'random-ground-growth', 'logs': logs})
             elif args.mode == 'ender':
                 import re
                 total_propagules = 0

@@ -9,6 +9,11 @@
 #[path = "source_tree.rs"]
 mod source_tree;
 
+/// Grow the source-defined normal/tall Ender tree using only PlutoLib.
+pub fn grow_ender_tree(world: &mut dyn pluto_lib::BlockEditor, origin: [i32; 3], tall: bool) -> bool {
+    source_tree::grow(world, origin, tall)
+}
+
 /// One ordered root predicate/provider pair. `Matches` may retain block IDs,
 /// tags or a parsed holder set; `Provider` may retain the original provider JSON.
 /// Neither is interpreted or reduced to a fixed block map here.

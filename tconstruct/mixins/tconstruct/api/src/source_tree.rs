@@ -4,6 +4,17 @@
 use pluto_lib::{ConfiguredFeature, FeatureTypeRegistry, Identifier, RootPlacement, RootPlacementTypeRegistry, TreeDecoration, TreeDecoratorTypeRegistry};
 use serde_json::{Map, Value};
 
+#[path = "source_tree_data.rs"]
+mod data;
+
+pub(super) fn grow(world: &mut dyn pluto_lib::BlockEditor, origin: [i32; 3], tall: bool) -> bool {
+    let source = serde_json::from_str(if tall { data::TALL } else { data::SMALL }).map_err(|e| e.to_string());
+    match source.and_then(|source| PreparedTree::decode(&source)) {
+        Ok(tree) => world.place_tree_with_plan(&tree.native, origin, Some(&tree.roots), &tree.decorations),
+        Err(error) => { eprintln!("tconstruct: original Ender configuration failed: {error}"); false }
+    }
+}
+
 pub(super) fn register() {
     assert!(FeatureTypeRegistry::register(Identifier::parse("tconstruct:source_tree").expect("fixed id"), |source| {
         let tree = PreparedTree::decode(source)?;
