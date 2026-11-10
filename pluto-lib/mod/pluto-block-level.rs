@@ -155,6 +155,7 @@ pub(super) fn update_shape(level: &GameLevel<'_>, pos: BlockPos, state: BlockSta
 struct Edit<'a, 'g> {
     level: &'a mut GameLevel<'g>,
     ticks: Option<&'a mut Ticks>,
+    feature_depth: u8,
 }
 
 impl LevelView for Edit<'_, '_> {
@@ -219,8 +220,17 @@ impl LevelEdit for Edit<'_, '_> {
     }
 
     fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
-        let Some(ticks) = self.ticks.as_deref_mut() else { return false };
+        if self.ticks.is_none() || self.feature_depth >= pluto_block::MAX_FEATURE_DEPTH { return false; }
         let behaviours = self.level.behaviours;
+        if let Some(definition) = horizon_world::level::pluto_worldgen_level::configured_json(behaviours, feature) {
+            if let Some(kind) = definition.get("type").and_then(serde_json::Value::as_str) {
+                let handled = pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
+                    pluto_block::custom_feature(edit, kind, definition.get("config").unwrap_or(&serde_json::Value::Null), pos)
+                });
+                if let Some(placed) = handled { return placed; }
+            }
+        }
+        let Some(ticks) = self.ticks.as_deref_mut() else { return false };
         horizon_world::level::pluto_worldgen_level::place_native(
             behaviours, &mut *self.level, ticks, feature, at(pos),
         ).unwrap_or(false)
@@ -257,7 +267,7 @@ fn tick_with(
     if !(sink.has)(&current.block) {
         return;
     }
-    let mut edit = Edit { level, ticks: Some(ticks) };
+    let mut edit = Edit { level, ticks: Some(ticks), feature_depth: 0 };
     if pick(sink)(&mut edit, &current, [pos.x, pos.y, pos.z]) {
         *handled = true;
     }
@@ -280,7 +290,7 @@ pub(super) fn bonemeal_success(level: &mut GameLevel<'_>, pos: BlockPos, state: 
     if !(sink.has)(&current.block) {
         return;
     }
-    let mut edit = Edit { level, ticks: None };
+    let mut edit = Edit { level, ticks: None, feature_depth: 0 };
     if let Some(answer) = (sink.bonemeal_success)(&mut edit, &current, [pos.x, pos.y, pos.z]) {
         *success = answer;
     }
@@ -292,7 +302,7 @@ pub(super) fn bonemeal_perform(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos
     if !(sink.has)(&current.block) {
         return;
     }
-    let mut edit = Edit { level, ticks: Some(ticks) };
+    let mut edit = Edit { level, ticks: Some(ticks), feature_depth: 0 };
     (sink.bonemeal_perform)(&mut edit, &current, [pos.x, pos.y, pos.z]);
 }
 

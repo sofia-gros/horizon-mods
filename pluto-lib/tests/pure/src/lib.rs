@@ -6,6 +6,11 @@ mod exports;
 
 pub use exports::*;
 
+// Exercise the actual host-independent bridge bookkeeping, not a copied model.
+#[cfg(test)]
+#[path = "../../../mod/pluto-block.rs"]
+mod block_bridge_tests;
+
 /// Every page of `pluto-lib/docs/api` is included here, so each ```rust block in it is compiled and run by `cargo test --doc`.
 #[cfg(doctest)]
 mod api_pages {
@@ -33,6 +38,7 @@ mod api_pages {
     page!(Fluid, "fluid.md");
     page!(I18n, "i18n.md");
     page!(World, "world.md");
+    page!(Worldgen, "worldgen.md");
     page!(Projectile, "projectile.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");

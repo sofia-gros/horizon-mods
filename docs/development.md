@@ -80,6 +80,14 @@ python tools/smoke-local/block_colors.py --game <built horizon-engine> --ctl <bu
 
 The probe first compares a magenta provider result, native green fallback and unaffected stone. It places and state-checks all 47 original foliage block registrations. Without `--tinker-pack` it photographs the ordinary resources; with it, five controlled colormaps change through F3+T, then a wrong-size Ichor map must be rejected while retaining its previous colour. States are rechecked after each reload. Inspect the overview and plant close-ups: callback markers alone do not prove tinting. Item/hand, particles and connected-texture overlay tinting are outside this gate.
 
+For custom feature types, build the independent probe consumer and run:
+
+```sh
+python tools/smoke-local/feature_registry.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR --mode column
+```
+
+The column mode checks configuration, exact block properties, a negative origin, RNG bounds, invalid-height rejection and bounded recursive placement. It clones prepared resources and detaches only the clone's `worldgen/features.json` before adding fixtures; the original bundle is byte-checked unchanged. Also run `--mode decline` and `--mode invalid`: the throwaway consumer registers the native fungus type and must prevent native growth after a false result or codec error. Inspect all three saved images, then use the ordinary fungus gate to check unregistered native fallback. These are live BlockEditor callbacks, not native-command, natural-generation or nested-native-graph coverage.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

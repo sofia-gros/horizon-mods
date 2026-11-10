@@ -26,7 +26,55 @@ fn check_resource_pack(count: usize) {
     assert!(valid, "native resource pack priority/reload/snapshot mismatch");
 }
 
+fn register_feature_probe() {
+    use pluto_lib::{BlockBehavior, BlockBehaviors, BlockState, ConfiguredFeature, FeatureTypeRegistry};
+    let Ok(mode) = std::env::var("PLUTO_PROBE_FEATURE_MODE") else { return };
+    if mode == "decline" || mode == "invalid" {
+        let invalid = mode == "invalid";
+        assert!(FeatureTypeRegistry::register(Identifier::parse("minecraft:huge_fungus").unwrap(), move |_| {
+            if invalid { return Err("probe deliberately invalid native feature configuration".into()); }
+            Ok(ConfiguredFeature::new(|_| {
+                println!("PLUTO-PROBE native_feature declined");
+                false
+            }))
+        }));
+        return;
+    }
+    if mode != "column" { return; }
+    assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:column").unwrap(), |config| {
+        let height = config.get("height").and_then(serde_json::Value::as_u64)
+            .filter(|height| (1..=8).contains(height)).ok_or_else(|| "probe height must be 1..=8".to_owned())?;
+        let state = config.get("state").and_then(serde_json::Value::as_str)
+            .and_then(|text| BlockState::parse(text).ok()).ok_or_else(|| "probe block state missing".to_owned())?;
+        let nested = config.get("nested").and_then(serde_json::Value::as_str).map(str::to_owned);
+        Ok(ConfiguredFeature::new(move |context| {
+            if let Some(nested) = &nested { return context.world.place_feature(nested, context.origin); }
+            let roll = context.world.random_int(7);
+            for dy in 0..height as i32 {
+                let Some(y) = context.origin[1].checked_add(dy) else { return false };
+                if !context.world.set_block_state([context.origin[0], y, context.origin[2]], &state) { return false; }
+            }
+            println!("PLUTO-PROBE custom_feature origin={:?} height={height} rng_in_range={}", context.origin, (0..7).contains(&roll));
+            true
+        }))
+    }));
+    BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+        .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true)
+        .on_bonemeal(|context| {
+            let name = match context.pos[0] {
+                -2 => "pluto_probe:column_valid",
+                4 => "pluto_probe:column_bad",
+                10 => "pluto_probe:column_recursive",
+                _ => return,
+            };
+            let pos = [context.pos[0], context.pos[1] + 1, context.pos[2]];
+            let placed = context.world.place_feature(name, pos);
+            println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+        }));
+}
+
 pub fn hooks() -> Box<dyn Hooks> {
+    register_feature_probe();
     pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
         if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
             static ONCE: AtomicBool = AtomicBool::new(false);

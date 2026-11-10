@@ -38,6 +38,17 @@ pub fn hooks() -> Box<dyn Hooks> {
     );
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
     horizon_client::entry::pluto_block::set_sink(block_sink());
+    horizon_client::entry::pluto_block::set_feature_dispatcher(|world, kind, configuration, origin| {
+        use crate::pure::worldgen_api_v1::{FeatureContext, FeatureTypeRegistry};
+        let id = Identifier::parse(kind).ok()?;
+        match FeatureTypeRegistry::generate(&id, configuration, &mut FeatureContext { world: &mut GameEditor(world), origin }) {
+            Ok(result) => result,
+            Err(error) => {
+                eprintln!("pluto_lib: feature type {id} rejected configuration: {error}");
+                Some(false)
+            }
+        }
+    });
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(

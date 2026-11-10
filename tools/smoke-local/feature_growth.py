@@ -43,6 +43,7 @@ def main():
     temporary.mkdir()
     env['TMP'] = env['TEMP'] = str(temporary)
     env.pop('PLUTO_PROBE_RESOURCE_PACK', None)
+    env.pop('PLUTO_PROBE_FEATURE_MODE', None)
     observations, screenshots = [], []
 
     def ctl(*words, timeout=40):

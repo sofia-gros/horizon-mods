@@ -96,6 +96,74 @@ pub struct Sink {
     pub may_place_on: fn(&dyn LevelView, &StateInfo, &StateInfo, [i32; 3]) -> Option<bool>,
 }
 
+pub const MAX_FEATURE_DEPTH: u8 = 64;
+
+/// Scope only the recursion bookkeeping. Preserve completed writes and rethrow
+/// the original panic; a consumer may catch it and keep using the same editor.
+pub fn with_feature_depth<S>(state: &mut S, depth: fn(&mut S) -> &mut u8, body: impl FnOnce(&mut S) -> Option<bool>) -> Option<bool> {
+    let previous = *depth(state);
+    if previous >= MAX_FEATURE_DEPTH { return Some(false); }
+    *depth(state) = previous + 1;
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| body(state)));
+    *depth(state) = previous;
+    match result {
+        Ok(answer) => answer,
+        Err(panic) => std::panic::resume_unwind(panic),
+    }
+}
+
+#[cfg(test)]
+mod feature_depth_tests {
+    use super::*;
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+
+    #[derive(Default)]
+    struct State { depth: u8, calls: u32, writes: u32 }
+    fn depth(state: &mut State) -> &mut u8 { &mut state.depth }
+    fn recursive(state: &mut State) -> Option<bool> {
+        with_feature_depth(state, depth, |state| {
+            state.calls += 1;
+            recursive(state)
+        })
+    }
+
+    #[test]
+    fn scopes_bound_recursion_and_restore_after_caught_panics_without_rollback() {
+        let mut state = State::default();
+        assert_eq!(recursive(&mut state), Some(false));
+        assert_eq!(state.calls, u32::from(MAX_FEATURE_DEPTH));
+        assert_eq!(state.depth, 0);
+        assert_eq!(with_feature_depth(&mut state, depth, |state| {
+            // More than the depth limit worth of sequential, caught inner panics
+            // must not exhaust the still-active outer scope's recursion budget.
+            for _ in 0..70 {
+                let panic = catch_unwind(AssertUnwindSafe(|| with_feature_depth(state, depth, |state| {
+                    state.writes += 1;
+                    std::panic::panic_any("original feature panic");
+                }))).unwrap_err();
+                assert_eq!(panic.downcast_ref::<&str>(), Some(&"original feature panic"));
+                assert_eq!(state.depth, 1);
+            }
+            Some(true)
+        }), Some(true));
+        assert_eq!(state.depth, 0);
+        assert_eq!(state.writes, 70, "world-side effects are not rolled back");
+    }
+}
+
+type FeatureDispatcher = fn(&mut dyn LevelEdit, &str, &serde_json::Value, [i32; 3]) -> Option<bool>;
+static FEATURES: Mutex<Option<FeatureDispatcher>> = Mutex::new(None);
+
+pub fn set_feature_dispatcher(dispatch: FeatureDispatcher) {
+    if let Ok(mut slot) = FEATURES.lock() { *slot = Some(dispatch); }
+}
+
+/// None means no custom type was registered; retain native placement in that case.
+pub fn custom_feature(world: &mut dyn LevelEdit, kind: &str, config: &serde_json::Value, pos: [i32; 3]) -> Option<bool> {
+    let dispatch = *FEATURES.lock().ok()?;
+    dispatch?(world, kind, config, pos)
+}
+
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);
 
 pub fn set_sink(sink: Sink) {
