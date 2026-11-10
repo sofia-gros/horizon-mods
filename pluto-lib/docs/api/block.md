@@ -279,6 +279,8 @@ assert!(world.place_feature("example:big_shoot", [0, 64, 0]));
 assert_eq!(world.features[0].0, "example:big_shoot");
 ```
 
+> **Use with Caution.** `place_feature` delegates live placement to the active native catalog through PlutoLib's concrete level boundary, preserving the native level RNG and updates. Four real bone-meal fungus-growth cases have been checked. This call does not register new feature types, root placers or decorators, and does not connect a custom algorithm to natural generation. `MemoryBlockView` records requests; it does not generate terrain.
+
 ### `TickContext`
 
 A tick or a bone meal reached the block. `state` is the block's state, `pos` its position and `world` the world around, which can be changed.

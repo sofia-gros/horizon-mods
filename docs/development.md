@@ -80,6 +80,14 @@ python tools/smoke-local/block_colors.py --game <built horizon-engine> --ctl <bu
 
 The probe first compares a magenta provider result, native green fallback and unaffected stone. It places and state-checks all 47 original foliage block registrations. Without `--tinker-pack` it photographs the ordinary resources; with it, five controlled colormaps change through F3+T, then a wrong-size Ichor map must be rejected while retaining its previous colour. States are rechecked after each reload. Inspect the overview and plant close-ups: callback markers alone do not prove tinting. Item/hand, particles and connected-texture overlay tinting are outside this gate.
 
+For the live native configured-feature boundary, use a matching native probe build:
+
+```sh
+python tools/smoke-local/feature_growth.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR
+```
+
+This gate uses real bone-meal interactions for Blood and Ichor fungi on Earth and Ichor dirt. It requires surviving fixtures, a stem and matching upper-cap blocks, preserved base blocks and clean lifecycle shutdown. Growth retries are bounded, and saved images need inspection. It exercises native configured features through `BlockEditor::place_feature`, not custom feature types, root/decorator registration, natural generation or Ender-tree parity.
+
 For the existing world-domain nylium consumer, use a matching native probe build:
 
 ```sh
