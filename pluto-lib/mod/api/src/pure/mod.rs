@@ -23,3 +23,4 @@ pub mod projectile_events_v1;
 pub mod resource_loader_v0;
 pub mod screen_handler_api_v1;
 pub mod world_api_v1;
+pub mod worldgen_api_v1;
