@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags'):
+    if args.mode in ('column', 'flags', 'decorator'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -61,11 +61,19 @@ def main():
             (f'flags_{flags}', {'height': 1, 'state': 'minecraft:stone', 'flags': flags})
             for flags in (3, 2, 18, 19)
         )
+        if args.mode == 'decorator':
+            fixtures = (
+                ('decorator_full', {'vines': 'minecraft:vine', 'probability': 1}),
+                ('decorator_obstructed', {'vines': 'tconstruct:ender_slime_vine', 'probability': 1}),
+                ('decorator_zero', {'vines': 'minecraft:vine', 'probability': 0}),
+                ('decorator_invalid', {'vines': 'minecraft:vine', 'probability': 1.1}),
+                ('decorator_write_fail', {'vines': 'pluto_probe:missing_vine', 'probability': 1}),
+            )
         for name, config in fixtures:
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            definitions[key] = json.dumps({'type': 'pluto_probe:column', 'config': config})
+            definitions[key] = json.dumps({'type': 'pluto_probe:decorator_fixture' if args.mode == 'decorator' else 'pluto_probe:column', 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
         if (original / 'worldgen/features.json').read_bytes() != original_bytes:
@@ -122,9 +130,9 @@ def main():
                 return clicks
         raise RuntimeError(f'expected callback not observed: {marker}; run={run}')
 
-    def photograph(x, name):
-        ctl('setblock', x, 102, 8, 'minecraft:stone')
-        ctl('command', f'tp @s {x + 0.5} 103 8.5')
+    def photograph(x, name, player_y=103):
+        ctl('setblock', x, player_y - 1, 8, 'minecraft:stone')
+        ctl('command', f'tp @s {x + 0.5} {player_y} 8.5')
         ctl('setblock', x, 102, 3, 'minecraft:air')
         ctl('command', 'effect clear @s')
         ctl('look', 180, 0)
@@ -173,6 +181,55 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'decorator':
+                scenes = ((0, 'full', 'minecraft:vine', True),
+                          (8, 'obstructed', 'tconstruct:ender_slime_vine', True),
+                          (16, 'zero', 'minecraft:vine', True),
+                          (24, 'invalid', None, False),
+                          (32, 'write_fail', None, False))
+                for x, case, vine, success in scenes:
+                    fixture(x, 'minecraft:stone', 'minecraft:dead_bush')
+                    if case == 'obstructed':
+                        ctl('setblock', x, 107, -1, 'minecraft:stone')
+                    name = f'pluto_probe:decorator_{case}'
+                    marker = f'PLUTO-PROBE feature_request name={name} placed={str(success).lower()}'
+                    clicks = click_until(x, marker)
+                    ctl('wait', 10)
+                    anchor = block(x, 108, 0)
+                    if case == 'invalid':
+                        if anchor != 'minecraft:air':
+                            raise RuntimeError(f'invalid decorator wrote before decoding: {anchor}; run={run}')
+                    elif not anchor.startswith('minecraft:oak_leaves['):
+                        raise RuntimeError(f'decorator anchor missing: {case}; run={run}')
+                    count = 0
+                    for dx, dz, face in ((0, -1, 'south'), (1, 0, 'west'), (0, 1, 'north'), (-1, 0, 'east')):
+                        for y in range(103, 109):
+                            state = block(x + dx, y, dz)
+                            expected_vine = case in ('full', 'obstructed') and y >= 104
+                            if case == 'obstructed' and (dx, dz) == (0, -1):
+                                if y == 107:
+                                    if state != 'minecraft:stone':
+                                        raise RuntimeError(f'vine overwrote obstruction: {state}; run={run}')
+                                    continue
+                                expected_vine = y == 108
+                            if expected_vine:
+                                if not state.startswith(vine + '['):
+                                    raise RuntimeError(f'wrong vine at {(x + dx, y, dz)}: {state}; run={run}')
+                                properties = dict(p.split('=') for p in state.split('[', 1)[1].rstrip(']').split(','))
+                                if any(properties.get(side) != ('true' if side == face else 'false') for side in ('north', 'east', 'south', 'west')) or properties.get('up') != 'false':
+                                    raise RuntimeError(f'wrong default-state attachment: {state}; run={run}')
+                                count += 1
+                            elif state != 'minecraft:air':
+                                raise RuntimeError(f'unexpected decorator write at {(x + dx, y, dz)}: {state}; run={run}')
+                    if count != (20 if case == 'full' else 16 if case == 'obstructed' else 0):
+                        raise RuntimeError(f'wrong vine count: {case}/{count}; run={run}')
+                    observations.append({'case': case, 'clicks': clicks, 'vines': count, 'placed': success})
+                    photograph(x, f'decorator-{case}.png', player_y=106)
+                observed = text()
+                if observed.count('probability must be in 0..=1') != 1 or 'vine write failed:' not in observed:
+                    raise RuntimeError(f'decorator validation/write diagnostics missing; run={run}')
+                if 'Horizon: feature pluto_probe:' in observed:
+                    raise RuntimeError(f'decorator failure reached native decoding; run={run}')
             elif args.mode == 'flags':
                 for x, flags in ((0, 3), (6, 2), (12, 18), (18, 19)):
                     fixture(x, 'minecraft:stone', 'minecraft:dead_bush')

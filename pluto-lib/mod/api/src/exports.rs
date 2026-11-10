@@ -37,5 +37,5 @@ pub use crate::pure::screen_handler_api_v1::{
 };
 pub use crate::pure::projectile_events_v1::{self, ProjectileEvents, ProjectileImpact};
 pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, World, WorldOps, with_world};
-pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry};
+pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, ResourceManagerHelper, ResourceType, reload_event};

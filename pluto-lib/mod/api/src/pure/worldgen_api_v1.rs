@@ -72,11 +72,107 @@ impl FeatureTypeRegistry {
     }
 }
 
+/// Borrowed inputs to a tree decorator. The tree generator supplies its ordered
+/// position lists and its own editor/RNG. This context does not discover leaves,
+/// track writes for a native tree, or run the native final shape/distance passes.
+pub struct TreeDecoratorContext<'a> {
+    pub world: &'a mut dyn BlockEditor,
+    pub logs: &'a [BlockPos],
+    pub leaves: &'a [BlockPos],
+    pub roots: &'a [BlockPos],
+}
+
+type Decorator = dyn Fn(&mut TreeDecoratorContext<'_>) -> Result<(), String> + Send + Sync;
+
+/// An immutable decoded tree decorator. Errors preserve earlier writes and must
+/// be handled as failure, not permission to run an alternative decorator.
+#[derive(Clone)]
+pub struct TreeDecorator {
+    decorate: Arc<Decorator>,
+}
+
+impl TreeDecorator {
+    /// Capture validated settings. The borrowed placement context cannot escape.
+    pub fn new(decorate: impl Fn(&mut TreeDecoratorContext<'_>) -> Result<(), String> + Send + Sync + 'static) -> Self {
+        Self { decorate: Arc::new(decorate) }
+    }
+
+    /// Run against caller-supplied tree positions, without reordering them.
+    pub fn decorate(&self, context: &mut TreeDecoratorContext<'_>) -> Result<(), String> {
+        (self.decorate)(context)
+    }
+}
+
+type DecoratorCodec = Arc<dyn Fn(&Value) -> Result<TreeDecorator, String> + Send + Sync>;
+static DECORATORS: RwLock<BTreeMap<String, DecoratorCodec>> = RwLock::new(BTreeMap::new());
+
+/// Namespaced tree-decorator codecs. Tree generators explicitly decode before
+/// placement, then invoke their decorators inside the same placement context.
+/// Native tree decoding/placement and natural generation are not connected yet.
+pub struct TreeDecoratorTypeRegistry;
+
+impl TreeDecoratorTypeRegistry {
+    /// Register or replace a codec. Callbacks and replaced capture destructors run
+    /// outside the registry lock. False means the registry could not be written.
+    pub fn register(id: Identifier, codec: impl Fn(&Value) -> Result<TreeDecorator, String> + Send + Sync + 'static) -> bool {
+        let codec: DecoratorCodec = Arc::new(codec);
+        let previous = {
+            let Ok(mut all) = DECORATORS.write() else { return false };
+            all.insert(id.to_string(), codec)
+        };
+        drop(previous);
+        true
+    }
+
+    /// Decode without touching a world. Unknown types return Ok(None); a known
+    /// type's codec error stays an error. Decode all decorators before tree writes.
+    pub fn decode(id: &Identifier, configuration: &Value) -> Result<Option<TreeDecorator>, String> {
+        let codec = DECORATORS.read().map_err(|_| "tree decorator registry poisoned".to_owned())?.get(&id.to_string()).cloned();
+        let Some(codec) = codec else { return Ok(None) };
+        codec(configuration).map(Some)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use super::super::block_api_v1::MemoryBlockView;
     use super::super::world_api_v1::BlockState;
+
+    #[test]
+    fn decorators_decode_before_placement_keep_order_and_propagate_partial_failure() {
+        let id = Identifier::parse("example:ordered_decorator").unwrap();
+        assert!(TreeDecoratorTypeRegistry::decode(&id, &Value::Null).unwrap().is_none());
+        let replacement = id.clone();
+        assert!(TreeDecoratorTypeRegistry::register(id.clone(), move |value| {
+            if value.as_bool() != Some(true) { return Err("disabled decorator".into()); }
+            TreeDecoratorTypeRegistry::register(replacement.clone(), |_| Err("replaced".into()));
+            Ok(TreeDecorator::new(|context| {
+                TreeDecoratorTypeRegistry::register(Identifier::parse("example:inside_decorator").unwrap(), |_| Err("unused".into()));
+                assert_eq!(context.logs, [[-2, 70, 0]]);
+                assert_eq!(context.roots, [[-2, 69, 0]]);
+                assert_eq!(context.world.random_int(5), 2);
+                let stone = BlockState::parse("minecraft:stone").unwrap();
+                for &pos in context.leaves {
+                    if pos[0] == 4 { return Err("stop after first write".into()); }
+                    if !context.world.set_block_state_with_flags(pos, &stone, 19) { return Err("write refused".into()); }
+                }
+                Ok(())
+            }))
+        }));
+        assert_eq!(TreeDecoratorTypeRegistry::decode(&id, &Value::Bool(false)).err().as_deref(), Some("disabled decorator"));
+        let decorator = TreeDecoratorTypeRegistry::decode(&id, &Value::Bool(true)).unwrap().unwrap();
+        assert_eq!(TreeDecoratorTypeRegistry::decode(&id, &Value::Bool(true)).err().as_deref(), Some("replaced"));
+        let mut world = MemoryBlockView::default();
+        world.rolls = vec![7];
+        assert_eq!(decorator.clone().decorate(&mut TreeDecoratorContext {
+            world: &mut world, logs: &[[-2, 70, 0]], leaves: &[[9, 72, 0], [4, 71, 0]], roots: &[[-2, 69, 0]],
+        }), Err("stop after first write".into()));
+        assert_eq!(world.writes.len(), 1);
+        assert_eq!(world.writes[0].0, [9, 72, 0]);
+        assert_eq!(world.writes[0].2, 19);
+        assert!(!world.blocks.contains_key(&[4, 71, 0]));
+    }
 
     #[test]
     fn codecs_validate_before_writes_and_dispatch_keeps_results_rng_and_reentry() {

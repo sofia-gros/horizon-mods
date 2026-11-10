@@ -223,8 +223,8 @@
       "note": "trees.rs ports the whole feature over BlockEditor for the earth and sky saplings; checked in game that the trunk grows (greenheart logs); the canopy and the leaf distances were not inspected; the island generation still calls the old shape code"
     },
     "worldgen/trees/LeaveVineDecorator.java": {
-      "status": "parked",
-      "note": "Horizon has no extension point for a mod's own worldgen feature types or structure starts (only data-driven ones, and the fungus is data-driven per ground). The island and ender tree code that works today edits Horizon's worldgen internals through frozen legacy injections (slime-island-*, ender-tree-*) and is not compared with the Java; it stays until Horizon offers the extension point"
+      "status": "partial",
+      "note": "Java ordered leaf/side/RNG loop and explicit-flags editor adapter registered as tconstruct:leave_vines through PlutoLib's TreeDecoratorTypeRegistry. Pure trace/adapter tests and independent live fixture pass (20 vanilla vines, 16 configured vines with obstruction, zero probability, invalid codec and write failure); five images inspected. Native Ender-tree dispatch, placement-set tracking and finalization remain unconnected. Block identifiers are syntax-checked at decode; native block/property existence is checked on write, not at codec time. Not completed parity."
     },
     "worldgen/trees/SlimeTree.java": {
       "status": "partial",

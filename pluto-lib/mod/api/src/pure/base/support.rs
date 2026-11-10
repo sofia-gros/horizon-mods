@@ -30,6 +30,12 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
+        api: "worldgen_api_v1::TreeDecoratorTypeRegistry (native trees and natural generation)",
+        support: Support::Stub,
+        behaviour: "codecs decode for explicit generator calls; native tree decoding/placement does not dispatch registered decorators or track their writes",
+        unblocked_by: "PlutoLib-owned tree placement adapter retaining position sets, RNG and native final shape/distance passes",
+    },
+    SupportEntry {
         api: "worldgen_api_v1::FeatureTypeRegistry (natural generation, native commands and nested native feature graphs)",
         support: Support::Stub,
         behaviour: "direct and live BlockEditor dispatch invoke registered codecs/generators; native commands, generation workers and nested native graphs do not dispatch custom types",
