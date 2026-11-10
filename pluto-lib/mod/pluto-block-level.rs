@@ -221,7 +221,9 @@ impl LevelEdit for Edit<'_, '_> {
     fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
         let Some(ticks) = self.ticks.as_deref_mut() else { return false };
         let behaviours = self.level.behaviours;
-        behaviours.place_feature(&mut *self.level, ticks, feature, at(pos)).unwrap_or(false)
+        horizon_world::level::pluto_worldgen_level::place_native(
+            behaviours, &mut *self.level, ticks, feature, at(pos),
+        ).unwrap_or(false)
     }
 
     fn random_float(&mut self) -> f32 {
