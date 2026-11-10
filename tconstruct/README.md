@@ -32,6 +32,10 @@ These commands run in a real game (`tools/smoke-local`, the full probe checks ea
 
 A tool made this way acts in play: it digs with its mining speed where its definition says it is effective and its harvest tier can harvest the block, it wears against its own max damage, it hits for its attack damage, and its tooltip describes it. Not yet: haste and fatigue, the game's cooldown scaling on hits, ranged tools, armor, the Tinker Station and Part Builder screens on PlutoLib (the legacy ones still work on their own data), the item costs of the multi-level and swappable modifier recipes, removing modifiers, and most of the modifier modules (7 of 165 are carried as code (protection is library-only until armor acts in game); the rest are kept as data). The roadmap ([docs/roadmap.md](../docs/roadmap.md)) has the plan and the decision log.
 
+## Ender tree adapter in development
+
+The explicit `tconstruct:source_tree` feature codec reads the original normal/tall Ender tree settings through PlutoLib's bound-root and ordered-decoration APIs. Schema conversion and the Java propagule survival rule have passing behaviour tests. A full native build and eight real-game fixtures passed: normal/tall trees on earth/sky/ichor/ender congealed ground, including roots, vines and 44 surviving hanging propagules; all eight images were inspected. It does not yet replace the legacy sapling or island growth routes, and full Ender Tree parity is not claimed.
+
 ## What exists but has not been run in a game
 
 About 290 injections into Horizon (287 accepted by the pinned Horizon Mixins, all of them compile) and their helper code cover: the Part Builder, Tinker Station and anvils; the Melter, Smeltery,

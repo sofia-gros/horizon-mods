@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+serde_json = "1"
 pluto_lib = { package = "pluto-lib-pure-tests", path = "../../../pluto-lib/tests/pure" }
 
 [workspace]

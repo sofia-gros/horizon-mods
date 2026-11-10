@@ -31,6 +31,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world::register();
     colors::register();
     world::register_leaves();
+    world::register_ender_propagule_survival();
     world::register_grass();
     world::register_seeds();
     world::register_crystals();

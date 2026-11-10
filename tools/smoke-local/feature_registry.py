@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -76,6 +76,10 @@ def main():
                 ('native_tree_error', {'tree': oak, 'fail': True}),
                 ('native_tree_invalid', {'tree': {'type': 'minecraft:no_op', 'config': {}}, 'remove': False}),
             )
+        if args.mode == 'ender':
+            reference = ROOT / 'tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/configured_feature'
+            sources = [json.loads((reference / name).read_text(encoding='utf-8')) for name in ('ender_slime_tree.json', 'ender_slime_tree_tall.json')]
+            fixtures = tuple((f'ender_{index}', sources[index % 2]) for index in range(8))
         if args.mode == 'ordered':
             oak = json.loads(definitions['minecraft:oak'])
             oak.get('config', oak)['decorators'] = [
@@ -114,7 +118,7 @@ def main():
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture'}.get(args.mode, 'pluto_probe:column')
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture', 'ender': 'tconstruct:source_tree'}.get(args.mode, 'pluto_probe:column')
             definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
@@ -223,6 +227,37 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'ender':
+                import re
+                total_propagules = 0
+                for index in range(8):
+                    x = index * 48
+                    flavor = ('earth', 'sky', 'ichor', 'ender')[index // 2]
+                    ctl('command', f'tp @s {x + 0.5} 150 15.5')
+                    ctl('wait', 40)
+                    # Split clearing so every fill stays below the native limit.
+                    for command in (f'fill {x-16} 99 -16 {x+16} 99 16 minecraft:stone',
+                                    f'fill {x-16} 100 -16 {x+16} 120 16 minecraft:air',
+                                    f'fill {x-16} 121 -16 {x+16} 145 16 minecraft:air',
+                                    f'fill {x-16} 100 -16 {x+16} 100 16 tconstruct:{flavor}_congealed_slime',
+                                    f'setblock {x} 101 0 minecraft:dead_bush',
+                                    f'setblock {x} 102 3 minecraft:stone', f'tp @s {x+0.5} 103 3.5'):
+                        ctl('command', command)
+                    ctl('wait', 20)
+                    ctl('select', 'minecraft:bone_meal')
+                    name = f'pluto_probe:ender_{index}'
+                    clicks = click_until(x, f'PLUTO-PROBE feature_request name={name} placed=true')
+                    match = re.search(rf'PLUTO-PROBE ender_case index={index} placed=true logs=(\d+) leaves=(\d+) vines=(\d+) propagules=(\d+) roots=(\d+) variants=(\d+) states_ok=true', text())
+                    if not match:
+                        raise RuntimeError(f'Ender tree observation missing: {index}; run={run}')
+                    counts = dict(zip(('logs', 'leaves', 'vines', 'propagules', 'roots', 'variants'), map(int, match.groups())))
+                    if any(counts[key] <= 0 for key in ('logs', 'leaves', 'vines', 'roots', 'variants')):
+                        raise RuntimeError(f'incomplete Ender tree: {counts}; run={run}')
+                    total_propagules += counts['propagules']
+                    photograph(x, f'ender-{flavor}-{index%2}.png', player_y=109, camera_z=24)
+                    observations.append({'case': index, 'flavor': flavor, 'tall': bool(index%2), 'clicks': clicks, **counts})
+                if total_propagules == 0 or 'Horizon: feature pluto_probe:' in text():
+                    raise RuntimeError(f'Ender propagules missing or native fallback used; run={run}')
             elif args.mode == 'ordered':
                 for x, case, success, count in ((0, 'valid', True, 3), (16, 'error', False, 1), (32, 'invalid', False, 0)):
                     fixture(x, 'minecraft:dirt', 'minecraft:dead_bush')

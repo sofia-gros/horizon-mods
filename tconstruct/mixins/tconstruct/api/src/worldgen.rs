@@ -6,6 +6,9 @@
 //! This core does not sample root providers, waterlog roots, run the parent
 //! mangrove algorithm or prove native tree integration.
 
+#[path = "source_tree.rs"]
+mod source_tree;
+
 /// One ordered root predicate/provider pair. `Matches` may retain block IDs,
 /// tags or a parsed holder set; `Provider` may retain the original provider JSON.
 /// Neither is interpreted or reduced to a fixed block map here.
@@ -152,6 +155,7 @@ pub fn register() {
             decorate_vines(&mut EditorVines { world: context.world, vine: &vine }, context.leaves, probability)
         }))
     }), "tree decorator registration failed");
+    source_tree::register();
 }
 
 /// ExtraRootVariantPlacer.placeRoot: bind original holders/providers without

@@ -32,7 +32,7 @@
     },
     "block/SlimePropaguleBlock.java": {
       "status": "partial",
-      "note": "the five old injections still run it (hanging growth, survival, bone meal, tree growth); its tree is the ender (mangrove style) tree, which is native worldgen code; to move onto PlutoLib it needs the world generation extension point below"
+      "note": "Java hanging slimy-leaf and grounded slime-soil survival is now registered through PlutoLib, with a passing behaviour regression. The first Ender-tree run produced no surviving propagules; after the support fix, eight normal/tall x ground fixtures pass with 44 surviving propagules and inspected images. Placement, random/bonemeal growth and real sapling routing are not migrated by this change; frozen legacy handlers remain. Full class parity is not claimed."
     },
     "block/SlimePropaguleLeavesBlock.java": {
       "status": "partial",
@@ -212,7 +212,7 @@
     },
     "worldgen/trees/ExtraRootVariantPlacer.java": {
       "status": "partial",
-      "note": "Re-reviewed through PlutoLib modules: per-position root override and ordered holder/provider bindings passed the native build and five live fixtures (weighted selection, waterlogging, parent fallback, no-state error, invalid unselected binding); five images inspected. Java first-match selection samples only that provider; no match delegates to native parent, and errors never fall through. Native root simulation/offset and waterlogging/tracking stay in the host. Original Java JSON still needs host-schema conversion; full Ender Tree/data integration and parity remain unfinished. Not a permanent missing-hook limit."
+      "note": "Re-reviewed through PlutoLib modules: per-position root override and ordered holder/provider bindings passed the native build and five live fixtures (weighted selection, waterlogging, parent fallback, no-state error, invalid unselected binding); five images inspected. Java first-match selection samples only that provider; no match delegates to native parent, and errors never fall through. Native root simulation/offset and waterlogging/tracking stay in the host. Original Java schema conversion is implemented in the explicit source_tree consumer and has a passing behaviour test; eight original normal/tall x ground Ender fixtures now pass through PlutoLib, with inspected images. Ordinary sapling/island/natural dispatch and complete parity remain unfinished. Not a permanent missing-hook limit."
     },
     "worldgen/trees/feature/SlimeFungusFeature.java": {
       "status": "parked",
@@ -224,7 +224,7 @@
     },
     "worldgen/trees/LeaveVineDecorator.java": {
       "status": "partial",
-      "note": "Java ordered leaf/side/RNG loop and explicit-flags editor adapter registered as tconstruct:leave_vines through PlutoLib's TreeDecoratorTypeRegistry. Pure trace/adapter tests and independent live fixture pass (20 vanilla vines, 16 configured vines with obstruction, zero probability, invalid codec and write failure); five images inspected. Native Ender-tree dispatch, placement-set tracking and finalization remain unconnected. Block identifiers are syntax-checked at decode; native block/property existence is checked on write, not at codec time. Not completed parity."
+      "note": "Java ordered leaf/side/RNG loop and explicit-flags editor adapter registered as tconstruct:leave_vines through PlutoLib's TreeDecoratorTypeRegistry. Pure trace/adapter tests and independent live fixture pass (20 vanilla vines, 16 configured vines with obstruction, zero probability, invalid codec and write failure); five images inspected. Native oak tracking/finalization and ordered decoration fixtures pass. The explicit original-configuration Ender adapter passes its native build and eight live fixtures, with 44 surviving propagules and images inspected; actual sapling/island dispatch is not migrated. Block identifiers are syntax-checked at decode; native block/property existence is checked on write, not at codec time. Not completed parity."
     },
     "worldgen/trees/SlimeTree.java": {
       "status": "partial",
