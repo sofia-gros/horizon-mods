@@ -27,8 +27,8 @@
       "note": "PlutoLib behaviour (world.rs register_grass). Checked in game: covered grass turns to dirt on a random tick; a real bone meal click scattered ferns and tall grass. Spreading to nearby dirt was not watched"
     },
     "block/SlimeNyliumBlock.java": {
-      "status": "ported-unchecked",
-      "note": "same code path as the grass (nether foliage): dies when covered, bone meal spreads foliage and may place a sapling; not watched in game"
+      "status": "ported",
+      "note": "world.rs nether branch; real-game nylium-game3 checks all 10 ichor/blood x soil variants: stone cover -> correct dirt, air/glass survival, occupied-above rejection, actual bone meal -> matching plants and nearby nylium, other-foliage sentinel unchanged. Representative screenshots inspected. Color rendering remains parked (#1117); bottom-slab Java parity, exact RNG/rare outcomes and LAN/save-reload are not claimed."
     },
     "block/SlimePropaguleBlock.java": {
       "status": "partial",
