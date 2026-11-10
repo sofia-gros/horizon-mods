@@ -1,4 +1,4 @@
-fn tconstruct_storage_region(world: &World, x: i32, z: i32) -> std::ops::ControlFlow<Option<Box<Region>>> {
+fn tconstruct_storage_region(world: &World, x: i32, z: i32) -> std::ops::ControlFlow<Option<Arc<Region>>> {
     use horizon_world::nbt::{Compound, Tag};
     use std::ops::ControlFlow::{Break, Continue};
     let Some(Ok((records, _))) = world.chunks.__horizon_mixins_tconstruct_render_assets().get() else { return Continue(()); };
@@ -29,5 +29,5 @@ fn tconstruct_storage_region(world: &World, x: i32, z: i32) -> std::ops::Control
     let chunk = Arc::make_mut(region[1][1].as_mut().expect("center chunk"));
     let saved = Arc::make_mut(chunk.saved.as_mut().expect("saved block entities"));
     saved.root.insert("tconstruct:mesh_render_info".into(), Tag::Compound(values));
-    Break(Some(Box::new(region)))
+    Break(Some(Arc::new(region)))
 }

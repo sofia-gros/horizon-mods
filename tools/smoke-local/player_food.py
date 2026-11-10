@@ -23,7 +23,7 @@ def main():
         parser.error('--server-reloads must be nonnegative')
     report = json.loads((args.game.resolve().parent / 'native-mods.json').read_text(encoding='utf-8'))
     # Explicit pins are checked below; this gate never accepts silently left-out mods.
-    if report.get('horizon') != 'ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0' or report.get('horizon_mixins') != '5a64af938ec86b00d53d16a408aabc0038fb3e57':
+    if report.get('horizon') != '1453e0e614af4b2d04dd0d228a94162b5d459910' or report.get('horizon_mixins') != 'e59da9094f0c2fdda6c627fe9eff22dec6a906f0':
         raise RuntimeError('food gate requires the reviewed Horizon/Mixins pins')
     if report.get('left_out') or not {'pluto_lib', 'pluto_probe', 'tconstruct'} <= {mod['id'] for mod in report['mods']}:
         raise RuntimeError('required native mods were not all built')

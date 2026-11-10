@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+horizon_revision = "1453e0e614af4b2d04dd0d228a94162b5d459910"
 
 [[crate]]
 id = "creative-api"
@@ -455,7 +455,7 @@ visibility = "pub(crate)"
 
 [[injection]]
 id = "armor-wear-observation-replacement"
-target = "horizon_client::game::Game<'_>::hurt_armor"
+target = "horizon_client::game::item_durability::Game<'_>::hurt_armor"
 kind = "HEAD"
 priority = -2147483648
 cancellable = true
@@ -654,7 +654,7 @@ visibility = "pub(crate)"
 
 [[injection]]
 id = "fluid-render-before-assemble"
-target = "horizon_client::game::PackResources::assemble"
+target = "horizon_client::game::resource_tables::PackResources::assemble"
 kind = "HEAD"
 helper = "fluid-render-before-assemble.rs"
 bindings = [{ name = "assets", ty = "&Arc<Assets>", value = "&assets" }, { name = "render", ty = "&Arc<RenderAssets>", value = "&render" }, { name = "tables", ty = "&Arc<MeshTables>", value = "&tables" }]

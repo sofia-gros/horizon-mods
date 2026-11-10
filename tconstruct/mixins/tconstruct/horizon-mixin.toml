@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+horizon_revision = "1453e0e614af4b2d04dd0d228a94162b5d459910"
 
 [api]
 path = "api"
@@ -19,7 +19,7 @@ dependent = "horizon-client"
 
 [[injection]]
 id = "wear"
-target = "horizon_client::game::Game<'_>::mine_block_with_held"
+target = "horizon_client::game::block_breaking::Game<'_>::mine_block_with_held"
 kind = "HEAD"
 cancellable = true
 helper = "wear.rs"
@@ -151,7 +151,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-click"
-target = "horizon_client::game::Game<'_>::menu_click"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-click.rs"
@@ -164,7 +164,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-local-click-fallback"
-target = "horizon_client::game::Game<'_>::click_inventory"
+target = "horizon_client::game::menu_clicks::Game<'_>::click_inventory"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-local-click.rs"
@@ -175,7 +175,7 @@ bindings = [
 
 [[injection]]
 id = "part-builder-output"
-target = "horizon_client::game::Game<'_>::menu_click"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_click"
 kind = "HEAD"
 cancellable = true
 helper = "part-output.rs"
@@ -222,7 +222,7 @@ source = "station-ui.rs"
 
 [[injection]]
 id = "workstation-origin"
-target = "horizon_client::game::Game<'_>::inventory_origin"
+target = "horizon_client::game::inventory_slots::Game<'_>::inventory_origin"
 kind = "HEAD"
 cancellable = true
 helper = "workstation-origin.rs"
@@ -233,7 +233,7 @@ bindings = [
 
 [[injection]]
 id = "part-layout"
-target = "horizon_client::game::Game<'_>::slot_position"
+target = "horizon_client::game::inventory_slots::Game<'_>::slot_position"
 kind = "HEAD"
 cancellable = true
 helper = "part-layout.rs"
@@ -305,7 +305,7 @@ bindings = [
 
 [[injection]]
 id = "station-drag-guard"
-target = "horizon_client::game::Game<'_>::menu_ops"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_ops"
 kind = "HEAD"
 cancellable = true
 helper = "station-drag-guard.rs"
@@ -934,7 +934,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "smeltery-drag"
-target = "horizon_client::game::Game<'_>::inventory_drag_move"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_drag_move"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-drag.rs"
@@ -942,7 +942,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "builder-drag"
-target = "horizon_client::game::Game<'_>::inventory_drag_move"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_drag_move"
 kind = "HEAD"
 cancellable = true
 helper = "source-builder-drag.rs"
@@ -950,14 +950,14 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "smeltery-release"
-target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_mouse_release"
 kind = "HEAD"
 helper = "source-smeltery-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
 id = "builder-release"
-target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_mouse_release"
 kind = "HEAD"
 helper = "source-builder-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -1033,7 +1033,7 @@ bindings = [
 
 [[injection]]
 id = "storage-render-init"
-target = "horizon_client::game::Game<'_>::prepare_lod"
+target = "horizon_client::game::world_update::Game<'_>::prepare_lod"
 kind = "HEAD"
 helper = "storage-render-init.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
@@ -1319,7 +1319,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "material-bow-tick"
-target = "horizon_client::game::Game<'_>::tick_used_item"
+target = "horizon_client::game::using_item::Game<'_>::tick_used_item"
 kind = "HEAD"
 cancellable = true
 helper = "material-bow-tick.rs"
@@ -1327,7 +1327,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "material-bow-release"
-target = "horizon_client::game::Game<'_>::release_used_item"
+target = "horizon_client::game::using_item::Game<'_>::release_used_item"
 kind = "HEAD"
 cancellable = true
 helper = "material-bow-release.rs"
@@ -1474,7 +1474,7 @@ source = "source-ranged-wear.rs"
 
 [[injection]]
 id = "ranged-retained-wear"
-target = "horizon_client::game::Game<'_>::damage_held"
+target = "horizon_client::game::item_durability::Game<'_>::damage_held"
 kind = "HEAD"
 cancellable = true
 helper = "ranged-wear.rs"
@@ -1839,7 +1839,7 @@ source = "source-machine-interaction.rs"
 
 [[injection]]
 id = "source-machine-use"
-target = "horizon_client::game::Game<'_>::use_hand"
+target = "horizon_client::game::use_hand::Game<'_>::use_hand"
 kind = "HEAD"
 cancellable = true
 helper = "source-machine-use.rs"
@@ -1960,7 +1960,7 @@ source = "source-workstation-tabs-lan.rs"
 
 [[injection]]
 id = "source-station-slots"
-target = "horizon_client::game::Game<'_>::slots"
+target = "horizon_client::game::inventory_slots::Game<'_>::slots"
 kind = "HEAD"
 cancellable = true
 helper = "source-station-slots.rs"
@@ -1994,7 +1994,7 @@ source = "source-preview-projection.rs"
 
 [[injection]]
 id = "station-armor-press"
-target = "horizon_client::game::Game<'_>::inventory_press"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_press"
 kind = "HEAD"
 cancellable = true
 helper = "station-armor-press.rs"
@@ -2005,7 +2005,7 @@ bindings = [
 
 [[injection]]
 id = "station-armor-drag"
-target = "horizon_client::game::Game<'_>::inventory_drag_move"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_drag_move"
 kind = "HEAD"
 cancellable = true
 helper = "station-armor-drag.rs"
@@ -2013,7 +2013,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "station-armor-release"
-target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_mouse_release"
 kind = "HEAD"
 helper = "station-armor-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -2068,7 +2068,7 @@ id = "source-material-mining-speed"
 target = "horizon_items::items::Items::mining_speed"
 kind = "RETURN"
 helper = "source-mining-return.rs"
-bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
+bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "$local:held:0" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
 
 [[module]]
 id = "items-source-mining-rules"
@@ -2120,7 +2120,7 @@ id = "source-material-harvest-tier"
 target = "horizon_items::items::Items::correct_for_drops"
 kind = "RETURN"
 helper = "source-harvest-return.rs"
-bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
+bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "$local:held:0" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
 
 [[module]]
 id = "source-area-shape"
@@ -2230,7 +2230,7 @@ source = "source-crop-harvest.rs"
 
 [[injection]]
 id = "source-crop-use"
-target = "horizon_client::game::Game<'_>::use_hand"
+target = "horizon_client::game::use_hand::Game<'_>::use_hand"
 kind = "HEAD"
 cancellable = true
 helper = "source-crop-use.rs"
@@ -2262,14 +2262,14 @@ source = "source-melee-shape.rs"
 
 [[injection]]
 id = "source-melee-attack-head"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "HEAD"
 helper = "source-melee-attack-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
 
 [[injection]]
 id = "source-melee-attack-return"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "RETURN"
 helper = "source-melee-attack-return.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -2290,7 +2290,7 @@ bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { 
 
 [[injection]]
 id = "source-melee-sweep-position"
-target = "horizon_client::game::Game<'_>::sweep_attack_position"
+target = "horizon_client::game::melee::Game<'_>::sweep_attack_position"
 kind = "HEAD"
 cancellable = true
 helper = "source-melee-sweep-position.rs"
@@ -2350,7 +2350,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "armor-wear-start"
-target = "horizon_client::game::Game<'_>::hurt_armor"
+target = "horizon_client::game::item_durability::Game<'_>::hurt_armor"
 kind = "HEAD"
 helper = "source-armor-wear-start.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -2418,7 +2418,7 @@ helper = "netherite-held-name.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 [[injection]]
 id = "startup-content-tables"
-target = "horizon_client::game::load_resources"
+target = "horizon_client::game::resource_load::load_resources"
 kind = "HEAD"
 helper = "resource-startup.rs"
 bindings = [{ name = "root", ty = "&mut std::path::PathBuf", value = "&mut root" }]
@@ -2540,7 +2540,7 @@ source = "source-overslime-host.rs"
 
 [[injection]]
 id = "overslime-item-bar"
-target = "horizon_client::game::Game<'_>::draw_item_decorations"
+target = "horizon_client::game::inventory_slots::Game<'_>::draw_item_decorations"
 kind = "RETURN"
 helper = "source-overslime-bar.rs"
 bindings = [
@@ -2737,7 +2737,7 @@ source = "source-tinker-chest-ui.rs"
 
 [[injection]]
 id = "source-tinker-chest-slots"
-target = "horizon_client::game::Game<'_>::slots"
+target = "horizon_client::game::inventory_slots::Game<'_>::slots"
 kind = "HEAD"
 cancellable = true
 helper = "source-tinker-chest-slots.rs"
@@ -2745,7 +2745,7 @@ bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[injection]]
 id = "source-tinker-chest-slot-view"
-target = "horizon_client::game::Game<'_>::slot_view"
+target = "horizon_client::game::inventory_slots::Game<'_>::slot_view"
 kind = "HEAD"
 cancellable = true
 helper = "source-tinker-chest-slot-view.rs"
@@ -2756,7 +2756,7 @@ bindings = [
 
 [[injection]]
 id = "source-tinker-chest-click"
-target = "horizon_client::game::Game<'_>::menu_click"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-tinker-chest-click.rs"
@@ -2769,7 +2769,7 @@ bindings = [
 
 [[injection]]
 id = "source-tinker-chest-local-click"
-target = "horizon_client::game::Game<'_>::click_inventory"
+target = "horizon_client::game::menu_clicks::Game<'_>::click_inventory"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-local-click.rs"
@@ -2869,7 +2869,7 @@ bindings = [
 
 [[injection]]
 id = "source-side-chest-click"
-target = "horizon_client::game::Game<'_>::menu_click"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-side-chest-click.rs"
@@ -2902,7 +2902,7 @@ source = "source-crafting-station.rs"
 
 [[injection]]
 id = "crafting-station-refresh-click"
-target = "horizon_client::game::Game<'_>::click_inventory"
+target = "horizon_client::game::menu_clicks::Game<'_>::click_inventory"
 kind = "HEAD"
 helper = "source-crafting-refresh.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -2924,7 +2924,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "crafting-station-menu"
-target = "horizon_client::game::Game<'_>::menu_ops"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_ops"
 kind = "HEAD"
 cancellable = true
 helper = "source-crafting-menu.rs"
@@ -3022,7 +3022,7 @@ source = "source-side-draw.rs"
 
 [[injection]]
 id = "crafting-station-side-click"
-target = "horizon_client::game::Game<'_>::menu_click"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-crafting-side-click.rs"
@@ -3035,7 +3035,7 @@ bindings = [
 
 [[injection]]
 id = "crafting-station-side-draw"
-target = "horizon_client::game::Game<'_>::draw_inventory_slots"
+target = "horizon_client::game::inventory_slots::Game<'_>::draw_inventory_slots"
 kind = "HEAD"
 helper = "source-crafting-side-draw.rs"
 bindings = [
@@ -3149,7 +3149,7 @@ source = "source-chest-tint-math.rs"
 
 [[injection]]
 id = "source-chest-quick-craft"
-target = "horizon_client::game::Game<'_>::menu_ops"
+target = "horizon_client::game::menu_clicks::Game<'_>::menu_ops"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-quick-craft.rs"
@@ -3160,7 +3160,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-drag-accept"
-target = "horizon_client::game::Game<'_>::quick_craft_accepts"
+target = "horizon_client::game::inventory_slots::Game<'_>::quick_craft_accepts"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-drag-accept.rs"
@@ -3173,7 +3173,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-shift-double"
-target = "horizon_client::game::Game<'_>::inventory_press"
+target = "horizon_client::game::inventory_input::Game<'_>::inventory_press"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-shift-double.rs"
@@ -3196,7 +3196,7 @@ source = "source-workstation-tabs-ui.rs"
 
 [[injection]]
 id = "source-workstation-outside"
-target = "horizon_client::game::Game<'_>::clicked_outside"
+target = "horizon_client::game::inventory_input::Game<'_>::clicked_outside"
 kind = "HEAD"
 cancellable = true
 helper = "source-workstation-outside.rs"
@@ -3218,7 +3218,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-drag-view"
-target = "horizon_client::game::Game<'_>::drag_view"
+target = "horizon_client::game::inventory_slots::Game<'_>::drag_view"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-drag-view.rs"
@@ -3320,13 +3320,14 @@ source = "source-chute-hopper.rs"
 
 [[injection]]
 id = "source-chute-hopper-eject"
-target = "horizon_client::game::machines::Game<'_>::hopper_eject"
+target = "horizon_client::game::machines::Game<'_>::hopper_eject_with_state"
 kind = "HEAD"
 cancellable = true
 helper = "source-chute-hopper-eject.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
   { name = "hopper", ty = "&View", value = "hopper" },
 ]
 
@@ -3439,14 +3440,14 @@ source = "source-necrotic.rs"
 
 [[injection]]
 id = "source-necrotic-head"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "HEAD"
 helper = "necrotic-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
 
 [[injection]]
 id = "source-necrotic-return"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "RETURN"
 helper = "necrotic-return.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -3460,14 +3461,14 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "source-spilling-head"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "HEAD"
 helper = "source-spilling-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
 
 [[injection]]
 id = "source-spilling-return"
-target = "horizon_client::game::Game<'_>::attack_mob"
+target = "horizon_client::game::melee::Game<'_>::attack_mob"
 kind = "RETURN"
 helper = "source-spilling-return.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -3518,7 +3519,7 @@ source = "source-bottle-fill.rs"
 
 [[injection]]
 id = "source-bottle-cauldron"
-target = "horizon_client::game::Game<'_>::use_on_cauldron"
+target = "horizon_client::game::cauldrons::Game<'_>::use_on_cauldron"
 kind = "HEAD"
 cancellable = true
 helper = "source-bottle-cauldron.rs"
@@ -3562,7 +3563,7 @@ source = "source-splashing-player.rs"
 
 [[injection]]
 id = "source-splashing-player-use"
-target = "horizon_client::game::Game<'_>::interact_entity"
+target = "horizon_client::game::item_actions::Game<'_>::interact_entity"
 kind = "HEAD"
 cancellable = true
 helper = "source-splashing-player-use.rs"
@@ -3759,7 +3760,7 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { nam
 
 [[injection]]
 id = "recipe-level-enter-refresh"
-target = "horizon_client::game::Game<'_>::update_world"
+target = "horizon_client::game::world_update::Game<'_>::update_world"
 kind = "HEAD"
 helper = "recipe-level-enter.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

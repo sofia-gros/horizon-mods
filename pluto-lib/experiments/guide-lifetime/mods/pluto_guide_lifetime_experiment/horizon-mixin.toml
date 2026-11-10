@@ -4,7 +4,7 @@ id = "pluto_guide_lifetime_experiment"
 version = "0.1.0"
 priority = 2147483647
 [compatibility]
-horizon_revision = "ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0"
+horizon_revision = "1453e0e614af4b2d04dd0d228a94162b5d459910"
 
 [[module]]
 id = "state-api"

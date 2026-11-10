@@ -15,8 +15,8 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
-HORIZON = 'ebcfa2263aa3d8e399aa993b1e05daf42eb4cfa0'
-MIXINS = '5a64af938ec86b00d53d16a408aabc0038fb3e57'
+HORIZON = '1453e0e614af4b2d04dd0d228a94162b5d459910'
+MIXINS = 'e59da9094f0c2fdda6c627fe9eff22dec6a906f0'
 SOILS = ('earth', 'sky', 'ichor', 'ender', 'vanilla')
 VARIANTS = [(foliage, soil) for foliage in ('ichor', 'blood') for soil in SOILS]
 

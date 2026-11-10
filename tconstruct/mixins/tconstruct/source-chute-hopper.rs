@@ -151,9 +151,9 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
     true
 }
 
-pub(super) fn eject(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hopper: &View) -> std::ops::ControlFlow<bool> {
+pub(super) fn eject(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), state: super::BlockStateId, hopper: &View) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
-    let state = game.world.block(pos.0, pos.1, pos.2);
+    // Use the same caller-supplied state as the native hopper path.
     let Some(facing) = game.containers().prop(state, "facing").and_then(dir_from_name) else { return Continue(()); };
     let target = offset(pos, facing);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
