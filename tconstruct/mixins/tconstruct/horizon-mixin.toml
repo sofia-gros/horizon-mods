@@ -3994,3 +3994,31 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-shell-gut"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_shell_gut"
+source = "source-shell-gut.rs"
+
+[[module]]
+id = "source-shell-gut-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_shell_gut_world"
+source = "shell-gut-world.rs"
+
+[[injection]]
+id = "source-shell-gut-give"
+target = "horizon_client::game::creatures::Game<'_>::give_player_effect"
+kind = "HEAD"
+cancellable = true
+helper = "shell-gut-give.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "effect", ty = "&str", value = "effect" }, { name = "amplifier", ty = "i32", value = "amplifier" }]
+
+[[injection]]
+id = "source-shell-gut-add"
+target = "horizon_client::game::potions::Game<'_>::add_player_effect"
+kind = "HEAD"
+cancellable = true
+helper = "shell-gut-add.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "effect", ty = "&str", value = "effect.id" }, { name = "amplifier", ty = "i32", value = "effect.amplifier" }]
