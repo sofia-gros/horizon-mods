@@ -4,6 +4,9 @@ use super::{Behaviours, LevelAccess, Ticks};
 use horizon_core::position::BlockPos;
 use serde_json::Value;
 
+// The editor contract is below the client crate, shared with native tree callbacks.
+pub use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, MAX_FEATURE_DEPTH};
+
 /// Read the active live catalog, not an embedded configuration or a global registry snapshot.
 pub fn configured_json(behaviours: &Behaviours, name: &str) -> Option<Value> {
     behaviours.live_features()?.configured_json(name)

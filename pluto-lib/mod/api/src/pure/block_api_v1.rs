@@ -261,6 +261,11 @@ pub trait BlockEditor: BlockView {
     /// Places the configured feature `feature` at `pos` (Minecraft: `ConfiguredFeature.place`): a worldgen feature declared in data, such as
     /// `tconstruct:slime_fungus/blood_earth_slime_grass`. False if the feature is unknown or found no room.
     fn place_feature(&mut self, feature: &str, pos: BlockPos) -> bool;
+    /// Place a native tree configuration, then explicit extra decorators before
+    /// native leaf-distance/edge-shape finalization. Default/Memory editors fail
+    /// without writing. Live callback worlds reject nested features/trees until
+    /// their writes can be tracked in the outer tree. No natural dispatch implied.
+    fn place_tree(&mut self, _configuration: &serde_json::Value, _pos: BlockPos, _decorators: &[super::worldgen_api_v1::TreeDecorator]) -> bool { false }
 }
 
 impl BlockEditor for MemoryBlockView {
@@ -678,6 +683,10 @@ mod tests {
         assert!(memory.set_block_state_with_flags(pos, &state, 18));
         assert!(memory.set_block_state_with_flags(pos, &state, 19));
         assert_eq!(memory.writes, vec![(pos, state.clone(), 3), (pos, state.clone(), 18), (pos, state, 19)]);
+        let count = memory.writes.len();
+        let decorator = super::super::worldgen_api_v1::TreeDecorator::new(|_| panic!("unsupported tree must not invoke decorators"));
+        assert!(!memory.place_tree(&serde_json::Value::Null, pos, &[decorator]));
+        assert_eq!(memory.writes.len(), count);
     }
 
     #[test]

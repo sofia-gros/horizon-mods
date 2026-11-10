@@ -30,10 +30,16 @@ pub struct SupportEntry {
 /// Every call that is not fully implemented. Add a row in the same change that adds a stub.
 pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
+        api: "block_api_v1::BlockEditor::place_tree (custom/memory editors; nested tree-callback placement)",
+        support: Support::Stub,
+        behaviour: "default/custom-memory editors reject trees; live extra-decorator editors reject nested features/trees without writing",
+        unblocked_by: "editor override or nested placement tracking merged into the outer tree's finalization sets",
+    },
+    SupportEntry {
         api: "worldgen_api_v1::TreeDecoratorTypeRegistry (native trees and natural generation)",
         support: Support::Stub,
-        behaviour: "codecs decode for explicit generator calls; native tree decoding/placement does not dispatch registered decorators or track their writes",
-        unblocked_by: "PlutoLib-owned tree placement adapter retaining position sets, RNG and native final shape/distance passes",
+        behaviour: "explicit place_tree appends predecoded decorators and tracks writes (live oak fixture checked); ordinary native tree JSON/natural generation does not decode registered decorator types",
+        unblocked_by: "registry-aware tree codec/placement integration preserving original decorator order and generation contexts",
     },
     SupportEntry {
         api: "worldgen_api_v1::FeatureTypeRegistry (natural generation, native commands and nested native feature graphs)",

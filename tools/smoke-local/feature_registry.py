@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -69,11 +69,19 @@ def main():
                 ('decorator_invalid', {'vines': 'minecraft:vine', 'probability': 1.1}),
                 ('decorator_write_fail', {'vines': 'pluto_probe:missing_vine', 'probability': 1}),
             )
+        if args.mode == 'native_tree':
+            oak = json.loads(definitions['minecraft:oak'])
+            fixtures = (
+                ('native_tree_valid', {'tree': oak}),
+                ('native_tree_error', {'tree': oak, 'fail': True}),
+                ('native_tree_invalid', {'tree': {'type': 'minecraft:no_op', 'config': {}}, 'remove': False}),
+            )
         for name, config in fixtures:
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            definitions[key] = json.dumps({'type': 'pluto_probe:decorator_fixture' if args.mode == 'decorator' else 'pluto_probe:column', 'config': config})
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture'}.get(args.mode, 'pluto_probe:column')
+            definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
         if (original / 'worldgen/features.json').read_bytes() != original_bytes:
@@ -130,9 +138,9 @@ def main():
                 return clicks
         raise RuntimeError(f'expected callback not observed: {marker}; run={run}')
 
-    def photograph(x, name, player_y=103):
-        ctl('setblock', x, player_y - 1, 8, 'minecraft:stone')
-        ctl('command', f'tp @s {x + 0.5} {player_y} 8.5')
+    def photograph(x, name, player_y=103, camera_z=8):
+        ctl('setblock', x, player_y - 1, camera_z, 'minecraft:stone')
+        ctl('command', f'tp @s {x + 0.5} {player_y} {camera_z + 0.5}')
         ctl('setblock', x, 102, 3, 'minecraft:air')
         ctl('command', 'effect clear @s')
         ctl('look', 180, 0)
@@ -181,6 +189,46 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'native_tree':
+                import re
+                for x, case, success in ((0, 'valid', True), (16, 'error', False), (32, 'invalid', False)):
+                    fixture(x, 'minecraft:dirt', 'minecraft:dead_bush')
+                    ctl('setblock', x + 6, 101, 0, 'minecraft:air')
+                    ctl('setblock', x + 7, 101, 0, 'minecraft:gold_block')
+                    ctl('wait', 10)
+                    name = f'pluto_probe:native_tree_{case}'
+                    clicks = click_until(x, f'PLUTO-PROBE feature_request name={name} placed={str(success).lower()}')
+                    ctl('wait', 10)
+                    observed = text()
+                    origin = f'[{x}, 101, 0]'
+                    begin = f'PLUTO-PROBE tree_extra_begin origin={origin}'
+                    if case == 'invalid':
+                        if begin in observed or block(x + 6, 101, 0) != 'minecraft:air' or not block(x, 101, 0).startswith('minecraft:dead_bush'):
+                            raise RuntimeError(f'invalid native tree wrote blocks or called decorators; run={run}')
+                        callbacks = 0
+                        counts = None
+                    else:
+                        if observed.count(begin) != 1 or block(x + 6, 101, 0) != 'minecraft:diamond_block':
+                            raise RuntimeError(f'native tree callback/write missing; run={run}')
+                        context = next((line for line in observed.splitlines() if f'PLUTO-PROBE native_tree_context origin={origin}' in line), '')
+                        if 'rng_in_range=true nested_rejected=true' not in context:
+                            raise RuntimeError(f'wrong tree context/RNG/nested-write handling: {context}; run={run}')
+                        match = re.search(r'PLUTO-PROBE native_tree origin=' + re.escape(origin) + r' placed=(true|false) logs=(\d+) leaves=(\d+) vines=(\d+) distances_ok=(true|false)', observed)
+                        if not match or min(map(int, match.group(2, 3, 4))) <= 0 or (success and match.group(5) != 'true'):
+                            raise RuntimeError(f'tree logs/leaves/vines/final distances missing; run={run}')
+                        counts = list(map(int, match.group(2, 3, 4)))
+                        if any(not block(x, y, 0).startswith('minecraft:oak_log[') for y in range(101, 105)):
+                            raise RuntimeError(f'native tree trunk missing; run={run}')
+                        callbacks = observed.split(begin, 1)[1].count(f'PLUTO-PROBE tree_edge pos=[{x + 7}, 101, 0]')
+                        if (success and callbacks == 0) or (not success and callbacks != 0):
+                            raise RuntimeError(f'wrong tracked-write edge finalization: {case}/{callbacks}; run={run}')
+                    observations.append({'case': case, 'clicks': clicks, 'placed': success, 'logs_leaves_vines': counts, 'edge_callbacks': callbacks})
+                    photograph(x, f'native-tree-{case}.png', player_y=103, camera_z=16)
+                observed = text()
+                if 'probe deliberate tree decorator failure' not in observed or 'expected a tree feature' not in observed:
+                    raise RuntimeError(f'native tree failure diagnostics missing; run={run}')
+                if 'Horizon: feature pluto_probe:' in observed:
+                    raise RuntimeError(f'native tree callback failure fell back; run={run}')
             elif args.mode == 'decorator':
                 scenes = ((0, 'full', 'minecraft:vine', True),
                           (8, 'obstructed', 'tconstruct:ender_slime_vine', True),

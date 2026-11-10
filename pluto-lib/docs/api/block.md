@@ -296,6 +296,34 @@ assert_eq!(world.writes, vec![([-3, 65, 8], root, 19)]);
 
 > **Use with Caution.** Real bone-meal feature placement checked shape notifications for masks 3/2 and suppression for 18/19; other flag effects are unverified. `MemoryBlockView` records exact flags but does not emulate the engine's update queues. Existing third-party editors keep a conservative default: flags=3 calls their existing setter; any other value returns false without a write, never silently substituting 3. Override the method to support additional masks. Writes may have side effects and do not form a rollback transaction.
 
+### Native Trees with Extra Decorators
+
+`fn place_tree(&mut self, configuration: &serde_json::Value, pos: BlockPos, decorators: &[TreeDecorator]) -> bool`. Decode a complete native `minecraft:tree` configured-feature value against the active catalog, place its native roots/trunk/foliage and native decorators, then run the supplied extra decorators in order before native leaf-distance and edge-shape finalization. It returns false for invalid configurations, placement failure or an extra decorator error. Decode extra decorator codecs before calling this method.
+
+```rust
+use pluto_lib::{BlockEditor, BlockState, MemoryBlockView, TreeDecorator};
+
+fn grow_with_marker(world: &mut dyn BlockEditor, tree: &serde_json::Value) -> bool {
+    let decorator = TreeDecorator::new(|context| {
+        if let Some(&leaf) = context.leaves.first() {
+            let marker = [leaf[0] + 1, leaf[1], leaf[2]];
+            if !context.world.set_block_state_with_flags(marker, &BlockState::parse("minecraft:stone").unwrap(), 19) {
+                return Err("marker write failed".into());
+            }
+        }
+        Ok(())
+    });
+    world.place_tree(tree, [0, 64, 0], &[decorator])
+}
+// Supply a full native tree configuration in game. MemoryBlockView does not
+// generate native trees and must reject even a syntactically valid request.
+let mut world = MemoryBlockView::default();
+assert!(!grow_with_marker(&mut world, &serde_json::Value::Null));
+assert!(world.writes.is_empty());
+```
+
+> **Use with Caution.** A live oak fixture checked logs/leaves/vines, final leaf distances, tracked extra-write edge updates, callback failure ownership and invalid-config rejection; its three images were inspected. Extra decorators are appended, not interleaved with native decorators. Writes use the same native placement RNG and are tracked for native finalization; on an error earlier writes remain and finalization stops. The advanced RNG is written back even on unwind, then the original panic resumes. Existing custom editors and `MemoryBlockView` return false without writing or invoking decorators. Inside a live tree's extra callback, nested `place_feature` and `place_tree` return false without writing until nested write tracking is implemented. Natural generation, custom roots and automatic decoding of registered decorators inside native tree JSON remain unconnected.
+
 ### `TickContext`
 
 A tick or a bone meal reached the block. `state` is the block's state, `pos` its position and `world` the world around, which can be changed.

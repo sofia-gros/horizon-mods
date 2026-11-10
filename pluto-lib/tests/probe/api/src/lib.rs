@@ -40,6 +40,67 @@ fn register_feature_probe() {
         }));
         return;
     }
+    if mode == "native_tree" {
+        use pluto_lib::{TreeDecorator, TreeDecoratorTypeRegistry};
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:gold_block").unwrap()).update_shape(|context| {
+            println!("PLUTO-PROBE tree_edge pos={:?}", context.pos);
+            None
+        }));
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:native_tree_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let fail = configuration.get("fail").and_then(|v| v.as_bool()).unwrap_or(false);
+            let remove = configuration.get("remove").and_then(|v| v.as_bool()).unwrap_or(true);
+            let vine = TreeDecoratorTypeRegistry::decode(&Identifier::parse("tconstruct:leave_vines").unwrap(),
+                &serde_json::json!({"vines":"tconstruct:ender_slime_vine","probability":1}))?
+                .ok_or_else(|| "Tinkers decorator not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let origin = context.origin;
+                let snapshot = std::sync::Arc::new(std::sync::Mutex::new((Vec::new(), Vec::new())));
+                let capture = snapshot.clone();
+                let vine = vine.clone();
+                let extra = TreeDecorator::new(move |context| {
+                    let roll = context.world.random_int(7);
+                    let nested_rejected = !context.world.place_feature("minecraft:oak", [origin[0] + 30, origin[1], origin[2]])
+                        && !context.world.place_tree(&serde_json::Value::Null, origin, &[]);
+                    println!("PLUTO-PROBE native_tree_context origin={origin:?} logs={} leaves={} roots={} rng_in_range={} nested_rejected={nested_rejected}",
+                        context.logs.len(), context.leaves.len(), context.roots.len(), (0..7).contains(&roll));
+                    *capture.lock().unwrap() = (context.logs.to_vec(), context.leaves.to_vec());
+                    println!("PLUTO-PROBE tree_extra_begin origin={origin:?}");
+                    if !context.world.set_block_state_with_flags([origin[0] + 6, origin[1], origin[2]], &BlockState::parse("minecraft:diamond_block").unwrap(), 19) {
+                        return Err("tree marker write failed".into());
+                    }
+                    vine.decorate(context)?;
+                    if fail { Err("probe deliberate tree decorator failure".into()) } else { Ok(()) }
+                });
+                if remove && !context.world.set_block_state_with_flags(origin, &BlockState::parse("minecraft:air").unwrap(), 19) { return false; }
+                let placed = context.world.place_tree(&tree, origin, &[extra]);
+                let (logs, leaves) = snapshot.lock().unwrap().clone();
+                let distances = !leaves.is_empty() && leaves.iter().all(|&pos| context.world.block_state(pos)
+                    .and_then(|s| s.property("distance").and_then(|p| p.parse::<i32>().ok())).is_some_and(|d| (1..=6).contains(&d)));
+                let mut vines = std::collections::BTreeSet::new();
+                for &[x, y, z] in &leaves {
+                    for (dx, dz) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
+                        for dy in 0..5 {
+                            let pos = [x + dx, y - dy, z + dz];
+                            if context.world.block_state(pos).is_some_and(|s| s.block.to_string() == "tconstruct:ender_slime_vine") { vines.insert(pos); }
+                        }
+                    }
+                }
+                println!("PLUTO-PROBE native_tree origin={origin:?} placed={placed} logs={} leaves={} vines={} distances_ok={distances}", logs.len(), leaves.len(), vines.len());
+                if placed && (logs.is_empty() || leaves.is_empty() || vines.is_empty() || !distances) { return false; }
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:native_tree_valid", 16 => "pluto_probe:native_tree_error", 32 => "pluto_probe:native_tree_invalid", _ => return,
+                };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
     if mode == "decorator" {
         use pluto_lib::{TreeDecoratorContext, TreeDecoratorTypeRegistry};
         assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:decorator_fixture").unwrap(), |configuration| {

@@ -108,7 +108,8 @@ static DECORATORS: RwLock<BTreeMap<String, DecoratorCodec>> = RwLock::new(BTreeM
 
 /// Namespaced tree-decorator codecs. Tree generators explicitly decode before
 /// placement, then invoke their decorators inside the same placement context.
-/// Native tree decoding/placement and natural generation are not connected yet.
+/// Ordinary native tree JSON and natural generation do not decode these types.
+/// Explicit BlockEditor::place_tree accepts already decoded decorators.
 pub struct TreeDecoratorTypeRegistry;
 
 impl TreeDecoratorTypeRegistry {
