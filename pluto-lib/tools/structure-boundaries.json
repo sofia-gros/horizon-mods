@@ -1,0 +1,115 @@
+{
+  "schema": 6,
+  "official_source_sha256": {
+    "crates/horizon-world/src/worldgen/generator_structures.rs": "929f146ceb0e546fba48ddc0efcdbb55675eb5d057a589c0cef2197457280fb3",
+    "crates/horizon-world/src/worldgen/generator.rs": "0cd155519388db0de34c3c6376aed8771f7670db43e9134c8ffd3767a4347885",
+    "crates/horizon-world/src/worldgen/structure.rs": "58da359c9d0cb816f99a6373af2cf26b8358dd99b996329e4d177fde9fa6ed27",
+    "crates/horizon-world/src/worldgen/structure/start.rs": "4e9be43f2a630e187993b3fa25498fd7104bc86d001b4636fe42946a2b179644",
+    "crates/horizon-world/src/worldgen/structure/legacy.rs": "3c9bc2471ba0f2177adf43637ced35bb8155a295b0649553dd6643d1ec2fce2c",
+    "crates/horizon-world/src/worldgen/structure/simple.rs": "ffb56060a3b261e73334df9f3cc3d0ae7e8c54ba06af80c72500ac9857f1e073",
+    "crates/horizon-world/src/worldgen/structure/template.rs": "5d92ef71234c7552cd666e05122e898cfbaf8f100bc9564db267fa50f530370c"
+  },
+  "modules": [
+    {
+      "module_id": "pluto-structure-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_structure_access",
+      "visibility": "pub",
+      "source_file": "pluto-structure-access.rs",
+      "source_sha256": "d5f1e325e1543d8f981b1310c3a2ca198db2465cf09d9384895da735023abaaa"
+    },
+    {
+      "module_id": "pluto-structure-context",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "name": "pluto_structure_context",
+      "visibility": "pub",
+      "source_file": "pluto-structure-context.rs",
+      "source_sha256": "efc9c6f21160e1db99551cf2ddd829f384d928faa6402de1e3ba11ed287ac747"
+    },
+    {
+      "module_id": "pluto-structure-piece",
+      "file": "crates/horizon-world/src/worldgen/structure.rs",
+      "name": "pluto_structure_piece",
+      "visibility": "pub",
+      "source_file": "pluto-structure-piece.rs",
+      "source_sha256": "fd84367e05b17b67fb5e7f67b5565f37fb73d6ae180694de70434a0f9b62accf"
+    }
+  ],
+  "injections": [
+    {
+      "injection_id": "pluto-structure-sources",
+      "target": "horizon_world::worldgen::generator_structures::StructureState::new",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "82271e194d759c5563a03242d8fca910521f5556fea2d962dd83ead254652257",
+      "kind": "HEAD",
+      "cancellable": false,
+      "bindings": [
+        {
+          "name": "data",
+          "ty": "&Arc<GeneratorData>",
+          "value": "data"
+        }
+      ],
+      "source_file": "pluto-structure-sources.rs",
+      "source_sha256": "e759fb15c85900ec473cab67a024e09460a950b8aabcad9be624dd6a4cdc4721"
+    },
+    {
+      "injection_id": "pluto-structure-saved-piece",
+      "target": "horizon_world::worldgen::generator_structures::StructureState::saved_pool_piece",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "4544bcb547fcdf5f2f62770c118ce9423dd2da216320b2f7d92b652ffcd3b674",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {
+          "name": "state",
+          "ty": "&StructureState",
+          "value": "self"
+        },
+        {
+          "name": "piece",
+          "ty": "&crate::nbt::Tag",
+          "value": "piece"
+        }
+      ],
+      "source_file": "pluto-structure-saved-piece.rs",
+      "source_sha256": "6ef0b593e07f18c9d11b4d5b733a4869d7243f09aab2a57a4b3ce0f332281716"
+    },
+    {
+      "injection_id": "pluto-structure-start",
+      "target": "horizon_world::worldgen::generator_structures::StructureState::structure_start",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "b333a40a3e90e6320345437bd46a5d2daa90ccca3698a30feee69d8bc4c196f3",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {
+          "name": "state",
+          "ty": "&StructureState",
+          "value": "self"
+        },
+        {
+          "name": "context",
+          "ty": "&mut impl StartContext",
+          "value": "context"
+        },
+        {
+          "name": "structure",
+          "ty": "&str",
+          "value": "structure"
+        },
+        {
+          "name": "chunk",
+          "ty": "ChunkPos",
+          "value": "chunk"
+        }
+      ],
+      "source_file": "pluto-structure-start.rs",
+      "source_sha256": "d2affae0beca9cf8bf8a197ba5a97adbe8c589d1afd095ff584343f1265e2a08"
+    }
+  ],
+  "exclusive_files": [
+    "crates/horizon-world/src/worldgen/generator_structures.rs",
+    "crates/horizon-world/src/worldgen/structure.rs"
+  ]
+}

@@ -26,6 +26,16 @@ use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
 use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
+struct StructureQueries<'a>(&'a mut dyn horizon_client::entry::pluto_block::structures::PlanningWorld);
+impl crate::pure::worldgen_api_v1::StructureWorld for StructureQueries<'_> {
+    fn top_of_chunk_center(&mut self,chunk:[i32;2])->Result<Option<[i32;3]>,String>{self.0.top_of_chunk_center(chunk)}
+    fn is_valid_biome(&mut self,pos:[i32;3])->Result<bool,String>{self.0.is_valid_biome(pos)}
+    fn first_occupied_height(&mut self,x:i32,z:i32)->Result<i32,String>{self.0.first_occupied_height(x,z)}
+    fn generation_depth(&self)->i32{self.0.generation_depth()}
+    fn sea_level(&self)->i32{self.0.sea_level()}
+    fn random_int(&mut self,bound:i32)->Result<i32,String>{self.0.random_int(bound)}
+}
+
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
     crate::pure::i18n_api::set_host(crate::pure::i18n_api::HostLanguage {
@@ -38,6 +48,25 @@ pub fn hooks() -> Box<dyn Hooks> {
     );
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
     horizon_client::entry::pluto_block::set_sink(block_sink());
+    horizon_client::entry::pluto_block::structures::set_dispatcher(|kind| {
+        let id=Identifier::parse(kind).map_err(|_|format!("invalid structure type: {kind}"))?;
+        crate::pure::worldgen_api_v1::StructureTypeRegistry::is_registered(&id)
+    },|kind,configuration,world,chunk| {
+        use crate::pure::worldgen_api_v1::{StructureContext,StructureTypeRegistry};
+        use horizon_client::entry::pluto_block::structures::PlanResult;
+        let id=Identifier::parse(kind).map_err(|_|format!("invalid structure type: {kind}"))?;
+        let Some(structure)=StructureTypeRegistry::decode(&id,configuration)? else {return Ok(PlanResult::Unregistered)};
+        let Some(start)=structure.find_generation_point(&mut StructureContext {world:&mut StructureQueries(world),chunk})? else {return Ok(PlanResult::Rejected)};
+        // Move opaque JSON without recursively serializing unvalidated captures.
+        let pieces=start.pieces.into_iter().map(|piece|serde_json::Value::Object(serde_json::Map::from_iter([
+            ("kind".into(),serde_json::Value::String(piece.kind.to_string())),
+            ("configuration".into(),piece.configuration),
+        ]))).collect();
+        let position=serde_json::Value::Array(start.position.into_iter().map(|v|serde_json::Value::from(v)).collect());
+        Ok(PlanResult::Start(serde_json::Value::Object(serde_json::Map::from_iter([
+            ("position".into(),position),("pieces".into(),serde_json::Value::Array(pieces)),
+        ]))))
+    });
     horizon_client::entry::pluto_block::set_feature_dispatcher(|world, kind, configuration, origin| {
         use crate::pure::worldgen_api_v1::{FeatureContext, FeatureTypeRegistry};
         let id = Identifier::parse(kind).ok()?;
