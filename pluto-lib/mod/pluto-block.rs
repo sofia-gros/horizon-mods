@@ -113,17 +113,18 @@ mod feature_depth_tests {
     }
 }
 
-type FeatureDispatcher = fn(&mut dyn LevelEdit, &str, &serde_json::Value, [i32; 3]) -> Option<bool>;
-static FEATURES: Mutex<Option<FeatureDispatcher>> = Mutex::new(None);
+#[cfg(not(test))]
+use horizon_world::level::pluto_block_access as feature_transport;
+#[cfg(test)]
+use crate::block_access_tests as feature_transport;
 
-pub fn set_feature_dispatcher(dispatch: FeatureDispatcher) {
-    if let Ok(mut slot) = FEATURES.lock() { *slot = Some(dispatch); }
+pub fn set_feature_dispatcher(dispatch: feature_transport::FeatureDispatcher) {
+    feature_transport::set_feature_dispatcher(dispatch);
 }
 
 /// None means no custom type was registered; retain native placement in that case.
 pub fn custom_feature(world: &mut dyn LevelEdit, kind: &str, config: &serde_json::Value, pos: [i32; 3]) -> Option<bool> {
-    let dispatch = *FEATURES.lock().ok()?;
-    dispatch?(world, kind, config, pos)
+    feature_transport::dispatch_feature(world,kind,config,pos).ok().flatten()
 }
 
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);

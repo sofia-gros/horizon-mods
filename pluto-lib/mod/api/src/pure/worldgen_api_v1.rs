@@ -12,6 +12,9 @@ use super::block_entity_api_v1::BlockPos;
 #[path = "structure_api.rs"]
 mod structures;
 pub use structures::{ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld};
+#[path = "structure_piece_api.rs"]
+mod structure_pieces;
+pub use structure_pieces::{ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 
 /// The supplied live placement world and origin. Random draws go through this world's
 /// BlockEditor, never a newly seeded generator. This borrowed context cannot be retained.

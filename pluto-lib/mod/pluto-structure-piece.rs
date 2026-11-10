@@ -12,20 +12,7 @@ const MAX_SAVED_CONFIG:usize=1_048_576;
 
 /// Iterative guard before any recursive serde operation or template lookup.
 pub fn validate_value(value:&Value)->Result<(),String> {
-    let mut pending=vec![(value,0usize)];
-    let (mut nodes,mut bytes)=(0usize,0usize);
-    while let Some((value,depth))=pending.pop() {
-        nodes+=1;
-        if depth>128 || nodes>65_536 {return Err("structure descriptor depth/node budget exceeded".into())}
-        match value {
-            Value::String(text)=>bytes=bytes.saturating_add(text.len()),
-            Value::Array(values)=>pending.extend(values.iter().map(|v|(v,depth+1))),
-            Value::Object(values)=>for (key,value) in values {bytes=bytes.saturating_add(key.len()); pending.push((value,depth+1));},
-            _=>{},
-        }
-        if bytes>MAX_SAVED_CONFIG {return Err("structure descriptor string budget exceeded".into())}
-    }
-    Ok(())
+    crate::level::pluto_structure_access::validate_value(value)
 }
 
 fn identifier(value:&str)->bool {
@@ -108,11 +95,12 @@ impl LegacyPiece for Piece {
 }
 
 /// Decode every descriptor before a start can be published; no world writes.
-pub fn decode(resources:&StructureResources,descriptor:&Value)->Result<start::Piece,String> {
-    if descriptor.get("kind").and_then(Value::as_str)!=Some(TEMPLATE_KIND) {
-        return Err("unsupported structure piece type".into());
-    }
+pub fn decode(resources:&Arc<StructureResources>,descriptor:&Value)->Result<start::Piece,String> {
+    let kind=descriptor.get("kind").and_then(Value::as_str).ok_or("missing structure piece type")?;
     let configuration=descriptor.get("configuration").ok_or("missing piece configuration")?;
+    if kind!=TEMPLATE_KIND {
+        return super::pluto_registered_piece::decode(resources,kind,configuration,None);
+    }
     validate_value(configuration)?;
     if serde_json::to_vec(configuration).map_err(|e|e.to_string())?.len()>MAX_SAVED_CONFIG {
         return Err("structure piece configuration exceeds save budget".into());
@@ -122,7 +110,7 @@ pub fn decode(resources:&StructureResources,descriptor:&Value)->Result<start::Pi
 
 /// Restore from the host's NBT-as-JSON view, rebuilding bounds from the current
 /// template rather than trusting a potentially inconsistent saved bounding box.
-pub fn restore(resources:&StructureResources,saved:&Value)->Result<start::Piece,String> {
+pub fn restore(resources:&Arc<StructureResources>,saved:&Value)->Result<start::Piece,String> {
     if saved.get("id").and_then(Value::as_str)!=Some(TEMPLATE_KIND)
         || saved.get("PlutoVersion").and_then(Value::as_i64)!=Some(1) {
         return Err("unsupported saved structure piece/version".into());

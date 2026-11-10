@@ -36,6 +36,28 @@ impl crate::pure::worldgen_api_v1::StructureWorld for StructureQueries<'_> {
     fn random_int(&mut self,bound:i32)->Result<i32,String>{self.0.random_int(bound)}
 }
 
+struct StructureMarkerWorld<'a>(&'a mut dyn horizon_client::entry::pluto_block::structures::MarkerWorld);
+impl crate::pure::worldgen_api_v1::StructurePieceWorld for StructureMarkerWorld<'_> {
+    fn block_state(&mut self,pos:[i32;3])->Result<BlockState,String> {
+        let state=self.0.state(pos)?;to_state(&state).ok_or_else(||"invalid structure marker block identifier".into())
+    }
+    fn set_block_state(&mut self,pos:[i32;3],state:&BlockState,flags:i32)->Result<bool,String>{self.0.set_state(pos,&to_info(state),flags)}
+    fn face_sturdy(&mut self,pos:[i32;3],face:block_api_v1::Direction)->Result<bool,String>{self.0.face_sturdy(pos,face as u8)}
+    fn can_survive_plant(&mut self,state:&BlockState,pos:[i32;3])->Result<bool,String>{self.0.can_survive_plant(&to_info(state),pos)}
+    fn random_int(&mut self,bound:i32)->Result<i32,String>{self.0.random_int(bound)}
+    fn random_bool(&mut self)->Result<bool,String>{self.0.random_bool()}
+    fn place_feature(&mut self,feature:&Identifier,pos:[i32;3])->Result<bool,String>{self.0.place_feature(&feature.to_string(),pos)}
+}
+struct ApiStructurePiece(crate::pure::worldgen_api_v1::ConfiguredStructurePiece);
+impl horizon_client::entry::pluto_block::structures::PieceCallbacks for ApiStructurePiece {
+    fn validate_state(&self,state:&serde_json::Value)->Result<(),String> {self.0.validate_state(state)}
+    fn marker(&self,world:&mut dyn horizon_client::entry::pluto_block::structures::MarkerWorld,name:&str,pos:[i32;3],state:&mut serde_json::Value)->Result<(),String> {
+        self.0.handle_data_marker(&mut crate::pure::worldgen_api_v1::StructureMarkerContext {
+            world:&mut StructureMarkerWorld(world),marker:name,position:pos,state,
+        })
+    }
+}
+
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
     crate::pure::i18n_api::set_host(crate::pure::i18n_api::HostLanguage {
@@ -66,6 +88,20 @@ pub fn hooks() -> Box<dyn Hooks> {
         Ok(PlanResult::Start(serde_json::Value::Object(serde_json::Map::from_iter([
             ("position".into(),position),("pieces".into(),serde_json::Value::Array(pieces)),
         ]))))
+    });
+    horizon_client::entry::pluto_block::structures::set_piece_decoder(|kind,configuration| {
+        use crate::pure::worldgen_api_v1::{StructurePieceTypeRegistry,StructureRotation,StructureMirror};
+        use horizon_client::entry::pluto_block::structures::{RegisteredTemplate,validate_value};
+        let id=Identifier::parse(kind).map_err(|_|format!("invalid structure piece type: {kind}"))?;
+        let Some(piece)=StructurePieceTypeRegistry::decode(&id,configuration)? else {return Ok(None)};
+        validate_value(piece.initial_state())?;
+        let template=piece.template();
+        Ok(Some(RegisteredTemplate {
+            template:template.template.to_string(),origin:template.origin,
+            rotation:match template.rotation {StructureRotation::None=>0,StructureRotation::Clockwise90=>1,StructureRotation::Clockwise180=>2,StructureRotation::Counterclockwise90=>3},
+            mirror:match template.mirror {StructureMirror::None=>0,StructureMirror::LeftRight=>1,StructureMirror::FrontBack=>2},
+            initial_state:piece.initial_state().clone(),callbacks:std::sync::Arc::new(ApiStructurePiece(piece)),
+        }))
     });
     horizon_client::entry::pluto_block::set_feature_dispatcher(|world, kind, configuration, origin| {
         use crate::pure::worldgen_api_v1::{FeatureContext, FeatureTypeRegistry};

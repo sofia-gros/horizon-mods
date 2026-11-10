@@ -2,6 +2,18 @@
 // Names/properties are owned; all world/RNG access remains borrowed.
 use std::collections::BTreeMap;
 
+pub type FeatureDispatcher=fn(&mut dyn LevelEdit,&str,&serde_json::Value,[i32;3])->Option<bool>;
+static FEATURE_DISPATCHER:std::sync::RwLock<Option<FeatureDispatcher>>=std::sync::RwLock::new(None);
+pub fn set_feature_dispatcher(dispatcher:FeatureDispatcher) {
+    if let Ok(mut slot)=FEATURE_DISPATCHER.write() {*slot=Some(dispatcher)}
+}
+/// Registered false/error results own the request; only None permits native
+/// fallback. Copy the function pointer out before invoking any consumer code.
+pub fn dispatch_feature(world:&mut dyn LevelEdit,kind:&str,configuration:&serde_json::Value,pos:[i32;3])->Result<Option<bool>,String> {
+    let dispatcher=*FEATURE_DISPATCHER.read().map_err(|_|"feature dispatcher poisoned".to_owned())?;
+    Ok(dispatcher.and_then(|dispatcher|dispatcher(world,kind,configuration,pos)))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StateInfo {
     pub block: String,

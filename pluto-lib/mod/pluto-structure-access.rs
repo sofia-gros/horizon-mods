@@ -40,6 +40,72 @@ pub fn plan(kind:&str,configuration:&Value,world:&mut dyn PlanningWorld,chunk:[i
     }
 }
 
+#[cfg(not(test))]
+use super::pluto_block_access::StateInfo;
+#[cfg(test)]
+use crate::block_access_tests::StateInfo;
+
+/// Borrowed post-processing transport. Native implementations retain the real
+/// world, chunk write policy and random stream; unsupported operations are errors.
+pub trait MarkerWorld {
+    fn state(&mut self,pos:[i32;3])->Result<StateInfo,String>;
+    fn set_state(&mut self,pos:[i32;3],state:&StateInfo,flags:i32)->Result<bool,String>;
+    fn face_sturdy(&mut self,pos:[i32;3],face:u8)->Result<bool,String>;
+    fn can_survive_plant(&mut self,state:&StateInfo,pos:[i32;3])->Result<bool,String>;
+    fn random_int(&mut self,bound:i32)->Result<i32,String>;
+    fn random_bool(&mut self)->Result<bool,String>;
+    fn place_feature(&mut self,name:&str,pos:[i32;3])->Result<bool,String>;
+}
+
+/// Owns an immutable API callback snapshot, never a borrowed host context.
+pub trait PieceCallbacks:Send+Sync {
+    /// Per-type saved-state validation must be connected before registered
+    /// pieces can be published. The incomplete facade fails closed, not after
+    /// a restored template has already written blocks.
+    fn validate_state(&self,_state:&Value)->Result<(),String> {Err("registered piece state validator not connected".into())}
+    fn marker(&self,world:&mut dyn MarkerWorld,name:&str,pos:[i32;3],state:&mut Value)->Result<(),String>;
+}
+/// Bound recursive JSON before cloning/serializing values supplied by codecs.
+/// Account for queued children before extending the work list, so an oversized
+/// array cannot allocate an unbounded traversal stack before rejection.
+pub fn validate_value(value:&Value)->Result<(),String> {
+    let mut pending=vec![(value,0usize)];
+    let (mut nodes,mut bytes)=(0usize,0usize);
+    while let Some((value,depth))=pending.pop() {
+        nodes+=1;
+        if depth>128 || nodes>65_536 {return Err("structure descriptor depth/node budget exceeded".into())}
+        let children=match value {Value::Array(v)=>v.len(),Value::Object(v)=>v.len(),_=>0};
+        if children>65_536-nodes-pending.len() {return Err("structure descriptor depth/node budget exceeded".into())}
+        match value {
+            Value::String(text)=>bytes=bytes.saturating_add(text.len()),
+            Value::Array(values)=>pending.extend(values.iter().map(|v|(v,depth+1))),
+            Value::Object(values)=>for (key,value) in values {bytes=bytes.saturating_add(key.len());pending.push((value,depth+1));},
+            _=>{},
+        }
+        if bytes>1_048_576 {return Err("structure descriptor string budget exceeded".into())}
+    }
+    Ok(())
+}
+
+pub struct RegisteredTemplate {
+    pub template:String,
+    pub origin:[i32;3],
+    pub rotation:u8,
+    pub mirror:u8,
+    pub initial_state:Value,
+    pub callbacks:std::sync::Arc<dyn PieceCallbacks>,
+}
+pub type PieceDecoder=fn(&str,&Value)->Result<Option<RegisteredTemplate>,String>;
+static PIECE_DECODER:RwLock<Option<PieceDecoder>>=RwLock::new(None);
+
+pub fn set_piece_decoder(decoder:PieceDecoder) {
+    if let Ok(mut slot)=PIECE_DECODER.write() {*slot=Some(decoder)}
+}
+pub fn decode_piece(kind:&str,configuration:&Value)->Result<Option<RegisteredTemplate>,String> {
+    let decoder=*PIECE_DECODER.read().map_err(|_|"structure piece dispatcher poisoned".to_owned())?;
+    match decoder {Some(decoder)=>decoder(kind,configuration),None=>Ok(None)}
+}
+
 /// Only owned source data and a weak resource identity are retained here, never
 /// a borrowed world. Ambiguous identities fail closed instead of replacing an
 /// older world's settings. Entries whose owners died are pruned at capture.
@@ -112,6 +178,27 @@ mod tests {
         catalogs.capture(&third,&a,&sets).unwrap();
         assert_eq!(catalogs.entries.read().unwrap().len(),2,"dead owner entry is pruned");
         assert_eq!(catalogs.get(&third).unwrap().structures,a);
+    }
+
+    #[test]
+    fn piece_decode_reentry_and_json_budgets_reject_before_recursive_work() {
+        fn replacement(_: &str,_:&Value)->Result<Option<RegisteredTemplate>,String>{Ok(None)}
+        fn first(kind:&str,value:&Value)->Result<Option<RegisteredTemplate>,String> {
+            set_piece_decoder(replacement);
+            assert!(decode_piece(kind,value)?.is_none());
+            Err("piece codec rejected".into())
+        }
+        assert!(decode_piece("example:unknown",&Value::Null).unwrap().is_none());
+        set_piece_decoder(first);
+        assert_eq!(decode_piece("example:piece",&Value::Null).err().as_deref(),Some("piece codec rejected"));
+        assert!(decode_piece("example:piece",&Value::Null).unwrap().is_none());
+        assert!(validate_value(&Value::Array(vec![Value::Null;65_535])).is_ok());
+        assert!(validate_value(&Value::Array(vec![Value::Null;65_536])).is_err());
+        let at_limit=(0..128).fold(Value::Null,|v,_|Value::Array(vec![v]));
+        assert!(validate_value(&at_limit).is_ok());
+        assert!(validate_value(&Value::Array(vec![at_limit])).is_err());
+        assert!(validate_value(&Value::String("x".repeat(1_048_576))).is_ok());
+        assert!(validate_value(&Value::String("x".repeat(1_048_577))).is_err());
     }
 
     #[test]

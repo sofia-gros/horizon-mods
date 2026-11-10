@@ -106,6 +106,8 @@ For original Ender configuration placement, use `feature_registry.py --mode ende
 
 For real Ender sapling/leaf gameplay, use `feature_registry.py --mode propagules` with a matching full probe. Unlike the throwaway tree-trigger fixtures, this mode installs no replacement probe behaviour: actual item placement must set age 4 and preserve waterlogging, leaf bone meal creates age 0 hanging saplings, repeated bone meal matures them without replacing occupied/mature targets, removing support removes them, and both bone meal and accelerated native random ticks must grow grounded saplings into Ender logs. Inspect six images. The two runtime configuration constants are regenerated from source-reference JSON with `tconstruct/tools/gen_ender_tree_data.py`; the native file allowlist stays unchanged.
 
+For explicit structures, run `structures.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR` against a matching full probe. Then run `structure_markers.py` with the same arguments and resources prepared from current content. The latter checks cross-chunk piece state, rotation/mirror, callback errors retaining earlier writes, invalid state before any piece writes, and the production IslandPiece markers on fixed-anchor End templates. Inspect every image. Existing runtime palettes omit the custom Ender slime fluid; neither gate proves full island parity, natural starts or saved-start reloads.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh

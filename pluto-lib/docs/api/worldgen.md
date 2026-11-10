@@ -2,7 +2,7 @@
 
 A feature type supplies a codec that validates data, then a generator that uses the supplied world and origin. This follows Minecraft/Fabric's registered `Feature` and `ConfiguredFeature` concepts. Rust closures capture the decoded settings; random draws use the supplied `BlockEditor` rather than a newly seeded RNG.
 
-> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs only through PlutoLib's live `BlockEditor::place_feature`. Registering a type is not evidence that those paths invoke it; see the support matrix. Per-position root overrides now have a registry-bound explicit API (native/game verification pending), not automatic custom root-type decoding. Decorator codecs can be invoked explicitly by a mod's feature generator. `BlockEditor::place_tree` appends predecoded decorators inside native tree placement (live oak fixture checked); ordinary native tree JSON does not decode registered decorator types.
+> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs through PlutoLib's live `BlockEditor::place_feature` and the typed explicit structure-marker world. Registering a type is not evidence that those paths invoke it; see the support matrix. Per-position root overrides have a registry-bound explicit API (native/game fixtures checked), not automatic custom root-type decoding. Decorator codecs can be invoked explicitly by a mod's feature generator. `BlockEditor::place_tree` appends predecoded decorators inside native tree placement (live oak fixture checked); ordinary native tree JSON does not decode registered decorator types.
 
 ## Basic Example
 
@@ -113,7 +113,7 @@ assert!(StructureTypeRegistry::register(id.clone(), |value| {
 assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is_some());
 ```
 
-> **Use with Caution.** Explicit native structure placement and marker-free template piece decoding/placement pass the complete native facade build and eleven real-game cases (all images inspected): rotation/mirror geometry and stair properties, explicit air, rejected/error/invalid planners, pre-write piece validation, marker/entity rejection and preserved built-in placement. Saved-piece restoration is implemented but not yet exercised through persisted starts. Natural generation and custom piece/marker codecs are unconnected. Unknown registry types return `Ok(None)`; a decoded planner returning `Ok(None)` rejects its candidate, and errors remain errors, never native fallback. No registration or successful plan proves that an island or any other structure was generated. A non-cancellable constructor callback captures owned source data under a weak resource identity rather than reading source files or retaining borrowed contexts. Different source data sharing the same resource identity is ambiguous and custom placement rejects; existing owned snapshots are not overwritten. Shared-resource reload/concurrent-world parity is therefore not complete. Built-in native structure kinds are not overridden by this adapter; only registered custom types decoded by the host as unsupported are dispatched. It binds every piece before publishing a start. Native candidate weighting/cache policy for natural starts remains unfinished.
+> **Use with Caution.** Explicit native structure placement and marker-free template piece decoding/placement pass the complete native facade build and eleven real-game cases (all images inspected): rotation/mirror geometry and stair properties, explicit air, rejected/error/invalid planners, pre-write piece validation, marker/entity rejection and preserved built-in placement. Registered template/marker codecs also pass six real-game cases: cross-chunk mutable state, transforms, callback error ownership, invalid state before any piece writes and production IslandPiece tree/grass/vine dispatch. Natural generation is unconnected; saved-piece restoration is implemented but not yet exercised through persisted starts. Unknown registry types return `Ok(None)`; a decoded planner returning `Ok(None)` rejects its candidate, and errors remain errors, never native fallback. No registration or successful plan proves that an island or any other structure was generated. A non-cancellable constructor callback captures owned source data under a weak resource identity rather than reading source files or retaining borrowed contexts. Different source data sharing the same resource identity is ambiguous and custom placement rejects; existing owned snapshots are not overwritten. Shared-resource reload/concurrent-world parity is therefore not complete. Built-in native structure kinds are not overridden by this adapter; only registered custom types decoded by the host as unsupported are dispatched. It binds every piece before publishing a start. Native candidate weighting/cache policy for natural starts remains unfinished.
 
 ## Reference
 
@@ -567,4 +567,263 @@ use pluto_lib::{Identifier, StructureTypeRegistry};
 let id = Identifier::parse("example:bad_structure").unwrap();
 StructureTypeRegistry::register(id.clone(), |_| Err("bad template weights".into()));
 assert_eq!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("bad template weights"));
+```
+
+### `StructureRotation`
+
+`enum StructureRotation { None, Clockwise90, Clockwise180, Counterclockwise90 }`. Rotation about the template's origin with zero pivot; `Default` is `None`. The native adapter must apply the mirror first.
+
+```rust
+use pluto_lib::StructureRotation;
+assert_eq!(StructureRotation::default(), StructureRotation::None);
+let rotations = [StructureRotation::None, StructureRotation::Clockwise90,
+    StructureRotation::Clockwise180, StructureRotation::Counterclockwise90];
+assert_eq!(rotations.len(), 4);
+```
+
+### `StructureMirror`
+
+`enum StructureMirror { None, LeftRight, FrontBack }`. Minecraft's mirror before rotation. `Default` is `None`.
+
+```rust
+use pluto_lib::StructureMirror;
+assert_eq!(StructureMirror::default(), StructureMirror::None);
+assert_ne!(StructureMirror::LeftRight, StructureMirror::FrontBack);
+```
+
+### `StructurePieceTemplate`
+
+`StructurePieceTemplate { template: Identifier, origin: BlockPos, rotation: StructureRotation, mirror: StructureMirror }`. Owned immutable settings for a registered template piece. Native binding must validate the template and bounds before any piece writes. Template entities are ignored; DATA markers are dispatched separately in native order.
+
+```rust
+use pluto_lib::{Identifier, StructurePieceTemplate, StructureRotation, StructureMirror};
+let template = StructurePieceTemplate {
+    template: Identifier::parse("example:buildings/house").unwrap(), origin: [-8, 70, 24],
+    rotation: StructureRotation::Clockwise90, mirror: StructureMirror::FrontBack,
+};
+assert_eq!(template.clone().origin, [-8,70,24]);
+```
+
+> **Use with Caution.** Native explicit `/place structure` supports registered template pieces through the typed placement adapter: it validates all piece definitions before writes, clips DATA markers per chunk, and shares the actual world and RNG with configured-feature placement. Mutable state belongs to each live piece. Natural placement remains unconnected; native saved-piece restoration exists but save/reload lifecycle behavior is unverified. Explicit commands do not create cached saved starts.
+
+### `StructurePieceWorld`
+
+Required fallible operations for one piece's real post-processing world. Never substitute default blocks, independent RNG, unrestricted writes or successful feature placement for an unavailable operation.
+
+| Method | Return and contract |
+|---|---|
+| `block_state(&mut self, pos: BlockPos)` | `Result<BlockState, String>`: actual block at the marker/query position |
+| `set_block_state(&mut self, pos: BlockPos, state: &BlockState, flags: i32)` | `Result<bool, String>`: clipped write with the supplied update flags |
+| `face_sturdy(&mut self, pos: BlockPos, face: Direction)` | `Result<bool, String>`: native/registered support of that face |
+| `can_survive_plant(&mut self, state: &BlockState, pos: BlockPos)` | `Result<bool, String>`: true only for a plant whose native/registered survival test passes |
+| `random_int(&mut self, bound: i32)` | `Result<i32, String>`: existing piece RNG; positive bound |
+| `random_bool(&mut self)` | `Result<bool, String>`: actual boolean draw, not a replacement integer draw |
+| `place_feature(&mut self, feature: &Identifier, pos: BlockPos)` | `Result<bool, String>`: same world/RNG; false for an attempted failure, error for unavailable execution |
+
+```rust
+use pluto_lib::{BlockState, Direction, Identifier, StructurePieceWorld};
+struct Unavailable;
+impl StructurePieceWorld for Unavailable {
+    fn block_state(&mut self, _: [i32;3]) -> Result<BlockState,String> { Err("block unavailable".into()) }
+    fn set_block_state(&mut self, _: [i32;3], _: &BlockState, _: i32) -> Result<bool,String> { Err("write unavailable".into()) }
+    fn face_sturdy(&mut self, _: [i32;3], _: Direction) -> Result<bool,String> { Err("face unavailable".into()) }
+    fn can_survive_plant(&mut self, _: &BlockState, _: [i32;3]) -> Result<bool,String> { Err("plant unavailable".into()) }
+    fn random_int(&mut self, _: i32) -> Result<i32,String> { Err("random unavailable".into()) }
+    fn random_bool(&mut self) -> Result<bool,String> { Err("random unavailable".into()) }
+    fn place_feature(&mut self, _: &Identifier, _: [i32;3]) -> Result<bool,String> { Err("feature unavailable".into()) }
+}
+let mut world = Unavailable;
+let stone = BlockState::parse("minecraft:stone").unwrap();
+assert!(world.block_state([0,70,0]).is_err());
+assert!(world.set_block_state([0,70,0], &stone, 2).is_err());
+assert!(world.face_sturdy([0,69,0], Direction::Up).is_err());
+assert!(world.can_survive_plant(&stone, [0,70,0]).is_err());
+assert!(world.random_int(5).is_err());
+assert!(world.random_bool().is_err());
+assert!(world.place_feature(&Identifier::parse("example:tree").unwrap(), [0,70,0]).is_err());
+```
+
+### `StructureMarkerContext`
+
+`StructureMarkerContext<'a> { world: &'a mut dyn StructurePieceWorld, marker: &'a str, position: BlockPos, state: &'a mut serde_json::Value }`. The host supplies an already transformed/clipped DATA marker and mutable state belonging to this actual piece. It must serialize concurrent access and save state separately from immutable codec settings. Neither context nor world may be retained.
+
+```rust
+use pluto_lib::StructureMarkerContext;
+fn increment(context: &mut StructureMarkerContext<'_>) -> Result<(), String> {
+    if context.marker == "example:success" {
+        let count = context.state.as_u64().ok_or("invalid saved counter")?;
+        *context.state = serde_json::Value::from(count + 1);
+    }
+    Ok(())
+}
+let mut state = serde_json::json!(0);
+// Contexts are supplied by the host; the owned state remains ordinary JSON.
+state = serde_json::Value::from(state.as_u64().unwrap() + 1);
+assert_eq!(state, 1);
+```
+
+### `ConfiguredStructurePiece`
+
+An immutable template piece definition with owned initial state and marker behavior. It does not itself own a live piece's changing counter.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate};
+let piece = ConfiguredStructurePiece::new(StructurePieceTemplate {
+    template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+    rotation: Default::default(), mirror: Default::default(),
+}, serde_json::Value::Null, |_| Ok(()));
+assert!(piece.initial_state().is_null());
+```
+
+### `ConfiguredStructurePiece::new`
+
+`fn new(template: StructurePieceTemplate, initial_state: serde_json::Value, marker: impl Fn(&mut StructureMarkerContext<'_>) -> Result<(), String> + Send + Sync + 'static) -> Self`. Captures immutable settings, initial state and a marker callback. `fn template(&self) -> &StructurePieceTemplate` and `fn initial_state(&self) -> &serde_json::Value` borrow those values. `fn handle_data_marker(&self, context: &mut StructureMarkerContext<'_>) -> Result<(), String>` directly invokes the callback. Clones share the callback, not a live piece's mutable state. Errors preserve earlier writes and state changes; this API is not a transaction.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate, StructureRotation, StructureMirror};
+let settings = StructurePieceTemplate { template: Identifier::parse("example:house").unwrap(),
+    origin: [0,70,0], rotation: StructureRotation::None, mirror: StructureMirror::None };
+let piece = ConfiguredStructurePiece::new(settings.clone(), serde_json::json!({"count":0}), |_| Ok(()));
+assert_eq!(piece.template(), &settings);
+let mut state = piece.initial_state().clone();
+state["count"] = serde_json::json!(1);
+assert_eq!(piece.clone().initial_state()["count"], 0);
+```
+
+> **Use with Caution.** Direct callback execution does not place a template, create a persisted start or prove native marker integration. A host must bind all pieces first, keep the same RNG, and validate saved state before resuming callbacks.
+
+### `StructurePieceTypeRegistry`
+
+Registry of namespaced template-piece codecs; decoded snapshots outlive registry replacement.
+
+```rust
+use pluto_lib::{Identifier, StructurePieceTypeRegistry};
+let unknown = Identifier::parse("example:not_registered_piece").unwrap();
+assert!(StructurePieceTypeRegistry::decode(&unknown, &serde_json::Value::Null).unwrap().is_none());
+```
+
+### `StructurePieceTypeRegistry::register`
+
+`fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<ConfiguredStructurePiece, String> + Send + Sync + 'static) -> bool`. Register or replace a piece codec; false means the registry lock is poisoned. Decoders and destructors of replaced captures run outside the lock. `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructurePiece>, String>` returns an immutable snapshot, `None` for unknown kinds, or the registered error. Neither operation writes a world; native dispatch is not connected yet.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate, StructureRotation, StructureMirror, StructurePieceTypeRegistry};
+let id = Identifier::parse("example:registered_piece").unwrap();
+assert!(StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is_none());
+assert!(StructurePieceTypeRegistry::register(id.clone(), |value| {
+    if !value.is_null() { return Err("expected null settings".into()); }
+    Ok(ConfiguredStructurePiece::new(StructurePieceTemplate {
+        template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+        rotation: StructureRotation::None, mirror: StructureMirror::None,
+    }, serde_json::json!({"count":0}), |_| Ok(())))
+}));
+let snapshot = StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().unwrap();
+assert_eq!(snapshot.initial_state()["count"], 0);
+assert!(StructurePieceTypeRegistry::decode(&id, &serde_json::json!(false)).is_err());
+```
+
+### `ConfiguredStructurePiece::template`
+
+`fn template(&self) -> &StructurePieceTemplate`. Borrow immutable settings; changing a separate clone does not move this piece.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate, StructureRotation, StructureMirror};
+let settings = StructurePieceTemplate { template: Identifier::parse("example:house").unwrap(),
+    origin: [0,70,0], rotation: StructureRotation::None, mirror: StructureMirror::None };
+let piece = ConfiguredStructurePiece::new(settings, serde_json::Value::Null, |_| Ok(()));
+assert_eq!(piece.template().origin, [0,70,0]);
+```
+
+### `ConfiguredStructurePiece::initial_state`
+
+`fn initial_state(&self) -> &serde_json::Value`. Borrow the initial snapshot. Clone it once per actual piece; never mutate a shared global state for all placements.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate, StructureRotation, StructureMirror};
+let piece = ConfiguredStructurePiece::new(StructurePieceTemplate {
+    template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+    rotation: StructureRotation::None, mirror: StructureMirror::None,
+}, serde_json::json!({"placed":0}), |_| Ok(()));
+let mut state = piece.initial_state().clone();
+state["placed"] = serde_json::json!(1);
+assert_eq!(piece.initial_state()["placed"], 0);
+```
+
+### `ConfiguredStructurePiece::handle_data_marker`
+
+`fn handle_data_marker(&self, context: &mut StructureMarkerContext<'_>) -> Result<(), String>`. Invoke the captured callback directly on the supplied piece's mutable state. Unknown marker policy belongs to that callback. This does not create or place a native template.
+
+```rust
+use pluto_lib::{BlockState, Direction, Identifier, ConfiguredStructurePiece, StructureMarkerContext,
+    StructurePieceTemplate, StructurePieceWorld, StructureRotation, StructureMirror};
+struct Unavailable;
+impl StructurePieceWorld for Unavailable {
+    fn block_state(&mut self, _: [i32;3]) -> Result<BlockState,String> { Err("block unavailable".into()) }
+    fn set_block_state(&mut self, _: [i32;3], _: &BlockState, _: i32) -> Result<bool,String> { Err("write unavailable".into()) }
+    fn face_sturdy(&mut self, _: [i32;3], _: Direction) -> Result<bool,String> { Err("face unavailable".into()) }
+    fn can_survive_plant(&mut self, _: &BlockState, _: [i32;3]) -> Result<bool,String> { Err("plant unavailable".into()) }
+    fn random_int(&mut self, _: i32) -> Result<i32,String> { Err("random unavailable".into()) }
+    fn random_bool(&mut self) -> Result<bool,String> { Err("random unavailable".into()) }
+    fn place_feature(&mut self, _: &Identifier, _: [i32;3]) -> Result<bool,String> { Err("feature unavailable".into()) }
+}
+let piece = ConfiguredStructurePiece::new(StructurePieceTemplate {
+    template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+    rotation: StructureRotation::None, mirror: StructureMirror::None,
+}, serde_json::json!(0), |context| {
+    if context.marker == "example:count" {
+        let count = context.state.as_u64().ok_or("bad counter")?;
+        *context.state = serde_json::json!(count + 1);
+    }
+    Ok(())
+});
+let mut world = Unavailable;
+let mut state = piece.initial_state().clone();
+let mut context = StructureMarkerContext { world: &mut world, marker: "example:count",
+    position: [-8,71,24], state: &mut state };
+assert_eq!(context.position, [-8,71,24]);
+piece.handle_data_marker(&mut context).unwrap();
+assert_eq!(state, 1);
+assert_eq!(piece.initial_state(), &serde_json::json!(0));
+```
+
+### `StructurePieceTypeRegistry::decode`
+
+`fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructurePiece>, String>`. Clone the decoder outside the registry lock, then decode. Unknown kinds return `Ok(None)`; registered errors stay errors and do not permit native fallback.
+
+```rust
+use pluto_lib::{Identifier, StructurePieceTypeRegistry};
+let id = Identifier::parse("example:bad_piece").unwrap();
+assert!(StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is_none());
+StructurePieceTypeRegistry::register(id.clone(), |_| Err("invalid template settings".into()));
+assert_eq!(StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(),
+    Some("invalid template settings"));
+```
+
+### `ConfiguredStructurePiece::with_state_validator`
+
+`fn with_state_validator(self, validator: impl Fn(&serde_json::Value) -> Result<(), String> + Send + Sync + 'static) -> Self`. Attach a type-specific saved-state check. Hosts must run it on initial/restored state before template writes and before saving; direct marker calls run it before and after successful callbacks. Without a validator state is opaque JSON, still subject to the host's independent depth/size budgets. Validation errors do not roll back prior writes or mutations.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate};
+let piece = ConfiguredStructurePiece::new(StructurePieceTemplate {
+    template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+    rotation: Default::default(), mirror: Default::default(),
+}, serde_json::json!(0), |_| Ok(())).with_state_validator(|state| {
+    if state.as_u64().is_some_and(|n| n <= 3) { Ok(()) } else { Err("invalid counter".into()) }
+});
+assert!(piece.validate_state(piece.initial_state()).is_ok());
+assert!(piece.validate_state(&serde_json::json!(-1)).is_err());
+```
+
+### `ConfiguredStructurePiece::validate_state`
+
+`fn validate_state(&self, state: &serde_json::Value) -> Result<(), String>`. Validate without querying or writing a world. This does not replace host JSON budgets, registry binding or a real save/reload test.
+
+```rust
+use pluto_lib::{ConfiguredStructurePiece, Identifier, StructurePieceTemplate};
+let piece = ConfiguredStructurePiece::new(StructurePieceTemplate {
+    template: Identifier::parse("example:house").unwrap(), origin: [0,70,0],
+    rotation: Default::default(), mirror: Default::default(),
+}, serde_json::Value::Null, |_| Ok(()));
+assert_eq!(piece.validate_state(&serde_json::json!({"opaque":true})), Ok(()));
 ```
