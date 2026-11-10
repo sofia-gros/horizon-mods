@@ -72,6 +72,92 @@ impl FeatureTypeRegistry {
     }
 }
 
+/// Registry-bound inputs compiled by the host before a root-placement run.
+/// Lists preserve caller order and provider identity; entries are not sampled or
+/// flattened into fixed states by the API. Native codecs validate their schemas.
+#[derive(Clone, Default)]
+pub struct WorldgenBindings {
+    pub block_sets: Vec<Value>,
+    pub state_providers: Vec<Value>,
+}
+
+/// A root-placement editor with precompiled registry bindings. Indices refer to
+/// the RootPlacement's ordered binding lists, never to native global state IDs.
+pub trait RootPlacementWorld: BlockEditor {
+    /// Test the block at pos against a bound holder set, or report an unavailable
+    /// binding. False is a real non-match, never a substitute for a lookup error.
+    fn matches_block_set(&mut self, _index: usize, _pos: BlockPos) -> Result<bool, String> {
+        Err("block-set bindings unavailable".into())
+    }
+    /// Sample exactly the selected provider using this placement's world/RNG.
+    /// No produced state is an error, not implicit reuse of the current block.
+    /// An error must not cause selection of a different provider.
+    fn sample_state_provider(&mut self, _index: usize, _pos: BlockPos) -> Result<super::world_api_v1::BlockState, String> {
+        Err("state-provider bindings unavailable".into())
+    }
+}
+
+// Memory editors cannot bind native holders/providers. They explicitly report
+// unsupported binding queries rather than inventing block/tag/provider results.
+impl RootPlacementWorld for super::block_api_v1::MemoryBlockView {}
+
+/// One native root position. Native simulation and trunk offset remain owned by
+/// the tree's base root placer; this callback overrides its per-position write.
+pub struct RootPlacementContext<'a> {
+    pub world: &'a mut dyn RootPlacementWorld,
+    pub pos: BlockPos,
+}
+
+type PlaceRoot = dyn Fn(&mut RootPlacementContext<'_>) -> Result<Option<super::world_api_v1::BlockState>, String> + Send + Sync;
+
+/// An immutable per-root placement override with registry-binding descriptors.
+/// Some(state) replaces this root (native waterlogging/tracking still apply);
+/// None requests the original parent root placement; Err never falls through.
+#[derive(Clone)]
+pub struct RootPlacement {
+    bindings: WorldgenBindings,
+    place: Arc<PlaceRoot>,
+}
+
+impl RootPlacement {
+    /// Capture binding descriptors and validated algorithm settings. The native
+    /// host must compile every descriptor before starting the tree's writes.
+    pub fn new(bindings: WorldgenBindings, place: impl Fn(&mut RootPlacementContext<'_>) -> Result<Option<super::world_api_v1::BlockState>, String> + Send + Sync + 'static) -> Self {
+        Self { bindings, place: Arc::new(place) }
+    }
+    /// Ordered descriptors for host binding; no world access or random draw.
+    pub fn bindings(&self) -> &WorldgenBindings { &self.bindings }
+    /// Execute once for one root. Preserve errors and explicit parent fallback.
+    pub fn place(&self, context: &mut RootPlacementContext<'_>) -> Result<Option<super::world_api_v1::BlockState>, String> { (self.place)(context) }
+}
+
+type RootCodec = Arc<dyn Fn(&Value) -> Result<RootPlacement, String> + Send + Sync>;
+static ROOTS: RwLock<BTreeMap<String, RootCodec>> = RwLock::new(BTreeMap::new());
+
+/// Codec registration for per-position root overrides, not replacement of a
+/// native root simulator. Explicit tree placement supplies the decoded override.
+pub struct RootPlacementTypeRegistry;
+
+impl RootPlacementTypeRegistry {
+    /// Register/replace a codec; user callbacks/destructors run outside locks.
+    pub fn register(id: Identifier, codec: impl Fn(&Value) -> Result<RootPlacement, String> + Send + Sync + 'static) -> bool {
+        let codec: RootCodec = Arc::new(codec);
+        let previous = {
+            let Ok(mut all) = ROOTS.write() else { return false };
+            all.insert(id.to_string(), codec)
+        };
+        drop(previous);
+        true
+    }
+    /// Decode without world writes. Unknown is None; registered errors remain
+    /// errors. The host separately compiles registry bindings before generation.
+    pub fn decode(id: &Identifier, configuration: &Value) -> Result<Option<RootPlacement>, String> {
+        let codec = ROOTS.read().map_err(|_| "root placement registry poisoned".to_owned())?.get(&id.to_string()).cloned();
+        let Some(codec) = codec else { return Ok(None) };
+        codec(configuration).map(Some)
+    }
+}
+
 /// Borrowed inputs to a tree decorator. The tree generator supplies its ordered
 /// position lists and its own editor/RNG. This context does not discover leaves,
 /// track writes for a native tree, or run the native final shape/distance passes.
@@ -139,6 +225,40 @@ mod tests {
     use super::*;
     use super::super::block_api_v1::MemoryBlockView;
     use super::super::world_api_v1::BlockState;
+
+    #[test]
+    fn root_overrides_keep_bindings_parent_fallback_errors_and_registry_reentry() {
+        let id = Identifier::parse("example:bound_root_override").unwrap();
+        assert!(RootPlacementTypeRegistry::decode(&id, &Value::Null).unwrap().is_none());
+        let replacement = id.clone();
+        assert!(RootPlacementTypeRegistry::register(id.clone(), move |value| {
+            if value.as_bool() != Some(true) { return Err("root disabled".into()); }
+            RootPlacementTypeRegistry::register(replacement.clone(), |_| Err("replaced root codec".into()));
+            Ok(RootPlacement::new(WorldgenBindings {
+                block_sets: vec![serde_json::json!("#example:original_holder")],
+                state_providers: vec![serde_json::json!({"type":"minecraft:weighted_state_provider","entries":[]})],
+            }, |context| {
+                match context.pos[0] {
+                    0 => Ok(None),
+                    1 => Ok(Some(BlockState::parse("minecraft:mangrove_roots").unwrap())),
+                    _ => {
+                        context.world.matches_block_set(0, context.pos)?;
+                        context.world.sample_state_provider(0, context.pos).map(Some)
+                    }
+                }
+            }))
+        }));
+        assert_eq!(RootPlacementTypeRegistry::decode(&id, &Value::Bool(false)).err().as_deref(), Some("root disabled"));
+        let roots = RootPlacementTypeRegistry::decode(&id, &Value::Bool(true)).unwrap().unwrap();
+        assert_eq!(roots.bindings().block_sets, [serde_json::json!("#example:original_holder")]);
+        assert_eq!(roots.bindings().state_providers[0]["type"], "minecraft:weighted_state_provider");
+        assert_eq!(RootPlacementTypeRegistry::decode(&id, &Value::Bool(true)).err().as_deref(), Some("replaced root codec"));
+        let mut world = MemoryBlockView::default();
+        assert_eq!(roots.place(&mut RootPlacementContext { world: &mut world, pos: [0, 70, 0] }), Ok(None));
+        assert_eq!(roots.clone().place(&mut RootPlacementContext { world: &mut world, pos: [1, 70, 0] }).unwrap().unwrap().block.to_string(), "minecraft:mangrove_roots");
+        assert_eq!(roots.place(&mut RootPlacementContext { world: &mut world, pos: [-1, 70, 0] }), Err("block-set bindings unavailable".into()));
+        assert!(world.writes.is_empty(), "selection does not itself perform native root writes");
+    }
 
     #[test]
     fn decorators_decode_before_placement_keep_order_and_propagate_partial_failure() {

@@ -266,6 +266,10 @@ pub trait BlockEditor: BlockView {
     /// without writing. Live callback worlds reject nested features/trees until
     /// their writes can be tracked in the outer tree. No natural dispatch implied.
     fn place_tree(&mut self, _configuration: &serde_json::Value, _pos: BlockPos, _decorators: &[super::worldgen_api_v1::TreeDecorator]) -> bool { false }
+    /// Native base-root simulation with a bound per-position root override. All
+    /// holder/provider descriptors bind before tree writes. Unsupported editors
+    /// fail without writing or invoking callbacks; ordinary native JSON is unchanged.
+    fn place_tree_with_roots(&mut self, _configuration: &serde_json::Value, _pos: BlockPos, _roots: &super::worldgen_api_v1::RootPlacement, _decorators: &[super::worldgen_api_v1::TreeDecorator]) -> bool { false }
 }
 
 impl BlockEditor for MemoryBlockView {

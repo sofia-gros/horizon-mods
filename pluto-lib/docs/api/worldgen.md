@@ -2,7 +2,7 @@
 
 A feature type supplies a codec that validates data, then a generator that uses the supplied world and origin. This follows Minecraft/Fabric's registered `Feature` and `ConfiguredFeature` concepts. Rust closures capture the decoded settings; random draws use the supplied `BlockEditor` rather than a newly seeded RNG.
 
-> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs only through PlutoLib's live `BlockEditor::place_feature`. Registering a type is not evidence that those paths invoke it; see the support matrix. Root placers remain separate work. Decorator codecs can be invoked explicitly by a mod's feature generator. `BlockEditor::place_tree` appends predecoded decorators inside native tree placement (live oak fixture checked); ordinary native tree JSON does not decode registered decorator types.
+> **Use with Caution.** Direct codec/generator calls have pure tests. Live `BlockEditor::place_feature` dispatch has been checked with an independent real-game consumer: configured state/properties, negative origin, random bounds, invalid configuration, bounded recursion and no native fallthrough after registered failure. Native `/place feature` commands, natural generation workers and custom types referenced inside native feature graphs are not connected. Automatic host dispatch currently runs only through PlutoLib's live `BlockEditor::place_feature`. Registering a type is not evidence that those paths invoke it; see the support matrix. Per-position root overrides now have a registry-bound explicit API (native/game verification pending), not automatic custom root-type decoding. Decorator codecs can be invoked explicitly by a mod's feature generator. `BlockEditor::place_tree` appends predecoded decorators inside native tree placement (live oak fixture checked); ordinary native tree JSON does not decode registered decorator types.
 
 ## Basic Example
 
@@ -74,6 +74,30 @@ let _snapshot = decorator.clone();
 ```
 
 > **Use with Caution.** This is an explicit-call API. `BlockEditor::place_tree` appends predecoded decorators before native tracking/finalization (live oak fixture checked), but does not add registered types to ordinary native tree JSON. Other generators remain responsible for tracking/finalization; natural-generation dispatch is unconnected. Failed decorators preserve prior writes; their error is not permission to fall back to a second algorithm. Position lists are not sorted or deduplicated here. An independent live feature fixture checked Tinkers' registered leaf-vine loop: vanilla/configured vine blocks, attachment faces, five-block limit, obstruction, zero probability, invalid configuration and write-error ownership; its five images were inspected. Tinkers' leaf-vine codec syntax-checks its block ID; block/property existence is resolved on write, unlike Java's registry-bound decode. Its full registry/parity integration is unfinished.
+
+## Root Placement Overrides
+
+`RootPlacement` overrides one root write while leaving the native root simulator, trunk offset and tree geometry intact. Return `Some(state)` for a replacement, `None` for native parent placement, or `Err` to stop without fallback. The native adapter applies waterlogging and records the root. `BlockEditor::place_tree_with_roots` accepts the decoded override alongside extra decorators.
+
+Holder sets and state providers are kept as ordered native-codec descriptors in `WorldgenBindings`. The host binds every descriptor against the active registry before any tree writes, including unselected providers. During a callback, test a bound block set or sample exactly the selected provider through `RootPlacementWorld`, using the same tree RNG. Do not flatten weighted/noise/rule-based providers into a fixed state map or try another provider after a sample failure.
+
+```rust
+use pluto_lib::{RootPlacement, WorldgenBindings};
+
+let roots = RootPlacement::new(WorldgenBindings {
+    block_sets: vec![serde_json::json!(["minecraft:water"])],
+    state_providers: vec![serde_json::json!({"type":"minecraft:simple", "state":{"id":"minecraft:mangrove_roots"}})],
+}, |context| {
+    if context.world.matches_block_set(0, context.pos)? {
+        context.world.sample_state_provider(0, context.pos).map(Some)
+    } else {
+        Ok(None)
+    }
+});
+assert_eq!(roots.bindings().state_providers.len(), 1);
+```
+
+> **Use with Caution.** The native build and five live root fixtures pass: first-match weighted providers, waterlogging, native muddy-root fallback, selected-provider no-state failure and invalid unselected bindings; all five images were inspected. This is not full Ender Tree parity. This is a per-position override, not a replacement for native root simulation. Ordinary native JSON/natural generation does not resolve registered custom root types. Descriptors use the pinned host's codec schema; older Java data needs schema conversion, not a silent reinterpretation. Holder/provider binding counts are limited to 256 each, with the native provider node budget. Memory editors report binding queries as unsupported; custom editors reject tree placement unless overridden. Nested feature/tree placement inside root callbacks is also rejected without writes until nested tracking exists. Successful earlier writes are never rolled back after a callback/provider error.
 
 ## Reference
 
@@ -239,4 +263,110 @@ use pluto_lib::{Identifier, TreeDecoratorTypeRegistry};
 let id = Identifier::parse("example:invalid_decorator").unwrap();
 TreeDecoratorTypeRegistry::register(id.clone(), |_| Err("bad configuration".into()));
 assert_eq!(TreeDecoratorTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("bad configuration"));
+```
+
+### `WorldgenBindings`
+
+`WorldgenBindings { block_sets: Vec<serde_json::Value>, state_providers: Vec<serde_json::Value> }`. Ordered immutable configuration inputs once captured by a root override. The lists are independent; their indices are local handles, never engine state IDs. `Default` makes empty lists. Cloning preserves full descriptors, not sampled states.
+
+```rust
+use pluto_lib::WorldgenBindings;
+let mut bindings = WorldgenBindings::default();
+bindings.block_sets.push(serde_json::json!("#minecraft:logs"));
+let copy = bindings.clone();
+assert_eq!(copy.block_sets, bindings.block_sets);
+```
+
+### `RootPlacementWorld`
+
+Extends `BlockEditor` with `fn matches_block_set(&mut self, index: usize, pos: BlockPos) -> Result<bool, String>` and `fn sample_state_provider(&mut self, index: usize, pos: BlockPos) -> Result<BlockState, String>`. Use indices from the override's binding lists. Missing bindings/positions and provider failures are errors, not false matches or native fallback. A selected provider producing no state is also an error; it must not silently reuse the current block. The trait defaults and `MemoryBlockView` report unsupported bindings without writing or sampling.
+
+```rust
+use pluto_lib::{MemoryBlockView, RootPlacementWorld};
+let mut world = MemoryBlockView::default();
+assert!(world.matches_block_set(0, [0, 64, 0]).is_err());
+assert!(world.sample_state_provider(0, [0, 64, 0]).is_err());
+assert!(world.writes.is_empty());
+```
+
+### `RootPlacementContext`
+
+`RootPlacementContext<'a> { world: &'a mut dyn RootPlacementWorld, pos: BlockPos }`. A borrowed editor plus the current root position. No world/RNG borrow may be retained beyond the callback.
+
+```rust
+use pluto_lib::{MemoryBlockView, RootPlacementContext};
+let mut world = MemoryBlockView::default();
+let context = RootPlacementContext { world: &mut world, pos: [-4, 64, 2] };
+assert_eq!(context.pos, [-4, 64, 2]);
+```
+
+### `RootPlacement`
+
+A decoded per-position root-write override plus binding descriptors. Cloning shares its immutable algorithm; native parent shape/simulation is not copied into this value.
+
+```rust
+use pluto_lib::{RootPlacement, WorldgenBindings};
+let roots = RootPlacement::new(WorldgenBindings::default(), |_| Ok(None));
+let _copy = roots.clone();
+```
+
+### `RootPlacement::new`
+
+`fn new(bindings: WorldgenBindings, place: impl Fn(&mut RootPlacementContext<'_>) -> Result<Option<BlockState>, String> + Send + Sync + 'static) -> RootPlacement`. Capture descriptors/settings. The host compiles all bindings before tree writes. The callback returns a replacement, explicit parent fallback, or an error; an error is never permission to run the parent instead.
+
+```rust
+use pluto_lib::{BlockState, RootPlacement, WorldgenBindings};
+let state = BlockState::parse("minecraft:mangrove_roots").unwrap();
+let _roots = RootPlacement::new(WorldgenBindings::default(), move |_| Ok(Some(state.clone())));
+```
+
+### `RootPlacement::bindings`
+
+`fn bindings(&self) -> &WorldgenBindings`. Read the original ordered descriptors; this does not bind registries, sample providers, access a world or draw random values.
+
+```rust
+use pluto_lib::{RootPlacement, WorldgenBindings};
+let roots = RootPlacement::new(WorldgenBindings::default(), |_| Ok(None));
+assert!(roots.bindings().block_sets.is_empty());
+```
+
+### `RootPlacement::place`
+
+`fn place(&self, context: &mut RootPlacementContext<'_>) -> Result<Option<BlockState>, String>`. Execute one position override. Direct calls do not bind the context's providers or perform native parent placement/waterlogging/tracking; the caller must handle the returned decision.
+
+```rust
+use pluto_lib::{MemoryBlockView, RootPlacement, RootPlacementContext, WorldgenBindings};
+let roots = RootPlacement::new(WorldgenBindings::default(), |_| Ok(None));
+let mut world = MemoryBlockView::default();
+assert_eq!(roots.place(&mut RootPlacementContext { world: &mut world, pos: [0, 64, 0] }), Ok(None));
+assert!(world.writes.is_empty());
+```
+
+### `RootPlacementTypeRegistry`
+
+Namespaced per-position root-override codecs. Existing native root simulation remains in the supplied base tree configuration. Registration alone does not alter native root-type decoding or natural generation. Replaced captures and user callbacks execute outside locks.
+
+```rust
+use pluto_lib::{Identifier, RootPlacementTypeRegistry};
+assert!(RootPlacementTypeRegistry::decode(&Identifier::parse("example:missing_root_override").unwrap(), &serde_json::Value::Null).unwrap().is_none());
+```
+
+### `RootPlacementTypeRegistry::register`
+
+`fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<RootPlacement, String> + Send + Sync + 'static) -> bool`. Register or replace a codec; false means the registry could not be written. The codec validates configuration structure without world writes. Host registry-binding errors are checked separately before native generation.
+
+```rust
+use pluto_lib::{Identifier, RootPlacement, RootPlacementTypeRegistry, WorldgenBindings};
+assert!(RootPlacementTypeRegistry::register(Identifier::parse("example:parent_roots").unwrap(), |_| Ok(RootPlacement::new(WorldgenBindings::default(), |_| Ok(None)))));
+```
+
+### `RootPlacementTypeRegistry::decode`
+
+`fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<RootPlacement>, String>`. `Ok(None)` is unknown; `Ok(Some(...))` is a decoded override; `Err` is a codec/registry failure. Preserve registered errors rather than falling through to another algorithm.
+
+```rust
+use pluto_lib::{Identifier, RootPlacementTypeRegistry};
+let id = Identifier::parse("example:invalid_root_override").unwrap();
+RootPlacementTypeRegistry::register(id.clone(), |_| Err("invalid root settings".into()));
+assert_eq!(RootPlacementTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("invalid root settings"));
 ```

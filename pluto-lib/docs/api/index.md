@@ -49,8 +49,8 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [loot](loot.md) | change loot tables as they load |
 | [resources](resources.md) | pack-aware client asset bytes/PNG pixels, initial and refreshed client handles, separate server-data reload listeners |
 | [items](items.md) | edit existing tooltip entries without flattening rich text, append simple/translated lines, use items over time |
-| [block](block.md) | block behaviour, explicit write flags, live native features; native tree + extra decorators (live oak fixture checked), no custom roots |
-| [worldgen](worldgen.md) | feature codecs/live BlockEditor generation; explicit decorator codecs (live fixture checked), native tree/command/natural/nested-native paths unconnected |
+| [block](block.md) | block behaviour, explicit write flags, live native features; native tree + extra decorators (live oak fixture checked), bound root overrides (five live cases checked) |
+| [worldgen](worldgen.md) | feature/decorator codecs, live tree + extra vines; registry-bound root callbacks (selection/waterlogging/failure cases checked); automatic native JSON/command/natural/nested-native dispatch unconnected |
 | [color](color.md) | block tint registration/direct lookup; verified world-chunk base-face dispatch/native fallback, other rendering paths unconnected |
 | [block-entity](block-entity.md) | NBT, block entities for a mod's blocks (saved data, ticking, sync to clients and menu data slots) |
 | [screen](screen.md) | windows for a block's menu: static and dynamic slot positions, drawing, clicks, tooltips, menu buttons, what each slot takes, shift-click routing, what a hopper may put in |

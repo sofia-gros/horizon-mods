@@ -94,6 +94,8 @@ For explicit decorator dispatch, run `feature_registry.py` with `--mode decorato
 
 For the native tree/extra-decorator boundary, run `feature_registry.py --mode native_tree` against a matching full probe. It uses the active oak configuration plus the registered Java vine decorator, checks trunk/leaves/vines and final leaf distances, then verifies native edge-shape callbacks beside an extra tracked marker. A decorator error keeps earlier writes but skips finalization; a non-tree config must not write or invoke decorators. Nested feature/tree calls inside extra decorators must reject without writes. Inspect all three images; this is an oak-based boundary fixture, not Ender Tree parity.
 
+For per-position roots, run `feature_registry.py --mode roots` with a matching full probe. It uses an isolated shallow mangrove fixture and the registered Java root-selection adapter: overlapping holders with a weighted first provider, waterlogged custom root, native muddy-root parent fallback, selected provider returning no state, and invalid unselected provider rejected before tree writes. Five images need inspection. This validates the root boundary, not the full Ender Tree or original Java-to-host data conversion.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh
