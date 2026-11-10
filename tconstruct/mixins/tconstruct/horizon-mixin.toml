@@ -3994,3 +3994,41 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-travelers-crafting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_travelers_crafting"
+source = "source-travelers-crafting.rs"
+
+[[module]]
+id = "source-travelers-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_travelers_world"
+source = "source-travelers-world.rs"
+
+[[injection]]
+id = "source-travelers-crafting-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "travelers-crafting-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+# These two fixed-host reads still bypass the world recipe table. Preview,
+# authoritative menu take and automated crafting must select the same table.
+[[injection]]
+id = "source-travelers-crafting-preview"
+target = "horizon_client::game::Game<'_>::craft_recipe"
+kind = "RETURN"
+helper = "travelers-crafting-preview.rs"
+bindings = [{ name = "value", ty = "Option<(String, horizon_client::items::ItemStack)>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "source-travelers-crafter-result"
+target = "horizon_client::game::machines::crafter::Game<'_>::crafter_dispense"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "self.res.recipes().find(&grid, 3).map(|(name, result)| (name.to_owned(), result)).filter(|(_, result)| result.count > 0)"
+require = 1
+ordinal = 0
+helper = "travelers-crafter-result.rs"
+bindings = [{ name = "value", ty = "Option<(String, horizon_client::items::ItemStack)>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "grid", ty = "&[Option<horizon_client::items::ItemStack>]", value = "&grid" }]
