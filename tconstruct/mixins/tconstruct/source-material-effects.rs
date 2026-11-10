@@ -59,6 +59,25 @@ pub(super) fn ordered_known_repair_amount(stack: &horizon_items::items::ItemStac
     Some(amount)
 }
 
+/// Final Station swap repair, after rebuild has clamped raw damage to new max.
+/// Keep zero-repair broken flags; positive repair uses Java getDamage semantics.
+pub(super) fn finish_station_swap_repair(output: &mut horizon_items::items::ItemStack, was_broken: bool, repair: f32) -> Option<()> {
+    use horizon_world::nbt::Tag;
+    if !repair.is_finite() { return None; }
+    let mut custom = output.data()?.other("minecraft:custom_data")?.clone();
+    let max = match custom.get("tic_max_damage")? { Tag::Int(max) if *max > 0 => *max as u32, _ => return None };
+    let amount = (repair as i32).max(0) as u32;
+    let damage = if amount > 0 {
+        (if was_broken { max } else { output.damage }).saturating_sub(amount)
+    } else { output.damage };
+    let broken = damage >= max || (amount == 0 && was_broken);
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    fields.insert("tic_broken".into(), Tag::Byte(i8::from(broken)));
+    output.data_mut().set_other("minecraft:custom_data", Some(custom));
+    output.damage = damage.min(max);
+    Some(())
+}
+
 /// Supported casting part-swap repair hooks. More than one active factor is
 /// refused until the casting path supports full source hook ordering.
 pub(super) fn limited_casting_repair_factor(traits: &std::collections::BTreeMap<String, i32>, emerald_upgrade: bool) -> Option<f32> {

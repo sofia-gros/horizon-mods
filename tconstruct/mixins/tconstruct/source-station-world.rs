@@ -264,14 +264,25 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     let part_name = part.item.strip_prefix("tconstruct:")?;
     let cost_index = super::tconstruct_source_cast_info::PARTS.iter().position(|id| *id == part_name)?;
     let cost = *world.chunks.__horizon_mixins_tconstruct_source_cast_costs().as_ref()?.get(cost_index)?;
-    let repair = if super::tconstruct_source_station_stats::part_kind(&parts[index])? == "head" && cost > 0 {
-        let (namespace, name) = material.split_once(':')?;
-        let layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", name.split('#').next()?))?;
-        let stats = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
-        (stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32 * cost as f32 / 3.0) as u32
-    } else { 0 };
-    if !changed && (tool.damage == 0 || repair == 0) { return None; }
-    let output = rebuild_material_swap(world, definition, tool, &identities, repair, false, reason)?;
+    let kind = super::tconstruct_source_station_stats::part_kind(&parts[index])?;
+    let (namespace, name) = material.split_once(':')?;
+    let layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", name.split('#').next()?))?;
+    let stats = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
+    // Source tests eligibility before hooks/truncation, including sub-unit repairs.
+    let initial = super::tconstruct_source_station_stats::part_swap_repair_base(&stats, kind, cost)?;
+    let was_broken = super::tconstruct_source_ranged_wear::is_broken(tool);
+    if !changed && ((!was_broken && tool.damage == 0) || initial <= 0.0) { return None; }
+    // Rebuild first: new traits, repair factors and the new durability cap apply.
+    // Keep the shared casting rebuild contract unchanged.
+    let mut output = rebuild_material_swap(world, definition, tool, &identities, 0, false, reason)?;
+    let repair = if initial > 0.0 {
+        let traits = super::tconstruct_source_material_traits::levels(world, &output)?;
+        match super::tconstruct_source_material_effects::ordered_known_repair_amount(&output, &traits.levels, &traits.order, initial) {
+            Some(amount) => amount,
+            None => { *reason = Some("Cannot swap: repair modifier order or levels are unknown".into()); return None; }
+        }
+    } else { 0.0 };
+    super::tconstruct_source_material_effects::finish_station_swap_repair(&mut output, was_broken, repair)?;
     Some((output, vec![(0, 1), (slot, 1)]))
 }
 
