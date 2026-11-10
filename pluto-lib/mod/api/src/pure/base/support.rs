@@ -36,10 +36,10 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
     },
     SupportEntry {
-        api: "color_provider_api_v1::ColorProviderRegistry::register_block (host mesher)",
-        support: Support::BlockedByMixins,
-        behaviour: "providers are accepted and kept; the game never asks them, so faces keep the game's own tint",
-        unblocked_by: "horizon-mixins accepting an injection into the mesher's face tint (E_UNSUPPORTED_CONTROL_FLOW today)",
+        api: "color_provider_api_v1::ColorProviderRegistry::register_block (item/hand, particles, CTM overlays)",
+        support: Support::Stub,
+        behaviour: "world-chunk base faces invoke providers; these other rendering paths retain native tint and do not invoke them",
+        unblocked_by: "PlutoLib-owned adapters at the remaining rendering paths; the first world-mesh tint hook does not cover them",
     },
     SupportEntry {
         api: "block_api_v1::BlockBehavior::entity_inside",

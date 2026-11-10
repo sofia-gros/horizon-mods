@@ -139,6 +139,31 @@ name = "pluto_worldgen_level"
 source = "pluto-worldgen-level.rs"
 visibility = "pub"
 
+# Replace only the first native tint value, before model color and lighting.
+# Numeric state ids are resolved against this mesher's actual resource owners.
+[[module]]
+id = "block-color-bridge"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_block_colors"
+source = "pluto-block-colors.rs"
+visibility = "pub"
+
+[[injection]]
+id = "block-color-world-tint"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "MODIFY_VARIABLE"
+variable = { name = "tint", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-block-color-tint.rs"
+bindings = [
+    { name = "value", ty = "Option<u32>", value = "$value" },
+    { name = "mesher", ty = "&Mesher<'_>", value = "&*self" },
+    { name = "id", ty = "u32", value = "id" },
+    { name = "world", ty = "BlockPos", value = "world" },
+    { name = "face", ty = "&BakedFace", value = "face" },
+]
+
 # Successful server teardown, after the final save and networking cleanup.
 [[module]]
 id = "server-stopped-dispatch"

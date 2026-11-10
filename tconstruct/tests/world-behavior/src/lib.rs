@@ -3,3 +3,5 @@
 mod world;
 #[path = "../../../mixins/tconstruct/api/src/worldgen.rs"]
 mod worldgen;
+#[path = "../../../mixins/tconstruct/api/src/colors.rs"]
+mod colors;

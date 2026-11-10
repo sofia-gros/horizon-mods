@@ -27,6 +27,21 @@ fn check_resource_pack(count: usize) {
 }
 
 pub fn hooks() -> Box<dyn Hooks> {
+    pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
+        if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE block_color pos=[0, 101, 0] tint=0 persistent={:?}", context.state.property("persistent"));
+            }
+            Some(0xFF00FF)
+        } else {
+            if context.pos == Some([3, 101, 0]) && context.tint_index == 0 {
+                static ONCE: AtomicBool = AtomicBool::new(false);
+                if !ONCE.swap(true, Ordering::Relaxed) { println!("PLUTO-PROBE block_color fallback pos=[3, 101, 0]"); }
+            }
+            None
+        }
+    });
     pluto_lib::ProjectileEvents::IMPACT.register(|hit| {
         static ONCE: AtomicBool = AtomicBool::new(false);
         if !ONCE.swap(true, Ordering::Relaxed) {
