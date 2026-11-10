@@ -200,3 +200,7 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-fortune-harvest.rs"]
+mod tconstruct_fortune_harvest;
