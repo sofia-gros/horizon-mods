@@ -2,7 +2,7 @@
 
 A block model marks the faces that take a tint (grass, leaves) and the game fills in the colour. A colour provider lets your mod answer for its own blocks, and the answer may depend on where the block stands: a colour map laid across the world, a pattern that repeats every 256 blocks. This page first walks through using it, then lists every item in the [Reference](#reference).
 
-> **Use with Caution.** World-render dispatch remains unimplemented. Two seams were measured on the pinned Mixins: direct injection into `Mesher::face` was rejected for destructured parameters, and wrapping its call from `mesh_reusing` was rejected with `E_UNSUPPORTED_CONTROL_FLOW` (closures, async, try/`?`, unsafe and const blocks are unsupported injection contexts). These failures do not prove every alternative is impossible, but neither attempt connects rendering. Item/hand, particle and other block-rendering paths remain unconnected too (see the support matrix).
+> **Use with Caution.** World-chunk base-face dispatch has been built and checked in a real client: a provider renders magenta leaves while `None` preserves the native green, with real state properties, position and tint index. The updated pinned Mixins accepts the first-tint `MODIFY_VARIABLE` seam; the old call-site wrap is not used. Item/hand, particle, connected-texture overlay tint evaluation and other block-rendering paths remain unconnected (see the support matrix).
 
 ## Basic Example
 
@@ -21,7 +21,7 @@ The provider gets a `BlockColorContext`. Answer `Some(0xRRGGBB)` to supply a tin
 
 ## World Rendering and Other Paths
 
-The proposed world-chunk adapter would pass the block's real state and properties, world position and model tint index, resolving state names through the asset registry belonging to that mesher rather than a global startup snapshot. It would skip negative tint indices and retain native tint when a provider declines. The two attempted injection seams were rejected, so this dispatch is not implemented. A provider can still be registered and queried directly; limit it to the model layers it owns. This pattern example illustrates the general API, not a working renderer hookup or Tinkers' colour-map algorithm:
+The world-chunk adapter resolves the block's real state and properties through that mesher's asset registry and supplies its world position and model tint index. It replaces only the first native tint value, before native model-colour modulation and lighting, skips negative tint indices and retains native tint when a provider declines. Provider dispatch and native fallback have been checked in game. A provider can also be registered and queried directly; limit it to the model layers it owns. This example illustrates the general API, not Tinkers' colour-map algorithm:
 
 ```rust
 use pluto_lib::{ColorProviderRegistry, Identifier};
@@ -36,11 +36,11 @@ ColorProviderRegistry::register_block(&[Identifier::new("example", "patterned_le
 });
 ```
 
-The Tinkers colour consumer is implemented against the original Java and reads its colour maps through `ResourceManagerHelper::read_client_image`, replacing owned snapshots on client-resource notifications (see [resources](resources.md)). Connecting a tint hook or loading an image alone does not establish parity with the original sampling rules. The consumer, resource-pack overrides and reload behaviour remain unverified in game.
+The Tinkers colour consumer is implemented against the original Java and reads its colour maps through `ResourceManagerHelper::read_client_image`, replacing owned snapshots on client-resource notifications (see [resources](resources.md)). Connecting a tint hook or loading an image alone does not establish parity with the original sampling rules. The focused game gate places all 47 original block registrations, loads five controlled colour maps, changes them through actual F3+T, and checks malformed-Ichor-map retention. Initial, reloaded and retained plant images have been inspected; exact world-position folding and leaf/vine offsets also have independent pure tests.
 
 The consumer accepts only 256×256 images with a complete four-byte RGBA pixel buffer. This is an intentional safety difference for malformed resources: the original Java can index outside a short colour map, while the port rejects wrong dimensions or buffer length and keeps the previous map (the initial zero-filled map if none has loaded). This does not claim identical behaviour for malformed packs.
 
-> **Use with Caution.** The renderer connection is not implemented or game-validated. Testing the resource facade separately does not establish that block tint providers reach world rendering. A context with `pos: None` is valid for a direct API call, but does not mean the item/hand renderer invokes the provider. Particle tinting and other rendering paths are separate too. Register providers before any future chunk-mesh dispatch; changing a registration does not itself request a chunk remesh. Keep providers short, thread-safe and independent of live player/world operations, since chunk meshing can run on worker threads.
+> **Use with Caution.** The verified path is world-chunk base faces only. A separate resource-facade test does not extend this coverage to another rendering path. A context with `pos: None` is valid for a direct API call, but does not mean the item/hand renderer invokes the provider. Particle tinting and other rendering paths are separate too. Register providers before chunk-mesh dispatch; changing a registration does not itself request a chunk remesh. Keep providers short, thread-safe and independent of live player/world operations, since chunk meshing can run on worker threads.
 
 ## Reference
 
@@ -82,7 +82,7 @@ ColorProviderRegistry::register_block(
 
 ### `ColorProviderRegistry::block_color`
 
-`fn block_color(context: &BlockColorContext) -> Option<u32>`. Call the registered provider for `context.state`'s block. Returns its `0xRRGGBB` answer, or `None` when no provider is registered or the provider declines. This direct lookup works independently of renderer wiring and accepts a manually supplied context, including `pos: None`; it does not establish that a game rendering path is connected. The world-mesh adapter, when connected, is responsible for retaining the native tint on `None`.
+`fn block_color(context: &BlockColorContext) -> Option<u32>`. Call the registered provider for `context.state`'s block. Returns its `0xRRGGBB` answer, or `None` when no provider is registered or the provider declines. This direct lookup works independently of renderer wiring and accepts a manually supplied context, including `pos: None`; it does not establish that a game rendering path is connected. The world-chunk base-face adapter retains the native tint on `None`.
 
 ```rust
 use pluto_lib::{BlockColorContext, BlockState, ColorProviderRegistry, Identifier};

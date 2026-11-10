@@ -28,7 +28,7 @@
     },
     "block/SlimeNyliumBlock.java": {
       "status": "ported",
-      "note": "world.rs nether branch; real-game nylium-game3 checks all 10 ichor/blood x soil variants: stone cover -> correct dirt, air/glass survival, occupied-above rejection, actual bone meal -> matching plants and nearby nylium, other-foliage sentinel unchanged. Representative screenshots inspected. Color rendering remains parked (#1117); bottom-slab Java parity, exact RNG/rare outcomes and LAN/save-reload are not claimed."
+      "note": "world.rs nether branch; real-game nylium-game3 checks all 10 ichor/blood x soil variants: stone cover -> correct dirt, air/glass survival, occupied-above rejection, actual bone meal -> matching plants and nearby nylium, other-foliage sentinel unchanged. Representative screenshots inspected. World base-face colors and reloads checked separately in color-final default/pack runs (#1117); bottom-slab Java parity, exact RNG/rare outcomes and LAN/save-reload are not claimed."
     },
     "block/SlimePropaguleBlock.java": {
       "status": "partial",
@@ -147,16 +147,16 @@
       "note": "Horizon has no slime entity template (only snowball, villager, wandering trader, zombie)"
     },
     "client/SlimeColorizer.java": {
-      "status": "parked",
-      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
+      "status": "ported",
+      "note": "colors.rs preserves Java float folding, wrapping coordinates, +128 leaf/vine offset, defaults and zero-initialized maps; independent pure tests cover boundary indices. Final full native build rendered all 47 registered blocks with ordinary and controlled maps; four plant close-ups inspected across default/initial/reload/retention. World base faces only; item/hand and particles remain unconnected."
     },
     "client/SlimeColorReloadListener.java": {
-      "status": "parked",
-      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
+      "status": "ported",
+      "note": "colors.rs reads five active resource-pack maps through PlutoLib ClientResources. Final real-game F3+T changed all five colors; a malformed 255x256 Ichor map was rejected with its prior color visibly retained. Owned RGB ignores alpha like Java; intentionally requires 256x256 rather than permitting Java's malformed-buffer indexing failure."
     },
     "WorldClientEvents.java": {
-      "status": "parked",
-      "note": "the foliage tint: PlutoLib has the colour provider API (a stub) but the pinned Horizon Mixins cannot apply the injection into the mesher that would ask it (E_UNSUPPORTED_CONTROL_FLOW); the old port loaded the colour maps for nothing, and that dead injection is removed. Leaves, grass and ferns keep the game's tint"
+      "status": "partial",
+      "note": "colors.rs ports the 47 block-color registrations and initial/reload listeners via PlutoLib; final full native build, state checks and ordinary/controlled/reloaded/retained plant images checked. Item color aliases, particle factories, entity/skull renderers and head/armor models remain unimplemented; item/hand, particles and CTM overlay tint paths are not connected."
     },
     "data/StructureRepalleter.java": {
       "status": "not-code",

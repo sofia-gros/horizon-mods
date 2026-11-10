@@ -72,6 +72,14 @@ python tools/smoke-local/client_resources.py --game <built horizon-engine> --ctl
 
 This gate requires an initial notification before join and another after actual F3+T, decoded colormap/missing-resource checks, and clean lifecycle shutdown. The optional pack mode selects conflicting lower/higher packs, checks exact bytes and top-first non-premultiplied RGBA before/after editing the higher pack, and checks that an old image snapshot stays unchanged. Inspect its saved screenshots separately. It does not prove block-color-provider rendering, which is a different path.
 
+For world-chunk base-face colours and the original foliage consumer, use a matching native probe build:
+
+```sh
+python tools/smoke-local/block_colors.py --game <built horizon-engine> --ctl <built horizon-ctl> --resources RESOURCES_DIR --tinker-pack
+```
+
+The probe first compares a magenta provider result, native green fallback and unaffected stone. It places and state-checks all 47 original foliage block registrations. Without `--tinker-pack` it photographs the ordinary resources; with it, five controlled colormaps change through F3+T, then a wrong-size Ichor map must be rejected while retaining its previous colour. States are rechecked after each reload. Inspect the overview and plant close-ups: callback markers alone do not prove tinting. Item/hand, particles and connected-texture overlay tinting are outside this gate.
+
 For the existing world-domain nylium consumer, use a matching native probe build:
 
 ```sh
