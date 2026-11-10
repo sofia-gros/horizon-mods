@@ -1,6 +1,6 @@
 // Live native trees with borrowed, tracked decorator callbacks.
 use super::{Behaviours, LevelAccess, Ticks, feature_world::LevelFeatureWorld};
-use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, RootBindings, RootEdit, RootCallback, MAX_FEATURE_DEPTH};
+use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
 use crate::registry::BlockStateId;
 use crate::worldgen::{feature_graph::{FeatureDefinition, FeatureExecutionError}, placement::PlacementQueryError};
 use crate::worldgen::live::pluto_tree_catalog;
@@ -119,7 +119,7 @@ impl<L: LevelAccess + ?Sized> RootEdit for TreeEditor<'_, '_, '_, L> {
 
 fn on_world<L: LevelAccess + ?Sized>(
     world: &mut LevelFeatureWorld<'_, '_, L>, random: &mut LegacyRandom,
-    configuration: &Value, pos: [i32; 3], mut roots: Option<(&RootBindings, &mut RootCallback<'_>)>, decorate: &mut TreeCallback<'_>,
+    configuration: &Value, pos: [i32; 3], mut roots: Option<(&RootBindings, &mut RootCallback<'_>)>, plan: Option<&[TreeStep]>, decorate: &mut PlannedTreeCallback<'_>,
 ) -> bool {
     let tree = match pluto_tree_catalog::decode_tree(world.features, configuration) {
         Ok(tree) => tree,
@@ -144,10 +144,10 @@ fn on_world<L: LevelAccess + ?Sized>(
         selected.map(|state| editor.resolve(&state).ok_or_else(|| FeatureExecutionError::Query(PlacementQueryError::Failed("root override state invalid".into())))).transpose()
     };
     let root_override: Option<&mut crate::worldgen::tree::pluto_tree_placement::RootOverride<'_, _, _>> = if has_roots { Some(&mut root_override) } else { None };
-    let result = crate::worldgen::tree::pluto_tree_placement::place_with_root_override(&tree, world, random, pos, &mut nested, root_override,
-        |world, random, positions, written| {
+    let result = crate::worldgen::tree::pluto_tree_placement::place_with_plan(&tree, world, random, pos, &mut nested, root_override, plan,
+        |index, world, random, positions, written| {
             let mut editor = TreeEditor { world, random, written, bound_roots: None };
-            decorate(&mut editor, positions.logs, positions.leaves, positions.roots)
+            decorate(index, &mut editor, positions.logs, positions.leaves, positions.roots)
                 .map_err(|error| FeatureExecutionError::Query(PlacementQueryError::Failed(error)))
         });
     match result {
@@ -176,11 +176,26 @@ fn place_bound(
     behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
     configuration: &Value, pos: [i32; 3], depth: u8, roots: Option<(&RootBindings, &mut RootCallback<'_>)>, decorate: &mut TreeCallback<'_>,
 ) -> bool {
+    place_planned_bound(behaviours, level, ticks, configuration, pos, depth, roots, None,
+        &mut |_, world, logs, leaves, roots| decorate(world, logs, leaves, roots))
+}
+
+pub fn place_with_plan(
+    behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
+    configuration: &Value, pos: [i32; 3], depth: u8, roots: Option<(&RootBindings, &mut RootCallback<'_>)>, plan: &[TreeStep], decorate: &mut PlannedTreeCallback<'_>,
+) -> bool {
+    place_planned_bound(behaviours, level, ticks, configuration, pos, depth, roots, Some(plan), decorate)
+}
+
+fn place_planned_bound(
+    behaviours: &Behaviours, level: &mut dyn LevelAccess, ticks: &mut Ticks,
+    configuration: &Value, pos: [i32; 3], depth: u8, roots: Option<(&RootBindings, &mut RootCallback<'_>)>, plan: Option<&[TreeStep]>, decorate: &mut PlannedTreeCallback<'_>,
+) -> bool {
     if depth == 0 || depth > MAX_FEATURE_DEPTH { return false }
     let Some(features) = behaviours.live_features() else { return false };
     let mut sim = behaviours.sim(level, ticks);
     super::pluto_block_access::with_random(&mut sim, |sim| sim.random(), |sim, random| {
         let mut world = LevelFeatureWorld { sim, features, entities: Vec::new() };
-        on_world(&mut world, random, configuration, pos, roots, decorate)
+        on_world(&mut world, random, configuration, pos, roots, plan, decorate)
     })
 }

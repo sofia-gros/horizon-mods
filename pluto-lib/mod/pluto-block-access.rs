@@ -40,6 +40,18 @@ pub fn with_random<S, R: Clone, T>(state: &mut S, random: for<'a> fn(&'a mut S) 
 #[cfg(test)]
 mod tests {
     #[test]
+    fn tree_plans_require_each_native_once_and_preserve_interleaving() {
+        use super::{TreeStep::{Native, Custom}, valid_tree_plan};
+        assert!(valid_tree_plan(&[Custom(0), Native(1), Custom(1), Native(0), Custom(2)], 2));
+        assert!(valid_tree_plan(&[], 0));
+        assert!(!valid_tree_plan(&[Native(0), Native(0)], 2));
+        assert!(!valid_tree_plan(&[Custom(0), Native(0)], 2));
+        assert!(!valid_tree_plan(&[Native(2), Native(0)], 2));
+        assert!(!valid_tree_plan(&vec![Custom(0); 513], 0));
+        assert!(!valid_tree_plan(&[], 257));
+    }
+
+    #[test]
     fn rng_copy_is_written_back_on_success_and_caught_panic_without_world_rollback() {
         struct State { random: u64, writes: usize }
         let mut state = State { random: 5, writes: 0 };
@@ -70,6 +82,26 @@ pub trait RootEdit: LevelEdit {
 
 pub type RootCallback<'a> = dyn FnMut(&mut dyn RootEdit, [i32; 3]) -> Result<Option<StateInfo>, String> + 'a;
 
+/// Native indices refer to the decoded configuration, custom indices to callbacks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TreeStep { Native(usize), Custom(usize) }
+
+/// Reject omissions, repeats and invalid native indices before any tree writes.
+pub fn valid_tree_plan(plan: &[TreeStep], native_count: usize) -> bool {
+    if plan.len() > 512 || native_count > 256 { return false }
+    let mut seen = vec![false; native_count];
+    for step in plan {
+        if let TreeStep::Native(index) = *step {
+            let Some(used) = seen.get_mut(index) else { return false };
+            if *used { return false }
+            *used = true;
+        }
+    }
+    seen.into_iter().all(|used| used)
+}
+
+pub type PlannedTreeCallback<'a> = dyn FnMut(usize, &mut dyn LevelEdit, &[[i32; 3]], &[[i32; 3]], &[[i32; 3]]) -> Result<(), String> + 'a;
+
 pub type TreeCallback<'a> = dyn FnMut(&mut dyn LevelEdit, &[[i32; 3]], &[[i32; 3]], &[[i32; 3]]) -> Result<(), String> + 'a;
 
 pub trait LevelEdit: LevelView {
@@ -84,4 +116,5 @@ pub trait LevelEdit: LevelView {
     /// Unsupported editors fail without writing.
     fn place_tree(&mut self, _configuration: &serde_json::Value, _pos: [i32; 3], _decorate: &mut TreeCallback<'_>) -> bool { false }
     fn place_tree_with_roots(&mut self, _configuration: &serde_json::Value, _pos: [i32; 3], _bindings: &RootBindings, _root: &mut RootCallback<'_>, _decorate: &mut TreeCallback<'_>) -> bool { false }
+    fn place_tree_with_plan(&mut self, _configuration: &serde_json::Value, _pos: [i32; 3], _roots: Option<(&RootBindings, &mut RootCallback<'_>)>, _plan: &[TreeStep], _decorate: &mut PlannedTreeCallback<'_>) -> bool { false }
 }

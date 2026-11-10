@@ -32,6 +32,26 @@ pub fn place_with_root_override<W: FeatureWorld + PlacementContext, R: RandomSou
     roots: Option<&mut RootOverride<'_, W, R>>,
     extra: impl FnOnce(&mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
 ) -> TreeResult<bool, W::Error> {
+    use crate::level::pluto_block_access::TreeStep;
+    let mut plan: Vec<_> = (0..tree.decorators.len()).map(TreeStep::Native).collect();
+    plan.push(TreeStep::Custom(0));
+    let mut extra = Some(extra);
+    place_with_plan(tree, world, random, origin, nested, roots, Some(&plan),
+        |_, world, random, positions, written| extra.take().expect("single appended callback")(world, random, positions, written))
+}
+
+/// All native decorators appear exactly once, with custom steps between them.
+/// Invalid plans are rejected before native placement consumes RNG or writes.
+pub fn place_with_plan<W: FeatureWorld + PlacementContext, R: RandomSource>(
+    tree: &TreeFeature, world: &mut W, random: &mut R, origin: [i32; 3], nested: &mut NestedPlacer<'_, W, R>,
+    roots: Option<&mut RootOverride<'_, W, R>>, plan: Option<&[crate::level::pluto_block_access::TreeStep]>,
+    mut extra: impl FnMut(usize, &mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
+) -> TreeResult<bool, W::Error> {
+    use crate::level::pluto_block_access::{TreeStep, valid_tree_plan};
+    let mut appended: Vec<_> = (0..tree.decorators.len()).map(TreeStep::Native).collect();
+    appended.push(TreeStep::Custom(0));
+    let plan = plan.unwrap_or(&appended);
+    if !valid_tree_plan(plan, tree.decorators.len()) { return Ok(false) }
     let mut run = Run { world, random, sets: Sets::default(), track: true };
     let placed = match roots {
         Some(roots) => do_place_with_roots(tree, &mut run, origin, roots)?,
@@ -43,12 +63,16 @@ pub fn place_with_root_override<W: FeatureWorld + PlacementContext, R: RandomSou
     let lists = decorator::Lists::new(
         run.sets.trunks.to_vec(), run.sets.foliage.to_vec(), run.sets.roots.to_vec(),
     );
-    for decorator in &tree.decorators {
-        decorator.place(&mut run, &tree.blocks, &lists, nested)?;
+    for step in plan {
+        match *step {
+            TreeStep::Native(index) => tree.decorators[index].place(&mut run, &tree.blocks, &lists, nested)?,
+            TreeStep::Custom(index) => {
+                let mut written = Vec::new();
+                extra(index, run.world, run.random, Positions { logs: &lists.logs, leaves: &lists.leaves, roots: &lists.roots }, &mut written)?;
+                for position in written { run.sets.decorations.insert(position); }
+            }
+        }
     }
-    let mut written = Vec::new();
-    extra(run.world, run.random, Positions { logs: &lists.logs, leaves: &lists.leaves, roots: &lists.roots }, &mut written)?;
-    for position in written { run.sets.decorations.insert(position); }
     let mut bounds: Option<([i32; 3], [i32; 3])> = None;
     for set in [&run.sets.roots, &run.sets.trunks, &run.sets.foliage, &run.sets.decorations] {
         for p in set.to_vec() {

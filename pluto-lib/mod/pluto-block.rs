@@ -7,11 +7,11 @@ use std::sync::Mutex;
 // Shared in the lower-level world crate so a native tree callback can use the
 // same editor contract without introducing a world -> client dependency.
 #[cfg(not(test))]
-pub use horizon_world::level::pluto_worldgen_level::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, MAX_FEATURE_DEPTH};
+pub use horizon_world::level::pluto_worldgen_level::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
 
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]
-pub use crate::block_access_tests::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, MAX_FEATURE_DEPTH};
+pub use crate::block_access_tests::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
 
 pub struct ShapeUpdate {
     pub state: StateInfo,

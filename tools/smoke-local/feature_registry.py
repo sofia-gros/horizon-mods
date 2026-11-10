@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -76,6 +76,14 @@ def main():
                 ('native_tree_error', {'tree': oak, 'fail': True}),
                 ('native_tree_invalid', {'tree': {'type': 'minecraft:no_op', 'config': {}}, 'remove': False}),
             )
+        if args.mode == 'ordered':
+            oak = json.loads(definitions['minecraft:oak'])
+            oak.get('config', oak)['decorators'] = [
+                {'type': 'minecraft:attached_to_logs', 'probability': 1,
+                 'block_provider': {'type': 'minecraft:simple', 'state': {'id': block}}, 'directions': [direction]}
+                for block, direction in [('minecraft:diamond_block', 'north'), ('minecraft:gold_block', 'south')]
+            ]
+            fixtures = tuple((f'ordered_{case}', {'tree': oak, 'case': case}) for case in ('valid', 'error', 'invalid'))
         if args.mode == 'roots':
             mangrove = json.loads(definitions['minecraft:mangrove'])
             config = mangrove.get('config', mangrove)
@@ -106,7 +114,7 @@ def main():
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture'}.get(args.mode, 'pluto_probe:column')
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture'}.get(args.mode, 'pluto_probe:column')
             definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
@@ -215,6 +223,20 @@ def main():
                     raise RuntimeError(f'expected only the bad fixture to fail decoding; run={run}')
                 if 'Horizon: feature pluto_probe:' in observed:
                     raise RuntimeError(f'a custom request unexpectedly reached native feature decoding; run={run}')
+            elif args.mode == 'ordered':
+                for x, case, success, count in ((0, 'valid', True, 3), (16, 'error', False, 1), (32, 'invalid', False, 0)):
+                    fixture(x, 'minecraft:dirt', 'minecraft:dead_bush')
+                    name = f'pluto_probe:ordered_{case}'
+                    clicks = click_until(x, f'PLUTO-PROBE feature_request name={name} placed={str(success).lower()}')
+                    marker = f'PLUTO-PROBE ordered_case case={case} placed={str(success).lower()} callbacks={count} valid=true'
+                    if marker not in text():
+                        raise RuntimeError(f'ordered placement observation missing: {case}; run={run}')
+                    if case == 'invalid' and not block(x, 101, 0).startswith('minecraft:dead_bush'):
+                        raise RuntimeError(f'invalid plan wrote blocks; run={run}')
+                    photograph(x, f'ordered-{case}.png')
+                    observations.append({'case': case, 'clicks': clicks, 'placed': success, 'callbacks': count})
+                if 'probe ordered decorator failure' not in text() or 'Horizon: feature pluto_probe:' in text():
+                    raise RuntimeError(f'ordered failure ownership diagnostics missing; run={run}')
             elif args.mode == 'roots':
                 import re
                 for x, case, success in ((0, 'weighted', True), (40, 'water', True), (80, 'parent', True), (120, 'no_state', False), (160, 'invalid_binding', False)):

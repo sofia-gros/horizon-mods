@@ -189,6 +189,15 @@ impl TreeDecorator {
     }
 }
 
+/// One step in an explicit tree decoration plan. Native indices refer to the
+/// tree configuration's decorator array; every native entry must occur once.
+/// Custom algorithms may be interleaved without altering the native RNG stream.
+#[derive(Clone)]
+pub enum TreeDecoration {
+    Native(usize),
+    Custom(TreeDecorator),
+}
+
 type DecoratorCodec = Arc<dyn Fn(&Value) -> Result<TreeDecorator, String> + Send + Sync>;
 static DECORATORS: RwLock<BTreeMap<String, DecoratorCodec>> = RwLock::new(BTreeMap::new());
 

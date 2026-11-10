@@ -42,7 +42,7 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "editor implementations with real registry bindings and nested placement tracking",
     },
     SupportEntry {
-        api: "block_api_v1::BlockEditor::place_tree (custom/memory editors; nested tree-callback placement)",
+        api: "block_api_v1::BlockEditor::place_tree / place_tree_with_plan (custom/memory editors; nested tree-callback placement)",
         support: Support::Stub,
         behaviour: "default/custom-memory editors reject trees; live extra-decorator editors reject nested features/trees without writing",
         unblocked_by: "editor override or nested placement tracking merged into the outer tree's finalization sets",

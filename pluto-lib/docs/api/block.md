@@ -338,6 +338,22 @@ assert!(world.writes.is_empty());
 
 > **Use with Caution.** Five live fixtures checked weighted first-match selection, waterlogging, native parent fallback, no-state provider errors and eager rejection of invalid unselected bindings; all five images were inspected. Custom/memory editors default to false without writes/callbacks. This method does not replace native root simulation, automatically decode custom root types inside native JSON, or connect natural generation. Nested tree/feature requests inside root callbacks are rejected until their writes can be merged into outer tracking. Provider failure must never select another provider or request parent placement. See [worldgen](worldgen.md) for binding descriptors and codecs.
 
+### Ordered Tree Decoration
+
+`fn place_tree_with_plan(&mut self, configuration: &serde_json::Value, pos: BlockPos, roots: Option<&RootPlacement>, plan: &[TreeDecoration]) -> bool`. Run native and custom decorators in the supplied order, after native tree geometry and before native finalization. Pass `None` to keep native roots or `Some(&roots)` for bound per-position overrides. Every native decorator index must appear exactly once; invalid plans reject before tree writes or callbacks. At most 512 steps and 256 native decorators are accepted. Configuration and root bindings still decode before writes.
+
+```rust
+use pluto_lib::{BlockEditor, MemoryBlockView, RootPlacement, WorldgenBindings, TreeDecoration, TreeDecorator};
+let mut world = MemoryBlockView::default();
+let plan = [TreeDecoration::Custom(TreeDecorator::new(|_| panic!("unsupported editor")))];
+assert!(!world.place_tree_with_plan(&serde_json::Value::Null, [0, 64, 0], None, &plan));
+let roots = RootPlacement::new(WorldgenBindings::default(), |_| panic!("unsupported roots"));
+assert!(!world.place_tree_with_plan(&serde_json::Value::Null, [0, 64, 0], Some(&roots), &plan));
+assert!(world.writes.is_empty());
+```
+
+> **Use with Caution.** Three live fixtures checked interleaving, error ownership and pre-write invalid-plan rejection; all three images were inspected. All steps share the original position lists and placement RNG; successful custom writes are tracked before the next step. Errors stop remaining decorators and finalization without rollback. Default/custom-memory editors reject without writes or callbacks. Nested placement remains unsupported. Existing append-only methods keep their ordering. See [worldgen](worldgen.md#treedecoration) for both step variants.
+
 ### `TickContext`
 
 A tick or a bone meal reached the block. `state` is the block's state, `pos` its position and `world` the world around, which can be changed.

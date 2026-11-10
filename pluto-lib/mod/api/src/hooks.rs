@@ -686,6 +686,26 @@ impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::Bl
         self.0.place_feature(feature, pos)
     }
 
+    fn place_tree_with_plan(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: Option<&crate::pure::worldgen_api_v1::RootPlacement>, plan: &[crate::pure::worldgen_api_v1::TreeDecoration]) -> bool {
+        use crate::pure::worldgen_api_v1::{TreeDecoration, RootPlacementContext, TreeDecoratorContext};
+        use horizon_client::entry::pluto_block::{RootBindings, RootCallback, TreeStep};
+        let bindings = roots.map(|roots| RootBindings { block_sets: roots.bindings().block_sets.clone(), state_providers: roots.bindings().state_providers.clone() });
+        let steps: Vec<_> = plan.iter().enumerate().map(|(index, step)| match step {
+            TreeDecoration::Native(native) => TreeStep::Native(*native),
+            TreeDecoration::Custom(_) => TreeStep::Custom(index),
+        }).collect();
+        let mut root_callback = |world: &mut dyn horizon_client::entry::pluto_block::RootEdit, pos| {
+            let roots = roots.ok_or_else(|| "root callback unavailable".to_owned())?;
+            roots.place(&mut RootPlacementContext { world: &mut GameEditor(world), pos })
+                .map(|state| state.as_ref().map(to_info))
+        };
+        let bound_roots = bindings.as_ref().map(|bindings| (bindings, &mut root_callback as &mut RootCallback<'_>));
+        self.0.place_tree_with_plan(configuration, pos, bound_roots, &steps, &mut |index, world, logs, leaves, roots| {
+            let Some(TreeDecoration::Custom(decorator)) = plan.get(index) else { return Err("custom tree step unavailable".into()) };
+            decorator.decorate(&mut TreeDecoratorContext { world: &mut GameEditor(world), logs, leaves, roots })
+        })
+    }
+
     fn place_tree_with_roots(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: &crate::pure::worldgen_api_v1::RootPlacement, decorators: &[crate::pure::worldgen_api_v1::TreeDecorator]) -> bool {
         use horizon_client::entry::pluto_block::RootBindings;
         let bindings = RootBindings { block_sets: roots.bindings().block_sets.clone(), state_providers: roots.bindings().state_providers.clone() };
