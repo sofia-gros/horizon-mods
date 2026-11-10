@@ -187,6 +187,22 @@ let missing = Identifier::parse("example:not_registered").unwrap();
 assert_eq!(FeatureTypeRegistry::generate(&missing, &serde_json::Value::Null, &mut context), Ok(None));
 ```
 
+### `TreeDecoration`
+
+`enum TreeDecoration { Native(usize), Custom(TreeDecorator) }`. One step for `BlockEditor::place_tree_with_plan`. `Native(index)` refers to the zero-based index in the native configuration's `decorators` array. Each native decorator must appear exactly once; omitted, repeated or out-of-range native indices reject placement before tree writes. `Custom` holds an already decoded algorithm. Both variants clone without world access. A plan may contain at most 512 steps, including at most 256 native decorators.
+
+```rust
+use pluto_lib::{TreeDecoration, TreeDecorator};
+let plan = [
+    TreeDecoration::Custom(TreeDecorator::new(|_| Ok(()))),
+    TreeDecoration::Native(0),
+    TreeDecoration::Custom(TreeDecorator::new(|_| Ok(()))),
+];
+assert!(matches!(plan[1].clone(), TreeDecoration::Native(0)));
+```
+
+> **Use with Caution.** Three live fixtures checked interleaved custom/native writes, stopping after a custom error and rejecting an invalid native-index plan before callbacks/writes; all three images were inspected. These steps do not decode custom decorators inside ordinary native JSON or connect natural generation. Existing `place_tree` and `place_tree_with_roots` retain append-only behaviour.
+
 ### `TreeDecoratorContext`
 
 `TreeDecoratorContext<'a> { world: &'a mut dyn BlockEditor, logs: &'a [BlockPos], leaves: &'a [BlockPos], roots: &'a [BlockPos] }`. Borrowed tree positions and the generator's editor/RNG; the context cannot be retained by a decorator. The caller provides the required iteration order, including stable ordering of equal-height positions where its algorithm requires it.

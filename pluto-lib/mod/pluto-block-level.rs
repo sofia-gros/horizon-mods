@@ -247,6 +247,15 @@ impl LevelEdit for Edit<'_, '_> {
         }).unwrap_or(false)
     }
 
+    fn place_tree_with_plan(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: Option<(&horizon_world::level::pluto_block_access::RootBindings, &mut horizon_world::level::pluto_block_access::RootCallback<'_>)>, plan: &[horizon_world::level::pluto_block_access::TreeStep], decorate: &mut horizon_world::level::pluto_block_access::PlannedTreeCallback<'_>) -> bool {
+        pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
+            let Some(ticks) = edit.ticks.as_deref_mut() else { return Some(false) };
+            Some(horizon_world::level::pluto_tree_level::place_with_plan(
+                edit.level.behaviours, &mut *edit.level, ticks, configuration, pos, edit.feature_depth, roots, plan, decorate,
+            ))
+        }).unwrap_or(false)
+    }
+
     fn place_tree(&mut self, configuration: &serde_json::Value, pos: [i32; 3], decorate: &mut horizon_world::level::pluto_block_access::TreeCallback<'_>) -> bool {
         pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
             let Some(ticks) = edit.ticks.as_deref_mut() else { return Some(false) };

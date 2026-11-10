@@ -270,6 +270,10 @@ pub trait BlockEditor: BlockView {
     /// holder/provider descriptors bind before tree writes. Unsupported editors
     /// fail without writing or invoking callbacks; ordinary native JSON is unchanged.
     fn place_tree_with_roots(&mut self, _configuration: &serde_json::Value, _pos: BlockPos, _roots: &super::worldgen_api_v1::RootPlacement, _decorators: &[super::worldgen_api_v1::TreeDecorator]) -> bool { false }
+    /// Execute explicit native/custom decorator steps before finalization. Each
+    /// native decorator must appear once; invalid plans fail before tree writes.
+    /// Optional root overrides preserve the native simulator. Default is no-write.
+    fn place_tree_with_plan(&mut self, _configuration: &serde_json::Value, _pos: BlockPos, _roots: Option<&super::worldgen_api_v1::RootPlacement>, _plan: &[super::worldgen_api_v1::TreeDecoration]) -> bool { false }
 }
 
 impl BlockEditor for MemoryBlockView {

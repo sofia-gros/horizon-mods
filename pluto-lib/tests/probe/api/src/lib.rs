@@ -40,6 +40,67 @@ fn register_feature_probe() {
         }));
         return;
     }
+    if mode == "ordered" {
+        use pluto_lib::{TreeDecoration, TreeDecorator};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:ordered_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let case = configuration.get("case").and_then(|v| v.as_str()).ok_or_else(|| "case missing".to_owned())?.to_owned();
+            Ok(ConfiguredFeature::new(move |context| {
+                let trace = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+                let before_trace = trace.clone();
+                let fail = case == "error";
+                let before = TreeDecorator::new(move |context| {
+                    before_trace.lock().unwrap().push("before");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let north = [x,y,z-1]; let south = [x,y,z+1];
+                    if !context.world.is_air(north) || !context.world.is_air(south) { return Err("native ran before first custom step".into()) }
+                    if !context.world.set_block_state_with_flags(north, &BlockState::parse("minecraft:stone").unwrap(), 19) { return Err("before write failed".into()) }
+                    if fail { Err("probe ordered decorator failure".into()) } else { Ok(()) }
+                });
+                let middle_trace = trace.clone();
+                let middle = TreeDecorator::new(move |context| {
+                    middle_trace.lock().unwrap().push("middle");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let named = |pos, name: &str| context.world.block_state(pos).is_some_and(|s| s.block.to_string() == name);
+                    if !named([x,y,z-1], "minecraft:stone") || !named([x,y,z+1], "minecraft:gold_block") { return Err("native/custom interleaving mismatch".into()) }
+                    if !context.world.set_block_state_with_flags([x,y,z-1], &BlockState::parse("minecraft:air").unwrap(), 19) { return Err("middle write failed".into()) }
+                    Ok(())
+                });
+                let after_trace = trace.clone();
+                let after = TreeDecorator::new(move |context| {
+                    after_trace.lock().unwrap().push("after");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let named = |pos, name: &str| context.world.block_state(pos).is_some_and(|s| s.block.to_string() == name);
+                    if !named([x,y,z-1], "minecraft:diamond_block") || !named([x,y,z+1], "minecraft:gold_block") { return Err("final native decoration missing".into()) }
+                    Ok(())
+                });
+                let plan = if case == "invalid" {
+                    vec![TreeDecoration::Custom(before), TreeDecoration::Native(0), TreeDecoration::Native(0)]
+                } else {
+                    vec![TreeDecoration::Custom(before), TreeDecoration::Native(1), TreeDecoration::Custom(middle), TreeDecoration::Native(0), TreeDecoration::Custom(after)]
+                };
+                if case != "invalid" && !context.world.set_block_state_with_flags(context.origin, &BlockState::parse("minecraft:air").unwrap(), 19) { return false }
+                let placed = context.world.place_tree_with_plan(&tree, context.origin, None, &plan);
+                let trace = trace.lock().unwrap();
+                let valid = match case.as_str() {
+                    "valid" => placed && trace.as_slice() == ["before", "middle", "after"],
+                    "error" => !placed && trace.as_slice() == ["before"],
+                    "invalid" => !placed && trace.is_empty() && context.world.block_state(context.origin).is_some_and(|s| s.block.to_string() == "minecraft:dead_bush"),
+                    _ => false,
+                };
+                println!("PLUTO-PROBE ordered_case case={case} placed={placed} callbacks={} valid={valid}", trace.len());
+                assert!(valid, "ordered fixture failed: {case}");
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] { 0 => "pluto_probe:ordered_valid", 16 => "pluto_probe:ordered_error", 32 => "pluto_probe:ordered_invalid", _ => return };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
     if mode == "roots" {
         use pluto_lib::{RootPlacement, RootPlacementTypeRegistry};
         assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:root_fixture").unwrap(), |configuration| {

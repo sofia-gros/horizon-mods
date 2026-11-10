@@ -96,6 +96,8 @@ For the native tree/extra-decorator boundary, run `feature_registry.py --mode na
 
 For per-position roots, run `feature_registry.py --mode roots` with a matching full probe. It uses an isolated shallow mangrove fixture and the registered Java root-selection adapter: overlapping holders with a weighted first provider, waterlogged custom root, native muddy-root parent fallback, selected provider returning no state, and invalid unselected provider rejected before tree writes. Five images need inspection. This validates the root boundary, not the full Ender Tree or original Java-to-host data conversion.
 
+For ordered decoration, run `feature_registry.py --mode ordered` with a matching full probe. The planned success case puts custom callbacks before, between and after two native attached-to-logs decorators, deliberately reversing their native-array order. Each custom callback checks the preceding world's writes. The other cases require an error to stop later callbacks and a duplicate/omitted native index to reject before any callback or tree write. Inspect all three images. This boundary fixture is not Ender Tree parity.
+
 For the live native configured-feature boundary, use a matching native probe build:
 
 ```sh
