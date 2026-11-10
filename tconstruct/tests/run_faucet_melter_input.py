@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""Run the production Melter input route with real state/NBT and a mock world."""
+import os, pathlib, subprocess, tempfile
+root = pathlib.Path(__file__).resolve().parents[1]
+host = pathlib.Path(os.environ['HORIZON_HOST']).resolve()
+source = (root / 'mixins/tconstruct/source-machine-runtime.rs').read_text()
+kind = source[source.index('pub(super) fn kind('):source.index('fn initial(')]
+safety = source[source.index('fn faucet_network_tag_safe('):source.index('fn faucet_supported_potion_tag(')]
+route = source[source.index('fn tank_to_melter('):]
+template = (root / 'tests/rust/faucet_melter_input_fixture.rs').read_text()
+template = template.replace('__MIXINS__', str(root / 'mixins/tconstruct'))
+template = template.replace('__PLUTO__', str(root.parent / 'pluto-lib/mixins/pluto_native_creative/stack-fluid.rs'))
+template = template.replace('// __PRODUCTION_ROUTE__', kind + safety + route)
+with tempfile.TemporaryDirectory(prefix='faucet-melter-input-') as tmp:
+    p = pathlib.Path(tmp)
+    (p / 'src').mkdir()
+    (p / 'src/lib.rs').write_text(template)
+    (p / 'Cargo.toml').write_text('[package]\nname="faucet-melter-input-fixture"\nversion="0.1.0"\nedition="2024"\n[dependencies]\nhorizon-items={path="%s"}\nhorizon-world={path="%s"}\nhorizon-client-core={path="%s"}\n' % (host / 'crates/horizon-items', host / 'crates/horizon-world', host / 'crates/horizon-client-core'))
+    subprocess.run(['cargo', 'generate-lockfile', '--offline', '--manifest-path', str(p / 'Cargo.toml')], check=True)
+    subprocess.run(['cargo', 'test', '--locked', '--offline', '--manifest-path', str(p / 'Cargo.toml')], check=True)
