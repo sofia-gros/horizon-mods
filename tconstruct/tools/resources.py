@@ -466,6 +466,15 @@ for name, template, title in entries:
             armor_slot = 'chest'
         if armor_slot:
             item['minecraft:equippable'] = {'slot': armor_slot, 'equip_sound': 'minecraft:item.armor.equip_generic'}
+    if short in ('travelers_shield', 'plate_shield', 'battlesign'):
+        # Live source hook supplies protection and retained-tool durability.
+        item['minecraft:blocks_attacks'] = {
+            'block_delay_seconds': 0.25, 'disable_cooldown_scale': 1.0,
+            'damage_reductions': [{'horizontal_blocking_angle': 90.0, 'base': 0.0, 'factor': 0.0}],
+            'item_damage': {'threshold': 3.0, 'base': 0.0, 'factor': 0.0},
+            'bypassed_by': '#minecraft:bypasses_shield',
+            'block_sound': 'minecraft:item.shield.block', 'disabled_sound': 'minecraft:item.shield.break'}
+        item['minecraft:use_effects'] = {'speed_multiplier': 0.8 if short == 'travelers_shield' else 0.2, 'can_sprint': False}
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5
