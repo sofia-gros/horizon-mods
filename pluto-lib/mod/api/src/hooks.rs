@@ -649,6 +649,9 @@ impl block_api_v1::BlockView for GameView<'_> {
         self.0.is_air(pos)
     }
 
+    fn is_replaceable(&self, pos: [i32; 3]) -> bool { self.0.replaceable(pos) }
+    fn generation_depth(&self) -> Option<i32> { self.0.generation_depth() }
+
     fn is_face_sturdy(&self, pos: [i32; 3], face: block_api_v1::Direction) -> bool {
         self.0.face_sturdy(pos, face as u8)
     }
@@ -696,6 +699,9 @@ impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::Bl
     fn is_air(&self, pos: [i32; 3]) -> bool {
         self.0.is_air(pos)
     }
+
+    fn is_replaceable(&self, pos: [i32; 3]) -> bool { self.0.replaceable(pos) }
+    fn generation_depth(&self) -> Option<i32> { self.0.generation_depth() }
 
     fn is_face_sturdy(&self, pos: [i32; 3], face: block_api_v1::Direction) -> bool {
         self.0.face_sturdy(pos, face as u8)

@@ -39,6 +39,10 @@ impl LevelView for View<'_, '_> {
         self.level.behaviours.is_air(self.level.block_state(at(pos)))
     }
 
+    fn replaceable(&self, pos: [i32; 3]) -> bool {
+        self.level.behaviours.is_replaceable(self.level.block_state(at(pos)))
+    }
+
     fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool {
         face < 6 && self.level.behaviours.shape_info(self.level.block_state(at(pos))).full_faces & (1 << face) != 0
     }
@@ -165,6 +169,10 @@ impl LevelView for Edit<'_, '_> {
 
     fn is_air(&self, pos: [i32; 3]) -> bool {
         View { level: &*self.level }.is_air(pos)
+    }
+
+    fn replaceable(&self, pos: [i32; 3]) -> bool {
+        View { level: &*self.level }.replaceable(pos)
     }
 
     fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool {

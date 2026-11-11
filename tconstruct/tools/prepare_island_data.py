@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy pinned original End island references and wrap configured tree codecs.
+"""Copy pinned original island references and configured tree/fungus codecs.
 
 Original NBT goes into reference/, not over the existing runtime palettes that
 replace the unimplemented slime fluid with structure void. This tool does not
@@ -40,21 +40,42 @@ def main():
                 output.write(data)
         outputs.append({'path': str(destination.relative_to(ROOT)), 'sha256': hashlib.sha256(data).hexdigest()})
 
-    structure = json.loads((original / 'worldgen/structure/end_slime_island.json').read_text(encoding='utf-8'))
-    if structure != json.loads((reference / 'worldgen/structure/end_slime_island.json').read_text(encoding='utf-8')):
-        raise ValueError('curated island settings differ from the pinned generated data')
-    put('worldgen/structure/end_slime_island.json', (json.dumps(structure, indent=2) + '\n').encode())
+    for name in ('blood_island', 'clay_island', 'earth_slime_island', 'end_slime_island',
+                 'ocean_skyslime_island', 'sky_slime_island'):
+        relative = f'worldgen/structure/{name}.json'
+        structure = json.loads((original / relative).read_text(encoding='utf-8'))
+        curated = reference / relative
+        if curated.exists() and structure != json.loads(curated.read_text(encoding='utf-8')):
+            raise ValueError(f'curated island settings differ from the pinned generated data: {name}')
+        data = (json.dumps(structure, indent=2) + '\n').encode()
+        put(relative, data, reference)
+        put(relative, data)
+    for name in ('earth_slime_island_tree', 'sky_slime_island_tree', 'blood_slime_island_fungus'):
+        relative = f'worldgen/configured_feature/{name}.json'
+        configuration = json.loads((original / relative).read_text(encoding='utf-8'))
+        data = (json.dumps(configuration, indent=2) + '\n').encode()
+        put(relative, data, reference)
+        # These codecs use the original config object directly, unlike the
+        # Ender schema adapter below. Shipping data is not proof of dispatch.
+        put(f'worldgen/feature/{name}.json', data)
     for name in ('ender_slime_tree', 'ender_slime_tree_tall'):
         tree = json.loads((original / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8'))
         if tree != json.loads((reference / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')):
             raise ValueError('curated Ender tree differs from the pinned generated data')
         wrapped = {'type': 'tconstruct:source_tree', 'config': tree}
         put(f'worldgen/feature/{name}.json', (json.dumps(wrapped, indent=2) + '\n').encode())
-    for size in ('0x1x0', '2x2x4', '4x1x6', '8x1x11', '11x1x11'):
-        data = (original / f'structures/islands/ender/{size}.nbt').read_bytes()
-        if len(data) > 1024 * 1024:
-            raise ValueError('unexpectedly large original island template')
-        put(f'structures/islands/ender/{size}.nbt', data, reference)
+    for kind in ('blood', 'dirt', 'earth', 'ender', 'sky'):
+        for size in ('0x1x0', '2x2x4', '4x1x6', '8x1x11', '11x1x11'):
+            relative = f'structures/islands/{kind}/{size}.nbt'
+            path = original / relative
+            if not path.is_file():
+                # Dirt is the handwritten source template; the slime palettes
+                # are generated from it. Both trees belong to the same pin.
+                path = source / 'src/main/resources/data/tconstruct' / relative
+            data = path.read_bytes()
+            if len(data) > 1024 * 1024:
+                raise ValueError('unexpectedly large original island template')
+            put(relative, data, reference)
     print(json.dumps({'original_revision': pin, 'outputs': outputs,
                       'scope': 'original reference palettes retained; runtime palettes still omit custom world fluids'}, indent=2))
 

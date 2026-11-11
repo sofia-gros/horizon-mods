@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate original End islands, optionally reopening the same isolated world.
+"""Generate original End or Blood islands, optionally reopening the same isolated world.
 
 Only the cloned candidate set is deterministic. Original structure settings and
 biome tags stay unchanged. Require trees, tall grass, ferns and vines together;
@@ -28,7 +28,15 @@ def main():
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--islands', type=int, choices=range(1, 7), default=1)
     parser.add_argument('--resume', action='store_true', help='reopen and require actual saved-piece restoration')
+    parser.add_argument('--kind', choices=('end', 'blood'), default='end')
     args = parser.parse_args()
+    blocks = BLOCKS if args.kind == 'end' else (
+        'tconstruct:ichor_slime_dirt', 'tconstruct:blood_ichor_slime_grass',
+        'tconstruct:bloodshroom_log', 'tconstruct:blood_slime_leaves',
+        'tconstruct:blood_slime_tall_grass', 'tconstruct:blood_slime_fern')
+    structure = 'tconstruct:end_slime_island' if args.kind == 'end' else 'tconstruct:blood_island'
+    dimension = 'minecraft:the_end' if args.kind == 'end' else 'minecraft:the_nether'
+    bands = (160, 80, 224) if args.kind == 'end' else (80, 40, 120)
     game, controller, original = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
     require_report(game.parent, pins['horizon_revision'], pins['mixins_revision'],
@@ -36,22 +44,42 @@ def main():
     run = Path(tempfile.mkdtemp(prefix='natural-islands-', dir=ROOT / '.local/smoke-runs')).resolve()
     resources, _ = prepare_resources(original, run)
     catalog = json.loads((resources / 'worldgen/structures.json').read_text(encoding='utf-8'))
-    settings = catalog['tconstruct:end_slime_island']
+    settings = catalog[structure]
     settings = json.loads(settings) if isinstance(settings, str) else settings
-    reference = json.loads((ROOT / 'tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/structure/end_slime_island.json').read_text(encoding='utf-8'))
+    reference_path = ROOT / 'tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/structure' / (structure.split(':')[1] + '.json')
+    reference = json.loads(reference_path.read_text(encoding='utf-8'))
     if settings != reference:
         raise RuntimeError('natural island settings differ from original source reference')
     path = resources / 'worldgen/structure_sets.json'
     before = path.read_bytes()
     sets = json.loads(before)
-    sets.pop('tconstruct:end_sky_island', None)
-    sets['pluto_probe:natural_end_island'] = json.dumps({
-        'structures': [{'structure': 'tconstruct:end_slime_island', 'weight': 1}],
+    for name, value in list(sets.items()):
+        value = json.loads(value) if isinstance(value, str) else value
+        if any(entry.get('structure') == structure for entry in value.get('structures', [])):
+            del sets[name]  # remove duplicate starts only in this fixture clone
+    sets['pluto_probe:natural_' + args.kind + '_island'] = json.dumps({
+        'structures': [{'structure': structure, 'weight': 1}],
         'placement': {'type': 'minecraft:random_spread', 'spacing': 32, 'separation': 31, 'salt': 1731}})
     path.unlink()
     path.write_text(json.dumps(sets) + '\n', encoding='utf-8', newline='\n')
     if (original / 'worldgen/structure_sets.json').read_bytes() != before:
         raise RuntimeError('original structure sets changed')
+    if args.kind == 'blood':
+        feature_file = resources / 'worldgen/features.json'
+        feature_bytes = feature_file.read_bytes()
+        features = json.loads(feature_bytes)
+        feature = json.loads((ROOT / 'tconstruct/content/data/tconstruct/worldgen/feature/blood_slime_island_fungus.json').read_text(encoding='utf-8'))
+        key = 'tconstruct:blood_slime_island_fungus'
+        if key in features:
+            previous = features[key]
+            previous = json.loads(previous) if isinstance(previous, str) else previous
+            if previous != feature:
+                raise RuntimeError('prepared Blood fungus differs from source configuration')
+        features[key] = json.dumps(feature)
+        feature_file.unlink()
+        feature_file.write_bytes((json.dumps(features) + '\n').encode())
+        if (original / 'worldgen/features.json').read_bytes() != feature_bytes:
+            raise RuntimeError('original feature catalog changed')
     endpoint = run / 'control.json'
     env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
                HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_STRUCTURE_MODE='1')
@@ -80,16 +108,16 @@ def main():
 
     def observe(index, candidate, saved=None):
         x, z = candidate
-        ctl('command', f'execute in minecraft:the_end run tp @s {x+8} 160 {z+8}')
+        ctl('command', f'execute in {dimension} run tp @s {x+8} {bands[0]} {z+8}')
         ctl('wait', 200)
         if saved is None:
             found = None
             # Radius is capped at 64. Include low SKY islands over End void.
-            for altitude in (160, 80, 224):
-                if altitude != 160:
+            for altitude in bands:
+                if altitude != bands[0]:
                     ctl('command', f'tp @s {x+8} {altitude} {z+8}')
                     ctl('wait', 80)
-                ground = [ctl('find-block', name, 64) for name in BLOCKS[:2]]
+                ground = [ctl('find-block', name, 64) for name in blocks[:2]]
                 found = next((row for row in ground if row.get('count', 0) > 0), None)
                 if found is not None:
                     break
@@ -102,21 +130,21 @@ def main():
         ctl('command', f'tp @s {focus[0]+28} {focus[1]+18} {focus[2]+28}')
         ctl('look-at', focus[0], focus[1]+3, focus[2])
         ctl('wait', 200)
-        found = {name: ctl('find-block', name, 64) for name in BLOCKS}
+        found = {name: ctl('find-block', name, 64) for name in blocks}
         counts = {name: value.get('count', 0) for name, value in found.items()}
-        if sum(counts[name] for name in BLOCKS[:2]) <= 0:
+        if sum(counts[name] for name in blocks[:2]) <= 0:
             raise RuntimeError(f'{phase}: island ground disappeared; run={run}')
         samples = []
         if saved is None:
-            for name in BLOCKS:
+            for name in blocks:
                 for item in found[name].get('nearest', [])[:3]:
                     position = item['pos']
                     samples.append({'pos': position, 'state': ctl('getblock', *position)['block']})
         else:
             for item in saved['samples']:
                 samples.append({'pos': item['pos'], 'state': ctl('getblock', *item['pos'])['block']})
-        located = ctl('command', 'locate structure tconstruct:end_slime_island')
-        if not any('nearest' in text.lower() and 'tconstruct:end_slime_island' in text for text in located.get('chat', [])):
+        located = ctl('command', 'locate structure ' + structure)
+        if not any('nearest' in text.lower() and structure in text for text in located.get('chat', [])):
             raise RuntimeError(f'{phase}: generated start not locatable: {located}; run={run}')
         snapshot = {'candidate': list(candidate), 'focus': focus, 'counts': counts, 'samples': samples, 'locate': located}
         if saved is not None and snapshot != saved:
@@ -154,8 +182,8 @@ def main():
                     for index, candidate in enumerate(CANDIDATES):
                         rows.append(observe(index, candidate))
                         if (len(rows) >= args.islands
-                            and any(row['counts'][BLOCKS[2]] > 0 and row['counts'][BLOCKS[3]] > 0 for row in rows)
-                            and all(any(row['counts'][name] > 0 for row in rows) for name in BLOCKS[4:])):
+                            and any(row['counts'][blocks[2]] > 0 and row['counts'][blocks[3]] > 0 for row in rows)
+                            and all(any(row['counts'][name] > 0 for row in rows) for name in blocks[4:])):
                             break
                     else:
                         raise RuntimeError(f'missing original tree, tall grass, fern or vine across six islands; run={run}')
@@ -181,7 +209,7 @@ def main():
             if text.count(f'PLUTO-PROBE server_{status} dedicated=false') != 1:
                 raise RuntimeError(f'{phase}: unclean lifecycle {status}; run={run}')
         for failure in ('registered piece requires the typed placement adapter', 'registered structure state invalid',
-                        'natural structure tconstruct:end_slime_island rejected', 'tree configuration failed', 'tree placement failed'):
+                        'natural structure ' + structure + ' rejected', 'tree configuration failed', 'tree placement failed'):
             if failure in text:
                 raise RuntimeError(f'{phase}: natural marker failure {failure}; run={run}')
         if phase == 'resume':

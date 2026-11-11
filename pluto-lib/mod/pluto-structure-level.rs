@@ -49,6 +49,8 @@ impl<L:LevelAccess+?Sized> LevelView for MarkerEditor<'_,'_,'_,L> {
     fn is_water(&self,p:[i32;3])->bool{self.inner.is_water(p)}
     fn fluid_full(&self,p:[i32;3])->bool{self.inner.fluid_full(p)}
     fn area_loaded(&self,p:[i32;3],r:i32)->bool{self.inner.area_loaded(p,r)}
+    fn replaceable(&self,p:[i32;3])->bool{self.inner.replaceable(p)}
+    fn generation_depth(&self)->Option<i32>{self.inner.generation_depth()}
     fn full_block(&self,p:[i32;3])->bool{self.inner.full_block(p)}
     fn build_height(&self)->[i32;2]{self.inner.build_height()}
 }

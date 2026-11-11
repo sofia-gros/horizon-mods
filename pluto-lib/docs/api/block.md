@@ -89,6 +89,19 @@ BlockBehaviors::register(
 );
 ```
 
+## Replacement and Generator Limits
+
+Use `is_replaceable` when an algorithm asks whether a state can be replaced; air, collision shape and block tags are different questions. Use `generation_depth` for a generator's vertical depth, never infer it from the build ceiling. A callback without a generator context returns `None`:
+
+```rust
+use pluto_lib::{BlockView, MemoryBlockView};
+let view = MemoryBlockView::default();
+assert!(view.is_replaceable([0, 64, 0])); // empty memory world
+assert_eq!(view.generation_depth(), None);
+```
+
+> **Use with Caution.** Native FEATURES-region queries are implemented; live views currently have no generator-depth context and return `None`. The bridge passes a full native build and the four-island Blood generation/reopen fixture; this does not establish live generator depth or full predicate/RNG parity. Custom views default to air-only replacement and no depth; they must opt in rather than silently inventing a generator limit.
+
 ## Testing
 
 
@@ -243,9 +256,35 @@ assert!(OneStone.is_face_sturdy([0, 0, 0], Direction::Up));
 assert!(OneStone.is_air([1, 0, 0]));
 ```
 
+#### Replacement Queries
+
+`fn is_replaceable(&self, pos: [i32; 3]) -> bool`. The native state's replaceable flag. Custom views default to `is_air(pos)`; memory worlds also accept positions explicitly listed in `replaceable`. This is not a check for a non-full collision box or a particular tag.
+
+```rust
+use pluto_lib::{BlockState, BlockView, MemoryBlockView};
+let mut view = MemoryBlockView::default();
+view.blocks.insert([1, 64, 0], BlockState::parse("minecraft:stone").unwrap());
+assert!(!view.is_replaceable([1, 64, 0]));
+view.replaceable.insert([1, 64, 0]);
+assert!(view.is_replaceable([1, 64, 0]));
+```
+
+#### Generator Depth
+
+`fn generation_depth(&self) -> Option<i32>`. Vertical depth of the active chunk generator, independently of world build limits. Native FEATURES callbacks supply it; live callbacks and custom views without generator context return `None`. Memory worlds explicitly set `generator_depth`.
+
+```rust
+use pluto_lib::{BlockView, MemoryBlockView};
+let mut view = MemoryBlockView::default();
+assert_eq!(view.generation_depth(), None);
+view.generator_depth = Some(128);
+assert_eq!(view.generation_depth(), Some(128));
+assert_eq!(view.build_height(), [-64, 320]); // build range is a different query
+```
+
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
+A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
