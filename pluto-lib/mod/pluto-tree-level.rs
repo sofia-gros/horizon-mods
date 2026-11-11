@@ -78,6 +78,7 @@ impl<L: LevelAccess + ?Sized> LevelView for TreeEditor<'_, '_, '_, L> {
             self.world.sim.level.is_loaded(at([x, pos[1], z]))
         }))
     }
+    fn replaceable(&self, pos: [i32; 3]) -> bool { self.world.sim.b.is_replaceable(self.world.sim.state(at(pos))) }
     fn full_block(&self, pos: [i32; 3]) -> bool { self.world.sim.b.shape_info(self.world.sim.state(at(pos))).full_faces & 0x3f == 0x3f }
     fn build_height(&self) -> [i32; 2] { [self.world.sim.level.min_y(), self.world.sim.level.max_y()] }
 }

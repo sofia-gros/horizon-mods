@@ -36,6 +36,8 @@ pub trait LevelView {
     /// None when unavailable; never use a guessed default state.
     fn state(&self, pos: [i32; 3]) -> Option<StateInfo>;
     fn is_air(&self, pos: [i32; 3]) -> bool;
+    fn replaceable(&self, pos: [i32; 3]) -> bool { self.is_air(pos) }
+    fn generation_depth(&self) -> Option<i32> { None }
     /// Native faces: down/up/north/south/west/east = 0..5.
     fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool;
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool;

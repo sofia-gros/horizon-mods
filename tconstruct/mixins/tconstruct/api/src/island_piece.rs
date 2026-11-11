@@ -118,6 +118,10 @@ fn marker(context:&mut StructureMarkerContext<'_>,tree:Option<&Identifier>,vine:
         "tconstruct:slime_tall_grass"=>{
             if context.world.random_bool()? {
                 if let Some(plant)=grasses.choose_with(|bound|context.world.random_int(bound))? {
+                    // The pinned Java uses the pre-1.20.3 grass identifier.
+                    // Keep source settings unchanged; translate the block ID
+                    // at the consumer boundary, not to a different plant.
+                    let plant=if plant=="minecraft:grass" {"minecraft:short_grass"} else {plant};
                     let state=BlockState::parse(plant).map_err(|_|"invalid island grass")?;
                     if context.world.can_survive_plant(&state,context.position)? {context.world.set_block_state(context.position,&state,2)?;}
                 }
@@ -188,6 +192,16 @@ mod tests {
         call(&piece,&mut world,&mut state,"example:unrelated").unwrap();
         state["trees_placed"]=Value::from(-1);
         assert!(call(&piece,&mut world,&mut state,"tconstruct:slime_tree").is_err());
+    }
+    #[test]
+    fn original_clay_grass_identifier_maps_to_the_same_modern_plant() {
+        let piece=decode(&serde_json::json!({"template":"tconstruct:islands/dirt/11x1x11","origin":[0,0,0],
+            "rotation":"NONE","mirror":"NONE","grasses":[{"data":"minecraft:grass","weight":1}]})).unwrap();
+        let mut state=piece.initial_state().clone();
+        let mut world=World {booleans:[true].into(),integers:[0].into(),..Default::default()};
+        call(&piece,&mut world,&mut state,"tconstruct:slime_tall_grass").unwrap();
+        assert_eq!(world.writes,vec![([-24,174,56],BlockState::parse("minecraft:short_grass").unwrap(),2)]);
+        assert_eq!(world.bounds,vec![1]);
     }
     #[test]
     fn initial_vine_faces_use_java_enum_order_last_face_wins_and_zero_size_still_grows_once() {

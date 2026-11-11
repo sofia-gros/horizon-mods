@@ -14,6 +14,7 @@ import tempfile
 import time
 
 from native_build_report import require_report
+from structures import prepare_resources
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -22,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('game', 'ctl', 'resources'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--all', action='store_true', help='also check original clay/Earth/Sky/ocean/Blood settings')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
@@ -37,6 +39,26 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix='island-planner-', dir=runs)).resolve()
+    if args.all:
+        original_resources = resources
+        resources, _ = prepare_resources(original_resources, run)
+        features = resources / 'worldgen/features.json'
+        original_bytes = features.read_bytes()
+        definitions = json.loads(original_bytes)
+        folder = ROOT / 'tconstruct/content/data/tconstruct/worldgen/feature'
+        for name in ('earth_slime_island_tree', 'sky_slime_island_tree', 'blood_slime_island_fungus'):
+            definitions['tconstruct:' + name] = (folder / (name + '.json')).read_text(encoding='utf-8')
+        features.unlink()
+        features.write_bytes((json.dumps(definitions) + '\n').encode())
+        if (original_resources / 'worldgen/features.json').read_bytes() != original_bytes:
+            raise RuntimeError('original feature catalog changed')
+        # Compare every production structure to the pinned, curated source data.
+        for name in ('clay_island', 'earth_slime_island', 'sky_slime_island', 'ocean_skyslime_island', 'blood_island'):
+            value = catalog['tconstruct:' + name]
+            value = json.loads(value) if isinstance(value, str) else value
+            reference = ROOT / 'tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/structure' / (name + '.json')
+            if value != json.loads(reference.read_text(encoding='utf-8')):
+                raise RuntimeError(f'prepared {name} differs from original source')
     endpoint, log = run / 'control.json', run / 'game.log'
     env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
                HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_STRUCTURE_MODE='1')
@@ -62,11 +84,11 @@ def main():
             raise RuntimeError(f'control rejected {words}: {result}; run={run}')
         return result
 
-    def ground():
+    def ground(blocks=('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt')):
         # The original template palettes can choose either dirt. Read the real
         # client after network updates, not immediately in the command frame.
         ctl('wait', 40)
-        for block in ('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt'):
+        for block in blocks:
             found = ctl('find-block', block, 64)
             if found.get('count', 0) > 0:
                 return found
@@ -140,6 +162,40 @@ def main():
                 break
             else:
                 raise RuntimeError(f'no loaded production End placement after bounded waits; run={run}')
+            if args.all:
+                cases = (
+                    ('clay_island', 'minecraft:overworld', ('minecraft:clay',)),
+                    ('earth_slime_island', 'minecraft:overworld', ('tconstruct:earth_slime_dirt', 'tconstruct:sky_slime_dirt')),
+                    ('sky_slime_island', 'minecraft:overworld', ('tconstruct:sky_slime_dirt', 'tconstruct:earth_slime_dirt')),
+                    ('ocean_skyslime_island', 'minecraft:overworld', ('tconstruct:sky_slime_dirt', 'tconstruct:earth_slime_dirt')),
+                    ('blood_island', 'minecraft:the_nether', ('tconstruct:ichor_slime_dirt', 'tconstruct:blood_ichor_slime_grass')),
+                )
+                for index, (name, dimension, palette) in enumerate(cases):
+                    x, z = 4096 + index * 512, 4096
+                    altitude = 40 if dimension == 'minecraft:the_nether' else 100
+                    ctl('command', f'execute in {dimension} run tp @s {x+8} {altitude} {z+8}')
+                    ctl('wait', 200)
+                    reply = ctl('command', f'place structure tconstruct:{name} {x} {altitude} {z}')
+                    row = {'structure': 'tconstruct:' + name, 'dimension': dimension, 'reply': reply}
+                    observations.append(row)
+                    (run / 'observations.json').write_text(json.dumps(observations, indent=2) + '\n', encoding='utf-8', newline='\n')
+                    if not generated(reply):
+                        raise RuntimeError(f'original {name} explicit placement failed: {reply}; run={run}')
+                    found = None
+                    for y in ((40, 100, 180) if dimension == 'minecraft:the_nether' else (160, 80, 224)):
+                        ctl('command', f'tp @s {x+8} {y} {z+8}')
+                        ctl('wait', 80)
+                        for block in palette:
+                            value = ctl('find-block', block, 64)
+                            if value.get('count', 0):
+                                found = value
+                                break
+                        if found is not None:
+                            break
+                    if found is None:
+                        raise RuntimeError(f'{name} reported success without observed source palette; run={run}')
+                    row['ground'] = found
+                    photo(name, found)
             ctl('quit')
             proc.wait(timeout=60)
             if proc.returncode:

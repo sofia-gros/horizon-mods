@@ -136,6 +136,12 @@ pub trait BlockView {
     fn block_state(&self, pos: BlockPos) -> Option<BlockState>;
     /// Whether the block at `pos` is air.
     fn is_air(&self, pos: BlockPos) -> bool;
+    /// Native state replaceability, not a collision/air approximation. Custom
+    /// views default to air only; implementations can expose other states.
+    fn is_replaceable(&self, pos: BlockPos) -> bool { self.is_air(pos) }
+    /// The active chunk generator's vertical depth, not the build ceiling.
+    /// None when the callback has no generator context (including live views).
+    fn generation_depth(&self) -> Option<i32> { None }
     /// Whether the whole `face` of the block at `pos` is solid (Minecraft: `isFaceSturdy`), something a block can be fixed to.
     fn is_face_sturdy(&self, pos: BlockPos, face: Direction) -> bool;
     /// Whether the block at `pos` is in the block tag `tag`, such as `tconstruct:slimy_leaves`.
@@ -167,6 +173,10 @@ pub struct MemoryBlockView {
     pub writes: Vec<(BlockPos, BlockState, i32)>,
     /// Positions that hold a block but not a sturdy one (a slab's top, glass).
     pub weak: BTreeSet<BlockPos>,
+    /// Non-air positions explicitly marked replaceable; no tag inference.
+    pub replaceable: BTreeSet<BlockPos>,
+    /// An optional generator depth, independent of the build limits.
+    pub generator_depth: Option<i32>,
     /// The tags each position's block is in.
     pub tags: BTreeMap<BlockPos, BTreeSet<String>>,
     /// The light of each position; positions not listed have 15 (open sky).
@@ -193,6 +203,12 @@ impl BlockView for MemoryBlockView {
     fn is_air(&self, pos: BlockPos) -> bool {
         !self.blocks.contains_key(&pos)
     }
+
+    fn is_replaceable(&self, pos: BlockPos) -> bool {
+        self.is_air(pos) || self.replaceable.contains(&pos)
+    }
+
+    fn generation_depth(&self) -> Option<i32> { self.generator_depth }
 
     fn is_face_sturdy(&self, pos: BlockPos, _face: Direction) -> bool {
         self.blocks.contains_key(&pos) && !self.weak.contains(&pos)

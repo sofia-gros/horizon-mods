@@ -99,6 +99,11 @@ impl LevelView for Editor<'_,'_> {
             self.loaded([x,pos[1],z]).is_ok()
         }))
     }
+    fn replaceable(&self,pos:[i32;3])->bool {
+        let world=self.world.borrow();
+        world.region.block(pos).is_ok_and(|state| world.behaviours.is_some_and(|b|b.is_replaceable(state)))
+    }
+    fn generation_depth(&self)->Option<i32>{Some(self.world.borrow().generation().height)}
     fn full_block(&self,pos:[i32;3])->bool {(0..6).all(|face|LevelView::face_sturdy(self,pos,face))}
     fn build_height(&self)->[i32;2] {let world=self.world.borrow();[world.build.0,world.build.1]}
 }

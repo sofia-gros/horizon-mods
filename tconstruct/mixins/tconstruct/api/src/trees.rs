@@ -6,6 +6,8 @@ use pluto_lib::{BlockBehavior, BlockBehaviors, BlockEditor, BlockState, Directio
 
 #[path = "slime_tree_config.rs"]
 mod configuration;
+#[path = "slime_fungus.rs"]
+mod slime_fungus;
 
 type Pos = [i32; 3];
 
@@ -220,6 +222,7 @@ pub fn register() {
 
 /// The blood and ichor fungi (`SlimeFungusBlock`): they grow on slime soil and a bone meal places the huge fungus of their ground.
 pub fn register_fungus() {
+    slime_fungus::register();
     for kind in ["blood", "ichor"] {
         BlockBehaviors::register(
             BlockBehavior::new(Identifier::new("tconstruct", &format!("{kind}_slime_sapling")).expect("valid id"))

@@ -24,6 +24,14 @@
   },
   "modules": [
     {
+      "module_id": "pluto-block-level",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_block_level",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-block-level.rs",
+      "source_sha256": "316ab31c4570036144064e9e9822ad0ee474d98db7a882ef6b967b1297914a8e"
+    },
+    {
       "module_id": "pluto-structure-dimension-streaming-adapter",
       "file": "crates/horizon-client/src/game/world_loading.rs",
       "name": "pluto_dimension_streaming",
@@ -45,7 +53,7 @@
       "name": "pluto_structure_generation_placement",
       "visibility": "pub",
       "source_file": "pluto-structure-generation-placement.rs",
-      "source_sha256": "ddf7130273a1ff28a3720492014d846d96d18d9aae43440c010ad634df950364"
+      "source_sha256": "c115345ddcde72c08465ee3a1190e47251ceffa5f64a5bf6680957a365878370"
     },
     {
       "module_id": "pluto-structure-natural",
@@ -101,7 +109,7 @@
       "name": "pluto_structure_level",
       "visibility": "pub",
       "source_file": "pluto-structure-level.rs",
-      "source_sha256": "0384248f76c3f5e5e68332b67d91875f080290b1d2c066661dcc4ca9690e3a56"
+      "source_sha256": "010d01d38ac79acb0bf8b74c95dfa18b7b9cd83a1a7b91b71e5fd65bd381032c"
     },
     {
       "module_id": "pluto-structure-command",
@@ -117,7 +125,7 @@
       "name": "pluto_block_access",
       "visibility": "pub",
       "source_file": "pluto-block-access.rs",
-      "source_sha256": "c52bd211f73536a56b23e7e52a777f637457a8356d8653799760031301a8f526"
+      "source_sha256": "90977ed504af0d97af50000d15aed42975be0709860b23392a4801471d5bde9b"
     },
     {
       "module_id": "pluto-block",
@@ -133,7 +141,7 @@
       "name": "pluto_tree_level",
       "visibility": "pub",
       "source_file": "pluto-tree-level.rs",
-      "source_sha256": "c9c064c16023c9fafc06d535e8a86745afbc19185a54b02f1738be18d3c02b81"
+      "source_sha256": "c7b36b170374b01f5de713eef7ecfdd4b32d49f38fd18f43d49092bf8509e56c"
     },
     {
       "module_id": "pluto-tree-placement",
