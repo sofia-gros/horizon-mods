@@ -55,12 +55,12 @@
       "note": "PlutoLib behaviour (world.rs register_crystals): 1 in 5 random ticks starts a small bud or grows the bud on a random side, waterlogged as the neighbour. Checked in game: a budding sky crystal grew a bud beside it. The piston reaction is the template's"
     },
     "block/CrystalBlock.java": {
-      "status": "ported-unchecked",
-      "note": "world.rs register_crystal_chimes: a projectile hitting a crystal block or cluster plays the kind's chime with a pitch from 0.5 to 1.7; the extra hit sound of the block type is not played; not tried in game"
+      "status": "ported",
+      "note": "world.rs register_crystal_chimes now matches Java's hit then chime, each pitched by a separate authoritative level-random draw (0.5 + nextFloat * 1.2), not the clock. Pure tests cover all 27 registered block names, pitches, dimensions and missing-host rejection. Real snowballs in crystal-chimes-nna2g3h3 checked both events twice on Earth/Sky/Ichor/Ender blocks and clusters, plus three metal clusters and a silent stone control; eight images inspected. Audible playback, exact native RNG trace, LAN and other dimensions remain unverified."
     },
     "block/CrystalClusterBlock.java": {
-      "status": "ported-unchecked",
-      "note": "same code path as CrystalBlock (the chime on a projectile hit, also for the steel, cobalt and knightmetal clusters); not tried in game"
+      "status": "ported",
+      "note": "Same verified projectile path as CrystalBlock. Real snowballs checked amethyst-cluster hit plus each slime chime; steel uses metal hit/Sky chime, cobalt and knightmetal use netherite hit/Ichor and Ender chimes. Each event occurred twice with blocks unchanged and no remaining projectiles. Bud variants are covered by pure tests, not separate game throws; audible playback, native RNG traces and multiplayer remain unverified."
     },
     "block/CongealedSlimeBlock.java": {
       "status": "parked",

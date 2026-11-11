@@ -249,6 +249,11 @@ impl WorldOps for ReadOnlyTags<'_> {
 struct HostWorld(HostHandle);
 
 impl WorldOps for HostWorld {
+    fn random_float(&mut self, dimension: &str) -> Option<f32> {
+        use horizon_client::mod_api::RandomSource;
+        self.0.get().level_random(dimension).map(|random| random.next_float())
+    }
+
     fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
         let host = self.0.get();
         let level = host.level(dimension)?;

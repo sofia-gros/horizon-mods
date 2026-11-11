@@ -62,6 +62,21 @@ with_world(&mut ops, || {
 
 > **Use with Caution.** A `World` reaches the game only while a callback that carries a world runs (a command, a projectile impact, a player joining or leaving). Elsewhere its methods do nothing and say so (`None`, `false`). Whole-block writes of blocks with block entities create the block entity, but a block entity's data starts at its initial data.
 
+## Drawing from the Server World's Random Stream
+
+Use `World::random_float` for behavior that should consume the same stream as vanilla's level logic, such as two independently pitched block sounds. It draws from the existing authoritative dimension, never from a new generator or the clock:
+
+```rust
+use pluto_lib::World;
+
+fn pitch(world: &World) -> Option<f32> {
+    Some(0.5 + world.random_float()? * 1.2)
+}
+assert_eq!(pitch(&World::new("minecraft:overworld")), None); // no callback scope
+```
+
+> **Use with Caution.** A draw advances the level's native stream. Preserve the original order and short-circuit conditions; do not draw once and reuse it for two independent decisions. Outside a mutable world callback, on a client, or for an unopened dimension, the result is `None`. The native bridge compiled and supplied real crystal projectile sound callbacks in game. Exact native RNG traces, client/unopened-level runtime rejection and multiplayer remain unverified.
+
 ## Testing
 
 Run your code inside `with_world` with a `MemoryWorldOps`, then look at `blocks`:
@@ -153,7 +168,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded) `set_block_state(dimension, pos, state) -> bool` `play_sound(dimension, sound, at, volume, pitch) -> bool`, and, with a default of false, `block_in_tag(block, tag) -> bool`. PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), and `block_in_tag(block, tag) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -166,6 +181,16 @@ impl WorldOps for Frozen {
     fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
 }
 with_world(&mut Frozen, || assert_eq!(World::new("minecraft:overworld").get_block_state([0, 0, 0]), None));
+```
+
+#### Supplying a Level Random Stream
+
+`fn random_float(&mut self, dimension: &str) -> Option<f32>`. A host supplies the next `[0, 1)` float from the requested authoritative level's existing stream. The default returns `None`; custom and memory worlds must opt in explicitly. Never silently create a generator when the dimension or authority is unavailable.
+
+```rust
+use pluto_lib::{MemoryWorldOps, WorldOps};
+let mut memory = MemoryWorldOps::default();
+assert_eq!(memory.random_float("minecraft:overworld"), None);
 ```
 
 ### `with_world`
@@ -238,6 +263,36 @@ assert!(!world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 
 let mut ops = MemoryWorldOps::default();
 with_world(&mut ops, || assert!(world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 1.0)));
 assert_eq!(ops.sounds.len(), 1);
+```
+
+### `World::random_float`
+
+`fn random_float(&self) -> Option<f32>`. Draw the next `[0, 1)` float from this dimension's server-level random stream. `None` outside a suitable callback, on a client, for an unopened dimension or when the host does not implement the operation. This is not a repeatable per-call seed: every successful draw advances the shared stream.
+
+```rust
+use pluto_lib::{with_world, World, WorldOps};
+
+struct Tape(f32);
+impl WorldOps for Tape {
+    fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> { None }
+    fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool { false }
+    fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+    fn random_float(&mut self, dimension: &str) -> Option<f32> {
+        if dimension != "minecraft:the_end" { return None; }
+        let value = self.0;
+        self.0 += 0.25;
+        Some(value)
+    }
+}
+let mut tape = Tape(0.25);
+let world = World::new("minecraft:the_end");
+assert_eq!(world.random_float(), None);
+with_world(&mut tape, || {
+    assert_eq!(world.random_float(), Some(0.25));
+    assert_eq!(world.random_float(), Some(0.5));
+    assert_eq!(World::new("minecraft:overworld").random_float(), None);
+});
+assert_eq!(tape.0, 0.75);
 ```
 
 ### `World::set_block_state`

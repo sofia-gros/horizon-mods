@@ -57,7 +57,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [renderer](renderer.md) | drawing a mod block's block entity in the world |
 | [fluid](fluid.md) | fluids a mod defines: id, temperature, light, density, viscosity, colour |
 | [i18n](i18n.md) | translations: text per language, the language in use, switching |
-| [world](world.md) | reading and changing blocks of a world, block tags |
+| [world](world.md) | reading/changing blocks, block tags, authoritative level-stream random floats (native build/projectile sound callbacks checked; exact RNG traces unverified) |
 | [projectile](projectile.md) | a projectile hits something: act on the world, cancel the hit |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs |
 | [player](player.md) | messages, stack data, effects, reading hunger and feeding players with `add_food`, testing with `MemoryPlayerOps` |

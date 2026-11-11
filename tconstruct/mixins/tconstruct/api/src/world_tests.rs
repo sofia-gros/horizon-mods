@@ -2,6 +2,66 @@ use super::*;
 use pluto_lib::MemoryBlockView;
 
 #[test]
+fn crystal_impacts_use_original_sound_types_two_level_draws_and_no_clock_fallback() {
+    use pluto_lib::{with_world, WorldOps};
+    #[derive(Default)]
+    struct Ops {
+        draws: std::collections::VecDeque<f32>, calls: Vec<String>,
+        sounds: Vec<(String, String, [f64; 3], f32, f32)>,
+    }
+    impl WorldOps for Ops {
+        fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> { None }
+        fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool { false }
+        fn random_float(&mut self, dimension: &str) -> Option<f32> {
+            self.calls.push(dimension.to_owned()); self.draws.pop_front()
+        }
+        fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+            self.sounds.push((dimension.into(), sound.into(), at, volume, pitch)); true
+        }
+    }
+    let mut cases = vec![];
+    for kind in ["earth", "sky", "ichor", "ender"] {
+        for (prefix, suffix, hit) in [
+            ("", "_block", "minecraft:block.amethyst_block.hit"),
+            ("budding_", "", "minecraft:block.amethyst_block.hit"),
+            ("", "_cluster", "minecraft:block.amethyst_cluster.hit"),
+            ("small_", "_bud", "minecraft:block.amethyst_cluster.hit"),
+            ("medium_", "_bud", "minecraft:block.amethyst_cluster.hit"),
+            ("large_", "_bud", "minecraft:block.amethyst_cluster.hit"),
+        ] {
+            cases.push((format!("tconstruct:{prefix}{kind}_slime_crystal{suffix}"), hit.to_owned(), format!("tconstruct:block.{kind}_crystal.chime")));
+        }
+    }
+    for (kind, material, chime) in [("steel", "metal", "sky"), ("cobalt", "netherite_block", "ichor"), ("knightmetal", "netherite_block", "ender")] {
+        cases.push((format!("tconstruct:{kind}_cluster"), format!("minecraft:block.{material}.hit"), format!("tconstruct:block.{chime}_crystal.chime")));
+    }
+    let world = World::new("minecraft:the_end");
+    for (block, hit, chime) in cases {
+        let mut ops = Ops { draws: [0.0, 0.5].into(), ..Default::default() };
+        with_world(&mut ops, || play_crystal_impact(&world, &block, [-4, 12, -8]));
+        assert_eq!(ops.calls, vec!["minecraft:the_end"; 2], "{block}");
+        assert_eq!(ops.sounds, vec![
+            (world.dimension.clone(), hit, [-3.5, 12.5, -7.5], 1.0, 0.5),
+            (world.dimension.clone(), chime, [-3.5, 12.5, -7.5], 1.0, 1.1),
+        ], "{block}");
+        assert!(ops.draws.is_empty());
+    }
+    let mut missing = Ops::default();
+    with_world(&mut missing, || play_crystal_impact(&world, "tconstruct:earth_slime_crystal_block", [0; 3]));
+    assert!(missing.sounds.is_empty());
+    assert_eq!(missing.calls.len(), 1);
+    let mut unrelated = Ops { draws: [0.0, 0.5].into(), ..Default::default() };
+    with_world(&mut unrelated, || {
+        for block in ["minecraft:amethyst_block", "tconstruct:fake_earth_slime_crystal_block", "tconstruct:earth_slime_crystal_unknown", "tconstruct:small_earth_slime_crystal_block"] {
+            play_crystal_impact(&world, block, [0; 3]);
+        }
+    });
+    assert!(unrelated.calls.is_empty());
+    assert!(unrelated.sounds.is_empty());
+    assert_eq!(unrelated.draws.len(), 2);
+}
+
+#[test]
 fn seed_callback_preserves_vine_sides_and_consumes_only_successful_survival_use() {
     use pluto_lib::{MemoryPlayerOps, MemoryWorldOps, ServerPlayer, UseItemOnBlockContext};
     use pluto_lib::player_api::with_ops;
