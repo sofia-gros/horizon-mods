@@ -20,6 +20,14 @@
   },
   "modules": [
     {
+      "module_id": "pluto-structure-natural",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "name": "pluto_structure_natural",
+      "visibility": "pub",
+      "source_file": "pluto-structure-natural.rs",
+      "source_sha256": "f477ab93e7450c1174897f6cda04ef7bcaf4889342aa2f706b44b67175bd55ec"
+    },
+    {
       "module_id": "pluto-structure-access",
       "file": "crates/horizon-world/src/level/mod.rs",
       "name": "pluto_structure_access",
@@ -33,7 +41,7 @@
       "name": "pluto_structure_context",
       "visibility": "pub",
       "source_file": "pluto-structure-context.rs",
-      "source_sha256": "8418ea3d77dc2d8c9e4ba8e5d6f2b30532b74a7388c2794e132e3451b3b3c32b"
+      "source_sha256": "bcceea9843a6c20f0aba1f80f557f17dc9b82ee179261a966a24acad84cbcb20"
     },
     {
       "module_id": "pluto-structure-piece",
@@ -125,6 +133,22 @@
     }
   ],
   "injections": [
+    {
+      "injection_id": "pluto-structure-natural-start",
+      "target": "horizon_world::worldgen::generator_structures::StructureState::build_starts",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "e47ab1c326eb2aa4e493ab5484ffd80b13fbd3d218a15bae95f9340e621caef3",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "state", "ty": "&StructureState", "value": "self" },
+        { "name": "context", "ty": "&mut impl StartContext", "value": "context" },
+        { "name": "chunk", "ty": "ChunkPos", "value": "chunk" },
+        { "name": "wait", "ty": "bool", "value": "wait" }
+      ],
+      "source_file": "pluto-structure-natural-head.rs",
+      "source_sha256": "2b5bfcd37ba50fd9d2b749373d3577c924e6f6588ef2d2b3a42837ed03919bb6"
+    },
     {
       "injection_id": "pluto-structure-command-head",
       "target": "horizon_client::game::commands::place::Game<'_>::cmd_place_generated",

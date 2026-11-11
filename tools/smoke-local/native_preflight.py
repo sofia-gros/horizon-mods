@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from probe_cache import file_digest, tree_digest, guarded_plan
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -68,14 +69,23 @@ def check(cli, workspace, bundles, work, guards, horizon_revision, mixins_revisi
                 api_only.append(bundle.name)
                 continue
             destination = combined / bundle.name
-            shutil.copytree(manifests[0].parent, destination)
+            shutil.copytree(manifests[0].parent, destination,
+                            ignore=shutil.ignore_patterns('target', '.git', '__pycache__'))
             manifest = destination / 'horizon-mixin.toml'
             manifest.write_text(compatible, encoding='utf-8', newline='\n')
-        subprocess.run([str(cli.resolve()), 'plan', '--workspace', str(workspace.resolve()),
-                        '--mods', str(combined), '--out', str(plan.resolve())], check=True, stdout=log, stderr=subprocess.STDOUT)
-        # All current core bundles carry the structure adapters. The sliced-plan
-        # guard independently rejects an omitted structures guard when present.
+        # Content keys include the CLI, the complete source workspace and the
+        # exact mechanical bundle view. Cache only transformation planning;
+        # every invocation still executes all currently required guards.
+        key = {'cli': file_digest(cli), 'workspace': tree_digest(workspace),
+               'bundles': tree_digest(combined), 'horizon': head, 'mixins': mixins_revision}
         names = sorted(set(guards) | {'structures'})
-        subprocess.run([sys.executable, str(ROOT / 'pluto-lib/tools/check_sliced_plan.py'),
-                        str(plan), str(workspace.resolve()), ','.join(names)], check=True, stdout=log, stderr=subprocess.STDOUT)
+        def produce():
+            subprocess.run([str(cli.resolve()), 'plan', '--workspace', str(workspace.resolve()),
+                            '--mods', str(combined), '--out', str(plan.resolve())], check=True, stdout=log, stderr=subprocess.STDOUT)
+        def guard():
+            subprocess.run([sys.executable, str(ROOT / 'pluto-lib/tools/check_sliced_plan.py'),
+                            str(plan), str(workspace.resolve()), ','.join(names)], check=True, stdout=log, stderr=subprocess.STDOUT)
+        reused = guarded_plan(plan, work / 'native-preflight-cache.json', key, produce, guard)
+        print(json.dumps({'preflight_plan_reused': reused}), file=log or sys.stdout, flush=True)
     print(json.dumps({'result': 'NATIVE PROBE PREFLIGHT PASS', 'plan': str(plan), 'guards': names, 'api_only_linkage_pending': api_only}), file=log or sys.stdout, flush=True)
+    return key
