@@ -18,6 +18,34 @@ class BundleFileRules(unittest.TestCase):
             self.assertFalse(module.allowed(PurePosixPath(name)), name)
 
 
+class ProductNotices(unittest.TestCase):
+    def test_archive_keeps_the_product_notice_beside_its_bundle(self):
+        import json, tempfile, zipfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            bundle = root / 'product/mod'
+            bundle.mkdir(parents=True)
+            (root / 'tconstruct').mkdir()
+            (root / 'tconstruct/compatibility.json').write_text(json.dumps({'horizon_revision':'pin','mixins_revision':'mixins'}), encoding='utf-8', newline='\n')
+            manifest = bundle / 'horizon-mixin.toml'
+            manifest.write_text('[mod]\nid="example"\nversion="1"\n[compatibility]\nhorizon_revision="pin"\n', encoding='utf-8', newline='\n')
+            notice = bundle.parent / 'LICENSE.horizon'
+            notice.write_bytes(b'Fixture upstream permission notice\n')
+            unrelated = bundle.parent / 'other/LICENSE'
+            unrelated.parent.mkdir()
+            unrelated.write_bytes(b'Other product notice\n')
+            def tracked(path):
+                return [manifest] if path == bundle else [manifest,notice,unrelated]
+            out = root / 'example.hnmod'
+            with patch.object(module,'tracked_files',side_effect=tracked):
+                module.build(bundle,out,root)
+            with zipfile.ZipFile(out) as archive:
+                self.assertEqual(archive.read('LICENSE.horizon'),notice.read_bytes())
+                self.assertNotIn('LICENSE',archive.namelist())
+                self.assertIn('mixins/example/horizon-mixin.toml',archive.namelist())
+
+
 class TinkersPackageSlice(unittest.TestCase):
     def test_packaged_manifest_leaves_out_the_hooks_mixins_refuses(self):
         import tempfile, tomllib, zipfile

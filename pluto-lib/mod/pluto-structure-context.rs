@@ -1,7 +1,7 @@
 // Native structure-attempt queries. This module is attached to the safe
 // structure manager, never to structure/start.rs (whose token reprinting fails).
-// Explicit placement, natural plain-template attempts and saved-piece loading
-// use these entries. Natural marker pieces and avoid-biome sets remain stubs.
+// Explicit placement, natural template attempts and saved-piece loading use
+// these entries. Avoid-biome sets keep their opaque native policy.
 use super::*;
 use crate::heightmap::HeightmapType;
 use crate::level::pluto_structure_access::{self,PlanResult,PlanningWorld};
@@ -12,8 +12,8 @@ use horizon_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
 // shared resource identity with different source data is therefore unsupported:
 // fail closed instead of mixing settings across reloads or concurrent worlds.
 static SOURCES:pluto_structure_access::SourceCatalogs<StructureResources>=pluto_structure_access::SourceCatalogs::new();
-// One operational confirmation per process, not one log line per saved piece.
-static RESTORE_REPORTED:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
+// One operational confirmation per owned kind, not one line per saved piece.
+static RESTORE_REPORTED:std::sync::atomic::AtomicU8=std::sync::atomic::AtomicU8::new(0);
 pub fn capture_sources(data:&Arc<GeneratorData>) {
     let (Some(resources),Some(raw))=(&data.structures,&data.structure_resources) else {return};
     if let Err(error)=SOURCES.capture(resources,&raw.structures,&raw.sets) {
@@ -64,7 +64,7 @@ pub fn plan(
     pluto_structure_access::plan(kind,configuration,&mut Context {native,random,biomes},[chunk.x,chunk.z])
 }
 
-fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk:ChunkPos,any_biome:bool,plain_only:bool)->Result<Option<Option<StructureStart>>,String> {
+fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk:ChunkPos,any_biome:bool)->Result<Option<Option<StructureStart>>,String> {
     let Some(index)=state.registry.structures.iter().position(|s|s.name==name) else {return Ok(None)};
     let def=&state.registry.structures[index];
     let super::super::structure::start::StructureKind::Unsupported(kind)=&def.kind else {return Ok(None)};
@@ -90,11 +90,6 @@ fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk
             }
             let descriptors=value.get("pieces").and_then(Value::as_array).filter(|v|!v.is_empty()&&v.len()<=256)
                 .ok_or("structure start must contain 1..=256 pieces")?;
-            // Natural placement still erases the typed feature/tree world.
-            // Refuse every marker/custom descriptor before binding any piece.
-            if plain_only && descriptors.iter().any(|p|p.get("kind").and_then(Value::as_str)!=Some(pluto_structure_piece::TEMPLATE_KIND)) {
-                return Ok(Some(None))
-            }
             // All pieces are bound before a native start is published; a bad
             // later descriptor cannot leave an earlier piece in the world.
             let pieces=descriptors.iter().map(|piece|pluto_structure_piece::decode(&state.resources,piece))
@@ -108,7 +103,7 @@ fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk
 /// malformed plans and unsupported pieces are handled failures, not fallback.
 pub fn explicit_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk:ChunkPos)->std::ops::ControlFlow<Option<StructureStart>> {
     use std::ops::ControlFlow::{Break,Continue};
-    match try_start(state,native,name,chunk,true,false) {
+    match try_start(state,native,name,chunk,true) {
         Ok(None)=>Continue(()),
         Ok(Some(start))=>Break(start),
         Err(error)=>{eprintln!("pluto_lib: structure {name} rejected: {error}"); Break(None)},
@@ -127,10 +122,10 @@ pub(super) fn natural_set_supported(state:&StructureState,name:&str)->Result<boo
     Ok(!placement.contains_key("horizon:avoid_biomes"))
 }
 
-/// Natural dispatch is currently restricted to the native plain-template path.
+/// Natural template dispatch uses the typed FEATURES-world marker adapter.
 /// The outer manager keeps candidate weighting, cache and saved-start ownership.
 pub(super) fn natural_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk:ChunkPos)->Result<Option<Option<StructureStart>>,String> {
-    try_start(state,native,name,chunk,false,true)
+    try_start(state,native,name,chunk,false)
 }
 
 /// The native saved-start path owns cache publication/locking. This hook only
@@ -146,7 +141,8 @@ pub fn saved_piece(state:&StructureState,piece:&crate::nbt::Tag)->std::ops::Cont
     };
     match restored {
         Ok(piece)=>{
-            if !RESTORE_REPORTED.swap(true,std::sync::atomic::Ordering::Relaxed) {
+            let bit=if value.get("id").and_then(Value::as_str)==Some(pluto_structure_piece::TEMPLATE_KIND) {1} else {2};
+            if RESTORE_REPORTED.fetch_or(bit,std::sync::atomic::Ordering::Relaxed)&bit==0 {
                 log::info!("pluto_lib: restored saved structure piece kind={}",value.get("id").and_then(Value::as_str).unwrap_or("unknown"));
             }
             Break(Some(piece))

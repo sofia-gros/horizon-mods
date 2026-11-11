@@ -156,6 +156,28 @@ source = "pluto-structure-context.rs"
 visibility = "pub"
 
 [[module]]
+id = "pluto-structure-generation"
+file = "crates/horizon-world/src/worldgen/generator_decoration.rs"
+name = "pluto_structure_generation"
+source = "pluto-structure-generation.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-generation-placement"
+file = "crates/horizon-world/src/worldgen/generator_decoration.rs"
+name = "pluto_structure_generation_placement"
+source = "pluto-structure-generation-placement.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-generation-start"
+target = "horizon_world::worldgen::generator_decoration::Decoration::decorate"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-generation-head.rs"
+bindings = [{ name = "decoration", ty = "&Decoration", value = "self" }, { name = "data", ty = "&Arc<GeneratorData>", value = "data" }, { name = "seed", ty = "i64", value = "seed" }, { name = "generation", ty = "WorldGenerationContext", value = "generation" }, { name = "worker", ty = "&mut WorkerState", value = "worker" }, { name = "region", ty = "&mut [ProtoChunk;9]", value = "region" }, { name = "level_random", ty = "&mut dyn super::structure::legacy::PieceRandom", value = "level_random" }, { name = "structures", ty = "Option<&super::generator_structures::StructureState>", value = "structures" }]
+
+[[module]]
 id = "pluto-structure-natural"
 file = "crates/horizon-world/src/worldgen/generator_structures.rs"
 name = "pluto_structure_natural"

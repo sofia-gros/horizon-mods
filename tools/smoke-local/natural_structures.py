@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Verify natural plain-template starts, native fallback and saved-start resume.
+"""Verify natural template/marker starts, native fallback and saved-start resume.
 
-No explicit placement commands. Registered marker pieces and custom sets with
-avoid-biome policy remain unsupported. This does not enable natural islands.
+No explicit placement commands. The marker fixture spans two chunks and retains
+per-piece state. Custom avoid-biome sets and natural island parity are separate.
 """
 import argparse
 import json
@@ -14,17 +14,19 @@ import time
 
 from native_build_report import require_report
 from structures import ROOT, prepare_resources
+from structure_markers import wide_template
 
 
 def prepare(original, run):
     resources, _ = prepare_resources(original, run)
+    (resources / 'worldgen/structure/pluto_probe/natural_wide.nbt').write_bytes(wide_template())
     path = resources / 'worldgen/structures.json'
     definitions = json.loads(path.read_text(encoding='utf-8'))
     hut = definitions['minecraft:swamp_hut']
     hut = json.loads(hut) if isinstance(hut, str) else hut
     added = []
     cases = [('plain', 8), ('reject_plain', 8), ('reject_hut', 8), ('bad_biome', 24),
-             ('marker', 40), ('avoid', 56)]
+             ('marker', 0), ('avoid', 56)]
     for case, x in cases:
         name = 'pluto_probe:natural_' + case
         if name in definitions:
@@ -32,7 +34,7 @@ def prepare(original, run):
         definitions[name] = json.dumps({'type': 'pluto_probe:natural_structure',
             'biomes': ['minecraft:desert'] if case == 'bad_biome' else '#minecraft:is_overworld',
             'step': 'surface_structures', 'spawn_overrides': {}, 'terrain_adaptation': 'none',
-            'probe_case': case, 'probe_origin': [x, 110, 8]})
+            'probe_case': case, 'probe_origin': [x, 120 if case == 'marker' else 110, 8]})
         added.append(name)
     for case in ('native_hut', 'native_avoid'):
         name = 'pluto_probe:natural_' + case
@@ -41,6 +43,16 @@ def prepare(original, run):
         value = dict(hut, biomes='#minecraft:is_overworld', terrain_adaptation='none')
         definitions[name] = json.dumps(value)
         added.append(name)
+    error_name = 'pluto_probe:natural_marker_error'
+    if error_name in definitions:
+        raise RuntimeError('marker-error fixture already exists')
+    definitions[error_name] = json.dumps({'type':'pluto_probe:template_structure',
+        'biomes':'#minecraft:is_overworld','step':'surface_structures','spawn_overrides':{},
+        'terrain_adaptation':'none','probe_case':'natural_marker_error',
+        'probe_pieces':[{'kind':'pluto_probe:marker_piece','configuration':{
+            'template':'pluto_probe:natural_wide','origin':[0,140,8],
+            'rotation':'NONE','mirror':'NONE','case':'error','initial_seen':0}}]})
+    added.append(error_name)
     path.write_text(json.dumps(definitions) + '\n', encoding='utf-8', newline='\n')
     path = resources / 'worldgen/structure_sets.json'
     before = path.read_bytes()
@@ -48,6 +60,7 @@ def prepare(original, run):
     groups = [('plain', [('reject_plain', 1000000), ('plain', 1)]),
               ('native', [('reject_hut', 1000000), ('native_hut', 1)]),
               ('bad_biome', [('bad_biome', 1)]), ('marker', [('marker', 1)]),
+              ('marker_error', [('marker_error', 1)]),
               ('avoid', [('avoid', 1)]), ('native_avoid', [('native_avoid', 1)])]
     for case, entries in groups:
         name = 'pluto_probe:natural_' + case
@@ -151,10 +164,24 @@ def main():
                     if state.split('[',1)[0] != 'minecraft:' + block:
                         raise RuntimeError(f'{phase}: missing natural template block at {x,y,z}: {state}; run={run}')
                     states.append(state)
-                for x in (24,40,56):
+                marker_states = []
+                for x in (1,17):
+                    if ctl('getblock',x,120,8)['block'] != 'minecraft:gold_block':
+                        raise RuntimeError(f'{phase}: missing cross-chunk marker template at {x}; run={run}')
+                    state = ctl('getblock',x,121,8)['block']
+                    if state != 'minecraft:oak_log[axis=x]':
+                        raise RuntimeError(f'{phase}: missing typed natural marker callback at {x}: {state}; run={run}')
+                    marker_states.append(state)
+                for x in (1,17):
+                    if ctl('getblock',x,140,8)['block'] != 'minecraft:gold_block':
+                        raise RuntimeError(f'{phase}: callback failure lost earlier template writes at {x}; run={run}')
+                    if ctl('getblock',x,141,8)['block'] != 'minecraft:air':
+                        raise RuntimeError(f'{phase}: failed callback wrote or native fallback ran at {x}; run={run}')
+                for x in (24,56):
                     if ctl('getblock', x,110,8)['block'].split('[',1)[0]=='minecraft:gold_block':
                         raise RuntimeError(f'{phase}: rejected natural piece wrote at {x}; run={run}')
-                replies = {'plain': locate('plain', True), 'native_hut': locate('native_hut', True)}
+                replies = {'plain': locate('plain', True), 'native_hut': locate('native_hut', True),
+                           'marker': locate('marker', True)}
                 # Negative /locate searches exhaust the native command's wide
                 # search radius and may exceed its server RPC budget. Rejected
                 # fixture writes and actual dispatch logs are checked instead;
@@ -173,7 +200,31 @@ def main():
                     screenshots.append(str(image))
                 finally:
                     ctl('key','f1','tap')
-                observations.append({'phase':phase,'states':states,'locate':replies,'native_planks':planks})
+                ctl('command','tp @s 9 126 22')
+                ctl('look-at',9,120.5,8)
+                ctl('wait',40)
+                ctl('key','f1','tap')
+                try:
+                    image = run / (phase+'-markers.png')
+                    ctl('screenshot',image)
+                    if not image.is_file() or not image.stat().st_size:
+                        raise RuntimeError('missing marker screenshot')
+                    screenshots.append(str(image))
+                finally:
+                    ctl('key','f1','tap')
+                ctl('command','tp @s 9 146 22')
+                ctl('look-at',9,140.5,8)
+                ctl('wait',40)
+                ctl('key','f1','tap')
+                try:
+                    image = run / (phase+'-errors.png')
+                    ctl('screenshot',image)
+                    if not image.is_file() or not image.stat().st_size:
+                        raise RuntimeError('missing failure-ownership screenshot')
+                    screenshots.append(str(image))
+                finally:
+                    ctl('key','f1','tap')
+                observations.append({'phase':phase,'states':states,'marker_states':marker_states,'callback_failure_preserved_template':True,'locate':replies,'native_planks':planks})
                 ctl('quit')
                 proc.wait(timeout=60)
                 if proc.returncode:
@@ -190,20 +241,32 @@ def main():
         for status in ('starting','stopping','stopped'):
             if text.count(f'PLUTO-PROBE server_{status} dedicated=false')!=1:
                 raise RuntimeError(f'{phase}: unclean lifecycle {status}; run={run}')
-        if 'PLUTO-PROBE forbidden built-in structure override' in text or 'PLUTO-PROBE marker case=natural_marker' in text:
-            raise RuntimeError(f'{phase}: unsupported/built-in dispatch leaked; run={run}')
+        if 'PLUTO-PROBE forbidden built-in structure override' in text:
+            raise RuntimeError(f'{phase}: built-in dispatch leaked; run={run}')
+        marker_lines = [line for line in text.splitlines() if 'PLUTO-PROBE marker case=natural_marker' in line]
+        error_lines = [line for line in text.splitlines() if 'PLUTO-PROBE marker case=error before=0 rejected=true' in line]
         if phase=='fresh':
+            if len(error_lines)!=2:
+                raise RuntimeError(f'fresh: missing actual failing marker callbacks: {error_lines}; run={run}')
+            if len(marker_lines)!=2 or not any('before=0 after=1' in line for line in marker_lines) or not any('before=1 after=2' in line for line in marker_lines):
+                raise RuntimeError(f'fresh: marker state did not span both chunks: {marker_lines}; run={run}')
             for expected in ('natural planned case=plain', 'natural declined case=reject_plain reason=consumer',
                              'natural declined case=reject_hut reason=consumer'):
                 if expected not in text:
                     raise RuntimeError(f'fresh: missing actual weighted dispatch {expected}; run={run}')
         else:
+            if error_lines or 'PLUTO-PROBE structure case=natural_marker_error' in text:
+                raise RuntimeError(f'resume replanned or replayed failed saved markers; run={run}')
+            if marker_lines:
+                raise RuntimeError(f'resume reran saved markers: {marker_lines}; run={run}')
+            if 'pluto_lib: restored saved structure piece kind=pluto_lib:registered_template_piece' not in text:
+                raise RuntimeError(f'resume did not restore registered marker piece state; run={run}')
             if 'natural unexpected_replan' in text:
                 raise RuntimeError(f'resume regenerated a saved start; run={run}')
             if 'pluto_lib: restored saved structure piece kind=pluto_lib:template_piece' not in text:
                 raise RuntimeError(f'resume did not observe successful native piece restoration; run={run}')
     result = {'result':'NATURAL STRUCTURES PASS','run':str(run),'observations':observations,'screenshots':screenshots,
-              'scope':'plain-template natural starts only; natural markers/islands and custom avoid-biome sets unsupported'}
+              'scope':'plain/registered-template natural starts and save-reload; natural island parity and custom avoid-biome sets separate'}
     (run/'result.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps(result,indent=2))
 
