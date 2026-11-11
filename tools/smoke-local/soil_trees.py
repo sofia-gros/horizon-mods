@@ -51,9 +51,8 @@ def main():
     (content / tag_path.parent).mkdir(parents=True)
     tag_bytes = (ROOT / 'tconstruct/content' / tag_path).read_bytes()
     (content / tag_path).write_bytes(tag_bytes)
-    (content / 'horizon-mod.toml').write_text(
-        'id = "soil_support_probe"\nname = "Production soil support tag"\nversion = "0.1.0"\napi = "0.2"\ncapabilities = ["registries"]\n',
-        encoding='utf-8', newline='\n')
+    (content / 'horizon-mod.toml').write_bytes(
+        b'id = "soil_support_probe"\nname = "Production soil support tag"\nversion = "0.1.0"\napi = "0.2"\ncapabilities = ["registries"]\n')
     env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
                HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_STRUCTURE_MODE='1')
     for key in ('PLUTO_PROBE_FEATURE_MODE', 'PLUTO_PROBE_NATURAL_MODE', 'PLUTO_PROBE_NATURAL_RESUME', 'PLUTO_PROBE_RESOURCE_PACK'):
