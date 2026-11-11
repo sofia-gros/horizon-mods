@@ -14,6 +14,18 @@ pub fn dispatch_feature(world:&mut dyn LevelEdit,kind:&str,configuration:&serde_
     Ok(dispatcher.and_then(|dispatcher|dispatcher(world,kind,configuration,pos)))
 }
 
+pub type SurvivalDispatcher = fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>;
+static SURVIVAL_DISPATCHER: std::sync::RwLock<Option<SurvivalDispatcher>> = std::sync::RwLock::new(None);
+pub fn set_survival_dispatcher(dispatcher: SurvivalDispatcher) {
+    *SURVIVAL_DISPATCHER.write().expect("plant survival dispatcher poisoned") = Some(dispatcher);
+}
+/// A registered false result must not fall through to vanilla survival. Invoke
+/// callbacks without the bridge lock so registration and nested queries are safe.
+pub fn dispatch_survival(world: &dyn LevelView, state: &StateInfo, pos: [i32; 3]) -> Result<Option<bool>, String> {
+    let dispatcher = *SURVIVAL_DISPATCHER.read().map_err(|_| "plant survival dispatcher poisoned")?;
+    Ok(dispatcher.and_then(|dispatcher| dispatcher(world, state, pos)))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StateInfo {
     pub block: String,
@@ -51,6 +63,40 @@ pub fn with_random<S, R: Clone, T>(state: &mut S, random: for<'a> fn(&'a mut S) 
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn plant_survival_preserves_registered_allow_deny_and_unregistered_fallback_unlocked() {
+        use super::*;
+        struct View;
+        impl LevelView for View {
+            fn state(&self, pos: [i32; 3]) -> Option<StateInfo> {
+                (pos == [0, 63, 0]).then(|| StateInfo { block: "example:soil".into(), properties: BTreeMap::new() })
+            }
+            fn is_air(&self, _: [i32; 3]) -> bool { unreachable!() }
+            fn face_sturdy(&self, _: [i32; 3], _: u8) -> bool { unreachable!() }
+            fn in_tag(&self, _: [i32; 3], _: &str) -> bool { unreachable!() }
+            fn brightness(&self, _: [i32; 3]) -> u8 { unreachable!() }
+            fn light_passes_up(&self, _: [i32; 3]) -> bool { unreachable!() }
+            fn is_water(&self, _: [i32; 3]) -> bool { unreachable!() }
+            fn fluid_full(&self, _: [i32; 3]) -> bool { unreachable!() }
+            fn area_loaded(&self, _: [i32; 3], _: i32) -> bool { unreachable!() }
+            fn full_block(&self, _: [i32; 3]) -> bool { unreachable!() }
+            fn build_height(&self) -> [i32; 2] { unreachable!() }
+        }
+        fn survives(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
+            // Re-enter registration: holding the read lock here would deadlock.
+            set_survival_dispatcher(survives);
+            if state.block != "example:plant" { return None; }
+            Some(view.state([pos[0], pos[1] - 1, pos[2]]).is_some_and(|s| s.block == "example:soil"))
+        }
+        let plant = StateInfo { block: "example:plant".into(), properties: BTreeMap::new() };
+        assert_eq!(dispatch_survival(&View, &plant, [0, 64, 0]).unwrap(), None);
+        set_survival_dispatcher(survives);
+        assert_eq!(dispatch_survival(&View, &plant, [0, 64, 0]).unwrap(), Some(true));
+        assert_eq!(dispatch_survival(&View, &plant, [1, 64, 0]).unwrap(), Some(false));
+        let native = StateInfo { block: "minecraft:fern".into(), ..plant };
+        assert_eq!(dispatch_survival(&View, &native, [0, 64, 0]).unwrap(), None);
+    }
+
     #[test]
     fn tree_plans_require_each_native_once_and_preserve_interleaving() {
         use super::{TreeStep::{Native, Custom}, valid_tree_plan};

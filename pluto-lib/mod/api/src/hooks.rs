@@ -69,7 +69,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         crate::pure::color_provider_api_v1::block_color_from_host,
     );
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
-    horizon_client::entry::pluto_block::set_sink(block_sink());
+    let blocks = block_sink();
+    horizon_client::entry::pluto_block::set_survival_dispatcher(blocks.survives);
+    horizon_client::entry::pluto_block::set_sink(blocks);
     horizon_client::entry::pluto_block::structures::set_dispatcher(|kind| {
         let id=Identifier::parse(kind).map_err(|_|format!("invalid structure type: {kind}"))?;
         crate::pure::worldgen_api_v1::StructureTypeRegistry::is_registered(&id)

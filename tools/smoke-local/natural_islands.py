@@ -91,12 +91,20 @@ def main():
                 ctl('command', f'execute in minecraft:the_end run tp @s {x+8} 160 {z+8}')
                 ctl('wait', 200)
                 ground = []
-                for name in ('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt'):
-                    found = ctl('find-block', name, 64)
-                    if found.get('count',0)>0:
-                        ground.append(found)
+                # The controller caps radius at 64; SKY islands over void can
+                # be below y=96. Survey overlapping vertical bands, not just 160.
+                for altitude in (160, 80, 224):
+                    if altitude != 160:
+                        ctl('command', f'tp @s {x+8} {altitude} {z+8}')
+                        ctl('wait', 80)
+                    for name in ('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt'):
+                        found = ctl('find-block', name, 64)
+                        if found.get('count',0)>0:
+                            ground.append(found)
+                    if ground:
+                        break
                 if not ground:
-                    raise RuntimeError(f'natural original island absent at candidate {x,z}; run={run}')
+                    raise RuntimeError(f'natural original island absent across height bands at candidate {x,z}; run={run}')
                 trees = ctl('find-block', 'tconstruct:enderbark_log', 64)
                 leaves = ctl('find-block', 'tconstruct:ender_slime_leaves', 64)
                 plants = {name: ctl('find-block', name, 64).get('count',0) for name in
@@ -117,10 +125,11 @@ def main():
                 observations.append({'candidate':[x,z], 'ground':ground,'trees':trees.get('count',0),
                                      'leaves':leaves.get('count',0),'plants':plants})
                 if (any(row['trees']>0 and row['leaves']>0 for row in observations)
-                    and any(sum(row['plants'].values())>0 for row in observations)):
+                    and all(any(row['plants'][name]>0 for row in observations) for name in
+                            ('tconstruct:ender_slime_tall_grass','tconstruct:ender_slime_fern','tconstruct:ender_slime_vine'))):
                     break
             else:
-                raise RuntimeError(f'no original tree and grass/vine markers across six natural islands; run={run}')
+                raise RuntimeError(f'missing original tree, tall grass, fern or vine markers across six natural islands; run={run}')
             located = ctl('command','locate structure tconstruct:end_slime_island')
             if not any('nearest' in text.lower() and 'tconstruct:end_slime_island' in text for text in located.get('chat',[])):
                 raise RuntimeError(f'natural island locate did not find a generated start: {located}; run={run}')

@@ -191,13 +191,18 @@ impl MarkerWorld for Editor<'_,'_> {
     }
     fn can_survive_plant(&mut self,state:&StateInfo,pos:[i32;3])->Result<bool,String> {
         self.loaded(pos)?;let id=self.resolve(state).ok_or("unknown generation plant state")?;
-        let mut world=self.world.borrow_mut();
+        {
+            let world=self.world.borrow();
+            let behaviours=world.behaviours.ok_or("generation plant classification unavailable")?;
+            let chain=&behaviours.data(id).chain;
+            if !chain.contains(&crate::level::classes::Class::Bush)&&!chain.contains(&crate::level::classes::Class::Vegetation) {return Ok(false)}
+        }
+        // ShapeLevel is not GameLevel: its native hooks do not reach the client
+        // block registry. Dispatch registered survival on this borrowed region
+        // view first, preserving both true and false; only None uses vanilla.
+        if let Some(answer)=pluto_block_access::dispatch_survival(self,state,pos)? {return Ok(answer)}
+        let world=self.world.borrow();
         let behaviours=world.behaviours.ok_or("generation plant classification unavailable")?;
-        let chain=&behaviours.data(id).chain;
-        if !chain.contains(&crate::level::classes::Class::Bush)&&!chain.contains(&crate::level::classes::Class::Vegetation) {return Ok(false)}
-        // Use the same behaviour/callback path as live marker placement, on
-        // the native read-only region view; exported vanilla survival tables
-        // alone do not dispatch registered custom plant-ground callbacks.
         let mut level=ShapeLevel {world:&world,random:horizon_core::random::LegacyRandom::new(0)};
         let mut ticks=crate::level::Ticks::new(0);
         Ok(behaviours.can_survive(&mut level,&mut ticks,BlockPos::new(pos[0],pos[1],pos[2]),id))
