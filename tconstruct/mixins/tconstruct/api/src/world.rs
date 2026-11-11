@@ -444,37 +444,52 @@ pub fn register_crystals() {
     }
 }
 
-/// The chime a crystal sounds when a projectile hits it (`CrystalBlock.onProjectileHit`, `CrystalClusterBlock.onProjectileHit`).
-fn chime_of(block: &str) -> Option<&'static str> {
+/// Original TinkerWorld/Sounds sound types and per-geode chimes. Match only
+/// the registered block names, not another block containing a crystal's name.
+fn crystal_sounds(block: &str) -> Option<(&'static str, &'static str)> {
     let name = block.strip_prefix("tconstruct:")?;
-    if let Some(kind) = ["earth", "sky", "ichor", "ender"].into_iter().find(|k| name.contains(&format!("{k}_slime_crystal"))) {
-        return Some(match kind {
-            "earth" => "tconstruct:block.earth_crystal.chime",
-            "sky" => "tconstruct:block.sky_crystal.chime",
-            "ichor" => "tconstruct:block.ichor_crystal.chime",
-            _ => "tconstruct:block.ender_crystal.chime",
-        });
-    }
     match name {
-        "steel_cluster" => Some("tconstruct:block.sky_crystal.chime"),
-        "cobalt_cluster" => Some("tconstruct:block.ichor_crystal.chime"),
-        "knightmetal_cluster" => Some("tconstruct:block.ender_crystal.chime"),
-        _ => None,
+        "steel_cluster" => return Some(("minecraft:block.metal.hit", "tconstruct:block.sky_crystal.chime")),
+        "cobalt_cluster" => return Some(("minecraft:block.netherite_block.hit", "tconstruct:block.ichor_crystal.chime")),
+        "knightmetal_cluster" => return Some(("minecraft:block.netherite_block.hit", "tconstruct:block.ender_crystal.chime")),
+        _ => {},
+    }
+    let (head, tail) = name.split_once("_slime_crystal")?;
+    let (kind, hit) = match tail {
+        "_block" => (head, "minecraft:block.amethyst_block.hit"),
+        "" => (head.strip_prefix("budding_")?, "minecraft:block.amethyst_block.hit"),
+        "_cluster" => (head, "minecraft:block.amethyst_cluster.hit"),
+        "_bud" => (head.strip_prefix("small_").or_else(|| head.strip_prefix("medium_")).or_else(|| head.strip_prefix("large_"))?, "minecraft:block.amethyst_cluster.hit"),
+        _ => return None,
+    };
+    let chime = match kind {
+        "earth" => "tconstruct:block.earth_crystal.chime",
+        "sky" => "tconstruct:block.sky_crystal.chime",
+        "ichor" => "tconstruct:block.ichor_crystal.chime",
+        "ender" => "tconstruct:block.ender_crystal.chime",
+        _ => return None,
+    };
+    Some((hit, chime))
+}
+
+fn play_crystal_impact(world: &World, block: &str, pos: [i32; 3]) {
+    let Some((hit, chime)) = crystal_sounds(block) else { return };
+    let at = pos.map(|v| f64::from(v) + 0.5);
+    // Java draws nextFloat separately immediately before each playSound.
+    // No server-level RNG means no authoritative sound (including on clients).
+    for sound in [hit, chime] {
+        let Some(draw) = world.random_float() else { return };
+        world.play_sound(sound, at, 1.0, 0.5 + draw * 1.2);
     }
 }
 
 pub fn register_crystal_chimes() {
     ProjectileEvents::IMPACT.register(|hit| {
-        if hit.entity.is_some() {
-            return true;
-        }
-        let world = hit.world();
-        if let Some(chime) = world.get_block_state(hit.block).and_then(|s| chime_of(&s.block.to_string())) {
-            // the pitch varies from 0.5 to 1.7, as the original's random does
-            let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.subsec_nanos());
-            let pitch = 0.5 + (nanos % 1200) as f32 / 1000.0;
-            let at = [f64::from(hit.block[0]) + 0.5, f64::from(hit.block[1]) + 0.5, f64::from(hit.block[2]) + 0.5];
-            world.play_sound(chime, at, 1.0, pitch);
+        if hit.entity.is_none() {
+            let world = hit.world();
+            if let Some(state) = world.get_block_state(hit.block) {
+                play_crystal_impact(&world, &state.block.to_string(), hit.block);
+            }
         }
         true
     });

@@ -79,6 +79,11 @@ pub trait WorldOps {
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
     /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
     fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool;
+    /// Draw from the authoritative dimension's existing random stream, in [0, 1).
+    /// None when the host cannot supply that level; never substitute a fresh RNG.
+    fn random_float(&mut self, _dimension: &str) -> Option<f32> {
+        None
+    }
     /// Whether the block (`minecraft:stone`) is in the block tag (`minecraft:mineable/pickaxe`); false for an unknown tag.
     fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
         false
@@ -142,6 +147,13 @@ impl World {
         with_current(false, |ops| ops.play_sound(&self.dimension, sound, at, volume, pitch))
     }
 
+    /// Minecraft: `Level.random.nextFloat`, using the existing server-level
+    /// stream. None outside a world callback, on a client, or for an unopened
+    /// dimension. A draw advances the same stream later native operations use.
+    pub fn random_float(&self) -> Option<f32> {
+        with_current(None, |ops| ops.random_float(&self.dimension))
+    }
+
     /// Minecraft: `setBlockState`. False if it could not be set (chunk not loaded, unknown block, outside a callback).
     pub fn set_block_state(&self, pos: BlockPos, state: &BlockState) -> bool {
         with_current(false, |ops| ops.set_block_state(&self.dimension, pos, &state.to_string()))
@@ -182,6 +194,32 @@ impl WorldOps for MemoryWorldOps {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn random_draws_use_the_requested_level_stream_and_missing_hosts_do_not_invent_values() {
+        struct RandomOps { draws: std::collections::VecDeque<f32>, queried: Vec<String> }
+        impl WorldOps for RandomOps {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+            fn random_float(&mut self, dimension: &str) -> Option<f32> {
+                self.queried.push(dimension.to_owned());
+                self.draws.pop_front()
+            }
+        }
+        let world = World::new("minecraft:the_end");
+        let mut ops = RandomOps { draws: [0.0, 0.75].into(), queried: vec![] };
+        assert_eq!(world.random_float(), None);
+        with_world(&mut ops, || {
+            assert_eq!(world.random_float(), Some(0.0));
+            assert_eq!(world.random_float(), Some(0.75));
+            assert_eq!(world.random_float(), None);
+        });
+        assert_eq!(ops.queried, vec!["minecraft:the_end"; 3]);
+        assert!(ops.draws.is_empty());
+        assert_eq!(world.random_float(), None);
+        with_world(&mut MemoryWorldOps::default(), || assert_eq!(world.random_float(), None));
+    }
 
     #[test]
     fn states_round_trip_through_text_and_a_world_reads_what_was_set_only_inside_a_scope() {
