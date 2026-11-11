@@ -67,8 +67,8 @@
       "note": "compared with the Java: bouncing off the sides, the bounce after a fall, no fall damage and the shorter collision box need to change an entity's velocity from a block hook; Horizon's block entity-contact hooks carry no host, so no mod can touch the entity (the host has entity_set_velocity but these hooks cannot reach it). The content block is a plain block"
     },
     "block/SlimeDirtBlock.java": {
-      "status": "ported-unchecked",
-      "note": "compared with the Java: it only sustains slime plants and ordinary plains plants; the slime plants stand on it through PlutoLib (world.rs supports), and ordinary plants through the dirt template; not tried in game"
+      "status": "ported",
+      "note": "Java slime/plains plant support is mapped to the registered slime plant rules and native minecraft:supports_vegetation tag for all four slime dirts, without adding them to minecraft:dirt. Actual item placement in soil-trees-z419nhj8 passed poppy/slime fern acceptance and cactus rejection on Earth/Sky/Ichor/Ender soil; four soil images inspected. The pre-fix run rejected poppies on all four soils. Exact production tag bytes were loaded by the ordinary content-mod loader and verified in the production .hmod package. Other special plant categories and save/LAN are not claimed."
     },
     "block/StickySlimeBlock.java": {
       "status": "parked",
@@ -219,8 +219,8 @@
       "note": "PlutoLib now offers explicit FeatureTypeRegistry dispatch; absence of a native feature-type hook is no longer a sufficient parking reason. The live Blood/Ichor sapling path has four checked native huge-fungus fixtures, but the original island SlimeFungusConfig/SlimeFungusFeature algorithm and its generation-worker routing are not yet validated on PlutoLib. Frozen island helper code is not runtime evidence. Parked pending original-algorithm/worker re-review, not a permanent missing-extension limit."
     },
     "worldgen/trees/feature/SlimeTreeFeature.java": {
-      "status": "ported-unchecked",
-      "note": "trees.rs ports the whole feature over BlockEditor for the earth and sky saplings; checked in game that the trunk grows (greenheart logs); the canopy and the leaf distances were not inspected; the island generation still calls the old shape code"
+      "status": "partial",
+      "note": "Production Earth/Sky saplings grew via actual bone meal in soil-trees-z419nhj8: trunk heights 5/8, exactly 84 leaves each, all independent Java diamond-layer/dripper coordinates and cardinal air cuts checked, soil unchanged, two tree images inspected. Leaf-distance census for each: distance 1=13, 2=28, 3=24, 4=9, 7=10. Exact distance/decay semantics, write flags, RNG/provider parity, edge updates and natural island routing remain unfinished; no whole-feature parity claim. Reused the preceding verified native binary; no Rust change or native rebuild in this unit."
     },
     "worldgen/trees/LeaveVineDecorator.java": {
       "status": "partial",
