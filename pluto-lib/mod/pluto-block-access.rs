@@ -167,6 +167,9 @@ pub type TreeCallback<'a> = dyn FnMut(&mut dyn LevelEdit, &[[i32; 3]], &[[i32; 3
 pub trait LevelEdit: LevelView {
     /// Forward exact native update flags; false means the write could not occur.
     fn set_state(&mut self, pos: [i32; 3], state: &StateInfo, flags: i32) -> bool;
+    /// Native destruction including fluid replacement and optional loot.
+    /// None is unavailable; false is a supported call without a block change.
+    fn break_block(&mut self, _pos: [i32; 3], _drop: bool) -> Option<bool> { None }
     /// All draws use the supplied placement stream, never a global/fresh RNG.
     fn random_int(&mut self, bound: i32) -> i32;
     fn random_float(&mut self) -> f32;

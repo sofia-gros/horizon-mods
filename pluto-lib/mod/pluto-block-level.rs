@@ -220,6 +220,12 @@ impl LevelEdit for Edit<'_, '_> {
         behaviours.set_block(&mut *self.level, ticks, at(pos), id, flags)
     }
 
+    fn break_block(&mut self, pos: [i32; 3], drop: bool) -> Option<bool> {
+        let ticks = self.ticks.as_deref_mut()?;
+        let behaviours = self.level.behaviours;
+        Some(behaviours.destroy_block(&mut *self.level, ticks, at(pos), drop))
+    }
+
     fn random_int(&mut self, bound: i32) -> i32 {
         if bound <= 0 {
             return 0;

@@ -63,7 +63,7 @@ Updated 2026-11-11. Release scheme (owner): when this roadmap is complete both p
 
 Direct injections left in Tinkers: 260 (the limit in `tools/injection_limits.json`; it only goes down). Runtime coverage is recorded per unit in the decision log; a focused gate is not a whole-game check.
 
-**Next, in order:** (1) the plants of phase D (grass family, then saplings and fungus), (2) a world generation API in PlutoLib and the trees and islands on it, (3) phases E and F class by class, (4) tables, smeltery and tools with their PlutoLib needs designed first. **Codex** (from about 2026-11-10 for four days; the owner wants it for phases G, H and I, so no task is written before their PlutoLib API exists) does bulk porting inside the fence of `docs/codex.md`: one task file, one branch, `tools/codex_guard.py`, review and game check by the owner's agent.
+**Next:** finish D's partial/parked routes, revisit A–C, then E/F class by class; tables, smeltery and tools follow their PlutoLib foundations. **Codex** (from about 2026-11-10 for four days; the owner wants it for phases G, H and I, so no task is written before their PlutoLib API exists) does bulk porting inside the fence of `docs/codex.md`: one task file, one branch, `tools/codex_guard.py`, review and game check by the owner's agent.
 
 ### 1.3 What PlutoLib needs for phases G, H and I (from the remaining injections)
 
@@ -155,6 +155,7 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-11 | Planted fungus/break-block: build + game pass. | Loot/fluid effects unverified; D partial. |
 | 2026-11-11 | D island/fungus batch: full native build, six island families and four Blood islands/reopen pass. | 15 images inspected; two Blood views occluded, one partly. Source planted/predicates, package loading, distribution/fluid/LAN remain. D stays partial. |
 | 2026-11-11 | Crystal hit/chime: one native build; 24 throws + crafting/menu pass; 10 images inspected. | Separate level RNG draws replace clock. Audible/LAN/native RNG trace unverified. |
 | 2026-11-11 | D batch: restore Java tree tracking/flags and source-configured Earth/Sky feature dispatch. | One guarded build; End reopen, tree features, soil/saplings and crafting pass; 19 images inspected. D remains partial. |

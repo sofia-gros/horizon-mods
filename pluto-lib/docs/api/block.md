@@ -284,7 +284,7 @@ assert_eq!(view.build_height(), [-64, 320]); // build range is a different query
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
+A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -298,6 +298,23 @@ assert_eq!(view.block_state([0, 0, 0]).unwrap().to_string(), "minecraft:glass");
 ```
 
 ### `BlockEditor`
+
+**Breaking blocks.**
+
+`fn break_block(&mut self, pos: [i32; 3], drop: bool) -> Option<bool>` uses native destruction, with particles, optional loot and replacement by the contained fluid. It is not `remove_block`, which writes air. `None` means that editor cannot perform destruction; `Some(false)` is a supported call that changed nothing, including an already-air position. Live block callbacks and untracked FEATURES editors implement it; tracked tree editors return `None` so neighbour changes cannot escape tree tracking. The full native build and a live planted-fungus fixture pass. Native loot contents, particles, fluid replacement and FEATURES destruction effects are not independently game-verified.
+
+```rust
+use pluto_lib::{BlockEditor, BlockState, BlockView, MemoryBlockView};
+let mut world = MemoryBlockView::default();
+world.blocks.insert([0, 64, 0], BlockState::parse("minecraft:stone").unwrap());
+assert_eq!(world.break_block([0, 64, 0], true), Some(true));
+assert_eq!(world.break_block([0, 64, 0], false), Some(false));
+assert!(world.is_air([0, 64, 0]));
+assert_eq!(world.break_requests, vec![([0, 64, 0], true), ([0, 64, 0], false)]);
+```
+
+> **Use with Caution.** Memory worlds remove blocks and record `break_requests`; they do not simulate loot, particles, fluid replacement or neighbour effects. Custom editors default to `None` without writes. Earlier successful changes are not rolled back when a later operation is unavailable.
+
 
 A `BlockView` that can also change the world, handed to tick and bone meal callbacks as `world`. `set_block_state(pos, &state) -> bool` sets a block (neighbours and clients are told) and is false if it could not be set, `remove_block(pos) -> bool` replaces a block with air, `random_int(bound) -> i32` is a number from 0 up to but not including `bound` and `random_float() -> f32` one from 0.0 up to but not including 1.0, both from the level's own random source, `schedule_tick(pos, block, delay) -> bool` asks the game to tick `block` at `pos` after `delay` game ticks, and `place_feature(feature, pos) -> bool` places a configured worldgen feature declared in data (false if it is unknown or found no room).
 

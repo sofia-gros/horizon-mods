@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'propagules', 'slime_tree'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'propagules', 'slime_tree', 'slime_fungus'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'slime_tree'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'slime_tree', 'slime_fungus'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -91,6 +91,13 @@ def main():
             invalid = json.loads(json.dumps(earth))
             invalid['random_height'] = 0
             fixtures = (('ordered_valid', earth), ('ordered_error', sky), ('ordered_invalid', invalid))
+        if args.mode == 'slime_fungus':
+            folder = ROOT / 'tconstruct/content/data/tconstruct/worldgen/feature'
+            planted = json.loads((folder / 'blood_slime_fungus.json').read_text(encoding='utf-8'))['config']
+            unplanted = json.loads((folder / 'ichor_slime_fungus.json').read_text(encoding='utf-8'))['config']
+            invalid = json.loads(json.dumps(planted))
+            invalid['planted'] = 'true'
+            fixtures = (('ordered_valid', planted), ('ordered_error', unplanted), ('ordered_invalid', invalid))
         if args.mode == 'ordered':
             oak = json.loads(definitions['minecraft:oak'])
             oak.get('config', oak)['decorators'] = [
@@ -129,7 +136,7 @@ def main():
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture', 'ender': 'tconstruct:source_tree', 'slime_tree': 'tconstruct:slime_tree'}.get(args.mode, 'pluto_probe:column')
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture', 'ender': 'tconstruct:source_tree', 'slime_tree': 'tconstruct:slime_tree', 'slime_fungus': 'tconstruct:slime_fungus'}.get(args.mode, 'pluto_probe:column')
             definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
@@ -137,7 +144,7 @@ def main():
             raise RuntimeError('the original feature catalog changed while preparing fixtures')
     endpoint, game_log = run / 'control.json', run / 'game.log'
     env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
-               HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_FEATURE_MODE='ordered' if args.mode == 'slime_tree' else args.mode)
+               HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_FEATURE_MODE='ordered' if args.mode in ('slime_tree', 'slime_fungus') else args.mode)
     env.pop('PLUTO_PROBE_RESOURCE_PACK', None)
     for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME'):
         folder = run / key.lower()
@@ -384,6 +391,27 @@ def main():
                     observations.append({'case': index, 'flavor': flavor, 'tall': bool(index%2), 'clicks': clicks, **counts})
                 if total_propagules == 0 or 'Horizon: feature pluto_probe:' in text():
                     raise RuntimeError(f'Ender propagules missing or native fallback used; run={run}')
+            elif args.mode == 'slime_fungus':
+                for x, name, expected in ((0, 'ordered_valid', True), (16, 'ordered_error', False), (32, 'ordered_invalid', False)):
+                    ground = 'tconstruct:earth_slime_dirt'
+                    fixture(x, ground, 'minecraft:dead_bush', radius=7, top=140)
+                    ctl('setblock', x, 102, 3, 'minecraft:air')
+                    ctl('command', f'tp @s {x+0.5} 101 3.5')
+                    marker = f'PLUTO-PROBE feature_request name=pluto_probe:{name} placed={str(expected).lower()}'
+                    clicks = click_until(x, marker)
+                    logs = sum(block(x, y, 0).split('[', 1)[0] == 'tconstruct:bloodshroom_log' for y in range(101, 128))
+                    ctl('command', f'tp @s {x+0.5} 108 0.5')
+                    ctl('wait', 20)
+                    leaves = ctl('find-block', 'tconstruct:blood_slime_leaves', 7).get('count', 0)
+                    if expected:
+                        if not 4 <= logs <= 26 or leaves <= 0:
+                            raise RuntimeError(f'planted source fungus missing stem/cap: logs={logs} leaves={leaves}; run={run}')
+                    elif logs or leaves or block(x, 101, 0).split('[', 1)[0] != 'minecraft:dead_bush':
+                        raise RuntimeError(f'rejected fungus wrote blocks; run={run}')
+                    if block(x, 100, 0).split('[', 1)[0] != ground:
+                        raise RuntimeError(f'fungus changed source ground; run={run}')
+                    photograph(x, f'slime-fungus-{name}.png', player_y=106, camera_z=18)
+                    observations.append({'case': name, 'placed': expected, 'clicks': clicks, 'logs': logs, 'leaves': leaves})
             elif args.mode == 'slime_tree':
                 for x, flavor, name, expected in ((0, 'earth', 'ordered_valid', True), (16, 'sky', 'ordered_error', True), (32, 'earth', 'ordered_invalid', False)):
                     ground = 'tconstruct:earth_slime_dirt'

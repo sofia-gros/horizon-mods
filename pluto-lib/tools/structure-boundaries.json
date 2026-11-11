@@ -29,7 +29,7 @@
       "name": "pluto_block_level",
       "visibility": "pub(crate)",
       "source_file": "pluto-block-level.rs",
-      "source_sha256": "316ab31c4570036144064e9e9822ad0ee474d98db7a882ef6b967b1297914a8e"
+      "source_sha256": "fd0bba80214bb62d5dbadd0c20cff98dbec87d93a573595d8ae55d2c3494bc9f"
     },
     {
       "module_id": "pluto-structure-dimension-streaming-adapter",
@@ -53,7 +53,7 @@
       "name": "pluto_structure_generation_placement",
       "visibility": "pub",
       "source_file": "pluto-structure-generation-placement.rs",
-      "source_sha256": "c115345ddcde72c08465ee3a1190e47251ceffa5f64a5bf6680957a365878370"
+      "source_sha256": "f93683356e92f6758491702b973bc81313513b370f770fd9f2458f166f4556ac"
     },
     {
       "module_id": "pluto-structure-natural",
@@ -109,7 +109,7 @@
       "name": "pluto_structure_level",
       "visibility": "pub",
       "source_file": "pluto-structure-level.rs",
-      "source_sha256": "010d01d38ac79acb0bf8b74c95dfa18b7b9cd83a1a7b91b71e5fd65bd381032c"
+      "source_sha256": "05601c24c3d9fe9f9851386d73640a2d09abe51eaf6eca145c02814d1607f1a9"
     },
     {
       "module_id": "pluto-structure-command",
@@ -125,7 +125,7 @@
       "name": "pluto_block_access",
       "visibility": "pub",
       "source_file": "pluto-block-access.rs",
-      "source_sha256": "90977ed504af0d97af50000d15aed42975be0709860b23392a4801471d5bde9b"
+      "source_sha256": "31329a5f928dc7c5cd46b8b7e26179e510ed69c66e358ae8099c161b01d23c25"
     },
     {
       "module_id": "pluto-block",
