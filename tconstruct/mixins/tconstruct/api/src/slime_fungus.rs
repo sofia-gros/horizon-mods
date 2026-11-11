@@ -1,8 +1,9 @@
 //! Original SlimeFungusFeature override and vanilla stem/hat algorithm.
 //! Geometry is adapted from MIT Horizon's worldgen/fungus.rs (LICENSE.horizon),
 //! retaining Java's tag base check and origin flags=4 rather than native 260.
-//! Only the original shipped, non-planted config and tag predicate are decoded;
-//! live planted fungi keep their existing native route, not a guessed drop API.
+//! Original tag predicates and planted/non-planted configuration are decoded.
+//! Planted destruction uses PlutoLib's native break-block operation, never air
+//! replacement pretending to drop loot. Existing sapling routes are unchanged.
 use pluto_lib::{BlockEditor, BlockState, ConfiguredFeature, FeatureTypeRegistry, Identifier};
 use serde_json::Value;
 
@@ -10,7 +11,7 @@ type Pos = [i32; 3];
 fn at(p: Pos, x: i32, y: i32, z: i32) -> Pos { [p[0].wrapping_add(x), p[1].wrapping_add(y), p[2].wrapping_add(z)] }
 fn fixed(name: &str) -> BlockState { BlockState::parse(name).expect("fixed block state") }
 
-struct Fungus { base: String, stem: BlockState, hat: BlockState, decor: BlockState, plants: String }
+struct Fungus { base: String, stem: BlockState, hat: BlockState, decor: BlockState, plants: String, planted: bool }
 fn state(value: &Value, field: &str) -> Result<BlockState, String> {
     let value = value.get(field).ok_or_else(|| format!("missing {field}"))?;
     let name = value.get("Name").and_then(Value::as_str).ok_or("missing original block Name")?;
@@ -24,7 +25,10 @@ fn state(value: &Value, field: &str) -> Result<BlockState, String> {
 }
 impl Fungus {
     fn decode(value: &Value) -> Result<Self,String> {
-        if value.get("planted").is_some_and(|v|v.as_bool()!=Some(false)) { return Err("planted source fungus requires block-drop support".into()); }
+        let planted = match value.get("planted") {
+            None => false,
+            Some(value) => value.as_bool().ok_or("invalid planted boolean")?,
+        };
         let tag = |value:&Value,key:&str| -> Result<String,String> {
             let name = value.get(key).and_then(Value::as_str).ok_or_else(||format!("missing {key} tag"))?;
             Identifier::parse(name).map_err(|e|e.to_string())?;
@@ -33,16 +37,19 @@ impl Fungus {
         let predicate = value.get("replaceable_blocks").ok_or("missing replaceable_blocks")?;
         if predicate.get("type").and_then(Value::as_str)!=Some("minecraft:matching_block_tag") { return Err("unsupported fungus replacement predicate".into()); }
         Ok(Self { base:tag(value,"valid_base")?,stem:state(value,"stem_state")?,hat:state(value,"hat_state")?,
-            decor:state(value,"decor_state")?,plants:tag(predicate,"tag")? })
+            decor:state(value,"decor_state")?,plants:tag(predicate,"tag")?,planted })
     }
     fn place(&self,world:&mut dyn BlockEditor,origin:Pos)->bool {
         if !world.is_in_tag(at(origin,0,-1,0),&self.base) { return false; }
         // No build-ceiling approximation: Nether generator depth can differ.
-        let Some(depth)=world.generation_depth() else { return false; };
+        let depth = if self.planted { None } else {
+            let Some(depth) = world.generation_depth() else { return false; };
+            Some(depth)
+        };
         let mut height=world.random_int(10)+4;
         if world.random_int(12)==0 { height*=2; }
-        if origin[1].wrapping_add(height).wrapping_add(1)>=depth { return false; }
-        let huge=world.random_float()<0.06;
+        if depth.is_some_and(|depth|origin[1].wrapping_add(height).wrapping_add(1)>=depth) { return false; }
+        let huge=!self.planted && world.random_float()<0.06;
         world.set_block_state_with_flags(origin,&fixed("minecraft:air"),4);
         let radius=i32::from(huge);
         for dx in -radius..=radius { for dz in -radius..=radius {
@@ -50,6 +57,7 @@ impl Fungus {
             for dy in 0..height {
                 let p=at(origin,dx,dy,dz);
                 if (world.is_replaceable(p)||world.is_in_tag(p,&self.plants)) && (!corner||world.random_float()<0.1) {
+                    if self.planted && !world.is_air(at(p,0,-1,0)) && world.break_block(p,true).is_none() { return false; }
                     world.set_block_state_with_flags(p,&self.stem,3);
                 }
             }
@@ -67,6 +75,9 @@ impl Fungus {
                 let inside=!edge_x && !edge_z && dy!=height;
                 let p=at(origin,dx,dy,dz);
                 if !world.is_replaceable(p) { continue; }
+                // Java performs this destruction even when the later random
+                // cap branch places nothing. Its return value may be false for air.
+                if self.planted && !world.is_air(at(p,0,-1,0)) && world.break_block(p,true).is_none() { return false; }
                 if dy<start+3 {
                     if !inside { self.drop_hat(world,p,vines); }
                 } else if inside {
@@ -148,6 +159,28 @@ mod tests {
         assert!(world.writes[1..].iter().all(|(_,_,flags)|*flags==3));
         assert_eq!(world.rolls,vec![99]);
         assert_eq!(world.floats,vec![0.5]);
+    }
+    #[test]
+    fn planted_skips_depth_and_huge_draw_but_destroys_before_stem_and_cap() {
+        let source:Value=serde_json::from_str(include_str!("../../../../content/data/tconstruct/worldgen/feature/blood_slime_fungus.json")).unwrap();
+        let fungus=Fungus::decode(&source["config"]).unwrap();
+        let mut world=world();
+        world.tags.insert([0,19,0],["tconstruct:slimy_soil".into()].into());
+        world.generator_depth=None;
+        let plant=[2,20,0]; // bottom cap rim, with solid support below
+        world.blocks.insert(plant,fixed("minecraft:fern"));
+        world.replaceable.insert(plant);
+        world.blocks.insert([2,19,0],fixed("minecraft:stone"));
+        world.rolls=vec![0,1,0,0,0,0,0,0,99];
+        world.floats=vec![0.99;160]; // no cap succeeds; destruction must still occur
+        assert!(fungus.place(&mut world,[0,20,0]));
+        assert_eq!(world.blocks.values().filter(|s|s.block.to_string()=="tconstruct:bloodshroom_log").count(),4);
+        assert!(world.break_requests.starts_with(&[([0,20,0],true),([0,21,0],true),([0,22,0],true),([0,23,0],true)]));
+        assert!(world.break_requests.contains(&(plant,true)));
+        assert!(!world.blocks.contains_key(&plant));
+        assert_eq!(world.rolls,vec![99]);
+        assert!(world.floats.iter().all(|v|*v==0.99));
+        assert_eq!(world.floats.len(),46); // 48 rim + 48 upper (stem excluded) + 18 top; no huge draw
     }
     #[test]
     fn ground_and_generator_context_reject_without_guessing_or_writing() {

@@ -56,6 +56,7 @@ impl<L:LevelAccess+?Sized> LevelView for MarkerEditor<'_,'_,'_,L> {
 }
 impl<L:LevelAccess+?Sized> LevelEdit for MarkerEditor<'_,'_,'_,L> {
     fn set_state(&mut self,p:[i32;3],s:&StateInfo,f:i32)->bool{self.inner.set_state(p,s,f)}
+    fn break_block(&mut self,p:[i32;3],drop:bool)->Option<bool>{self.inner.break_block(p,drop)}
     fn random_int(&mut self,b:i32)->i32{LevelEdit::random_int(&mut self.inner,b)}
     fn random_float(&mut self)->f32{self.inner.random_float()}
     fn schedule_tick(&mut self,p:[i32;3],b:&str,d:i32)->bool{self.inner.schedule_tick(p,b,d)}

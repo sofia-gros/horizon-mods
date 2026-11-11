@@ -171,6 +171,9 @@ pub struct MemoryBlockView {
     /// Successful writes in order: position, state and exact update flags. This records
     /// requests only; MemoryBlockView does not simulate neighbour/client updates.
     pub writes: Vec<(BlockPos, BlockState, i32)>,
+    /// Destruction requests. Memory removes blocks but does not simulate loot,
+    /// particles, neighbour updates or replacement by the contained fluid.
+    pub break_requests: Vec<(BlockPos, bool)>,
     /// Positions that hold a block but not a sturdy one (a slab's top, glass).
     pub weak: BTreeSet<BlockPos>,
     /// Non-air positions explicitly marked replaceable; no tag inference.
@@ -267,6 +270,11 @@ pub trait BlockEditor: BlockView {
             Err(_) => false,
         }
     }
+    /// Breaks a block using native particles, optional loot and fluid replacement
+    /// (Minecraft: destroyBlock / Fabric: breakBlock). None means unsupported,
+    /// Some(false) means supported but no change (for example already air).
+    /// Custom editors default to no writes. Memory worlds record requests only.
+    fn break_block(&mut self, _pos: BlockPos, _drop: bool) -> Option<bool> { None }
     /// A random whole number from 0 up to but not including `bound` (Minecraft: `RandomSource.nextInt`), drawn from the level's own random
     /// source so the order of draws is the game's.
     fn random_int(&mut self, bound: i32) -> i32;
@@ -293,6 +301,15 @@ pub trait BlockEditor: BlockView {
 }
 
 impl BlockEditor for MemoryBlockView {
+    fn break_block(&mut self, pos: BlockPos, drop: bool) -> Option<bool> {
+        self.break_requests.push((pos, drop));
+        let changed = self.blocks.remove(&pos).is_some();
+        self.tags.remove(&pos);
+        self.weak.remove(&pos);
+        self.replaceable.remove(&pos);
+        Some(changed)
+    }
+
     fn set_block_state(&mut self, pos: BlockPos, state: &BlockState) -> bool {
         self.set_block_state_with_flags(pos, state, 3)
     }

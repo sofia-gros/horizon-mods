@@ -748,6 +748,10 @@ impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::Bl
         self.0.set_state(pos, &to_info(state), flags)
     }
 
+    fn break_block(&mut self, pos: [i32; 3], drop: bool) -> Option<bool> {
+        self.0.break_block(pos, drop)
+    }
+
     fn random_int(&mut self, bound: i32) -> i32 {
         self.0.random_int(bound)
     }

@@ -50,7 +50,8 @@ def main():
         data = (json.dumps(structure, indent=2) + '\n').encode()
         put(relative, data, reference)
         put(relative, data)
-    for name in ('earth_slime_island_tree', 'sky_slime_island_tree', 'blood_slime_island_fungus'):
+    for name in ('earth_slime_island_tree', 'sky_slime_island_tree', 'blood_slime_island_fungus',
+                 'blood_slime_fungus', 'ichor_slime_fungus'):
         relative = f'worldgen/configured_feature/{name}.json'
         configuration = json.loads((original / relative).read_text(encoding='utf-8'))
         data = (json.dumps(configuration, indent=2) + '\n').encode()

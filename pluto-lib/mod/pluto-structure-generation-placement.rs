@@ -117,6 +117,10 @@ impl LevelEdit for Editor<'_,'_> {
         if changed {self.written.push(pos)}
         changed
     }
+    fn break_block(&mut self,pos:[i32;3],drop:bool)->Option<bool> {
+        if self.tracking {return None} // destruction can update neighbours outside tracked tree writes
+        PlacementContext::destroy_block_without_entity(&mut **self.world.borrow_mut(),pos,drop).ok()
+    }
     fn random_int(&mut self,bound:i32)->i32 {if bound<=0 {0} else {self.random.next_int_bound(bound).unwrap_or(0)}}
     fn random_float(&mut self)->f32 {self.random.next_float()}
     fn schedule_tick(&mut self,pos:[i32;3],block:&str,delay:i32)->bool {
