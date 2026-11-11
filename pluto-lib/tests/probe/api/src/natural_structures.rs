@@ -28,7 +28,7 @@ pub fn register() {
             let mut configuration=serde_json::json!({"template":"pluto_probe:colors","origin":origin,
                 "rotation":"NONE","mirror":"NONE"});
             if case=="marker" {
-                configuration["template"]=serde_json::json!("pluto_probe:marker");
+                configuration["template"]=serde_json::json!("pluto_probe:natural_wide");
                 configuration["case"]=serde_json::json!("natural_marker");
                 configuration["initial_seen"]=serde_json::json!(0);
             }

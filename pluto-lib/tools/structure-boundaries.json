@@ -1,6 +1,7 @@
 {
   "schema": 6,
   "official_source_sha256": {
+    "crates/horizon-world/src/worldgen/generator_decoration.rs": "0fbd4e45a94f6ce80d5704b9c4ecc74fc515104037df820dd8a6878ced2e3a32",
     "crates/horizon-world/src/worldgen/generator_structures.rs": "929f146ceb0e546fba48ddc0efcdbb55675eb5d057a589c0cef2197457280fb3",
     "crates/horizon-world/src/worldgen/generator.rs": "0cd155519388db0de34c3c6376aed8771f7670db43e9134c8ffd3767a4347885",
     "crates/horizon-world/src/worldgen/structure.rs": "58da359c9d0cb816f99a6373af2cf26b8358dd99b996329e4d177fde9fa6ed27",
@@ -20,12 +21,28 @@
   },
   "modules": [
     {
+      "module_id": "pluto-structure-generation",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "name": "pluto_structure_generation",
+      "visibility": "pub",
+      "source_file": "pluto-structure-generation.rs",
+      "source_sha256": "9a271f1704a12d4723117f2cd813fc5f0316898771bd1f50029c290ce5139ce2"
+    },
+    {
+      "module_id": "pluto-structure-generation-placement",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "name": "pluto_structure_generation_placement",
+      "visibility": "pub",
+      "source_file": "pluto-structure-generation-placement.rs",
+      "source_sha256": "97d3963a74baa95868fb06f6c66b2699d41c70b423bbfc09c5215d08f24fbab6"
+    },
+    {
       "module_id": "pluto-structure-natural",
       "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
       "name": "pluto_structure_natural",
       "visibility": "pub",
       "source_file": "pluto-structure-natural.rs",
-      "source_sha256": "f477ab93e7450c1174897f6cda04ef7bcaf4889342aa2f706b44b67175bd55ec"
+      "source_sha256": "8287b980e697e9b5184435b065ca9ec9cf08659ca73a635a9cb946b04f49b631"
     },
     {
       "module_id": "pluto-structure-access",
@@ -41,7 +58,7 @@
       "name": "pluto_structure_context",
       "visibility": "pub",
       "source_file": "pluto-structure-context.rs",
-      "source_sha256": "bcceea9843a6c20f0aba1f80f557f17dc9b82ee179261a966a24acad84cbcb20"
+      "source_sha256": "f7de4edf47def8a9b329644740b99ac5c1efe741a0bdf8b758036330f6239001"
     },
     {
       "module_id": "pluto-structure-piece",
@@ -133,6 +150,26 @@
     }
   ],
   "injections": [
+    {
+      "injection_id": "pluto-structure-generation-start",
+      "target": "horizon_world::worldgen::generator_decoration::Decoration::decorate",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "function_fingerprint": "c5850894c6d8a9abab76c381847036d39963f3f153175c25c5b3146a95e53076",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "decoration", "ty": "&Decoration", "value": "self" },
+        { "name": "data", "ty": "&Arc<GeneratorData>", "value": "data" },
+        { "name": "seed", "ty": "i64", "value": "seed" },
+        { "name": "generation", "ty": "WorldGenerationContext", "value": "generation" },
+        { "name": "worker", "ty": "&mut WorkerState", "value": "worker" },
+        { "name": "region", "ty": "&mut [ProtoChunk;9]", "value": "region" },
+        { "name": "level_random", "ty": "&mut dyn super::structure::legacy::PieceRandom", "value": "level_random" },
+        { "name": "structures", "ty": "Option<&super::generator_structures::StructureState>", "value": "structures" }
+      ],
+      "source_file": "pluto-structure-generation-head.rs",
+      "source_sha256": "3791b8bc535aeb311561d2fa5c278d0624bd4afe1fd3bb90af379b25e1fa7485"
+    },
     {
       "injection_id": "pluto-structure-natural-start",
       "target": "horizon_world::worldgen::generator_structures::StructureState::build_starts",
@@ -237,6 +274,7 @@
     }
   ],
   "exclusive_files": [
+    "crates/horizon-world/src/worldgen/generator_decoration.rs",
     "crates/horizon-world/src/worldgen/generator_structures.rs",
     "crates/horizon-world/src/worldgen/structure.rs",
     "crates/horizon-world/src/worldgen/structure/legacy.rs",

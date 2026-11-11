@@ -53,6 +53,13 @@ def build(bundle: Path, output: Path, root: Path = ROOT) -> dict:
         entries[f'mixins/{mod["id"]}/{rel}'] = source.read_bytes()
     if f'mixins/{mod["id"]}/horizon-mixin.toml' not in entries:
         raise ValueError('horizon-mixin.toml is not tracked in the bundle')
+    # Product-level notices travel with a bundle even when source lives in mod/.
+    # Only tracked, direct parent notices are eligible; never sweep other mods.
+    for source in tracked_files(bundle.parent):
+        if source.parent == bundle.parent and source.name.startswith(('LICENSE', 'LICENCE', 'COPYING', 'NOTICE')):
+            if source.is_symlink() or not source.is_file():
+                raise ValueError(f'not a regular tracked notice: {source}')
+            entries[source.name] = source.read_bytes()
     entries['horizon-native.json'] = (json.dumps(manifest, indent=2) + '\n').encode()
     if len(entries) > MAX_ENTRIES or sum(map(len, entries.values())) > MAX_UNPACKED:
         raise ValueError('bundle exceeds the native file limits (512 entries, 64 MiB)')

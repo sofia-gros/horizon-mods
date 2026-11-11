@@ -46,14 +46,14 @@ Each domain ends with: a table comparing the original's behaviour with the port 
 
 ### 1.2 Status (kept current; the numbers come from `python tools/feature_inventory.py`)
 
-Updated 2026-11-10. Release scheme (owner): when this roadmap is complete both products are released as **0.0.1**; **0.5.0** means mostly playable and **1.0.0** a complete port; then a new roadmap is written.
+Updated 2026-11-11. Release scheme (owner): when this roadmap is complete both products are released as **0.0.1**; **0.5.0** means mostly playable and **1.0.0** a complete port; then a new roadmap is written.
 
 | Phase | State | What is true |
 |---|---|---|
 | A foundations (PlutoLib) | working, with documented stubs | Events (including SERVER_STOPPED after successful teardown, integrated-game probe checked; dedicated path compiled but runtime not yet checked), items, item groups (paged creative tabs), players (messages, items, effects, vanilla food addition via the native status setter; focused game gate checked), attachments, config, commands, block entities with tanks, screens, renderer, fluids, i18n, world blocks, projectiles, block behaviour (survive, placement, shape update, random and scheduled ticks, bone meal, plant ground) with the game's own block data. Every API page has an example per item; stubs are in the support matrix. |
 | B fluids | NOT DONE 2 (partial) / PARKED 16 | The 43 fluid definitions match the Java. The 2 partial classes are ours to finish. The 16 parked (fluid blocks, buckets, bottles) wait for Horizon: it has no world fluids or fluid items for mods. |
 | C gadgets | NOT DONE 1 (partial) / PARKED 25 | Punji done and checked; the other ported gadgets are in the inventory. The 25 parked (cakes, frames, armor stands, backpack, shurikens and others) wait for Horizon limits. |
-| D world | NOT DONE 12 (8 partial, 4 ported-unchecked) / PARKED 28 | 11 ported: nylium/tint checked. WorldClientEvents partial; chimes/dirt/tree feature unchecked. Leaf-vine/native oak checked; extra-root partial. Ender/propagule gameplay, IslandPiece markers and production SKY explicit planning (Overworld/End) checked. Plain-template natural/save-reload checked; island natural/markers and custom fluid remain. |
+| D world | NOT DONE 16 (12 partial, 4 ported-unchecked) / PARKED 24 | 11 ported: nylium/tint checked. WorldClientEvents partial; chimes/dirt/tree feature unchecked. Leaf-vine/native oak checked; extra-root partial. Ender/propagule gameplay, IslandPiece markers and production SKY explicit planning (Overworld/End) checked. Natural templates/markers/save-reload and End-island trees/vines checked; distribution, custom fluid and island save/LAN remain. |
 | E shared | NOT DONE 34 (33 partial, 1 ported-unchecked) / PARKED 7 / 6 ported / 14 not-code | Content (signs, platforms, potted plants, tags, recipes, damage types, 14 mob effects) is in; the classes are compared one by one. Commands: `/tconstruct modifiers`, `slots`, `durability` and `materials set` are ported and checked in game (on the first tool in the inventory); `stats` and the remaining argument types are not. The rest of the partials wait for phases G and I (table blocks and menus, registry glue, the book). |
 | F common | NOT DONE 14 (partial) / PARKED 4 / NOT-CODE 46 | Compared class by class: the 46 data generators and registration helpers are not code in the port; the damage types are ported (32 files, names match the Java); the tags are compared by script (255 of 344 keys present, the missing ones belong to tools, materials, modifiers and fluid effects). The rest is registry glue, config, sounds, networking and the multiblock base, ported with the phase that uses it. |
 | G tables, H smeltery, I tools | NOT DONE G 73 todo, 3 partial / H 106 todo, 13 partial / I 274 todo, 1 partial (smeltery 10 ported) / PARKED 0 | Through the library (`tconstruct/mixins/tconstruct/api/library`, plain Rust, tests in seconds) and the Tinkers API crate: materials, tool stats, modifiers (7 of 165 module types as code), tool definitions and the rebuild of a tool load the original's data (83 materials, 329 modifiers, 45 tool definitions). In game and checked: `/tconstruct preview|build|part|craft|upgrade|modifiers|slots|durability|materials set|station`; a tool's mining speed, tier, wear, attack damage and tooltip act. Phase H's rules (alloying, melting, fuel, structure detection, tank, heating tick, channel, faucet, can, casting, casting station, entity melting) are in the library with tests and not in game. G's wooden station now uses the original's selectable slot layouts through PlutoLib-owned Mixins; real-game clicks, dormant slots, reopening, part crafting and screenshots are checked. The station remains partial (numbered selector buttons, no naming/equipment slots or per-selection server filters). Missing native hooks are candidates for PlutoLib Mixins, not proof that the host cannot carry the feature; parked groups need re-review. |
@@ -63,7 +63,7 @@ Updated 2026-11-10. Release scheme (owner): when this roadmap is complete both p
 |---|---|---|---|---|---|---|
 | fluids (22) | 0 | 0 | 1 | 3 | 14 | 4 |
 | gadgets (29) | 1 | 0 | 1 | 8 | 18 | 1 |
-| world (57) | 11 | 4 | 8 | 0 | 28 | 6 |
+| world (57) | 11 | 4 | 12 | 0 | 24 | 6 |
 | common (65) | 0 | 0 | 0 | 65 | 0 | 0 |
 | shared (61) | 0 | 0 | 0 | 61 | 0 | 0 |
 | tables (76) | 0 | 0 | 3 | 73 | 0 | 0 |
@@ -167,11 +167,11 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 
 | Date | Decision | Why |
 |---|---|---|
-| 2026-11-11 | Natural template fresh/reload + smoke pass; 4 images inspected. Build/plan reuse verified; guards rerun. | Current saved starts restore without replanning. Natural islands/markers remain unconnected. |
+| 2026-11-11 | Natural templates/markers/reload, End island and smoke pass; 9 images inspected. Four parked classes -> partial. | 86 logs/1341 leaves/578 vines; grass 0. Distribution, fluid and island save/LAN unverified. Build/plan reuse checked; guards rerun. |
 | 2026-11-10 | Owner requested Codex automatic code/security reviews OFF for this repository; saved and reload-confirmed. Other repos unchanged. | Prevent automatic PR review token use. |
 | 2026-11-10 | Nylium: ten variants pass decay, air/glass survival, occupied rejection and bone-meal plants/spread; 3 images inspected. Tint later fixed by #1117. | nylium-game3 PASS; exact RNG, slab parity, LAN/save-reload unverified. |
 | 2026-11-11 | #1130 merged: propagules; pure 62/docs 457/world 13, full build, 12 game gates, 43 inspected images; 121 inputs identical. | Two aim failures corrected; common menu passed unchanged retry. Islands/natural next. |
-| 2026-11-11 | Structures/markers: pure67/docs483/world18, Python52/146/26 (9 skipped), native build pass. | 4 mods/137 inputs; smoke + 11 plain/6 marker/2 planner cases; 21 images inspected. Fluid, natural/cache/save-reload pending. |
+| 2026-11-11 | Explicit structures/markers/planner + smoke pass; 21 images inspected. | Natural/save-reload subsequently checked; custom fluid remains. |
 | 2026-11-10 | Ender config: 11 gates/37 images; ordered decoration: 10 gates/29 images. | Superseded by #1130. |
 | 2026-11-10 | #1127 merged: roots; build + 9 game gates pass; 26 images inspected, 118 Rust inputs identical. | Selection/waterlogging/parent/errors checked; extra-root partial. |
 | 2026-11-10 | #1126 merged: live tree/vines; 8 game gates, 21 inspected images. | Oak distances/edge callbacks/errors checked; nested callback placement rejects. Later Ender rows supersede this checkpoint. |

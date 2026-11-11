@@ -1,5 +1,5 @@
-// Natural plain-template starts. Keep native selection, rings, cache and locks.
-// Registered marker pieces stay rejected until a typed generation-world exists.
+// Natural template starts. Keep native selection, rings, cache and locks.
+// Registered markers execute through the typed generation-world adapter.
 use super::*;
 use crate::level::pluto_structure_access;
 use horizon_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
