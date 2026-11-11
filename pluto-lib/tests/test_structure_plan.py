@@ -67,6 +67,25 @@ class StructurePlan(unittest.TestCase):
             path.write_bytes(before)
         self.check()
 
+    def test_reviewed_call_site_contracts_reject_changed_or_missing_fields(self):
+        required = self.meta['injections'][0]
+        entry = self.plan['injections'][0]
+        contract = {'selector': 'set_reference_file', 'ordinal': 1,
+                    'require': 2, 'site_fingerprint': 'reviewed-site'}
+        required.update(contract)
+        entry.update(contract)
+        self.check()
+        for field in contract:
+            for remove in (False, True):
+                with self.subTest(field=field, missing=remove):
+                    plan = copy.deepcopy(self.plan)
+                    if remove:
+                        del plan['injections'][0][field]
+                    else:
+                        plan['injections'][0][field] = 'changed'
+                    with self.assertRaises(ValueError):
+                        self.check(plan)
+
     def test_missing_competing_relocated_and_contract_changed_authorities_reject(self):
         mutations = []
         for field in ['module_id', 'file', 'name', 'visibility', 'mod_id', 'source']:

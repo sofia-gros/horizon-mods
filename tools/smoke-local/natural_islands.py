@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate original End islands and marker features, without /place commands.
+"""Generate original End islands, optionally reopening the same isolated world.
 
-Only the isolated clone's candidate set is made dense and deterministic. The
-production structure configuration and biome tag remain unchanged. This checks
-natural dispatch/markers, not original placement frequency or custom fluids.
+Only the cloned candidate set is deterministic. Original structure settings and
+biome tags stay unchanged. Require trees, tall grass, ferns and vines together;
+retained terrain alone never proves restored structure-start data.
 """
 import argparse
 import json
@@ -16,11 +16,18 @@ import time
 from native_build_report import require_report
 from structures import ROOT, prepare_resources
 
+BLOCKS = ('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt',
+          'tconstruct:enderbark_log', 'tconstruct:ender_slime_leaves',
+          'tconstruct:ender_slime_tall_grass', 'tconstruct:ender_slime_fern', 'tconstruct:ender_slime_vine')
+CANDIDATES = ((2048, 2048), (2560, 2048), (2048, 2560), (2560, 2560), (3072, 2048), (2048, 3072))
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('game', 'ctl', 'resources'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--islands', type=int, choices=range(1, 7), default=1)
+    parser.add_argument('--resume', action='store_true', help='reopen and require actual saved-piece restoration')
     args = parser.parse_args()
     game, controller, original = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
@@ -37,7 +44,6 @@ def main():
     path = resources / 'worldgen/structure_sets.json'
     before = path.read_bytes()
     sets = json.loads(before)
-    # Avoid a duplicate start of the same production structure in our fixture.
     sets.pop('tconstruct:end_sky_island', None)
     sets['pluto_probe:natural_end_island'] = json.dumps({
         'structures': [{'structure': 'tconstruct:end_slime_island', 'weight': 1}],
@@ -55,109 +61,143 @@ def main():
         directory = run / name.lower()
         directory.mkdir()
         env[name] = str(directory)
+    phase = 'fresh'
+    observations, screenshots = {}, []
 
     def ctl(*words, timeout=60):
         words = list(map(str, words))
         reply = subprocess.run([str(controller), '--socket', str(endpoint), '--timeout', str(timeout), *words],
-                               capture_output=True, text=True, timeout=timeout+5)
+                               capture_output=True, text=True, timeout=timeout + 5)
         with (run / 'ctl.jsonl').open('a', encoding='utf-8', newline='\n') as output:
-            output.write(json.dumps({'args': words, 'code': reply.returncode, 'stdout': reply.stdout, 'stderr': reply.stderr}) + '\n')
+            output.write(json.dumps({'phase': phase, 'args': words, 'code': reply.returncode,
+                                     'stdout': reply.stdout, 'stderr': reply.stderr}) + '\n')
         if reply.returncode:
-            raise RuntimeError(f'control failed {words}: {reply.stdout} {reply.stderr}; run={run}')
+            raise RuntimeError(f'{phase}: control failed {words}: {reply.stdout} {reply.stderr}; run={run}')
         result = json.loads(reply.stdout)
         if result.get('error') or result.get('ok') is False:
-            raise RuntimeError(f'control rejected {words}: {result}; run={run}')
+            raise RuntimeError(f'{phase}: control rejected {words}: {result}; run={run}')
         return result
 
-    observations, screenshots = [], []
-    log = run / 'game.log'
-    with log.open('w', encoding='utf-8', newline='\n') as output:
-        proc = subprocess.Popen([str(game), '--resources', str(resources), '--control-socket', str(endpoint),
-            '--offscreen', '--world', 'NaturalIslands', '--seed', '42', '--creative',
-            '--render-distance', '4', '--width', '1280', '--height', '720'], cwd=run, env=env,
-            stdout=output, stderr=subprocess.STDOUT)
-        try:
-            deadline = time.monotonic()+120
-            while not endpoint.exists():
-                if proc.poll() is not None or time.monotonic()>deadline:
-                    raise RuntimeError(f'game did not start; run={run}')
-                time.sleep(.2)
-            ctl('wait-ready', 120, timeout=125)
-            for command in ('gamemode spectator', 'gamerule random_tick_speed 0', 'time set 6000', 'weather clear'):
-                ctl('command', command)
-            # Every anchor is the potential chunk's corner of a separate native
-            # spacing cell. All are outside the central End biome.
-            for index, (x,z) in enumerate(((2048,2048),(2560,2048),(2048,2560),(2560,2560),(3072,2048),(2048,3072))):
-                ctl('command', f'execute in minecraft:the_end run tp @s {x+8} 160 {z+8}')
-                ctl('wait', 200)
-                ground = []
-                # The controller caps radius at 64; SKY islands over void can
-                # be below y=96. Survey overlapping vertical bands, not just 160.
-                for altitude in (160, 80, 224):
-                    if altitude != 160:
-                        ctl('command', f'tp @s {x+8} {altitude} {z+8}')
-                        ctl('wait', 80)
-                    for name in ('tconstruct:ender_slime_dirt', 'tconstruct:ichor_slime_dirt'):
-                        found = ctl('find-block', name, 64)
-                        if found.get('count',0)>0:
-                            ground.append(found)
-                    if ground:
-                        break
-                if not ground:
-                    raise RuntimeError(f'natural original island absent across height bands at candidate {x,z}; run={run}')
-                trees = ctl('find-block', 'tconstruct:enderbark_log', 64)
-                leaves = ctl('find-block', 'tconstruct:ender_slime_leaves', 64)
-                plants = {name: ctl('find-block', name, 64).get('count',0) for name in
-                          ('tconstruct:ender_slime_tall_grass','tconstruct:ender_slime_fern','tconstruct:ender_slime_vine')}
-                position = ground[0]['nearest'][0]['pos']
-                ctl('command', f'tp @s {position[0]+28} {position[1]+18} {position[2]+28}')
-                ctl('look-at', position[0],position[1]+3,position[2])
-                ctl('wait',40)
-                ctl('key','f1','tap')
-                try:
-                    image = run / f'island-{index}.png'
-                    ctl('screenshot',image)
-                    if not image.is_file() or not image.stat().st_size:
-                        raise RuntimeError('missing natural island screenshot')
-                    screenshots.append(str(image))
-                finally:
-                    ctl('key','f1','tap')
-                observations.append({'candidate':[x,z], 'ground':ground,'trees':trees.get('count',0),
-                                     'leaves':leaves.get('count',0),'plants':plants})
-                if (any(row['trees']>0 and row['leaves']>0 for row in observations)
-                    and all(any(row['plants'][name]>0 for row in observations) for name in
-                            ('tconstruct:ender_slime_tall_grass','tconstruct:ender_slime_fern','tconstruct:ender_slime_vine'))):
+    def observe(index, candidate, saved=None):
+        x, z = candidate
+        ctl('command', f'execute in minecraft:the_end run tp @s {x+8} 160 {z+8}')
+        ctl('wait', 200)
+        if saved is None:
+            found = None
+            # Radius is capped at 64. Include low SKY islands over End void.
+            for altitude in (160, 80, 224):
+                if altitude != 160:
+                    ctl('command', f'tp @s {x+8} {altitude} {z+8}')
+                    ctl('wait', 80)
+                ground = [ctl('find-block', name, 64) for name in BLOCKS[:2]]
+                found = next((row for row in ground if row.get('count', 0) > 0), None)
+                if found is not None:
                     break
-            else:
-                raise RuntimeError(f'missing original tree, tall grass, fern or vine markers across six natural islands; run={run}')
-            located = ctl('command','locate structure tconstruct:end_slime_island')
-            if not any('nearest' in text.lower() and 'tconstruct:end_slime_island' in text for text in located.get('chat',[])):
-                raise RuntimeError(f'natural island locate did not find a generated start: {located}; run={run}')
-            ctl('quit')
-            proc.wait(timeout=60)
-            if proc.returncode:
-                raise RuntimeError(f'game exited {proc.returncode}; run={run}')
+            if found is None:
+                raise RuntimeError(f'natural original island absent across height bands at {candidate}; run={run}')
+            focus = found['nearest'][0]['pos']
+        else:
+            focus = saved['focus']
+        # Both processes census from the same camera and loaded footprint.
+        ctl('command', f'tp @s {focus[0]+28} {focus[1]+18} {focus[2]+28}')
+        ctl('look-at', focus[0], focus[1]+3, focus[2])
+        ctl('wait', 200)
+        found = {name: ctl('find-block', name, 64) for name in BLOCKS}
+        counts = {name: value.get('count', 0) for name, value in found.items()}
+        if sum(counts[name] for name in BLOCKS[:2]) <= 0:
+            raise RuntimeError(f'{phase}: island ground disappeared; run={run}')
+        samples = []
+        if saved is None:
+            for name in BLOCKS:
+                for item in found[name].get('nearest', [])[:3]:
+                    position = item['pos']
+                    samples.append({'pos': position, 'state': ctl('getblock', *position)['block']})
+        else:
+            for item in saved['samples']:
+                samples.append({'pos': item['pos'], 'state': ctl('getblock', *item['pos'])['block']})
+        located = ctl('command', 'locate structure tconstruct:end_slime_island')
+        if not any('nearest' in text.lower() and 'tconstruct:end_slime_island' in text for text in located.get('chat', [])):
+            raise RuntimeError(f'{phase}: generated start not locatable: {located}; run={run}')
+        snapshot = {'candidate': list(candidate), 'focus': focus, 'counts': counts, 'samples': samples, 'locate': located}
+        if saved is not None and snapshot != saved:
+            raise RuntimeError(f'saved island changed: expected={saved}, actual={snapshot}; run={run}')
+        ctl('key', 'f1', 'tap')
+        try:
+            image = run / f'{phase}-island-{index}.png'
+            ctl('screenshot', image)
+            if not image.is_file() or not image.stat().st_size:
+                raise RuntimeError('missing natural island screenshot')
+            screenshots.append(str(image))
         finally:
-            if proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=15)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    proc.wait(timeout=15)
-    text = log.read_text(encoding='utf-8',errors='replace')
-    for status in ('starting','stopping','stopped'):
-        if text.count(f'PLUTO-PROBE server_{status} dedicated=false')!=1:
-            raise RuntimeError(f'unclean lifecycle {status}; run={run}')
-    for failure in ('registered piece requires the typed placement adapter', 'registered structure state invalid',
-                    'natural structure tconstruct:end_slime_island rejected', 'tree configuration failed', 'tree placement failed'):
-        if failure in text:
-            raise RuntimeError(f'natural marker dispatch failure {failure}; run={run}')
-    result = {'result':'NATURAL ISLANDS PASS','run':str(run),'observations':observations,'screenshots':screenshots,
-              'scope':'original structure settings on deterministic fixture candidates; distribution/custom-fluid/LAN parity not checked'}
-    (run/'result.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8',newline='\n')
-    print(json.dumps(result,indent=2))
+            ctl('key', 'f1', 'tap')
+        return snapshot
+
+    for phase in (('fresh', 'resume') if args.resume else ('fresh',)):
+        endpoint.unlink(missing_ok=True)  # preceding process has exited
+        log = run / (phase + '.log')
+        with log.open('w', encoding='utf-8', newline='\n') as output:
+            proc = subprocess.Popen([str(game), '--resources', str(resources), '--control-socket', str(endpoint),
+                '--offscreen', '--world', 'NaturalIslands', '--seed', '42', '--creative',
+                '--render-distance', '4', '--width', '1280', '--height', '720'], cwd=run, env=env,
+                stdout=output, stderr=subprocess.STDOUT)
+            try:
+                deadline = time.monotonic() + 120
+                while not endpoint.exists():
+                    if proc.poll() is not None or time.monotonic() > deadline:
+                        raise RuntimeError(f'{phase}: game did not start; run={run}')
+                    time.sleep(.2)
+                ctl('wait-ready', 120, timeout=125)
+                for command in ('gamemode spectator', 'gamerule random_tick_speed 0', 'time set 6000', 'weather clear'):
+                    ctl('command', command)
+                rows = []
+                if phase == 'fresh':
+                    for index, candidate in enumerate(CANDIDATES):
+                        rows.append(observe(index, candidate))
+                        if (len(rows) >= args.islands
+                            and any(row['counts'][BLOCKS[2]] > 0 and row['counts'][BLOCKS[3]] > 0 for row in rows)
+                            and all(any(row['counts'][name] > 0 for row in rows) for name in BLOCKS[4:])):
+                            break
+                    else:
+                        raise RuntimeError(f'missing original tree, tall grass, fern or vine across six islands; run={run}')
+                else:
+                    for index, saved in enumerate(observations['fresh']):
+                        rows.append(observe(index, saved['candidate'], saved))
+                observations[phase] = rows
+                ctl('quit')
+                proc.wait(timeout=60)
+                if proc.returncode:
+                    raise RuntimeError(f'{phase}: game exited {proc.returncode}; run={run}')
+            finally:
+                if proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=15)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait(timeout=15)
+        (run / 'observations.json').write_text(json.dumps(observations, indent=2) + '\n', encoding='utf-8', newline='\n')
+        text = log.read_text(encoding='utf-8', errors='replace')
+        for status in ('starting', 'stopping', 'stopped'):
+            if text.count(f'PLUTO-PROBE server_{status} dedicated=false') != 1:
+                raise RuntimeError(f'{phase}: unclean lifecycle {status}; run={run}')
+        for failure in ('registered piece requires the typed placement adapter', 'registered structure state invalid',
+                        'natural structure tconstruct:end_slime_island rejected', 'tree configuration failed', 'tree placement failed'):
+            if failure in text:
+                raise RuntimeError(f'{phase}: natural marker failure {failure}; run={run}')
+        if phase == 'resume':
+            restored = text.count('pluto_lib: restored saved structure piece kind=pluto_lib:registered_template_piece')
+            # saved_piece uses RESTORE_REPORTED.fetch_or: exactly one log per
+            # piece kind/process, not one per island. Four-island persistence
+            # is checked by each snapshot/locate above; this separately proves
+            # the registered-piece restoration path ran, not terrain alone.
+            if restored != 1:
+                raise RuntimeError(f'expected one deduplicated registered-piece restoration event, got {restored}; run={run}')
+    result = {'result': 'NATURAL ISLANDS PASS', 'run': str(run), 'resume_checked': args.resume,
+              'observations': observations, 'screenshots': screenshots,
+              'scope': 'original settings on deterministic candidates; distribution/custom-fluid/LAN parity not checked'}
+    (run / 'result.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
+    print(json.dumps(result, indent=2))
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

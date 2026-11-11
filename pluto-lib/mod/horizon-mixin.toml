@@ -363,3 +363,30 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_screen_data"
 kind = "RETURN"
 helper = "dynamic-screen-slots-data-update.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Non-Overworld saved structure starts, without enabling terrain blending.
+# Native constructor adaptation is pinned by the structure composition guard.
+[[module]]
+id = "pluto-structure-dimension-streaming-adapter"
+file = "crates/horizon-client/src/game/world_loading.rs"
+name = "pluto_dimension_streaming"
+source = "pluto-dimension-streaming.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-structure-dimension-streaming-dispatch"
+target = "horizon_client::game::world_loading::make_streaming"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-dimension-streaming-head.rs"
+bindings = [
+    { name = "res", ty = "&Resources", value = "res" },
+    { name = "pack", ty = "&PackResources", value = "pack" },
+    { name = "options", ty = "&Options", value = "options" },
+    { name = "settings", ty = "&Settings", value = "settings" },
+    { name = "world_root", ty = "&std::path::Path", value = "world_root" },
+    { name = "dim", ty = "Dim", value = "dim" },
+    { name = "shape", ty = "horizon_client::chunk::LevelShape", value = "shape" },
+    { name = "seed", ty = "i64", value = "seed" },
+    { name = "enabled_features", ty = "&[String]", value = "enabled_features" },
+]

@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', type=Path, required=True)
     parser.add_argument('--ctl', type=Path, required=True)
     parser.add_argument('--resources', type=Path, required=True)
-    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'propagules'), default='column')
+    parser.add_argument('--mode', choices=('column', 'decline', 'invalid', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'propagules', 'slime_tree'), default='column')
     args = parser.parse_args()
     game, controller, resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()
     if not game.is_file() or not controller.is_file() or not resources.is_dir():
@@ -33,7 +33,7 @@ def main():
     runs = ROOT / '.local/smoke-runs'
     runs.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'feature-{args.mode}-', dir=runs)).resolve()
-    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender'):
+    if args.mode in ('column', 'flags', 'decorator', 'native_tree', 'roots', 'ordered', 'ender', 'slime_tree'):
         # Original files stay immutable; the clone's catalog is detached below.
         # Falling back to copying supports source folders on another filesystem.
         def link_or_copy(source, target):
@@ -80,6 +80,17 @@ def main():
             reference = ROOT / 'tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/configured_feature'
             sources = [json.loads((reference / name).read_text(encoding='utf-8')) for name in ('ender_slime_tree.json', 'ender_slime_tree_tall.json')]
             fixtures = tuple((f'ender_{index}', sources[index % 2]) for index in range(8))
+        if args.mode == 'slime_tree':
+            # Reuse the existing ordered-mode bone-meal trigger only. Its
+            # feature names now dispatch the production slime-tree codec, not
+            # the throwaway ordered-tree codec. The trigger stays at origin,
+            # deliberately exercising Java's obstructed-base behavior.
+            folder = ROOT / 'tconstruct/content/data/tconstruct/worldgen/feature'
+            earth = json.loads((folder / 'earth_slime_island_tree.json').read_text(encoding='utf-8'))['config']
+            sky = json.loads((folder / 'sky_slime_island_tree.json').read_text(encoding='utf-8'))['config']
+            invalid = json.loads(json.dumps(earth))
+            invalid['random_height'] = 0
+            fixtures = (('ordered_valid', earth), ('ordered_error', sky), ('ordered_invalid', invalid))
         if args.mode == 'ordered':
             oak = json.loads(definitions['minecraft:oak'])
             oak.get('config', oak)['decorators'] = [
@@ -118,7 +129,7 @@ def main():
             key = f'pluto_probe:{name}'
             if key in definitions:
                 raise RuntimeError(f'refusing to overwrite an existing feature: {key}')
-            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture', 'ender': 'tconstruct:source_tree'}.get(args.mode, 'pluto_probe:column')
+            kind = {'decorator': 'pluto_probe:decorator_fixture', 'native_tree': 'pluto_probe:native_tree_fixture', 'roots': 'pluto_probe:root_fixture', 'ordered': 'pluto_probe:ordered_fixture', 'ender': 'tconstruct:source_tree', 'slime_tree': 'tconstruct:slime_tree'}.get(args.mode, 'pluto_probe:column')
             definitions[key] = json.dumps({'type': kind, 'config': config})
         bundle.unlink()
         bundle.write_bytes((json.dumps(definitions) + '\n').encode('utf-8'))
@@ -126,7 +137,7 @@ def main():
             raise RuntimeError('the original feature catalog changed while preparing fixtures')
     endpoint, game_log = run / 'control.json', run / 'game.log'
     env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
-               HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_FEATURE_MODE=args.mode)
+               HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216', PLUTO_PROBE_FEATURE_MODE='ordered' if args.mode == 'slime_tree' else args.mode)
     env.pop('PLUTO_PROBE_RESOURCE_PACK', None)
     for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME'):
         folder = run / key.lower()
@@ -373,6 +384,42 @@ def main():
                     observations.append({'case': index, 'flavor': flavor, 'tall': bool(index%2), 'clicks': clicks, **counts})
                 if total_propagules == 0 or 'Horizon: feature pluto_probe:' in text():
                     raise RuntimeError(f'Ender propagules missing or native fallback used; run={run}')
+            elif args.mode == 'slime_tree':
+                for x, flavor, name, expected in ((0, 'earth', 'ordered_valid', True), (16, 'sky', 'ordered_error', True), (32, 'earth', 'ordered_invalid', False)):
+                    ground = 'tconstruct:earth_slime_dirt'
+                    fixture(x, ground, 'minecraft:dead_bush', radius=6, top=140)
+                    ctl('setblock', x, 102, 3, 'minecraft:air')
+                    ctl('command', f'tp @s {x+0.5} 101 3.5')
+                    marker = f'PLUTO-PROBE feature_request name=pluto_probe:{name} placed={str(expected).lower()}'
+                    clicks = click_until(x, marker)
+                    log_name = 'tconstruct:greenheart_log' if flavor == 'earth' else 'tconstruct:skyroot_log'
+                    leaf_name = f'tconstruct:{flavor}_slime_leaves'
+                    ctl('command', f'tp @s {x+0.5} 109 8.5')
+                    ctl('wait', 20)
+                    # Count the entire trunk rather than a camera-limited survey.
+                    logs = sum(block(x, y, 0).split('[', 1)[0] == log_name for y in range(102, 132))
+                    # Survey from the trunk's centre for the canopy census.
+                    height = logs + 1  # origin remains the intentionally obstructing trigger
+                    ctl('command', f'tp @s {x+0.5} {101+height-2} 0.5')
+                    ctl('wait', 10)
+                    leaves = ctl('find-block', leaf_name, 6)
+                    vines = ctl('find-block', f'tconstruct:{flavor}_slime_vine', 6)
+                    leaf_count, vine_count = leaves.get('count', 0), vines.get('count', 0)
+                    if expected:
+                        valid_height = 4 <= height <= 6 if flavor == 'earth' else height in (5, 6, 7, 8, 10, 12, 14, 16)
+                        if not valid_height or leaf_count != (84 if flavor == 'earth' else 77) or vine_count != (0 if flavor == 'earth' else 12):
+                            raise RuntimeError(f'slime tree geometry mismatch {flavor}: height={height} leaves={leaf_count} vines={vine_count}; run={run}')
+                        for item in leaves.get('nearest', []):
+                            value = block(*item['pos'])
+                            if 'persistent=false' not in value or 'waterlogged=false' not in value:
+                                raise RuntimeError(f'source leaf properties lost: {value}; run={run}')
+                    elif logs or leaf_count or vine_count:
+                        raise RuntimeError(f'invalid source config wrote a tree; run={run}')
+                    if block(x, 100, 0).split('[', 1)[0] != ground or block(x, 101, 0).split('[', 1)[0] != 'minecraft:dead_bush':
+                        raise RuntimeError(f'slime tree changed its ground/obstructed base; run={run}')
+                    photograph(x, f'slime-tree-{name}.png', player_y=101 + height // 2 if expected else 103, camera_z=12)
+                    observations.append({'kind': flavor, 'valid_config': expected, 'clicks': clicks,
+                                         'height': height if expected else None, 'logs': logs, 'leaves': leaf_count, 'vines': vine_count})
             elif args.mode == 'ordered':
                 for x, case, success, count in ((0, 'valid', True, 3), (16, 'error', False, 1), (32, 'invalid', False, 0)):
                     fixture(x, 'minecraft:dirt', 'minecraft:dead_bush')

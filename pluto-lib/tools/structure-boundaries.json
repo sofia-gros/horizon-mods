@@ -1,6 +1,9 @@
 {
   "schema": 6,
   "official_source_sha256": {
+    "crates/horizon-client/src/game/world_loading.rs": "e3f28574bcb5caa42337c876f7bf6e4c8a59021fcfe199e2c556f893806f7668",
+    "crates/horizon-client/src/old_world.rs": "378960b0d156f1acda62b4b3b5e3e794bc3bfb57d594f4b5661d09df8f98f63a",
+    "crates/horizon-client-render/src/streaming.rs": "31c7429ac45a544d54db0e8f10d6bb78f6a41ffa2b6452c95a477f50236f7c4c",
     "crates/horizon-world/src/worldgen/generator_decoration.rs": "0fbd4e45a94f6ce80d5704b9c4ecc74fc515104037df820dd8a6878ced2e3a32",
     "crates/horizon-world/src/worldgen/generator_structures.rs": "929f146ceb0e546fba48ddc0efcdbb55675eb5d057a589c0cef2197457280fb3",
     "crates/horizon-world/src/worldgen/generator.rs": "0cd155519388db0de34c3c6376aed8771f7670db43e9134c8ffd3767a4347885",
@@ -20,6 +23,14 @@
     "crates/horizon-client/src/entry.rs": "6b698b969a8acca6d6aea3dee051e692b45099f4bda8fb58e5731299ca7f75fe"
   },
   "modules": [
+    {
+      "module_id": "pluto-structure-dimension-streaming-adapter",
+      "file": "crates/horizon-client/src/game/world_loading.rs",
+      "name": "pluto_dimension_streaming",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-dimension-streaming.rs",
+      "source_sha256": "e393cd7bff1104311525ad6e8317c8d216f41c54d69ff41fdcaf7d9e5974f3f3"
+    },
     {
       "module_id": "pluto-structure-generation",
       "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
@@ -151,6 +162,27 @@
   ],
   "injections": [
     {
+      "injection_id": "pluto-structure-dimension-streaming-dispatch",
+      "target": "horizon_client::game::world_loading::make_streaming",
+      "file": "crates/horizon-client/src/game/world_loading.rs",
+      "function_fingerprint": "4b97516b6852452443221577dc470f0e548d5b0256ec7cf75c367aff01f07fb8",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "res", "ty": "&Resources", "value": "res" },
+        { "name": "pack", "ty": "&PackResources", "value": "pack" },
+        { "name": "options", "ty": "&Options", "value": "options" },
+        { "name": "settings", "ty": "&Settings", "value": "settings" },
+        { "name": "world_root", "ty": "&std::path::Path", "value": "world_root" },
+        { "name": "dim", "ty": "Dim", "value": "dim" },
+        { "name": "shape", "ty": "horizon_client::chunk::LevelShape", "value": "shape" },
+        { "name": "seed", "ty": "i64", "value": "seed" },
+        { "name": "enabled_features", "ty": "&[String]", "value": "enabled_features" }
+      ],
+      "source_file": "pluto-dimension-streaming-head.rs",
+      "source_sha256": "3273756fc82b17f39017bbd06fc0e71211feb7271d7dccef1ea3475438b68bcb"
+    },
+    {
       "injection_id": "pluto-structure-generation-start",
       "target": "horizon_world::worldgen::generator_decoration::Decoration::decorate",
       "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
@@ -274,6 +306,7 @@
     }
   ],
   "exclusive_files": [
+    "crates/horizon-client/src/game/world_loading.rs",
     "crates/horizon-world/src/worldgen/generator_decoration.rs",
     "crates/horizon-world/src/worldgen/generator_structures.rs",
     "crates/horizon-world/src/worldgen/structure.rs",
