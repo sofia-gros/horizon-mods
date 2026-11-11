@@ -46,7 +46,7 @@ if not seeds and not module_ids:
     sys.exit('nothing selected: pass --seed or --keep-prefix')
 keep_i, keep_m, keep_s, tokens = sd.closure(seeds, module_ids)
 bundle = a.out
-shutil.copytree(a.src, bundle)
+shutil.copytree(a.src, bundle, ignore=shutil.ignore_patterns('target', '.git', '__pycache__'))
 manifest = bundle / 'horizon-mixin.toml'
 header = re.compile(r'^\[\[([A-Za-z_.]+)\]\]\s*$')
 blocks, cur = [], ['', []]

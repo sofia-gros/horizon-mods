@@ -156,6 +156,21 @@ source = "pluto-structure-context.rs"
 visibility = "pub"
 
 [[module]]
+id = "pluto-structure-natural"
+file = "crates/horizon-world/src/worldgen/generator_structures.rs"
+name = "pluto_structure_natural"
+source = "pluto-structure-natural.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-natural-start"
+target = "horizon_world::worldgen::generator_structures::StructureState::build_starts"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-natural-head.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "wait", ty = "bool", value = "wait" }]
+
+[[module]]
 id = "pluto-structure-piece"
 file = "crates/horizon-world/src/worldgen/structure.rs"
 name = "pluto_structure_piece"

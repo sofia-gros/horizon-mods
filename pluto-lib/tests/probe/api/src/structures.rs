@@ -2,9 +2,13 @@
 use pluto_lib::{BlockState, ConfiguredStructure, ConfiguredStructurePiece, Identifier, StructurePiece,
     StructurePieceTemplate, StructurePieceTypeRegistry, StructureRotation, StructureMirror, StructureStart, StructureTypeRegistry};
 
+#[path = "natural_structures.rs"]
+mod natural;
+
 pub fn register() {
     if std::env::var("PLUTO_PROBE_STRUCTURE_MODE").as_deref() != Ok("1") { return; }
     register_pieces();
+    if std::env::var("PLUTO_PROBE_NATURAL_MODE").as_deref()==Ok("1") {natural::register();}
     assert!(StructureTypeRegistry::register(Identifier::parse("pluto_probe:template_structure").unwrap(), |source| {
         let case = source.get("probe_case").and_then(|v| v.as_str()).ok_or("missing probe case")?.to_owned();
         if case == "invalid" { return Err("probe deliberately invalid structure configuration".into()); }

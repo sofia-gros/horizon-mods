@@ -12,6 +12,7 @@ import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, tomllib
 from pathlib import Path
 from native_build_report import require_report
 from native_preflight import check as check_native_preflight
+from probe_cache import IGNORED, sync_tree, build_key, reusable_build, record_build, fresh_output, artifact_digests
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = ('PLUTO-PROBE break protected=true allowed=true', 'PLUTO-PROBE break_canceled pos=[28, 79, 31]', 'PLUTO-PROBE server_stopping dedicated=false', 'PLUTO-PROBE server_stopped dedicated=false', 'PLUTO-PROBE server_starting dedicated=false', 'PLUTO-PROBE chunk_load', 'PLUTO-PROBE join name=', 'PLUTO-PROBE end_server_tick',
@@ -68,33 +69,36 @@ p.add_argument('--full', type=Path, metavar='PLUTO_INSTALLED',
 verification = p.add_mutually_exclusive_group()
 verification.add_argument('--build-only', action='store_true', help='build the probe bundles and leave the binaries for a focused game harness')
 verification.add_argument('--preflight-only', action='store_true', help='validate the exact installed composition without native compilation or launch')
+p.add_argument('--rebuild', action='store_true', help='force native compilation instead of reusing a matching verified build')
 p.add_argument('--preflight-workspace', type=Path, default=ROOT / '.local/upstream/horizon', help='official checkout at the native Horizon pin for mandatory composition checks')
 p.add_argument('--mixins-cli', type=Path, default=ROOT / 'target/mixins-cli-build/release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins'), help='pinned Mixins CLI built by the guarded staging route')
 a = p.parse_args()
 
-if a.work.exists():
-    shutil.rmtree(a.work)
-bundles, out = a.work / 'bundles', a.work / 'out'
+a.work = a.work.resolve()
+a.work.mkdir(parents=True, exist_ok=True)
+staging = tempfile.TemporaryDirectory(prefix='probe-stage-', dir=a.work)
+bundles, out = Path(staging.name) / 'bundles', a.work / 'out'
+ignore_cache = shutil.ignore_patterns(*IGNORED)
 # Raw horizon-mixin.toml bundles do not pin Mixins in the official launcher.
 # Its native wrapper supplies the actual tool revision, not just the host pin.
 pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
 mod = tomllib.loads((ROOT / 'pluto-lib/mod/horizon-mixin.toml').read_text(encoding='utf-8'))['mod']
-shutil.copytree(ROOT / 'pluto-lib/mod', bundles / 'pluto_lib/mixins/pluto_lib')
+shutil.copytree(ROOT / 'pluto-lib/mod', bundles / 'pluto_lib/mixins/pluto_lib', ignore=ignore_cache)
 (bundles / 'pluto_lib/horizon-native.json').write_bytes((json.dumps({
     'schema': 1, 'id': mod['id'], 'version': mod['version'], 'game': '26.3',
     'horizon': pins['horizon_revision'], 'mixins': pins['mixins_revision'],
 }) + '\n').encode('utf-8'))
-shutil.copytree(ROOT / 'pluto-lib/tests/probe', bundles / 'pluto_probe')
+shutil.copytree(ROOT / 'pluto-lib/tests/probe', bundles / 'pluto_probe', ignore=ignore_cache)
 # Tinkers' PlutoLib-only part: its manifest header (no injections, so Mixins has nothing to apply) and its api crate
 tinkers = ROOT / 'tconstruct/mixins/tconstruct'
-header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding='utf-8'), maxsplit=1, flags=re.M)[0]
-(bundles / 'tconstruct').mkdir()
-(bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
-shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api')
+if not a.full:
+    header = re.split(r'^\[\[', (tinkers / 'horizon-mixin.toml').read_text(encoding='utf-8'), maxsplit=1, flags=re.M)[0]
+    (bundles / 'tconstruct').mkdir()
+    (bundles / 'tconstruct/horizon-mixin.toml').write_text(header, encoding='utf-8', newline='\n')
+    shutil.copytree(tinkers / 'api', bundles / 'tconstruct/api', ignore=ignore_cache)
 if a.full:
     EXPECTED += ("PLUTO-PROBE built max_damage=Some(60) materials=3", "tconstruct: break speed effective: original=3.5 now=2 on minecraft:stone", "tconstruct: attack damage original=", "tconstruct: break speed tier too low: minecraft:wood on minecraft:diamond_ore", "PLUTO-PROBE tool damage=1 max=Some(60)", "tconstruct: built tconstruct:sword of flint wood iron with max damage Some(98)", "tconstruct: crafted tconstruct:pickaxe from 3 parts", "Modifiers: sharpness x3, cultivated x3, pierce x1 | Slots left: abilities 1, upgrades 0", "tconstruct: a station would make tconstruct:pickaxe taking 3 slots", "tconstruct: materials set part 0 to iron: ", "tconstruct: materials refused: the tool has 3 parts", "tconstruct: slots add upgrades: ", "tconstruct: slots set upgrades: ", "tconstruct: durability set: 10 / ", "tconstruct: durability add: 15 / ", "tconstruct: durability add: 0 / ", "tconstruct: modifiers remove sharpness: ", "tconstruct: modifiers add sharpness: ", "tconstruct: upgrade refused: needs 9 of Tag", "tconstruct: upgrade refused: not enough upgrades slots: 0 left, 1 needed", "max damage Some(250), slots Some(Compound({\"abilities\": Int(1), \"upgrades\": Int(0)}))", "tconstruct: library linked, 25 tool stats, 23 material stat types", "tconstruct: library loaded, 83 materials, 329 modifiers, 45 tool definitions, 0 problems", "tconstruct: preview pickaxe wood: tconstruct:pickaxe: attack_damage=1, attack_speed=1.2, durability=60, mining_speed=2; modifiers cultivatedx3, piercex1; slots")
     config = json.loads((ROOT / 'tools/smoke-local/slice.json').read_text(encoding='utf-8'))
-    shutil.rmtree(bundles / 'tconstruct')
     command = [sys.executable, str(ROOT / 'tools/slice_manifest.py'), '--tokens-out', str(a.work / 'tokens.txt'), '--out', str(bundles / 'tconstruct')]
     for ident in config['tconstruct_all_except']:
         command += ['--all-except', ident]
@@ -111,10 +115,13 @@ if a.full:
     for name in sorted(names & set((a.work / 'tokens.txt').read_text().split())):
         command += ['--keep-module-name', name]
     subprocess.run(command, check=True)
+sync_tree(bundles, a.work / 'bundles')
+staging.cleanup()
+bundles = a.work / 'bundles'
 preflight_log = a.work / 'native-preflight.log'
 with preflight_log.open('w', encoding='utf-8') as log:
     try:
-        check_native_preflight(a.mixins_cli, a.preflight_workspace, bundles, a.work,
+        preflight_key = check_native_preflight(a.mixins_cli, a.preflight_workspace, bundles, a.work,
                                config.get('pluto_guards', []) if a.full else [],
                                pins['horizon_revision'], pins['mixins_revision'], log)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
@@ -123,17 +130,36 @@ with preflight_log.open('w', encoding='utf-8') as log:
 if a.preflight_only:
     print(f'PROBE PREFLIGHT PASS (not built or launched): {preflight_log}')
     sys.exit(0)
-build_log = a.work / 'native-build.log'
-with build_log.open('w') as log:
-    build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code', '--profile', 'dev'],
-                           stdout=log, stderr=subprocess.STDOUT)
-if build.returncode != 0 or not (out / 'horizon-engine.exe').is_file() and not (out / 'horizon-engine').is_file():
+key = build_key(bundles, a.launcher, preflight_key, a.full, out)
+receipt = a.work / 'verified-native-build.json'
+reused_build = not a.rebuild and reusable_build(receipt, key, out)
+if reused_build:
+    print('PROBE: reusing content-verified native artifacts; current guards passed', flush=True)
+else:
+    if shutil.disk_usage(a.work).free < 10 * 1024**3:
+        sys.exit('PROBE FAIL (build not started): less than 10 GiB free on work drive')
+    receipt.unlink(missing_ok=True)
+    build_log = a.work / 'native-build.log'
+    with fresh_output(out):
+        with build_log.open('w') as log:
+            build = subprocess.run([str(a.launcher), 'native-build', str(bundles), '--server-output', str(out), '--trust-native-code', '--profile', 'dev'],
+                                   stdout=log, stderr=subprocess.STDOUT)
+        if build.returncode != 0:
+            sys.exit(f'PROBE FAIL (build): see {build_log}')
+        # Accept the replacement before discarding the previous working engine.
+        require_report(out, pins['horizon_revision'], pins['mixins_revision'],
+                       {'pluto_lib', 'pluto_probe', 'tconstruct'} | ({'pluto_native_creative'} if a.full else set()))
+        if not artifact_digests(out):
+            sys.exit(f'PROBE FAIL (incomplete build): see {build_log}')
+if not (out / 'horizon-engine.exe').is_file() and not (out / 'horizon-engine').is_file():
     sys.exit(f'PROBE FAIL (build): see {build_log}')
 try:
     require_report(out, pins['horizon_revision'], pins['mixins_revision'],
                    {'pluto_lib', 'pluto_probe', 'tconstruct'} | ({'pluto_native_creative'} if a.full else set()))
 except (OSError, ValueError, KeyError, TypeError) as error:
     sys.exit(f'PROBE FAIL (build report): {error}')
+if not reused_build:
+    record_build(receipt, key, out)
 if a.build_only:
     print(f'PROBE BUILD PASS: {out}')
     sys.exit(0)

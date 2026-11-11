@@ -36,9 +36,9 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "natural start/cache integration and verified saved-start restoration across lifecycle/resource changes",
     },
     SupportEntry {
-        api: "worldgen_api_v1::StructureTypeRegistry (natural generation, native-kind overrides and shared-resource source changes)",
+        api: "worldgen_api_v1::StructureTypeRegistry (natural marker/avoid-biome sets, native-kind overrides and shared-resource source changes)",
         support: Support::Stub,
-        behaviour: "custom explicit planning and plain/registered template placement work; natural starts are unconnected, native-kind overrides are unsupported, saved-start reloads are unverified and ambiguous shared-resource source snapshots reject",
+        behaviour: "explicit planning and plain/registered templates are connected; natural plain-template adapters retain native selection/cache/restore, while natural marker/avoid-biome sets and native-kind overrides remain unsupported; ambiguous source snapshots reject; lifecycle runtime coverage is documented in worldgen",
         unblocked_by: "verified native/game adapters preserving candidate weighting, biome policy, caching, template markers and saved-piece state",
     },
     SupportEntry {

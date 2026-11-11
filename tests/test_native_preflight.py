@@ -2,9 +2,11 @@
 import importlib.util
 from pathlib import Path
 import tomllib
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools/smoke-local'))
 SPEC = importlib.util.spec_from_file_location('native_preflight', ROOT / 'tools/smoke-local/native_preflight.py')
 PREFLIGHT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PREFLIGHT)
