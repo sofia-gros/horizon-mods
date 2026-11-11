@@ -40,7 +40,9 @@ The original Java at the pinned revision is the specification (the existing Rust
 | I | tools: tools, materials, traits, mining, melee, ranged, armour (38k and part of library) | item use, entities, attributes | 5 to 8 |
 | J | finish: whole-game check, the open PRs and issues, the gap list against the original | | 2 to 3 |
 
-**How a phase is measured (owner rule, 2026-11-08):** the standard is the original Java's list of features, not the existing Rust. For each phase: (1) list every class of the original's package in `docs/inventory/<domain>.json` (`tools/feature_inventory.py` fails if a class is missing from the list); (2) compare with what the port does today; (3) build the PlutoLib API it needs; (4) port the Java; (5) check each feature in game; (6) a class that is not done stays `todo` or `partial`, so the phase is recorded as incomplete (`feature_inventory.py --strict`), and a feature Horizon cannot do is `parked` with the reason and is never counted as done. A phase is complete only when no class is `todo` or `partial`.
+**Phase measurement (owner, 2026-11-08):** Original Java, not existing Rust, is the specification. Inventory every class in `docs/inventory/<domain>.json`; `tools/feature_inventory.py` rejects missing classes. Compare behavior, build needed PlutoLib APIs, port Java, then check features in game. Unfinished classes stay `todo`/`partial`/`ported-unchecked`; blocked classes stay `parked` with evidence, never counted as done. Strict inventory checks expose incomplete phases.
+
+**Phase exit (owner, 2026-11-11):** Start one phase; implement in batches, tracking done/partial/parked. Then revisit every partial/parked item via general PlutoLib APIs or owned Mixins, without upstream edits. Missing APIs or repeated failures alone do not prove impossibility. Implement and verify all feasible routes before advancing; document blocked routes, evidence and prerequisites. B/C parked work also requires re-investigation; no temporary postponement is an exemption. Batch native builds; reuse binaries across game gates. Finish D, revisit A–C, then E onward.
 
 Each domain ends with: a table comparing the original's behaviour with the port (in the pull request), the domain's direct injections removed, the in-game check written down as run or not run, and PlutoLib's pages and tests updated. Phase status is kept in the decision log.
 
@@ -51,29 +53,15 @@ Updated 2026-11-11. Release scheme (owner): when this roadmap is complete both p
 | Phase | State | What is true |
 |---|---|---|
 | A foundations (PlutoLib) | working, with documented stubs | Events (including SERVER_STOPPED after successful teardown, integrated-game probe checked; dedicated path compiled but runtime not yet checked), items, item groups (paged creative tabs), players (messages, items, effects, vanilla food addition via the native status setter; focused game gate checked), attachments, config, commands, block entities with tanks, screens, renderer, fluids, i18n, world blocks, projectiles, block behaviour (survive, placement, shape update, random and scheduled ticks, bone meal, plant ground) with the game's own block data. Every API page has an example per item; stubs are in the support matrix. |
-| B fluids | NOT DONE 2 (partial) / PARKED 16 | The 43 fluid definitions match the Java. The 2 partial classes are ours to finish. The 16 parked (fluid blocks, buckets, bottles) wait for Horizon: it has no world fluids or fluid items for mods. |
-| C gadgets | NOT DONE 1 (partial) / PARKED 25 | Punji done and checked; the other ported gadgets are in the inventory. The 25 parked (cakes, frames, armor stands, backpack, shurikens and others) wait for Horizon limits. |
-| D world | NOT DONE 13 (13 partial) / PARKED 24 | 14 ported: soil, nylium/tint and crystal hit/chimes checked. WorldClientEvents, roots, leaf-vine and Earth/Sky tree parity partial. Ender/propagule gameplay, SKY planning, IslandPiece markers and natural End trees/vines/grass/ferns checked. Overworld marker reload checked; distribution/fluid/LAN remain; End saved-start restoration deferred. |
+| B fluids | NOT DONE 2 (partial) / PARKED 16 | The 43 fluid definitions match the Java. The 2 partial classes are ours to finish. All 16 parked fluid-block/bucket/bottle classes require alternative PlutoLib/Mixin route review; native API absence is not a final blocker. |
+| C gadgets | NOT DONE 1 (partial) / PARKED 25 | Punji done and checked; the other ported gadgets are in the inventory. All 25 parked classes (cakes, frames, stands, backpack, shurikens, others) require alternative PlutoLib/Mixin route review. |
+| D world | NOT DONE 13 (13 partial) / PARKED 24 | 14 ported: soil, nylium/tint and crystal hit/chimes checked. WorldClientEvents, roots, leaf-vine and Earth/Sky tree parity partial. Ender/propagule gameplay, SKY planning, IslandPiece markers and natural End trees/vines/grass/ferns checked. Overworld marker reload checked; distribution/fluid/LAN remain; End four-island saved-start/reopen fixture checked. |
 | E shared | NOT DONE 34 (33 partial, 1 ported-unchecked) / PARKED 7 / 6 ported / 14 not-code | Content (signs, platforms, potted plants, tags, recipes, damage types, 14 mob effects) is in; the classes are compared one by one. Commands: `/tconstruct modifiers`, `slots`, `durability` and `materials set` are ported and checked in game (on the first tool in the inventory); `stats` and the remaining argument types are not. The rest of the partials wait for phases G and I (table blocks and menus, registry glue, the book). |
 | F common | NOT DONE 14 (partial) / PARKED 4 / NOT-CODE 46 | Compared class by class: the 46 data generators and registration helpers are not code in the port; the damage types are ported (32 files, names match the Java); the tags are compared by script (255 of 344 keys present, the missing ones belong to tools, materials, modifiers and fluid effects). The rest is registry glue, config, sounds, networking and the multiblock base, ported with the phase that uses it. |
 | G tables, H smeltery, I tools | NOT DONE G 73 todo, 3 partial / H 106 todo, 13 partial / I 274 todo, 1 partial (smeltery 10 ported) / PARKED 0 | Through the library (`tconstruct/mixins/tconstruct/api/library`, plain Rust, tests in seconds) and the Tinkers API crate: materials, tool stats, modifiers (7 of 165 module types as code), tool definitions and the rebuild of a tool load the original's data (83 materials, 329 modifiers, 45 tool definitions). In game and checked: `/tconstruct preview|build|part|craft|upgrade|modifiers|slots|durability|materials set|station`; a tool's mining speed, tier, wear, attack damage and tooltip act. Phase H's rules (alloying, melting, fuel, structure detection, tank, heating tick, channel, faucet, can, casting, casting station, entity melting) are in the library with tests and not in game. G's wooden station now uses the original's selectable slot layouts through PlutoLib-owned Mixins; real-game clicks, dormant slots, reopening, part crafting and screenshots are checked. The station remains partial (numbered selector buttons, no naming/equipment slots or per-selection server filters). Missing native hooks are candidates for PlutoLib Mixins, not proof that the host cannot carry the feature; parked groups need re-review. |
 | J finish | not started | Whole-game check, open PRs and issues, the gap list. |
 
-| Domain (original classes) | ported | unchecked | partial | todo | parked | not code |
-|---|---|---|---|---|---|---|
-| fluids (22) | 0 | 0 | 1 | 3 | 14 | 4 |
-| gadgets (29) | 1 | 0 | 1 | 8 | 18 | 1 |
-| world (57) | 12 | 2 | 13 | 0 | 24 | 6 |
-| common (65) | 0 | 0 | 0 | 65 | 0 | 0 |
-| shared (61) | 0 | 0 | 0 | 61 | 0 | 0 |
-| tables (76) | 0 | 0 | 3 | 73 | 0 | 0 |
-| smeltery (129) | 0 | 0 | 0 | 129 | 0 | 0 |
-| tools (284) | 0 | 0 | 0 | 284 | 0 | 0 |
-| library (858) | 0 | 0 | 0 | 858 | 0 | 0 |
-
 Direct injections left in Tinkers: 260 (the limit in `tools/injection_limits.json`; it only goes down). Runtime coverage is recorded per unit in the decision log; a focused gate is not a whole-game check.
-
-**Method (owner rule):** every phase is measured against the original Java's class list (`docs/inventory/`), never against the existing Rust; a phase is complete only when no class is `todo`, `partial` or `ported-unchecked`; what Horizon cannot do is `parked` with the reason and never counted as done.
 
 **Next, in order:** (1) the plants of phase D (grass family, then saplings and fungus), (2) a world generation API in PlutoLib and the trees and islands on it, (3) phases E and F class by class, (4) tables, smeltery and tools with their PlutoLib needs designed first. **Codex** (from about 2026-11-10 for four days; the owner wants it for phases G, H and I, so no task is written before their PlutoLib API exists) does bulk porting inside the fence of `docs/codex.md`: one task file, one branch, `tools/codex_guard.py`, review and game check by the owner's agent.
 
@@ -168,7 +156,8 @@ Whenever a turn ends and when the owner returns: one message listing, per item, 
 | Date | Decision | Why |
 |---|---|---|
 | 2026-11-11 | Crystal hit/chime: one native build; 24 throws + crafting/menu pass; 10 images inspected. | Separate level RNG draws replace clock. Audible/LAN/native RNG trace unverified. |
-| 2026-11-11 | Owner defers End saved-start restoration; draft left unmerged. | Continue phase D; not completed persistence. |
+| 2026-11-11 | D batch: restore Java tree tracking/flags and source-configured Earth/Sky feature dispatch. | One guarded build; End reopen, tree features, soil/saplings and crafting pass; 19 images inspected. D remains partial. |
+| 2026-11-11 | Owner clarifies: revisit/implement End restoration in D; re-investigate B/C too. | Earlier postponement was not an exception. |
 | 2026-11-11 | Soil support/canopy gate pass; six images inspected; no native rebuild. | Soil ported; trees partial (ten distance-7 leaves each). |
 | 2026-11-11 | Natural plant survival: one native build, four game gates pass; 15 images inspected. | 34 grass/3 ferns; registered survival callbacks shared. Distribution/fluid/LAN remain. |
 | 2026-11-11 | Earlier templates/markers/reload and End tree/vine gates passed; 9 images inspected. | Four parked classes -> partial; grass was 0. Later rows supersede this checkpoint. |

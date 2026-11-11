@@ -58,7 +58,9 @@ def check(plan, workspace, meta=None, helpers=None):
         if len(selected) != 1:
             raise ValueError('Missing, duplicated or competing structure hook: ' + required['target'])
         entry = selected[0]
-        for key in ('injection_id', 'target', 'file', 'function_fingerprint', 'kind', 'cancellable', 'bindings'):
+        contract_keys = ('injection_id', 'target', 'file', 'function_fingerprint', 'kind', 'cancellable', 'bindings')
+        contract_keys += tuple(key for key in ('selector', 'ordinal', 'require', 'site_fingerprint') if key in required)
+        for key in contract_keys:
             if entry.get(key) != required[key]:
                 raise ValueError('Structure hook contract differs: ' + required['target'] + ' / ' + key)
         source = (helpers / required['source_file']).read_bytes()

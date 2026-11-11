@@ -4,14 +4,17 @@ use std::collections::BTreeSet;
 
 use pluto_lib::{BlockBehavior, BlockBehaviors, BlockEditor, BlockState, Direction, Identifier};
 
+#[path = "slime_tree_config.rs"]
+mod configuration;
+
 type Pos = [i32; 3];
 
 /// How a tree looks and how tall it grows (`SlimeTreeConfig`).
-pub struct TreeConfig {
-    pub trunk: &'static str,
-    pub leaves: &'static str,
+pub struct TreeConfig<'a> {
+    pub trunk: &'a str,
+    pub leaves: &'a str,
     /// The vine hung from the canopy, if the tree has vines.
-    pub vines: Option<&'static str>,
+    pub vines: Option<&'a str>,
     pub base_height: i32,
     pub random_height: i32,
     pub can_double_height: bool,
@@ -71,7 +74,7 @@ fn random_vine(world: &mut dyn BlockEditor, vine: &BlockState) -> BlockState {
 }
 
 /// Grows the tree of `config` with its trunk base at `origin` (`SlimeTreeFeature.place`); false if there is no room or no slime soil.
-pub fn grow_tree(world: &mut dyn BlockEditor, origin: Pos, config: &TreeConfig) -> bool {
+pub fn grow_tree(world: &mut dyn BlockEditor, origin: Pos, config: &TreeConfig<'_>) -> bool {
     let mut height = world.random_int(config.random_height) + config.base_height;
     if config.can_double_height && world.random_int(10) == 0 {
         height *= 2;
@@ -86,7 +89,7 @@ pub fn grow_tree(world: &mut dyn BlockEditor, origin: Pos, config: &TreeConfig) 
         return false;
     }
     if world.is_in_tag(below, "minecraft:dirt") {
-        world.set_block_state(below, &state("minecraft:dirt"));
+        world.set_block_state_with_flags(below, &state("minecraft:dirt"), 2);
     }
     let trunk = state(config.trunk);
     let leaves = state(config.leaves);
@@ -133,6 +136,11 @@ pub fn grow_tree(world: &mut dyn BlockEditor, origin: Pos, config: &TreeConfig) 
             place(world, offset(low, dx, 0, dz), &v, &mut touched);
         }
     }
+    // Java passes trunkBlockPosSet to placeCanopy as well as placeTrunk.
+    // The set includes leaves, carved air and vines, not just log blocks.
+    // Keep that observable exclusion rule instead of substituting vanilla's
+    // log-only distance initialization for this custom feature.
+    logs.extend(touched);
     if logs.is_empty() {
         return false;
     }
@@ -152,7 +160,7 @@ fn update_leaves(world: &mut dyn BlockEditor, logs: &BTreeSet<Pos>) {
             if let Some(leaf) = world.block_state(pos) {
                 if leaf.property("distance").is_some() {
                     current.insert(pos);
-                    world.set_block_state(pos, &leaf.with("distance", "1"));
+                    world.set_block_state_with_flags(pos, &leaf.with("distance", "1"), 19);
                 }
             }
         }
@@ -168,7 +176,7 @@ fn update_leaves(world: &mut dyn BlockEditor, logs: &BTreeSet<Pos>) {
                 if let Some(leaf) = world.block_state(around) {
                     if let Some(value) = leaf.property("distance").and_then(|d| d.parse::<i32>().ok()) {
                         if value > distance + 1 {
-                            world.set_block_state(around, &leaf.with("distance", &(distance + 1).to_string()));
+                            world.set_block_state_with_flags(around, &leaf.with("distance", &(distance + 1).to_string()), 19);
                             next.insert(around);
                         }
                     }
@@ -193,6 +201,7 @@ fn advance(world: &mut dyn BlockEditor, pos: Pos, sapling: &BlockState, config: 
 }
 
 pub fn register() {
+    configuration::register();
     for (kind, config) in [("earth", &EARTH_TREE), ("sky", &SKY_TREE)] {
         BlockBehaviors::register(
             BlockBehavior::new(Identifier::new("tconstruct", &format!("{kind}_slime_sapling")).expect("valid id"))
@@ -231,5 +240,58 @@ pub fn register_fungus() {
                     c.world.place_feature(&format!("tconstruct:slime_fungus/{kind}_{}", ground.block.path()), c.pos);
                 }),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::MemoryBlockView;
+
+    #[test]
+    fn java_canopy_and_air_cuts_seed_external_leaf_distances_and_keep_explicit_flags() {
+        let mut world = MemoryBlockView::default();
+        let soil = [0, 0, 0];
+        world.blocks.insert(soil, state("minecraft:grass_block"));
+        world.tags.insert(soil, ["tconstruct:slimy_soil".into(), "minecraft:dirt".into()].into());
+        // MemoryBlockView tags are per-position; emulate the leaf tag for the
+        // whole possible canopy, including leaves subsequently carved to air.
+        for x in -5..=5 {
+            for y in 1..=6 {
+                for z in -5..=5 {
+                    if x != 0 || z != 0 || y >= 5 {
+                        world.tags.insert([x,y,z], ["minecraft:leaves".into()].into());
+                    }
+                }
+            }
+        }
+        // Java tracks the cardinal air cut at [4,2,0] in trunkBlockPosSet.
+        // Thus this EXISTING outside leaf gets distance 1, even though it is
+        // five blocks from the real trunk. A log-only rewrite cannot do this.
+        world.blocks.insert([5,2,0], state("tconstruct:earth_slime_leaves[distance=7]"));
+        assert!(grow_tree(&mut world, [0,1,0], &EARTH_TREE));
+        assert_eq!(world.blocks[&[5,2,0]].property("distance"), Some("1"));
+        assert!(!world.blocks.contains_key(&[4,2,0]));
+        assert_eq!(world.blocks[&[0,0,0]].block.to_string(), "minecraft:dirt");
+        assert_eq!(world.writes.first().unwrap().2, 2);
+        assert!(world.writes.iter().any(|(pos, state, flags)| *pos == [5,2,0] && state.property("distance") == Some("1") && *flags == 19));
+    }
+
+    #[test]
+    fn leaf_distance_frontier_stops_at_six_and_does_not_replace_shorter_paths() {
+        let mut world = MemoryBlockView::default();
+        for x in 1..=7 {
+            world.blocks.insert([x,0,0], state("minecraft:oak_leaves[distance=7]"));
+        }
+        update_leaves(&mut world, &[[0,0,0]].into());
+        for x in 1..=7 {
+            assert_eq!(world.blocks[&[x,0,0]].property("distance"), Some(x.to_string().as_str()));
+        }
+        assert_eq!(world.writes.len(), 6);
+        assert!(world.writes.iter().all(|(_,_,flags)| *flags == 19));
+        world.writes.clear();
+        world.blocks.insert([2,0,0], state("minecraft:oak_leaves[distance=1]"));
+        update_leaves(&mut world, &[[0,0,0]].into());
+        assert_eq!(world.blocks[&[2,0,0]].property("distance"), Some("1"));
     }
 }

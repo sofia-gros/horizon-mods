@@ -3,6 +3,8 @@
 mod world;
 #[path = "../../../mixins/tconstruct/api/src/worldgen.rs"]
 mod worldgen;
+#[path = "../../../mixins/tconstruct/api/src/trees.rs"]
+mod trees;
 #[path = "../../../mixins/tconstruct/api/src/propagules.rs"]
 mod propagules;
 #[path = "../../../mixins/tconstruct/api/src/colors.rs"]
