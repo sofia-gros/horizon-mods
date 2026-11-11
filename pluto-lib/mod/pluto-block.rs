@@ -11,6 +11,11 @@ pub use horizon_world::level::pluto_worldgen_level::{StateInfo, LevelView, Level
 #[cfg(not(test))]
 pub use horizon_world::level::pluto_structure_access as structures;
 
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_block_access::set_survival_dispatcher;
+#[cfg(test)]
+pub use crate::block_access_tests::set_survival_dispatcher;
+
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]
 pub use crate::block_access_tests::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};

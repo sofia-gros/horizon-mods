@@ -545,7 +545,7 @@ assert_eq!(behavior.block().to_string(), "example:post");
 
 ### `BlockBehavior::can_survive`
 
-`fn can_survive(self, f: impl Fn(&SurviveContext) -> bool) -> BlockBehavior`. Where the block may stay. Answer `false` and it is refused when placed, and breaks (with its drops) when a neighbour changes. The game asks often, so keep it short.
+`fn can_survive(self, f: impl Fn(&SurviveContext) -> bool) -> BlockBehavior`. Where the block may stay. Answer `false` and it is refused when placed, and breaks (with its drops) when a neighbour changes. The game asks often, so keep it short. Registered structure plant markers also ask this callback against their borrowed generation-region view; a registered `false` is final, while a missing callback retains native plant survival. The view has no lighting yet during FEATURES. The full native build and natural End-island fixture pass: 34 tall grass and 3 ferns survive alongside trees and vines. Registered allow/deny, unregistered fallback and unlocked callback dispatch have a pure regression. This does not validate every plant type or make lighting available during generation.
 
 ```rust
 use pluto_lib::{BlockBehavior, Direction, Identifier};

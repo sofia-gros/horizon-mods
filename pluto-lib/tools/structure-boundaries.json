@@ -34,7 +34,7 @@
       "name": "pluto_structure_generation_placement",
       "visibility": "pub",
       "source_file": "pluto-structure-generation-placement.rs",
-      "source_sha256": "97d3963a74baa95868fb06f6c66b2699d41c70b423bbfc09c5215d08f24fbab6"
+      "source_sha256": "ddf7130273a1ff28a3720492014d846d96d18d9aae43440c010ad634df950364"
     },
     {
       "module_id": "pluto-structure-natural",
@@ -106,7 +106,7 @@
       "name": "pluto_block_access",
       "visibility": "pub",
       "source_file": "pluto-block-access.rs",
-      "source_sha256": "eb4daeb0db83146becb4113dc5dd4b050b07c29ce5169192df9c5a6f6405e146"
+      "source_sha256": "c52bd211f73536a56b23e7e52a777f637457a8356d8653799760031301a8f526"
     },
     {
       "module_id": "pluto-block",
@@ -114,7 +114,7 @@
       "name": "pluto_block",
       "visibility": "pub",
       "source_file": "pluto-block.rs",
-      "source_sha256": "d1d7734ebf029bd3d81ed95a6c54c59a429f6fe265a2cd499a9bc03799d662d1"
+      "source_sha256": "cedbe024e42e58f0fa07c7ba489d871b0b01161da53cef24d9f8e4b366adad24"
     },
     {
       "module_id": "pluto-tree-level",
