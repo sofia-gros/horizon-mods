@@ -49,6 +49,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_mining.rs',
                 'mixins/tconstruct_native/api/src/tool_slot.rs',
                 'mixins/tconstruct_native/api/src/tool_station.rs',
+                'mixins/tconstruct_native/api/src/station_menu.rs',
                 'mixins/tconstruct_native/api/src/material_stats.rs',
                 'mixins/tconstruct_native/api/src/material_snapshot.rs',
                 'mixins/tconstruct_native/api/src/material_sync.rs',
@@ -77,6 +78,18 @@ class CleanPort(unittest.TestCase):
         with self.assertRaises(ValueError):
             port.package(self.root, self.root / 'tconstruct/overwrite.hnmod')
 
+    def test_tool_stack_table_matches_the_declared_tool_items(self):
+        import re
+        source = (ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs').read_text(encoding='utf-8')
+        table = dict((name, int(size)) for name, size in re.findall(r'\("([a-z_]+)", (\d+)\)', source.split('TOOL_STACKS')[1].split('];')[0]))
+        declared = {}
+        for path in (ROOT / port.CONTENT / 'data/tconstruct/horizon/item').glob('*.json'):
+            item = json.loads(path.read_text(encoding='utf-8'))
+            size = item.get('components', {}).get('minecraft:max_stack_size')
+            if size is not None:
+                declared[path.stem] = size
+        self.assertEqual(table, declared)
+
     def test_content_mod_packages_only_reviewed_declarations(self):
         shutil.copytree(ROOT / port.CONTENT, self.root / port.CONTENT)
         _, manifest, _, _ = port.checked_files(self.root)
@@ -96,12 +109,24 @@ class CleanPort(unittest.TestCase):
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
         item.write_text(json.dumps({'template': 'minecraft:flint'}), encoding='utf-8')
-        stray = self.root / port.CONTENT / 'data/tconstruct/horizon/block/slime.json'
+        stray = self.root / port.CONTENT / 'data/tconstruct/horizon/entity_type/slime.json'
         stray.parent.mkdir(parents=True)
         stray.write_text('{}', encoding='utf-8')
         with self.assertRaises(ValueError):
             port.checked_content(self.root, version)  # a file with no reviewed shape
         stray.unlink()
+        menu = self.root / port.CONTENT / 'data/tconstruct/horizon/menu/tinker_station.json'
+        for bad in ({'slots': 6, 'results': [6]}, {'slots': 0}, {'slots': 6, 'script': 1}):
+            menu.write_text(json.dumps(bad), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                port.checked_content(self.root, version)
+        menu.write_text(json.dumps({'slots': 6, 'data_slots': 2, 'results': [5]}), encoding='utf-8')
+        block = self.root / port.CONTENT / 'data/tconstruct/horizon/block/tinker_station.json'
+        for bad in ({'template': 'tconstruct:x'}, {'template': 'minecraft:stone', 'properties': 3}, {'template': 'minecraft:stone', 'script': 1}):
+            block.write_text(json.dumps(bad), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                port.checked_content(self.root, version)
+        block.write_text(json.dumps({'template': 'minecraft:stone'}), encoding='utf-8')
         with self.assertRaises(ValueError):
             port.checked_content(self.root, '9.9.9')  # manifest version must match the native product
 

@@ -20,11 +20,13 @@ mod tool_parts;
 mod tool_mining;
 mod tool_slot;
 mod tool_station;
+mod station_menu;
 mod conditions;
 mod config;
 mod common;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
+    station_menu::register();
     pluto_lib::no_hooks()
 }

@@ -41,6 +41,8 @@ mod tool_mining;
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
 mod tool_station;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_menu.rs"]
+mod station_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
 mod config;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/conditions.rs"]

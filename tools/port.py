@@ -16,8 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = Path('tconstruct/mixins/tconstruct')
 CONTENT = Path('tconstruct/content')
 # Content-mod inputs are discovered on disk but each must match one reviewed shape.
-CONTENT_PATHS = (re.compile(r'horizon-mod\.toml'), re.compile(r'data/tconstruct/horizon/item/[a-z0-9_]+\.json'))
+CONTENT_PATHS = (re.compile(r'horizon-mod\.toml'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'))
 ITEM_KEYS = {'template', 'components', 'crafting_remainder'}
+BLOCK_KEYS = {'template', 'properties', 'occludes', 'item', 'components'}
+MENU_KEYS = {'slots', 'data_slots', 'results'}
 
 
 def plan(root):
@@ -162,10 +164,19 @@ def checked_content(root, version):
     for name, payload in files.items():
         if name.endswith('.json'):
             item = json.loads(payload.decode())
-            if not isinstance(item, dict) or set(item) - ITEM_KEYS or not str(item.get('template', '')).startswith('minecraft:'):
-                raise ValueError(f'item declaration must copy a vanilla template with reviewed keys: {name}')
+            if '/menu/' in name:
+                if not isinstance(item, dict) or set(item) - MENU_KEYS or not isinstance(item.get('slots'), int) or not 1 <= item['slots'] <= 256:
+                    raise ValueError(f'menu declaration needs a slot count and only reviewed keys: {name}')
+                if not all(isinstance(slot, int) and 0 <= slot < item['slots'] for slot in item.get('results', [])):
+                    raise ValueError(f'menu result slots must exist: {name}')
+                continue
+            keys = BLOCK_KEYS if '/block/' in name else ITEM_KEYS
+            if not isinstance(item, dict) or set(item) - keys or not str(item.get('template', '')).startswith('minecraft:'):
+                raise ValueError(f'declaration must copy a vanilla template with reviewed keys: {name}')
             if not all(isinstance(key, str) for key in item.get('components', {})):
                 raise ValueError(f'invalid components in {name}')
+            if '/block/' in name and not isinstance(item.get('properties', {}), dict):
+                raise ValueError(f'block properties must be an object: {name}')
     digest = hashlib.sha256()
     for name, payload in sorted(files.items()):
         digest.update(name.encode() + b'\x00' + payload + b'\x00')
