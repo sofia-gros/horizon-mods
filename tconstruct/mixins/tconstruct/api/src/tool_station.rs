@@ -55,7 +55,7 @@ pub(crate) struct Context<'a> {
     pub item_max: &'a dyn Fn(&Identifier) -> i32,
 }
 impl<'a> Context<'a> {
-    fn environment<'b>(&'b self, item: &'b Identifier, definition: &'b Data) -> Environment<'b> {
+    pub(crate) fn environment<'b>(&'b self, item: &'b Identifier, definition: &'b Data) -> Environment<'b> {
         Environment { definition: Some(definition), has_materials: definition.material_stat_types().is_some(),
             materials: self.materials, modifiers: self.modifiers, item_tags_loaded: self.item_tags_loaded,
             item: Some(item), item_tags: self.item_tags }
@@ -130,7 +130,7 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
     Ok(Outcome::NoMatch)
 }
 
-fn definition_for<'a>(ctx: &'a Context, tool: &ItemSlot) -> Option<&'a Data> {
+pub(crate) fn definition_for<'a>(ctx: &'a Context, tool: &ItemSlot) -> Option<&'a Data> {
     ctx.tools.iter().find(|(item, _)| *item == tool.item).map(|(_, definition)| *definition)
 }
 

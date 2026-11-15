@@ -10,6 +10,10 @@ static MODIFIER_RECIPES: OnceLock<Arc<RwLock<crate::modifier_recipes::Recipes>>>
 pub(crate) fn modifier_recipes() -> Option<&'static Arc<RwLock<crate::modifier_recipes::Recipes>>> { MODIFIER_RECIPES.get() }
 static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
+static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = OnceLock::new();
+pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
+static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
+pub(crate) fn removals() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Removals>>> { REMOVALS.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
 /// TinkerTags.isTagsLoaded for the server: true once a reload callback captured the native
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
@@ -68,6 +72,18 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             let config = part_recipe_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers part builder recipe listener registration failed");
+        let salvage_config = config.clone();
+        let salvages = crate::modifier_removal::register(move || {
+            let config = salvage_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers modifier salvage listener registration failed");
+        SALVAGES.set(salvages).expect("Tinkers modifier salvage already initialized");
+        let removal_config = config.clone();
+        let removals = crate::worktable_recipes::register(move || {
+            let config = removal_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers worktable removal listener registration failed");
+        REMOVALS.set(removals).expect("Tinkers worktable removals already initialized");
         PART_BUILDER_RECIPES.set(part_recipes).expect("Tinkers part builder recipes already initialized");
         let materials = materials::register(move || {
             let config = config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
