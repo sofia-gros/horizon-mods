@@ -62,3 +62,42 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The baseline of modifiers with at least one unported module; it only shrinks as modules are ported.
     assert!(unbound <= 300, "{unbound} modifiers carry unported modules");
 }
+
+/// The whole loaded original, as one world for end-to-end checks.
+struct World { materials: Materials, registry: Registry, tools: Vec<(Identifier, Data)> }
+fn world() -> World {
+    let mut materials = Materials::load(&files("materials/definition"), &conditions());
+    let mut problems = Vec::new();
+    materials.stats = crate::material_stats::load(&stacks("materials/stats"), &mut problems);
+    materials.traits = crate::material_traits::load(&stacks("materials/traits"), &mut problems);
+    assert!(problems.is_empty(), "{problems:?}");
+    materials.server_loaded = true;
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let tools = files("tool_definitions").into_iter().map(|(id, value)| (id, Data::decode(&value).expect("shipped definition"))).collect();
+    World { materials, registry, tools }
+}
+
+#[test]
+fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispatch() {
+    use crate::tool_station::{lookup, Context, Input, Outcome};
+    use crate::tool_materials::MaterialVariant;
+    let world = world();
+    let tools: Vec<(Identifier, &Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty())
+        .map(|(id, data)| (id.clone(), data)).collect();
+    let item_max = |_: &Identifier| 1;
+    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, tools: &tools, item_max: &item_max };
+    let wood = MaterialVariant::parse("tconstruct:wood").unwrap();
+    let part = |item: &str| Some(Input::Part { item: Identifier::parse(item).unwrap(), material: wood.clone() });
+    let inputs = [part("tconstruct:pick_head"), part("tconstruct:tool_handle"), part("tconstruct:tool_binding"), None];
+    let Outcome::Crafted(built) = lookup(&ctx, None, &inputs).unwrap() else { panic!("the shipped pickaxe did not build") };
+    assert_eq!(built.result.item.to_string(), "tconstruct:pickaxe");
+    let data = &built.result.custom_data;
+    assert!(crate::tool_stack::durability(data) > 1, "wood parts give the tool real durability");
+    assert!(crate::tool_stack::stat(data, crate::tool_stats::Stat::MiningSpeed) > 1.0);
+    assert_eq!(crate::tool_stack::materials(data, true).as_slice().len(), 3);
+    assert!(built.result.max_damage.is_some() && built.result.tool.is_some(), "the slot publishes its bar and mining rules");
+    // The shipped definition also lists what it declares but Tinkers has not ported.
+    let (_, pickaxe) = tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
+    assert!(pickaxe.unbound_modules().iter().any(|module| module.path() == "box_aoe"));
+}
