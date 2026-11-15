@@ -34,6 +34,8 @@ pub(crate) struct Facts<'a> {
     /// Summed level of the checked modifiers that are in a modifier tag.
     pub tag_level: &'a dyn Fn(&Identifier, Check) -> i32,
     pub has_persistent_key: &'a dyn Fn(&Identifier) -> bool,
+    /// The string stored in the tool's persistent data under a key; empty when absent or not a string (NBT getString).
+    pub persistent_string: &'a dyn Fn(&Identifier) -> String,
 }
 
 fn id(value: &Value) -> Result<Identifier, String> {
@@ -121,7 +123,7 @@ mod tests {
     use serde_json::json;
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool, level: &'a dyn Fn(&Identifier, Check) -> i32,
-        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key } }
+        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key, persistent_string: &|_| String::new() } }
     #[test]
     fn every_shipped_predicate_shape_decodes_and_evaluates_over_tool_facts() {
         let pickaxe = id("tconstruct:pickaxe");

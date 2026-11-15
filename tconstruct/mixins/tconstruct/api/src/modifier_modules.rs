@@ -50,6 +50,20 @@ pub(crate) enum Module {
     Repair { formula: LevelFormula, condition: Condition },
     /// ModifierRequirementsModule: a modifier added through a recipe needs this of the tool.
     Requirements { requirement: Predicate, min: i32, max: i32, translation_key: String },
+    /// SwappableSlotModule: slots of the type a swappable recipe stored under `key` (default: the modifier's ID).
+    SwappableSlot { key: Option<Identifier>, count: i32, condition: Condition },
+    /// SwappableSlotModule.BonusSlot: extra slots of `bonus` while the stored slot type is `matching`.
+    BonusSlot { key: Option<Identifier>, matching: String, bonus: String, count: i32, condition: Condition },
+}
+
+/// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
+fn is_known_slot(name: &str) -> bool { !name.is_empty() }
+
+/// ToolDataNBT.addSlots: ignores 0 and removes the key when the total returns to 0.
+fn add_slots(data: &mut NbtCompound, name: &str, count: i32) {
+    if count == 0 { return; }
+    let total = nbt_int(data.get(name)).wrapping_add(count);
+    if total == 0 { data.remove(name); } else { data.insert(name.to_owned(), Nbt::Int(total)); }
 }
 
 /// A ModifierFormula of either form. `Simple` is flat + each_level * level, which is the scaled
@@ -124,6 +138,18 @@ fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
         Some(_) => Err(format!("{key} must be a number")),
     }
 }
+/// ModuleWithKey.FIELD: an optional persistent-data key, the modifier's ID when absent.
+fn optional_key(fields: &Map<String, Value>) -> Result<Option<Identifier>, String> {
+    match fields.get("key").filter(|value| !value.is_null()) { None => Ok(None), Some(_) => identifier(fields, "key").map(Some) }
+}
+
+/// A SlotType name: lowercase letters, digits and underscores (the original regex also allows empty).
+fn slot_name(fields: &Map<String, Value>, key: &str) -> Result<String, String> {
+    let name = fields.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be a slot name"))?;
+    if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
+    Ok(name.to_owned())
+}
+
 fn identifier(fields: &Map<String, Value>, key: &str) -> Result<Identifier, String> {
     Identifier::parse(fields.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be an ID string"))?).map_err(|e| e.to_string())
 }
@@ -207,6 +233,14 @@ impl Module {
                 if !matches!(tier.path(), "wood" | "gold" | "stone" | "iron" | "diamond" | "netherite") { return Err(format!("unknown tool tier {tier}")); }
                 Self::SetTier { tier, condition: Condition::decode(fields)? }
             }
+            // Display name is presentation and removal is run by the remove paths; neither changes this binding.
+            "tconstruct:swappable_slot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:display_name" | "tconstruct:remove")) => {
+                Self::SwappableSlot { key: optional_key(fields)?, count: short(fields, "slots")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:swappable_bonus_slot" if only("tconstruct:volatile_data") => Self::BonusSlot {
+                key: optional_key(fields)?, matching: slot_name(fields, "match")?, bonus: slot_name(fields, "bonus")?,
+                count: short(fields, "slots")?, condition: Condition::decode(fields)?,
+            },
             _ => return Ok(None),
         }))
     }
@@ -238,8 +272,25 @@ impl Module {
                     }
                 }
             }
+            Self::SwappableSlot { key, count, condition } => {
+                if condition.matches(entry, facts) {
+                    let name = (facts.persistent_string)(key.as_ref().unwrap_or(&entry.id));
+                    if is_known_slot(&name) { add_slots(data, &name, *count); }
+                }
+            }
+            Self::BonusSlot { key, matching, bonus, count, condition } => {
+                if condition.matches(entry, facts) {
+                    let name = (facts.persistent_string)(key.as_ref().unwrap_or(&entry.id));
+                    if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
+                }
+            }
             Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
         }
+    }
+
+    /// ModifierRemovalHook.onRemoved for a modifier that left the tool: a swappable slot forgets its stored type.
+    pub fn on_removed(&self, modifier: &Identifier, persistent: &mut NbtCompound) {
+        if let Self::SwappableSlot { key, .. } = self { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
     }
 
     /// ModifierTraitModule.addTraits: the entry this module adds for `entry`, if any. A fixed-level
@@ -340,7 +391,42 @@ mod tests {
         Module::decode(fields["type"].as_str().unwrap(), fields, &hooks).unwrap()
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
-        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false }
+        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new() }
+    }
+    #[test]
+    fn swappable_slots_follow_the_stored_slot_type_and_clear_on_removal() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let stored = std::cell::RefCell::new(std::collections::BTreeMap::new());
+        stored.borrow_mut().insert("test:swap".to_owned(), "abilities".to_owned());
+        let lookup = |key: &Identifier| stored.borrow().get(&key.to_string()).cloned().unwrap_or_default();
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup };
+        let slot = decode(json!({"type":"tconstruct:swappable_slot","slots":1})).unwrap();
+        let bonus = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"abilities","bonus":"upgrades","slots":-1})).unwrap();
+        let other = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"defense","bonus":"upgrades","slots":-1})).unwrap();
+        let entry = Entry::new(id("test:swap"), 1);
+        let mut data = NbtCompound::new();
+        for module in [&slot, &bonus, &other] { module.apply_volatile(&entry, &f, &mut data); }
+        assert_eq!(data["abilities"], Nbt::Int(1));
+        assert_eq!(data["upgrades"], Nbt::Int(-1), "only the module whose match is stored applies");
+        // An explicit key reads another persistent entry; an absent value grants nothing.
+        let keyed = decode(json!({"type":"tconstruct:swappable_slot","key":"test:other","slots":2})).unwrap();
+        let mut none = NbtCompound::new();
+        keyed.apply_volatile(&entry, &f, &mut none);
+        assert!(none.is_empty());
+        // A bonus that cancels the slot's own type removes the key instead of storing zero.
+        let cancel = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"abilities","bonus":"abilities","slots":-1})).unwrap();
+        cancel.apply_volatile(&entry, &f, &mut data);
+        assert!(!data.contains_key("abilities"));
+        // Only the slot module forgets its stored type when the modifier leaves the tool.
+        let mut persistent = NbtCompound::new();
+        persistent.insert("test:swap".into(), Nbt::String("abilities".into()));
+        bonus.on_removed(&id("test:swap"), &mut persistent);
+        assert!(persistent.contains_key("test:swap"));
+        slot.on_removed(&id("test:swap"), &mut persistent);
+        assert!(persistent.is_empty());
+        // Hook bindings this port does not run are unbound; display-name and remove are allowed with volatile data.
+        assert!(decode(json!({"type":"tconstruct:swappable_slot","slots":1,"hooks":["tconstruct:tooltip"]})).is_none());
+        assert!(decode(json!({"type":"tconstruct:swappable_slot","slots":1,"hooks":["tconstruct:volatile_data"]})).is_some());
     }
     #[test]
     fn leveling_arithmetic_and_slot_rules_follow_the_original() {

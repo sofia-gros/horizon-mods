@@ -103,6 +103,7 @@ pub(crate) fn remove(tool: &ItemSlot, env: &Environment, modifier: &Identifier, 
     copy.custom_data.insert(TAG_UPGRADES.into(), reduced.to_nbt());
     if !rebuild_stats(&mut copy.custom_data, env)? { return Err("the tool could not be rebuilt".into()); }
     if let Some(error) = try_validate(&copy.custom_data, env) { return Ok(Err(error)); }
+    crate::tool_stack::on_removed(&tool.custom_data, &mut copy.custom_data, env);
     tool_slot::sync_visuals(&mut copy, env)?;
     Ok(Ok(copy))
 }

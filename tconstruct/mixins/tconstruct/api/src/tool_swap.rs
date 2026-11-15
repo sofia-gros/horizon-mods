@@ -60,6 +60,8 @@ pub(crate) fn swap_material(
     }
     // ToolStack.tryValidate on the swapped copy (slot counts and modifier requirements).
     if let Some(error) = crate::tool_stack::try_validate(&copy, env) { return Ok(Outcome::Failure(error)); }
+    // ModifierRemovalHook.onRemoved: a trait the new material dropped clears its persistent data.
+    crate::tool_stack::on_removed(original, &mut copy, env);
     let output_max = max_stack;
     let size = (stack_count.wrapping_mul(output_max) / shrink).min(output_max);
     if size <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS.to_owned())); }

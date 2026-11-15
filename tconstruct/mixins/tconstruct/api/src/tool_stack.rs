@@ -92,6 +92,18 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
 
+/// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
+/// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
+pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {
+    let remaining = List::from_nbt(updated.get(TAG_MODIFIERS));
+    let mut persistent = match updated.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => return };
+    let before = persistent.clone();
+    for (entry, modifier) in saved_modifiers(original, env.modifiers) {
+        if remaining.level(&entry.id) == 0 { modifier.on_removed(&mut persistent); }
+    }
+    if persistent != before { updated.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent)); }
+}
+
 /// ToolStack.tryValidate: a negative free slot count, then each recipe-added modifier's requirements.
 /// The error is a translation key, followed by a space and the slot's display key for the slot error.
 pub(crate) fn try_validate(nbt: &NbtCompound, env: &Environment) -> Option<String> {

@@ -6,7 +6,7 @@ use crate::{
     modifiers::{Modifier, Registry}, tool_definitions::Data, tool_materials::MaterialList,
     tool_predicate::{Check, Facts}, tool_stats::Stat,
 };
-use pluto_lib::{Identifier, NbtCompound};
+use pluto_lib::{Identifier, Nbt, NbtCompound};
 use std::{collections::BTreeMap, sync::Arc};
 
 /// The four gates checked before any state is touched.
@@ -73,6 +73,7 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
             Check::Upgrades => sum(&mut upgrades.entries().iter()),
         }
     };
+    let persistent_string = |key: &Identifier| match tool.persistent.get(&key.to_string()) { Some(Nbt::String(text)) => text.clone(), _ => String::new() };
     let has_persistent_key = |key: &Identifier| tool.persistent.contains_key(&key.to_string());
     // A tag match sums the levels of every checked modifier that is in the tag.
     let tag_level = |tag: &Identifier, check: Check| -> i32 {
@@ -83,7 +84,7 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
             Check::Upgrades => sum(&mut upgrades.entries().iter()),
         }
     };
-    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key })
+    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key, persistent_string: &persistent_string })
 }
 
 #[cfg(test)]
