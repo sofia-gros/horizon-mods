@@ -1,7 +1,7 @@
 //! TinkerStationRepairRecipe matching and repair arithmetic from SlimeKnights (MIT; see LICENSE).
 //! Pure over abstract input slots. Resolving a stack to a material (repair kit or material
 //! recipe), shrinking real stacks and the modifier REPAIR_FACTOR hook are the caller's job;
-//! no modifier defines that hook yet, so the factor is the identity.
+//! the modifier factor chain is supplied by the caller (identity for a tool with no repair modifiers).
 use crate::{tool_damage, tool_stack::{damage, is_broken}};
 use pluto_lib::{Identifier, NbtCompound};
 
@@ -58,22 +58,24 @@ pub(crate) struct Plan {
 }
 
 /// repairFromSlot: items needed (capped by the stack) and the whole durability they give.
-fn from_slot(slot: &Slot, needed: i32, amount_for: &impl Fn(&Identifier) -> f32) -> (i32, i32) {
+fn from_slot(slot: &Slot, needed: i32, amount_for: &impl Fn(&Identifier) -> f32, factor: &impl Fn(f32) -> f32) -> (i32, i32) {
     let Some(material) = &slot.material else { return (0, 0); };
     let per = per_item(amount_for(material), &slot.source);
-    // RepairFactorModifierHook.getRepairFactor is the identity until modifiers define it.
+    if per <= 0.0 { return (0, 0); }
+    // RepairFactorModifierHook.getRepairFactor: modifiers adjust the per-item amount, and zero stops it.
+    let per = factor(per);
     if per <= 0.0 { return (0, 0); }
     let applied = slot.count.min((needed as f32 / per).ceil() as i32);
     (applied, (applied as f32 * per) as i32)
 }
 
 /// getValidatedResult's accounting. `None` means nothing would be repaired (RecipeResult.pass).
-pub(crate) fn plan(damage_needed: i32, slots: &[Slot], amount_for: impl Fn(&Identifier) -> f32) -> Option<Plan> {
+pub(crate) fn plan(damage_needed: i32, slots: &[Slot], amount_for: impl Fn(&Identifier) -> f32, factor: impl Fn(f32) -> f32) -> Option<Plan> {
     let mut remaining = damage_needed;
     let mut consumed = vec![0; slots.len()];
     for (index, slot) in slots.iter().enumerate() {
         if remaining <= 0 { break; }
-        let (applied, repaired) = from_slot(slot, remaining, &amount_for);
+        let (applied, repaired) = from_slot(slot, remaining, &amount_for, &factor);
         consumed[index] = applied;
         remaining -= repaired;
     }
@@ -81,8 +83,8 @@ pub(crate) fn plan(damage_needed: i32, slots: &[Slot], amount_for: impl Fn(&Iden
 }
 
 /// The full recipe on a tool copy: returns the plan and leaves `tool` repaired by it.
-pub(crate) fn apply(tool: &mut NbtCompound, slots: &[Slot], amount_for: impl Fn(&Identifier) -> f32) -> Option<Plan> {
-    let plan = plan(damage(tool), slots, amount_for)?;
+pub(crate) fn apply(tool: &mut NbtCompound, slots: &[Slot], amount_for: impl Fn(&Identifier) -> f32, factor: impl Fn(f32) -> f32) -> Option<Plan> {
+    let plan = plan(damage(tool), slots, amount_for, factor)?;
     tool_damage::repair(tool, plan.repaired);
     Some(plan)
 }
@@ -107,7 +109,7 @@ mod tests {
     fn items_are_rounded_up_and_the_overshoot_is_capped_by_repair() {
         // 100 damage, 35 per ingot-equivalent (value 1 / needed 1 / 3 ingots per repair -> 35/3 per item).
         let mut tool = damaged(200.0, 100);
-        let plan = apply(&mut tool, &[ingot("test:wood", 64)], |_| 35.0).unwrap();
+        let plan = apply(&mut tool, &[ingot("test:wood", 64)], |_| 35.0, |factor| factor).unwrap();
         // per item = 35/3 = 11.67; ceil(100/11.67) = 9 items restoring (int)(9*11.67) = 105.
         assert_eq!(plan, Plan { consumed: vec![9], repaired: 105 });
         assert_eq!(damage(&tool), 0, "repair() never goes past full");
@@ -117,21 +119,21 @@ mod tests {
     fn short_stacks_repair_partially_and_later_slots_continue() {
         let mut tool = damaged(200.0, 150);
         // Kit: 3 ingots worth -> amount * 3 / 3 = 30 per kit; two kits give 60.
-        let plan = apply(&mut tool, &[kit("test:wood", 2), ingot("test:wood", 64)], |_| 30.0).unwrap();
+        let plan = apply(&mut tool, &[kit("test:wood", 2), ingot("test:wood", 64)], |_| 30.0, |factor| factor).unwrap();
         assert_eq!(plan.consumed[0], 2);
         // Remaining 90 at 10 per item needs exactly 9 items.
         assert_eq!(plan.consumed[1], 9);
         assert_eq!(plan.repaired, 150);
         assert_eq!(damage(&tool), 0);
         let mut tool = damaged(200.0, 150);
-        let plan = apply(&mut tool, &[kit("test:wood", 2)], |_| 30.0).unwrap();
+        let plan = apply(&mut tool, &[kit("test:wood", 2)], |_| 30.0, |factor| factor).unwrap();
         assert_eq!((plan.consumed, plan.repaired, damage(&tool)), (vec![2], 60, 90));
     }
     #[test]
     fn zero_value_materials_pass_and_matching_enforces_one_known_material() {
         let tool = damaged(200.0, 50);
         let mut copy = tool.clone();
-        assert!(apply(&mut copy, &[kit("test:stone", 4)], |_| 0.0).is_none());
+        assert!(apply(&mut copy, &[kit("test:stone", 4)], |_| 0.0, |factor| factor).is_none());
         assert_eq!(damage(&copy), 50);
         let allow = |material: &Identifier| material.path() != "banned";
         assert!(matches(&tool, true, &[kit("test:wood", 1), ingot("test:wood", 1)], allow));

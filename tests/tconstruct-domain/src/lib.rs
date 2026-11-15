@@ -9,6 +9,8 @@ mod material_traits;
 mod modifier_entries;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs"]
 mod modifier_module_types;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/formula.rs"]
+mod formula;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_predicate.rs"]
 mod tool_predicate;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_modules.rs"]

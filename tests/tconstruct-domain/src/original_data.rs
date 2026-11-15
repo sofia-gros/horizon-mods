@@ -129,3 +129,37 @@ fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
     let Nbt::List(listed) = &sharp["tic_modifiers"] else { panic!() };
     assert!(listed.iter().any(|entry| matches!(entry, Nbt::Compound(c) if c.get("name") == Some(&Nbt::String("tconstruct:sharpness".into())))));
 }
+
+#[test]
+fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe() {
+    use crate::{modifier_entries::List, tool_slot, tool_stack::{current_durability, rebuild_stats, repair_factor, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let tool = |upgrades: &[(&str, i32)]| {
+        let mut slot = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        slot.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        slot.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut slot.custom_data, &env).unwrap());
+        slot
+    };
+    // Reinforced V cancels 0.025 * 5 * 6 = 75% of damage: a roll below it cancels, above it lands.
+    let mut reinforced = tool(&[("tconstruct:reinforced", 5)]);
+    let hit = tool_slot::damage_slot(&mut reinforced, &env, 8, true, true, None, &mut || 0.5).unwrap();
+    assert_eq!(hit.applied, 0, "every roll below 75% cancels its point");
+    let hit = tool_slot::damage_slot(&mut reinforced, &env, 8, true, true, None, &mut || 0.9).unwrap();
+    assert_eq!(hit.applied, 8, "every roll above 75% lets its point through");
+    // An unmodified pickaxe takes the full damage regardless of the roll.
+    let mut plain = tool(&[]);
+    assert_eq!(tool_slot::damage_slot(&mut plain, &env, 5, true, true, None, &mut || 0.0).unwrap().applied, 5);
+    // Cultivated scales repair by factor * (1 + 0.5 per level). Wood parts already bring it at level 3
+    // (three wood parts), so a plain wood pickaxe repairs at x2.5 and two upgrade levels reach x3.5.
+    let cultivated = tool(&[("tconstruct:cultivated", 2)]);
+    assert!((repair_factor(&plain.custom_data, &env, 10.0) - 25.0).abs() < 1e-4);
+    assert!((repair_factor(&cultivated.custom_data, &env, 10.0) - 35.0).abs() < 1e-4);
+    let _ = current_durability(&plain.custom_data);
+}

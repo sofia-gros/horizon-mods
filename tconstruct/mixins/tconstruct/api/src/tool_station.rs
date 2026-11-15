@@ -120,7 +120,8 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     let mut result = tool.clone();
     result.count = 1;
     let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials);
-    let Some(plan) = tool_repair::plan(damage(&tool.custom_data), &slots, amount_for) else { return Ok(Outcome::NoMatch); };
+    let factor = |value: f32| crate::tool_stack::repair_factor(&tool.custom_data, &env, value);
+    let Some(plan) = tool_repair::plan(damage(&tool.custom_data), &slots, amount_for, factor) else { return Ok(Outcome::NoMatch); };
     tool_slot::repair_slot(&mut result, &env, plan.repaired)?;
     let mut consumed = vec![0; inputs.len()];
     for ((index, _), taken) in present.iter().zip(&plan.consumed) { consumed[*index] = *taken; }
@@ -212,7 +213,7 @@ mod tests {
         assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:stone");
         // A damaged tool with an undamaged-looking swap candidate still swaps; with a repair kit it repairs.
         let mut damaged = swapped.result.clone();
-        tool_slot::damage_slot(&mut damaged, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 5, true, true).unwrap();
+        tool_slot::damage_slot(&mut damaged, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 5, true, true, None, &mut || 1.0).unwrap();
         let kit = [Some(Input::Kit { material: id("test:stone"), kit_amount: 3.0, count: 8 }), None, None];
         let Outcome::Crafted(repaired) = lookup(&ctx, Some(&damaged), &kit).unwrap() else { panic!("expected a repair") };
         assert_eq!(repaired.tool_shrink, 1);
@@ -230,7 +231,7 @@ mod tests {
         // Undamaged: repair never matches (it defers), nothing else applies.
         assert!(matches!(lookup(&ctx, Some(&built.result), &[kit("test:wood")]).unwrap(), Outcome::NoMatch));
         let mut hurt = built.result.clone();
-        tool_slot::damage_slot(&mut hurt, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 3, true, true).unwrap();
+        tool_slot::damage_slot(&mut hurt, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 3, true, true, None, &mut || 1.0).unwrap();
         // Two different materials, an unrepairable material and a stray item all fail to match.
         assert!(matches!(lookup(&ctx, Some(&hurt), &[kit("test:wood"), kit("test:stone")]).unwrap(), Outcome::NoMatch));
         assert!(matches!(lookup(&ctx, Some(&hurt), &[kit("test:other")]).unwrap(), Outcome::NoMatch));

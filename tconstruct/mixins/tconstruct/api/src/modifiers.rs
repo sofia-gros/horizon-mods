@@ -119,6 +119,17 @@ impl Modifier {
     pub fn trait_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, first_encounter: bool) -> Vec<Entry> {
         self.modules.iter().filter_map(|module| module.trait_entry(entry, facts, first_encounter)).collect()
     }
+    /// ToolDamageModifierHook: the damage left after every damage-reducing module, in module order.
+    pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, cause: Option<&Identifier>,
+        modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, mut amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
+        for module in &self.modules { amount = module.reduce_damage(entry, facts, cause, modifier_in_tag, amount, random); }
+        amount
+    }
+    /// RepairFactorModifierHook: the factor after every repair module of this modifier.
+    pub fn repair_factor(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, mut factor: f32) -> f32 {
+        for module in &self.modules { factor = module.repair_factor(entry, facts, factor); }
+        factor
+    }
     /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
         for module in &self.modules { module.apply_volatile(entry, facts, data); }

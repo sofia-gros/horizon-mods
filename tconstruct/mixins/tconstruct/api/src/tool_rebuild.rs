@@ -62,7 +62,7 @@ pub(crate) fn rebuild(
 }
 
 /// Facts about the tool for predicates, with `entries` as the "all" modifier list.
-fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upgrades: &List, run: impl FnOnce(&Facts) -> R) -> R {
+pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upgrades: &List, run: impl FnOnce(&Facts) -> R) -> R {
     let in_tag = |item: &Identifier, tag: &Identifier| tool.item_tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
     let level = |modifier: &Identifier, check: Check| -> i32 {
         let sum = |entries: &mut dyn Iterator<Item = &Entry>| entries.filter(|entry| &entry.id == modifier).fold(0_i32, |sum, entry| sum.wrapping_add(entry.int_effective_level()));

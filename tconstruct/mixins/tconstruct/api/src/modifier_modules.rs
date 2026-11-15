@@ -3,6 +3,7 @@
 //! original ships is recorded as unbound by the caller; a module of these kinds with a hook
 //! binding or stat Tinkers cannot honor is also unbound, never half-installed.
 use crate::{
+    formula::Formula,
     modifier_entries::{nbt_int, Entry},
     tool_predicate::{Facts, Predicate},
     tool_stats::{Builder, Stat},
@@ -41,6 +42,65 @@ pub(crate) enum Module {
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
     /// ModifierTraitModule: a nested modifier this one brings along.
     Trait { modifier: Identifier, level: i32, fixed_level: bool, condition: Condition },
+    /// ReduceToolDamageModule: probabilistically cancels a fraction of tool damage.
+    ReduceDamage { cause: CausePredicate, formula: LevelFormula, condition: Condition },
+    /// RepairModule: scales the durability a repair restores.
+    Repair { formula: LevelFormula, condition: Condition },
+}
+
+/// A ModifierFormula of either form. `Simple` is flat + each_level * level, which is the scaled
+/// level handed to the module's fallback; `PostFix` runs a formula over named arguments.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum LevelFormula { Simple { flat: f32, each: f32 }, PostFix(Formula) }
+
+impl LevelFormula {
+    /// `names` are the argument names after the level: ["value","multiplier"] or ["factor"].
+    fn decode(fields: &Map<String, Value>, names: &[&str]) -> Result<Option<Self>, String> {
+        if fields.contains_key("variables") { return Ok(None); } // data-defined variables are not implemented
+        if let Some(formula) = fields.get("formula") {
+            let mut all = vec!["level"];
+            all.extend_from_slice(names);
+            return Ok(Some(Self::PostFix(Formula::decode(formula, &all)?)));
+        }
+        Ok(Some(Self::Simple { flat: float(fields, "flat")?, each: float(fields, "each_level")? }))
+    }
+    /// processLevel: the scaled level for simple formulas, the plain effective level for post fix.
+    fn level(&self, entry: &Entry) -> f32 {
+        match self { Self::Simple { flat, each } => flat + each * entry.effective_level(), Self::PostFix(_) => entry.effective_level() }
+    }
+}
+
+/// ModifierPredicate over the modifier that caused tool damage (the subset the original ships).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>) }
+
+impl CausePredicate {
+    fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
+        let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
+        let object = value.as_object().ok_or("cause must be an object")?;
+        Self::typed(object, object.get("type").and_then(Value::as_str).ok_or("cause type missing")?)
+    }
+    fn typed(object: &Map<String, Value>, kind: &str) -> Result<Option<Self>, String> {
+        Ok(Some(match kind {
+            "tconstruct:tag" => Self::Tag(identifier(object, "tag")?),
+            "tconstruct:single" => Self::Single(identifier(object, "modifier")?),
+            "mantle:inverted" => {
+                let inner = object.get("inverted_type").and_then(Value::as_str).ok_or("inverted_type missing")?;
+                let Some(inner) = Self::typed(object, inner)? else { return Ok(None); };
+                Self::Not(Box::new(inner))
+            }
+            _ => return Ok(None),
+        }))
+    }
+    /// `cause` is None for ordinary tool use (ModifierId.EMPTY), which no tag or single match.
+    fn matches(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        match self {
+            Self::Any => true,
+            Self::Tag(tag) => cause.is_some_and(|cause| in_tag(cause, tag)),
+            Self::Single(modifier) => cause == Some(modifier),
+            Self::Not(inner) => !inner.matches(cause, in_tag),
+        }
+    }
 }
 
 fn short(fields: &Map<String, Value>, key: &str) -> Result<i32, String> {
@@ -104,6 +164,17 @@ impl Module {
                 let Some(Value::Bool(fixed_level)) = fields.get("fixed_level") else { return Err("fixed_level must be a boolean".into()); };
                 Self::Trait { modifier: identifier(fields, "name")?, level, fixed_level: *fixed_level, condition: Condition::decode(fields)? }
             }
+            // The tooltip binding is presentation; the original binds both by default.
+            "tconstruct:reduce_tool_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_damage" | "tconstruct:tooltip"))
+                && !fields.get("entity").is_some_and(|value| !value.is_null()) => {
+                let Some(cause) = CausePredicate::decode(fields.get("cause"))? else { return Ok(None); };
+                let Some(formula) = LevelFormula::decode(fields, &["value", "multiplier"])? else { return Ok(None); };
+                Self::ReduceDamage { cause, formula, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:repair" if only("tconstruct:repair_factor") => {
+                let Some(formula) = LevelFormula::decode(fields, &["factor"])? else { return Ok(None); };
+                Self::Repair { formula, condition: Condition::decode(fields)? }
+            }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
                 // A stat of another domain (tanks, food) is not representable here.
@@ -148,7 +219,7 @@ impl Module {
                     }
                 }
             }
-            Self::Boost { .. } | Self::Trait { .. } => {}
+            Self::Boost { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } => {}
         }
     }
 
@@ -161,6 +232,34 @@ impl Module {
         Some(Entry::new(modifier.clone(), if entry.level == 1 { *level } else { level.wrapping_mul(entry.level) }))
     }
     pub fn is_trait(&self) -> bool { matches!(self, Self::Trait { .. }) }
+
+    /// ToolDamageModifierHook.beforeDamageTool: the amount left after this module's probabilistic
+    /// reduction. `random` yields uniform values in [0, 1).
+    pub fn reduce_damage(&self, entry: &Entry, facts: &Facts, cause: Option<&Identifier>,
+        modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
+        let Self::ReduceDamage { cause: wanted, formula, condition } = self else { return amount; };
+        if !condition.matches(entry, facts) || !wanted.matches(cause, modifier_in_tag) { return amount; }
+        // ConditionalStatFormula.apply(.., value 0, multiplier 1); a simple formula's IDENTITY is the scaled level.
+        let percentage = match formula {
+            LevelFormula::Simple { .. } => formula.level(entry),
+            LevelFormula::PostFix(post_fix) => match post_fix.apply(&[formula.level(entry), 0.0, 1.0]) { Ok(value) => value, Err(_) => return amount },
+        };
+        if percentage >= 1.0 { return 0; }
+        if percentage <= 0.0 { return amount; }
+        // Each point of damage is cancelled with the given probability.
+        (0..amount.max(0)).filter(|_| random() >= percentage).count() as i32
+    }
+
+    /// RepairFactorModifierHook.getRepairFactor for this module.
+    pub fn repair_factor(&self, entry: &Entry, facts: &Facts, factor: f32) -> f32 {
+        let Self::Repair { formula, condition } = self else { return factor; };
+        if !condition.matches(entry, facts) { return factor; }
+        match formula {
+            // FallbackFormula.PERCENT: value * (1 + level), where the value argument is the factor.
+            LevelFormula::Simple { .. } => factor * (1.0 + formula.level(entry)),
+            LevelFormula::PostFix(post_fix) => post_fix.apply(&[formula.level(entry), factor]).unwrap_or(factor),
+        }
+    }
 
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &Facts, builder: &mut Builder) {
@@ -262,6 +361,39 @@ mod tests {
         let mut skipped = Builder::default();
         armor_only.apply_stats(&entry, &f, &mut skipped);
         assert_eq!(skipped.get(Stat::Durability), Stat::Durability.default_value());
+    }
+    #[test]
+    fn damage_reduction_is_probabilistic_per_point_and_repair_scales_the_factor() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("test:m"), 2);
+        let tags = |cause: &Identifier, tag: &Identifier| cause.path() == "bypasser" && tag.path() == "bypass";
+        // Reinforced-style: 0.025 * level * (11 - level) = 0.45 at level 2; each damage point is cancelled when the roll is below it.
+        let reduce = decode(json!({"type":"tconstruct:reduce_tool_damage","formula":[0.025,"$level","*",11.0,"$level","-","*"]})).unwrap();
+        let mut rolls = [0.1_f32, 0.5, 0.44, 0.9].into_iter();
+        let dealt = reduce.reduce_damage(&entry, &f, None, &tags, 4, &mut || rolls.next().unwrap());
+        assert_eq!(dealt, 2, "rolls 0.5 and 0.9 are not below 0.45, so two points land");
+        // 100% blocks everything without rolling; 0% blocks nothing without rolling.
+        let all = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0})).unwrap();
+        assert_eq!(all.reduce_damage(&entry, &f, None, &tags, 7, &mut || panic!("no roll expected")), 0);
+        let none = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":0.0,"each_level":0.0})).unwrap();
+        assert_eq!(none.reduce_damage(&entry, &f, None, &tags, 7, &mut || panic!("no roll expected")), 7);
+        // A cause predicate: this reduction ignores damage caused by a bypassing modifier.
+        let guarded = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,
+            "cause":{"type":"mantle:inverted","inverted_type":"tconstruct:tag","tag":"test:bypass"}})).unwrap();
+        assert_eq!(guarded.reduce_damage(&entry, &f, None, &tags, 3, &mut || 0.0), 0, "ordinary use is reduced");
+        assert_eq!(guarded.reduce_damage(&entry, &f, Some(&id("test:bypasser")), &tags, 3, &mut || 0.0), 3, "a bypassing cause is not");
+        // Repair: simple form is factor * (1 + scaled level); post fix reads the effective level and the factor.
+        let preserved = decode(json!({"type":"tconstruct:repair","each_level":0.15})).unwrap();
+        let Some(Module::Repair { .. }) = Some(&preserved) else { panic!() };
+        assert!((preserved.repair_factor(&entry, &f, 10.0) - 10.0 * (1.0 + 0.3)).abs() < 1e-5);
+        let dense = decode(json!({"type":"tconstruct:repair","formula":["$factor",1.0,0.025,"$level","*",11.0,"$level","-","*","-","*"],"modifier_level":{"max":5}})).unwrap();
+        assert!((dense.repair_factor(&entry, &f, 10.0) - 10.0 * (1.0 - 0.025 * 2.0 * 9.0)).abs() < 1e-5);
+        assert_eq!(dense.repair_factor(&Entry::new(id("test:m"), 6), &f, 10.0), 10.0, "outside the level range nothing changes");
+        // Unsupported shapes are unbound: an entity predicate or data-defined variables.
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"entity":{"type":"tconstruct:sneaking"}})).is_none());
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$light"],"variables":{"light":{"type":"tconstruct:entity"}}})).is_none());
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"cause":{"type":"mantle:and"}})).is_none());
     }
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {

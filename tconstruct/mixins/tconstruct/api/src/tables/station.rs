@@ -132,7 +132,7 @@ mod tests {
         assert!(take(&mut empty, &mut lazy, &ctx, 4, 2.0).unwrap().is_none());
         // Damage the tool and repair it with a wood repair kit.
         let mut tool = built.clone();
-        crate::tool_slot::damage_slot(&mut tool, &Environment4::of(&ctx, &pickaxe), 10, true, true).unwrap();
+        crate::tool_slot::damage_slot(&mut tool, &Environment4::of(&ctx, &pickaxe), 10, true, true, None, &mut || 1.0).unwrap();
         let mut kit = ItemSlot::new(id("tconstruct:repair_kit"), 3);
         set_part_material(&mut kit, &crate::tool_materials::MaterialVariant::parse("test:wood").unwrap());
         let mut menu = Menu { slots: vec![Some(tool), Some(kit), None, None, None, None], given: vec![] };

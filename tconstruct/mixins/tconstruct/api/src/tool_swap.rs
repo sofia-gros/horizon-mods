@@ -55,7 +55,7 @@ pub(crate) fn swap_material(
     // Three ingots repair fully; the part's own cost already counts toward the amount.
     if repair_durability > 0.0 {
         repair_durability /= INGOTS_PER_REPAIR;
-        // The modifier REPAIR_FACTOR chain is the identity until a modifier defines it.
+        if repair_durability > 0.0 { repair_durability = crate::tool_stack::repair_factor(&copy, env, repair_durability); }
         if repair_durability > 0.0 { tool_damage::repair(&mut copy, repair_durability as i32); }
     }
     let output_max = max_stack;

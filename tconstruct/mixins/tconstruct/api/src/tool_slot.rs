@@ -29,8 +29,10 @@ pub(crate) fn rebuild(slot: &mut ItemSlot, env: &Environment) -> Result<bool, St
 /// ToolDamageUtil.damage on a stack. Returns the damage actually applied and whether it broke.
 pub(crate) fn damage_slot(
     slot: &mut ItemSlot, env: &Environment, amount: i32, consumes_resources: bool, has_durability_tag: bool,
+    cause: Option<&pluto_lib::Identifier>, random: &mut dyn FnMut() -> f32,
 ) -> Result<tool_damage::Damaged, String> {
-    let outcome = tool_damage::damage_tool(&mut slot.custom_data, amount, consumes_resources, has_durability_tag);
+    let outcome = tool_damage::damage_tool_reduced(&mut slot.custom_data, amount, consumes_resources, has_durability_tag,
+        &mut |nbt, amount| crate::tool_stack::reduce_damage(nbt, env, cause, amount, random));
     if outcome.applied > 0 { sync_visuals(slot, env)?; }
     Ok(outcome)
 }
@@ -80,11 +82,11 @@ mod tests {
         let tool = slot.tool.clone().expect("mining component");
         assert_eq!(tool["default_mining_speed"], Nbt::Float(1.0));
         // Damage moves the bar; the slot carries it without touching the item's own max.
-        let hit = damage_slot(&mut slot, &env, 4, true, true).unwrap();
+        let hit = damage_slot(&mut slot, &env, 4, true, true, None, &mut || 1.0).unwrap();
         assert_eq!((hit.applied, hit.broke, slot.damage, remaining(&slot)), (4, false, 4, 6));
         assert_eq!(slot.tool, Some(tool), "mining is unchanged until the tool breaks");
         // Breaking raises the fake max by one and slows mining to the broken speed.
-        let hit = damage_slot(&mut slot, &env, 100, true, true).unwrap();
+        let hit = damage_slot(&mut slot, &env, 100, true, true, None, &mut || 1.0).unwrap();
         assert!(hit.broke && broken(&slot));
         assert_eq!((slot.max_damage, slot.damage, remaining(&slot)), (Some(11), 10, 0));
         assert_eq!(slot.tool.as_ref().unwrap()["default_mining_speed"], Nbt::Float(0.3));
@@ -95,7 +97,7 @@ mod tests {
         assert_eq!(slot.tool.as_ref().unwrap()["default_mining_speed"], Nbt::Float(1.0));
         // No-op damage (creative) leaves everything alone.
         let before = slot.clone();
-        assert_eq!(damage_slot(&mut slot, &env, 2, false, true).unwrap().applied, 0);
+        assert_eq!(damage_slot(&mut slot, &env, 2, false, true, None, &mut || 1.0).unwrap().applied, 0);
         assert_eq!(slot, before);
     }
     #[test]

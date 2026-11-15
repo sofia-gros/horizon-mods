@@ -77,6 +77,45 @@ fn apply(nbt: &mut NbtCompound, rebuilt: &Rebuilt) {
     if multipliers.is_empty() { nbt.remove(TAG_MULTIPLIERS); } else { nbt.insert(TAG_MULTIPLIERS.into(), Nbt::Compound(multipliers)); }
 }
 
+/// The tool's final modifier list as saved in tic_modifiers, each with its loaded definition;
+/// entries with no loaded definition are not bound and are skipped.
+pub(crate) fn saved_modifiers(nbt: &NbtCompound, registry: &Registry) -> Vec<(crate::modifier_entries::Entry, std::sync::Arc<crate::modifiers::Modifier>)> {
+    List::from_nbt(nbt.get(TAG_MODIFIERS)).entries().iter()
+        .filter_map(|entry| registry.get(&entry.id).map(|modifier| (entry.clone(), modifier.clone()))).collect()
+}
+
+fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(crate::modifier_entries::Entry, std::sync::Arc<crate::modifiers::Modifier>)], &crate::tool_predicate::Facts) -> R) -> R {
+    let saved = saved_modifiers(nbt, env.modifiers);
+    let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent };
+    let upgrades = upgrades(nbt);
+    crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
+}
+
+/// ToolDamageUtil.damage's modifier loop: each modifier may cancel part of the damage; once nothing
+/// is left the tool takes none. `cause` is the damaging modifier, None for ordinary use.
+pub(crate) fn reduce_damage(nbt: &NbtCompound, env: &Environment, cause: Option<&Identifier>, mut amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
+    let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            amount = modifier.reduce_damage(entry, facts, cause, &modifier_in_tag, amount, random);
+            if amount <= 0 { return 0; }
+        }
+        amount
+    })
+}
+
+/// RepairFactorModifierHook.getRepairFactor: composes every modifier, and stops at zero.
+pub(crate) fn repair_factor(nbt: &NbtCompound, env: &Environment, mut factor: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            factor = modifier.repair_factor(entry, facts, factor);
+            if factor <= 0.0 { return 0.0; }
+        }
+        factor
+    })
+}
+
 /// StatsNBT.getInt(DURABILITY): default 1 when the stat is absent.
 pub(crate) fn durability(nbt: &NbtCompound) -> i32 {
     let Some(Nbt::Compound(stats)) = nbt.get(TAG_STATS) else { return 1; };
