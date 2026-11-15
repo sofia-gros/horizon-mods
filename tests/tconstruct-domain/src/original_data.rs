@@ -163,3 +163,36 @@ fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe(
     assert!((repair_factor(&cultivated.custom_data, &env, 10.0) - 35.0).abs() < 1e-4);
     let _ = current_durability(&plain.custom_data);
 }
+
+fn recursive_files(folder: &str, prefix: &str) -> Vec<(Identifier, Value)> {
+    fn walk(dir: &std::path::Path, relative: String, out: &mut Vec<(Identifier, Value)>) {
+        for entry in std::fs::read_dir(dir).expect("folder") {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if path.is_dir() { walk(&path, format!("{relative}/{name}"), out); continue; }
+            if let Some(stem) = name.strip_suffix(".json") {
+                let value = serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON");
+                out.push((Identifier::new("tconstruct", &format!("{relative}/{stem}")).unwrap(), value));
+            }
+        }
+    }
+    let mut found = Vec::new();
+    walk(&root().join("../recipes").join(folder), prefix.to_owned(), &mut found);
+    found
+}
+
+#[test]
+fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
+    let files = recursive_files("tools/materials", "tools/materials");
+    assert_eq!(files.len(), 176);
+    let recipes = crate::material_recipes::Recipes::load(&files, &conditions());
+    // Instrument (goat horn) ingredients need item components, which this port does not read.
+    assert!(recipes.problems.iter().all(|problem| problem.contains("unimplemented ingredient type tconstruct:instrument") || problem.contains("registry minecraft:instrument unavailable")), "{:#?}", recipes.problems);
+    assert!(!recipes.problems.is_empty() && recipes.len() > 60, "{} loaded, {} problems", recipes.len(), recipes.problems.len());
+    // Tag-gated recipes (planks, logs) stay off while the item tags are empty, as their conditions say;
+    // item-keyed recipes resolve: the mod's own blazewood and vanilla flint.
+    let blazewood = recipes.find(&Identifier::parse("tconstruct:blazewood").unwrap(), &|_, _| false).expect("blazewood");
+    assert_eq!(blazewood.material.to_string(), "tconstruct:blazewood");
+    let flint = recipes.find(&Identifier::parse("minecraft:flint").unwrap(), &|_, _| false).expect("flint");
+    assert_eq!(flint.material.to_string(), "tconstruct:flint");
+}

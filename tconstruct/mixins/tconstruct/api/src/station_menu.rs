@@ -4,7 +4,7 @@
 //! (which move and filter the inputs), the station texture and tool-selection tabs are
 //! presentation work that is not ported yet.
 use crate::{
-    common, tables::{lazy_result::LazyResultContainer, station}, tool_definitions, tool_parts,
+    common, tables::{lazy_result::LazyResultContainer, station::{self, Resolver}}, tool_definitions, tool_parts,
     tool_station::{Context, Crafted, Outcome},
 };
 use pluto_lib::{
@@ -19,7 +19,7 @@ const NAME: &str = "tinker_station";
 
 /// Builds the read-only recipe context from the loaded server registries and runs `read`.
 /// `None` while any registry has not loaded, so a station never crafts from partial state.
-pub(crate) fn with_context<R>(read: impl FnOnce(&Context, f32) -> R) -> Option<R> {
+pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Option<R> {
     let kit_amount = crate::config::repair_kit_amount().ok()?;
     let definitions = tool_definitions::register().read().ok()?;
     let materials = common::register().read().ok()?;
@@ -30,13 +30,17 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, f32) -> R) -> Option<R
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
     let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
-    Some(read(&ctx, kit_amount))
+    // Material recipes may be absent (not loaded): inputs then simply never resolve to materials.
+    let recipes = common::material_recipes().and_then(|recipes| recipes.read().ok());
+    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
+    Some(read(&ctx, &resolver))
 }
 
 /// The result the staged slots would give, with nothing consumed.
 fn preview_of(items: &[Option<ItemSlot>]) -> Option<ItemSlot> {
     let menu = SlotsView(items);
-    with_context(|ctx, kit| station::preview(&menu, ctx, INPUT_COUNT, kit)).and_then(Result::ok).and_then(|outcome| match outcome {
+    with_context(|ctx, resolver| station::preview(&menu, ctx, INPUT_COUNT, resolver)).and_then(Result::ok).and_then(|outcome| match outcome {
         Outcome::Crafted(Crafted { result, .. }) => Some(result), _ => None,
     })
 }
@@ -72,7 +76,7 @@ impl MenuAccess for SlotsView<'_> {
 /// result slot, and returns what was crafted. Nothing happens (and `None` returns) without a match.
 pub(crate) fn craft_once(menu: &mut dyn MenuAccess) -> Option<ItemSlot> {
     let mut lazy = LazyResultContainer::default();
-    let crafted = with_context(|ctx, kit| station::take(menu, &mut lazy, ctx, INPUT_COUNT, kit))?;
+    let crafted = with_context(|ctx, resolver| station::take(menu, &mut lazy, ctx, INPUT_COUNT, resolver))?;
     let crafted = match crafted { Ok(Some(crafted)) => crafted, Ok(None) => return None, Err(error) => { eprintln!("Tinkers: station craft failed: {error}"); return None; } };
     let items: Vec<Option<ItemSlot>> = (0..RESULT_SLOT).map(|slot| menu.stack(slot)).collect();
     menu.set_stack(RESULT_SLOT, preview_of(&items));

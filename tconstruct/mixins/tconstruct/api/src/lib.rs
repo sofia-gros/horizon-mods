@@ -5,6 +5,7 @@ mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;
 mod formula;
+mod material_recipes;
 mod tool_predicate;
 mod modifier_modules;
 mod modifiers;

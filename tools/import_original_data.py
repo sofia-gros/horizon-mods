@@ -61,6 +61,30 @@ def write_creative_parts(skipped):
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
+RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/materials'
+RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/materials'
+
+
+def copy_material_recipes(skipped_materials):
+    """The item -> material recipes (type tconstruct:material), byte for byte. The fluid and melting
+    recipes in the same folder belong to the smeltery domain. A recipe whose material was left out as
+    other-mod integration is left out with it."""
+    if RECIPE_TARGET.exists():
+        shutil.rmtree(RECIPE_TARGET)
+    count = 0
+    for path in sorted(RECIPE_SOURCE.rglob('*.json')):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') != 'tconstruct:material':
+            continue
+        if data['material'].split(':')[-1].split('#')[0] in skipped_materials:
+            continue
+        destination = RECIPE_TARGET / path.relative_to(RECIPE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -121,7 +145,8 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     tags = copy_tags()
-    print(f'copied {copied} files and {tags} tags from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    recipes = copy_material_recipes(skipped_materials)
+    print(f'copied {copied} files, {tags} tags and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

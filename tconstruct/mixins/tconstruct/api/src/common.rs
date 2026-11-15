@@ -5,6 +5,8 @@ use crate::{conditions::Context, materials::{self, Definitions}};
 
 static MATERIALS: OnceLock<Arc<RwLock<Definitions>>> = OnceLock::new();
 static MODIFIERS: OnceLock<Arc<RwLock<crate::modifiers::Registry>>> = OnceLock::new();
+static MATERIAL_RECIPES: OnceLock<Arc<RwLock<crate::material_recipes::Recipes>>> = OnceLock::new();
+pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
 /// TinkerTags.isTagsLoaded for the server: true once a reload callback captured the native
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
 /// Unlike Forge's never-reset flag it is cleared when the server stops, because the
@@ -45,6 +47,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items, config })
         }).expect("Tinkers modifier listener registration failed");
         MODIFIERS.set(modifiers).expect("Tinkers modifier registry already initialized");
+        let recipe_config = config.clone();
+        let recipes = crate::material_recipes::register(move || {
+            let config = recipe_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers material recipe listener registration failed");
+        MATERIAL_RECIPES.set(recipes).expect("Tinkers material recipes already initialized");
         let materials = materials::register(move || {
             let config = config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
             let items = capture_items();

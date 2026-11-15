@@ -4,13 +4,23 @@
 
 use pluto_lib::{ItemSlot, MenuAccess};
 use super::{input_consumption::shrink_menu_input, lazy_result::LazyResultContainer};
-use crate::{tool_materials::part_material, tool_parts, tool_station::{self, Context, Crafted, Input, Outcome}};
+use crate::{material_recipes::Recipes, tool_materials::part_material, tool_parts, tool_station::{self, Context, Crafted, Input, Outcome}};
+use pluto_lib::Identifier;
 
 const REPAIR_KIT: &str = "tconstruct:repair_kit";
 
-/// Resolves one non-empty stack the way the station recipes see it. Material-recipe items are not
-/// loaded yet, so they resolve to `Other` and never repair.
-pub(crate) fn resolve_input(stack: &ItemSlot, kit_amount: f32) -> Input {
+/// What turns a stack into a station input: the repair kit amount and the material recipes with
+/// the item-tag lookup their ingredients use.
+pub(crate) struct Resolver<'a> {
+    pub kit_amount: f32,
+    pub recipes: Option<&'a Recipes>,
+    pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
+}
+
+/// Resolves one non-empty stack the way the station recipes see it: a tool part, a repair kit, an
+/// item a material recipe maps to a material, or anything else.
+pub(crate) fn resolve_input(stack: &ItemSlot, resolver: &Resolver) -> Input {
+    let kit_amount = resolver.kit_amount;
     if tool_parts::registry().contains_key(&stack.item) {
         return Input::Part { item: stack.item.clone(), material: part_material(&stack.custom_data) };
     }
@@ -20,28 +30,33 @@ pub(crate) fn resolve_input(stack: &ItemSlot, kit_amount: f32) -> Input {
             return Input::Kit { material, kit_amount, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
         }
     }
+    if let Some(recipe) = resolver.recipes.and_then(|recipes| recipes.find(&stack.item, resolver.in_tag)) {
+        if let Some(material) = recipe.material.material_id() {
+            return Input::Material { item: stack.item.clone(), material, value: recipe.value, needed: recipe.needed, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
+        }
+    }
     Input::Other { item: stack.item.clone() }
 }
 
 /// The tinkerable stack (slot 0) and each input (slots 1..=input_count; None when empty).
-pub(crate) fn read(menu: &dyn MenuAccess, input_count: usize, kit_amount: f32) -> (Option<ItemSlot>, Vec<Option<Input>>) {
+pub(crate) fn read(menu: &dyn MenuAccess, input_count: usize, resolver: &Resolver) -> (Option<ItemSlot>, Vec<Option<Input>>) {
     let tool = menu.stack(0).filter(|stack| stack.count > 0);
-    let inputs = (1..=input_count).map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| resolve_input(&stack, kit_amount))).collect();
+    let inputs = (1..=input_count).map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| resolve_input(&stack, resolver))).collect();
     (tool, inputs)
 }
 
 /// What the station would produce for the staged menu, with no side effects.
-pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, kit_amount: f32) -> Result<Outcome, String> {
-    let (tool, inputs) = read(menu, input_count, kit_amount);
+pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, resolver: &Resolver) -> Result<Outcome, String> {
+    let (tool, inputs) = read(menu, input_count, resolver);
     tool_station::lookup(ctx, tool.as_ref(), &inputs)
 }
 
 /// craftResult: computes the outcome, consumes the inputs and the tool, and hands back the result.
 /// `Ok(None)` means nothing was crafted (no match or a recipe failure), with nothing changed.
 pub(crate) fn take(
-    menu: &mut dyn MenuAccess, lazy: &mut LazyResultContainer, ctx: &Context, input_count: usize, kit_amount: f32,
+    menu: &mut dyn MenuAccess, lazy: &mut LazyResultContainer, ctx: &Context, input_count: usize, resolver: &Resolver,
 ) -> Result<Option<ItemSlot>, String> {
-    let Outcome::Crafted(Crafted { result, consumed, tool_shrink }) = preview(menu, ctx, input_count, kit_amount)? else { return Ok(None); };
+    let Outcome::Crafted(Crafted { result, consumed, tool_shrink }) = preview(menu, ctx, input_count, resolver)? else { return Ok(None); };
     for (index, amount) in consumed.iter().enumerate() {
         let amount = u32::try_from(*amount).unwrap_or(0);
         if amount == 0 { continue; }
@@ -117,31 +132,47 @@ mod tests {
         let tools = [(id("tconstruct:pickaxe"), &pickaxe)];
         let item_max = |_: &Identifier| 1;
         let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+        let resolver = Resolver { kit_amount: 2.0, recipes: None, in_tag: &|_, _| false };
         let mut lazy = LazyResultContainer::default();
         lazy.result(|| Some(ItemSlot::new(id("test:stale"), 1)));
         // Slots: tool, 4 inputs, result placeholder.
         let mut menu = Menu { slots: vec![None, Some(part("tconstruct:pick_head", "test:wood", 2)), Some(part("tconstruct:tool_handle", "test:wood", 1)), None, None, None], given: vec![] };
-        assert!(matches!(preview(&menu, &ctx, 4, 2.0).unwrap(), Outcome::Crafted(_)));
-        let built = take(&mut menu, &mut lazy, &ctx, 4, 2.0).unwrap().expect("a tool");
+        assert!(matches!(preview(&menu, &ctx, 4, &resolver).unwrap(), Outcome::Crafted(_)));
+        let built = take(&mut menu, &mut lazy, &ctx, 4, &resolver).unwrap().expect("a tool");
         assert_eq!(built.item.to_string(), "tconstruct:pickaxe");
         assert_eq!(menu.slots[1].as_ref().unwrap().count, 1, "one head left of two");
         assert!(menu.slots[2].is_none(), "the single handle was consumed");
         assert!(lazy.result(|| None).is_none(), "consumption invalidated the cached preview");
         // Nothing matches an empty table or stray items, and nothing is consumed then.
         let mut empty = Menu { slots: vec![None; 6], given: vec![] };
-        assert!(take(&mut empty, &mut lazy, &ctx, 4, 2.0).unwrap().is_none());
+        assert!(take(&mut empty, &mut lazy, &ctx, 4, &resolver).unwrap().is_none());
         // Damage the tool and repair it with a wood repair kit.
         let mut tool = built.clone();
         crate::tool_slot::damage_slot(&mut tool, &Environment4::of(&ctx, &pickaxe), 10, true, true, None, &mut || 1.0).unwrap();
         let mut kit = ItemSlot::new(id("tconstruct:repair_kit"), 3);
         set_part_material(&mut kit, &crate::tool_materials::MaterialVariant::parse("test:wood").unwrap());
         let mut menu = Menu { slots: vec![Some(tool), Some(kit), None, None, None, None], given: vec![] };
-        let repaired = take(&mut menu, &mut lazy, &ctx, 4, 2.0).unwrap().expect("a repaired tool");
+        let repaired = take(&mut menu, &mut lazy, &ctx, 4, &resolver).unwrap().expect("a repaired tool");
         assert_eq!(repaired.damage, 0);
         assert!(menu.slots[0].is_none(), "the damaged tool slot is consumed (shrink by one)");
         assert!(menu.slots[1].as_ref().map_or(true, |kit| kit.count < 3), "some kit was used");
+        // A material recipe maps a plain item to a material: three planks' worth repairs the head part.
+        let recipes = crate::material_recipes::Recipes::load(&[(id("tconstruct:tools/materials/plank"), json!({"type":"tconstruct:material",
+            "ingredient":{"item":"test:plank"},"material":"test:wood","needed":1,"value":1}))], &Always);
+        assert_eq!(recipes.len(), 1);
+        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), in_tag: &|_, _| false };
+        let plank = ItemSlot::new(id("test:plank"), 5);
+        assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { value: 1, needed: 1, count: 5, .. }));
+        assert!(matches!(resolve_input(&plank, &resolver), Input::Other { .. }), "without recipes the plank is just an item");
+        let mut hurt = built.clone();
+        crate::tool_slot::damage_slot(&mut hurt, &Environment4::of(&ctx, &pickaxe), 10, true, true, None, &mut || 1.0).unwrap();
+        let mut menu = Menu { slots: vec![Some(hurt), Some(plank), None, None, None, None], given: vec![] };
+        let fixed = take(&mut menu, &mut lazy, &ctx, 4, &with_recipes).unwrap().expect("repaired with planks");
+        assert_eq!(fixed.damage, 0);
+        // 40 durability * value 1 / 3 ingots / needed 1 = 13.3 per plank, so one plank covers 10 damage.
+        assert_eq!(menu.slots[1].as_ref().unwrap().count, 4, "exactly one plank was consumed");
         // A kit with no material resolves to a stray item.
-        assert!(matches!(resolve_input(&ItemSlot::new(id("tconstruct:repair_kit"), 1), 2.0), Input::Other { .. }));
+        assert!(matches!(resolve_input(&ItemSlot::new(id("tconstruct:repair_kit"), 1), &resolver), Input::Other { .. }));
     }
     struct Environment4;
     impl Environment4 {
