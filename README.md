@@ -1,47 +1,28 @@
-<div align="center">
-
-<img src="docs/branding/horizon-mods-icon.png" alt="Horizon Mods icon" width="120">
-
 # Horizon Mods
 
-<img src="docs/branding/horizon-mods-banner.png" alt="Horizon Mods banner" width="900">
+[日本語](README.ja.md)
 
-**Mods and a Fabric-API-style library for [Horizon](https://github.com/horizon-rust/horizon).**
+Two products: **PlutoLib**, an independent general-purpose Fabric-API-style library for official Horizon, and **Tinkers' Construct**, a consumer of its public API only.
 
-English · [日本語](README.ja.md)
+## Current state
 
-</div>
+The clean port is being established. `tconstruct/` now contains an **empty native entry point with zero injections**; no original gameplay has been imported or verified in this new product. This is not a playable release. Existing PlutoLib remains a candidate requiring review and native validation.
 
-## What is here
+The previous Tinkers implementation, including uncommitted source and resources, is preserved under `legacy/2026-11-14/tconstruct/`. It is not built or packaged by the clean-product command. Old screenshots and inventories describe the old product, not current functionality. Existing CI remains enabled and needs migration reconciliation; no full-CI success is claimed.
 
-| | |
-|---|---|
-| **[PlutoLib](pluto-lib/README.md)** ([API pages](pluto-lib/docs/api/index.md)) | Horizon's counterpart of the Fabric API: an independent mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
-| **[Tinkers' Construct for Horizon](tconstruct/README.md)** | A port of Tinkers' Construct: build tools from parts, smelt and cast metals, modify your equipment. |
+## Work
 
-## Status: under recovery
+```bash
+python tools/port.py next
+```
 
-The project is being rebuilt on PlutoLib against the latest official Horizon and Horizon Mixins. There is **no release yet**.
-What has been run on a real game today (Windows, Horizon `ebcfa226`):
+```bash
+python tools/port.py check
+```
 
-- The game starts with the mod loaded, and a survival player can craft a flint pickaxe from its parts.
-- The Part Builder block opens its screen.
-- Tools made on the original's library (`/tconstruct build`, `craft`, `upgrade`) dig, wear, hit and describe themselves by their materials and modifiers ([details](tconstruct/README.md#the-library-and-the-tools-made-on-it-new)).
+- [Rules](AGENTS.md) · [Plan](docs/roadmap.md) · [Architecture](docs/architecture.md) · [Commands](docs/development.md)
+- [PlutoLib API reference](pluto-lib/docs/api/index.md): consult source/support status; an API declaration is not proof of a working adapter.
+- [New Tinkers](tconstruct/README.md)
+- [Verified development launch](docs/development.md#verified-development-launch): explicit source-bound binary only, fresh isolated home, no legacy fallback; not a playable Tinkers release.
 
-<p align="center">
-  <img src="docs/images/part-builder.png" alt="The Part Builder screen in game" width="48%">
-  <img src="docs/images/crafted-flint-pickaxe.png" alt="A crafted flint pickaxe in the inventory" width="48%">
-</p>
-
-Most other features are present as code but have not been exercised in game. [Tinkers' Construct](tconstruct/README.md) lists what is and is not verified.
-
-## Where to go next
-
-- **Developers:** [docs/development.md](docs/development.md) (build, local checks, CI) and [docs/architecture.md](docs/architecture.md).
-- **Plans:** [docs/roadmap.md](docs/roadmap.md) and [docs/migration/](docs/migration/).
-- **Releases:** [docs/releasing.md](docs/releasing.md).
-- **Working rules for contributors and agents:** [AGENTS.md](AGENTS.md).
-
-## Licence
-
-See the licence files in each directory.
+Preserve original licence notices when recovering assets or code. No release is authorized by the reconstruction.

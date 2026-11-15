@@ -1,5 +1,0 @@
-//! Recipes of the library (`library/recipe`): what items and fluids are worth as materials, and, later, the Part Builder and Tinker Station recipes.
-pub mod material;
-pub mod modifier;
-pub mod part_builder;
-pub mod tool_building;

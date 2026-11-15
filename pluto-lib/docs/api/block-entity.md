@@ -25,6 +25,27 @@ BlockEntityTypeRegistry::register(
 
 The block itself (model, name, recipes) comes from your mod's content; this only gives it a block entity.
 
+> **Use with Caution.** Native-recognized custom block names are an uncovered factory-priority case. The pinned host recognizes skull/head suffixes before asking the mod block-entity factory, so registering a custom `*_head` or `*_skull` here does not replace its native skull entity. Mod block-entity rendering requires a `Mod` entity and will not receive that native skull. A registered-custom-only priority policy is pure-tested; its predicate installation and early-factory hook are now connected in source. It preserves vanilla/unregistered fallback, calls the existing native dispatcher once for claimed custom IDs, and never retries a failed claimed factory as a native skull. The `block_entities` composition guard checks owner, package bytes and native-source authority using the existing exact-contract validator. Its actual function fingerprint remains deliberately unset: the guard rejects this route until the native attachment combined plan has been reviewed. Native compilation, save/reopen and network verification remain pending; registration alone does not prove this path works. Existing native-skull save tags are not migrated by this new-object factory.
+
+## Client Animation
+
+`BlockEntityType::client_ticker` declares a client-level `BlockEntityTicker`, independently of the server `ticker`. The client callback reads synchronized `data` but writes only `client_data`, the transient state of that client block entity. This separates animation from saves, menu data and server synchronization.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, Nbt, NbtCompoundExt};
+let kind = BlockEntityType::new(Identifier::parse("example:animated_machine").unwrap())
+    .client_ticker(|tick| {
+        let Some(powered) = tick.world.has_neighbor_signal(tick.pos) else { return };
+        if powered {
+            let count = tick.client_data.get_int("animation_ticks", 0) as i32;
+            tick.client_data.insert("animation_ticks".into(), Nbt::Int(count.wrapping_add(1)));
+        }
+    });
+assert_eq!(kind.block.to_string(), "example:animated_machine");
+```
+
+> **Use with Caution.** This remains a native-verification stub. State/constructor declarations, renderer snapshots and client tick dispatch are wired in source but not applied or native-compiled. The declared HEAD at the existing block-entity animation pass excludes servers, absent levels, title screens, pause and frozen ticks; its API dispatcher converts read-only saved NBT and an owned transient update, then commits only a dispatched callback. Shared entity iteration and owned leases release world/entity borrows before native signal queries without waking server tickers. Residence changes reset the client state independently of frustum/fade; stable residence preserves it. Busy snapshots and unknown power remain unavailable, not fabricated empty data or false. Replacement/unload resets are now source-wired: a retained same-level respawn preserves animation, a different or forced new level resets before replacement, and disconnect/reconfiguration clears the leaving lifetime. The host notifies old-level unload after new-level load; that late notification must not reset the new lifetime. Constructor initialization alone is insufficient, and a position-only global map is not equivalent. The composition guard deliberately rejects use until native attachment owner/constructor/function-plan review. Native save/network exclusion, cache lifecycle and live animation remain unverified.
+
 ## Saved Data
 
 `tick.data` is an `NbtCompound`, the tagged data the game saves. Read it with the typed helpers (`get_int`, `get_double`, `get_string`, `get_compound`), which return a default for a missing key instead of failing, and write it with `insert`:
@@ -279,6 +300,34 @@ let kind = BlockEntityType::new(Identifier::new("example", "oven").unwrap()).tic
 let _ = kind;
 ```
 
+### `BlockEntityClientTick`
+
+Client callback context with `pos: BlockPos`, `data: &NbtCompound` (read-only server data), `client_data: &mut NbtCompound` (unsaved instance data) and `world: &dyn BlockView`. The callback never gets mutable access to server data. Native dispatch and lifecycle ownership remain unimplemented.
+
+```rust
+use pluto_lib::{BlockEntityClientTick, MemoryBlockView, Nbt, NbtCompound, NbtCompoundExt};
+let world = MemoryBlockView::default();
+let saved = NbtCompound::new();
+let mut local = NbtCompound::new();
+let tick = BlockEntityClientTick {
+    pos: [1, 64, 2], data: &saved, client_data: &mut local, world: &world,
+};
+tick.client_data.insert("angle".into(), Nbt::Int(3));
+assert_eq!(tick.client_data.get_int("angle", 0), 3);
+assert!(tick.data.is_empty());
+```
+
+### `BlockEntityType::client_ticker`
+
+`fn client_ticker(self, ticker: impl Fn(&mut BlockEntityClientTick<'_>) + Send + Sync + 'static) -> BlockEntityType`. Replaces this type's client callback without adding or changing its server callback. Registration currently records the callback only; the native adapter is a documented stub.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, Nbt};
+let kind = BlockEntityType::new(Identifier::parse("example:display").unwrap())
+    .client_ticker(|tick| { tick.client_data.insert("visible".into(), Nbt::Byte(1)); });
+assert_eq!(kind.id.to_string(), "example:display");
+```
+
 ### `BlockEntityType::update_tag`
 
 `fn update_tag(self, update_tag: impl Fn(&NbtCompound) -> NbtCompound + Send + Sync + 'static) -> BlockEntityType`. Clients are sent what `update_tag` makes of the saved data whenever a chunk holding the block entity is sent or its block changes (Minecraft: `getUpdateTag`). Without it nothing is sent.
@@ -347,7 +396,7 @@ assert!(BlockEntityTypeRegistry::get("example:found").is_some());
 
 ### `ItemSlot`
 
-One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). A slot whose item is unchanged keeps all its other data when only `count` is changed. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them.
+One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). Clone an existing slot when moving it: an opaque host-owned snapshot carries its other components (including native wire data) across slot/cursor changes, and the adapter applies edits to the public fields afterward. Use `ItemSlot::new`, not a struct literal, for a plain new stack; it must not inherit the destination's components. Changing `item` discards the captured source components. To empty a container slot, assign `None`; a committed slot with `count == 0` is also written back as `None`, matching the host's empty-slot representation. Production conversion fixtures pass; the changed native adapter has not yet been compiled or exercised in game. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them. `tool` is the stack's own `minecraft:tool` component: write the mining rules and speeds there and only this stack mines that way (`None` keeps the item's own). The native mining-speed and drop rules read it, and the native item encoder/decoder already carries it between players; the conversion is source-wired and not yet compiled against the pinned host.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, Nbt};

@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "tag": "forge:string"
-  },
-  "material": "tconstruct:string",
-  "needed": 4,
-  "type": "tconstruct:material",
-  "value": 1
-}

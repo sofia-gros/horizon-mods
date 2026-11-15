@@ -1,0 +1,40 @@
+{
+  "schema": 6,
+  "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
+  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics.",
+  "sources": {
+    "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
+    "crates/horizon-client/src/game/dragon.rs": "bd1ec0e7e76701f31e4080b380b6d58a4aee887cf7b50d7188b1744dbe627bc6",
+    "crates/horizon-client-core/src/potions.rs": "463be6e6ad469f1624fe6a58bbd53182062af4caac32fa24dbc38fbac1ccca1f",
+    "crates/horizon-client/src/game/potions/cloud_nbt.rs": "7e3d524ed6ea48b5c9e6821f4999b154e01812855ebf63dac7500b2206ad0497",
+    "crates/horizon-client/src/game/potions/cloud_particle.rs": "6ebbbda20867d0e589c09191bf19fced95ad483e58968bd51663078cd4d0180a"
+  },
+  "protected_prefixes": [
+    "horizon_client::game::potions::",
+    "horizon_client::game::dragon::",
+    "horizon_client_core::potions::"
+  ],
+  "contact_module": {
+    "mod_id": "pluto_lib",
+    "module_id": "pluto-contact-sound",
+    "file": "crates/horizon-client/src/game/potions.rs",
+    "name": "pluto_contact_sound",
+    "fingerprint": "ab35dbb0c50c1173c93c154e236ccaeca627d57c7069eb87155bb097bb9ca3fe"
+  },
+  "contact_hook": {
+    "mod_id": "pluto_lib",
+    "injection_id": "pluto-contact-sound-flush",
+    "file": "crates/horizon-client/src/game/potions.rs",
+    "target": "horizon_client::game::potions::Game<'_>::tick_mob_effects",
+    "node": [32, 8],
+    "function_fingerprint": "a96d4cb4e1faf3574074a596237beef589a73f33683fa1ab88bbe109739e6d50",
+    "kind": "HEAD",
+    "priority": 0,
+    "cancellable": false,
+    "bindings": [{"name": "game", "ty": "&mut crate::game::Game<'_>", "value": "&mut *self"}]
+  },
+  "module_source": "pluto-contact-sound.rs",
+  "module_sha256": "44b79d3a9b2cf0d92e3f9cfff1905a3eda2caa07dcf00f6075f593d4bfd7967f",
+  "hook_source": "pluto-contact-sound-head.rs",
+  "hook_sha256": "569c1c7ebd8f18e9171304313985afe747d437319578df745ca07268a35bbfdb"
+}

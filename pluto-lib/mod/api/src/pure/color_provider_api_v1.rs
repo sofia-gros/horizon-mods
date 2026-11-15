@@ -22,6 +22,18 @@ pub struct BlockColorContext {
     pub tint_index: i32,
 }
 
+/// What an item colour provider is asked, including the stack's owned custom data.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ItemColorContext {
+    /// The item stack being drawn, independent of inventory or held-item lifetime.
+    pub stack: super::player_api::StackData,
+    /// The model face's tint index.
+    pub tint_index: i32,
+}
+
+type ItemProvider = Arc<dyn Fn(&ItemColorContext) -> Option<u32> + Send + Sync>;
+static ITEMS: RwLock<BTreeMap<String, ItemProvider>> = RwLock::new(BTreeMap::new());
+
 type Provider = Arc<dyn Fn(&BlockColorContext) -> Option<u32> + Send + Sync>;
 
 // Meshing workers may query concurrently; lookup never scans every registration.
@@ -48,10 +60,34 @@ pub(crate) fn block_color_from_host(
     provider(&BlockColorContext { state, pos, tint_index })
 }
 
+pub(crate) fn has_item_provider(item:&str)->bool {
+    ITEMS.read().ok().is_some_and(|providers|providers.contains_key(item))
+}
+
 /// The registry of colour providers (Fabric: `ColorProviderRegistry`).
 pub struct ColorProviderRegistry;
 
 impl ColorProviderRegistry {
+    /// Registers item providers (Fabric: `ColorProviderRegistry.ITEM.register`).
+    /// A newer registration replaces the old one. Stub: native item renderers
+    /// are not yet connected; direct `item_color` lookups work independently.
+    pub fn register_item(items: &[Identifier], provider: impl Fn(&ItemColorContext) -> Option<u32> + Send + Sync + 'static) {
+        let provider: ItemProvider=Arc::new(provider);
+        let replaced={
+            let Ok(mut all)=ITEMS.write() else { return };
+            items.iter().filter_map(|item|all.insert(item.to_string(),provider.clone())).collect::<Vec<_>>()
+        };
+        drop(replaced);
+    }
+
+    /// Queries the item's registered provider without holding the registry lock.
+    /// Returns `0xRRGGBB`, or `None` for an absent/declining provider. Native
+    /// item/hand rendering remains a stub until its adapter invokes this path.
+    pub fn item_color(context: &ItemColorContext) -> Option<u32> {
+        let provider=ITEMS.read().ok()?.get(&context.stack.item).cloned()?;
+        provider(context)
+    }
+
     /// Gives `blocks` a provider (Fabric: `ColorProviderRegistry.BLOCK.register`). It answers the colour as `0xRRGGBB`, or `None` to leave the
     /// face to the game's own tint. A block registered again takes the newer provider.
     pub fn register_block(blocks: &[Identifier], provider: impl Fn(&BlockColorContext) -> Option<u32> + Send + Sync + 'static) {
@@ -76,6 +112,31 @@ impl ColorProviderRegistry {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+
+    #[test]
+    fn item_providers_keep_stack_and_tint_data_and_allow_reentrant_replacement() {
+        use super::super::{base::Nbt,player_api::StackData};
+        let id=Identifier::parse("example:dyed_item").unwrap();
+        let next=id.clone();
+        let context=ItemColorContext { stack:StackData { item:id.to_string(),count:2,damage:5,max_damage:Some(40),
+            custom_data:[("rgb".into(),Nbt::Int(0x123456))].into_iter().collect() },tint_index:3 };
+        let expected=context.clone();
+        let seen=Arc::new(Mutex::new(Vec::new())); let captured=seen.clone();
+        ColorProviderRegistry::register_item(&[id],move |context| {
+            captured.lock().unwrap().push(context.clone());
+            if context.tint_index!=3 { return None; }
+            ColorProviderRegistry::register_item(std::slice::from_ref(&next),|_|Some(0xABCDEF));
+            context.stack.custom_data.get("rgb").and_then(|nbt|match nbt {Nbt::Int(rgb)=>Some(*rgb as u32),_=>None})
+        });
+        let mut other=context.clone(); other.stack.item="example:unregistered_item".into();
+        assert_eq!(ColorProviderRegistry::item_color(&other),None);
+        let mut declined=context.clone(); declined.tint_index=1;
+        assert_eq!(ColorProviderRegistry::item_color(&declined),None);
+        assert_eq!(ColorProviderRegistry::item_color(&context),Some(0x123456));
+        assert_eq!(*seen.lock().unwrap(),vec![declined,expected]);
+        assert_eq!(ColorProviderRegistry::item_color(&context),Some(0xABCDEF));
+        assert_eq!(context.stack.count,2,"lookups do not mutate the caller's stack");
+    }
 
     #[test]
     fn a_provider_answers_for_its_blocks_only_and_a_later_registration_replaces_it() {

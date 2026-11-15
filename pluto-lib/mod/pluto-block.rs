@@ -13,8 +13,23 @@ pub use horizon_world::level::pluto_structure_access as structures;
 
 #[cfg(not(test))]
 pub use horizon_world::level::pluto_block_access::set_survival_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_placement_access::{set_provider as set_item_placement_provider, BindingDeclaration as ItemPlacementBinding};
+#[cfg(not(test))]
+pub use horizon_assets::item_model::pluto_skull_model_access::{set_provider as set_skull_definition_provider, Definition as SkullDefinition, definitions as skull_definitions};
+#[cfg(not(test))]
+pub use crate::item_render::pluto_skull_item_models::set_provider as set_skull_part_provider;
+#[cfg(not(test))]
+pub use crate::block_entity_render::ModelPart as SkullModelPart;
+#[cfg(not(test))]
+pub use crate::mod_content::pluto_block_settings_access::{set_provider as set_block_settings_provider, Declaration as BlockSettingsDeclaration};
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_entity_type_access::{set_provider as set_entity_type_provider, Definition as DerivedEntityDefinition};
 #[cfg(test)]
 pub use crate::block_access_tests::set_survival_dispatcher;
+
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_mask_dispatcher;
 
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]
@@ -26,6 +41,8 @@ pub struct ShapeUpdate {
     pub direction: u8,
     pub neighbour_pos: [i32; 3],
     pub neighbour: Option<StateInfo>,
+    /// A same-block scheduled tick requested by the callback.
+    pub tick_delay: std::cell::Cell<Option<i32>>,
 }
 
 pub struct Placement {
@@ -46,11 +63,16 @@ pub enum PlacementAnswer {
     State(StateInfo),
 }
 
+pub use feature_transport::{FallOn, AfterFall, AfterFallHandler, InsideMotion, InsideMotionHandler};
+
 /// The functions the API crate gives the game.
 #[derive(Clone, Copy)]
 pub struct Sink {
     /// Whether a behaviour is registered for this block name.
     pub has: fn(&str) -> bool,
+    pub fall_on: fn(&mut FallOn),
+    pub after_fall: fn(&StateInfo) -> Option<AfterFallHandler>,
+    pub inside_motion: fn(&StateInfo) -> Option<InsideMotionHandler>,
     pub survives: fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>,
     pub placement: fn(&dyn LevelView, &Placement) -> PlacementAnswer,
     pub update_shape: fn(&dyn LevelView, &ShapeUpdate) -> Option<StateInfo>,
@@ -135,6 +157,9 @@ pub fn custom_feature(world: &mut dyn LevelEdit, kind: &str, config: &serde_json
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);
 
 pub fn set_sink(sink: Sink) {
+    feature_transport::set_landing_sink(feature_transport::LandingSink {
+        has: sink.has, fall_on: sink.fall_on, after_fall: sink.after_fall, inside_motion: sink.inside_motion,
+    });
     if let Ok(mut slot) = SINK.lock() {
         *slot = Some(sink);
     }

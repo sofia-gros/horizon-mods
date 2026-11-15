@@ -36,7 +36,17 @@ def verify_source(plan, workspace, metadata, helpers=None):
         raise ValueError(str(error).replace('placement', 'crafting-match')) from error
 
 
+NATIVE_SOURCES = {
+    'crates/horizon-client/src/crafting.rs': '298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e',
+}
+
+
 def check(plan, workspace):
+    if _shared.native_bundle(plan):
+        # Shaped/mirrored, shapeless and special matching remain native; the
+        # active bundle has no deny-only admission extension.
+        _shared.check_native(plan, workspace, NATIVE_SOURCES, {'assemble_if_matches'})
+        return
     metadata = entries()
     check_order(plan, metadata)
     verify_source(plan, workspace, metadata)
@@ -51,7 +61,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
         print('Crafting-match composition rejected: ' + str(error), file=sys.stderr)
         return 1
-    print('Crafting-match veto ownership, native fingerprint and helper source verified.')
+    print('Crafting-match boundary verified; native preservation supplies no custom admission veto.')
     return 0
 
 

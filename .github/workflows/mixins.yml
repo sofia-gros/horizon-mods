@@ -15,11 +15,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target/ci-build
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      - name: Validate clean Tinkers boundary and development package
+        run: |
+          python3 tools/port.py check
+          python3 -m unittest discover -s tests -p test_clean_port.py -v
+          python3 tools/port.py package --output .local/clean-port/ci-tconstruct.hnmod
       - name: Determine validation scope
         id: scope
         env:
@@ -48,49 +55,18 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target/mixins-cli-build
-            target/ci-build
-          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
-      - name: Test resource preparation and command transactions
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # Frozen Tinkers tests are not executed or counted as clean-port parity.
+      # Retained root and PlutoLib contracts remain mandatory; gameplay is R2-R5.
+      - name: Test active package and PlutoLib contracts
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           python3 -m unittest discover -s tests -v
-          python3 -m unittest discover -s tconstruct/tests -v
           PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v
           cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml
-          cargo test --locked --manifest-path tconstruct/mixins/tconstruct/api/library/Cargo.toml
-          cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
-          cargo test --locked --manifest-path tconstruct/tests/glass-crafting/Cargo.toml
-          cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
-          SOUL_REPO_ROOT="$GITHUB_WORKSPACE" cargo test --locked --manifest-path tconstruct/tests/soul-glass/Cargo.toml
-          rustc --edition=2021 --test tconstruct/tests/rust/source_fluid_display.rs -o /tmp/tconstruct-fluid-display-test
-          /tmp/tconstruct-fluid-display-test
-          cargo test --locked --manifest-path tconstruct/tests/world-behavior/Cargo.toml
-          rustc --edition=2021 --test tconstruct/tests/rust/slime_seed_rules.rs -o /tmp/tconstruct-slime-seed-rules-test
-          /tmp/tconstruct-slime-seed-rules-test
-          rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
-          /tmp/tconstruct-broad-wire-test
-          rustc --test tconstruct/tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
-          /tmp/tconstruct-recipe-snapshot-test
-          rustc --test tconstruct/tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
-          /tmp/tconstruct-material-snapshot-test
-          rustc --test tconstruct/tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
-          /tmp/tconstruct-source-builder-wire-test
-          rustc --test tconstruct/tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
-          /tmp/tconstruct-source-builder-layout-test
-          rustc --edition=2021 --test tconstruct/tests/rust/materials_book_index.rs -o /tmp/tconstruct-materials-book-index-test
-          /tmp/tconstruct-materials-book-index-test
-          rustc --edition=2021 --test tconstruct/tests/rust/source_part_material_id.rs -o /tmp/tconstruct-part-material-id-test
-          /tmp/tconstruct-part-material-id-test
-          rustc --edition=2021 --test tconstruct/tests/rust/source_cast_info.rs -o /tmp/tconstruct-cast-info-test
-          /tmp/tconstruct-cast-info-test
-          rustc --edition=2021 --test tconstruct/tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test
-          /tmp/tconstruct-native-item-test
-          rustc --test tconstruct/tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
-          /tmp/tconstruct-original-item-test
-          rustc --test tconstruct/tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
-          /tmp/tconstruct-original-remainder-test
       - name: Fetch upstream sources
         if: steps.scope.outputs.docs_only != 'true'
         run: |
@@ -104,38 +80,39 @@ jobs:
           MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
           git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
-      - name: Stage the vertical slice and check the client
+      - name: Build pinned official Mixins CLI
         if: steps.scope.outputs.docs_only != 'true'
-        # Only the slice in tools/smoke-local/slice.json is built while upstream
-        # rejects the rest (see AGENTS.md). This does not launch the game.
-        run: python3 tools/smoke-local/build.py --ci --horizon ../horizon-official --mixins ../horizon-mixins --work "$RUNNER_TEMP/slice-build"
-      - name: Test fluid effect selection isolation
+        run: cargo +1.95.0 build --locked --release --manifest-path ../horizon-mixins/Cargo.toml -p horizon-mixins-cli --target-dir target/mixins-cli-build
+      - name: Fetch locked host dependencies
         if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_fluid_effect_selection_rust.sh
-      - name: Test Drain container action outcomes
+        run: cargo +1.95.0 fetch --locked --manifest-path ../horizon-official/Cargo.toml
+      - name: Build guarded clean development game
         if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_drain_container.py
-      - name: Test Cannon and Casting Tank preservation outcomes
-        if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_cannon_held.py
-      - name: Test shared inventory transaction guards
-        if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_inventory_transaction_guards.py
-      - name: Test lossless casting state transactions
-        if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_casting_preservation_rust.sh
-      - name: Test bounded survival helper chain
-        if: steps.scope.outputs.docs_only != 'true'
-        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_survival_chain_rust.sh
-      - name: Package native mod sources and resource inputs
-        run: python3 tconstruct/tools/package_hnmod.py --output dist/tconstruct.hnmod
-      - name: Package content mod
-        run: python3 tconstruct/tools/package_hmod.py --output dist/tconstruct.hmod
-      - name: Upload mod artifacts
+        # All guards precede apply/compilation; failure stops consumer/entry linking.
+        # Same build entry as local development; no launcher/gameplay/release claim.
+        run: python3 tools/build_clean_game.py --source ../horizon-official --output .local/clean-port/ci-native --mixins target/mixins-cli-build/release/horizon-mixins --target-dir .local/cargo-target-ci
+      - name: Upload native planning diagnostics
+        if: always() && steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: tconstruct-hnmod-${{ github.sha }}
+          name: clean-native-plan-${{ github.sha }}
           path: |
-            dist/tconstruct.hnmod
-            dist/tconstruct.hmod
+            .local/clean-port/ci-native/plan.json
+            .local/clean-port/ci-native/plan-result.json
+            .local/clean-port/ci-native/direct-host.json
+            .local/clean-port/ci-native/contract-check.json
+            .local/clean-port/ci-native/native-check.json
+            .local/clean-port/ci-native/api-check.json
+            .local/clean-port/ci-native/consumer-check.json
+            .local/clean-port/ci-native/game-entry-check.json
+            .local/clean-port/ci-native/game-entry-link.json
+            .local/clean-port/ci-native/game-entry-link.log
+          include-hidden-files: true
+          if-no-files-found: warn
+      - name: Upload checked development package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clean-tconstruct-development-${{ github.sha }}
+          path: .local/clean-port/ci-tconstruct.hnmod
+          include-hidden-files: true
           if-no-files-found: error

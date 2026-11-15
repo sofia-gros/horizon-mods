@@ -69,8 +69,36 @@ def verify_source(plan, workspace, metadata, helper_root=None):
             raise ValueError("plan does not contain the exact reviewed advancement adapter")
 
 
+NATIVE_FILE = 'crates/horizon-client/src/game/advancements.rs'
+NATIVE_SHA256 = 'a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9'
+
+
 def check(plan, workspace):
     metadata = entries()
+    if any(entry.get('mod_id') == 'pluto_lib'
+           for section in ('injections', 'modules', 'states') for entry in plan.get(section, [])):
+        # No copied advancement bodies are installed by the active trait bundle.
+        # Preserve the pinned native index/trigger, including native event order.
+        # This does NOT implement the historical component-aware trigger extension.
+        if plan.get('schema') != 6:
+            raise ValueError('unreviewed official plan schema for native advancements')
+        targets = {entry['target'] for entry in metadata}
+        for section in ('injections', 'modules', 'states'):
+            for entry in plan.get(section, []):
+                if any(c.get('file') == NATIVE_FILE for c in entry.get('constructors', [])):
+                    raise ValueError('state constructor changes a preserved native advancement source')
+                if (entry.get('file') == NATIVE_FILE or entry.get('target') in targets
+                        or entry.get('mod_id') == MOD_ID):
+                    raise ValueError('native advancement caller must remain unattached; no mixed legacy replacement')
+        source = Path(workspace) / NATIVE_FILE
+        if source.is_symlink() or not source.is_file():
+            raise ValueError('native advancement source must be a regular file')
+        source.resolve().relative_to(Path(workspace).resolve())
+        if plan.get('inputs', {}).get(NATIVE_FILE) != NATIVE_SHA256:
+            raise ValueError('native advancement plan source differs')
+        if digest(source.read_bytes()) != NATIVE_SHA256:
+            raise ValueError('native advancement workspace source differs')
+        return
     check_order(plan, metadata)
     verify_source(plan, workspace, metadata)
 
@@ -84,7 +112,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, StopIteration, TypeError) as error:
         print(f"advancement composition rejected: {error}", file=sys.stderr)
         return 1
-    print("Copied advancement boundaries, exact source and complete-plan exclusivity verified.")
+    print("Advancement boundary verified; native preservation does not supply custom component predicates.")
     return 0
 
 

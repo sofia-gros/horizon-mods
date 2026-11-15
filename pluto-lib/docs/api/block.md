@@ -2,6 +2,8 @@
 
 Say what a block of your mod does that its content file cannot say: where it may stand, which state it takes when placed, how a neighbour changes it, and what happens to an entity inside it. The block itself (its template, its state properties, its shapes, its loot) is declared in the mod's content files; a `BlockBehavior` is attached to it by id. This page first walks through using it, then lists every item in the [Reference](#reference).
 
+> **Current clean-port status (2026-11-14).** PlutoLib now attaches player inside-block callbacks and mob restitution directly to pinned Horizon source, retaining the native sweep and movement paths. Full attachment planning/application has passed for the earlier input; native typechecking is being repaired as host drift is found. Native/game results elsewhere on this page are historical, not verification of these changed inputs. See [current build status](../../../docs/development.md#plutolib-owned-direct-horizon-attachment).
+
 ## Basic Example
 
 A hook that hangs from the block above it, and breaks when that block goes:
@@ -116,6 +118,30 @@ view.blocks.insert([0, 65, 0], BlockState::parse("minecraft:stone").unwrap());
 assert!(view.is_face_sturdy(Direction::Up.relative([0, 64, 0]), Direction::Down));
 ```
 
+## Handling Landing Damage
+
+A block may change calculated landing damage through `fall_on`. Damage and bounce velocity are separate: setting damage to zero does not make an entity bounce. The verified adapter handles resident-player landings after native block-contact listeners. Concrete mob damage/post-fall adapters also pass the pinned build and four-kind cow bounce/health gate with a stone damage control; other species remain unverified. The item post-fall expression adapter passes the full native build and four-kind dropped-item bounce/retained-stack game gate with stone and unregistered-inset negatives. The pinned native build and a resident-player game gate pass: zero-damage landings preserve health while an unregistered stone control takes damage. Other entities and LAN remain unverified.
+
+```rust
+use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier};
+BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "cushion").unwrap())
+    .fall_on(|c| c.damage = 0.0));
+```
+
+> **Use with Caution.** Callbacks run without the behaviour-registry lock. A non-finite damage result is ignored and negative damage clamps to zero. No velocity, fall-distance reset, particles or network synchronization is implied.
+
+## Static Piston Reactions
+
+A declared mod block can override its template's piston reaction for every state. This is a static block property, not a sticky-pair predicate or a request to move a block entity:
+
+```rust
+use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier, PistonBehavior};
+BlockBehaviors::register(BlockBehavior::new(Identifier::parse("example:wall_head").unwrap())
+    .piston_behavior(PistonBehavior::Normal));
+```
+
+> **Use with Caution.** Register before content generation collects its immutable settings snapshot; later registrations do not change that snapshot. The source adapter validates declared mod-block IDs, includes the settings in the content-root cache identity and patches individual gameplay rows without copying the whole gameplay export. Vanilla/unregistered block requests reject root generation. Native types/sites and actual piston behavior remain unverified behind native attachment review. Normal does not bypass the native block-entity movement veto. Omitting an override preserves the template.
+
 ## Reference
 
 ### `Direction`
@@ -227,6 +253,24 @@ use pluto_lib::Direction;
 assert_eq!(Direction::West.relative([5, 64, 5]), [4, 64, 5]);
 ```
 
+### Neighbor signal queries
+
+`BlockView::has_neighbor_signal(&self, pos: BlockPos) -> Option<bool>` is Minecraft's `Level.hasNeighborSignal` query. `Some(false)` is a known unpowered answer; `None` means unavailable, not false. It does not inspect the block's `powered` property or infer power from tags. Native views without a signal context return `None` (stub). A borrowed client-view adapter now source-delegates to the real native query after validating its origin, but its tick driver is unconnected and native compilation/gameplay remain unverified. Native code retains its own neighbor/conductor semantics; this does not emulate redstone from properties or tags. `MemoryBlockView::neighbor_signals` supplies explicit test answers; unloaded positions still return `None`, and memory does not simulate redstone.
+
+```rust
+use pluto_lib::{BlockView, MemoryBlockView};
+let mut world = MemoryBlockView::default();
+assert_eq!(world.has_neighbor_signal([1, 64, 2]), None);
+world.neighbor_signals.insert([1, 64, 2], false);
+assert_eq!(world.has_neighbor_signal([1, 64, 2]), Some(false));
+world.neighbor_signals.insert([1, 64, 2], true);
+assert_eq!(world.has_neighbor_signal([1, 64, 2]), Some(true));
+world.unloaded.insert([1, 64, 2]);
+assert_eq!(world.has_neighbor_signal([1, 64, 2]), None);
+```
+
+> **Use with Caution.** Skip work requiring power information when the query is unavailable; a fabricated false can stop an animation or change machine behavior incorrectly.
+
 ### `BlockView`
 
 What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`, `brightness(pos) -> u8` the light at the position (0 to 15), `light_passes_up(pos) -> bool` whether light passes from that block into the one above it, `is_water(pos) -> bool` whether it holds water, `is_fluid_full(pos) -> bool` whether its fluid is a full source, `is_area_loaded(pos, radius) -> bool` whether the chunks around are loaded (check it in a tick callback before touching blocks near the edge), `is_full_block(pos) -> bool` whether its collision shape is a whole block and `build_height() -> [i32; 2]` the lowest buildable y and the first y above the build limit.
@@ -284,7 +328,7 @@ assert_eq!(view.build_height(), [-64, 320]); // build range is a different query
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
+A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `neighbor_signals: BTreeMap<BlockPos, bool>` supplies explicit neighbor-signal answers (`None` when absent or unloaded), without redstone simulation. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `state_tags` explicit registry tags by block id, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -543,18 +587,70 @@ A neighbour changed. `state` is the block's state, `pos` its position, `directio
 use pluto_lib::{BlockState, Direction, MemoryBlockView, ShapeUpdateContext};
 
 let view = MemoryBlockView::default();
-let context = ShapeUpdateContext {
-    state: BlockState::parse("example:post").unwrap(),
-    pos: [0, 64, 0],
-    direction: Direction::North,
-    neighbour_pos: [0, 64, -1],
-    neighbour: None,
-    view: &view,
-};
+let context = ShapeUpdateContext::new(
+    BlockState::parse("example:post").unwrap(), [0, 64, 0],
+    Direction::North, [0, 64, -1], None, &view,
+);
 assert_eq!(context.direction.relative(context.pos), context.neighbour_pos);
 assert!(context.neighbour.is_none());
 assert_eq!(context.state.block.path(), "post");
 assert!(context.view.is_air(context.neighbour_pos));
+```
+
+### `ShapeUpdateContext::new`
+
+`fn new(state: BlockState, pos: BlockPos, direction: Direction, neighbour_pos: BlockPos, neighbour: Option<BlockState>, view: &dyn BlockView) -> ShapeUpdateContext`. Creates a borrowed update with no tick request. The supplied neighbour may differ from the state currently in the world.
+
+```rust
+use pluto_lib::{BlockState, Direction, MemoryBlockView, ShapeUpdateContext};
+let view = MemoryBlockView::default();
+let update = ShapeUpdateContext::new(BlockState::parse("example:leaves").unwrap(),
+    [0,64,0], Direction::East, [1,64,0], None, &view);
+assert_eq!(update.scheduled_tick_delay(), None);
+```
+
+### `ShapeUpdateContext::schedule_tick`
+
+`fn schedule_tick(&self, delay: i32) -> bool`. Requests this block's scheduled tick at `pos` without changing its state. Positive delays are accepted; repeated requests keep the earliest. The native queue still checks loaded chunks and deduplicates; accepting a request is not proof it executed. Source forwarding uses the existing update hook's tick queue; native validation is pending the native attachment gate.
+
+```rust
+use pluto_lib::{BlockState, Direction, MemoryBlockView, ShapeUpdateContext};
+let view = MemoryBlockView::default();
+let update = ShapeUpdateContext::new(BlockState::parse("example:leaves").unwrap(),
+    [0,64,0], Direction::Up, [0,65,0], None, &view);
+assert!(!update.schedule_tick(0));
+assert!(update.schedule_tick(5));
+assert!(update.schedule_tick(1));
+assert!(update.schedule_tick(3));
+assert_eq!(update.scheduled_tick_delay(), Some(1));
+```
+
+### `ShapeUpdateContext::scheduled_tick_delay`
+
+`fn scheduled_tick_delay(&self) -> Option<i32>`. Reads the request for an adapter/custom host; it does not enqueue or execute a tick by itself.
+
+```rust
+use pluto_lib::{BlockState, Direction, MemoryBlockView, ShapeUpdateContext};
+let view = MemoryBlockView::default();
+let update = ShapeUpdateContext::new(BlockState::parse("example:block").unwrap(),
+    [0,64,0], Direction::Up, [0,65,0], None, &view);
+assert_eq!(update.scheduled_tick_delay(), None);
+update.schedule_tick(1);
+assert_eq!(update.scheduled_tick_delay(), Some(1));
+```
+
+### Method `BlockView::is_state_in_tag`
+
+`fn is_state_in_tag(&self, state: &BlockState, tag: &str) -> Option<bool>`. Queries registry membership of the supplied state, not the block at a position. Native live views source-forward the active registry; unsupported views return `None`. `MemoryBlockView::state_tags` supplies explicit test answers.
+
+```rust
+use pluto_lib::{BlockState, BlockView, MemoryBlockView};
+let mut view = MemoryBlockView::default();
+let log = BlockState::parse("example:log[axis=x]").unwrap();
+assert_eq!(view.is_state_in_tag(&log, "example:logs"), None);
+view.state_tags.insert("example:log".into(), ["example:logs".into()].into_iter().collect());
+assert_eq!(view.is_state_in_tag(&log, "example:logs"), Some(true));
+assert_eq!(view.is_state_in_tag(&log, "example:leaves"), Some(false));
 ```
 
 ### `EntityInsideContext`
@@ -575,6 +671,135 @@ assert_eq!(context.kind, "minecraft:zombie");
 assert_eq!((context.entity, context.pos), (12, [0, 64, 0]));
 assert_eq!(context.dimension, "minecraft:overworld");
 assert_eq!(context.state.block.path(), "post");
+```
+
+### `PistonBehavior`
+
+A static block piston property: `Normal` permits ordinary push/pull checks; `Destroy` permits destruction when the resolver allows it; `Block` refuses movement; `Ignore` is Minecraft's ignore reaction; `PushOnly` permits pushing but not pulling. The native resolver retains its bounds, hardness, extended-piston and block-entity checks.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier, PistonBehavior};
+for reaction in [PistonBehavior::Normal, PistonBehavior::Destroy, PistonBehavior::Block,
+    PistonBehavior::Ignore, PistonBehavior::PushOnly] {
+    let block = BlockBehavior::new(Identifier::parse("example:reaction").unwrap()).piston_behavior(reaction);
+    assert_eq!(block.piston_behavior_override(), Some(reaction));
+}
+```
+
+### `BlockBehavior::piston_behavior`
+
+`fn piston_behavior(self, behavior: PistonBehavior) -> BlockBehavior`. Assigns the static reaction for all states of an already declared mod block. Call before the content snapshot is collected; the native adapter is source-declared, not runtime-verified.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier, PistonBehavior};
+let block = BlockBehavior::new(Identifier::parse("example:fragile").unwrap())
+    .piston_behavior(PistonBehavior::Destroy);
+assert_eq!(block.piston_behavior_override(), Some(PistonBehavior::Destroy));
+```
+
+### `BlockBehavior::piston_behavior_override`
+
+`fn piston_behavior_override(&self) -> Option<PistonBehavior>`. Reads only the explicitly registered setting; `None` retains the native content template rather than assuming Normal.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier, PistonBehavior};
+let block = BlockBehavior::new(Identifier::parse("example:template").unwrap());
+assert_eq!(block.piston_behavior_override(), None);
+let block = block.piston_behavior(PistonBehavior::Block);
+assert_eq!(block.piston_behavior_override(), Some(PistonBehavior::Block));
+```
+
+### `PathNodeType`
+
+A host-independent Minecraft path-node category. Variants are `Blocked`, `Open`, `Walkable`, `WalkableDoor`, `Trapdoor`, `PowderSnow`, `OnTopOfPowderSnow`, `Fence`, `Lava`, `Water`, `WaterBorder`, `Rail`, `UnpassableRail`, `FireInNeighbor`, `Fire`, `DamagingInNeighbor`, `Damaging`, `DoorOpen`, `DoorWoodClosed`, `DoorIronClosed`, `Breach`, `Leaves`, `StickyHoney`, `Cocoa`, `DamageCautious`, `OnTopOfTrapdoor`, and `BigMobsCloseToDanger`. `name(self) -> &'static str` returns the uppercase Minecraft name; `parse(name: &str) -> Option<Self>` rejects unknown names rather than silently blocking a route.
+
+```rust
+use pluto_lib::PathNodeType;
+assert_eq!(PathNodeType::StickyHoney.name(), "STICKY_HONEY");
+assert_eq!(PathNodeType::parse("BLOCKED"), Some(PathNodeType::Blocked));
+assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
+```
+
+### `PathNodeType::name`
+
+`fn name(self) -> &'static str`. Return this category's uppercase Minecraft name.
+
+```rust
+use pluto_lib::PathNodeType;
+assert_eq!(PathNodeType::StickyHoney.name(), "STICKY_HONEY");
+```
+
+### `PathNodeType::parse`
+
+`fn parse(name: &str) -> Option<PathNodeType>`. Read an uppercase category name, returning `None` for an unknown category rather than a guessed blocked node.
+
+```rust
+use pluto_lib::PathNodeType;
+assert_eq!(PathNodeType::parse("BLOCKED"), Some(PathNodeType::Blocked));
+assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
+```
+
+### `PathNodeTypeContext`
+
+A borrowed path query: `state: BlockState`, `pos: [i32; 3]`, `view: &dyn BlockView`, `entity: Option<i32>`, and `kind: Option<String>`. Static queries have no entity identity. The callback must not retain the borrowed view.
+
+```rust
+use pluto_lib::{BlockState, MemoryBlockView, PathNodeTypeContext};
+let view = MemoryBlockView::default();
+let query = PathNodeTypeContext { state: BlockState::parse("example:slow_floor").unwrap(),
+    pos: [3, 64, 5], view: &view, entity: None, kind: None };
+assert_eq!(query.pos, [3, 64, 5]);
+assert!(query.entity.is_none());
+```
+
+### `BlockBehavior::path_node_type`
+
+`fn path_node_type(self, f: impl Fn(&PathNodeTypeContext<'_>) -> Option<PathNodeType> + Send + Sync + 'static) -> BlockBehavior`. Classify this block's path node using its state and surroundings. `Some(Blocked)` explicitly blocks the node; `None` keeps the native answer. Consumer code runs outside the registration lock.
+
+```rust
+use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier, PathNodeType};
+BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "slow_floor").unwrap())
+    .path_node_type(|query| (query.pos[1] >= 0).then_some(PathNodeType::StickyHoney)));
+```
+
+> **Use with Caution.** Native support is not yet verified. The borrowed-world adapter and static query hook are implemented and pass planning, but guarded compilation and game verification are pending. This entry point is static, so native queries have no entity identity. A registered category alone does not prove a mob will choose a different route.
+
+### `EntityInsideMotionContext`
+
+Current clean-port source review (2026-11-14): mob contacts retain the native sweep captured before `stepOn`, including when native damage immediately teleports the mob. The adapter delegates contact damage to the pinned host's teleport-aware `hurt` function. A production-helper trace regression passes; the corrected bundle still requires combined-contract approval, native compilation and game verification. Historical gates below do not certify this changed input.
+
+Mutable motion during a swept block contact: `state: BlockState`, `pos: [i32; 3]`, `entity: i32`, `kind: String`, `server: bool`, `suppressing_bounce: bool`, `position: [f64; 3]`, `previous_position: [f64; 3]`, `velocity: [f64; 3]`, `sync_velocity: bool`, and `step_sound: Option<[f32; 2]>` (volume/pitch). Position fields are the current and previous tick positions, not the sweep segment endpoints. Only finite `velocity` is applied; one non-finite component restores the complete original velocity and synchronization request. Setting `sync_velocity` requests the server's existing velocity packet after travel; false does not clear an earlier native mark. `step_sound` requests the contacted block's step sound at the block centre in the blocks category, without the native footstep volume multiplier. Volume and pitch must be finite/nonnegative; invalid velocity or sound restores all three outputs together. Requests use non-persistent world-owned storage, bounded to 256 entities and 256 sounds per entity, and are drained in the current authoritative player's effects phase. Queueing is not an audio-delivery guarantee. The player velocity/packet adapter passes the falling-side/suppression game gate; the pinned sound build and native-request gate also pass for four kinds, including volume/pitch 1 and no requests in suppression/control cases. Audible playback and broader LAN delivery remain unverified. The mob/item side adapters pass the guarded native build and four-face falling-contact gates for cows and dropped items on all four production kinds, with unregistered-inset negatives, retained item count, and same-entity callback/sync/native-sound checks. Their world-tick queue is separate from the player's clock, clones empty with world snapshots, never decodes saved attachments through a shared borrow, and releases its lock before delivery. All 91 images across these gates, landing/player-side regression and crafting/Part Builder are inspected. Other species, held-forward flat contact, exact per-tick parity and audible/broader LAN delivery remain unverified or unresolved.
+
+```rust
+use pluto_lib::{EntityInsideMotionContext, BlockState};
+let c = EntityInsideMotionContext { state: BlockState::parse("example:pad").unwrap(), pos:[0,64,0],
+    entity:1, kind:"minecraft:player".into(), server:true, suppressing_bounce:false,
+    position:[0.0,64.2,0.5], previous_position:[-0.2,64.2,0.5], velocity:[0.2,-0.08,0.0], sync_velocity:false, step_sound:None };
+assert_eq!(c.previous_position[0], -0.2);
+```
+
+### `AfterFallContext`
+
+A registered block's post-landing motion request: `state: BlockState`, `pos: [i32; 3]`, `entity: i32`, `kind: String`, `living: bool`, `item: bool`, `suppressing_bounce: bool`, `velocity: [f64; 3]`, `fall_distance: f64`, and `on_ground: bool`. Only the last three motion fields are applied back. Native horizontal restitution has already run; native vertical restitution does not run after this callback. A non-finite velocity/distance or negative distance restores all three original motion fields together. The handler is captured before native effects, so later registry replacement does not swap it mid-request. Native coverage includes resident players and concrete mobs. The pinned build, ordinary/suppressed player bounce and four-kind cow bounce/immunity with a stone damage control pass; exact per-tick parity, other species and LAN remain unverified. The item post-fall expression adapter passes the guarded native build and a real dropped-item gate: all four production kinds bounce, stone/unregistered-inset controls do not, and stack count stays one. The combined player/cow/side/sound regression and ordinary crafting/Part Builder pass on the same binary; all 35 images inspected. This is observed bounce, not an exact per-tick restitution proof. It retains native restitution for unregistered blocks, replaces only the scalar vertical result for registered handlers, and leaves the caller's later effects/drag/tracking intact. Items have no accumulated native landing-damage distance: `fall_distance` is zero and its output is not stored; velocity and `on_ground` outputs are applied. Moving-piston support is not covered.
+
+```rust
+use pluto_lib::{AfterFallContext, BlockState};
+let c = AfterFallContext { state: BlockState::parse("example:cushion").unwrap(), pos: [0,64,0],
+    entity: 1, kind: "minecraft:player".into(), living: true, item: false, suppressing_bounce: false,
+    velocity: [0.0,-0.7,0.0], fall_distance: 5.0, on_ground: true };
+assert_eq!(c.velocity[1], -0.7);
+```
+
+### `FallOnContext`
+
+Calculated server landing data: `state: BlockState`, `pos: [i32; 3]`, `entity: i32`, `kind: String`, `distance: f64`, and editable `damage: f32`. `distance` is the accumulated fall, not a velocity. Only `damage` is copied back to the native adapter; other fields describe the request. Verified coverage is resident players and the four-kind cow immunity/bounce fixture with a stone damage control. The concrete mob adapter is general, but other species are unverified; items are not connected.
+
+```rust
+use pluto_lib::{BlockState, FallOnContext};
+let c = FallOnContext { state: BlockState::parse("example:cushion").unwrap(),
+    pos: [0, 64, 0], entity: 1, kind: "minecraft:player".into(), distance: 10.0, damage: 7.0 };
+assert_eq!(c.pos, [0, 64, 0]);
+assert_eq!(c.damage, 7.0);
 ```
 
 ### `BlockBehavior`
@@ -635,6 +860,75 @@ use pluto_lib::{BlockBehavior, Identifier};
 let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap())
     .update_shape(|c| (c.state.property("powered") == Some("true")).then(|| c.state.clone().with("powered", "false")));
 assert!(behavior.block().path() == "post");
+```
+
+### `BlockBehavior::is_slime_block`
+
+`fn is_slime_block(self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers the source slime-block identity predicate, separately from sticky connectivity. **Stub:** the pinned native piston/entity-push paths do not invoke it. Registration is not proof of slime push or bounce gameplay.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let b = BlockBehavior::new(Identifier::parse("example:gel").unwrap()).is_slime_block(|_| true);
+assert_eq!(b.block().path(), "gel");
+```
+
+### `BlockBehavior::is_sticky_block`
+
+`fn is_sticky_block(self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers whether a block participates in sticky branching. **Stub:** accepted but not invoked by the pinned native piston resolver. It is not a replacement for the complete resolver's movement limits or pair rules.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let b = BlockBehavior::new(Identifier::parse("example:adhesive").unwrap()).is_sticky_block(|_| true);
+assert_eq!(b.block().path(), "adhesive");
+```
+
+### `BlockBehavior::can_stick_to`
+
+`fn can_stick_to(self, f: impl Fn(&BlockState, &BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers this block's directional predicate for its state and the neighbouring state. A false result must not be changed to native fallback; the reverse block's predicate and complete resolver still need separate handling. **Stub:** the pinned native resolver does not invoke this registration; the generic `Sim` method injection experiment is rejected. Pure callback tests are not native piston verification.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let b = BlockBehavior::new(Identifier::parse("example:selective").unwrap())
+    .can_stick_to(|state, other| state.block == other.block);
+assert_eq!(b.block().path(), "selective");
+```
+
+### `BlockBehavior::entity_inside_motion`
+
+`fn entity_inside_motion(self, f: impl Fn(&mut EntityInsideMotionContext) + Send + Sync + 'static) -> BlockBehavior`. Edits velocity at a block's swept contact. This is separate from the existing read-only `entity_inside` notification and from landing restitution. The handler is captured without holding the registry lock during invocation. The native player velocity/packet adapter passes the four-kind falling-side/suppression game gate on all four horizontal faces, with an identical-shape unregistered control on each face. Held-forward flat contact remains unresolved. `step_sound` forwards explicit volume/pitch through the native authoritative sound queue; the pinned build and four-kind native request gate pass, but audible playback and broader LAN delivery remain unverified.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let behavior = BlockBehavior::new(Identifier::parse("example:pad").unwrap())
+    .entity_inside_motion(|c| {
+        if c.server && !c.suppressing_bounce { c.velocity[0] = 0.2; }
+    });
+assert_eq!(behavior.block().path(), "pad");
+```
+
+### `BlockBehavior::update_entity_after_fall_on`
+
+`fn update_entity_after_fall_on(self, f: impl Fn(&mut AfterFallContext) + Send + Sync + 'static) -> BlockBehavior`. Owns the vertical collision response after a landing, separately from fall damage and side contacts. A block without this callback keeps the complete native response. The player adapter retains native horizontal response before invoking the captured callback; no native gravity/drag vertical correction follows. The item adapter is source-wired to the native resolved support position (including bounding-box edge landings), rather than recomputing the center block; absent contacts/callbacks retain native restitution. Its production-helper routing regression passes, but the changed item binding is not native-build or game-verified. Item fall-distance edits are not copied back. Historical resident-player bounce evidence does not certify the current combined bundle; exact per-tick velocity parity and LAN remain unverified.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let behavior = BlockBehavior::new(Identifier::parse("example:cushion").unwrap())
+    .update_entity_after_fall_on(|c| {
+        c.velocity[1] = if !c.suppressing_bounce && c.velocity[1] < 0.0 { -c.velocity[1] } else { 0.0 };
+        c.fall_distance = 0.0;
+    });
+assert_eq!(behavior.block().path(), "cushion");
+```
+
+### `BlockBehavior::fall_on`
+
+`fn fall_on(self, f: impl Fn(&mut FallOnContext) + Send + Sync + 'static) -> BlockBehavior`. Changes calculated landing damage through `context.damage`. The game-verified native adapter handles players and preserves native listeners before this callback; the concrete mob adapter also passes the native build and four-kind cow immunity/bounce plus stone damage control (other species unverified). Invalid values are ignored; negative damage becomes zero. The pinned build and player zero-damage/stone-control gate pass; other entities and LAN remain unverified. This is not an after-fall bounce callback.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+let behavior = BlockBehavior::new(Identifier::parse("example:cushion").unwrap())
+    .fall_on(|c| c.damage *= 0.5);
+assert_eq!(behavior.block().path(), "cushion");
 ```
 
 ### `BlockBehavior::entity_inside`

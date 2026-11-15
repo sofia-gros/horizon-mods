@@ -10,6 +10,13 @@ use std::marker::PhantomData;
 
 /// What the game can do for a player. Implemented once, in `hooks.rs`, over Horizon's `Host`.
 pub trait PlayerOps {
+    /// Queues a bounded mod payload; unsupported hosts must report failure.
+    fn net_send_to_player(&mut self, _player: u128, _channel: &str, _data: &[u8]) -> Result<(), String> {
+        Err("mod networking is unavailable".into())
+    }
+    fn net_send_to_server(&mut self, _channel: &str, _data: &[u8]) -> Result<(), String> {
+        Err("mod networking is unavailable".into())
+    }
     /// Sends a system chat line to the player; false when the player is not online.
     fn tell(&mut self, player: u128, line: &str) -> bool;
     /// Gives items to the player; returns how many did not fit.
@@ -18,6 +25,18 @@ pub trait PlayerOps {
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String>;
     /// Stores JSON under the attachment `id` for the player; false if it could not be stored.
     fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool;
+    /// Player attachment access with an explicit sync policy. Unsupported
+    /// synchronized stores refuse rather than silently dropping the policy.
+    fn attachment_get_with_policy(&mut self, player: u128, id: &str, sync: bool) -> Option<String> {
+        if sync { None } else { self.attachment_get(player, id) }
+    }
+    fn attachment_set_with_policy(&mut self, player: u128, id: &str, json: &str, sync: bool) -> bool {
+        !sync && self.attachment_set(player, id, json)
+    }
+    /// Current-world entity attachments; missing holders and wrong dimensions
+    /// are unavailable. EntityInfo IDs are callback-local, not persistent handles.
+    fn entity_attachment_get(&mut self, _entity: u32, _dimension: &str, _id: &str, _sync: bool) -> Option<String> { None }
+    fn entity_attachment_set(&mut self, _entity: u32, _dimension: &str, _id: &str, _json: &str, _sync: bool) -> bool { false }
     /// How many plain `item` the player carries in the main inventory.
     fn count_item(&mut self, player: u128, item: &str) -> u32;
     /// Takes up to `count` plain `item` from the player; returns how many were taken.
@@ -273,6 +292,11 @@ pub struct MemoryPlayerOps {
     pub item_tags: std::collections::HashMap<String, Vec<String>>,
     /// JSON stored per `(player, attachment id)`.
     pub attachments: std::collections::HashMap<(u128, String), String>,
+    /// JSON per (dimension, callback-local entity ID, attachment ID). Tests
+    /// simulating entity-ID reuse must clear the departed holder explicitly.
+    pub entity_attachments: std::collections::HashMap<(String, u32, String), String>,
+    /// One immutable sync policy per attachment ID, shared across holder kinds.
+    pub attachment_policies: std::collections::HashMap<String, bool>,
     /// How many of the 36 main slots are empty for every player (set it to test full inventories).
     pub free_slots: u32,
     /// The language option of every player's client; empty means `en_us`.
@@ -283,6 +307,12 @@ pub struct MemoryPlayerOps {
     pub food: Option<FoodStatus>,
     /// The main inventory slots of every player, by player; a missing player has none.
     pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
+}
+
+impl MemoryPlayerOps {
+    fn attachment_policy(&mut self, id: &str, sync: bool) -> bool {
+        *self.attachment_policies.entry(id.to_owned()).or_insert(sync) == sync
+    }
 }
 
 impl PlayerOps for MemoryPlayerOps {
@@ -300,6 +330,21 @@ impl PlayerOps for MemoryPlayerOps {
     fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
         self.attachments.insert((player, id.to_owned()), json.to_owned());
         true
+    }
+    fn attachment_get_with_policy(&mut self, player: u128, id: &str, sync: bool) -> Option<String> {
+        if !self.attachment_policy(id, sync) { return None; }
+        self.attachment_get(player, id)
+    }
+    fn attachment_set_with_policy(&mut self, player: u128, id: &str, json: &str, sync: bool) -> bool {
+        self.attachment_policy(id, sync) && self.attachment_set(player, id, json)
+    }
+    fn entity_attachment_get(&mut self, entity: u32, dimension: &str, id: &str, sync: bool) -> Option<String> {
+        if !self.attachment_policy(id, sync) { return None; }
+        self.entity_attachments.get(&(dimension.to_owned(), entity, id.to_owned())).cloned()
+    }
+    fn entity_attachment_set(&mut self, entity: u32, dimension: &str, id: &str, json: &str, sync: bool) -> bool {
+        if !self.attachment_policy(id, sync) { return false; }
+        self.entity_attachments.insert((dimension.to_owned(), entity, id.to_owned()), json.to_owned()); true
     }
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         self.items.get(&(player, item.to_owned())).copied().unwrap_or(0)

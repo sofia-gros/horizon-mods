@@ -91,7 +91,76 @@ with_world(&mut ops, || {
 assert_eq!(ops.blocks[&("minecraft:the_nether".to_owned(), [1, 2, 3])], "minecraft:glowstone");
 ```
 
+## Item-fragment Particle Factories
+
+`ParticleFactoryRegistry` (Fabric's particle-factory registry) can register the standard item-fragment constructor under a particle ID. The factory keeps an owned `StackData`, so model selection can use the stack's item, damage, durability override and custom data without retaining an inventory reference. Re-registering replaces the declaration; invalid replacements leave the previous one intact.
+
+```rust
+use pluto_lib::{Identifier, ParticleFactoryRegistry, StackData};
+let particle = Identifier::parse("example:clay_crumb").unwrap();
+ParticleFactoryRegistry::register_item(particle.clone(), StackData {
+    item: "minecraft:clay_ball".into(), count: 1, ..Default::default()
+}).unwrap();
+assert_eq!(ParticleFactoryRegistry::item(&particle).unwrap().item, "minecraft:clay_ball");
+```
+
+> **Use with Caution.** Registration and independent stack copies are pure-tested. A source-declared adapter handles named requests through the native client particle API: the requesting Game resolves the stack's current Ground model, then delegates once with ordinary Item options to preserve native validation and simulation. Its actual HEAD/bridge helpers pass trace-facade tests, not native stack conversion, model baking, particle settings/RNG or rendering. Cube landing emission now has a source-declared particle-kind override and a shared mob-event consumer used by both the host and remote-client tick. It changes only the kind, leaving the inherited loop/positions/RNG in place. The actual selector/event/constructor helper chain passes trace-facade tests, not the native loop or model/filter/RNG/render pipeline. Other engine-direct named requests, nonzero particle bursts, arbitrary entity emitters and network type registration remain incomplete or unverified. No custom particle physics or sprite-set factory is provided by this item-constructor API. Tinkers registers its original Sky/Ender slime-ball and Terracube clay-ball factories here.
+
 ## Reference
+
+### `ParticleFactoryRegistry`
+
+General-purpose item-fragment factory registration, independent of any mod's particle names. It retains owned stacks rather than live inventory/model pointers; native rendering remains unvalidated.
+
+```rust
+use pluto_lib::ParticleFactoryRegistry;
+let _ = ParticleFactoryRegistry::item;
+```
+
+### `ParticleFactoryRegistry::register_item`
+
+`fn register_item(particle: Identifier, stack: StackData) -> Result<(), String>` registers or replaces the factory. Invalid item IDs, zero counts, counts outside positive Java int, nonpositive durability overrides and a poisoned registry return an error. Validation completes before replacement. Count, damage, durability and custom data are retained.
+
+```rust
+use pluto_lib::{Identifier, ParticleFactoryRegistry, StackData};
+let particle = Identifier::parse("example:empty_crumb").unwrap();
+assert!(ParticleFactoryRegistry::register_item(particle, StackData {
+    item: "minecraft:clay_ball".into(), count: 0, ..Default::default()
+}).is_err());
+```
+
+### `ParticleFactoryRegistry::register_entity_override`
+
+`fn register_entity_override(entity: Identifier, original: Identifier, replacement: Identifier) -> Result<(), String>` replaces a specific inherited particle for one exact entity-type ID. The replacement must be an already registered item factory in a non-Minecraft namespace; invalid replacement leaves the old rule intact. Native plain particle names normalize to `minecraft:`. Unmatched types and particles keep their inherited names. Native source caller coverage currently includes cube landing events with count zero; other emitters remain unsupported or unverified.
+
+```rust
+use pluto_lib::{Identifier, ParticleFactoryRegistry, StackData};
+let replacement = Identifier::parse("example:custom_cube_crumb").unwrap();
+ParticleFactoryRegistry::register_item(replacement.clone(), StackData {
+    item: "minecraft:clay_ball".into(), count: 1, ..Default::default()
+}).unwrap();
+ParticleFactoryRegistry::register_entity_override(
+    Identifier::parse("example:custom_cube").unwrap(),
+    Identifier::parse("minecraft:item_slime").unwrap(), replacement
+).unwrap();
+```
+
+> **Use with Caution.** Native events require static particle names. This process-lifetime registry interns each declared factory ID once; replacing its stack reuses that name, including for in-flight events. It retains no Game, model or inventory references and has no unregister operation. Non-Minecraft replacement names prevent the later native enum consumer from emitting the same event twice. The requesting Game still supplies its current item model; native integration remains gated and unvalidated.
+
+### `ParticleFactoryRegistry::item`
+
+`fn item(particle: &Identifier) -> Option<StackData>` returns an independent stack copy or `None` for an absent factory or unavailable registry. Direct lookup does not emit a particle or establish native attachment.
+
+```rust
+use pluto_lib::{Identifier, ParticleFactoryRegistry, StackData};
+let particle = Identifier::parse("example:independent_crumb").unwrap();
+ParticleFactoryRegistry::register_item(particle.clone(), StackData {
+    item: "minecraft:clay_ball".into(), count: 1, ..Default::default()
+}).unwrap();
+let mut copy = ParticleFactoryRegistry::item(&particle).unwrap();
+copy.count = 7;
+assert_eq!(ParticleFactoryRegistry::item(&particle).unwrap().count, 1);
+```
 
 ### `BlockState`
 

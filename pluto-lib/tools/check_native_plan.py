@@ -30,38 +30,46 @@ terrain = _load("check_terrain_binding_plan")
 cloud = _load("check_cloud_insertion_plan")
 station = _load("check_station_ingredient_plan")
 structure = _load("check_structure_plan")
+block_entities = _load("check_block_entity_plan")
 
 
-def check(plan, workspace):
+def check(plan, workspace, *, direct_receipt=None):
     """Reject missing services, unsafe composition, source drift or copied edits."""
-    protection.check(plan)
+    protection.check(plan, Path(workspace))
     advancement.check(plan, Path(workspace))
     entries = equipment.entries()
     equipment.check_order(plan, entries)
     equipment.verify_source(plan, Path(workspace), entries)
-    metadata = payload.metadata()
+    metadata = payload.metadata(plan)
     payload.check(plan, metadata)
     payload.check_source(Path(workspace), metadata)
     placement.check(plan, Path(workspace))
-    metadata = current_book.metadata()
+    metadata = current_book.metadata(plan)
     current_book.check(plan, metadata)
     current_book.check_source(Path(workspace), metadata)
     wire_snapshot.check(plan, Path(workspace))
     matching.check(plan, Path(workspace))
-    metadata = terrain.metadata()
+    metadata = terrain.metadata(plan)
     terrain.check(plan, metadata)
     terrain.check_source(Path(workspace), metadata)
     cloud.check(plan, Path(workspace))
     station.check(plan, Path(workspace))
-    structure.check(plan, Path(workspace))
+    # The complete preflight must carry the same direct-source evidence as the
+    # sliced runner. Passing a receipt never skips ordering or source guards.
+    direct = {} if direct_receipt is None else {'direct_receipt': direct_receipt}
+    structure.check(plan, Path(workspace), **direct)
+    block_entities.check(plan, Path(workspace), **direct)
 
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     try:
-        if len(argv) != 2:
-            raise ValueError("usage: check_native_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE")
-        check(json.loads(Path(argv[0]).read_text()), Path(argv[1]))
+        if len(argv) not in (2, 3):
+            raise ValueError("usage: check_native_plan.py COMPLETE_PLAN.json INPUT_WORKSPACE [DIRECT_RECEIPT.json]")
+        receipt = json.loads(Path(argv[2]).read_text(encoding='utf-8')) if len(argv) == 3 else None
+        if len(argv) == 3 and not isinstance(receipt, dict):
+            raise ValueError('direct receipt must be a JSON object')
+        check(json.loads(Path(argv[0]).read_text()), Path(argv[1]), direct_receipt=receipt)
     except (ValueError, OSError, KeyError, StopIteration, subprocess.CalledProcessError) as error:
         print(f"Pluto native preflight rejected: {error}", file=sys.stderr)
         return 1

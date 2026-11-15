@@ -464,6 +464,34 @@ let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 with_ops(&mut FullWorld, || assert_eq!(player.give_item("minecraft:bread", 2), 2));
 ```
 
+**Policy-aware attachment methods on `PlayerOps`:**
+
+**`attachment_get_with_policy`**
+
+`fn attachment_get_with_policy(&mut self, player: u128, id: &str, sync: bool) -> Option<String>` reads existing player JSON with the declared sync policy. The default delegates unsynced access to `attachment_get`; synchronized access is unsupported unless overridden.
+
+**`attachment_set_with_policy`**
+
+`fn attachment_set_with_policy(&mut self, player: u128, id: &str, json: &str, sync: bool) -> bool` stores player JSON with the declared policy. The default refuses synchronized writes.
+
+**`entity_attachment_get`**
+
+`fn entity_attachment_get(&mut self, entity: u32, dimension: &str, id: &str, sync: bool) -> Option<String>` reads current-world entity JSON; the default is unavailable. Native forwarding rejects the wrong host dimension and delegates missing-holder/UUID rules to the host.
+
+**`entity_attachment_set`**
+
+`fn entity_attachment_set(&mut self, entity: u32, dimension: &str, id: &str, json: &str, sync: bool) -> bool` stores entity JSON; the default refuses. This backend-level example exercises all four policy-aware methods without claiming native transport:
+
+```rust
+use pluto_lib::{MemoryPlayerOps, PlayerOps};
+let mut game = MemoryPlayerOps::default();
+assert!(game.attachment_set_with_policy(1, "example:player_state", "true", true));
+assert_eq!(game.attachment_get_with_policy(1, "example:player_state", true).as_deref(), Some("true"));
+assert!(game.entity_attachment_set(7, "minecraft:overworld", "example:entity_state", "3", true));
+assert_eq!(game.entity_attachment_get(7, "minecraft:overworld", "example:entity_state", true).as_deref(), Some("3"));
+assert!(!game.entity_attachment_set(7, "minecraft:overworld", "example:entity_state", "4", false));
+```
+
 ### `with_ops`
 
 `fn with_ops<R>(ops: &mut dyn PlayerOps, f: impl FnOnce() -> R) -> R`. Runs `f` with `ops` available to every `ServerPlayer` method called on this thread during `f`. The previous scope is restored when `f` returns, also when it panics.
@@ -484,6 +512,8 @@ assert!(!player.send_message("after")); // the scope is closed
 ```
 
 ### `MemoryPlayerOps`
+
+`entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
 
 An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player.
 

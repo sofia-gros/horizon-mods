@@ -1,9 +1,0 @@
-{
-  "values": [
-    {
-      "id": "#forge:ores/gold",
-      "required": false
-    },
-    "minecraft:gilded_blackstone"
-  ]
-}

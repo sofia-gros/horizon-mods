@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location("advancement_plan", Path(__file__).resolve().parents[1] / "tools/check_advancement_plan.py")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -23,6 +24,42 @@ def plan(meta):
 
 
 class AdvancementPlanTests(unittest.TestCase):
+    def test_native_preservation_requires_exact_unattached_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / MODULE.NATIVE_FILE
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b'native advancement fixture')
+            expected = MODULE.digest(source.read_bytes())
+            candidate = {'schema': 6, 'inputs': {MODULE.NATIVE_FILE: expected},
+                         'modules': [{'mod_id': 'pluto_lib', 'file': 'other.rs'}],
+                         'injections': [], 'states': []}
+            with patch.object(MODULE, 'NATIVE_SHA256', expected):
+                MODULE.check(candidate, root)
+                for section in ('injections', 'modules', 'states'):
+                    candidate[section].append({'mod_id': 'foreign', 'file': MODULE.NATIVE_FILE})
+                    with self.assertRaisesRegex(ValueError, 'unattached'):
+                        MODULE.check(candidate, root)
+                    candidate[section].pop()
+                candidate['modules'].append({'mod_id': MODULE.MOD_ID, 'file': 'other.rs'})
+                with self.assertRaisesRegex(ValueError, 'mixed legacy'):
+                    MODULE.check(candidate, root)
+                candidate['modules'].pop()
+                candidate['schema'] = 7
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    MODULE.check(candidate, root)
+                candidate['schema'] = 6
+                candidate['inputs'].clear()
+                with self.assertRaisesRegex(ValueError, 'plan source'):
+                    MODULE.check(candidate, root)
+                candidate['inputs'][MODULE.NATIVE_FILE] = expected
+                source.write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'workspace source'):
+                    MODULE.check(candidate, root)
+                source.unlink()
+                with self.assertRaisesRegex(ValueError, 'regular file'):
+                    MODULE.check(candidate, root)
+
     def test_exact_unified_and_component_ids_are_accepted(self):
         meta=metadata();candidate=plan(meta);MODULE.check_order(candidate,meta)
         for hook in candidate["injections"]: hook["injection_id"]="pluto_native_creative-"+hook["injection_id"]

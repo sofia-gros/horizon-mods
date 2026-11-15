@@ -1,4 +1,4 @@
-# Items: tooltips
+# Items: tooltips and behavior
 
 Read, reorder, remove or replace an item's existing tooltip lines with `with_lines`, or keep using `added` to append simple lines. Untouched or moved existing entries retain their native rich text rather than being flattened and rebuilt.
 
@@ -17,6 +17,54 @@ ItemTooltipCallback::EVENT.register(|tip| {
 ```
 
 Lines you add come after the game's own. The callback runs whenever a tooltip is built, so keep it short.
+
+## Keeping Item Defaults from a Reload
+
+`ItemRegistry::snapshot` captures the current server JSON reload's item prototypes. Retain the owned snapshot alongside data parsed during that callback, rather than querying another world's item registry when the data is used later. `default_stack` returns a fresh copy with count one, zero damage, prototype durability and custom NBT. `crafting_remainder` reads the same generation's item-level crafting remainder, independently of consumption/use remainders.
+
+```rust
+use pluto_lib::{Identifier, ItemRegistry, ResourceManagerHelper, ResourceType};
+ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+    Identifier::parse("example:item_defaults").unwrap(), "example/rules", |_| {
+        let items = ItemRegistry::snapshot().ok_or("item prototypes unavailable")?;
+        let id = Identifier::parse("minecraft:iron_pickaxe").unwrap();
+        if let Some(mut stack) = items.default_stack(&id) {
+            stack.count = 2; // only this copy changes
+            assert_eq!(items.default_stack(&id).unwrap().count, 1);
+        }
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** The source adapter captures the world's selected native Items before folder callbacks, not a builtin catalog or later live lookup. This is pure-tested with full attachment planning/application, not yet native build/game validated. Outside supported server callbacks, or if the whole prototype capture fails validation, `snapshot` returns `None`; there is no fabricated empty/builtin fallback. Duplicate, unknown or missing prototypes invalidate that whole snapshot. Nested callbacks restore outer snapshots, including unwinding; retained snapshots survive reload/teardown. `StackData` is a reduced view: it carries count/damage/max damage/custom NBT, not every native item component. Typed custom NBT is transported as network NBT; unsupported strings/tags, trailing bytes and malformed compounds reject rather than silently truncating the prototype. The pinned loader drops known `minecraft:custom_data` values from `ItemInfo`. PlutoLib now source-captures the final owned `items` map and the loader's already-held `raw` Arc, retaining those values before publication without rereading files. Earlier map insert/borrow accesses must not be selected. The direct Horizon adapter now captures that map at the final Items initializer instead of a Mixins LOAD; full attachment planning/application has passed, while native typechecking and native NBT conversion remain unvalidated; missing or malformed data still invalidates the whole snapshot instead of becoming empty NBT. This does not establish full native-component or rich ItemOutput-codec parity.
+
+## Item extension behavior
+
+Use `ItemBehavior` for Minecraft item-extension queries independently of use-over-time behavior. An ender-mask callback returns `Some(true)` to hide the wearer from Enderman gaze, `Some(false)` to explicitly disable masking, or `None` to retain the native answer (including carved pumpkins).
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior, ItemBehaviors};
+ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:visor").unwrap())
+    .is_ender_mask(|_| Some(true))).unwrap();
+```
+
+> **Use with Caution.** Native attachment is source-declared, not plan/build/game validated. The current AI snapshot has an item ID, wearer UUID and observer entity ID, but not the full stack: `stack` is `None`. Do not invent stack data; return `None` if a decision requires unavailable data. This adapter affects Enderman gaze, not visibility distance, revenge, or unrelated species. Callbacks run outside registry locks; duplicates fail without replacement.
+
+## Standing and Wall Block Items
+
+A standing-and-wall item chooses between two blocks while retaining the native placement path. Register the item, standing block, wall block and attachment direction during mod initialization. This describes a Minecraft `StandingAndWallBlockItem`; it is not a callback returning a different block from `state_for_placement`.
+
+```rust
+use pluto_lib::{Direction, Identifier, StandingAndWallBlockItem};
+StandingAndWallBlockItem::register(
+    Identifier::new("example", "head").unwrap(),
+    Identifier::new("example", "head").unwrap(),
+    Identifier::new("example", "wall_head").unwrap(),
+    Direction::Down,
+).unwrap();
+```
+
+> **Use with Caution.** This is an explicit native stub: registration records owned declarations, but does not yet change gameplay or declare any content. The existing host has the native standing/wall algorithm; its content wall-pair setting currently accepts signs only, and its block-state callback forbids cross-block switching. A generic binding adapter must validate actual item/block IDs and cover cached and uncached resource tables while preserving native checks and item consumption. The earlier per-owner cache/state draft is superseded: the generic native constructor cannot receive a state field under the pinned Mixins validator. The declaration provider is now installed in source and its transport module is source-pinned. The owned-table overlay and cache-suppression helpers remain undeclared: the proposed `cached` STORE initializer is `build()?`, and the pinned Mixins validator rejects `?` inside that selected value. This is a source-review result, not an executed plan diagnostic. Do not enable the cache hooks alone. A symbolic export alternative is now source-wired: validate all declared items/blocks in the completed behaviour JSON, preserve native metadata and rewrite names before numeric table loading. A SHA-256 identity of the sorted declarations selects a separate content-root path, including on cache hits. Empty batches preserve native behavior; invalid batches abort the new root without publishing a prefix. The writer retains native unlink-before-write semantics so base resources are not changed through links. With bindings but no content overlay, initialization rejects rather than writing to the base root. Native hook/site validation, compilation and placement remain pending under the native attachment guard; no runtime behavior is verified. Overlay/policy tests do not prove native binding or placement. A failed batch would refuse all declared items, while provider failure before their IDs are known would refuse all block placement; these are explicit failures, never a vanilla-wall fallback. No raw block-write or vanilla-wall fallback is substituted. See the support matrix.
 
 ## Using Items Over Time
 
@@ -38,6 +86,93 @@ A player who is not hungry cannot start a feeding item unless you add `.can_alwa
 > **Use with Caution.** `with_lines` is available only while this context is being dispatched by the game. It returns `None` for a manually invoked event or if the same list is already borrowed. Nested tooltips have separate lists. Legacy `added` entries are appended after all callbacks; they are not part of the editable list during dispatch.
 
 ## Reference
+
+### `ItemRegistry`
+
+Access to owned registered-item prototype snapshots during server JSON reload callbacks. It has no instance constructor and does not read another world's defaults outside that scope.
+
+```rust
+use pluto_lib::ItemRegistry;
+assert!(ItemRegistry::snapshot().is_none()); // outside a server callback
+```
+
+### `ItemRegistry::snapshot`
+
+`fn snapshot() -> Option<ItemRegistrySnapshot>`. Returns a cloneable immutable generation or `None` when capture/scope is unavailable. A captured empty item registry is a present snapshot with no items.
+
+```rust
+use pluto_lib::{ItemRegistry, ItemRegistrySnapshot};
+let retained: Option<ItemRegistrySnapshot> = ItemRegistry::snapshot();
+assert_eq!(retained.clone(), retained);
+```
+
+### `ItemRegistrySnapshot`
+
+Owned, cloneable item defaults in `StackData` form. Clones share immutable storage; keeping one never refreshes it. Constructed only by the backend, not from guessed item names.
+
+```rust
+use pluto_lib::ItemRegistrySnapshot;
+let not_captured: Option<ItemRegistrySnapshot> = None;
+assert!(not_captured.is_none());
+```
+
+### `ItemRegistrySnapshot::default_stack`
+
+`fn default_stack(&self, item: &Identifier) -> Option<StackData>`. Returns an owned prototype copy or `None` for an unknown item. Its damage is zero and count is one; maximum damage and typed custom NBT come from this generation's item definition. Other native components are outside this reduced representation.
+
+```rust
+use pluto_lib::{Identifier, ItemRegistry};
+if let Some(items) = ItemRegistry::snapshot() {
+    let unknown = Identifier::parse("example:missing").unwrap();
+    let _stack = items.default_stack(&unknown);
+}
+```
+
+### `ItemRegistrySnapshot::crafting_remainder`
+
+`fn crafting_remainder(&self, item: &Identifier) -> Result<Option<Identifier>, String>`. Returns `Ok(Some(id))` when this item's captured crafting default leaves another item, or `Ok(None)` when a known item has no crafting remainder. An unknown item or unavailable property capture returns `Err`; these cases are not negative answers. The returned identifier is owned. Retained snapshots never consult a newer registry.
+
+```rust
+use pluto_lib::{Identifier, ItemRegistry};
+if let Some(items) = ItemRegistry::snapshot() {
+    let id = Identifier::parse("minecraft:water_bucket").unwrap();
+    match items.crafting_remainder(&id) {
+        Ok(Some(remainder)) => { let _owned_id: Identifier = remainder; }
+        Ok(None) => { /* known item, no crafting remainder */ }
+        Err(error) => { let _unavailable_or_unknown: String = error; }
+    }
+}
+```
+
+> **Use with Caution.** The source adapter captures `ItemInfo.crafting_remainder`, not `use_remainder` or an item-name/tag guess. Each captured item has an explicit present/absent property; duplicate, incomplete, unknown-item or unknown-target records reject the whole property snapshot. This is an item-level default, not a per-stack crafting callback. Source transport is declared on the existing reload path; native types, attachment and gameplay remain unverified under the native attachment gate.
+
+### `StandingAndWallBlockItem`
+
+Registers standing/wall placement metadata for an already declared item; it neither creates content nor copies rarity/components. Native application is currently a stub, so success means only that the declaration was accepted.
+
+```rust
+use pluto_lib::{Direction, Identifier, StandingAndWallBlockItem};
+StandingAndWallBlockItem::register(
+    Identifier::parse("example:torch").unwrap(),
+    Identifier::parse("example:torch").unwrap(),
+    Identifier::parse("example:wall_torch").unwrap(),
+    Direction::Down,
+).unwrap();
+```
+
+### `StandingAndWallBlockItem::register`
+
+`register(item: Identifier, standing: Identifier, wall: Identifier, attachment: Direction) -> Result<(), String>` owns the declaration. The original constructor permits identical standing/wall block IDs, so this API does too. Duplicate items, a poisoned registry or registration after native binding collection return an error without replacing an earlier declaration. Collection freezes registration and supplies independent snapshots for resource-table resolution; there is no current native consumer. All six attachment directions are representable: the opposite is skipped, the attachment direction selects standing, and the others select the wall candidate. Ordinary heads/torches/signs use `Down`. A hanging sign's specialized native placement rules are not implied by choosing `Up` here.
+
+```rust
+use pluto_lib::{Direction, Identifier, StandingAndWallBlockItem};
+let item = Identifier::parse("example:display").unwrap();
+let floor = Identifier::parse("example:standing_display").unwrap();
+let wall = Identifier::parse("example:wall_display").unwrap();
+StandingAndWallBlockItem::register(item.clone(), floor.clone(), wall.clone(), Direction::Down).unwrap();
+assert!(StandingAndWallBlockItem::register(item, floor.clone(), wall, Direction::Up).is_err());
+StandingAndWallBlockItem::register(Identifier::parse("example:same").unwrap(), floor.clone(), floor, Direction::Down).unwrap();
+```
 
 ### `TooltipLine`
 
@@ -281,6 +416,66 @@ use pluto_lib::{Identifier, ItemUse, UseAction};
 
 let potion = ItemUse::new(32, UseAction::Drink).remainder(Identifier::new("minecraft", "glass_bottle").unwrap(), 1);
 assert_eq!(potion.remainder.unwrap().0.to_string(), "minecraft:glass_bottle");
+```
+
+### `EnderMaskContext`
+
+A query with `item: String`, `stack: Option<StackData>`, `wearer_uuid: Option<u128>` and `observer_entity: Option<u32>`. Missing context is not a fabricated empty stack or ID zero.
+
+```rust
+use pluto_lib::EnderMaskContext;
+let query = EnderMaskContext { item: "example:visor".into(), stack: None,
+    wearer_uuid: Some(7), observer_entity: Some(42) };
+assert!(query.stack.is_none());
+```
+
+### `ItemBehavior`
+
+Owned Minecraft item extension registration, cloneable without duplicating callback state.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:visor").unwrap());
+let copy = behavior.clone();
+```
+
+### `ItemBehavior::new`
+
+`fn new(item: Identifier) -> ItemBehavior`. Starts with no overrides, preserving native queries.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:helmet").unwrap());
+```
+
+### `ItemBehavior::is_ender_mask`
+
+`fn is_ender_mask(self, callback: impl Fn(&EnderMaskContext) -> Option<bool> + Send + Sync + 'static) -> ItemBehavior`. Sets an explicit answer or native delegation. The callback must be safe to invoke from the native AI query.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:visor").unwrap())
+    .is_ender_mask(|query| query.stack.as_ref().map(|stack| stack.damage == 0));
+```
+
+### `ItemBehaviors`
+
+Registry for item extension behaviors. Separate items register independently.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior, ItemBehaviors};
+ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:visor").unwrap())).unwrap();
+```
+
+### `ItemBehaviors::register`
+
+`fn register(behavior: ItemBehavior) -> Result<(), String>`. Registers by item ID; duplicate or poisoned registry returns an error without replacing the first entry.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior, ItemBehaviors};
+let id = Identifier::parse("example:visor").unwrap();
+ItemBehaviors::register(ItemBehavior::new(id.clone()).is_ender_mask(|_| Some(true))).unwrap();
+assert!(ItemBehaviors::register(ItemBehavior::new(id)).is_err());
 ```
 
 ### `Food`

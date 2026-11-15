@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "tag": "forge:gems/amethyst"
-  },
-  "material": "tconstruct:amethyst",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

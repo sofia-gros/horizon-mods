@@ -104,5 +104,82 @@ class CloudInsertionPlan(unittest.TestCase):
         with self.assertRaises(ValueError): self.check()
 
 
+class NativeCloudPreservation(unittest.TestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.meta = GUARD.native_metadata()
+        for name in self.meta['sources']:
+            source = self.root / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_bytes(b'native cloud fixture')
+            self.meta['sources'][name] = GUARD.digest(source.read_bytes())
+        patcher = patch.object(GUARD, 'native_metadata', return_value=self.meta)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.plan = dict(schema=6, inputs=dict(self.meta['sources']), states=[],
+                         modules=[dict(self.meta['contact_module'])],
+                         injections=[copy.deepcopy(self.meta['contact_hook'])])
+        self.plan['modules'][0]['source'] = (ROOT / 'mod' / self.meta['module_source']).read_text()
+        self.plan['injections'][0]['helper_source'] = (ROOT / 'mod' / self.meta['hook_source']).read_text()
+
+    def test_exact_native_sources_and_contact_pair(self):
+        GUARD.check(self.plan, self.root)
+        for name in self.meta['sources']:
+            expected = self.plan['inputs'].pop(name)
+            with self.assertRaisesRegex(ValueError, 'source differs'):
+                GUARD.check(self.plan, self.root)
+            self.plan['inputs'][name] = expected
+            source = self.root / name
+            source.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'source differs'):
+                GUARD.check(self.plan, self.root)
+            source.write_bytes(b'native cloud fixture')
+        with self.assertRaisesRegex(ValueError, 'overrides'):
+            GUARD.check(self.plan, self.root, self.meta)
+        self.plan['schema'] = 7
+        with self.assertRaisesRegex(ValueError, 'schema'):
+            GUARD.check(self.plan, self.root)
+
+    def test_contact_pair_cannot_change_cancel_duplicate_or_disappear(self):
+        for section, key, changes in (
+                ('injections', 'contact_hook', {'cancellable': True, 'kind': 'RETURN',
+                    'priority': 1, 'bindings': [], 'function_fingerprint': 'changed', 'helper_source': 'changed'}),
+                ('modules', 'contact_module', {'visibility': 'pub', 'source': 'changed',
+                    'fingerprint': 'changed', 'name': 'changed'})):
+            for field, value in dict(changes, mod_id='foreign', file='elsewhere.rs').items():
+                candidate = copy.deepcopy(self.plan)
+                candidate[section][0][field] = value
+                with self.subTest(section=section, field=field), self.assertRaises(ValueError):
+                    GUARD.check(candidate, self.root)
+            for entries in ([], self.plan[section] * 2):
+                candidate = copy.deepcopy(self.plan)
+                candidate[section] = entries
+                with self.assertRaises(ValueError):
+                    GUARD.check(candidate, self.root)
+        self.meta['hook_sha256'] = 'changed'
+        with self.assertRaisesRegex(ValueError, 'contact source differs'):
+            GUARD.check(self.plan, self.root)
+
+    def test_extra_attachments_and_cross_file_constructors_reject(self):
+        candidates = ([{'file': name} for name in self.meta['sources']]
+                      + [{'target': prefix + 'anything'} for prefix in self.meta['protected_prefixes']]
+                      + [{'mod_id': 'pluto_native_creative'}, {'name': 'pluto_cloud_insertion'},
+                         {'target': 'alias::method', 'function_fingerprint': self.meta['contact_hook']['function_fingerprint']}])
+        for section in ('modules', 'injections', 'states'):
+            for entry in candidates:
+                candidate = copy.deepcopy(self.plan)
+                candidate[section].append(entry)
+                with self.subTest(section=section, entry=entry), self.assertRaisesRegex(ValueError, 'Unreviewed attachment'):
+                    GUARD.check(candidate, self.root)
+        for name in self.meta['sources']:
+            candidate = copy.deepcopy(self.plan)
+            candidate['states'].append({'file': 'elsewhere.rs', 'constructors': [{'file': name}]})
+            with self.assertRaisesRegex(ValueError, 'constructor'):
+                GUARD.check(candidate, self.root)
+
+
 if __name__ == '__main__':
     unittest.main()

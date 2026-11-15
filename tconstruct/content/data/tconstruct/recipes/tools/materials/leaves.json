@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "tag": "minecraft:leaves"
-  },
-  "material": "tconstruct:leaves",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

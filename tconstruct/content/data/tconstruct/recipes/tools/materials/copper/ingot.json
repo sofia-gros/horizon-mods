@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "tag": "forge:ingots/copper"
-  },
-  "material": "tconstruct:copper",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

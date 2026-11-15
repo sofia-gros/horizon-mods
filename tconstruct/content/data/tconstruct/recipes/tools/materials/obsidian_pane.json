@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "item": "tconstruct:obsidian_pane"
-  },
-  "material": "tconstruct:obsidian",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

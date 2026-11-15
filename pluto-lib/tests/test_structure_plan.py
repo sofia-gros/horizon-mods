@@ -22,6 +22,11 @@ class StructurePlan(unittest.TestCase):
         self.helpers = Path(self.temp.name) / 'helpers'
         self.helpers.mkdir()
         self.meta = GUARD.metadata()
+        # Synthetic AST fixtures have no production direct-source outputs.
+        # Direct-proof policy is exercised separately with an explicit receipt.
+        self.meta.pop('direct_attachments', None)
+        self.meta.pop('direct_helpers', None)
+        self.meta.pop('direct_review_status', None)
         for name in self.meta['official_source_sha256']:
             path = self.workspace / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,6 +43,10 @@ class StructurePlan(unittest.TestCase):
                 (self.helpers / required['source_file']).write_bytes(content)
                 required['source_sha256'] = GUARD.digest(content)
                 entry = {field: copy.deepcopy(required[field]) for field in fields}
+                if key == 'injections':
+                    for field in ('selector', 'ordinal', 'require', 'site_fingerprint', 'variable', 'parameter'):
+                        if field in required:
+                            entry[field] = copy.deepcopy(required[field])
                 entry.update(mod_id='pluto_lib')
                 entry[content_key] = content.decode()
                 self.plan[key].append(entry)
@@ -66,6 +75,96 @@ class StructurePlan(unittest.TestCase):
                 self.check()
             path.write_bytes(before)
         self.check()
+
+    def test_direct_attachment_proof_binds_output_helper_and_exclusive_ownership(self):
+        # Synthetic proof exercises policy only; no production review is granted.
+        hook = self.meta['injections'][0]
+        site, relative = hook['injection_id'], hook['file']
+        output = b'adapted native source\n'
+        entry = {'id': site, 'file': relative,
+                 'before': self.meta['official_source_sha256'][relative],
+                 'after': GUARD.digest(output), 'helper_sha256': hook['source_sha256']}
+        (self.workspace / relative).write_bytes(output)
+        self.plan['inputs'][relative] = entry['after']
+        self.meta.update(direct_review_status='reviewed', horizon_revision='fixture-pin',
+            direct_attachments=[entry], direct_helpers={site: hook['source_file']})
+        receipt = {'horizon_revision': 'fixture-pin', 'attachments': [copy.deepcopy(entry)]}
+        original = copy.deepcopy(self.plan)
+        self.plan['injections'] = [e for e in self.plan['injections'] if e['injection_id'] != site]
+        def check(plan=None, proof=receipt):
+            GUARD.check(self.plan if plan is None else plan, self.workspace, self.meta, self.helpers, proof)
+        check()
+        with self.assertRaisesRegex(ValueError, 'also owned'):
+            check(original)
+        with self.assertRaisesRegex(ValueError, 'require their receipt'):
+            check(proof=None)
+        changed = copy.deepcopy(receipt)
+        changed['attachments'][0]['after'] = GUARD.digest(b'changed')
+        with self.assertRaisesRegex(ValueError, 'reviewed contract'):
+            check(proof=changed)
+        changed = copy.deepcopy(self.plan)
+        changed['inputs'][relative] = GUARD.digest(b'changed')
+        with self.assertRaisesRegex(ValueError, 'bind direct'):
+            check(changed)
+        source = self.workspace / relative
+        before = source.read_bytes()
+        source.write_bytes(before + b'drift')
+        with self.assertRaisesRegex(ValueError, 'output bytes'):
+            check()
+        source.write_bytes(before)
+        helper = self.helpers / hook['source_file']
+        before = helper.read_bytes()
+        helper.write_bytes(before + b'drift')
+        with self.assertRaisesRegex(ValueError, 'helper bytes'):
+            check()
+        helper.write_bytes(before)
+        # Even an internally consistent receipt/contract must anchor its first
+        # rewrite to the separately recorded official source, not its output.
+        for preimage in (None, entry['after']):
+            original_hash = self.meta['official_source_sha256'].pop(relative)
+            if preimage is not None:
+                self.meta['official_source_sha256'][relative] = preimage
+            with self.assertRaisesRegex(ValueError, 'start at official source'):
+                check()
+            self.meta['official_source_sha256'][relative] = original_hash
+        # Multiple edits of one source must form a continuous chain.
+        second = {'id': 'second-direct-edit', 'file': relative,
+                  'before': entry['after'], 'after': GUARD.digest(b'final native source')}
+        self.meta['direct_attachments'].append(second)
+        receipt['attachments'].append(copy.deepcopy(second))
+        source.write_bytes(b'final native source')
+        self.plan['inputs'][relative] = second['after']
+        check()
+        second['before'] = entry['before']
+        receipt['attachments'][1]['before'] = entry['before']
+        with self.assertRaisesRegex(ValueError, 'source chain differs'):
+            check()
+        self.meta['direct_review_status'] = 'pending'
+        with self.assertRaisesRegex(ValueError, 'await combined'):
+            check()
+
+    def test_composite_state_contract_accepts_only_exact_owned_constructor(self):
+        state = {'state_id': 'owned-state', 'target': 'example::Owner',
+                 'file': self.meta['exclusive_files'][0], 'deserialize': False,
+                 'constructors': [{'file': self.meta['exclusive_files'][0], 'node': [1, 0]}]}
+        self.meta['states'] = [state]
+        self.plan['states'] = [dict(copy.deepcopy(state), mod_id='pluto_lib', mod_version='0.0.0', priority=0)]
+        self.check()
+        for change in ('owner', 'constructor', 'duplicate', 'missing', 'foreign'):
+            with self.subTest(change=change):
+                plan = copy.deepcopy(self.plan)
+                if change == 'owner':
+                    plan['states'][0]['target'] = 'example::Other'
+                elif change == 'constructor':
+                    plan['states'][0]['constructors'][0]['node'] = [2, 0]
+                elif change == 'duplicate':
+                    plan['states'].append(copy.deepcopy(plan['states'][0]))
+                elif change == 'missing':
+                    plan['states'].clear()
+                else:
+                    plan['states'][0]['mod_id'] = 'foreign'
+                with self.assertRaises(ValueError):
+                    self.check(plan)
 
     def test_reviewed_call_site_contracts_reject_changed_or_missing_fields(self):
         required = self.meta['injections'][0]

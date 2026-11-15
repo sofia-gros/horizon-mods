@@ -37,4 +37,42 @@ class CurrentBookTests(unittest.TestCase):
         _,files=package._bundle(json.loads((ROOT/"horizon-native.json").read_text()))
         for name in ["current-book.rs","inventory-api/src/guide/current_book.rs"]:
             self.assertEqual(files[f"pluto_native_creative/{name}"],(NATIVE/name).read_bytes())
+class NativeCurrentBookTests(unittest.TestCase):
+    def test_source_and_composition_fail_closed(self):
+        import hashlib
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / guard.NATIVE_FILE
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b'native books')
+            expected = hashlib.sha256(source.read_bytes()).hexdigest()
+            with patch.object(guard, 'NATIVE_SHA256', expected):
+                plan = dict(schema=6, inputs={guard.NATIVE_FILE: expected}, injections=[],
+                            states=[], modules=[{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}])
+                meta = guard.metadata(plan)
+                guard.check(plan, meta)
+                guard.check_source(root, meta)
+                for section in ('injections', 'modules', 'states'):
+                    for entry in ({'file': guard.NATIVE_FILE}, {'target': 'alias::Game::turn_page'},
+                                  {'mod_id': 'pluto_native_creative'}):
+                        plan[section].append(entry)
+                        with self.assertRaisesRegex(ValueError, 'unattached'):
+                            guard.check(plan, meta)
+                        plan[section].pop()
+                plan['inputs'].clear()
+                with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                    guard.check(plan, meta)
+                plan['inputs'][guard.NATIVE_FILE] = expected
+                with self.assertRaisesRegex(ValueError, 'metadata'):
+                    guard.check(plan, guard.metadata())
+                plan['schema'] = 7
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    guard.check(plan, meta)
+                source.write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'source drifted'):
+                    guard.check_source(root, meta)
+
+
 if __name__=="__main__":unittest.main()

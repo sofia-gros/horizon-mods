@@ -1,6 +1,6 @@
-# Colour providers: the tint of a block's faces
+# Colour providers: block and item tints
 
-A block model marks the faces that take a tint (grass, leaves) and the game fills in the colour. A colour provider lets your mod answer for its own blocks, and the answer may depend on where the block stands: a colour map laid across the world, a pattern that repeats every 256 blocks. This page first walks through using it, then lists every item in the [Reference](#reference).
+A model marks the faces that take a tint (grass, leaves) and the game fills in the colour. A block provider can depend on where the block stands; an item provider receives stack data and the model tint index. World-block rendering is connected; native item rendering remains a documented stub. This page first walks through using the providers, then lists every public item in the [Reference](#reference).
 
 > **Use with Caution.** World-chunk base-face dispatch has been built and checked in a real client: a provider renders magenta leaves while `None` preserves the native green, with real state properties, position and tint index. The updated pinned Mixins accepts the first-tint `MODIFY_VARIABLE` seam; the old call-site wrap is not used. Item/hand, particle, connected-texture overlay tint evaluation and other block-rendering paths remain unconnected (see the support matrix).
 
@@ -40,7 +40,27 @@ The Tinkers colour consumer is implemented against the original Java and reads i
 
 The consumer accepts only 256×256 images with a complete four-byte RGBA pixel buffer. This is an intentional safety difference for malformed resources: the original Java can index outside a short colour map, while the port rejects wrong dimensions or buffer length and keeps the previous map (the initial zero-filled map if none has loaded). This does not claim identical behaviour for malformed packs.
 
-> **Use with Caution.** The verified path is world-chunk base faces only. A separate resource-facade test does not extend this coverage to another rendering path. A context with `pos: None` is valid for a direct API call, but does not mean the item/hand renderer invokes the provider. Particle tinting and other rendering paths are separate too. Register providers before chunk-mesh dispatch; changing a registration does not itself request a chunk remesh. Keep providers short, thread-safe and independent of live player/world operations, since chunk meshing can run on worker threads.
+> **Use with Caution.** The verified path is world-chunk base faces only. A separate resource-facade test does not extend this coverage to another rendering path. A context with `pos: None` is valid for a direct API call, but does not mean the item/hand renderer invokes the provider. Common terrain-particle tint now has a source-declared adapter at `Game::particle_sprite`, reusing that game's registry, the supplied world position and tint index zero. It retains native tint on decline/missing state and keeps ordinary grass-block dirt crumbs untinted, as confirmed in the original TerrainParticle bytecode. The actual helper passes a structural-fixture test for state/position/registry isolation and fallback; native particle construction, lighting, attachment and rendering remain unverified. Independent falling-dust and other particle routes are not covered. Register providers before chunk-mesh dispatch; changing a registration does not itself request a chunk remesh. Keep providers short, thread-safe and independent of live player/world operations, since chunk meshing can run on worker threads.
+
+## Item Colours
+
+Item providers receive an owned `StackData` and the model tint index. Use separate registrations when block and item behaviour differ, or explicitly forward a block item to its positionless block lookup. Providers run outside the registry lock, so an alias observes the current block provider rather than a cached colour.
+
+```rust
+use pluto_lib::{ColorProviderRegistry, Identifier, ItemColorContext, StackData};
+
+let item = Identifier::parse("example:dyed_leaf").unwrap();
+ColorProviderRegistry::register_item(&[item], |face| {
+    (face.tint_index == 0).then_some(0x123456)
+});
+let face = ItemColorContext {
+    stack: StackData { item: "example:dyed_leaf".into(), count: 1, ..Default::default() },
+    tint_index: 0,
+};
+assert_eq!(ColorProviderRegistry::item_color(&face), Some(0x123456));
+```
+
+> **Use with Caution.** Item registration and direct dispatch are pure-tested, including full reduced-stack data and reentrant replacement. A native baked-layer adapter is source-declared at the shared `resolve_with_rule` RETURN boundary, including CIT/GUI/hand callers. It replaces only the completed state's layers, retaining display, animation, oversized-GUI policy and glint/HDR fields. Individual planning passes against the pinned official Mixins; full attachment, types and runtime remain unvalidated under the native attachment gate. This remains a renderer stub, not a rendered-colour claim. Tinkers registers the original 42 block-item aliases; potted ferns remain block-only. Its aliases query block providers with no world position and forward the tint index. The source bridge reads the native resolver's already merged components, preserves unregistered/declined tints and special geometry, writes opaque ARGB only for registered quad tint indices, and never mutates shared baked models. One test executes that bridge and its injection helper with structural fixtures; it does not test native model baking or prototype/patch merging. Indices above 4095 deliberately retain native tint to bound malformed-model allocations; this safety limit differs from an unbounded original tint array.
 
 ## Reference
 
@@ -55,6 +75,37 @@ let face = BlockColorContext { state: BlockState::parse("example:meadow_leaves")
 assert_eq!(face.pos, Some([3, 70, 9]));
 assert_eq!(face.tint_index, 0);
 assert_eq!(face.state.block.path(), "meadow_leaves");
+```
+
+### `ItemColorContext`
+
+`ItemColorContext { stack: StackData, tint_index: i32 }` carries the stack being drawn, including count, damage, durability override and custom data, plus the model face's tint index. It has no fabricated world position.
+
+```rust
+use pluto_lib::{ItemColorContext, StackData};
+let face = ItemColorContext { stack: StackData { item: "example:leaf".into(), count: 2, ..Default::default() }, tint_index: 1 };
+assert_eq!(face.stack.count, 2);
+assert_eq!(face.tint_index, 1);
+```
+
+### `ColorProviderRegistry::register_item`
+
+`fn register_item(items: &[Identifier], provider: impl Fn(&ItemColorContext) -> Option<u32> + Send + Sync + 'static)` registers one provider for each item. Later registrations replace earlier ones; callback execution and replaced callback destruction occur outside the lock. **Stub:** native item/hand renderers do not invoke it yet.
+
+```rust
+use pluto_lib::{ColorProviderRegistry, Identifier};
+ColorProviderRegistry::register_item(&[Identifier::parse("example:berries").unwrap()], |_| Some(0xFF3300));
+```
+
+### `ColorProviderRegistry::item_color`
+
+`fn item_color(context: &ItemColorContext) -> Option<u32>` directly queries the stack item's provider. `Some(0xRRGGBB)` supplies its colour; `None` means no registration or an explicit decline. This lookup is functional independently of the native renderer stub.
+
+```rust
+use pluto_lib::{ColorProviderRegistry, Identifier, ItemColorContext, StackData};
+ColorProviderRegistry::register_item(&[Identifier::parse("example:plain_item").unwrap()], |_| None);
+let face = ItemColorContext { stack: StackData { item: "example:plain_item".into(), count: 1, ..Default::default() }, tint_index: 0 };
+assert_eq!(ColorProviderRegistry::item_color(&face), None);
 ```
 
 ### `ColorProviderRegistry`

@@ -155,6 +155,57 @@ pub struct SlotRule<'a> {
     pub max_stack: u32,
 }
 
+/// A slot operation performed inside the menu engine, before its state is published.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SlotAction { Pickup, QuickMove, Swap, Throw }
+
+/// Access to the current menu's staged state. Transfers obey the host's slot
+/// acceptance/component/stack-size rules; they do not write the live inventory.
+pub trait MenuAccess {
+    fn slot_count(&self) -> usize;
+    fn stack(&self, slot: usize) -> Option<ItemSlot>;
+    /// False for an out-of-range slot. A zero-count stack is empty.
+    fn set_stack(&mut self, slot: usize, stack: Option<ItemSlot>) -> bool;
+    /// The swap target: hotbar 0..=8 or offhand 40, not a menu-slot index.
+    fn swap_stack(&self, button: i32) -> Option<ItemSlot>;
+    /// False for any other button. A zero-count stack clears the target.
+    fn set_swap_stack(&mut self, button: i32, stack: Option<ItemSlot>) -> bool;
+    fn carried(&self) -> Option<ItemSlot>;
+    fn set_carried(&mut self, stack: Option<ItemSlot>);
+    /// Native item-and-component equality, ignoring count; false for empty stacks.
+    /// This does not check remaining capacity or slot acceptance.
+    fn same_item_and_components(&self, left: &ItemSlot, right: &ItemSlot) -> bool;
+    /// Native stack component/item limit, or zero for an empty stack.
+    /// A slot may impose a lower limit; this is the item stack's own limit.
+    fn max_stack_count(&self, stack: &ItemSlot) -> u32;
+    /// Move into [start, end), leaving the remainder in `stack`.
+    fn move_stack(&mut self, stack: &mut ItemSlot, start: usize, end: usize, reverse: bool) -> bool;
+    /// The native item's crafting remainder (not its use/consumption remainder).
+    /// None for an empty/unknown item or an item with no crafting remainder.
+    fn crafting_remainder(&self, stack: &ItemSlot) -> Option<ItemSlot>;
+    /// Return an owned stack through native player-inventory insertion, queuing
+    /// overflow as a drop. Both inventory and drops remain staged until commit.
+    fn give_stack(&mut self, stack: ItemSlot);
+    /// Stage a drop; the host publishes it only through its normal menu commit.
+    fn drop_stack(&mut self, stack: &ItemSlot);
+}
+
+/// A registered slot operation owns this click. Unregistered slots retain the
+/// native behavior. No live player/world mutation scope is installed here.
+pub struct SlotClick<'a> {
+    pub pos: BlockPos,
+    pub player: &'a super::player_api::ServerPlayer,
+    /// False during client prediction; never use prediction for server-only effects.
+    pub authoritative: bool,
+    pub slot: usize,
+    pub button: i32,
+    pub action: SlotAction,
+    pub data: &'a mut NbtCompound,
+    pub menu: &'a mut dyn MenuAccess,
+}
+
+pub(crate) type SlotClickHandler = Arc<dyn Fn(&mut SlotClick<'_>) + Send + Sync>;
+
 /// A shift-click on a slot of the menu (Minecraft: `quickMoveStack`).
 pub struct QuickMove<'a> {
     /// The block entity's position.
@@ -209,12 +260,14 @@ pub struct ScreenHandlerType {
     rule: Option<Rule>,
     quick_move: Option<Move>,
     accepts: Option<Accept>,
+    slot_clicks: HashMap<(usize, SlotAction), SlotClickHandler>,
+    pick_all_exclusions: std::collections::HashSet<usize>,
 }
 
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, dynamic_slots: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None }
+        Self { block, layout, draw: None, dynamic_slots: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
@@ -251,6 +304,23 @@ impl ScreenHandlerType {
 }
 
 impl ScreenHandlerType {
+    /// Exclude a slot from double-click collection and shift-double-click scanning.
+    /// Use for lazy recipe previews: collecting them must never bypass crafting.
+    /// This only restricts the native decision; it cannot enable a refused slot.
+    pub fn exclude_from_pick_all(mut self, slot: usize) -> Self {
+        self.pick_all_exclusions.insert(slot);
+        self
+    }
+
+    /// Handle one operation on one menu slot; unregistered operations remain native.
+    /// The callback owns that operation and must implement its recipe semantics.
+    /// Drag, clone and pick-all remain native. This is not by itself a lazy
+    /// crafting-result implementation. Native integration is under R2 validation.
+    pub fn on_slot_click(mut self, slot: usize, action: SlotAction, handler: impl Fn(&mut SlotClick<'_>) + Send + Sync + 'static) -> Self {
+        self.slot_clicks.insert((slot, action), Arc::new(handler));
+        self
+    }
+
     /// The same window, `rule` deciding what each slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). It runs inside a
     /// click, a drag or a shift-click, several times for one, with no world or player at hand: answer from the stack, and fast. A slot that only
     /// gives (a result slot) answers `may_place = false`.
@@ -356,6 +426,14 @@ pub(crate) fn slot_rules(block: &str, slot: usize, item: &str, count: u32, may_p
     }
 }
 
+pub(crate) fn excluded_from_pick_all(block: &str, slot: usize) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|handler| handler.pick_all_exclusions.contains(&slot))
+}
+
+pub(crate) fn slot_click(block: &str, slot: usize, action: SlotAction) -> Option<SlotClickHandler> {
+    ScreenHandlerRegistry::get(block)?.slot_clicks.get(&(slot, action)).cloned()
+}
+
 /// Runs the window's shift-click callback; true if it handled the click.
 pub(crate) fn quick_move(block: &str, pos: BlockPos, slot: usize, container_slots: usize, stack: &mut ItemSlot, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.quick_move) {
@@ -396,6 +474,23 @@ mod tests {
         fn text_width(&self, text: &str) -> f32 {
             text.len() as f32 * 6.0
         }
+    }
+
+    #[test]
+    fn pick_all_exclusions_apply_only_to_declared_slots_and_handlers() {
+        let block = Identifier::parse("test:pick_all_result").unwrap();
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(block, ScreenLayout::new(176.0, 166.0))
+                .exclude_from_pick_all(1),
+        );
+        assert!(excluded_from_pick_all("test:pick_all_result", 1));
+        assert!(!excluded_from_pick_all("test:pick_all_result", 0));
+        assert!(!excluded_from_pick_all("test:pick_all_unregistered", 1));
+        ScreenHandlerRegistry::register(ScreenHandlerType::new(
+            Identifier::parse("test:pick_all_storage").unwrap(),
+            ScreenLayout::new(176.0, 166.0),
+        ));
+        assert!(!excluded_from_pick_all("test:pick_all_storage", 1));
     }
 
     #[test]

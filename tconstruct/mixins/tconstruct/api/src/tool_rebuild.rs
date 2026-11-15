@@ -1,0 +1,96 @@
+//! ToolStack.rebuildStats ordering from SlimeKnights (MIT; see LICENSE).
+//! Pure rebuild of derived tool state. Persisting it into stack NBT, clamping damage
+//! to the new durability and RAW_DATA hooks belong to the caller that owns the stack.
+use crate::{
+    material_traits::ModifierEntry, materials::Definitions as Materials, modifier_entries::{Entry, List},
+    modifiers::{Modifier, Registry}, tool_definitions::Data, tool_materials::MaterialList, tool_stats::Stat,
+};
+use pluto_lib::{Identifier, NbtCompound};
+use std::{collections::BTreeMap, sync::Arc};
+
+/// The four gates checked before any state is touched.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Readiness { pub definition: bool, pub materials: bool, pub modifiers: bool, pub item_tags: bool }
+impl Readiness {
+    pub fn complete(self) -> bool { self.definition && self.materials && self.modifiers && self.item_tags }
+}
+
+#[derive(Debug)]
+pub(crate) struct Rebuilt {
+    /// Final modifier list (upgrades + traits), stably sorted by priority.
+    pub modifiers: Vec<(Entry, Arc<Modifier>)>,
+    pub volatile: NbtCompound,
+    pub stats: BTreeMap<Stat, f32>,
+    pub multipliers: BTreeMap<Stat, f32>,
+    /// Harvest tier when any module contributed one (StatsNBT stores it as a string).
+    pub tier: Option<Identifier>,
+}
+
+/// `Ok(None)` mirrors the original early return: not ready, so leave all tool state alone.
+/// An `Err` means a required modifier reference is unresolved, which must not silently
+/// become a tool with missing traits.
+pub(crate) fn rebuild(
+    readiness: Readiness, definition: &Data, materials: &MaterialList, upgrades: &List,
+    material_registry: &Materials, modifiers: &Registry,
+) -> Result<Option<Rebuilt>, String> {
+    if !readiness.complete() { return Ok(None); }
+    // Upgrades first, then tool/material traits (ToolHooks.TOOL_TRAITS).
+    let traits: Vec<ModifierEntry> = definition.traits(materials, material_registry)?;
+    // No modifier defines MODIFIER_TRAITS yet (such modules reject at decode), so the
+    // TraitBuilder pass adds each bound entry exactly once, in this order.
+    let resolved = modifiers.resolve_with_upgrades(upgrades, &traits)?;
+    // Volatile data is built before stats so stat hooks can read it: definition, then modifiers.
+    let mut volatile = definition.build_volatile_for(materials, material_registry);
+    for (entry, modifier) in &resolved { modifier.apply_volatile(entry, &mut volatile); }
+    // Modifier TOOL_STATS hooks do not exist yet; the definition builder is the whole stage.
+    let builder = definition.build_stats(materials, material_registry);
+    Ok(Some(Rebuilt {
+        modifiers: resolved, volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier: builder.touched_tier(),
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use pluto_lib::Nbt;
+    struct Always;
+    impl crate::materials::Conditions for Always {
+        type Parsed = ();
+        fn decode(&self, _: &serde_json::Value) -> Result<(), String> { Ok(()) }
+        fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
+    }
+    fn ready() -> Readiness { Readiness { definition: true, materials: true, modifiers: true, item_tags: true } }
+    #[test]
+    fn any_missing_gate_leaves_state_untouched() {
+        let data = Data::default();
+        for gate in 0..4 {
+            let mut r = ready();
+            match gate { 0 => r.definition = false, 1 => r.materials = false, 2 => r.modifiers = false, _ => r.item_tags = false }
+            let result = rebuild(r, &data, &MaterialList::default(), &List::default(), &Materials::default(), &Registry::default());
+            assert!(matches!(result, Ok(None)), "gate {gate}");
+        }
+    }
+    #[test]
+    fn rebuild_resolves_traits_then_volatile_then_stats() {
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:traits","traits":[{"name":"test:rare","level":1}]},
+            {"type":"tconstruct:volatile_flag","flag":"test:definition"},
+            {"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}
+        ]})).unwrap();
+        let mut registry = Registry::default();
+        registry.reload(&[(Identifier::parse("test:rare").unwrap(),
+            json!({"modules":[{"type":"tconstruct:rarity","rarity":"rare"},{"type":"tconstruct:volatile_flag","flag":"test:modifier"}]}))],
+            &Always);
+        let rebuilt = rebuild(ready(), &data, &MaterialList::default(), &List::default(), &Materials::default(), &registry)
+            .unwrap().unwrap();
+        assert_eq!(rebuilt.modifiers.len(), 1);
+        assert_eq!(rebuilt.volatile["test:definition"], Nbt::Byte(1));
+        assert_eq!(rebuilt.volatile["test:modifier"], Nbt::Byte(1));
+        assert_eq!(rebuilt.volatile["tconstruct:rarity"], Nbt::Int(2));
+        assert_eq!(rebuilt.stats[&Stat::Durability], 100.0);
+        // Required but unknown trait: error, never a silently missing trait.
+        let missing = Data::decode(&json!({"modules":[{"type":"tconstruct:traits","traits":[{"name":"test:absent","level":1}]}]})).unwrap();
+        assert!(rebuild(ready(), &missing, &MaterialList::default(), &List::default(), &Materials::default(), &registry).is_err());
+    }
+}

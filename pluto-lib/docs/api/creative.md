@@ -46,7 +46,7 @@ ItemGroupEvents::modify_entries_event(Identifier::new("minecraft", "ingredients"
 
 The game pages mod tabs, ten to a page, with arrows on the screen; you do nothing for it. Every stack is also findable in the search tab.
 
-> **Use with Caution.** Register tabs while your mod starts (in `hooks()`), before the creative inventory is first built. A tab registered later appears the next time the game builds it.
+> **Use with Caution.** Register tabs while your mod starts (in `hooks()`), before the creative inventory is first built. A tab registered later appears the next time the game builds it. On the fixed Horizon 441f49d5 build, an isolated eleven-tab public-API fixture verified three-page navigation, cursor-stack preservation at a disabled page button and while returning, and hotbar extraction retaining the custom name and count. That fixture does not verify later registration, search, named-stack save/reopen or LAN. A separate source-bound linked entry verified vanilla oak-log x64 extraction and retention alongside stone x7 after a full quit/reopen; it does not extend the named/paged fixture's persistence coverage.
 
 ## Reference
 

@@ -2,6 +2,56 @@
 // Names/properties are owned; all world/RNG access remains borrowed.
 use std::collections::BTreeMap;
 
+/// Landing transport lives below both client crates; callbacks are copied out
+/// before invocation, just like the feature and survival dispatchers.
+pub struct FallOn {
+    pub state: StateInfo,
+    pub pos: [i32; 3],
+    pub entity: i32,
+    pub kind: String,
+    pub distance: f64,
+    pub damage: f32,
+}
+pub struct AfterFall {
+    pub pos: [i32; 3],
+    pub entity: i32,
+    pub kind: String,
+    pub living: bool,
+    pub item: bool,
+    pub suppressing_bounce: bool,
+    pub velocity: [f64; 3],
+    pub fall_distance: f64,
+    pub on_ground: bool,
+}
+pub struct InsideMotion {
+    pub pos: [i32; 3],
+    pub entity: i32,
+    pub kind: String,
+    pub server: bool,
+    pub suppressing_bounce: bool,
+    pub position: [f64; 3],
+    pub previous_position: [f64; 3],
+    pub velocity: [f64; 3],
+    pub sync_velocity: bool,
+    pub step_sound: Option<[f32; 2]>,
+}
+pub type InsideMotionHandler = std::sync::Arc<dyn Fn(&mut InsideMotion) + Send + Sync>;
+pub type AfterFallHandler = std::sync::Arc<dyn Fn(&mut AfterFall) + Send + Sync>;
+#[derive(Clone, Copy)]
+pub struct LandingSink {
+    pub has: fn(&str) -> bool,
+    pub fall_on: fn(&mut FallOn),
+    pub after_fall: fn(&StateInfo) -> Option<AfterFallHandler>,
+    pub inside_motion: fn(&StateInfo) -> Option<InsideMotionHandler>,
+}
+static LANDING_SINK: std::sync::RwLock<Option<LandingSink>> = std::sync::RwLock::new(None);
+pub fn set_landing_sink(sink: LandingSink) {
+    *LANDING_SINK.write().expect("landing dispatcher poisoned") = Some(sink);
+}
+pub fn landing_sink() -> Option<LandingSink> {
+    LANDING_SINK.read().ok().and_then(|slot| *slot)
+}
+
 pub type FeatureDispatcher=fn(&mut dyn LevelEdit,&str,&serde_json::Value,[i32;3])->Option<bool>;
 static FEATURE_DISPATCHER:std::sync::RwLock<Option<FeatureDispatcher>>=std::sync::RwLock::new(None);
 pub fn set_feature_dispatcher(dispatcher:FeatureDispatcher) {
@@ -32,15 +82,29 @@ pub struct StateInfo {
     pub properties: BTreeMap<String, String>,
 }
 
+/// Borrowed path-node queries live below the executable and client library.
+pub type PathNodeDispatcher = fn(&dyn LevelView, &StateInfo, [i32; 3], Option<(i32, &str)>) -> Option<String>;
+static PATH_NODE_DISPATCHER: std::sync::RwLock<Option<PathNodeDispatcher>> = std::sync::RwLock::new(None);
+pub fn set_path_node_dispatcher(dispatcher: PathNodeDispatcher) {
+    *PATH_NODE_DISPATCHER.write().expect("path-node dispatcher poisoned") = Some(dispatcher);
+}
+pub fn dispatch_path_node(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3], entity: Option<(i32, &str)>) -> Option<String> {
+    let dispatcher = *PATH_NODE_DISPATCHER.read().ok()?;
+    dispatcher.and_then(|dispatcher| dispatcher(view, state, pos, entity))
+}
+
 pub trait LevelView {
     /// None when unavailable; never use a guessed default state.
     fn state(&self, pos: [i32; 3]) -> Option<StateInfo>;
     fn is_air(&self, pos: [i32; 3]) -> bool;
     fn replaceable(&self, pos: [i32; 3]) -> bool { self.is_air(pos) }
     fn generation_depth(&self) -> Option<i32> { None }
+    /// A real native Level.hasNeighborSignal query, not a state-property guess.
+    fn has_neighbor_signal(&self, _pos: [i32; 3]) -> Option<bool> { None }
     /// Native faces: down/up/north/south/west/east = 0..5.
     fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool;
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool;
+    fn state_in_tag(&self, _state: &StateInfo, _tag: &str) -> Option<bool> { None }
     /// Combined sky/block brightness, not block light alone.
     fn brightness(&self, pos: [i32; 3]) -> u8;
     fn light_passes_up(&self, pos: [i32; 3]) -> bool;
@@ -50,6 +114,18 @@ pub trait LevelView {
     fn full_block(&self, pos: [i32; 3]) -> bool;
     /// Inclusive minimum, exclusive maximum build Y.
     fn build_height(&self) -> [i32; 2];
+}
+
+/// Gate an actual native power query on a valid, loaded origin. Native code
+/// still owns neighbor/conductor/mod-hook semantics; do not reconstruct them
+/// from a powered property, neighboring tags or a guessed circuit radius.
+pub fn query_neighbor_signal(
+    pos: [i32; 3], bounds: [i32; 2], loaded: impl FnOnce(i32, i32) -> bool,
+    query: impl FnOnce() -> bool,
+) -> Option<bool> {
+    if bounds[0] >= bounds[1] || pos[1] < bounds[0] || pos[1] >= bounds[1]
+        || !loaded(pos[0], pos[2]) { return None; }
+    Some(query())
 }
 
 pub const MAX_FEATURE_DEPTH: u8 = 64;
@@ -66,7 +142,27 @@ pub fn with_random<S, R: Clone, T>(state: &mut S, random: for<'a> fn(&'a mut S) 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn plant_survival_preserves_registered_allow_deny_and_unregistered_fallback_unlocked() {
+    fn neighbor_signal_gate_preserves_false_and_true_without_querying_unavailable_origins() {
+        use super::query_neighbor_signal;
+        use std::cell::Cell;
+        let calls = Cell::new(0);
+        for answer in [false, true] {
+            let result = query_neighbor_signal([-17, 64, 31], [-64, 320], |x, z| {
+                assert_eq!((x, z), (-17, 31)); true
+            }, || { calls.set(calls.get() + 1); answer });
+            assert_eq!(result, Some(answer));
+        }
+        assert_eq!(calls.get(), 2);
+        for (pos, bounds, loaded) in [([0, -65, 0], [-64, 320], true),
+            ([0, 320, 0], [-64, 320], true), ([0, 64, 0], [10, 10], true),
+            ([0, 64, 0], [-64, 320], false)] {
+            assert_eq!(query_neighbor_signal(pos, bounds, |_, _| loaded,
+                || panic!("must not guess power at unavailable origin")), None);
+        }
+    }
+
+    #[test]
+    fn borrowed_block_queries_preserve_explicit_answers_native_fallback_and_unlocked_dispatch() {
         use super::*;
         struct View;
         impl LevelView for View {
@@ -97,6 +193,19 @@ mod tests {
         assert_eq!(dispatch_survival(&View, &plant, [1, 64, 0]).unwrap(), Some(false));
         let native = StateInfo { block: "minecraft:fern".into(), ..plant };
         assert_eq!(dispatch_survival(&View, &native, [0, 64, 0]).unwrap(), None);
+        fn path(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3], entity: Option<(i32, &str)>) -> Option<String> {
+            set_path_node_dispatcher(path); // callback runs outside the bridge lock
+            if state.block != "example:soil" { return None; }
+            if entity.is_some() { return Some("BLOCKED".into()); }
+            view.state(pos).map(|_| "STICKY_HONEY".into())
+        }
+        let soil = View.state([0, 63, 0]).unwrap();
+        assert_eq!(dispatch_path_node(&View, &soil, [0, 63, 0], None), None);
+        set_path_node_dispatcher(path);
+        assert_eq!(dispatch_path_node(&View, &soil, [0, 63, 0], None).as_deref(), Some("STICKY_HONEY"));
+        assert_eq!(dispatch_path_node(&View, &soil, [0, 63, 0], Some((4, "minecraft:cow"))).as_deref(), Some("BLOCKED"));
+        assert_eq!(dispatch_path_node(&View, &soil, [1, 63, 0], None), None);
+        assert_eq!(dispatch_path_node(&View, &native, [0, 63, 0], None), None);
     }
 
     #[test]

@@ -1,9 +1,0 @@
-{
-  "values": [
-    {
-      "id": "#tconstruct:casts/gold",
-      "required": false
-    },
-    "minecraft:elytra"
-  ]
-}

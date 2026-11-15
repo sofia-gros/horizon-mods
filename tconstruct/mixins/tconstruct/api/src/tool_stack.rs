@@ -1,0 +1,203 @@
+//! ToolStack NBT persistence from SlimeKnights (MIT; see LICENSE).
+//! Operates on a stack's custom-data compound with the original tic_* keys.
+use crate::{
+    materials::Definitions as Materials, modifier_entries::List, modifiers::Registry, tool_definitions::Data,
+    tool_materials::MaterialList, tool_rebuild::{rebuild, Readiness, Rebuilt}, tool_stats::Stat,
+};
+use pluto_lib::{Identifier, Nbt, NbtCompound};
+
+pub(crate) const TAG_MATERIALS: &str = "tic_materials";
+pub(crate) const TAG_UPGRADES: &str = "tic_upgrades";
+pub(crate) const TAG_BROKEN: &str = "tic_broken";
+pub(crate) const TAG_STATS: &str = "tic_stats";
+pub(crate) const TAG_MULTIPLIERS: &str = "tic_multipliers";
+pub(crate) const TAG_VOLATILE: &str = "tic_volatile_data";
+pub(crate) const TAG_MODIFIERS: &str = "tic_modifiers";
+pub(crate) const TAG_DAMAGE: &str = "Damage";
+const TIER_KEY: &str = "tconstruct:harvest_tier";
+
+/// ToolStack.isInitialized: only the presence of a compound under tic_stats counts.
+pub(crate) fn is_initialized(nbt: &NbtCompound) -> bool { matches!(nbt.get(TAG_STATS), Some(Nbt::Compound(_))) }
+
+fn boolean(nbt: &NbtCompound, key: &str) -> bool { nbt.get(key).and_then(Nbt::as_i64).is_some_and(|value| value != 0) }
+
+/// MaterialNBT is empty for definitions without material slots, regardless of saved data.
+pub(crate) fn materials(nbt: &NbtCompound, has_materials: bool) -> MaterialList {
+    if has_materials { MaterialList::from_nbt(nbt.get(TAG_MATERIALS)) } else { MaterialList::default() }
+}
+/// setMaterialsRaw: an empty list removes the key; no rebuild.
+pub(crate) fn set_materials_raw(nbt: &mut NbtCompound, materials: &MaterialList) {
+    if materials.as_slice().is_empty() { nbt.remove(TAG_MATERIALS); } else { nbt.insert(TAG_MATERIALS.into(), materials.to_nbt()); }
+}
+pub(crate) fn upgrades(nbt: &NbtCompound) -> List { List::from_nbt(nbt.get(TAG_UPGRADES)) }
+
+/// Everything a rebuild reads besides the stack itself.
+pub(crate) struct Environment<'a> {
+    pub definition: Option<&'a Data>,
+    pub has_materials: bool,
+    pub materials: &'a Materials,
+    pub modifiers: &'a Registry,
+    pub item_tags_loaded: bool,
+}
+
+/// ToolStack.rebuildStats. Returns whether state was rebuilt; unready environments are a no-op.
+pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<bool, String> {
+    let readiness = Readiness {
+        definition: env.definition.is_some(), materials: env.materials.server_loaded,
+        modifiers: env.modifiers.definitions_loaded, item_tags: env.item_tags_loaded,
+    };
+    let Some(definition) = env.definition else { return Ok(false); };
+    let list = materials(nbt, env.has_materials);
+    let saved = upgrades(nbt);
+    let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers)? else { return Ok(false); };
+    apply(nbt, &rebuilt);
+    Ok(true)
+}
+
+fn apply(nbt: &mut NbtCompound, rebuilt: &Rebuilt) {
+    // setModifiers always writes a list, even when empty.
+    nbt.insert(TAG_MODIFIERS.into(), Nbt::List(rebuilt.modifiers.iter().map(|(entry, _)| Nbt::Compound(entry.to_nbt())).collect()));
+    // setVolatileModData removes an empty compound instead of storing it.
+    if rebuilt.volatile.is_empty() { nbt.remove(TAG_VOLATILE); } else { nbt.insert(TAG_VOLATILE.into(), Nbt::Compound(rebuilt.volatile.clone())); }
+    let mut stats = NbtCompound::new();
+    for (stat, value) in &rebuilt.stats { stats.insert(format!("tconstruct:{}", stat.path()), Nbt::Float(*value)); }
+    if let Some(tier) = &rebuilt.tier { stats.insert(TIER_KEY.into(), Nbt::String(tier.to_string())); }
+    nbt.insert(TAG_STATS.into(), Nbt::Compound(stats));
+    // setStats: lower the damage (and mark broken) when the new durability no longer holds it.
+    let durability = durability(nbt);
+    if damage_raw(nbt) >= durability { set_damage(nbt, durability); }
+    let mut multipliers = NbtCompound::new();
+    for (stat, value) in &rebuilt.multipliers { multipliers.insert(format!("tconstruct:{}", stat.path()), Nbt::Float(*value)); }
+    if multipliers.is_empty() { nbt.remove(TAG_MULTIPLIERS); } else { nbt.insert(TAG_MULTIPLIERS.into(), Nbt::Compound(multipliers)); }
+}
+
+/// StatsNBT.getInt(DURABILITY): default 1 when the stat is absent.
+pub(crate) fn durability(nbt: &NbtCompound) -> i32 {
+    let Some(Nbt::Compound(stats)) = nbt.get(TAG_STATS) else { return 1; };
+    match stats.get(&format!("tconstruct:{}", Stat::Durability.path())) {
+        Some(Nbt::Float(value)) => *value as i32,
+        Some(Nbt::Double(value)) => *value as i32,
+        Some(value) => value.as_i64().map(|v| v as i32).unwrap_or(1),
+        None => 1,
+    }
+}
+/// A stored float stat, or the stat's registered default when absent.
+pub(crate) fn stat(nbt: &NbtCompound, stat: Stat) -> f32 {
+    if let Some(Nbt::Compound(stats)) = nbt.get(TAG_STATS) {
+        match stats.get(&format!("tconstruct:{}", stat.path())) {
+            Some(Nbt::Float(value)) => return *value,
+            Some(Nbt::Double(value)) => return *value as f32,
+            Some(value) => if let Some(value) = value.as_i64() { return value as f32; },
+            None => {}
+        }
+    }
+    stat.default_value()
+}
+/// The per-stack `minecraft:tool` component to store on the stack after a rebuild or damage
+/// change; the caller writes it to `ItemSlot::tool`. None for tools with no mining module.
+pub(crate) fn mining_component(nbt: &NbtCompound, definition: &Data) -> Result<Option<NbtCompound>, String> {
+    definition.mining_component(is_broken(nbt), stat(nbt, Stat::MiningSpeed), &harvest_tier(nbt))
+}
+pub(crate) fn damage_raw(nbt: &NbtCompound) -> i32 { crate::modifier_entries::nbt_int(nbt.get(TAG_DAMAGE)) }
+pub(crate) fn is_broken(nbt: &NbtCompound) -> bool { boolean(nbt, TAG_BROKEN) }
+/// ToolStack.setDamage: reaching durability breaks the tool and caps stored damage there.
+pub(crate) fn set_damage(nbt: &mut NbtCompound, damage: i32) {
+    let durability = durability(nbt);
+    let damage = if damage >= durability { nbt.insert(TAG_BROKEN.into(), Nbt::Byte(1)); durability.max(0) }
+        else { nbt.insert(TAG_BROKEN.into(), Nbt::Byte(0)); damage };
+    nbt.insert(TAG_DAMAGE.into(), Nbt::Int(damage));
+}
+/// ToolStack.getDamage: broken tools report full damage; otherwise stay one below durability.
+pub(crate) fn damage(nbt: &NbtCompound) -> i32 {
+    let durability = durability(nbt);
+    if is_broken(nbt) { durability } else { damage_raw(nbt).min(durability.wrapping_sub(1)) }
+}
+pub(crate) fn current_durability(nbt: &NbtCompound) -> i32 {
+    if is_broken(nbt) { 0 } else { durability(nbt).wrapping_sub(damage_raw(nbt)).max(0) }
+}
+/// The stored harvest tier, defaulting to wood like HarvestTiers.minTier.
+pub(crate) fn harvest_tier(nbt: &NbtCompound) -> Identifier {
+    if let Some(Nbt::Compound(stats)) = nbt.get(TAG_STATS) {
+        if let Some(Nbt::String(tier)) = stats.get(TIER_KEY) { if let Ok(tier) = Identifier::parse(tier) { return tier; } }
+    }
+    Identifier::parse("minecraft:wood").unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    struct Always;
+    impl crate::materials::Conditions for Always {
+        type Parsed = ();
+        fn decode(&self, _: &serde_json::Value) -> Result<(), String> { Ok(()) }
+        fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
+    }
+    fn environment<'a>(data: &'a Data, materials: &'a Materials, registry: &'a Registry) -> Environment<'a> {
+        Environment { definition: Some(data), has_materials: false, materials, modifiers: registry, item_tags_loaded: true }
+    }
+    fn loaded_materials() -> Materials { let mut materials = Materials::default(); materials.server_loaded = true; materials }
+    #[test]
+    fn rebuild_persists_and_lowers_damage_when_durability_shrinks() {
+        let mut registry = Registry::default();
+        registry.reload(&[(Identifier::parse("test:rare").unwrap(), json!({"modules":[{"type":"tconstruct:rarity","rarity":"epic"}]}))], &Always);
+        let materials = loaded_materials();
+        let strong = Data::decode(&json!({"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]})).unwrap();
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("test:rare").unwrap(), 2).unwrap().to_nbt());
+        assert!(!is_initialized(&nbt));
+        assert!(rebuild_stats(&mut nbt, &environment(&strong, &materials, &registry)).unwrap());
+        assert!(is_initialized(&nbt));
+        assert_eq!(durability(&nbt), 100);
+        assert_eq!(nbt[TAG_VOLATILE], Nbt::Compound([("tconstruct:rarity".to_owned(), Nbt::Int(3))].into_iter().collect()));
+        let Nbt::List(modifiers) = &nbt[TAG_MODIFIERS] else { panic!() };
+        assert_eq!(modifiers.len(), 1);
+        set_damage(&mut nbt, 60);
+        assert_eq!((damage(&nbt), current_durability(&nbt), is_broken(&nbt)), (60, 40, false));
+        // A weaker definition lowers the max below stored damage: capped at the new maximum and broken.
+        let weak = Data::decode(&json!({"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":50}}]})).unwrap();
+        assert!(rebuild_stats(&mut nbt, &environment(&weak, &materials, &registry)).unwrap());
+        assert_eq!((damage_raw(&nbt), damage(&nbt), current_durability(&nbt), is_broken(&nbt)), (50, 50, 0, true));
+        // Healing below durability clears the broken flag.
+        set_damage(&mut nbt, 10);
+        assert!(!is_broken(&nbt));
+    }
+    #[test]
+    fn mining_component_follows_stored_speed_tier_and_broken_state() {
+        let mut registry = Registry::default();
+        registry.reload(&[], &Always);
+        let materials = loaded_materials();
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:base_stats","stats":{"tconstruct:durability":10,"tconstruct:mining_speed":6,"tconstruct:harvest_tier":"minecraft:iron"}},
+            {"type":"tconstruct:is_effective","predicate_type":"mantle:tag","tag":"minecraft:mineable/pickaxe"}
+        ]})).unwrap();
+        let mut nbt = NbtCompound::new();
+        assert!(rebuild_stats(&mut nbt, &environment(&data, &materials, &registry)).unwrap());
+        assert_eq!(stat(&nbt, Stat::MiningSpeed), 6.0);
+        let tool = mining_component(&nbt, &data).unwrap().unwrap();
+        assert_eq!(tool["default_mining_speed"], Nbt::Float(1.0));
+        let Nbt::List(rules) = &tool["rules"] else { panic!() };
+        assert_eq!(rules.len(), 2, "iron tier rule plus the effective rule");
+        // Breaking the tool flips it to the slow, drop-less component.
+        set_damage(&mut nbt, 10);
+        let broken = mining_component(&nbt, &data).unwrap().unwrap();
+        assert_eq!(broken["default_mining_speed"], Nbt::Float(0.3));
+        // A definition with no mining module has none.
+        assert!(mining_component(&nbt, &Data::default()).unwrap().is_none());
+    }
+    #[test]
+    fn unready_environment_changes_nothing() {
+        let registry = Registry::default();
+        let materials = loaded_materials();
+        let data = Data::default();
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_VOLATILE.into(), Nbt::Compound(NbtCompound::new()));
+        let mut env = environment(&data, &materials, &registry);
+        env.item_tags_loaded = false;
+        assert!(!rebuild_stats(&mut nbt, &env).unwrap());
+        assert!(!is_initialized(&nbt) && nbt.contains_key(TAG_VOLATILE));
+        // A fresh registry has not loaded dynamic modifiers, which is also a gate.
+        env.item_tags_loaded = true;
+        assert!(!rebuild_stats(&mut nbt, &env).unwrap());
+    }
+}

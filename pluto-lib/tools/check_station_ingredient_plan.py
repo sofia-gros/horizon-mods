@@ -36,7 +36,18 @@ def verify_source(plan, workspace, metadata, helpers=None):
         raise ValueError(str(error).replace('placement', 'station-ingredient')) from error
 
 
+NATIVE_SOURCES = {
+    'crates/horizon-client/src/stations.rs': '2de858164ed879132d89c1eacd2792872d931ff5404ef6bfa378c995af2f85a8',
+    'crates/horizon-client/src/crafting.rs': '298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e',
+}
+
+
 def check(plan, workspace):
+    if _shared.native_bundle(plan):
+        # Keep both the station caller and its Ingredient::parse implementation.
+        # This is not the retired custom station-parser registration capability.
+        _shared.check_native(plan, workspace, NATIVE_SOURCES, {'ingredient'})
+        return
     metadata = entries()
     check_order(plan, metadata)
     verify_source(plan, workspace, metadata)
@@ -51,7 +62,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
         print('Station-ingredient composition rejected: ' + str(error), file=sys.stderr)
         return 1
-    print('Station-ingredient parser ownership, native fingerprint and helper source verified.')
+    print('Station-ingredient boundary verified; native preservation supplies no custom parser registration.')
     return 0
 
 

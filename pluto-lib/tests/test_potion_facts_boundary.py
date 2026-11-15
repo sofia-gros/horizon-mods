@@ -1,4 +1,8 @@
-"""Generic native facts only; consumer policy must be byte-preserved."""
+"""Generic potion ownership plus read-only archived consumer preservation.
+
+Archived source is inspected as data, never imported, compiled or executed.
+These preservation checks do not establish clean-port gameplay behavior.
+"""
 from pathlib import Path
 import hashlib
 import importlib.util
@@ -7,6 +11,7 @@ import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+ARCHIVED = ROOT / 'legacy/2026-11-14'
 
 
 def normalize(source):
@@ -36,7 +41,7 @@ class PotionFactsBoundary(unittest.TestCase):
         self.assertEqual(len(evidence['sources']), 6)
         for row in evidence['sources']:
             with self.subTest(path=row['path']):
-                source = (ROOT / row['path']).read_text()
+                source = (ARCHIVED / row['path']).read_text()
                 self.assertEqual(hashlib.sha256(normalize_composition(source, row).encode()).hexdigest(), row['policy_sha256'])
                 self.assertNotIn('horizon_client_core::potions::', source)
                 self.assertNotIn('horizon_client::brewing::', source)
@@ -47,7 +52,7 @@ class PotionFactsBoundary(unittest.TestCase):
         row = next(row for row in evidence['sources'] if row['path'].endswith('/source-smeltery-fuel.rs'))
         delta, = row['permitted_composition_deltas']
         self.assertEqual(delta['name'], 'shared_recursive_lossless_item_codec')
-        current = (ROOT / row['path']).read_text()
+        current = (ARCHIVED / row['path']).read_text()
         # Test both branches without requiring an integrated source checkout.
         before = current.replace(delta['after'], delta['before'])
         after = before.replace(delta['before'], delta['after'])
@@ -73,7 +78,7 @@ class PotionFactsBoundary(unittest.TestCase):
         self.assertEqual(module, [{'id': 'potion-facts', 'file': 'crates/horizon-client/src/client_lib.rs', 'name': 'pluto_potions', 'source': 'potion-facts.rs', 'visibility': 'pub'}])
 
     def test_caps_math_source_effect_rules_and_application_remain_local(self):
-        root = ROOT / 'tconstruct/mixins/tconstruct'
+        root = ARCHIVED / 'tconstruct/mixins/tconstruct'
         color = (root / 'source-melter-render.rs').read_text()
         for token in ('effects.len() <= 64', '0.0f32', 'amplifier.max(0) + 1', 'ShowParticles', 'color_tagged(fluid, tag)'):
             self.assertIn(token, color)

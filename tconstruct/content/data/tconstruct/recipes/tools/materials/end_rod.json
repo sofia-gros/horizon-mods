@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "item": "minecraft:end_rod"
-  },
-  "material": "tconstruct:end_rod",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

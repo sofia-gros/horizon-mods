@@ -163,8 +163,8 @@
       "note": "a recipe and loot condition type; Horizon content has no mod condition types"
     },
     "json/ConfigEnabledCondition.java": {
-      "status": "parked",
-      "note": "a recipe and loot condition type; Horizon content has no mod condition types"
+      "status": "partial",
+      "note": "Equipment reload now uses the exact eleven source condition properties, Common TOML bindings/defaults, Locale.ROOT-compatible known-name lookup, deprecated false constant and source slime/glass alias. Loading/reloading snapshots retain prior valid state on malformed input and survive replacement/unload; unknown props reject during parse, before short-circuit value evaluation. This is condition data, not implementation of named gameplay/integration features. Native recipe/loot condition registration, worldRestart semantics and game validation remain incomplete."
     },
     "multiblock/IMasterLogic.java": {
       "status": "partial",

@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "tag": "forge:granite"
-  },
-  "material": "tconstruct:rock#granite",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}

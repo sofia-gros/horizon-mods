@@ -1,9 +1,0 @@
-{
-  "ingredient": {
-    "item": "tconstruct:bloodshroom_planks"
-  },
-  "material": "tconstruct:slimewood#bloodshroom",
-  "needed": 1,
-  "type": "tconstruct:material",
-  "value": 1
-}
