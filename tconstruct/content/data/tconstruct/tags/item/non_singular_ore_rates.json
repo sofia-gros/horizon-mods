@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#forge:ore_rates/dense",
+      "required": false
+    },
+    {
+      "id": "#forge:ore_rates/sparse",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "#forge:seeds",
+      "required": false
+    },
+    "minecraft:carrot",
+    "minecraft:potato",
+    "minecraft:nether_wart",
+    "minecraft:sweet_berries"
+  ]
+}

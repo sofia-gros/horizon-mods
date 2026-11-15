@@ -175,7 +175,7 @@ def checked_content(root, version):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
                 continue
             if '/tags/' in name:
-                if not isinstance(item, dict) or set(item) - {'values', 'replace'} or not isinstance(item.get('values'), list):
+                if not isinstance(item, dict) or set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):
                     raise ValueError(f'tag must be an object with a values list: {name}')
                 continue
             if '/menu/' in name:
