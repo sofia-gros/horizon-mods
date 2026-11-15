@@ -109,7 +109,7 @@ impl Builder {
             .map(|(stat, value)| (*stat, value.max(0.0))).collect()
     }
     pub fn tier(&self) -> Identifier { self.tier.clone().unwrap_or_else(|| Identifier::parse("minecraft:wood").unwrap()) }
-    fn update_tier(&mut self, tier: &Identifier) {
+    pub(crate) fn update_tier(&mut self, tier: &Identifier) {
         let rank = |tier: &Identifier| ["wood", "gold", "stone", "iron", "diamond", "netherite"].iter().position(|name| *name == tier.path()).unwrap_or(0);
         // HarvestTiers.max stores the larger tier even when it equals the default, so the
         // stat key exists (and is serialized) once any contribution touched it.

@@ -40,6 +40,8 @@ pub(crate) enum Module {
     Int { id: Identifier, flat: i32, each: i32, condition: Condition },
     Slot { name: String, flat: i32, each: i32, condition: Condition },
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
+    /// SetStatModule for the harvest tier: the tier becomes the larger of the current one and this.
+    SetTier { tier: Identifier, condition: Condition },
     /// ModifierTraitModule: a nested modifier this one brings along.
     Trait { modifier: Identifier, level: i32, fixed_level: bool, condition: Condition },
     /// ReduceToolDamageModule: probabilistically cancels a fraction of tool damage.
@@ -198,6 +200,13 @@ impl Module {
                 };
                 Self::Boost { stat, operation, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)? }
             }
+            "tconstruct:set_stat" if only("tconstruct:tool_stats") => {
+                // Only the harvest tier is a settable stat the shipped data uses; others stay unbound.
+                if identifier(fields, "stat")?.to_string() != "tconstruct:harvest_tier" { return Ok(None); }
+                let tier = identifier(fields, "value")?;
+                if !matches!(tier.path(), "wood" | "gold" | "stone" | "iron" | "diamond" | "netherite") { return Err(format!("unknown tool tier {tier}")); }
+                Self::SetTier { tier, condition: Condition::decode(fields)? }
+            }
             _ => return Ok(None),
         }))
     }
@@ -229,7 +238,7 @@ impl Module {
                     }
                 }
             }
-            Self::Boost { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
+            Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
         }
     }
 
@@ -280,6 +289,12 @@ impl Module {
 
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &Facts, builder: &mut Builder) {
+        if let Self::SetTier { tier, condition } = self {
+            // ToolTierStat.supports: harvest tools only (no item context means no filter).
+            let harvest = facts.item.is_none() || (facts.in_tag)(facts.item.expect("checked"), &Identifier::new("tconstruct", "modifiable/harvest").expect("valid tag"));
+            if condition.matches(entry, facts) && harvest { builder.update_tier(tier); }
+            return;
+        }
         let Self::Boost { stat, operation, flat, each, condition } = self else { return; };
         if !condition.matches(entry, facts) || !supports(*stat, facts) { return; }
         let value = f64::from(*flat + *each * entry.effective_level());

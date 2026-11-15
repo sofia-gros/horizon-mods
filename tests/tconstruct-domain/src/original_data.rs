@@ -240,3 +240,24 @@ fn the_shipped_reinforced_recipe_fills_a_level_in_two_partial_applications() {
     assert_eq!(first.consumption(&half, &full, &reinforcement(5), &in_tag).0, vec![2], "only what the level still needed is taken");
     // reinforced reduces damage taken (see the damage test); it does not change the durability stat.
 }
+
+#[test]
+fn shipped_diamond_and_emerald_raise_the_harvest_tier_of_a_wood_pickaxe() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let tier_with = |modifier: Option<&str>| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        if let Some(id) = modifier { nbt.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(id).unwrap(), 1).unwrap().to_nbt()); }
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        let Some(Nbt::Compound(stats)) = nbt.get(crate::tool_stack::TAG_STATS) else { panic!("no stats") };
+        match stats.get("tconstruct:harvest_tier") { Some(Nbt::String(tier)) => tier.clone(), other => panic!("no tier: {other:?}") }
+    };
+    assert_eq!(tier_with(None), "minecraft:wood");
+    assert_eq!(tier_with(Some("tconstruct:emerald")), "minecraft:iron");
+    assert_eq!(tier_with(Some("tconstruct:diamond")), "minecraft:diamond");
+}
