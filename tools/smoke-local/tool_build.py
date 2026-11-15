@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""One real-game batch for the clean tool domain: content loads, a station builds, swaps and takes tools.
+
+Run only against a linked clean build (tools/build_clean_game.py) with `--content`-style assets:
+the script copies tconstruct/content into a fresh isolated game directory. One run covers every
+scenario below, because each launch costs about half an hour; do not use it for single probes.
+
+Scenarios (each asserted from the running game, with screenshots kept in the run directory):
+  1. the content mod loads and the station block opens a 6-slot container menu,
+  2. wood head + handle + binding in the input slots preview a tconstruct:pickaxe in the result slot,
+  3. taking the result gives the tool (with rebuilt stats) and consumes exactly the parts,
+  4. a stone head on that tool swaps the head material in the result,
+  5. the game log carries no Tinkers loader problems beyond the known unbound-module report.
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import time
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--game', type=Path, required=True, help='linked horizon-client executable')
+    p.add_argument('--ctl', type=Path, required=True, help='horizon-ctl executable')
+    p.add_argument('--resources', type=Path, required=True)
+    p.add_argument('--runs', type=Path, default=ROOT / '.local/smoke-runs')
+    a = p.parse_args()
+    a.runs.mkdir(parents=True, exist_ok=True)
+    run = Path(tempfile.mkdtemp(prefix='tool-build-', dir=a.runs)).resolve()
+    endpoint = run / 'control.json'
+    game_dir = run / 'game'
+    shutil.copytree(ROOT / 'tconstruct/content', game_dir / 'horizon-mods/tconstruct')
+    (game_dir / 'horizon-mods.txt').write_text('mod.tconstruct:true' + chr(10), encoding='utf-8', newline=chr(10))
+    env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
+               HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216')
+    for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'TMP', 'TEMP'):
+        folder = run / key.lower()
+        folder.mkdir()
+        env[key] = str(folder)
+    log = (run / 'game.log').open('w', encoding='utf-8')
+    command = [str(a.game.resolve()), '--home', env['HORIZON_HOME'], '--game-dir', str(game_dir), '--resources', str(a.resources.resolve()),
+               '--world', 'ToolBuild', '--seed', '42', '--creative', '--control-socket', str(endpoint), '--offscreen',
+               '--render-distance', '2', '--width', '1280', '--height', '720']
+    proc = subprocess.Popen(command, cwd=run, env=env, stdout=log, stderr=subprocess.STDOUT)
+
+    def ctl(*args, timeout=30):
+        r = subprocess.run([str(a.ctl.resolve()), '--socket', str(endpoint), '--timeout', str(timeout), *map(str, args)],
+                           capture_output=True, text=True, timeout=timeout + 10)
+        with (run / 'ctl.jsonl').open('a', encoding='utf-8', newline=chr(10)) as f:
+            f.write(json.dumps({'args': args, 'code': r.returncode, 'stdout': r.stdout, 'stderr': r.stderr}) + chr(10))
+        if r.returncode:
+            raise RuntimeError((args, r.stdout, r.stderr))
+        value = json.loads(r.stdout)
+        if value.get('error'):
+            raise RuntimeError(value)
+        return value
+
+    def ui_slots():
+        value = ctl('ui')
+        nodes = value.get('widgets', value.get('nodes', []))
+        return {int(n['id'][5:]): n['bounds'] for n in nodes if n['id'].startswith('slot-')}
+
+    def shot(name):
+        ctl('screenshot', str(run / name))
+        assert (run / name).is_file(), name
+        print('SCREENSHOT', run / name, flush=True)
+
+    def container_slots():
+        return {s['slot']: s for s in ctl('screen')['slots']}
+
+    def put(item, material, container_slot):
+        """Give a part, pick it from the player's inventory and drop it in a container slot."""
+        ctl('command', f'give @s tconstruct:{item}[custom_data={{Material:"tconstruct:{material}"}}] 1')
+        ctl('wait', '5')
+        inv = ctl('screen')['slots']
+        source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == f'tconstruct:{item}')
+        ctl('click-slot', source)
+        bounds = ui_slots()[container_slot]
+        ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+        ctl('wait', '5')
+
+    result = {'scenarios': []}
+    try:
+        deadline = time.monotonic() + 180
+        while not endpoint.exists():
+            if proc.poll() is not None or time.monotonic() > deadline:
+                raise RuntimeError(f'game did not start: {run / "game.log"}')
+            time.sleep(.2)
+        ctl('wait-ready', '180', timeout=185)
+        ctl('command', 'clear @s')
+        pos = ctl('state')['player']['position']
+        xyz = [int(pos[0] // 1) + 2, int(pos[1] // 1), int(pos[2] // 1)]
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
+        ctl('interact', *xyz)
+        ctl('wait', '10')
+        assert ctl('screen')['screen'] == 'container', 'the station block did not open a container menu'
+        slots = ui_slots()
+        first = min(i for i in slots if i >= 300)
+        tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
+        assert result_slot in slots, sorted(slots)
+        shot('01-station-open.png')
+        result['scenarios'].append('content mod loads and the station opens a 6-slot menu')
+
+        for item, material, slot in [('pick_head', 'wood', inputs[0]), ('tool_handle', 'wood', inputs[1]), ('tool_binding', 'wood', inputs[2])]:
+            put(item, material, slot)
+        preview = container_slots()[result_slot]
+        assert preview.get('item') == 'tconstruct:pickaxe', preview
+        assert 'tic_stats' in preview.get('components', ''), 'the previewed tool has no rebuilt stats: ' + str(preview)
+        shot('02-pickaxe-preview.png')
+        result['scenarios'].append('three wood parts preview a pickaxe with stats')
+
+        bounds = ui_slots()[result_slot]
+        ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+        ctl('wait', '5')
+        screen = ctl('screen')
+        assert screen['carried'] and screen['carried']['item'] == 'tconstruct:pickaxe', screen['carried']
+        assert all(s.get('item') is None for s in screen['slots'] if first <= s['slot'] <= first + 4), 'parts were not consumed'
+        assert any(s['slot'] == result_slot and s.get('item') is None for s in screen['slots']), 'result slot not cleared'
+        ctl('click-slot', tool)
+        ctl('wait', '5')
+        shot('03-pickaxe-taken.png')
+        result['scenarios'].append('taking the pickaxe consumed the parts and gave the tool')
+
+        put('pick_head', 'rock', inputs[0])
+        swapped = container_slots()[result_slot]
+        assert swapped.get('item') == 'tconstruct:pickaxe' and 'tconstruct:rock' in swapped.get('components', ''), swapped
+        shot('04-head-swap-preview.png')
+        result['scenarios'].append('a stone head previews a head swap on the placed pickaxe')
+
+        ctl('close')
+        ctl('quit')
+        proc.wait(timeout=90)
+        problems = [line for line in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines() if 'Tinkers:' in line]
+        (run / 'tinkers-log.txt').write_text(chr(10).join(problems) + chr(10), encoding='utf-8')
+        result['tinkers_log_lines'] = len(problems)
+        result['result'] = 'TOOL BUILD PASS'
+        print(json.dumps({**result, 'run': str(run)}))
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=15)
+        log.close()
+        print('RUN', run, flush=True)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,7 +1,8 @@
 //! Tinker station block entity, window and result-slot ownership over PlutoLib's public API.
 //! SlimeKnights (MIT; see LICENSE) defines the recipes; this registers where they apply.
-//! The window is a provisional fixed layout: per-tool slot layouts, the station texture and
-//! tool-selection tabs are presentation work that is not ported yet.
+//! The window uses the original's main station layout positions; per-tool slot layouts
+//! (which move and filter the inputs), the station texture and tool-selection tabs are
+//! presentation work that is not ported yet.
 use crate::{
     common, tables::{lazy_result::LazyResultContainer, station}, tool_definitions, tool_parts,
     tool_station::{Context, Crafted, Outcome},
@@ -121,8 +122,9 @@ fn take_result(click: &mut SlotClick<'_>) {
 pub(crate) fn register() {
     let id = Identifier::new("tconstruct", NAME).expect("valid station id");
     let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0);
-    // Provisional fixed positions: tool, four inputs, result (114, 38 as in the original menu).
-    layout = layout.slot(87.0, 62.0).slot(53.0, 22.0).slot(15.0, 60.0).slot(33.0, 42.0).slot(60.0, 72.0).slot(114.0, 38.0);
+    // The original's main tinker_station layout: tool (53, 41), inputs (11, 41), (31, 30), (31, 50), and
+    // the result at (114, 38). The fourth input has no position in that layout, so it is hidden.
+    layout = layout.slot(53.0, 41.0).slot(11.0, 41.0).slot(31.0, 30.0).slot(31.0, 50.0).hidden_slot().slot(114.0, 38.0);
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(|rule| { if rule.slot == RESULT_SLOT { rule.may_place = false; } })
         .exclude_from_pick_all(RESULT_SLOT);

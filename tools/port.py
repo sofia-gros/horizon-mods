@@ -21,6 +21,7 @@ CONTENT_PATHS = (
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
 ITEM_KEYS = {'template', 'components', 'crafting_remainder'}
 BLOCK_KEYS = {'template', 'properties', 'occludes', 'item', 'components'}
@@ -172,6 +173,10 @@ def checked_content(root, version):
             if '/tinkering/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
+                continue
+            if '/tags/' in name:
+                if not isinstance(item, dict) or set(item) - {'values', 'replace'} or not isinstance(item.get('values'), list):
+                    raise ValueError(f'tag must be an object with a values list: {name}')
                 continue
             if '/menu/' in name:
                 if not isinstance(item, dict) or set(item) - MENU_KEYS or not isinstance(item.get('slots'), int) or not 1 <= item['slots'] <= 256:

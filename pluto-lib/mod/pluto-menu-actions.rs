@@ -86,7 +86,8 @@ pub mod pluto_menu_actions {
     pub fn commit(entity: &mut crate::containers::ModBlockEntity, context: &Context) -> bool {
         if !context.changed || entity.id != context.entity { return false; }
         let mut changed = entity.nbt != context.data;
-        if let Some(horizon_world::nbt::Tag::IntArray(values)) = context.data.get("pluto:menu_data") {
+        let menu_data_key = horizon_world::nbt::JavaString::from("pluto:menu_data");
+        if let Some(horizon_world::nbt::Tag::IntArray(values)) = context.data.get(&menu_data_key) {
             let data: Vec<i32> = values.iter().take(256)
                 .map(|value| (*value).clamp(i16::MIN as i32, i16::MAX as i32)).collect();
             changed |= entity.data != data;

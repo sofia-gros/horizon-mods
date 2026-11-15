@@ -82,7 +82,7 @@ def validate(prepared, resources):
     return executable, proof, resources
 
 
-def launch(executable, proof, resources, automation=False):
+def launch(executable, proof, resources, automation=False, content=False):
     # Never accept an existing home/world path or borrow the user's launcher home.
     run = Path(tempfile.mkdtemp(prefix='clean-game-', dir=ROOT / '.local/clean-port'))
     env = dict(os.environ, HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off',
@@ -93,12 +93,17 @@ def launch(executable, proof, resources, automation=False):
         env[key] = str(folder)
     game_dir = run / 'game'
     game_dir.mkdir()
+    if content:
+        # The clean Tinkers content mod, as a folder with horizon-mod.toml, switched on for this fresh game dir only.
+        import shutil
+        shutil.copytree(ROOT / 'tconstruct/content', game_dir / 'horizon-mods/tconstruct')
+        (game_dir / 'horizon-mods.txt').write_text('mod.tconstruct:true' + chr(10), encoding='utf-8', newline=chr(10))
     command = [str(executable), '--home', env['HORIZON_HOME'], '--game-dir', str(game_dir),
                '--resources', str(resources), '--world', 'CleanPortDevelopment', '--seed', '42', '--creative']
     if automation:
         command += ['--control-socket', str(run / 'control.json'), '--offscreen',
                     '--render-distance', '2', '--width', '1280', '--height', '720']
-    print('Development entry only; Tinkers content is not yet playable.', flush=True)
+    print('Development entry only; Tinkers content is not yet playable.' + (' (clean content mod enabled)' if content else ''), flush=True)
     print('Isolated run: ' + str(run), flush=True)
     result = subprocess.run(command, cwd=run, env=env)
     (run / 'launch.json').write_text(json.dumps({
@@ -116,13 +121,15 @@ def main():
     parser.add_argument('--check-only', action='store_true', help='Verify inputs without creating a home or launching')
     parser.add_argument('--automation', action='store_true',
                         help='Offscreen development run with a control endpoint inside the fresh isolated home')
+    parser.add_argument('--content', action='store_true',
+                        help='Enable tconstruct/content as a content mod in the fresh isolated game directory')
     args = parser.parse_args()
     try:
         executable, proof, resources = validate(args.prepared, args.resources)
         if args.check_only:
             print('Verified development executable: ' + str(executable))
             return 0
-        return launch(executable, proof, resources, automation=args.automation)
+        return launch(executable, proof, resources, automation=args.automation, content=args.content)
     except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:
         print('Clean game launch refused: ' + str(error), file=sys.stderr)
         return 1
