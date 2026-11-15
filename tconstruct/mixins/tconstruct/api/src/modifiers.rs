@@ -117,7 +117,7 @@ impl Modifier {
     pub fn has_trait_modules(&self) -> bool { self.modules.iter().any(crate::modifier_modules::Module::is_trait) }
     /// ModifierTraitHook through TraitBuilder: the nested entries for `entry`, in module order.
     pub fn trait_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, first_encounter: bool) -> Vec<Entry> {
-        self.modules.iter().filter_map(|module| module.trait_entry(entry, facts, first_encounter)).collect()
+        self.modules.iter().flat_map(|module| module.trait_entry(entry, facts, first_encounter).into_iter().chain(module.swappable_traits(entry, facts))).collect()
     }
     /// ToolDamageModifierHook: the damage left after every damage-reducing module, in module order.
     pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, cause: Option<&Identifier>,
@@ -154,7 +154,7 @@ impl Modifier {
 
 /// Facts for a context with no tool stack.
 fn no_tool() -> crate::tool_predicate::Facts<'static> {
-    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new() }
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), hook_traits: &|_| Vec::new() }
 }
 
 #[derive(Clone, Debug)]
@@ -421,7 +421,7 @@ mod tests {
         ], &BooleanConditions);
         assert!(registry.problems.is_empty(), "{:?}", registry.problems);
         let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false, tag_level: &|_, _| 0,
-            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new() };
+            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), hook_traits: &|_| Vec::new() };
         let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
         let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);
         // Owner level 3: the scaled trait is 2 * 3, the fixed one joins once even with a second owner.

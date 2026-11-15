@@ -54,7 +54,8 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let list = materials(nbt, env.has_materials);
     let saved = upgrades(nbt);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let hook_traits = |hook: &Identifier| definition.hook_traits(hook, &list, env.materials).unwrap_or_default();
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
     Ok(true)
@@ -87,7 +88,9 @@ pub(crate) fn saved_modifiers(nbt: &NbtCompound, registry: &Registry) -> Vec<(cr
 fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(crate::modifier_entries::Entry, std::sync::Arc<crate::modifiers::Modifier>)], &crate::tool_predicate::Facts) -> R) -> R {
     let saved = saved_modifiers(nbt, env.modifiers);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let list = materials(nbt, env.has_materials);
+    let hook_traits = |hook: &Identifier| env.definition.and_then(|data| data.hook_traits(hook, &list, env.materials).ok()).unwrap_or_default();
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let upgrades = upgrades(nbt);
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }

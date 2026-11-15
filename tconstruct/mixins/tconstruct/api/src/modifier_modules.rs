@@ -54,6 +54,9 @@ pub(crate) enum Module {
     SwappableSlot { key: Option<Identifier>, count: i32, condition: Condition },
     /// SwappableSlotModule.BonusSlot: extra slots of `bonus` while the stored slot type is `matching`.
     BonusSlot { key: Option<Identifier>, matching: String, bonus: String, count: i32, condition: Condition },
+    /// SwappableToolTraitsModule: the definition's traits for `hook`, while the stored value equals `matching`
+    /// (any value when `matching` is empty).
+    SwappableTraits { key: Option<Identifier>, matching: String, hook: Identifier },
 }
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
@@ -241,6 +244,13 @@ impl Module {
                 key: optional_key(fields)?, matching: slot_name(fields, "match")?, bonus: slot_name(fields, "bonus")?,
                 count: short(fields, "slots")?, condition: Condition::decode(fields)?,
             },
+            "tconstruct:swappable_tool_traits" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modifier_traits" | "tconstruct:display_name" | "tconstruct:remove")) => {
+                let hook = identifier(fields, "hook")?;
+                // ToolTraitHook.supportsHook: the main traits hook and the two alternates the definitions bind.
+                if !matches!(hook.to_string().as_str(), "tconstruct:tool_traits" | "tconstruct:rebalanced_trait" | "tconstruct:trim_trait") { return Ok(None); }
+                let matching = match fields.get("match") { None | Some(Value::Null) => String::new(), Some(Value::String(text)) => text.clone(), Some(_) => return Err("match must be a string".into()) };
+                Self::SwappableTraits { key: optional_key(fields)?, matching, hook }
+            }
             _ => return Ok(None),
         }))
     }
@@ -284,13 +294,18 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
+            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
         }
     }
 
     /// ModifierRemovalHook.onRemoved for a modifier that left the tool: a swappable slot forgets its stored type.
     pub fn on_removed(&self, modifier: &Identifier, persistent: &mut NbtCompound) {
-        if let Self::SwappableSlot { key, .. } = self { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
+        match self {
+            Self::SwappableSlot { key, .. } => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
+            // Only a module that matches a stored value owns it.
+            Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
+            _ => {}
+        }
     }
 
     /// ModifierTraitModule.addTraits: the entry this module adds for `entry`, if any. A fixed-level
@@ -301,7 +316,13 @@ impl Module {
         if *fixed_level { return first_encounter.then(|| Entry::new(modifier.clone(), *level)); }
         Some(Entry::new(modifier.clone(), if entry.level == 1 { *level } else { level.wrapping_mul(entry.level) }))
     }
-    pub fn is_trait(&self) -> bool { matches!(self, Self::Trait { .. }) }
+    /// SwappableToolTraitsModule.addTraits: the alternate hook's entries, added at their own levels.
+    pub fn swappable_traits(&self, entry: &Entry, facts: &Facts) -> Vec<Entry> {
+        let Self::SwappableTraits { key, matching, hook } = self else { return Vec::new(); };
+        if !matching.is_empty() && *matching != (facts.persistent_string)(key.as_ref().unwrap_or(&entry.id)) { return Vec::new(); }
+        (facts.hook_traits)(hook).into_iter().map(|trait_entry| Entry::new(trait_entry.id, trait_entry.level)).collect()
+    }
+    pub fn is_trait(&self) -> bool { matches!(self, Self::Trait { .. } | Self::SwappableTraits { .. }) }
 
     /// ValidateModifierHook (VALIDATE_UPGRADE): the translation key of the error when this
     /// modifier's level is in range and the tool does not meet the requirement.
@@ -391,7 +412,7 @@ mod tests {
         Module::decode(fields["type"].as_str().unwrap(), fields, &hooks).unwrap()
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
-        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new() }
+        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), hook_traits: &|_| Vec::new() }
     }
     #[test]
     fn swappable_slots_follow_the_stored_slot_type_and_clear_on_removal() {
@@ -399,7 +420,7 @@ mod tests {
         let stored = std::cell::RefCell::new(std::collections::BTreeMap::new());
         stored.borrow_mut().insert("test:swap".to_owned(), "abilities".to_owned());
         let lookup = |key: &Identifier| stored.borrow().get(&key.to_string()).cloned().unwrap_or_default();
-        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup, hook_traits: &|_| Vec::new() };
         let slot = decode(json!({"type":"tconstruct:swappable_slot","slots":1})).unwrap();
         let bonus = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"abilities","bonus":"upgrades","slots":-1})).unwrap();
         let other = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"defense","bonus":"upgrades","slots":-1})).unwrap();
@@ -428,6 +449,34 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:swappable_slot","slots":1,"hooks":["tconstruct:tooltip"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:swappable_slot","slots":1,"hooks":["tconstruct:volatile_data"]})).is_some());
     }
+    #[test]
+    fn swappable_tool_traits_add_the_hook_traits_only_for_the_stored_value() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let stored = |key: &Identifier| if key.to_string() == "test:rebalanced" { "traits".to_owned() } else { String::new() };
+        let hook_traits = |hook: &Identifier| if hook.to_string() == "tconstruct:rebalanced_trait" {
+            vec![crate::material_traits::ModifierEntry { id: id("test:extra"), level: 2, optional: false }]
+        } else { Vec::new() };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &stored, hook_traits: &hook_traits };
+        let entry = Entry::new(id("test:rebalanced"), 1);
+        let matching = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"traits"})).unwrap();
+        let other_value = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"other"})).unwrap();
+        let always = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait"})).unwrap();
+        let wrong_hook = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:trim_trait"})).unwrap();
+        let levels = |module: &Module| module.swappable_traits(&entry, &f).iter().map(|added| (added.id.to_string(), added.level)).collect::<Vec<_>>();
+        assert_eq!(levels(&matching), vec![("test:extra".to_owned(), 2)]);
+        assert!(levels(&other_value).is_empty());
+        assert_eq!(levels(&always), vec![("test:extra".to_owned(), 2)], "an empty match applies whatever is stored");
+        assert!(levels(&wrong_hook).is_empty());
+        assert!(decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:unknown_hook"})).is_none());
+        // Only a module with a match owns the stored value and clears it on removal.
+        let mut persistent = NbtCompound::new();
+        persistent.insert("test:rebalanced".into(), Nbt::String("traits".into()));
+        always.on_removed(&id("test:rebalanced"), &mut persistent);
+        assert!(persistent.contains_key("test:rebalanced"));
+        matching.on_removed(&id("test:rebalanced"), &mut persistent);
+        assert!(persistent.is_empty());
+    }
+
     #[test]
     fn leveling_arithmetic_and_slot_rules_follow_the_original() {
         let in_tag = |_: &Identifier, _: &Identifier| true;

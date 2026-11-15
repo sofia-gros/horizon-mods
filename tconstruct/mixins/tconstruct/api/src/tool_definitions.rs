@@ -74,6 +74,8 @@ fn repair_durability(registry: &Materials, material: &Identifier, stat: &Identif
 pub(crate) struct Data {
     stats: Vec<StatModule>, volatile: Vec<VolatileModule>, actions: BTreeSet<String>,
     traits: Vec<TraitModule>, repairs: Vec<RepairModule>, parts: Vec<Identifier>,
+    /// Trait modules bound to the rebalanced/trim ToolTraitHooks; only swappable_tool_traits asks for them.
+    hook_traits: BTreeMap<Identifier, Vec<TraitModule>>,
     effective: Option<crate::tool_mining::Effective>,
     unbound: Vec<Identifier>,
 }
@@ -88,6 +90,8 @@ impl Data {
         let mut volatile = Vec::new();
         let mut actions = BTreeSet::new();
         let mut traits: Vec<TraitModule> = Vec::new();
+        let mut hook_traits: BTreeMap<Identifier, Vec<TraitModule>> = BTreeMap::new();
+        let mut alternate_hooks: Vec<Identifier> = Vec::new();
         let mut repairs: Vec<RepairModule> = Vec::new();
         let mut tool_parts: Option<Vec<Identifier>> = None;
         let mut effective: Option<crate::tool_mining::Effective> = None;
@@ -151,16 +155,16 @@ impl Data {
             }
             // Missing/empty hooks select defaults. Repeated explicit hooks bind the
             // same module once (ModuleHookMap's LinkedHashMultimap), not once per ID.
-            // A trait module bound only to rebalanced/trim traits adds nothing to a rebuild: those
-            // hooks belong to the rebalanced and trim modifiers, which are not ported, so the
-            // unconsumed binding is recorded instead of being folded into the tool's traits.
+            // A trait module bound to rebalanced/trim traits adds nothing to a rebuild itself: those hooks
+            // are asked for by name through swappable_tool_traits, so the module is kept per hook.
             let mut feeds_rebuild = true;
+            alternate_hooks.clear();
             if trait_kind && !hooks.is_empty() {
                 let names: Vec<&str> = hooks.iter().filter_map(Value::as_str).collect();
                 feeds_rebuild = names.contains(&"tconstruct:tool_traits");
                 for alternate in ["tconstruct:rebalanced_trait", "tconstruct:trim_trait"] {
                     let alternate = Identifier::parse(alternate).expect("valid hook id");
-                    if names.contains(&alternate.to_string().as_str()) && !unbound.contains(&alternate) { unbound.push(alternate); }
+                    if names.contains(&alternate.to_string().as_str()) { alternate_hooks.push(alternate); }
                 }
             }
             if effective_kind {
@@ -190,18 +194,24 @@ impl Data {
                     .ok_or("inferred material stat types require the unfinished tool_materials hook")?).map_err(|e| e.to_string())?;
                 // MaterialTraitsModule is a class without value equality. Separate
                 // JSON instances must both contribute even when their fields match.
-                if feeds_rebuild { traits.push(TraitModule::Material { stat, index }); }
+                if feeds_rebuild { traits.push(TraitModule::Material { stat: stat.clone(), index }); }
+                for hook in &alternate_hooks { hook_traits.entry(hook.clone()).or_default().push(TraitModule::Material { stat: stat.clone(), index }); }
             } else if trait_kind {
                 let entries = fields.get("traits").and_then(Value::as_array).filter(|entries| !entries.is_empty())
                     .ok_or("traits must be a nonempty array")?;
                 let decoded = entries.iter().map(crate::material_traits::decode_entry).collect::<Result<Vec<_>, _>>()?;
                 // ToolTraitsModule is a record; ModifierEntry.equals compares ID/level,
                 // not LazyModifier's optional flag. First equal module keeps its bindings.
-                if !traits.iter().any(|previous| match previous {
+                let same = |list: &[TraitModule]| list.iter().any(|previous| match previous {
                     TraitModule::Constant(previous) => previous.len() == decoded.len() && previous.iter().zip(&decoded)
                         .all(|(a,b)| a.id == b.id && a.level == b.level),
                     _ => false,
-                }) && feeds_rebuild { traits.push(TraitModule::Constant(decoded)); }
+                });
+                for hook in &alternate_hooks {
+                    let list = hook_traits.entry(hook.clone()).or_default();
+                    if !same(list) { list.push(TraitModule::Constant(decoded.clone())); }
+                }
+                if !same(&traits) && feeds_rebuild { traits.push(TraitModule::Constant(decoded)); }
             } else if action_kind {
                 let entries = fields.get("tool_actions").and_then(Value::as_array).filter(|values| !values.is_empty())
                     .ok_or("tool_actions must be a nonempty array")?;
@@ -266,14 +276,24 @@ impl Data {
                 if !stats.iter().any(|previous| same_stat_module(previous, &decoded)) { stats.push(decoded); }
             }
         }
-        Ok(Self { stats, volatile, actions, traits, repairs, parts: tool_parts.unwrap_or_default(), effective, unbound })
+        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, unbound })
     }
 
     /// Definition traits in hook order. Resolution happens against the current
     /// modifier generation, never at JSON decode time.
     pub fn traits(&self, materials: &MaterialList, registry: &Materials) -> Result<Vec<crate::material_traits::ModifierEntry>, String> {
+        Self::module_traits(&self.traits, materials, registry)
+    }
+
+    /// ToolTraitHook.addTraits for an alternate hook (rebalanced_trait, trim_trait): the same module
+    /// kinds as the main hook, but only those bound to it.
+    pub fn hook_traits(&self, hook: &Identifier, materials: &MaterialList, registry: &Materials) -> Result<Vec<crate::material_traits::ModifierEntry>, String> {
+        Self::module_traits(self.hook_traits.get(hook).map_or(&[][..], Vec::as_slice), materials, registry)
+    }
+
+    fn module_traits(modules: &[TraitModule], materials: &MaterialList, registry: &Materials) -> Result<Vec<crate::material_traits::ModifierEntry>, String> {
         let mut result = Vec::new();
-        for module in &self.traits {
+        for module in modules {
             match module {
                 TraitModule::Constant(entries) => result.extend(entries.iter().cloned()),
                 TraitModule::Positional(stats) => {
@@ -625,6 +645,22 @@ mod tests {
         for invalid in [json!([]), json!([null]), json!([{"name":"test:x","level":0}])] {
             assert!(Data::decode(&json!({"modules":[{"type":"tconstruct:traits","traits":invalid}]})).is_err());
         }
+    }
+
+    #[test]
+    fn alternate_trait_hooks_are_kept_per_hook_and_do_not_feed_the_rebuild() {
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:traits","traits":[{"name":"test:main"}]},
+            {"type":"tconstruct:traits","traits":[{"name":"test:rebalanced","level":2}],"hooks":["tconstruct:rebalanced_trait"]},
+            {"type":"tconstruct:traits","traits":[{"name":"test:both"}],"hooks":["tconstruct:tool_traits","tconstruct:trim_trait"]}
+        ]})).unwrap();
+        let ids = |entries: Vec<crate::material_traits::ModifierEntry>| entries.iter().map(|entry| (entry.id.to_string(), entry.level)).collect::<Vec<_>>();
+        let hook = |name: &str| Identifier::parse(name).unwrap();
+        let (materials, registry) = (MaterialList::default(), Materials::default());
+        assert_eq!(ids(data.traits(&materials, &registry).unwrap()), vec![("test:main".into(), 1), ("test:both".into(), 1)]);
+        assert_eq!(ids(data.hook_traits(&hook("tconstruct:rebalanced_trait"), &materials, &registry).unwrap()), vec![("test:rebalanced".into(), 2)]);
+        assert_eq!(ids(data.hook_traits(&hook("tconstruct:trim_trait"), &materials, &registry).unwrap()), vec![("test:both".into(), 1)]);
+        assert!(data.unbound_modules().is_empty());
     }
 
     #[test]
