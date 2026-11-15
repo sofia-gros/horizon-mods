@@ -96,7 +96,7 @@ def copy_modifier_recipes():
         shutil.rmtree(MODIFIER_RECIPE_TARGET)
     count = 0
     for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier'):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage'):
             continue
         destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)

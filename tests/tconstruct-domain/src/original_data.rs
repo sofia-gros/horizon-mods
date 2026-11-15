@@ -200,7 +200,7 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 199, "116 modifier, 45 incremental and 38 swappable recipes");
+    assert_eq!(files.len(), 334, "116 modifier, 45 incremental, 38 swappable and 135 salvage records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -299,4 +299,35 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     let crafted = recipe.assemble(&inv(1));
     assert_eq!((crafted.item.to_string(), crate::tool_materials::part_material(&crafted.custom_data).to_string()), ("tconstruct:pick_head".to_owned(), "tconstruct:wood".to_owned()));
     assert_eq!((recipe.items_used(&inv(1)), crafted.count), (1, 1), "a leftover recipe does not multiply the parts");
+}
+
+#[test]
+fn the_shipped_salvage_returns_the_slot_when_a_sharpness_level_is_removed() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let salvages = crate::modifier_removal::Salvages::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    assert_eq!(salvages.len(), 133, "135 records, two behind data conditions that are false here: {:?}", salvages.problems);
+    let in_tag = |_: &Identifier, tag: &Identifier| tag.path() == "modifiable/melee";
+    let sharp = Identifier::parse("tconstruct:sharpness").unwrap();
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(sharp.clone(), 2).unwrap().to_nbt());
+    let mut persistent = NbtCompound::new();
+    persistent.insert("upgrades".into(), Nbt::Int(1));
+    tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let damage = |tool: &ItemSlot| crate::tool_stack::stat(&tool.custom_data, crate::tool_stats::Stat::AttackDamage);
+
+    let once = crate::modifier_removal::remove(&tool, &env, &sharp, &salvages, &in_tag).unwrap().expect("a level comes off");
+    assert_eq!(List::from_nbt(once.custom_data.get(TAG_UPGRADES)).level(&sharp), 1);
+    let Some(Nbt::Compound(slots)) = once.custom_data.get(TAG_PERSISTENT) else { panic!("persistent data") };
+    assert_eq!(crate::modifier_entries::nbt_int(slots.get("upgrades")), 2, "the salvaged slot is handed back");
+    assert!(damage(&once) < damage(&tool), "one level less sharpness");
+    let twice = crate::modifier_removal::remove(&once, &env, &sharp, &salvages, &in_tag).unwrap().expect("the last level comes off");
+    assert_eq!(List::from_nbt(twice.custom_data.get(TAG_UPGRADES)).level(&sharp), 0);
+    assert!(crate::modifier_removal::remove(&twice, &env, &sharp, &salvages, &in_tag).unwrap().is_err(), "nothing left to remove");
 }

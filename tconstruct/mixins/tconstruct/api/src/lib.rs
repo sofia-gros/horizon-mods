@@ -7,6 +7,7 @@ mod modifier_module_types;
 mod formula;
 mod material_recipes;
 mod modifier_recipes;
+mod modifier_removal;
 mod part_builder_menu;
 mod part_builder_recipes;
 mod tool_predicate;
