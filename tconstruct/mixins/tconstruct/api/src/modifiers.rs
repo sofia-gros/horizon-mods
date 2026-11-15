@@ -468,7 +468,7 @@ mod tests {
 pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<Registry>>, String> {
     // Overslime is defined in code in the original; it survives every reload as a static modifier.
     let mut registry = Registry::default();
-    registry.register_static(crate::overslime::modifier()?)?;
+    for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(

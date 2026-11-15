@@ -36,6 +36,12 @@ pub(crate) fn modifier() -> Result<Modifier, String> {
     ]}))
 }
 
+/// The code-defined modifiers registered with overslime: overworked is a plain modifier whose level
+/// only scales overslime restoration (see `overworked_bonus`).
+pub(crate) fn code_modifiers() -> Result<Vec<Modifier>, String> {
+    Ok(vec![modifier()?, Modifier::decode(overworked(), &json!({}))?])
+}
+
 /// PersistentDataCapacityBar.getAmount.
 pub(crate) fn amount(nbt: &NbtCompound) -> i32 {
     match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get(&key())), _ => 0 }

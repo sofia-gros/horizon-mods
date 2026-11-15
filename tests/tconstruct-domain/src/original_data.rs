@@ -345,7 +345,7 @@ fn slime_balls_fill_overslime_on_a_pickaxe_and_the_shield_soaks_damage_first() {
     use crate::{overslime, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS}};
     use pluto_lib::{ItemSlot, Nbt};
     let mut world = world();
-    world.registry.register_static(overslime::modifier().unwrap()).unwrap();
+    for modifier in overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
     let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
         item_tags_loaded: true, item: None, item_tags: None };
@@ -374,6 +374,14 @@ fn slime_balls_fill_overslime_on_a_pickaxe_and_the_shield_soaks_damage_first() {
     assert_eq!(overslime::amount(&worn.custom_data), 1);
     assert_eq!(overslime::absorb(&mut worn.custom_data, &env, None, 5), 4);
     assert_eq!(overslime::amount(&worn.custom_data), 0);
+    // Each overworked level doubles what a restore gives (1 + level).
+    let mut boosted = tool.clone();
+    boosted.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), crate::modifier_entries::List::default()
+        .with_modifier(overslime::id(), 1).unwrap().with_modifier(Identifier::parse("tconstruct:overworked").unwrap(), 2).unwrap().to_nbt());
+    assert!(rebuild_stats(&mut boosted.custom_data, &env).unwrap());
+    assert_eq!(overslime::overworked_bonus(&boosted.custom_data, &env), 3);
+    overslime::add_amount(&mut boosted.custom_data, &env, 4);
+    assert_eq!(overslime::amount(&boosted.custom_data), 12.min(overslime::capacity(&boosted.custom_data)));
     // Full overslime cannot take more slime.
     let mut full = slimy;
     overslime::add_amount(&mut full.custom_data, &env, 10_000);
