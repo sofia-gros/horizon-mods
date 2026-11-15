@@ -19,7 +19,7 @@ pub(crate) const FOLDER: &str = "recipes/tools/modifiers";
 pub(crate) struct Sized { pub ingredient: Ingredient, pub amount: u32 }
 
 impl Sized {
-    fn decode(value: &Value) -> Result<Self, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Self, String> {
         let fields = value.as_object().ok_or("input must be an object")?;
         let amount = match fields.get("amount_needed") {
             None => 1,
@@ -31,7 +31,7 @@ impl Sized {
         Ok(Self { ingredient, amount })
     }
     /// SizedIngredient.test: the right item and at least the needed count.
-    fn test(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+    pub(crate) fn test(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         stack.1 >= self.amount && self.ingredient.matches(&stack.0, in_tag)
     }
 }
@@ -151,14 +151,7 @@ impl Recipe {
     /// checkMatch: each ingredient takes the first unused matching slot (empty slots count as used),
     /// and nothing may be left over. Returns the slot taken by each ingredient.
     fn assign(&self, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
-        let mut used: Vec<bool> = inputs.iter().map(Option::is_none).collect();
-        let mut taken = Vec::with_capacity(self.inputs.len());
-        for ingredient in &self.inputs {
-            let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| ingredient.test(stack, in_tag)))?;
-            used[slot] = true;
-            taken.push(slot);
-        }
-        used.iter().all(|used| *used).then_some(taken)
+        check_match(&self.inputs, inputs, in_tag)
     }
 
     /// updateInputs: how many to take from each slot in slot order, and what to hand back.
@@ -272,6 +265,19 @@ impl Recipe {
         copy.count = tool.count.min(self.max_tool_size);
         Ok(Ok(copy))
     }
+}
+
+/// ModifierRecipe.checkMatch: each ingredient takes the first unused matching slot (empty slots count
+/// as used) and nothing may be left over. Returns the slot taken by each ingredient.
+pub(crate) fn check_match(ingredients: &[Sized], inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
+    let mut used: Vec<bool> = inputs.iter().map(Option::is_none).collect();
+    let mut taken = Vec::with_capacity(ingredients.len());
+    for ingredient in ingredients {
+        let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| ingredient.test(stack, in_tag)))?;
+        used[slot] = true;
+        taken.push(slot);
+    }
+    used.iter().all(|used| *used).then_some(taken)
 }
 
 #[derive(Clone, Debug, Default)]

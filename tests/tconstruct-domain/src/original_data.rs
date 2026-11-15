@@ -200,7 +200,7 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 334, "116 modifier, 45 incremental, 38 swappable and 135 salvage records");
+    assert_eq!(files.len(), 336, "116 modifier, 45 incremental, 38 swappable, 135 salvage and 2 removal records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -330,4 +330,12 @@ fn the_shipped_salvage_returns_the_slot_when_a_sharpness_level_is_removed() {
     let twice = crate::modifier_removal::remove(&once, &env, &sharp, &salvages, &in_tag).unwrap().expect("the last level comes off");
     assert_eq!(List::from_nbt(twice.custom_data.get(TAG_UPGRADES)).level(&sharp), 0);
     assert!(crate::modifier_removal::remove(&twice, &env, &sharp, &salvages, &in_tag).unwrap().is_err(), "nothing left to remove");
+}
+
+#[test]
+fn the_shipped_sponge_removal_loads_and_the_venom_one_waits_for_fluid_containers() {
+    let removals = crate::worktable_recipes::Removals::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    assert_eq!(removals.len(), 1, "{:?}", removals.problems);
+    assert_eq!(removals.problems.len(), 1);
+    assert!(removals.problems[0].contains("remove_modifier_venom"), "{:?}", removals.problems);
 }

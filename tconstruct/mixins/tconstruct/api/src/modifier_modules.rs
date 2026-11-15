@@ -79,7 +79,7 @@ impl LevelFormula {
 pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>) }
 
 impl CausePredicate {
-    fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
+    pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
         let object = value.as_object().ok_or("cause must be an object")?;
         Self::typed(object, object.get("type").and_then(Value::as_str).ok_or("cause type missing")?)
@@ -97,7 +97,7 @@ impl CausePredicate {
         }))
     }
     /// `cause` is None for ordinary tool use (ModifierId.EMPTY), which no tag or single match.
-    fn matches(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+    pub(crate) fn matches(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => cause.is_some_and(|cause| in_tag(cause, tag)),

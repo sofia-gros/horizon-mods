@@ -1,0 +1,154 @@
+//! The modifier worktable's modifier-removal recipe (`tconstruct:remove_modifier`), from SlimeKnights
+//! ModifierRemovalRecipe/AbstractWorktableRecipe (MIT; see LICENSE). The block, its modifier buttons
+//! and the other worktable recipe types are separate.
+use crate::{
+    material_recipes::Ingredient,
+    materials::Conditions,
+    modifier_entries::List,
+    modifier_modules::CausePredicate,
+    modifier_recipes::{check_match, Sized},
+    tool_stack::TAG_UPGRADES,
+};
+use pluto_lib::{Identifier, ItemSlot, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
+use serde_json::Value;
+use std::sync::{Arc, RwLock};
+
+pub(crate) const FOLDER: &str = crate::modifier_recipes::FOLDER;
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Removal {
+    pub id: Identifier,
+    pub name: String,
+    pub tools: Sized,
+    pub inputs: Vec<Sized>,
+    /// Items handed to the player when the recipe is taken.
+    pub leftovers: Vec<Identifier>,
+    pub predicate: CausePredicate,
+}
+
+impl Removal {
+    fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
+        let fields = value.as_object().ok_or("recipe must be an object")?;
+        let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
+            .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+        // The default tool requirement is anything modifiable.
+        let tools = match fields.get("tools") {
+            None => Sized { ingredient: Ingredient::Tag(Identifier::new("tconstruct", "modifiable").expect("valid tag")), amount: 1 },
+            Some(value) => Sized::decode(value)?,
+        };
+        let leftovers = match fields.get("leftovers") {
+            None => Vec::new(),
+            Some(Value::Array(list)) => list.iter().map(|item| match item {
+                Value::String(item) => Identifier::parse(item).map_err(|e| e.to_string()),
+                _ => Err("a leftover must be an item ID string".to_owned()),
+            }).collect::<Result<Vec<_>, _>>()?,
+            Some(_) => return Err("leftovers must be an array".into()),
+        };
+        let predicate = CausePredicate::decode(fields.get("modifier_predicate"))?.ok_or("unsupported modifier predicate")?;
+        let name = fields.get("name").and_then(Value::as_str).unwrap_or("modifiers").to_owned();
+        Ok(Self { id: id.clone(), name, tools, inputs, leftovers, predicate })
+    }
+
+    /// matches: the tool qualifies (and is stacked high enough) and the inputs are exactly this recipe's.
+    pub fn matches(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.tools.test(tool, in_tag) && check_match(&self.inputs, inputs, in_tag).is_some()
+    }
+
+    /// getModifierOptions: the tool's upgrades this recipe may remove. `modifier_in_tag` answers modifier tags.
+    pub fn options(&self, tool: &ItemSlot, modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Vec<Identifier> {
+        List::from_nbt(tool.custom_data.get(TAG_UPGRADES)).entries().iter()
+            .filter(|entry| self.predicate.matches(Some(&entry.id), modifier_in_tag)).map(|entry| entry.id.clone()).collect()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Removals { recipes: Vec<Removal>, pub problems: Vec<String>, pub loaded: bool }
+
+impl Removals {
+    pub fn load<C: Conditions>(files: &[(Identifier, Value)], conditions: &C) -> Self {
+        let mut result = Self { loaded: true, ..Self::default() };
+        let mut sorted: Vec<&(Identifier, Value)> = files.iter().collect();
+        sorted.sort_by(|a, b| a.0.cmp(&b.0));
+        for (id, value) in sorted {
+            let outcome = (|| -> Result<Option<Removal>, String> {
+                let fields = value.as_object().ok_or("recipe must be an object")?;
+                if fields.get("type").and_then(Value::as_str) != Some("tconstruct:remove_modifier") { return Ok(None); }
+                if let Some(list) = fields.get("conditions") {
+                    let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
+                    for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
+                }
+                Removal::decode(id, value).map(Some)
+            })();
+            match outcome {
+                Ok(Some(recipe)) => result.recipes.push(recipe),
+                Ok(None) => {}
+                Err(error) => result.problems.push(format!("{id}: {error}")),
+            }
+        }
+        result
+    }
+    pub fn len(&self) -> usize { self.recipes.len() }
+    pub fn find(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Removal> {
+        self.recipes.iter().find(|recipe| recipe.matches(tool, inputs, in_tag))
+    }
+}
+
+/// Reload listener, shaped like the other recipe listeners.
+pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<Removals>>, String> {
+    let state = Arc::new(RwLock::new(Removals::default()));
+    let output = state.clone();
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "worktable_removals").unwrap(), FOLDER, move |files| {
+            let context = context();
+            let mut state = output.write().map_err(|_| "worktable removals poisoned")?;
+            match context {
+                Ok(context) => {
+                    *state = Removals::load(files, &context);
+                    for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
+                    Ok(())
+                }
+                Err(error) => { *state = Removals { problems: vec![error.clone()], ..Removals::default() }; Err(error) }
+            }
+        })?;
+    let stopped = state.clone();
+    ServerLifecycleEvents::SERVER_STOPPED.register(move |_| *stopped.write().expect("worktable removals poisoned") = Removals::default());
+    Ok(state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    struct Flags;
+    impl Conditions for Flags {
+        type Parsed = bool;
+        fn decode(&self, value: &Value) -> Result<bool, String> { value.as_bool().ok_or("condition must be boolean".into()) }
+        fn test(&self, value: &bool) -> Result<bool, String> { Ok(*value) }
+    }
+    fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+    fn sponge() -> Value {
+        json!({"type":"tconstruct:remove_modifier","inputs":[{"item":"minecraft:wet_sponge"}],"leftovers":["minecraft:sponge"],
+            "modifier_predicate":{"type":"mantle:inverted","inverted_type":"tconstruct:tag","tag":"tconstruct:remove_blacklist"},
+            "name":"modifiers","tools":{"tag":"tconstruct:modifiable"}})
+    }
+    #[test]
+    fn the_sponge_recipe_matches_a_modifiable_tool_and_offers_non_blacklisted_modifiers() {
+        let files = vec![(id("test:sponge"), sponge()), (id("test:fluid"), json!({"type":"tconstruct:remove_modifier","inputs":[{"type":"mantle:fluid_container","tag":"a:b"}]})),
+            (id("test:off"), { let mut v = sponge(); v["conditions"] = json!([false]); v })];
+        let recipes = Removals::load(&files, &Flags);
+        assert_eq!((recipes.len(), recipes.problems.len()), (1, 1), "{:?}", recipes.problems);
+        let in_tag = |item: &Identifier, tag: &Identifier| tag.path() == "modifiable" && item.path() == "pickaxe";
+        let pickaxe = (id("tconstruct:pickaxe"), 1);
+        let wet = [Some((id("minecraft:wet_sponge"), 1)), None];
+        let recipe = recipes.find(&pickaxe, &wet, &in_tag).expect("the sponge recipe matches");
+        assert_eq!(recipe.leftovers, vec![id("minecraft:sponge")]);
+        assert!(recipes.find(&(id("minecraft:stick"), 1), &wet, &in_tag).is_none(), "the tool must be modifiable");
+        assert!(recipes.find(&pickaxe, &[Some((id("minecraft:dirt"), 1))], &in_tag).is_none());
+
+        let mut tool = ItemSlot::new(pickaxe.0.clone(), 1);
+        let list = List::default().with_modifier(id("test:sharp"), 1).unwrap().with_modifier(id("test:locked"), 1).unwrap();
+        tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        let blacklisted = |modifier: &Identifier, tag: &Identifier| tag.path() == "remove_blacklist" && modifier.path() == "locked";
+        assert_eq!(recipe.options(&tool, &blacklisted), vec![id("test:sharp")]);
+    }
+}

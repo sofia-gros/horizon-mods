@@ -15,6 +15,8 @@ mod formula;
 mod material_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_recipes.rs"]
 mod modifier_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_recipes.rs"]
+mod worktable_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_removal.rs"]
 mod modifier_removal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_recipes.rs"]

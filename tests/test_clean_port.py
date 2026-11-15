@@ -43,6 +43,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/material_recipes.rs',
                 'mixins/tconstruct_native/api/src/modifier_recipes.rs',
                 'mixins/tconstruct_native/api/src/modifier_removal.rs',
+                'mixins/tconstruct_native/api/src/worktable_recipes.rs',
                 'mixins/tconstruct_native/api/src/part_builder_recipes.rs',
                 'mixins/tconstruct_native/api/src/tool_predicate.rs',
                 'mixins/tconstruct_native/api/src/modifier_modules.rs',
