@@ -66,6 +66,33 @@ pub(crate) struct Recipe {
     /// How many `value` units make one ingot's worth of the material.
     pub needed: i32,
     pub value: i32,
+    /// A stack of value 1 handed back when a craft uses part of an item (ignored when value is 1).
+    pub leftover: Option<Leftover>,
+}
+
+/// ItemOutput for a leftover: a fixed item, or a tag the host resolves to its preferred item.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum LeftoverSource { Item(Identifier), Tag(Identifier) }
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Leftover { pub source: LeftoverSource, pub count: u32 }
+
+impl Leftover {
+    fn decode(value: &Value) -> Result<Option<Self>, String> {
+        // A bare ID string is a single item.
+        if let Value::String(item) = value { return Ok(Some(Self { source: LeftoverSource::Item(Identifier::parse(item).map_err(|e| e.to_string())?), count: 1 })); }
+        let fields = match value { Value::Null => return Ok(None), Value::Object(fields) if fields.is_empty() => return Ok(None), Value::Object(fields) => fields, _ => return Err("leftover must be an object or item ID".into()) };
+        let count = match fields.get("count") {
+            None => 1,
+            Some(Value::Number(n)) => { let n = crate::materials::number_int(&n.to_string()); if n >= 1 { n as u32 } else { return Err("leftover count must be at least 1".into()); } }
+            Some(_) => return Err("leftover count must be a number".into()),
+        };
+        let source = match (fields.get("item").and_then(Value::as_str), fields.get("tag").and_then(Value::as_str)) {
+            (Some(item), None) => LeftoverSource::Item(Identifier::parse(item).map_err(|e| e.to_string())?),
+            (None, Some(tag)) => LeftoverSource::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?),
+            _ => return Err("leftover needs exactly one of item or tag".into()),
+        };
+        Ok(Some(Self { source, count }))
+    }
 }
 
 impl Recipe {
@@ -81,7 +108,31 @@ impl Recipe {
             material: MaterialVariant::parse(fields.get("material").and_then(Value::as_str).ok_or("material must be a string")?).ok_or("invalid material variant")?,
             needed: number("needed")?,
             value: number("value")?,
+            leftover: None,
+        }).and_then(|mut recipe| {
+            // MaterialRecipe ignores a leftover when the value is 1: it could never be partly used.
+            recipe.leftover = fields.get("leftover").map_or(Ok(None), Leftover::decode)?.filter(|_| recipe.value > 1);
+            Ok(recipe)
         })
+    }
+    /// IMaterialValue.getItemsUsed: the items consumed to pay `cost` (rounded up).
+    pub fn items_used(&self, cost: i32) -> i32 {
+        let needed = cost.wrapping_mul(self.needed);
+        let mut used = needed / self.value;
+        if needed % self.value != 0 { used += 1; }
+        used
+    }
+    /// IMaterialValue.getRemainder: material left over once `cost` is paid from whole items.
+    pub fn remainder(&self, cost: i32) -> i32 {
+        let remainder = self.value.wrapping_sub(cost.wrapping_mul(self.needed)) % self.value;
+        if remainder < 0 { remainder + self.value } else { remainder }
+    }
+    /// IMaterialValue.getLeftover(itemCost): the leftover and its count for the unused remainder.
+    pub fn leftover_for(&self, cost: i32) -> Option<(&LeftoverSource, u32)> {
+        let remainder = self.remainder(cost);
+        let leftover = self.leftover.as_ref().filter(|_| remainder > 0)?;
+        let count = (leftover.count as i64 * i64::from(remainder) / i64::from(self.needed)) as u32;
+        (count > 0).then_some((&leftover.source, count))
     }
     /// MaterialRecipe.scaleRepair: the durability per item for a material repair amount.
     pub fn scale_repair(&self, amount: f32) -> f32 { self.value as f32 * amount / 3.0 / self.needed as f32 }

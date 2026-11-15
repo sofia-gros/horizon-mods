@@ -22,7 +22,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
 ITEM_KEYS = {'template', 'components', 'crafting_remainder'}
 BLOCK_KEYS = {'template', 'properties', 'occludes', 'item', 'components'}
@@ -176,7 +176,12 @@ def checked_content(root, version):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
                 continue
             if '/recipes/' in name:
-                reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier') if '/recipes/tools/modifiers/' in name else ('tconstruct:material',)
+                if '/recipes/tools/modifiers/' in name:
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier')
+                elif '/recipes/tools/parts/builder/' in name:
+                    reviewed = ('tconstruct:part_builder',)
+                else:
+                    reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
                 continue

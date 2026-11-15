@@ -105,6 +105,26 @@ def copy_modifier_recipes():
     return count
 
 
+PART_RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/parts/builder'
+PART_RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/parts/builder'
+
+
+def copy_part_builder_recipes():
+    """The part builder recipes that make tool parts from materials, byte for byte. The sand and
+    red sand cast recipes belong to the smeltery and come with it."""
+    if PART_RECIPE_TARGET.exists():
+        shutil.rmtree(PART_RECIPE_TARGET)
+    count = 0
+    for path in sorted(PART_RECIPE_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder':
+            continue
+        destination = PART_RECIPE_TARGET / path.relative_to(PART_RECIPE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -165,7 +185,7 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     tags = copy_tags()
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes()
     print(f'copied {copied} files, {tags} tags and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 

@@ -15,6 +15,8 @@ mod formula;
 mod material_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_recipes.rs"]
 mod modifier_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_recipes.rs"]
+mod part_builder_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_predicate.rs"]
 mod tool_predicate;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_modules.rs"]

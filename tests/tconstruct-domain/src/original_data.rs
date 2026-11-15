@@ -261,3 +261,42 @@ fn shipped_diamond_and_emerald_raise_the_harvest_tier_of_a_wood_pickaxe() {
     assert_eq!(tier_with(Some("tconstruct:emerald")), "minecraft:iron");
     assert_eq!(tier_with(Some("tconstruct:diamond")), "minecraft:diamond");
 }
+
+#[test]
+fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
+    use crate::part_builder_recipes::{Context, Inventory, Recipes};
+    let world = world();
+    let part_files = recursive_files("tools/parts/builder", "tools/parts/builder");
+    assert_eq!(part_files.len(), 24);
+    let recipes = Recipes::load(&part_files, &conditions());
+    assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
+    assert_eq!(recipes.len(), 24);
+    let materials = crate::material_recipes::Recipes::load(&recursive_files("tools/materials", "tools/materials"), &conditions());
+    let parts = crate::tool_parts::registry();
+    let in_tag = |item: &Identifier, tag: &Identifier| match tag.path() {
+        "patterns/default" => item.path() == "pattern",
+        "oak_logs" => item.path() == "oak_log",
+        _ => false,
+    };
+    let ctx = Context { materials: &world.materials, parts: &parts, in_tag: &in_tag };
+    let pattern = Identifier::parse("tconstruct:pattern").unwrap();
+    let planks = Identifier::parse("minecraft:oak_log").unwrap();
+    let wood = materials.find(&planks, &in_tag).expect("logs are a material");
+    assert_eq!(wood.material.to_string(), "tconstruct:wood");
+    let inv = |count: u32| Inventory { pattern_item: Some(&pattern), stack: Some((&planks, count)), material: Some(wood) };
+
+    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 24.
+    let offered = recipes.patterns(&inv(8), &ctx);
+    assert!(offered.iter().any(|p| p.path() == "pick_head") && offered.iter().any(|p| p.path() == "tool_handle"), "{offered:?}");
+    assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 24);
+
+    let head = Identifier::parse("tconstruct:pick_head").unwrap();
+    // A log is worth 4 and a pick head costs 2: one log pays for it and half is handed back as 2 planks.
+    assert!(recipes.find(&head, &inv(0), &ctx).is_none(), "no logs, no part");
+    let recipe = recipes.find(&head, &inv(1), &ctx).expect("one log makes a pick head");
+    assert_eq!(wood.leftover_for(recipe.cost).map(|(source, count)| (source.clone(), count)),
+        Some((crate::material_recipes::LeftoverSource::Item(Identifier::parse("minecraft:oak_planks").unwrap()), 2)));
+    let crafted = recipe.assemble(&inv(1));
+    assert_eq!((crafted.item.to_string(), crate::tool_materials::part_material(&crafted.custom_data).to_string()), ("tconstruct:pick_head".to_owned(), "tconstruct:wood".to_owned()));
+    assert_eq!((recipe.items_used(&inv(1)), crafted.count), (1, 1), "a leftover recipe does not multiply the parts");
+}
