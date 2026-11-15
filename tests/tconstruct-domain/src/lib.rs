@@ -45,6 +45,10 @@ mod tool_slot;
 mod tool_station;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/station_menu.rs"]
 mod station_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_parts.rs"]
+mod creative_parts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
+mod creative;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
 mod config;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/conditions.rs"]

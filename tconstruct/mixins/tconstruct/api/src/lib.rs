@@ -22,6 +22,8 @@ mod tool_mining;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
+mod creative_parts;
+mod creative;
 mod conditions;
 mod config;
 mod common;
@@ -29,5 +31,6 @@ mod common;
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
     station_menu::register();
+    creative::register();
     pluto_lib::no_hooks()
 }

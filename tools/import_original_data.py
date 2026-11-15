@@ -8,6 +8,7 @@ the minotaur axe and every material whose condition depends on external ingot ta
 """
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,36 @@ def external(condition):
     """True when a material condition is about ingots another mod must supply."""
     text = json.dumps(condition)
     return 'mantle:tag_filled' in text or 'forge:mod_loaded' in text
+
+
+def write_creative_parts(skipped):
+    """creative_parts.rs: every tool part with the visible materials that have its stat type.
+
+    Same selection and order as IMaterialItem.addVariants: visible (not hidden) concrete materials by
+    tier, sort order, path and namespace, each kept when its stats include the part's stat type.
+    """
+    definitions = {}
+    for path in (TARGET / 'materials/definition').glob('*.json'):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if 'redirect' in data or data.get('hidden', False):
+            continue
+        definitions[path.stem] = data
+    order = sorted(definitions, key=lambda name: (definitions[name].get('tier', 0), definitions[name].get('sortOrder', 100), name, 'tconstruct'))
+    stats = {name: set(json.loads((TARGET / 'materials/stats' / f'{name}.json').read_text(encoding='utf-8')).get('stats', {}))
+             for name in order if (TARGET / 'materials/stats' / f'{name}.json').exists()}
+    source = (ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs').read_text(encoding='utf-8')
+    table = source.split('const PARTS')[1].split('];')[0]
+    parts = re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table)
+    # RepairKitItem is a material item with its own stat type but is not a ToolPart.
+    parts.append(('repair_kit', 'repair_kit'))
+    lines = ['//! Tool parts with the visible shipped materials that can make them, in creative-tab order.',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const PARTS: &[(&str, &[&str])] = &[']
+    for item, stat in parts:
+        materials = [name for name in order if f'tconstruct:{stat}' in stats.get(name, set())]
+        lines.append(f'    ("{item}", &[' + ', '.join(f'"{name}"' for name in materials) + ']),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
 def main():
@@ -60,6 +91,7 @@ def main():
              'pub(crate) const KNOWN: &[&str] = &[']
     lines += [f'    "{kind}",' for kind in types] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    write_creative_parts(skipped_materials)
     print(f'copied {copied} files from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 

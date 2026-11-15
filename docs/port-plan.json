@@ -23,6 +23,8 @@
     "api/src/tool_slot.rs",
     "api/src/tool_station.rs",
     "api/src/station_menu.rs",
+    "api/src/creative_parts.rs",
+    "api/src/creative.rs",
     "api/src/material_stats.rs",
     "api/src/material_snapshot.rs",
     "api/src/material_sync.rs",
