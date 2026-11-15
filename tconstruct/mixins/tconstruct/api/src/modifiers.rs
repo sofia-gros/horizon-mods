@@ -7,11 +7,6 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum VolatileModule {
-    Flag { id: Identifier, min: i32, max: i32 },
-    Rarity(i32),
-}
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
     pub id: Identifier,
@@ -19,7 +14,7 @@ pub(crate) struct Modifier {
     pub level_display: Identifier,
     pub tooltips: BTreeSet<String>,
     pub translation_key: Option<String>,
-    volatile: Vec<VolatileModule>,
+    modules: Vec<crate::modifier_modules::Module>,
     /// Known original module types this definition declares that Tinkers has not ported. Their
     /// fields are not validated and they have no effect; callers can see exactly what is missing.
     pub unbound: Vec<Identifier>,
@@ -32,7 +27,7 @@ fn integer(value: &Value) -> Result<i32, String> {
     let Value::Number(value) = value else { return Err("expected numeric integer".into()); };
     Ok(crate::materials::number_int(&value.to_string()))
 }
-fn range(value: Option<&Value>) -> Result<(i32, i32), String> {
+pub(crate) fn range(value: Option<&Value>) -> Result<(i32, i32), String> {
     let (min, max) = match value.filter(|v| !v.is_null()) {
         None => (1, 32767),
         Some(Value::Object(fields)) => (
@@ -90,63 +85,51 @@ impl Modifier {
             if text.encode_utf16().count() > 32767 { return Err("translation key too long".into()); }
             Ok(text)
         }).transpose()?;
-        let mut volatile = Vec::new();
+        let mut modules: Vec<crate::modifier_modules::Module> = Vec::new();
         let mut unbound: Vec<Identifier> = Vec::new();
-        if let Some(modules) = fields.get("modules").filter(|v| !v.is_null()) {
-            for module in modules.as_array().ok_or("modifier modules must be an array")? {
+        if let Some(list) = fields.get("modules").filter(|v| !v.is_null()) {
+            for module in list.as_array().ok_or("modifier modules must be an array")? {
                 let fields = module.as_object().ok_or("modifier module must be an object")?;
                 let kind = id(fields.get("type").ok_or("modifier module type missing")?)?;
                 let empty = kind.to_string() == "tconstruct:empty";
-                let rarity = kind.to_string() == "tconstruct:rarity";
-                let flag = kind.to_string() == "tconstruct:volatile_flag";
                 // A module type the original never ships is a typo or a foreign module: reject it.
                 if !crate::modifier_module_types::KNOWN.contains(&kind.to_string().as_str()) { return Err(format!("unknown modifier module {kind}")); }
-                // Only volatile-data bindings are implemented. Anything else, and a volatile flag
-                // gated on a tool predicate, is recorded as unbound instead of half-installed.
                 let hooks = match fields.get("hooks").filter(|v| !v.is_null()) {
                     Some(hooks) => hooks.as_array().ok_or("hooks must be an array")?.iter().map(id).collect::<Result<Vec<_>, _>>()?,
                     None => Vec::new(),
                 };
-                let volatile_only = hooks.iter().all(|hook| hook.to_string() == "tconstruct:volatile_data");
-                if empty && !hooks.is_empty() { return Err("unsupported modifier hook binding".into()); }
-                let predicate = fields.get("tool").is_some_and(|v| !v.is_null());
-                if !empty && !((rarity || flag) && volatile_only && !predicate) {
-                    if !unbound.contains(&kind) { unbound.push(kind); }
+                if empty {
+                    if !hooks.is_empty() { return Err("unsupported modifier hook binding".into()); }
                     continue;
                 }
-                if rarity {
-                    // RarityModule is unconditional; unlike VolatileFlagModule its
-                    // loader has no tool predicate or modifier-level condition.
-                    let ordinal = match fields.get("rarity").and_then(Value::as_str) {
-                        Some("common") => 0, Some("uncommon") => 1,
-                        Some("rare") => 2, Some("epic") => 3,
-                        _ => return Err("rarity must be common, uncommon, rare or epic".into()),
-                    };
-                    let module = VolatileModule::Rarity(ordinal);
-                    if !volatile.contains(&module) { volatile.push(module); }
-                } else if !empty {
-                    let (min, max) = range(fields.get("modifier_level"))?;
-                    let flag = VolatileModule::Flag { id: id(fields.get("flag").ok_or("flag missing")?)?, min, max };
-                    if !volatile.contains(&flag) { volatile.push(flag); }
+                // Implemented kinds decode here; a known kind whose shape or hook binding this port
+                // cannot honor is recorded as unbound instead of half-installed.
+                match crate::modifier_modules::Module::decode(&kind.to_string(), fields, &hooks)? {
+                    Some(module) => { if !modules.contains(&module) { modules.push(module); } }
+                    None => { if !unbound.contains(&kind) { unbound.push(kind); } }
                 }
             }
         }
         Ok(Self { id: name, priority: if priority == i32::MIN { 100 } else { priority },
-            level_display: display, tooltips, translation_key, volatile, unbound, empty_sentinel: false })
+            level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
+    /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
+    pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
+        for module in &self.modules { module.apply_volatile(entry, facts, data); }
+    }
+    /// The same without a tool: tag predicates are false and stat support is not filtered.
     pub fn apply_volatile(&self, entry: &Entry, data: &mut NbtCompound) {
-        for module in &self.volatile {
-            match module {
-                VolatileModule::Flag { id, min, max } => {
-                    if *min <= entry.level && entry.level <= *max { data.insert(id.to_string(), Nbt::Byte(1)); }
-                }
-                VolatileModule::Rarity(ordinal) => {
-                    let current = crate::modifier_entries::nbt_int(data.get("tconstruct:rarity"));
-                    if *ordinal > current { data.insert("tconstruct:rarity".into(), Nbt::Int(*ordinal)); }
-                }
-            }
-        }
+        self.apply_volatile_with(entry, &no_tool(), data);
     }
+    /// The tool-stats hook.
+    pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
+        for module in &self.modules { module.apply_stats(entry, facts, builder); }
+    }
+}
+
+/// Facts for a context with no tool stack.
+fn no_tool() -> crate::tool_predicate::Facts<'static> {
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, has_persistent_key: &|_| false }
 }
 
 #[derive(Clone, Debug)]
@@ -355,9 +338,9 @@ mod tests {
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","modifier_level":{"min":3,"max":2}}]}),
             json!({"modules":[{"type":"tconstruct:empty","hooks":["tconstruct:volatile_data"]}]}),
         ] { assert!(Modifier::decode(name("test:bad"), &invalid).is_err()); }
-        // A predicate-gated flag or another hook binding is recorded as unbound, never installed.
+        // A predicate this port lacks, or another hook binding, is recorded as unbound, never installed.
         for gated in [
-            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{}}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{"type":"tconstruct:has_hook","hook":"a:b"}}]}),
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:projectile_launch"]}]}),
         ] {
             let modifier = Modifier::decode(name("test:gated"), &gated).unwrap();

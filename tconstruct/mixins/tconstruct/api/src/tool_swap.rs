@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn swapping_a_head_changes_materials_rebuilds_stats_and_repairs_by_part_cost() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let mut original = tool(&env, &["test:wood", "test:wood"]);
         let before = crate::tool_stack::durability(&original);
         tool_damage::damage_tool(&mut original, 10, true, true);
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn unchanged_undamaged_or_unrepairing_swaps_pass_and_bad_indices_fail() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let mut nbt = tool(&env, &["test:wood", "test:stone"]);
         let wood = MaterialVariant::parse("test:wood").unwrap();
         // Same variant ("#default" is the same) on an undamaged tool does nothing.
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn result_size_scales_with_the_input_stack() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let nbt = tool(&env, &["test:wood", "test:wood"]);
         let stone = MaterialVariant::parse("test:stone").unwrap();
         // max_stack 16 with only 8 tools in the stack gives 8; a full stack is capped at 16.

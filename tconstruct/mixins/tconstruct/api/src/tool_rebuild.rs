@@ -3,7 +3,8 @@
 //! to the new durability and RAW_DATA hooks belong to the caller that owns the stack.
 use crate::{
     material_traits::ModifierEntry, materials::Definitions as Materials, modifier_entries::{Entry, List},
-    modifiers::{Modifier, Registry}, tool_definitions::Data, tool_materials::MaterialList, tool_stats::Stat,
+    modifiers::{Modifier, Registry}, tool_definitions::Data, tool_materials::MaterialList,
+    tool_predicate::{Check, Facts}, tool_stats::Stat,
 };
 use pluto_lib::{Identifier, NbtCompound};
 use std::{collections::BTreeMap, sync::Arc};
@@ -26,12 +27,20 @@ pub(crate) struct Rebuilt {
     pub tier: Option<Identifier>,
 }
 
+/// What tool predicates and stat support can ask of the tool being rebuilt.
+pub(crate) struct Tool<'a> {
+    pub item: Option<&'a Identifier>,
+    pub item_tags: Option<&'a pluto_lib::RegistryLookup>,
+    /// The persistent mod data compound (tic_persistent) for has_persistent_key.
+    pub persistent: &'a NbtCompound,
+}
+
 /// `Ok(None)` mirrors the original early return: not ready, so leave all tool state alone.
 /// An `Err` means a required modifier reference is unresolved, which must not silently
 /// become a tool with missing traits.
 pub(crate) fn rebuild(
     readiness: Readiness, definition: &Data, materials: &MaterialList, upgrades: &List,
-    material_registry: &Materials, modifiers: &Registry,
+    material_registry: &Materials, modifiers: &Registry, tool: &Tool,
 ) -> Result<Option<Rebuilt>, String> {
     if !readiness.complete() { return Ok(None); }
     // Upgrades first, then tool/material traits (ToolHooks.TOOL_TRAITS).
@@ -40,10 +49,21 @@ pub(crate) fn rebuild(
     // TraitBuilder pass adds each bound entry exactly once, in this order.
     let resolved = modifiers.resolve_with_upgrades(upgrades, &traits)?;
     // Volatile data is built before stats so stat hooks can read it: definition, then modifiers.
+    let in_tag = |item: &Identifier, tag: &Identifier| tool.item_tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let level = |modifier: &Identifier, check: Check| -> i32 {
+        let sum = |entries: &mut dyn Iterator<Item = &Entry>| entries.filter(|entry| &entry.id == modifier).fold(0_i32, |sum, entry| sum.wrapping_add(entry.int_effective_level()));
+        match check {
+            Check::All => sum(&mut resolved.iter().map(|(entry, _)| entry)),
+            Check::Upgrades => sum(&mut upgrades.entries().iter()),
+        }
+    };
+    let has_persistent_key = |key: &Identifier| tool.persistent.contains_key(&key.to_string());
+    let facts = Facts { item: tool.item, in_tag: &in_tag, level: &level, has_persistent_key: &has_persistent_key };
     let mut volatile = definition.build_volatile_for(materials, material_registry);
-    for (entry, modifier) in &resolved { modifier.apply_volatile(entry, &mut volatile); }
-    // Modifier TOOL_STATS hooks do not exist yet; the definition builder is the whole stage.
-    let builder = definition.build_stats(materials, material_registry);
+    for (entry, modifier) in &resolved { modifier.apply_volatile_with(entry, &facts, &mut volatile); }
+    // Stats come last so they can read the volatile data: definition, then each modifier in order.
+    let mut builder = definition.build_stats(materials, material_registry);
+    for (entry, modifier) in &resolved { modifier.apply_stats(entry, &facts, &mut builder); }
     Ok(Some(Rebuilt {
         modifiers: resolved, volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier: builder.touched_tier(),
     }))
@@ -60,6 +80,7 @@ mod tests {
         fn decode(&self, _: &serde_json::Value) -> Result<(), String> { Ok(()) }
         fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
     }
+    fn no_tool() -> Tool<'static> { static EMPTY: std::sync::OnceLock<NbtCompound> = std::sync::OnceLock::new(); Tool { item: None, item_tags: None, persistent: EMPTY.get_or_init(NbtCompound::new) } }
     fn ready() -> Readiness { Readiness { definition: true, materials: true, modifiers: true, item_tags: true } }
     #[test]
     fn any_missing_gate_leaves_state_untouched() {
@@ -67,7 +88,7 @@ mod tests {
         for gate in 0..4 {
             let mut r = ready();
             match gate { 0 => r.definition = false, 1 => r.materials = false, 2 => r.modifiers = false, _ => r.item_tags = false }
-            let result = rebuild(r, &data, &MaterialList::default(), &List::default(), &Materials::default(), &Registry::default());
+            let result = rebuild(r, &data, &MaterialList::default(), &List::default(), &Materials::default(), &Registry::default(), &no_tool());
             assert!(matches!(result, Ok(None)), "gate {gate}");
         }
     }
@@ -82,7 +103,7 @@ mod tests {
         registry.reload(&[(Identifier::parse("test:rare").unwrap(),
             json!({"modules":[{"type":"tconstruct:rarity","rarity":"rare"},{"type":"tconstruct:volatile_flag","flag":"test:modifier"}]}))],
             &Always);
-        let rebuilt = rebuild(ready(), &data, &MaterialList::default(), &List::default(), &Materials::default(), &registry)
+        let rebuilt = rebuild(ready(), &data, &MaterialList::default(), &List::default(), &Materials::default(), &registry, &no_tool())
             .unwrap().unwrap();
         assert_eq!(rebuilt.modifiers.len(), 1);
         assert_eq!(rebuilt.volatile["test:definition"], Nbt::Byte(1));
@@ -91,6 +112,6 @@ mod tests {
         assert_eq!(rebuilt.stats[&Stat::Durability], 100.0);
         // Required but unknown trait: error, never a silently missing trait.
         let missing = Data::decode(&json!({"modules":[{"type":"tconstruct:traits","traits":[{"name":"test:absent","level":1}]}]})).unwrap();
-        assert!(rebuild(ready(), &missing, &MaterialList::default(), &List::default(), &Materials::default(), &registry).is_err());
+        assert!(rebuild(ready(), &missing, &MaterialList::default(), &List::default(), &Materials::default(), &registry, &no_tool()).is_err());
     }
 }

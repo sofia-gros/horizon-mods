@@ -7,6 +7,7 @@ use crate::{
 use pluto_lib::{Identifier, Nbt, NbtCompound};
 
 pub(crate) const TAG_MATERIALS: &str = "tic_materials";
+pub(crate) const TAG_PERSISTENT: &str = "tic_persistent";
 pub(crate) const TAG_UPGRADES: &str = "tic_upgrades";
 pub(crate) const TAG_BROKEN: &str = "tic_broken";
 pub(crate) const TAG_STATS: &str = "tic_stats";
@@ -38,6 +39,9 @@ pub(crate) struct Environment<'a> {
     pub materials: &'a Materials,
     pub modifiers: &'a Registry,
     pub item_tags_loaded: bool,
+    /// The tool's item and the item-tag snapshot, for tool predicates and stat support; None outside a stack.
+    pub item: Option<&'a Identifier>,
+    pub item_tags: Option<&'a pluto_lib::RegistryLookup>,
 }
 
 /// ToolStack.rebuildStats. Returns whether state was rebuilt; unready environments are a no-op.
@@ -49,7 +53,9 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let Some(definition) = env.definition else { return Ok(false); };
     let list = materials(nbt, env.has_materials);
     let saved = upgrades(nbt);
-    let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers)? else { return Ok(false); };
+    let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent };
+    let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
     Ok(true)
 }
@@ -134,7 +140,7 @@ mod tests {
         fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
     }
     fn environment<'a>(data: &'a Data, materials: &'a Materials, registry: &'a Registry) -> Environment<'a> {
-        Environment { definition: Some(data), has_materials: false, materials, modifiers: registry, item_tags_loaded: true }
+        Environment { definition: Some(data), has_materials: false, materials, modifiers: registry, item_tags_loaded: true, item: None, item_tags: None }
     }
     fn loaded_materials() -> Materials { let mut materials = Materials::default(); materials.server_loaded = true; materials }
     #[test]

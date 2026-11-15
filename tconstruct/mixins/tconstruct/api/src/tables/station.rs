@@ -116,7 +116,7 @@ mod tests {
         registry.reload(&[], &Always);
         let tools = [(id("tconstruct:pickaxe"), &pickaxe)];
         let item_max = |_: &Identifier| 1;
-        let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, tools: &tools, item_max: &item_max };
+        let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
         let mut lazy = LazyResultContainer::default();
         lazy.result(|| Some(ItemSlot::new(id("test:stale"), 1)));
         // Slots: tool, 4 inputs, result placeholder.
@@ -147,7 +147,7 @@ mod tests {
     impl Environment4 {
         fn of<'a>(ctx: &'a Context, definition: &'a Data) -> crate::tool_stack::Environment<'a> {
             crate::tool_stack::Environment { definition: Some(definition), has_materials: definition.material_stat_types().is_some(),
-                materials: ctx.materials, modifiers: ctx.modifiers, item_tags_loaded: ctx.item_tags_loaded }
+                materials: ctx.materials, modifiers: ctx.modifiers, item_tags_loaded: ctx.item_tags_loaded, item: None, item_tags: None }
         }
     }
 }

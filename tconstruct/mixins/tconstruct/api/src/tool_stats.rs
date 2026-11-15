@@ -82,6 +82,11 @@ impl Builder {
         let multiplier = self.multipliers.entry(stat).or_insert(1.0);
         *multiplier = (f64::from(*multiplier) * value) as f32;
     }
+    /// ModifierStatsBuilder.multiplier: records only the global multiplier, not the stat's own.
+    pub fn multiplier_only(&mut self, stat: Stat, value: f64) {
+        let multiplier = self.multipliers.entry(stat).or_insert(1.0);
+        *multiplier = (f64::from(*multiplier) * value) as f32;
+    }
     pub fn multiplier(&self, stat: Stat) -> f32 { self.multipliers.get(&stat).copied().unwrap_or(1.0) }
     /// Intermediate queries are intentionally unclamped, as in ModifierStatsBuilder.getStat.
     pub fn get(&self, stat: Stat) -> f32 {

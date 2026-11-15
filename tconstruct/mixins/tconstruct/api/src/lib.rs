@@ -4,6 +4,8 @@ mod materials;
 mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;
+mod tool_predicate;
+mod modifier_modules;
 mod modifiers;
 mod material_stats;
 mod material_snapshot;

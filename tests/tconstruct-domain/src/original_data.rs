@@ -86,7 +86,7 @@ fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispa
     let tools: Vec<(Identifier, &Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty())
         .map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |_: &Identifier| 1;
-    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, tools: &tools, item_max: &item_max };
+    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
     let wood = MaterialVariant::parse("tconstruct:wood").unwrap();
     let part = |item: &str| Some(Input::Part { item: Identifier::parse(item).unwrap(), material: wood.clone() });
     let inputs = [part("tconstruct:pick_head"), part("tconstruct:tool_handle"), part("tconstruct:tool_binding"), None];
@@ -100,4 +100,32 @@ fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispa
     // The shipped definition also lists what it declares but Tinkers has not ported.
     let (_, pickaxe) = tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
     assert!(pickaxe.unbound_modules().iter().any(|module| module.path() == "box_aoe"));
+}
+
+#[test]
+fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, stat, Environment, TAG_UPGRADES, TAG_MATERIALS}, tool_stats::Stat};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let build = |upgrades: Option<List>| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        if let Some(list) = upgrades { nbt.insert(TAG_UPGRADES.into(), list.to_nbt()); }
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        nbt
+    };
+    let plain = build(None);
+    let sharp = build(Some(List::default().with_modifier(Identifier::parse("tconstruct:sharpness").unwrap(), 3).unwrap()));
+    // sharpness: +0.75 attack damage per level, three levels.
+    let gained = stat(&sharp, Stat::AttackDamage) - stat(&plain, Stat::AttackDamage);
+    assert!((gained - 2.25).abs() < 1e-4, "sharpness III added {gained}");
+    // ductile: +10% durability per level (multiply_base), so durability grows.
+    let ductile = build(Some(List::default().with_modifier(Identifier::parse("tconstruct:ductile").unwrap(), 2).unwrap()));
+    assert!(crate::tool_stack::durability(&ductile) > crate::tool_stack::durability(&plain));
+    // The modifiers themselves are recorded in the tool's modifier list.
+    let Nbt::List(listed) = &sharp["tic_modifiers"] else { panic!() };
+    assert!(listed.iter().any(|entry| matches!(entry, Nbt::Compound(c) if c.get("name") == Some(&Nbt::String("tconstruct:sharpness".into())))));
 }

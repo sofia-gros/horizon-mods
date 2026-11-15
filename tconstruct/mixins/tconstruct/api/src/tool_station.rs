@@ -46,15 +46,17 @@ pub(crate) struct Context<'a> {
     pub materials: &'a Materials,
     pub modifiers: &'a Registry,
     pub item_tags_loaded: bool,
+    pub item_tags: Option<&'a pluto_lib::RegistryLookup>,
     /// Tool item id -> its definition, in recipe order. Only tools with a parts module can be built.
     pub tools: &'a [(Identifier, &'a Data)],
     /// Craft count (`result_count` capped by stack size) per tool item, from the tool item's data.
     pub item_max: &'a dyn Fn(&Identifier) -> i32,
 }
 impl<'a> Context<'a> {
-    fn environment<'b>(&'b self, definition: &'b Data) -> Environment<'b> {
+    fn environment<'b>(&'b self, item: &'b Identifier, definition: &'b Data) -> Environment<'b> {
         Environment { definition: Some(definition), has_materials: definition.material_stat_types().is_some(),
-            materials: self.materials, modifiers: self.modifiers, item_tags_loaded: self.item_tags_loaded }
+            materials: self.materials, modifiers: self.modifiers, item_tags_loaded: self.item_tags_loaded,
+            item: Some(item), item_tags: self.item_tags }
     }
 }
 
@@ -74,7 +76,7 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
     for (tool_item, definition) in ctx.tools {
         let parts = definition.tool_parts();
         if parts.is_empty() || !tool_build::matches(true, &items, parts, &[]) { continue; }
-        let env = ctx.environment(definition);
+        let env = ctx.environment(tool_item, definition);
         let materials: Vec<MaterialVariant> = inputs.iter().take(parts.len()).map(|input| match input {
             Some(Input::Part { material, .. }) => material.clone(), _ => MaterialVariant::unknown() }).collect();
         // The recipe's result_count is 1 unless a data recipe says otherwise; no data recipe is loaded.
@@ -114,7 +116,7 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     if !is_broken(&tool.custom_data) && damage(&tool.custom_data) == 0 {
         return Ok(Outcome::Failure("recipe.tconstruct.tool_repair.fully_repaired"));
     }
-    let env = ctx.environment(definition);
+    let env = ctx.environment(&tool.item, definition);
     let mut result = tool.clone();
     result.count = 1;
     let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials);
@@ -138,7 +140,7 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
     if material == &MaterialVariant::unknown() { return Ok(Outcome::NoMatch); }
     // The slot only matters when a tool uses a part twice: otherwise the first copy of that part.
     let index = if slot < parts.len() && &parts[slot] == item { slot } else { parts.iter().position(|part| part == item).unwrap_or(0) };
-    let env = ctx.environment(definition);
+    let env = ctx.environment(&tool.item, definition);
     // MaterialCastingLookup.getItemCost needs casting recipes, which are not loaded: no part cost,
     // so a swap repairs only when the caller forces it (never here).
     let max_stack = (ctx.item_max)(&tool.item).min(16);
@@ -193,7 +195,7 @@ mod tests {
         let world = world();
         let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
         let item_max = |_: &Identifier| 1;
-        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, tools: &tools, item_max: &item_max };
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
         // Build: head + handle in slot order, binding slot empty.
         let inputs = [part("tconstruct:pick_head", "test:wood"), part("tconstruct:tool_handle", "test:wood"), None];
         let Outcome::Crafted(built) = lookup(&ctx, None, &inputs).unwrap() else { panic!("expected a built tool") };
@@ -210,7 +212,7 @@ mod tests {
         assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:stone");
         // A damaged tool with an undamaged-looking swap candidate still swaps; with a repair kit it repairs.
         let mut damaged = swapped.result.clone();
-        tool_slot::damage_slot(&mut damaged, &ctx.environment(&world.pickaxe), 5, true, true).unwrap();
+        tool_slot::damage_slot(&mut damaged, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 5, true, true).unwrap();
         let kit = [Some(Input::Kit { material: id("test:stone"), kit_amount: 3.0, count: 8 }), None, None];
         let Outcome::Crafted(repaired) = lookup(&ctx, Some(&damaged), &kit).unwrap() else { panic!("expected a repair") };
         assert_eq!(repaired.tool_shrink, 1);
@@ -222,13 +224,13 @@ mod tests {
         let world = world();
         let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
         let item_max = |_: &Identifier| 1;
-        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, tools: &tools, item_max: &item_max };
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
         let Outcome::Crafted(built) = lookup(&ctx, None, &[part("tconstruct:pick_head", "test:wood"), part("tconstruct:tool_handle", "test:wood")]).unwrap() else { panic!() };
         let kit = |material: &str| Some(Input::Kit { material: id(material), kit_amount: 3.0, count: 1 });
         // Undamaged: repair never matches (it defers), nothing else applies.
         assert!(matches!(lookup(&ctx, Some(&built.result), &[kit("test:wood")]).unwrap(), Outcome::NoMatch));
         let mut hurt = built.result.clone();
-        tool_slot::damage_slot(&mut hurt, &ctx.environment(&world.pickaxe), 3, true, true).unwrap();
+        tool_slot::damage_slot(&mut hurt, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), 3, true, true).unwrap();
         // Two different materials, an unrepairable material and a stray item all fail to match.
         assert!(matches!(lookup(&ctx, Some(&hurt), &[kit("test:wood"), kit("test:stone")]).unwrap(), Outcome::NoMatch));
         assert!(matches!(lookup(&ctx, Some(&hurt), &[kit("test:other")]).unwrap(), Outcome::NoMatch));

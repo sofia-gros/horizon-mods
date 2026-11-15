@@ -28,7 +28,8 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, f32) -> R) -> Option<R
     let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter()
         .filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
-    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: common::item_tags_loaded(), tools: &tools, item_max: &item_max };
+    let item_tags = common::item_snapshot();
+    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
     Some(read(&ctx, kit_amount))
 }
 

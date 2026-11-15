@@ -73,7 +73,7 @@ mod tests {
     #[test]
     fn rebuilding_a_slot_publishes_the_bar_and_mining_component_and_damage_keeps_them_in_step() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let mut slot = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
         assert!(rebuild(&mut slot, &env).unwrap());
         assert_eq!((slot.max_damage, slot.damage, max(&slot), remaining(&slot)), (Some(10), 0, 10, 10));
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn an_unready_environment_leaves_the_slot_untouched() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: false };
+        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: false, item: None, item_tags: None };
         let mut slot = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
         assert!(!rebuild(&mut slot, &env).unwrap());
         assert_eq!((slot.max_damage, slot.damage, slot.tool.is_none(), slot.custom_data.is_empty()), (None, 0, true, true));

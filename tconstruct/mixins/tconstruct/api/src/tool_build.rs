@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn parts_fill_materials_then_overrides_and_the_tool_rebuilds() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         // Two parts and one override fills the three stat slots; extra overrides are dropped.
         let Built::Success { tool, count } = build(&env, &[variant("test:wood"), variant("test:wood")], &[variant("test:wood"), variant("test:stone")], 2, 1, 1).unwrap()
             else { panic!() };
@@ -129,14 +129,14 @@ mod tests {
         assert_eq!(crate::tool_stack::materials(&tool, true).as_slice().len(), 3);
         assert_eq!((damage(&tool), durability(&tool) > 1), (0, true));
         // Not ready (item tags missing): the tool is created but never initialized.
-        let unready = Environment { item_tags_loaded: false, ..Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true } };
+        let unready = Environment { item_tags_loaded: false, ..Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None } };
         let Built::Success { tool, .. } = build(&unready, &[variant("test:wood"), variant("test:wood")], &[], 2, 1, 1).unwrap() else { panic!() };
         assert!(!is_initialized(&tool));
     }
     #[test]
     fn count_follows_the_craft_count_chain_only_for_part_recipes() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let count = |parts, output, item_max| match build(&env, &[variant("test:wood"), variant("test:wood")], &[], parts, output, item_max).unwrap() {
             Built::Success { count, .. } => count, Built::Failure(_) => -1 };
         assert_eq!(count(2, 4, 64), 4);
@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn create_tool_distinguishes_the_empty_sentinel_from_an_empty_list() {
         let (data, materials, registry) = world();
-        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true };
+        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
         let sentinel = create_tool(&env, &MaterialList::default(), true).unwrap();
         assert!(!sentinel.contains_key(crate::tool_stack::TAG_MATERIALS));
         let list = create_tool(&env, &MaterialList::default(), false).unwrap();
