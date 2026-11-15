@@ -200,7 +200,7 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 341, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal and 5 multilevel records");
+    assert_eq!(files.len(), 357, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel and 16 overslime records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -338,4 +338,44 @@ fn the_shipped_sponge_removal_loads_and_the_venom_one_waits_for_fluid_containers
     assert_eq!(removals.len(), 1, "{:?}", removals.problems);
     assert_eq!(removals.problems.len(), 1);
     assert!(removals.problems[0].contains("remove_modifier_venom"), "{:?}", removals.problems);
+}
+
+#[test]
+fn slime_balls_fill_overslime_on_a_pickaxe_and_the_shield_soaks_damage_first() {
+    use crate::{overslime, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let mut world = world();
+    world.registry.register_static(overslime::modifier().unwrap()).unwrap();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let recipes = overslime::Recipes::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    assert_eq!(recipes.len(), 16, "{:?}", recipes.problems);
+    let in_tag = |item: &Identifier, tag: &Identifier| item.path() == "pickaxe" && tag.path() == "modifiable/durability";
+    let slime = Identifier::parse("minecraft:slime_ball").unwrap();
+    let inputs = [Some((slime.clone(), 2)), None];
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+
+    let recipe = recipes.find(&tool.item, &inputs, &in_tag).expect("a slime ball recipe matches");
+    let slimy = recipe.apply(&tool, &env, &inputs, &in_tag).unwrap().expect("overslime applies");
+    let capacity = overslime::capacity(&slimy.custom_data);
+    assert!(capacity > 0, "the modifier brings capacity");
+    assert_eq!(overslime::amount(&slimy.custom_data), (2 * 20).min(capacity), "two slime balls restore 20 each, capped");
+    // The stat penalties need the item tags (a tool with no item context skips them), so they are not checked here.
+    let used = recipe.consumption(&tool, &slimy, &env, &inputs, &in_tag);
+    assert_eq!(used, vec![(overslime::amount(&slimy.custom_data) as u32).div_ceil(20), 0]);
+
+    // The shield soaks damage first; what it cannot cover goes on to the tool.
+    let mut worn = slimy.clone();
+    let shield = overslime::amount(&worn.custom_data);
+    assert_eq!(overslime::absorb(&mut worn.custom_data, &env, None, shield - 1), 0);
+    assert_eq!(overslime::amount(&worn.custom_data), 1);
+    assert_eq!(overslime::absorb(&mut worn.custom_data, &env, None, 5), 4);
+    assert_eq!(overslime::amount(&worn.custom_data), 0);
+    // Full overslime cannot take more slime.
+    let mut full = slimy;
+    overslime::add_amount(&mut full.custom_data, &env, 10_000);
+    assert!(recipe.apply(&full, &env, &inputs, &in_tag).unwrap().is_err());
 }

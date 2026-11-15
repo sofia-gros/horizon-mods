@@ -8,6 +8,7 @@ mod formula;
 mod material_recipes;
 mod modifier_recipes;
 mod modifier_removal;
+mod overslime;
 mod worktable_recipes;
 mod worktable_menu;
 mod part_builder_menu;

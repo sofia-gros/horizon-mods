@@ -43,13 +43,13 @@ pub(crate) fn direct_damage(nbt: &mut NbtCompound, amount: i32, consumes_resourc
 /// damage: the original early-outs, then directDamage. `has_durability_tag` is the item's
 /// tconstruct:durability tag membership, which only the caller can know.
 pub(crate) fn damage_tool(nbt: &mut NbtCompound, amount: i32, consumes_resources: bool, has_durability_tag: bool) -> Damaged {
-    damage_tool_reduced(nbt, amount, consumes_resources, has_durability_tag, &mut |_, amount| amount)
+    damage_tool_reduced(nbt, amount, consumes_resources, has_durability_tag, &mut |_: &mut NbtCompound, amount| amount)
 }
 
 /// damage with the modifier loop supplied by the caller (see tool_stack::reduce_damage): the
 /// early-outs run first, then the reduction, and a reduction to nothing leaves the tool untouched.
 pub(crate) fn damage_tool_reduced(
-    nbt: &mut NbtCompound, amount: i32, consumes_resources: bool, has_durability_tag: bool, reduce: &mut dyn FnMut(&NbtCompound, i32) -> i32,
+    nbt: &mut NbtCompound, amount: i32, consumes_resources: bool, has_durability_tag: bool, reduce: &mut dyn FnMut(&mut NbtCompound, i32) -> i32,
 ) -> Damaged {
     if amount <= 0 || is_broken(nbt) || is_unbreakable(nbt) || !has_durability_tag {
         return Damaged { applied: 0, broke: false };

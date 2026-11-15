@@ -34,8 +34,10 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Op
     let recipes = common::material_recipes().and_then(|recipes| recipes.read().ok());
     let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
     let modifier_recipes = common::modifier_recipes().and_then(|recipes| recipes.read().ok());
+    let overslime_recipes = common::overslime_recipes().and_then(|recipes| recipes.read().ok());
     let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded),
-        modifier_recipes: modifier_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
+        modifier_recipes: modifier_recipes.as_deref().filter(|recipes| recipes.loaded),
+        overslime_recipes: overslime_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
     Some(read(&ctx, &resolver))
 }
 

@@ -32,7 +32,8 @@ pub(crate) fn damage_slot(
     cause: Option<&pluto_lib::Identifier>, random: &mut dyn FnMut() -> f32,
 ) -> Result<tool_damage::Damaged, String> {
     let outcome = tool_damage::damage_tool_reduced(&mut slot.custom_data, amount, consumes_resources, has_durability_tag,
-        &mut |nbt, amount| crate::tool_stack::reduce_damage(nbt, env, cause, amount, random));
+        // Overslime soaks damage before any other reduction.
+        &mut |nbt, amount| { let amount = crate::overslime::absorb(nbt, env, cause, amount); crate::tool_stack::reduce_damage(nbt, env, cause, amount, random) });
     if outcome.applied > 0 { sync_visuals(slot, env)?; }
     Ok(outcome)
 }

@@ -14,6 +14,8 @@ static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = Once
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
 pub(crate) fn removals() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Removals>>> { REMOVALS.get() }
+static OVERSLIME_RECIPES: OnceLock<Arc<RwLock<crate::overslime::Recipes>>> = OnceLock::new();
+pub(crate) fn overslime_recipes() -> Option<&'static Arc<RwLock<crate::overslime::Recipes>>> { OVERSLIME_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
 /// TinkerTags.isTagsLoaded for the server: true once a reload callback captured the native
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
@@ -84,6 +86,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers worktable removal listener registration failed");
         REMOVALS.set(removals).expect("Tinkers worktable removals already initialized");
+        let overslime_config = config.clone();
+        let overslime = crate::overslime::register(move || {
+            let config = overslime_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers overslime recipe listener registration failed");
+        OVERSLIME_RECIPES.set(overslime).expect("Tinkers overslime recipes already initialized");
         PART_BUILDER_RECIPES.set(part_recipes).expect("Tinkers part builder recipes already initialized");
         let materials = materials::register(move || {
             let config = config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

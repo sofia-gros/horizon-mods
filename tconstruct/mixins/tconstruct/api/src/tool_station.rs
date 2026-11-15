@@ -71,6 +71,7 @@ pub(crate) fn lookup(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<In
 /// The tinker-station modifier recipes and what they need to match raw stacks.
 pub(crate) struct ModifierRecipes<'a> {
     pub recipes: &'a crate::modifier_recipes::Recipes,
+    pub overslime: Option<&'a crate::overslime::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
@@ -95,8 +96,18 @@ pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Opti
 
 fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> Result<Outcome, String> {
     let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
-    let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else { return Ok(Outcome::NoMatch); };
     let env = ctx.environment(&tool.item, definition);
+    let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else {
+        // No modifier recipe: slime balls may fill overslime.
+        let Some(recipe) = modifiers.overslime.and_then(|recipes| recipes.find(&tool.item, modifiers.raw, modifiers.in_tag)) else { return Ok(Outcome::NoMatch); };
+        return Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
+            Err(message) => Outcome::Failure(message),
+            Ok(result) => {
+                let consumed = recipe.consumption(tool, &result, &env, modifiers.raw, modifiers.in_tag).into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
+                Outcome::Crafted(Crafted { result, consumed, tool_shrink: 16, leftover: Vec::new() })
+            }
+        });
+    };
     Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
         Err(message) => Outcome::Failure(message),
         Ok(result) => {
