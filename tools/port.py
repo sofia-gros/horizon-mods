@@ -177,7 +177,7 @@ def checked_content(root, version):
                 continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
-                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier')
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier')
                 elif '/recipes/tools/parts/builder/' in name:
                     reviewed = ('tconstruct:part_builder',)
                 else:

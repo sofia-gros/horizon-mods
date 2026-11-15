@@ -200,7 +200,7 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 336, "116 modifier, 45 incremental, 38 swappable, 135 salvage and 2 removal records");
+    assert_eq!(files.len(), 341, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal and 5 multilevel records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");

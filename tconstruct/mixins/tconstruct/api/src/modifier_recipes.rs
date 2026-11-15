@@ -49,6 +49,27 @@ pub(crate) struct Recipe {
     pub slots: Option<(String, i32)>,
     pub check_trait_level: bool,
     pub kind: Kind,
+    /// Per-level level ranges and slots of the multilevel recipe types (empty for the others).
+    pub levels: Vec<LevelEntry>,
+}
+
+/// MultilevelModifierRecipe.LevelEntry: the levels it covers and the slots a level there spends.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LevelEntry { pub min: i32, pub max: i32, pub slots: Option<(String, i32)> }
+
+fn slot_count(value: Option<&Value>) -> Result<Option<(String, i32)>, String> {
+    match value.filter(|value| !value.is_null()) {
+        None => Ok(None),
+        Some(Value::Object(slots)) if slots.len() == 1 => {
+            let (name, count) = slots.iter().next().expect("one entry");
+            let Value::Number(count) = count else { return Err("slot count must be a number".into()); };
+            let count = crate::materials::number_int(&count.to_string());
+            if count < 1 { return Err("slot count must be at least 1".into()); }
+            if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
+            Ok(Some((name.clone(), count)))
+        }
+        Some(_) => Err("slots must name exactly one slot type".into()),
+    }
 }
 
 /// What differs between the single-step recipe and the incremental one.
@@ -75,7 +96,8 @@ fn positive(fields: &Map<String, Value>, key: &str, default: Option<i32>) -> Res
 impl Recipe {
     fn decode(id: &Identifier, fields: &Map<String, Value>) -> Result<Self, String> {
         let kind_name = fields.get("type").and_then(Value::as_str);
-        let (inputs, kind) = if kind_name == Some("tconstruct:incremental_modifier") {
+        let multilevel = matches!(kind_name, Some("tconstruct:multilevel_modifier" | "tconstruct:multilevel_incremental_modifier"));
+        let (inputs, kind) = if matches!(kind_name, Some("tconstruct:incremental_modifier" | "tconstruct:multilevel_incremental_modifier")) {
             let leftover = match fields.get("leftover") {
                 None | Some(Value::Null) => None,
                 Some(Value::String(text)) => Some(Identifier::parse(text).map_err(|e| e.to_string())?),
@@ -118,20 +140,17 @@ impl Recipe {
         };
         let result = Identifier::parse(result_value.as_str().ok_or("result must be an ID string")?).map_err(|e| e.to_string())?;
         let (min_level, max_level) = if matches!(kind, Kind::Swappable { .. }) { (1, 1) } else { crate::modifiers::range(fields.get("level"))? };
-        let slots = match fields.get("slots").filter(|value| !value.is_null()) {
-            None => None,
-            Some(Value::Object(slots)) if slots.len() == 1 => {
-                let (name, count) = slots.iter().next().expect("one entry");
-                let Value::Number(count) = count else { return Err("slot count must be a number".into()); };
-                let count = crate::materials::number_int(&count.to_string());
-                if count < 1 { return Err("slot count must be at least 1".into()); }
-                if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
-                Some((name.clone(), count))
-            }
-            Some(_) => return Err("slots must name exactly one slot type".into()),
-        };
+        let slots = slot_count(fields.get("slots"))?;
+        let levels = if multilevel {
+            fields.get("levels").and_then(Value::as_array).filter(|levels| !levels.is_empty()).ok_or("levels must be a nonempty array")?.iter().map(|entry| {
+                let entry = entry.as_object().ok_or("a level entry must be an object")?;
+                let (min, max) = crate::modifiers::range(Some(entry.get("level").ok_or("a level entry needs a level")?))?;
+                Ok(LevelEntry { min, max, slots: slot_count(entry.get("slots"))? })
+            }).collect::<Result<Vec<_>, String>>()?
+        } else { Vec::new() };
+        let (min_level, max_level) = levels.first().map_or((min_level, max_level), |first| (first.min, first.max));
         let check_trait_level = match fields.get("check_trait_level") { None => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("check_trait_level must be boolean".into()) };
-        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level, kind })
+        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level, kind, levels })
     }
 
     /// matches(): the tool qualifies and the inputs are exactly this recipe's, with no extras.
@@ -214,25 +233,27 @@ impl Recipe {
                 return Ok(Err(format!("recipe.tconstruct.swappable.already_present {} {value}", self.result)));
             }
         }
-        if !swapping && new_level < self.min_level {
-            return Ok(Err(format!("recipe.tconstruct.modifier.min_level{traits} {} {}", self.result, self.min_level - 1)));
+        // Multilevel recipes find the entry for this level; gaps and out-of-range levels fail like the bounds do.
+        let level_entry = self.levels.iter().find(|entry| entry.min <= new_level && new_level <= entry.max);
+        let (low, high) = match (self.levels.first(), self.levels.last()) { (Some(first), Some(last)) => (first.min, last.max), _ => (self.min_level, self.max_level) };
+        if !swapping && (new_level < low || (new_level > high) || (!self.levels.is_empty() && level_entry.is_none())) {
+            let (key, bound) = if new_level < low { ("min_level", low - 1) } else { ("max_level", high) };
+            return Ok(Err(format!("recipe.tconstruct.modifier.{key}{traits} {} {bound}", self.result)));
         }
-        if !swapping && new_level > self.max_level {
-            return Ok(Err(format!("recipe.tconstruct.modifier.max_level{traits} {} {}", self.result, self.max_level)));
-        }
+        let slots = if self.levels.is_empty() { self.slots.as_ref() } else { level_entry.and_then(|entry| entry.slots.as_ref()) };
         let spends_slots = !continuing && !swapping;
         let free = |name: &str| {
             let slots = |tag: &str| match nbt.get(tag) { Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get(name)), _ => 0 };
             slots(TAG_PERSISTENT).wrapping_add(slots(crate::tool_stack::TAG_VOLATILE))
         };
-        if let Some((name, count)) = self.slots.as_ref().filter(|_| spends_slots) {
+        if let Some((name, count)) = slots.filter(|_| spends_slots) {
             if free(name) < *count {
                 return Ok(Err(if *count == 1 { format!("recipe.tconstruct.modifier.not_enough_slot slot_type.tconstruct.{name}") }
                     else { format!("recipe.tconstruct.modifier.not_enough_slots {count} slot_type.tconstruct.{name}") }));
             }
         }
         let mut copy = tool.clone();
-        if let Some((name, count)) = self.slots.as_ref().filter(|_| spends_slots) {
+        if let Some((name, count)) = slots.filter(|_| spends_slots) {
             // ToolDataNBT.addSlots(type, -count): a total of zero removes the key.
             let mut persistent = match copy.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
             let total = crate::modifier_entries::nbt_int(persistent.get(name)).wrapping_sub(*count);
@@ -291,7 +312,7 @@ impl Recipes {
         for (id, value) in sorted {
             let outcome = (|| -> Result<Option<Recipe>, String> {
                 let fields = value.as_object().ok_or("recipe must be an object")?;
-                if !matches!(fields.get("type").and_then(Value::as_str), Some("tconstruct:modifier" | "tconstruct:incremental_modifier" | "tconstruct:swappable_modifier")) { return Ok(None); }
+                if !matches!(fields.get("type").and_then(Value::as_str), Some("tconstruct:modifier" | "tconstruct:incremental_modifier" | "tconstruct:swappable_modifier" | "tconstruct:multilevel_modifier" | "tconstruct:multilevel_incremental_modifier")) { return Ok(None); }
                 if let Some(list) = fields.get("conditions") {
                     let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
                     for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
@@ -409,6 +430,21 @@ mod tests {
         bad = base.clone();
         bad["variant_formatter"] = json!("test:unknown");
         assert!(Recipe::decode(&id("test:bad"), bad.as_object().unwrap()).is_err());
+    }
+    #[test]
+    fn multilevel_recipes_take_ranges_and_slots_per_level() {
+        let base = json!({"type":"tconstruct:multilevel_modifier","inputs":[{"item":"a:b"}],"tools":{"tag":"a:t"},"result":"test:reflect",
+            "levels":[{"level":1,"slots":{"abilities":1}},{"level":{"min":2,"max":3},"slots":{"upgrades":1}}]});
+        let r = Recipe::decode(&id("test:m"), base.as_object().unwrap()).unwrap();
+        assert_eq!((r.min_level, r.max_level, r.levels.len()), (1, 1, 2), "the first entry is the recipe's own range");
+        assert_eq!(r.levels[1], LevelEntry { min: 2, max: 3, slots: Some(("upgrades".into(), 1)) });
+        let mut bad = base.clone();
+        bad["levels"] = json!([]);
+        assert!(Recipe::decode(&id("test:bad"), bad.as_object().unwrap()).is_err());
+        let inc = json!({"type":"tconstruct:multilevel_incremental_modifier","input":{"item":"a:b"},"needed_per_level":12,"tools":{"tag":"a:t"},"result":"test:fall",
+            "levels":[{"level":1,"slots":{"upgrades":1}},{"level":2}]});
+        let r = Recipe::decode(&id("test:i"), inc.as_object().unwrap()).unwrap();
+        assert!(matches!(r.kind, Kind::Incremental { needed_per_level: 12, .. }) && r.levels[1].slots.is_none());
     }
     #[test]
     fn incremental_decode_validates_fields() {
