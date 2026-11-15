@@ -38,6 +38,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/materials.rs',
                 'mixins/tconstruct_native/api/src/material_traits.rs',
                 'mixins/tconstruct_native/api/src/modifier_entries.rs',
+                'mixins/tconstruct_native/api/src/modifier_module_types.rs',
                 'mixins/tconstruct_native/api/src/modifiers.rs',
                 'mixins/tconstruct_native/api/src/tool_rebuild.rs',
                 'mixins/tconstruct_native/api/src/tool_stack.rs',

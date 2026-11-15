@@ -20,6 +20,9 @@ pub(crate) struct Modifier {
     pub tooltips: BTreeSet<String>,
     pub translation_key: Option<String>,
     volatile: Vec<VolatileModule>,
+    /// Known original module types this definition declares that Tinkers has not ported. Their
+    /// fields are not validated and they have no effect; callers can see exactly what is missing.
+    pub unbound: Vec<Identifier>,
     empty_sentinel: bool,
 }
 fn id(value: &Value) -> Result<Identifier, String> {
@@ -69,7 +72,8 @@ impl Modifier {
             Some(Value::Object(fields)) => id(fields.get("type").ok_or("level display type missing")?)?,
             Some(value) => id(value)?,
         };
-        if display.namespace() != "tconstruct" || !["default", "single_level", "no_levels", "pluses"].contains(&display.path()) {
+        // map_level and unique carry parameters that only the (unported) renderer reads.
+        if display.namespace() != "tconstruct" || !["default", "single_level", "no_levels", "pluses", "map_level", "unique"].contains(&display.path()) {
             return Err(format!("unimplemented level display {display}"));
         }
         let deprecated_tooltips = match fields.get("tooltip_display") {
@@ -87,19 +91,28 @@ impl Modifier {
             Ok(text)
         }).transpose()?;
         let mut volatile = Vec::new();
+        let mut unbound: Vec<Identifier> = Vec::new();
         if let Some(modules) = fields.get("modules").filter(|v| !v.is_null()) {
             for module in modules.as_array().ok_or("modifier modules must be an array")? {
                 let fields = module.as_object().ok_or("modifier module must be an object")?;
                 let kind = id(fields.get("type").ok_or("modifier module type missing")?)?;
                 let empty = kind.to_string() == "tconstruct:empty";
                 let rarity = kind.to_string() == "tconstruct:rarity";
-                if !empty && !rarity && kind.to_string() != "tconstruct:volatile_flag" { return Err(format!("unimplemented modifier module {kind}")); }
-                if let Some(hooks) = fields.get("hooks").filter(|v| !v.is_null()) {
-                    for hook in hooks.as_array().ok_or("hooks must be an array")? {
-                        if empty || id(hook)?.to_string() != "tconstruct:volatile_data" {
-                            return Err("unsupported modifier hook binding".into());
-                        }
-                    }
+                let flag = kind.to_string() == "tconstruct:volatile_flag";
+                // A module type the original never ships is a typo or a foreign module: reject it.
+                if !crate::modifier_module_types::KNOWN.contains(&kind.to_string().as_str()) { return Err(format!("unknown modifier module {kind}")); }
+                // Only volatile-data bindings are implemented. Anything else, and a volatile flag
+                // gated on a tool predicate, is recorded as unbound instead of half-installed.
+                let hooks = match fields.get("hooks").filter(|v| !v.is_null()) {
+                    Some(hooks) => hooks.as_array().ok_or("hooks must be an array")?.iter().map(id).collect::<Result<Vec<_>, _>>()?,
+                    None => Vec::new(),
+                };
+                let volatile_only = hooks.iter().all(|hook| hook.to_string() == "tconstruct:volatile_data");
+                if empty && !hooks.is_empty() { return Err("unsupported modifier hook binding".into()); }
+                let predicate = fields.get("tool").is_some_and(|v| !v.is_null());
+                if !empty && !((rarity || flag) && volatile_only && !predicate) {
+                    if !unbound.contains(&kind) { unbound.push(kind); }
+                    continue;
                 }
                 if rarity {
                     // RarityModule is unconditional; unlike VolatileFlagModule its
@@ -112,9 +125,6 @@ impl Modifier {
                     let module = VolatileModule::Rarity(ordinal);
                     if !volatile.contains(&module) { volatile.push(module); }
                 } else if !empty {
-                    // Predicate-based and projectile hooks need the full tool/entity context.
-                    // Do not erase those predicates or silently install only half their behavior.
-                    if fields.get("tool").is_some_and(|v| !v.is_null()) { return Err("tool-context predicates not implemented".into()); }
                     let (min, max) = range(fields.get("modifier_level"))?;
                     let flag = VolatileModule::Flag { id: id(fields.get("flag").ok_or("flag missing")?)?, min, max };
                     if !volatile.contains(&flag) { volatile.push(flag); }
@@ -122,7 +132,7 @@ impl Modifier {
             }
         }
         Ok(Self { id: name, priority: if priority == i32::MIN { 100 } else { priority },
-            level_display: display, tooltips, translation_key, volatile, empty_sentinel: false })
+            level_display: display, tooltips, translation_key, volatile, unbound, empty_sentinel: false })
     }
     pub fn apply_volatile(&self, entry: &Entry, data: &mut NbtCompound) {
         for module in &self.volatile {
@@ -175,6 +185,8 @@ impl Registry {
     pub fn get(&self, id: &Identifier) -> Option<&Arc<Modifier>> {
         self.static_modifiers.get(id).or_else(|| self.dynamic.get(id))
     }
+    /// Identifiers of every loaded dynamic modifier (including redirects), for audits.
+    pub fn dynamic_ids(&self) -> impl Iterator<Item = &Identifier> { self.dynamic.keys() }
     pub fn contains_static(&self, id: &Identifier) -> bool { self.static_modifiers.contains_key(id) || self.expected.contains(id) }
     pub fn clear_dynamic(&mut self) {
         self.dynamic.clear(); self.tags.clear(); self.reverse_tags.clear();
@@ -339,11 +351,21 @@ mod tests {
         assert_eq!(data["test:flag"], Nbt::Byte(1));
         for invalid in [
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x"},{"type":"test:missing"}]}),
-            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{}}]}),
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","modifier_level":0}]}),
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","modifier_level":{"min":3,"max":2}}]}),
-            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:projectile_launch"]}]}),
+            json!({"modules":[{"type":"tconstruct:empty","hooks":["tconstruct:volatile_data"]}]}),
         ] { assert!(Modifier::decode(name("test:bad"), &invalid).is_err()); }
+        // A predicate-gated flag or another hook binding is recorded as unbound, never installed.
+        for gated in [
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{}}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:projectile_launch"]}]}),
+        ] {
+            let modifier = Modifier::decode(name("test:gated"), &gated).unwrap();
+            assert_eq!(modifier.unbound.iter().map(Identifier::to_string).collect::<Vec<_>>(), vec!["tconstruct:volatile_flag"]);
+            let mut data = NbtCompound::new();
+            modifier.apply_volatile(&Entry::new(name("test:gated"), 1), &mut data);
+            assert!(data.is_empty(), "an unbound flag writes nothing");
+        }
     }
     #[test]
     fn rarity_keeps_the_largest_ordinal_and_ignores_level_conditions() {

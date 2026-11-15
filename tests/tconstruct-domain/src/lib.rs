@@ -7,6 +7,8 @@ mod materials;
 mod material_traits;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_entries.rs"]
 mod modifier_entries;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs"]
+mod modifier_module_types;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifiers.rs"]
 mod modifiers;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_stats.rs"]
@@ -51,3 +53,5 @@ mod conditions;
 mod common;
 #[cfg(test)]
 mod reload_tests;
+#[cfg(test)]
+mod original_data;

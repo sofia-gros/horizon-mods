@@ -11,8 +11,9 @@ const PARTS: &[(&str, &str)] = &[
     ("bow_limb", "limb"), ("bow_grip", "grip"), ("bowstring", "bowstring"),
     ("arrow_head", "arrow_head"), ("arrow_shaft", "arrow_shaft"), ("fletching", "fletching"),
     ("tool_binding", "binding"), ("tough_binding", "binding"), ("tool_handle", "handle"), ("tough_handle", "handle"),
-    ("plating_helmet", "plating_helmet"), ("plating_chestplate", "plating_chestplate"),
-    ("plating_leggings", "plating_leggings"), ("plating_boots", "plating_boots"),
+    // registerEnum(types, "plating") names these <type>_plating, unlike the plating stat types.
+    ("helmet_plating", "plating_helmet"), ("chestplate_plating", "plating_chestplate"),
+    ("leggings_plating", "plating_leggings"), ("boots_plating", "plating_boots"),
     ("maille", "maille"), ("shield_core", "shield_core"),
     ("ribcage", "ribcage"), ("shell", "shell"), ("laces", "laces"),
 ];

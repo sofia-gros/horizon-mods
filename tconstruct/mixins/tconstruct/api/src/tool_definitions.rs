@@ -7,6 +7,20 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, OnceLock, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 
+/// Modules whose behavior needs host features Tinkers does not have yet (area of effect, melee and
+/// interaction effects, mining-speed/tier adjustments, display names, random default materials,
+/// statless part repair, material remapping). They are recorded by type, their fields are NOT
+/// validated, and nothing here implements them: `Data::unbound_modules` lists them so a caller can
+/// never mistake the definition for fully supported. Every other unknown module still rejects.
+const UNBOUND: &[&str] = &[
+    "tconstruct:box_aoe", "tconstruct:circle_aoe", "tconstruct:vein_aoe", "tconstruct:conditional_aoe",
+    "tconstruct:melee_particle", "tconstruct:sweep_melee", "tconstruct:circle_melee",
+    "tconstruct:attack_interaction", "tconstruct:dual_option_interaction", "tconstruct:toggleable_set_interaction",
+    "tconstruct:mining_speed_modifier", "tconstruct:max_tier", "tconstruct:melting_fluid_effective",
+    "tconstruct:fixed_material_name", "tconstruct:unique_material_name", "tconstruct:material_name", "tconstruct:custom_material_name",
+    "tconstruct:default_materials", "tconstruct:statless_part_repair", "tconstruct:remapping_materials",
+];
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum VolatileModule { Flag(Identifier), Int(Identifier, i32), Slots(BTreeMap<String, i32>), MaterialLook { slots: usize } }
 
@@ -61,6 +75,7 @@ pub(crate) struct Data {
     stats: Vec<StatModule>, volatile: Vec<VolatileModule>, actions: BTreeSet<String>,
     traits: Vec<TraitModule>, repairs: Vec<RepairModule>, parts: Vec<Identifier>,
     effective: Option<crate::tool_mining::Effective>,
+    unbound: Vec<Identifier>,
 }
 impl Data {
     pub(crate) fn decode(value: &Value) -> Result<Self, String> {
@@ -76,11 +91,28 @@ impl Data {
         let mut repairs: Vec<RepairModule> = Vec::new();
         let mut tool_parts: Option<Vec<Identifier>> = None;
         let mut effective: Option<crate::tool_mining::Effective> = None;
+        let mut unbound: Vec<Identifier> = Vec::new();
         for module in modules {
             let fields = module.as_object().ok_or("module must be an object")?;
             let kind = Identifier::parse(fields.get("type").and_then(Value::as_str).ok_or("module type is required")?)
                 .map_err(|error| error.to_string())?;
             let empty = kind.to_string() == "tconstruct:empty";
+            if UNBOUND.contains(&kind.to_string().as_str()) {
+                if !unbound.contains(&kind) { unbound.push(kind); }
+                continue;
+            }
+            if kind.to_string() == "tconstruct:tool_parts" {
+                // ToolPartsModule: the part items by slot; TOOL_PARTS has no merger.
+                if tool_parts.is_some() { return Err("only one module may bind tool_parts".into()); }
+                let registry = crate::tool_parts::registry();
+                let items = fields.get("parts").and_then(Value::as_array).filter(|items| !items.is_empty()).ok_or("parts must be a nonempty array")?
+                    .iter().map(|item| {
+                        let item = Identifier::parse(item.as_str().ok_or("part must be an ID string")?).map_err(|error| error.to_string())?;
+                        if registry.contains_key(&item) { Ok(item) } else { Err(format!("unknown tool part {item}")) }
+                    }).collect::<Result<Vec<_>, String>>()?;
+                tool_parts = Some(items);
+                continue;
+            }
             // Material/part modules also install traits, repair and volatile-data hooks.
             // Their statistical decoder alone is deliberately insufficient here.
             let volatile_kind = matches!(kind.to_string().as_str(), "tconstruct:volatile_flag" | "tconstruct:volatile_int" | "tconstruct:modifier_slots");
@@ -109,6 +141,9 @@ impl Data {
                 let allowed = if materials_kind {
                     ["tconstruct:tool_stats", "tconstruct:tool_traits", "tconstruct:tool_materials", "tconstruct:material_repair", "tconstruct:volatile_data"]
                         .contains(&hook.to_string().as_str()) || parts_kind && hook.to_string() == "tconstruct:tool_parts"
+                } else if trait_kind {
+                    // ToolTraitHook has three bindings; only tool_traits feeds a rebuild.
+                    matches!(hook.to_string().as_str(), "tconstruct:tool_traits" | "tconstruct:rebalanced_trait" | "tconstruct:trim_trait")
                 } else { hook.to_string() == expected_hook };
                 if empty || !allowed {
                     return Err(format!("module {kind} is invalid for hook {hook}"));
@@ -116,6 +151,18 @@ impl Data {
             }
             // Missing/empty hooks select defaults. Repeated explicit hooks bind the
             // same module once (ModuleHookMap's LinkedHashMultimap), not once per ID.
+            // A trait module bound only to rebalanced/trim traits adds nothing to a rebuild: those
+            // hooks belong to the rebalanced and trim modifiers, which are not ported, so the
+            // unconsumed binding is recorded instead of being folded into the tool's traits.
+            let mut feeds_rebuild = true;
+            if trait_kind && !hooks.is_empty() {
+                let names: Vec<&str> = hooks.iter().filter_map(Value::as_str).collect();
+                feeds_rebuild = names.contains(&"tconstruct:tool_traits");
+                for alternate in ["tconstruct:rebalanced_trait", "tconstruct:trim_trait"] {
+                    let alternate = Identifier::parse(alternate).expect("valid hook id");
+                    if names.contains(&alternate.to_string().as_str()) && !unbound.contains(&alternate) { unbound.push(alternate); }
+                }
+            }
             if effective_kind {
                 // IS_EFFECTIVE has no merger, so a second binding would be ambiguous.
                 if effective.is_some() { return Err("only one effectiveness module may bind is_effective".into()); }
@@ -143,7 +190,7 @@ impl Data {
                     .ok_or("inferred material stat types require the unfinished tool_materials hook")?).map_err(|e| e.to_string())?;
                 // MaterialTraitsModule is a class without value equality. Separate
                 // JSON instances must both contribute even when their fields match.
-                traits.push(TraitModule::Material { stat, index });
+                if feeds_rebuild { traits.push(TraitModule::Material { stat, index }); }
             } else if trait_kind {
                 let entries = fields.get("traits").and_then(Value::as_array).filter(|entries| !entries.is_empty())
                     .ok_or("traits must be a nonempty array")?;
@@ -154,7 +201,7 @@ impl Data {
                     TraitModule::Constant(previous) => previous.len() == decoded.len() && previous.iter().zip(&decoded)
                         .all(|(a,b)| a.id == b.id && a.level == b.level),
                     _ => false,
-                }) { traits.push(TraitModule::Constant(decoded)); }
+                }) && feeds_rebuild { traits.push(TraitModule::Constant(decoded)); }
             } else if action_kind {
                 let entries = fields.get("tool_actions").and_then(Value::as_array).filter(|values| !values.is_empty())
                     .ok_or("tool_actions must be a nonempty array")?;
@@ -219,7 +266,7 @@ impl Data {
                 if !stats.iter().any(|previous| same_stat_module(previous, &decoded)) { stats.push(decoded); }
             }
         }
-        Ok(Self { stats, volatile, actions, traits, repairs, parts: tool_parts.unwrap_or_default(), effective })
+        Ok(Self { stats, volatile, actions, traits, repairs, parts: tool_parts.unwrap_or_default(), effective, unbound })
     }
 
     /// Definition traits in hook order. Resolution happens against the current
@@ -277,6 +324,8 @@ impl Data {
     pub fn mining_component(&self, broken: bool, mining_speed: f32, tier: &Identifier) -> Result<Option<NbtCompound>, String> {
         self.effective.as_ref().map(|effective| crate::tool_mining::tool_component(effective, broken, mining_speed, tier)).transpose()
     }
+    /// Modules this definition declares that are recorded but not implemented (see `UNBOUND`).
+    pub fn unbound_modules(&self) -> &[Identifier] { &self.unbound }
     /// ToolPartsHook.parts: the part items in slot order (empty for tools without a parts module).
     pub fn tool_parts(&self) -> &[Identifier] { &self.parts }
     /// ToolMaterialHook.getStatTypes with the scale of each position.
@@ -541,6 +590,26 @@ mod tests {
             {"type":"tconstruct:part_stats","parts":["tconstruct:hammer_head"]}]})).is_err());
         assert!(Data::decode(&json!({"modules":[{"type":"tconstruct:material_stats","stat_types":["tconstruct:head"],"hooks":["tconstruct:tool_parts"]}]})).is_err(),
             "only part_stats binds tool_parts");
+    }
+
+    #[test]
+    fn unbound_modules_are_listed_not_validated_and_tool_parts_is_real() {
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:part_stats","parts":["tconstruct:pick_head"]},
+            {"type":"tconstruct:box_aoe","anything":"not checked"},
+            {"type":"tconstruct:fixed_material_name","index":0},
+            {"type":"tconstruct:box_aoe"}
+        ]})).unwrap();
+        assert_eq!(data.unbound_modules().iter().map(Identifier::to_string).collect::<Vec<_>>(),
+            vec!["tconstruct:box_aoe", "tconstruct:fixed_material_name"], "deduplicated, in order");
+        assert!(Data::decode(&json!({"modules":[{"type":"tconstruct:unknown_module"}]})).is_err(), "unlisted modules still reject");
+        let shield = Data::decode(&json!({"modules":[{"type":"tconstruct:tool_parts","parts":["tconstruct:shield_core"]}]})).unwrap();
+        assert_eq!(shield.tool_parts().len(), 1);
+        for bad in [
+            json!({"modules":[{"type":"tconstruct:tool_parts","parts":[]}]}),
+            json!({"modules":[{"type":"tconstruct:tool_parts","parts":["tconstruct:no_such_part"]}]}),
+            json!({"modules":[{"type":"tconstruct:tool_parts","parts":["tconstruct:maille"]},{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head"]}]}),
+        ] { assert!(Data::decode(&bad).is_err(), "{bad}"); }
     }
 
     #[test]
