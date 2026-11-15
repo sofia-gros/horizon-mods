@@ -18,7 +18,7 @@ pub(crate) enum Outcome {
     /// RecipeResult.pass: let other recipes try.
     Pass,
     /// RecipeResult.failure with a translation key.
-    Failure(&'static str),
+    Failure(String),
     Success { tool: NbtCompound, size: i32 },
 }
 
@@ -29,10 +29,10 @@ pub(crate) fn swap_material(
     index: usize, part_value: i32, mut may_repair: bool, max_stack: i32,
 ) -> Result<Outcome, String> {
     let shrink = max_stack;
-    if shrink <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS)); }
+    if shrink <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS.to_owned())); }
     let Some(definition) = env.definition else { return Ok(Outcome::Pass); };
     let stat_types = definition.material_stat_types().unwrap_or(&[]);
-    if index >= stat_types.len() { return Ok(Outcome::Failure(TOO_FEW_PARTS)); }
+    if index >= stat_types.len() { return Ok(Outcome::Failure(TOO_FEW_PARTS.to_owned())); }
 
     let current = materials(original, env.has_materials);
     // A variant-less ID and "#default" are the same variant; anything else is a change.
@@ -58,9 +58,11 @@ pub(crate) fn swap_material(
         if repair_durability > 0.0 { repair_durability = crate::tool_stack::repair_factor(&copy, env, repair_durability); }
         if repair_durability > 0.0 { tool_damage::repair(&mut copy, repair_durability as i32); }
     }
+    // ToolStack.tryValidate on the swapped copy (slot counts and modifier requirements).
+    if let Some(error) = crate::tool_stack::try_validate(&copy, env) { return Ok(Outcome::Failure(error)); }
     let output_max = max_stack;
     let size = (stack_count.wrapping_mul(output_max) / shrink).min(output_max);
-    if size <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS)); }
+    if size <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS.to_owned())); }
     Ok(Outcome::Success { tool: copy, size })
 }
 

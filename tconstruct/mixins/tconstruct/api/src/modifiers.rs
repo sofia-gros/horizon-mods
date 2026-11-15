@@ -125,6 +125,10 @@ impl Modifier {
         for module in &self.modules { amount = module.reduce_damage(entry, facts, cause, modifier_in_tag, amount, random); }
         amount
     }
+    /// ValidateModifierHook for a recipe-added modifier: the first failing requirement's translation key.
+    pub fn validate_upgrade(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Option<String> {
+        self.modules.iter().find_map(|module| module.validate_upgrade(entry, facts)).map(str::to_owned)
+    }
     /// RepairFactorModifierHook: the factor after every repair module of this modifier.
     pub fn repair_factor(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, mut factor: f32) -> f32 {
         for module in &self.modules { factor = module.repair_factor(entry, facts, factor); }

@@ -62,7 +62,7 @@ pub(crate) fn matches(tool_slot_empty: bool, inputs: &[Option<Identifier>], part
 
 #[derive(Debug)]
 pub(crate) enum Built {
-    Failure(&'static str),
+    Failure(String),
     Success { tool: NbtCompound, count: i32 },
 }
 
@@ -85,9 +85,11 @@ pub(crate) fn build(
     // Only recipes with real parts consult the craft-count chain.
     let count = if parts > 0 && item_max > 1 {
         let count = craft_count(item_max, output_count as f32);
-        if count <= 0 { return Ok(Built::Failure(NO_COUNT)); }
+        if count <= 0 { return Ok(Built::Failure(NO_COUNT.to_owned())); }
         count
     } else { output_count.min(item_max) };
+    // Traits may reject each other or overspend slots: a tool that fails validation is not produced.
+    if let Some(error) = crate::tool_stack::try_validate(&tool, env) { return Ok(Built::Failure(error)); }
     Ok(Built::Success { tool, count })
 }
 

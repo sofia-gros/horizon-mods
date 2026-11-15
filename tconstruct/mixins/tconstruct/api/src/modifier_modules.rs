@@ -46,6 +46,8 @@ pub(crate) enum Module {
     ReduceDamage { cause: CausePredicate, formula: LevelFormula, condition: Condition },
     /// RepairModule: scales the durability a repair restores.
     Repair { formula: LevelFormula, condition: Condition },
+    /// ModifierRequirementsModule: a modifier added through a recipe needs this of the tool.
+    Requirements { requirement: Predicate, min: i32, max: i32, translation_key: String },
 }
 
 /// A ModifierFormula of either form. `Simple` is flat + each_level * level, which is the scaled
@@ -130,7 +132,8 @@ impl Module {
     pub fn decode(kind: &str, fields: &Map<String, Value>, hooks: &[Identifier]) -> Result<Option<Self>, String> {
         let only = |hook: &str| hooks.iter().all(|bound| bound.to_string() == hook);
         // A tool predicate type this port lacks leaves the module unbound; a malformed one still rejects.
-        if let Some(predicate) = fields.get("tool").filter(|value| !value.is_null()) {
+        for key in ["tool", "requirement"] {
+            let Some(predicate) = fields.get(key).filter(|value| !value.is_null()) else { continue; };
             if let Err(error) = Predicate::decode(predicate) {
                 if error.starts_with("unimplemented tool predicate") || error.starts_with("only single-modifier") { return Ok(None); }
             }
@@ -170,6 +173,13 @@ impl Module {
                 let Some(cause) = CausePredicate::decode(fields.get("cause"))? else { return Ok(None); };
                 let Some(formula) = LevelFormula::decode(fields, &["value", "multiplier"])? else { return Ok(None); };
                 Self::ReduceDamage { cause, formula, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:requirements" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:validate_upgrade" | "tconstruct:requirements")) => {
+                // A requirement with a predicate type this port lacks is unbound (the early check above).
+                let requirement = Predicate::decode(fields.get("requirement").ok_or("requirement missing")?)?;
+                let (min, max) = crate::modifiers::range(fields.get("modifier_level"))?;
+                let translation_key = fields.get("translation_key").and_then(Value::as_str).ok_or("translation_key must be a string")?.to_owned();
+                Self::Requirements { requirement, min, max, translation_key }
             }
             "tconstruct:repair" if only("tconstruct:repair_factor") => {
                 let Some(formula) = LevelFormula::decode(fields, &["factor"])? else { return Ok(None); };
@@ -219,7 +229,7 @@ impl Module {
                     }
                 }
             }
-            Self::Boost { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } => {}
+            Self::Boost { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
         }
     }
 
@@ -232,6 +242,13 @@ impl Module {
         Some(Entry::new(modifier.clone(), if entry.level == 1 { *level } else { level.wrapping_mul(entry.level) }))
     }
     pub fn is_trait(&self) -> bool { matches!(self, Self::Trait { .. }) }
+
+    /// ValidateModifierHook (VALIDATE_UPGRADE): the translation key of the error when this
+    /// modifier's level is in range and the tool does not meet the requirement.
+    pub fn validate_upgrade(&self, entry: &Entry, facts: &Facts) -> Option<&str> {
+        let Self::Requirements { requirement, min, max, translation_key } = self else { return None; };
+        (*min <= entry.level && entry.level <= *max && !requirement.matches(facts)).then_some(translation_key.as_str())
+    }
 
     /// ToolDamageModifierHook.beforeDamageTool: the amount left after this module's probabilistic
     /// reduction. `random` yields uniform values in [0, 1).

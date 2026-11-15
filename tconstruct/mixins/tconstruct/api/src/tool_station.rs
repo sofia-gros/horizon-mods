@@ -39,7 +39,7 @@ pub(crate) struct Crafted {
 }
 
 #[derive(Debug)]
-pub(crate) enum Outcome { NoMatch, Failure(&'static str), Crafted(Crafted) }
+pub(crate) enum Outcome { NoMatch, Failure(String), Crafted(Crafted) }
 
 /// Read-only context shared by every recipe.
 pub(crate) struct Context<'a> {
@@ -114,7 +114,7 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     let can_repair = |material: &Identifier| definition.is_repair_material(&list, material);
     if !tool_repair::matches(&tool.custom_data, true, &slots, can_repair) { return Ok(Outcome::NoMatch); }
     if !is_broken(&tool.custom_data) && damage(&tool.custom_data) == 0 {
-        return Ok(Outcome::Failure("recipe.tconstruct.tool_repair.fully_repaired"));
+        return Ok(Outcome::Failure("recipe.tconstruct.tool_repair.fully_repaired".to_owned()));
     }
     let env = ctx.environment(&tool.item, definition);
     let mut result = tool.clone();
@@ -137,7 +137,7 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
     // The first part must belong to the tool, and nothing else may be in the way (no extra requirements here).
     if !parts.contains(item) || inputs.iter().enumerate().any(|(index, input)| index != slot && input.is_some()) { return Ok(Outcome::NoMatch); }
     // Too many parts for the table: the original refuses with a message rather than passing.
-    if parts.len() > inputs.len() { return Ok(Outcome::Failure("recipe.tconstruct.part_swapping.too_many_parts")); }
+    if parts.len() > inputs.len() { return Ok(Outcome::Failure("recipe.tconstruct.part_swapping.too_many_parts".to_owned())); }
     if material == &MaterialVariant::unknown() { return Ok(Outcome::NoMatch); }
     // The slot only matters when a tool uses a part twice: otherwise the first copy of that part.
     let index = if slot < parts.len() && &parts[slot] == item { slot } else { parts.iter().position(|part| part == item).unwrap_or(0) };

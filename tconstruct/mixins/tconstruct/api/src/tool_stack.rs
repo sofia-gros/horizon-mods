@@ -92,6 +92,26 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
 
+/// ToolStack.tryValidate: a negative free slot count, then each recipe-added modifier's requirements.
+/// The error is a translation key, followed by a space and the slot's display key for the slot error.
+pub(crate) fn try_validate(nbt: &NbtCompound, env: &Environment) -> Option<String> {
+    const KNOWN: [&str; 4] = ["upgrades", "defense", "abilities", "souls"];
+    let compound = |tag: &str| match nbt.get(tag) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let (volatile, persistent) = (compound(TAG_VOLATILE), compound(TAG_PERSISTENT));
+    let mut names: Vec<String> = KNOWN.iter().map(|name| (*name).to_owned()).collect();
+    for key in volatile.keys().chain(persistent.keys()).filter(|key| !key.contains(':')) {
+        if !names.contains(key) { names.push(key.clone()); }
+    }
+    for name in names {
+        let free = crate::modifier_entries::nbt_int(persistent.get(&name)).wrapping_add(crate::modifier_entries::nbt_int(volatile.get(&name)));
+        if free < 0 { return Some(format!("recipe.tconstruct.modifier.validate_slots slot_type.tconstruct.{name}")); }
+    }
+    let upgrades = List::from_nbt(nbt.get(TAG_UPGRADES));
+    with_tool_facts(nbt, env, |_, facts| {
+        upgrades.entries().iter().find_map(|entry| env.modifiers.get(&entry.id).and_then(|modifier| modifier.validate_upgrade(entry, facts)))
+    })
+}
+
 /// ToolDamageUtil.damage's modifier loop: each modifier may cancel part of the damage; once nothing
 /// is left the tool takes none. `cause` is the damaging modifier, None for ordinary use.
 pub(crate) fn reduce_damage(nbt: &NbtCompound, env: &Environment, cause: Option<&Identifier>, mut amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
@@ -229,6 +249,34 @@ mod tests {
         assert_eq!(broken["default_mining_speed"], Nbt::Float(0.3));
         // A definition with no mining module has none.
         assert!(mining_component(&nbt, &Data::default()).unwrap().is_none());
+    }
+    #[test]
+    fn validation_rejects_overspent_slots_and_unmet_modifier_requirements() {
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:needs").unwrap(), json!({"modules":[{"type":"tconstruct:requirements","translation_key":"test.needs.base",
+                "requirement":{"type":"tconstruct:has_modifier","check":"all","modifier":{"type":"tconstruct:single","modifier":"test:base"}}}]})),
+            (Identifier::parse("test:base").unwrap(), json!({})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let mut nbt = NbtCompound::new();
+        assert_eq!(try_validate(&nbt, &env), None, "an empty tool is valid");
+        // Free slots are persistent + volatile; a negative total fails, naming the slot.
+        let slots = |name: &str, value: i32| { let mut data = NbtCompound::new(); data.insert(name.into(), Nbt::Int(value)); Nbt::Compound(data) };
+        nbt.insert(TAG_PERSISTENT.into(), slots("upgrades", -1));
+        assert_eq!(try_validate(&nbt, &env).as_deref(), Some("recipe.tconstruct.modifier.validate_slots slot_type.tconstruct.upgrades"));
+        nbt.insert(TAG_VOLATILE.into(), slots("upgrades", 1));
+        assert_eq!(try_validate(&nbt, &env), None, "volatile slots pay for the persistent debt");
+        // A recipe-added modifier whose requirement fails reports its own translation key.
+        let needs = List::default().with_modifier(Identifier::parse("test:needs").unwrap(), 1).unwrap();
+        nbt.insert(TAG_UPGRADES.into(), needs.to_nbt());
+        nbt.insert(TAG_MODIFIERS.into(), needs.to_nbt());
+        assert_eq!(try_validate(&nbt, &env).as_deref(), Some("test.needs.base"));
+        let both = needs.with_modifier(Identifier::parse("test:base").unwrap(), 1).unwrap();
+        nbt.insert(TAG_MODIFIERS.into(), both.to_nbt());
+        assert_eq!(try_validate(&nbt, &env), None, "the requirement reads the tool's full modifier list");
     }
     #[test]
     fn unready_environment_changes_nothing() {
