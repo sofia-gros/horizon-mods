@@ -62,6 +62,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tables/lazy_result.rs',
                 'mixins/tconstruct_native/api/src/tables/input_consumption.rs',
                 'mixins/tconstruct_native/api/src/tables/recipe_selection.rs',
+                'mixins/tconstruct_native/api/src/tables/station.rs',
                 'mixins/tconstruct_native/LICENSE'})
             native = json.loads(archive.read('horizon-native.json'))
             self.assertEqual(native['id'], 'tconstruct_native')
