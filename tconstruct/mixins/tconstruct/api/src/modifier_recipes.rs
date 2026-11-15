@@ -59,6 +59,9 @@ pub(crate) enum Kind {
     /// `tconstruct:incremental_modifier`: one ingredient, each item worth `amount_per_item` toward
     /// the `needed_per_level` a level takes; partial progress is kept on the tool.
     Incremental { input: Ingredient, amount_per_item: i32, needed_per_level: i32, leftover: Option<Identifier> },
+    /// `tconstruct:swappable_modifier`: one level, plus a variant string kept in the tool's
+    /// persistent data under the modifier's ID; a recipe for another variant swaps it.
+    Swappable { value: String },
 }
 
 fn positive(fields: &Map<String, Value>, key: &str, default: Option<i32>) -> Result<i32, String> {
@@ -71,8 +74,8 @@ fn positive(fields: &Map<String, Value>, key: &str, default: Option<i32>) -> Res
 
 impl Recipe {
     fn decode(id: &Identifier, fields: &Map<String, Value>) -> Result<Self, String> {
-        let incremental = fields.get("type").and_then(Value::as_str) == Some("tconstruct:incremental_modifier");
-        let (inputs, kind) = if incremental {
+        let kind_name = fields.get("type").and_then(Value::as_str);
+        let (inputs, kind) = if kind_name == Some("tconstruct:incremental_modifier") {
             let leftover = match fields.get("leftover") {
                 None | Some(Value::Null) => None,
                 Some(Value::String(text)) => Some(Identifier::parse(text).map_err(|e| e.to_string())?),
@@ -85,9 +88,27 @@ impl Recipe {
                 leftover,
             })
         } else {
+            let swappable = kind_name == Some("tconstruct:swappable_modifier");
             let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
                 .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
-            (inputs, Kind::Single)
+            (inputs, if swappable {
+                // The variant formatter only changes how the variant is displayed.
+                match fields.get("variant_formatter") {
+                    None | Some(Value::Null) => {}
+                    Some(Value::String(name)) if matches!(name.as_str(), "tconstruct:default" | "tconstruct:material" | "tconstruct:parameter") => {}
+                    Some(_) => return Err("unknown variant_formatter".into()),
+                }
+                Kind::Swappable { value: String::new() }
+            } else { Kind::Single })
+        };
+        // A swappable recipe names its modifier and variant in one "result" object.
+        let (kind, result_value) = match (kind, fields.get("result")) {
+            (Kind::Swappable { .. }, Some(Value::Object(result))) => {
+                let value = result.get("value").and_then(Value::as_str).ok_or("result value must be a string")?.to_owned();
+                (Kind::Swappable { value }, result.get("name").cloned().ok_or("result name missing")?)
+            }
+            (Kind::Swappable { .. }, _) => return Err("a swappable recipe's result must be an object with name and value".into()),
+            (kind, result) => (kind, result.cloned().ok_or("result must be an ID string")?),
         };
         let tools = Ingredient::decode(fields.get("tools").ok_or("tools missing")?)?;
         let max_tool_size = match fields.get("max_tool_size") {
@@ -95,8 +116,8 @@ impl Recipe {
             Some(Value::Number(n)) => { let n = crate::materials::number_int(&n.to_string()); if n >= 1 { n as u32 } else { return Err("max_tool_size must be at least 1".into()); } }
             Some(_) => return Err("max_tool_size must be a number".into()),
         };
-        let result = Identifier::parse(fields.get("result").and_then(Value::as_str).ok_or("result must be an ID string")?).map_err(|e| e.to_string())?;
-        let (min_level, max_level) = crate::modifiers::range(fields.get("level"))?;
+        let result = Identifier::parse(result_value.as_str().ok_or("result must be an ID string")?).map_err(|e| e.to_string())?;
+        let (min_level, max_level) = if matches!(kind, Kind::Swappable { .. }) { (1, 1) } else { crate::modifiers::range(fields.get("level"))? };
         let slots = match fields.get("slots").filter(|value| !value.is_null()) {
             None => None,
             Some(Value::Object(slots)) if slots.len() == 1 => {
@@ -118,7 +139,7 @@ impl Recipe {
     pub fn matches(&self, tool: &Identifier, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         if !self.tools.matches(tool, in_tag) { return false; }
         match &self.kind {
-            Kind::Single => self.assign(inputs, in_tag).is_some(),
+            Kind::Single | Kind::Swappable { .. } => self.assign(inputs, in_tag).is_some(),
             // containsOnlyIngredient: at least one match and nothing else in the table.
             Kind::Incremental { input, .. } => {
                 let stacks: Vec<&(Identifier, u32)> = inputs.iter().flatten().collect();
@@ -146,7 +167,7 @@ impl Recipe {
         let mut consumed = vec![0; inputs.len()];
         let mut leftover = Vec::new();
         match &self.kind {
-            Kind::Single => if let Some(taken) = self.assign(inputs, in_tag) {
+            Kind::Single | Kind::Swappable { .. } => if let Some(taken) = self.assign(inputs, in_tag) {
                 for (slot, ingredient) in taken.into_iter().zip(&self.inputs) { consumed[slot] += ingredient.amount; }
             },
             Kind::Incremental { input, amount_per_item, needed_per_level, leftover: item } => {
@@ -192,13 +213,21 @@ impl Recipe {
         let continuing = matches!(self.kind, Kind::Incremental { .. }) && entry.amount(0) > 0;
         let new_level = if continuing { entry.level } else { list.level(&self.result).wrapping_add(1) };
         let traits = if self.check_trait_level { ".traits" } else { "" };
-        if new_level < self.min_level {
+        let persistent_of = |tool: &ItemSlot| match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+        // A swappable recipe adds the modifier only when absent; with it present only the variant changes.
+        let swapping = matches!(self.kind, Kind::Swappable { .. }) && list.level(&self.result) > 0;
+        if let (Kind::Swappable { value }, true) = (&self.kind, swapping) {
+            if matches!(persistent_of(tool).get(&self.result.to_string()), Some(Nbt::String(current)) if current == value) {
+                return Ok(Err(format!("recipe.tconstruct.swappable.already_present {} {value}", self.result)));
+            }
+        }
+        if !swapping && new_level < self.min_level {
             return Ok(Err(format!("recipe.tconstruct.modifier.min_level{traits} {} {}", self.result, self.min_level - 1)));
         }
-        if new_level > self.max_level {
+        if !swapping && new_level > self.max_level {
             return Ok(Err(format!("recipe.tconstruct.modifier.max_level{traits} {} {}", self.result, self.max_level)));
         }
-        let spends_slots = !continuing;
+        let spends_slots = !continuing && !swapping;
         let free = |name: &str| {
             let slots = |tag: &str| match nbt.get(tag) { Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get(name)), _ => 0 };
             slots(TAG_PERSISTENT).wrapping_add(slots(crate::tool_stack::TAG_VOLATILE))
@@ -217,9 +246,16 @@ impl Recipe {
             if total == 0 { persistent.remove(name); } else { persistent.insert(name.clone(), Nbt::Int(total)); }
             copy.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
         }
+        if let Kind::Swappable { value } = &self.kind {
+            let mut persistent = persistent_of(&copy);
+            persistent.insert(self.result.to_string(), Nbt::String(value.clone()));
+            copy.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        }
         // ToolStack.addModifier(id, 1): save the new upgrade list, then rebuild.
         let current = List::from_nbt(copy.custom_data.get(TAG_UPGRADES));
         let upgrades = match &self.kind {
+            Kind::Swappable { .. } if swapping => current,
+            Kind::Swappable { .. } => current.with_modifier(self.result.clone(), 1)?,
             Kind::Single => current.with_modifier(self.result.clone(), 1)?,
             // getAvailableAmount: every matching stack counts in full; addModifierAmount stops at the level.
             Kind::Incremental { input, amount_per_item, needed_per_level, .. } => {
@@ -249,7 +285,7 @@ impl Recipes {
         for (id, value) in sorted {
             let outcome = (|| -> Result<Option<Recipe>, String> {
                 let fields = value.as_object().ok_or("recipe must be an object")?;
-                if !matches!(fields.get("type").and_then(Value::as_str), Some("tconstruct:modifier" | "tconstruct:incremental_modifier")) { return Ok(None); }
+                if !matches!(fields.get("type").and_then(Value::as_str), Some("tconstruct:modifier" | "tconstruct:incremental_modifier" | "tconstruct:swappable_modifier")) { return Ok(None); }
                 if let Some(list) = fields.get("conditions") {
                     let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
                     for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
@@ -352,6 +388,21 @@ mod tests {
         let after = with_upgrades(5, 5);
         assert_eq!(r.consumption(&none, &after, &[stack("test:shard", 3), stack("test:shard", 1)], &in_tag), (vec![3, 0], vec![(id("test:dust"), 1)]),
             "5 needed at 2 per item takes 3 items and gives back the 1 unused");
+    }
+    #[test]
+    fn swappable_recipes_read_name_and_value_and_behave_like_single_step_recipes() {
+        let base = json!({"type":"tconstruct:swappable_modifier","inputs":[{"item":"a:b"}],"tools":{"tag":"a:t"},"result":{"name":"test:shot","value":"amethyst"},"variant_formatter":"tconstruct:material","slots":{"abilities":1}});
+        let r = Recipe::decode(&id("test:swap"), base.as_object().unwrap()).unwrap();
+        assert_eq!((r.result.to_string(), r.min_level, r.max_level), ("test:shot".to_owned(), 1, 1));
+        assert_eq!(r.kind, Kind::Swappable { value: "amethyst".into() });
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        assert!(r.matches(&id("x:tool"), &[stack("a:b", 1)], &in_tag));
+        let mut bad = base.clone();
+        bad["result"] = json!("test:shot");
+        assert!(Recipe::decode(&id("test:bad"), bad.as_object().unwrap()).is_err(), "result must be name and value");
+        bad = base.clone();
+        bad["variant_formatter"] = json!("test:unknown");
+        assert!(Recipe::decode(&id("test:bad"), bad.as_object().unwrap()).is_err());
     }
     #[test]
     fn incremental_decode_validates_fields() {

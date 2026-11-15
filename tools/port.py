@@ -176,7 +176,7 @@ def checked_content(root, version):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
                 continue
             if '/recipes/' in name:
-                reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier') if '/recipes/tools/modifiers/' in name else ('tconstruct:material',)
+                reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier') if '/recipes/tools/modifiers/' in name else ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
                 continue

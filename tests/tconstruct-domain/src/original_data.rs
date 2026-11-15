@@ -200,10 +200,43 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 161, "116 modifier and 45 incremental recipes");
+    assert_eq!(files.len(), 199, "116 modifier, 45 incremental and 38 swappable recipes");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
     }
-    assert!(recipes.len() > 130, "{} loaded, {:#?}", recipes.len(), recipes.problems);
+    assert!(recipes.len() > 160, "{} loaded, {:#?}", recipes.len(), recipes.problems);
+}
+
+#[test]
+fn the_shipped_reinforced_recipe_fills_a_level_in_two_partial_applications() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let recipes = crate::modifier_recipes::Recipes::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    let in_tag = |item: &Identifier, tag: &Identifier| item.path() == "pickaxe" && tag.path() == "modifiable/durability";
+    let reinforced = Identifier::parse("tconstruct:reinforced").unwrap();
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut persistent = NbtCompound::new();
+    persistent.insert("upgrades".into(), Nbt::Int(3));
+    tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let reinforcement = |count: u32| [Some((Identifier::parse("tconstruct:emerald_reinforcement").unwrap(), count))];
+    let upgrades = |tool: &ItemSlot| List::from_nbt(tool.custom_data.get(TAG_UPGRADES));
+    let free = |tool: &ItemSlot| match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get("upgrades")), _ => 0 };
+
+    let first = recipes.find(&tool.item, &reinforcement(2), &in_tag).expect("the shipped recipe matches a pickaxe");
+    let half = first.apply(&tool, &env, &reinforcement(2), &in_tag).unwrap().expect("two of four items apply");
+    assert_eq!((upgrades(&half).entry(&reinforced).amount(0), upgrades(&half).entry(&reinforced).needed(), free(&half)), (2, 4, 2), "a partial level spends one slot");
+    assert_eq!(first.consumption(&tool, &half, &reinforcement(2), &in_tag).0, vec![2]);
+
+    // Continuing the partial level spends no further slot, and two more items finish it.
+    let full = first.apply(&half, &env, &reinforcement(2), &in_tag).unwrap().expect("the second half applies");
+    assert_eq!((upgrades(&full).level(&reinforced), upgrades(&full).entry(&reinforced).needed(), free(&full)), (1, 0, 2));
+    assert_eq!(first.consumption(&half, &full, &reinforcement(5), &in_tag).0, vec![2], "only what the level still needed is taken");
+    // reinforced reduces damage taken (see the damage test); it does not change the durability stat.
 }
