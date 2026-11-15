@@ -39,6 +39,8 @@ pub(crate) enum Module {
     Int { id: Identifier, flat: i32, each: i32, condition: Condition },
     Slot { name: String, flat: i32, each: i32, condition: Condition },
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
+    /// ModifierTraitModule: a nested modifier this one brings along.
+    Trait { modifier: Identifier, level: i32, fixed_level: bool, condition: Condition },
 }
 
 fn short(fields: &Map<String, Value>, key: &str) -> Result<i32, String> {
@@ -92,6 +94,16 @@ impl Module {
                 let each = if fields.contains_key("each_level") { short(fields, "each_level")? } else { short(fields, "count")? };
                 Self::Slot { name: name.to_owned(), flat: short(fields, "flat")?, each, condition: Condition::decode(fields)? }
             }
+            "tconstruct:trait" if only("tconstruct:modifier_traits") => {
+                let level = match fields.get("level").filter(|value| !value.is_null()) {
+                    None => 1,
+                    Some(Value::Number(number)) => crate::materials::number_int(&number.to_string()),
+                    Some(_) => return Err("level must be a number".into()),
+                };
+                if level < 1 { return Err("trait level must be at least 1".into()); }
+                let Some(Value::Bool(fixed_level)) = fields.get("fixed_level") else { return Err("fixed_level must be a boolean".into()); };
+                Self::Trait { modifier: identifier(fields, "name")?, level, fixed_level: *fixed_level, condition: Condition::decode(fields)? }
+            }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
                 // A stat of another domain (tanks, food) is not representable here.
@@ -136,9 +148,19 @@ impl Module {
                     }
                 }
             }
-            Self::Boost { .. } => {}
+            Self::Boost { .. } | Self::Trait { .. } => {}
         }
     }
+
+    /// ModifierTraitModule.addTraits: the entry this module adds for `entry`, if any. A fixed-level
+    /// trait joins once (the first time its owner is met); otherwise its level scales with the owner's.
+    pub fn trait_entry(&self, entry: &Entry, facts: &Facts, first_encounter: bool) -> Option<Entry> {
+        let Self::Trait { modifier, level, fixed_level, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        if *fixed_level { return first_encounter.then(|| Entry::new(modifier.clone(), *level)); }
+        Some(Entry::new(modifier.clone(), if entry.level == 1 { *level } else { level.wrapping_mul(entry.level) }))
+    }
+    pub fn is_trait(&self) -> bool { matches!(self, Self::Trait { .. }) }
 
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &Facts, builder: &mut Builder) {

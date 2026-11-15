@@ -113,6 +113,12 @@ impl Modifier {
         Ok(Self { id: name, priority: if priority == i32::MIN { 100 } else { priority },
             level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
+    /// Whether any module of this modifier adds nested traits (it has a MODIFIER_TRAITS binding).
+    pub fn has_trait_modules(&self) -> bool { self.modules.iter().any(crate::modifier_modules::Module::is_trait) }
+    /// ModifierTraitHook through TraitBuilder: the nested entries for `entry`, in module order.
+    pub fn trait_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, first_encounter: bool) -> Vec<Entry> {
+        self.modules.iter().filter_map(|module| module.trait_entry(entry, facts, first_encounter)).collect()
+    }
     /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
         for module in &self.modules { module.apply_volatile(entry, facts, data); }
@@ -242,6 +248,36 @@ impl Registry {
     pub fn resolve(&self, entries: &[crate::material_traits::ModifierEntry]) -> Result<Vec<(Entry, Arc<Modifier>)>, String> {
         self.resolve_with_upgrades(&crate::modifier_entries::List::default(), entries)
     }
+    /// TraitBuilder: adds each modifier and, recursively, the traits its modules bring. A modifier
+    /// met inside itself is skipped (the original logs an error), an entry with no loaded
+    /// definition is dropped like an unbound entry, and the result merges and sorts by priority.
+    pub fn expand_traits(&self, before: &[(Entry, Arc<Modifier>)], facts: &crate::tool_predicate::Facts) -> Result<Vec<(Entry, Arc<Modifier>)>, String> {
+        struct State<'a> { registry: &'a Registry, facts: &'a crate::tool_predicate::Facts<'a>, built: Vec<(Entry, Arc<Modifier>)>,
+            seen: BTreeSet<Identifier>, stack: Vec<Identifier> }
+        fn add(state: &mut State, entry: Entry, modifier: Arc<Modifier>) -> Result<(), String> {
+            if modifier.empty_sentinel { return Ok(()); }
+            match state.built.iter_mut().find(|(current, _)| current.id == entry.id) {
+                Some((current, _)) => *current = current.merge(&entry)?,
+                None => state.built.push((entry.clone(), modifier.clone())),
+            }
+            if !modifier.has_trait_modules() { return Ok(()); }
+            if state.stack.contains(&entry.id) { eprintln!("Tinkers: {} is a child of itself", entry.id); return Ok(()); }
+            state.stack.push(entry.id.clone());
+            let first = !state.seen.contains(&entry.id);
+            for nested in modifier.trait_entries(&entry, state.facts, first) {
+                // An entry with no loaded definition is not bound and is skipped.
+                if let Some(definition) = state.registry.get(&nested.id).cloned() { add(state, nested, definition)?; }
+            }
+            state.seen.insert(entry.id.clone());
+            state.stack.pop();
+            Ok(())
+        }
+        let mut state = State { registry: self, facts, built: Vec::new(), seen: BTreeSet::new(), stack: Vec::new() };
+        for (entry, modifier) in before { add(&mut state, entry.clone(), modifier.clone())?; }
+        let mut result = state.built;
+        result.sort_by_key(|(_, modifier)| modifier.priority.wrapping_neg());
+        Ok(result)
+    }
     pub fn resolve_with_upgrades(&self, upgrades: &crate::modifier_entries::List, traits: &[crate::material_traits::ModifierEntry]) -> Result<Vec<(Entry, Arc<Modifier>)>, String> {
         if !self.definitions_loaded { return Err("modifier definitions are not loaded".into()); }
         let mut result: Vec<(Entry, Arc<Modifier>)> = Vec::new();
@@ -349,6 +385,48 @@ mod tests {
             modifier.apply_volatile(&Entry::new(name("test:gated"), 1), &mut data);
             assert!(data.is_empty(), "an unbound flag writes nothing");
         }
+    }
+    #[test]
+    fn nested_traits_scale_with_the_owner_join_once_when_fixed_and_cannot_recurse() {
+        use crate::tool_predicate::{Check, Facts};
+        let mut registry = Registry::default();
+        let module = |name: &str, level: i64, fixed: bool| json!({"type":"tconstruct:trait","name":name,"level":level,"fixed_level":fixed});
+        registry.reload(&[
+            (name("test:owner"), json!({"modules":[module("test:scaled", 2, false), module("test:once", 1, true), module("test:missing", 1, false)]})),
+            (name("test:other"), json!({"priority":50,"modules":[module("test:once", 1, true)]})),
+            (name("test:wrapper"), json!({"priority":200,"modules":[module("test:owner", 1, false)]})),
+            (name("test:scaled"), json!({})), (name("test:once"), json!({})),
+            (name("test:loop"), json!({"modules":[module("test:loop", 1, false), module("test:scaled", 1, false)]})),
+            (name("test:gated"), json!({"modules":[{"type":"tconstruct:trait","name":"test:scaled","level":1,"fixed_level":false,
+                "tool":{"type":"tconstruct:has_modifier","check":"all","level":0,"modifier":{"type":"tconstruct:single","modifier":"test:other"}}}]})),
+        ], &BooleanConditions);
+        assert!(registry.problems.is_empty(), "{:?}", registry.problems);
+        let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false,
+            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 } };
+        let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
+        let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);
+        // Owner level 3: the scaled trait is 2 * 3, the fixed one joins once even with a second owner.
+        let built = registry.expand_traits(&before(&[("test:owner", 3), ("test:other", 1)]), &facts).unwrap();
+        assert_eq!(level_of(&built, "test:scaled"), Some(6));
+        assert_eq!(level_of(&built, "test:once"), Some(2), "each distinct owner adds its fixed trait once");
+        assert_eq!(level_of(&built, "test:missing"), None, "an unbound nested entry is skipped, not an error");
+        // Reached twice (nested under a wrapper, then listed itself), an owner adds its fixed trait only the first time.
+        let built = registry.expand_traits(&before(&[("test:wrapper", 1), ("test:owner", 1)]), &facts).unwrap();
+        assert_eq!(level_of(&built, "test:once"), Some(1));
+        assert_eq!(level_of(&built, "test:scaled"), Some(4), "the scaled trait is added on each encounter");
+        // Owner level 1 uses the trait's own level; scaled traits of two owners merge by id.
+        let built = registry.expand_traits(&before(&[("test:owner", 1), ("test:scaled", 4)]), &facts).unwrap();
+        assert_eq!(level_of(&built, "test:scaled"), Some(6), "4 saved + 2 from the owner");
+        // A modifier that lists itself as a trait terminates: the nested copy still merges its level
+        // (the builder adds before the stack check) but its traits are not expanded again.
+        let built = registry.expand_traits(&before(&[("test:loop", 1)]), &facts).unwrap();
+        assert_eq!((level_of(&built, "test:loop"), level_of(&built, "test:scaled")), (Some(2), Some(1)));
+        // A tool predicate reads the tool's modifiers: this one needs test:other to be absent, and it is present.
+        let built = registry.expand_traits(&before(&[("test:gated", 1)]), &facts).unwrap();
+        assert_eq!(level_of(&built, "test:scaled"), None);
+        assert!(registry.get(&name("test:owner")).unwrap().has_trait_modules());
+        assert!(!registry.get(&name("test:scaled")).unwrap().has_trait_modules());
+        let _ = Check::All;
     }
     #[test]
     fn rarity_keeps_the_largest_ordinal_and_ignores_level_conditions() {

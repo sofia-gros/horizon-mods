@@ -47,26 +47,32 @@ pub(crate) fn rebuild(
     let traits: Vec<ModifierEntry> = definition.traits(materials, material_registry)?;
     // No modifier defines MODIFIER_TRAITS yet (such modules reject at decode), so the
     // TraitBuilder pass adds each bound entry exactly once, in this order.
-    let resolved = modifiers.resolve_with_upgrades(upgrades, &traits)?;
+    let before = modifiers.resolve_with_upgrades(upgrades, &traits)?;
+    // Modifier traits are expanded against the tool as it stands before them ("modifiers does not include traits").
+    let resolved = with_facts(tool, &before, upgrades, |facts| modifiers.expand_traits(&before, facts))?;
     // Volatile data is built before stats so stat hooks can read it: definition, then modifiers.
+    with_facts(tool, &resolved, upgrades, |facts| {
+        let mut volatile = definition.build_volatile_for(materials, material_registry);
+        for (entry, modifier) in &resolved { modifier.apply_volatile_with(entry, facts, &mut volatile); }
+        // Stats come last so they can read the volatile data: definition, then each modifier in order.
+        let mut builder = definition.build_stats(materials, material_registry);
+        for (entry, modifier) in &resolved { modifier.apply_stats(entry, facts, &mut builder); }
+        Ok(Some(Rebuilt { modifiers: resolved.clone(), volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier: builder.touched_tier() }))
+    })
+}
+
+/// Facts about the tool for predicates, with `entries` as the "all" modifier list.
+fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upgrades: &List, run: impl FnOnce(&Facts) -> R) -> R {
     let in_tag = |item: &Identifier, tag: &Identifier| tool.item_tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
     let level = |modifier: &Identifier, check: Check| -> i32 {
         let sum = |entries: &mut dyn Iterator<Item = &Entry>| entries.filter(|entry| &entry.id == modifier).fold(0_i32, |sum, entry| sum.wrapping_add(entry.int_effective_level()));
         match check {
-            Check::All => sum(&mut resolved.iter().map(|(entry, _)| entry)),
+            Check::All => sum(&mut entries.iter().map(|(entry, _)| entry)),
             Check::Upgrades => sum(&mut upgrades.entries().iter()),
         }
     };
     let has_persistent_key = |key: &Identifier| tool.persistent.contains_key(&key.to_string());
-    let facts = Facts { item: tool.item, in_tag: &in_tag, level: &level, has_persistent_key: &has_persistent_key };
-    let mut volatile = definition.build_volatile_for(materials, material_registry);
-    for (entry, modifier) in &resolved { modifier.apply_volatile_with(entry, &facts, &mut volatile); }
-    // Stats come last so they can read the volatile data: definition, then each modifier in order.
-    let mut builder = definition.build_stats(materials, material_registry);
-    for (entry, modifier) in &resolved { modifier.apply_stats(entry, &facts, &mut builder); }
-    Ok(Some(Rebuilt {
-        modifiers: resolved, volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier: builder.touched_tier(),
-    }))
+    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, has_persistent_key: &has_persistent_key })
 }
 
 #[cfg(test)]
