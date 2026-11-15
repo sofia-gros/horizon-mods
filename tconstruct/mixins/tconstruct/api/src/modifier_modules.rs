@@ -88,7 +88,7 @@ impl Module {
             "tconstruct:modifier_slot" if only("tconstruct:volatile_data") => {
                 let name = fields.get("name").and_then(Value::as_str).ok_or("name must be a slot name")?;
                 if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
-                // The legacy count field is the per-level amount when each_level is absent.
+                // The older count field is the per-level amount when each_level is absent.
                 let each = if fields.contains_key("each_level") { short(fields, "each_level")? } else { short(fields, "count")? };
                 Self::Slot { name: name.to_owned(), flat: short(fields, "flat")?, each, condition: Condition::decode(fields)? }
             }
@@ -199,7 +199,7 @@ mod tests {
         int.as_ref().unwrap().apply_volatile(&Entry::new(id("test:m"), 3), &f, &mut data);
         int.as_ref().unwrap().apply_volatile(&Entry::new(id("test:m"), 3), &f, &mut data);
         assert_eq!(data["test:n"], Nbt::Int(14));
-        // modifier_slot: legacy count is the per-level amount; a total of zero removes the key.
+        // modifier_slot: the older count field is the per-level amount; a total of zero removes the key.
         let plus = decode(json!({"type":"tconstruct:modifier_slot","name":"upgrades","count":1})).unwrap();
         let minus = decode(json!({"type":"tconstruct:modifier_slot","name":"upgrades","each_level":-1})).unwrap();
         plus.apply_volatile(&Entry::new(id("test:m"), 2), &f, &mut data);
