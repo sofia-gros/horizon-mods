@@ -63,12 +63,45 @@ impl<'a> Context<'a> {
 /// Dispatches one station state. `tool` is the tinkerable slot, `inputs[i]` the i-th input slot
 /// (None when empty). Building needs an empty tool slot; repair and swapping need a tool.
 pub(crate) fn lookup(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<Input>]) -> Result<Outcome, String> {
+    lookup_with(ctx, tool, inputs, None)
+}
+
+/// The tinker-station modifier recipes and what they need to match raw stacks.
+pub(crate) struct ModifierRecipes<'a> {
+    pub recipes: &'a crate::modifier_recipes::Recipes,
+    /// Each input slot's item and count (None when empty), independent of how it resolved.
+    pub raw: &'a [Option<(Identifier, u32)>],
+    pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
+}
+
+/// `lookup` plus the modifier recipes: with a tool, repair is tried first, then adding a modifier,
+/// then part swapping; each answers NoMatch when it does not apply.
+pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<Input>], modifiers: Option<&ModifierRecipes>) -> Result<Outcome, String> {
     match tool {
         None => build(ctx, inputs),
-        Some(tool) => repair(ctx, tool, inputs).and_then(|repaired| match repaired {
-            Outcome::NoMatch => swap(ctx, tool, inputs), other => Ok(other),
-        }),
+        Some(tool) => {
+            let repaired = repair(ctx, tool, inputs)?;
+            if !matches!(repaired, Outcome::NoMatch) { return Ok(repaired); }
+            if let Some(modifiers) = modifiers {
+                let added = add_modifier(ctx, tool, modifiers)?;
+                if !matches!(added, Outcome::NoMatch) { return Ok(added); }
+            }
+            swap(ctx, tool, inputs)
+        }
     }
+}
+
+fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> Result<Outcome, String> {
+    let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
+    let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else { return Ok(Outcome::NoMatch); };
+    let env = ctx.environment(&tool.item, definition);
+    Ok(match recipe.apply(tool, &env)? {
+        Err(message) => Outcome::Failure(message),
+        Ok(result) => {
+            let consumed = recipe.consumption(modifiers.raw, modifiers.in_tag).into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
+            Outcome::Crafted(Crafted { result, consumed, tool_shrink: i32::try_from(recipe.max_tool_size).unwrap_or(i32::MAX) })
+        }
+    })
 }
 
 fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {

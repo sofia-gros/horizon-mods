@@ -13,6 +13,7 @@
     "api/src/modifier_module_types.rs",
     "api/src/formula.rs",
     "api/src/material_recipes.rs",
+    "api/src/modifier_recipes.rs",
     "api/src/tool_predicate.rs",
     "api/src/modifier_modules.rs",
     "api/src/modifiers.rs",

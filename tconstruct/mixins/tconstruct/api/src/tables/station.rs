@@ -14,6 +14,7 @@ const REPAIR_KIT: &str = "tconstruct:repair_kit";
 pub(crate) struct Resolver<'a> {
     pub kit_amount: f32,
     pub recipes: Option<&'a Recipes>,
+    pub modifier_recipes: Option<&'a crate::modifier_recipes::Recipes>,
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
 }
 
@@ -48,7 +49,10 @@ pub(crate) fn read(menu: &dyn MenuAccess, input_count: usize, resolver: &Resolve
 /// What the station would produce for the staged menu, with no side effects.
 pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, resolver: &Resolver) -> Result<Outcome, String> {
     let (tool, inputs) = read(menu, input_count, resolver);
-    tool_station::lookup(ctx, tool.as_ref(), &inputs)
+    let raw: Vec<Option<(Identifier, u32)>> = (1..=input_count)
+        .map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| (stack.item.clone(), stack.count))).collect();
+    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, raw: &raw, in_tag: resolver.in_tag });
+    tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref())
 }
 
 /// craftResult: computes the outcome, consumes the inputs and the tool, and hands back the result.
@@ -132,7 +136,7 @@ mod tests {
         let tools = [(id("tconstruct:pickaxe"), &pickaxe)];
         let item_max = |_: &Identifier| 1;
         let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
-        let resolver = Resolver { kit_amount: 2.0, recipes: None, in_tag: &|_, _| false };
+        let resolver = Resolver { kit_amount: 2.0, recipes: None, modifier_recipes: None, in_tag: &|_, _| false };
         let mut lazy = LazyResultContainer::default();
         lazy.result(|| Some(ItemSlot::new(id("test:stale"), 1)));
         // Slots: tool, 4 inputs, result placeholder.
@@ -160,7 +164,7 @@ mod tests {
         let recipes = crate::material_recipes::Recipes::load(&[(id("tconstruct:tools/materials/plank"), json!({"type":"tconstruct:material",
             "ingredient":{"item":"test:plank"},"material":"test:wood","needed":1,"value":1}))], &Always);
         assert_eq!(recipes.len(), 1);
-        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), in_tag: &|_, _| false };
+        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, in_tag: &|_, _| false };
         let plank = ItemSlot::new(id("test:plank"), 5);
         assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { value: 1, needed: 1, count: 5, .. }));
         assert!(matches!(resolve_input(&plank, &resolver), Input::Other { .. }), "without recipes the plank is just an item");

@@ -41,6 +41,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/modifier_module_types.rs',
                 'mixins/tconstruct_native/api/src/formula.rs',
                 'mixins/tconstruct_native/api/src/material_recipes.rs',
+                'mixins/tconstruct_native/api/src/modifier_recipes.rs',
                 'mixins/tconstruct_native/api/src/tool_predicate.rs',
                 'mixins/tconstruct_native/api/src/modifier_modules.rs',
                 'mixins/tconstruct_native/api/src/modifiers.rs',

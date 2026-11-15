@@ -85,6 +85,26 @@ def copy_material_recipes(skipped_materials):
     return count
 
 
+MODIFIER_RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/modifiers'
+MODIFIER_RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/modifiers'
+
+
+def copy_modifier_recipes():
+    """The tconstruct:modifier station recipes, byte for byte. Other recipe types in that folder
+    (salvage, incremental, swappable, ...) are separate recipe kinds and are not imported yet."""
+    if MODIFIER_RECIPE_TARGET.exists():
+        shutil.rmtree(MODIFIER_RECIPE_TARGET)
+    count = 0
+    for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:modifier':
+            continue
+        destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -145,7 +165,7 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     tags = copy_tags()
-    recipes = copy_material_recipes(skipped_materials)
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes()
     print(f'copied {copied} files, {tags} tags and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 

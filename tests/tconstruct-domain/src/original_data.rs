@@ -196,3 +196,14 @@ fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
     let flint = recipes.find(&Identifier::parse("minecraft:flint").unwrap(), &|_, _| false).expect("flint");
     assert_eq!(flint.material.to_string(), "tconstruct:flint");
 }
+
+#[test]
+fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
+    let files = recursive_files("tools/modifiers", "tools/modifiers");
+    assert_eq!(files.len(), 116);
+    let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
+    for problem in &recipes.problems {
+        assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
+    }
+    assert!(recipes.len() > 90, "{} loaded, {:#?}", recipes.len(), recipes.problems);
+}

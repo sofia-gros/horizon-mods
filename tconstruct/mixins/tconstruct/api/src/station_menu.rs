@@ -25,15 +25,17 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Op
     let materials = common::register().read().ok()?;
     let modifiers = common::server_modifiers()?.read().ok()?;
     if !materials.server_loaded || !modifiers.definitions_loaded || definitions.data.is_empty() { return None; }
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter()
-        .filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
+    // Every tool definition can take a modifier; building only considers those with parts.
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
     let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
     // Material recipes may be absent (not loaded): inputs then simply never resolve to materials.
     let recipes = common::material_recipes().and_then(|recipes| recipes.read().ok());
     let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
-    let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
+    let modifier_recipes = common::modifier_recipes().and_then(|recipes| recipes.read().ok());
+    let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded),
+        modifier_recipes: modifier_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
     Some(read(&ctx, &resolver))
 }
 

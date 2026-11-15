@@ -18,6 +18,8 @@ pub(crate) enum Ingredient {
     Any(Vec<Ingredient>),
     /// forge:difference: matches base but not subtracted.
     Difference { base: Box<Ingredient>, subtracted: Box<Ingredient> },
+    /// forge:intersection: matches every child.
+    Intersection(Vec<Ingredient>),
 }
 
 impl Ingredient {
@@ -31,6 +33,11 @@ impl Ingredient {
                     (None, Some(tag)) => Ok(Self::Tag(id(tag)?)),
                     _ => Err("an ingredient names exactly one of item or tag".into()),
                 },
+                Some("forge:intersection") => Ok(Self::Intersection(
+                    fields.get("children").and_then(Value::as_array).filter(|children| !children.is_empty()).ok_or("children must be a nonempty array")?
+                        .iter().map(Self::decode).collect::<Result<_, _>>()?)),
+                // MaterialIngredient with no material named: the part item of any material.
+                Some("tconstruct:material") => Ok(Self::Item(id(fields.get("item").ok_or("item missing")?)?)),
                 Some("forge:difference") => Ok(Self::Difference {
                     base: Box::new(Self::decode(fields.get("base").ok_or("base missing")?)?),
                     subtracted: Box::new(Self::decode(fields.get("subtracted").ok_or("subtracted missing")?)?),
@@ -46,6 +53,7 @@ impl Ingredient {
             Self::Tag(tag) => in_tag(item, tag),
             Self::Any(members) => members.iter().any(|member| member.matches(item, in_tag)),
             Self::Difference { base, subtracted } => base.matches(item, in_tag) && !subtracted.matches(item, in_tag),
+            Self::Intersection(children) => children.iter().all(|child| child.matches(item, in_tag)),
         }
     }
 }
@@ -160,6 +168,9 @@ mod tests {
         assert!(list.matches(&id("minecraft:stick"), &in_tag) && list.matches(&id("minecraft:oak_log"), &in_tag));
         let difference = Ingredient::decode(&json!({"type":"forge:difference","base":{"tag":"minecraft:logs"},"subtracted":{"tag":"tconstruct:variant"}})).unwrap();
         assert!(difference.matches(&id("minecraft:birch_log"), &in_tag) && !difference.matches(&id("minecraft:oak_log"), &in_tag));
+        let both = Ingredient::decode(&json!({"type":"forge:intersection","children":[{"tag":"minecraft:logs"},{"tag":"tconstruct:variant"}]})).unwrap();
+        assert!(both.matches(&id("minecraft:oak_log"), &in_tag) && !both.matches(&id("minecraft:birch_log"), &in_tag));
+        assert!(Ingredient::decode(&json!({"type":"tconstruct:material","item":"tconstruct:pick_head"})).unwrap().matches(&id("tconstruct:pick_head"), &in_tag));
         for bad in [json!({"type":"tconstruct:instrument","item":"minecraft:goat_horn"}), json!({"item":"a:b","tag":"c:d"}), json!([]), json!("minecraft:stick"), json!({})] {
             assert!(Ingredient::decode(&bad).is_err(), "{bad}");
         }
