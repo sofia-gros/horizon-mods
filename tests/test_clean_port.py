@@ -57,6 +57,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_slot.rs',
                 'mixins/tconstruct_native/api/src/tool_station.rs',
                 'mixins/tconstruct_native/api/src/station_menu.rs',
+                'mixins/tconstruct_native/api/src/part_builder_menu.rs',
                 'mixins/tconstruct_native/api/src/creative_parts.rs',
                 'mixins/tconstruct_native/api/src/creative.rs',
                 'mixins/tconstruct_native/api/src/material_stats.rs',

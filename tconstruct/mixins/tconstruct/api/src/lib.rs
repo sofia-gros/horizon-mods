@@ -7,6 +7,7 @@ mod modifier_module_types;
 mod formula;
 mod material_recipes;
 mod modifier_recipes;
+mod part_builder_menu;
 mod part_builder_recipes;
 mod tool_predicate;
 mod modifier_modules;
@@ -37,6 +38,7 @@ mod common;
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
     station_menu::register();
+    part_builder_menu::register();
     creative::register();
     pluto_lib::no_hooks()
 }

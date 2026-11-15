@@ -186,16 +186,47 @@ impl Recipes {
     /// The patterns offered for the current inventory, in recipe order, each once (recipes sharing
     /// a pattern are merged), limited to recipes that can still match.
     pub fn patterns(&self, inv: &Inventory, ctx: &Context) -> Vec<Identifier> {
-        let mut patterns: Vec<Identifier> = Vec::new();
-        for recipe in self.recipes.iter().filter(|recipe| recipe.partial_match(inv, ctx)) {
-            if !patterns.contains(&recipe.pattern) { patterns.push(recipe.pattern.clone()); }
+        self.buttons(inv, ctx).into_iter().map(|(pattern, _)| pattern).collect()
+    }
+    /// The pattern buttons: the first recipe (in ID order) of each pattern decides its cost, and
+    /// buttons are sorted by that cost, then by pattern.
+    pub fn buttons(&self, inv: &Inventory, ctx: &Context) -> Vec<(Identifier, i32)> {
+        let mut matching: Vec<&Recipe> = self.recipes.iter().filter(|recipe| recipe.partial_match(inv, ctx)).collect();
+        matching.sort_by(|a, b| a.id.cmp(&b.id));
+        let mut buttons: Vec<(Identifier, i32)> = Vec::new();
+        for recipe in matching {
+            if !buttons.iter().any(|(pattern, _)| *pattern == recipe.pattern) { buttons.push((recipe.pattern.clone(), recipe.cost)); }
         }
-        patterns
+        buttons.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
+        buttons
     }
     /// The recipe for the chosen pattern that fully matches, in recipe order.
     pub fn find(&self, pattern: &Identifier, inv: &Inventory, ctx: &Context) -> Option<&Recipe> {
         self.recipes.iter().find(|recipe| &recipe.pattern == pattern && recipe.partial_match(inv, ctx) && recipe.matches(inv, ctx))
     }
+}
+
+/// Reload listener, shaped like the other recipe listeners: a missing condition context clears and fails.
+pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<std::sync::Arc<std::sync::RwLock<Recipes>>, String> {
+    use pluto_lib::{ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
+    let state = std::sync::Arc::new(std::sync::RwLock::new(Recipes::default()));
+    let output = state.clone();
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "part_builder_recipes").unwrap(), FOLDER, move |files| {
+            let context = context();
+            let mut state = output.write().map_err(|_| "part builder recipes poisoned")?;
+            match context {
+                Ok(context) => {
+                    *state = Recipes::load(files, &context);
+                    for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
+                    Ok(())
+                }
+                Err(error) => { *state = Recipes { problems: vec![error.clone()], ..Recipes::default() }; Err(error) }
+            }
+        })?;
+    let stopped = state.clone();
+    ServerLifecycleEvents::SERVER_STOPPED.register(move |_| *stopped.write().expect("part builder recipes poisoned") = Recipes::default());
+    Ok(state)
 }
 
 #[cfg(test)]

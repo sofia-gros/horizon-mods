@@ -87,16 +87,21 @@ pub(crate) fn craft_once(menu: &mut dyn MenuAccess) -> Option<ItemSlot> {
 
 /// The four click kinds that can take the result. Every one must consume, or the result would be free.
 fn take_result(click: &mut SlotClick<'_>) {
+    take_with(click, RESULT_SLOT, &|menu| craft_once(menu));
+}
+
+/// Result-slot clicks for any table: `craft` consumes the inputs and returns what was crafted.
+pub(crate) fn take_with(click: &mut SlotClick<'_>, result_slot: usize, craft: &dyn Fn(&mut dyn MenuAccess) -> Option<ItemSlot>) {
     let menu = &mut *click.menu;
     match click.action {
         SlotAction::Pickup => {
-            let Some(preview) = menu.stack(RESULT_SLOT) else { return; };
+            let Some(preview) = menu.stack(result_slot) else { return; };
             // The result stacks onto a compatible cursor only when all of it fits.
             if let Some(cursor) = menu.carried() {
                 let room = menu.max_stack_count(&cursor).saturating_sub(cursor.count);
                 if !menu.same_item_and_components(&cursor, &preview) || room < preview.count { return; }
             }
-            let Some(crafted) = craft_once(menu) else { return; };
+            let Some(crafted) = craft(menu) else { return; };
             let merged = match menu.carried() {
                 Some(mut cursor) => { cursor.count += crafted.count; cursor }
                 None => crafted,
@@ -106,21 +111,21 @@ fn take_result(click: &mut SlotClick<'_>) {
         SlotAction::QuickMove => {
             // Craft repeatedly until the inputs run out; whatever the inventory cannot hold goes to the player.
             for _ in 0..64 {
-                let Some(mut crafted) = craft_once(menu) else { break; };
+                let Some(mut crafted) = craft(menu) else { break; };
                 let end = menu.slot_count();
-                menu.move_stack(&mut crafted, RESULT_SLOT + 1, end, true);
+                menu.move_stack(&mut crafted, result_slot + 1, end, true);
                 if crafted.count > 0 { menu.give_stack(crafted); }
             }
         }
         SlotAction::Swap => {
             // A hotbar or offhand key: only into an empty target, like a plain result slot.
             if menu.swap_stack(click.button).is_some() { return; }
-            if let Some(crafted) = craft_once(menu) {
+            if let Some(crafted) = craft(menu) {
                 if !menu.set_swap_stack(click.button, Some(crafted.clone())) { menu.give_stack(crafted); }
             }
         }
         SlotAction::Throw => {
-            if let Some(crafted) = craft_once(menu) { menu.drop_stack(&crafted); }
+            if let Some(crafted) = craft(menu) { menu.drop_stack(&crafted); }
         }
     }
 }

@@ -8,6 +8,8 @@ static MODIFIERS: OnceLock<Arc<RwLock<crate::modifiers::Registry>>> = OnceLock::
 static MATERIAL_RECIPES: OnceLock<Arc<RwLock<crate::material_recipes::Recipes>>> = OnceLock::new();
 static MODIFIER_RECIPES: OnceLock<Arc<RwLock<crate::modifier_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn modifier_recipes() -> Option<&'static Arc<RwLock<crate::modifier_recipes::Recipes>>> { MODIFIER_RECIPES.get() }
+static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Recipes>>> = OnceLock::new();
+pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
 /// TinkerTags.isTagsLoaded for the server: true once a reload callback captured the native
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
@@ -61,6 +63,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers modifier recipe listener registration failed");
         MODIFIER_RECIPES.set(modifier_recipes).expect("Tinkers modifier recipes already initialized");
+        let part_recipe_config = config.clone();
+        let part_recipes = crate::part_builder_recipes::register(move || {
+            let config = part_recipe_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers part builder recipe listener registration failed");
+        PART_BUILDER_RECIPES.set(part_recipes).expect("Tinkers part builder recipes already initialized");
         let materials = materials::register(move || {
             let config = config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
             let items = capture_items();
