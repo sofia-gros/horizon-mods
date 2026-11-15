@@ -340,7 +340,7 @@ mod tests {
         Module::decode(fields["type"].as_str().unwrap(), fields, &hooks).unwrap()
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
-        Facts { item, in_tag, level: &|_, _| 0, has_persistent_key: &|_| false }
+        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false }
     }
     #[test]
     fn leveling_arithmetic_and_slot_rules_follow_the_original() {

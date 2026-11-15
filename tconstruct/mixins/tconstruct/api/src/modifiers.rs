@@ -150,7 +150,7 @@ impl Modifier {
 
 /// Facts for a context with no tool stack.
 fn no_tool() -> crate::tool_predicate::Facts<'static> {
-    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, has_persistent_key: &|_| false }
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false }
 }
 
 #[derive(Clone, Debug)]
@@ -416,7 +416,7 @@ mod tests {
                 "tool":{"type":"tconstruct:has_modifier","check":"all","level":0,"modifier":{"type":"tconstruct:single","modifier":"test:other"}}}]})),
         ], &BooleanConditions);
         assert!(registry.problems.is_empty(), "{:?}", registry.problems);
-        let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false,
+        let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false, tag_level: &|_, _| 0,
             level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 } };
         let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
         let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);

@@ -33,6 +33,8 @@ pub(crate) struct Tool<'a> {
     pub item_tags: Option<&'a pluto_lib::RegistryLookup>,
     /// The persistent mod data compound (tic_persistent) for has_persistent_key.
     pub persistent: &'a NbtCompound,
+    /// Modifier -> the modifier tags it is in (Registry.reverse_tags), for tag matches on modifiers.
+    pub modifier_tags: Option<&'a std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>>,
 }
 
 /// `Ok(None)` mirrors the original early return: not ready, so leave all tool state alone.
@@ -72,7 +74,16 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
         }
     };
     let has_persistent_key = |key: &Identifier| tool.persistent.contains_key(&key.to_string());
-    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, has_persistent_key: &has_persistent_key })
+    // A tag match sums the levels of every checked modifier that is in the tag.
+    let tag_level = |tag: &Identifier, check: Check| -> i32 {
+        let in_modifier_tag = |id: &Identifier| tool.modifier_tags.and_then(|tags| tags.get(id)).is_some_and(|member_of| member_of.contains(tag));
+        let sum = |entries: &mut dyn Iterator<Item = &Entry>| entries.filter(|entry| in_modifier_tag(&entry.id)).fold(0_i32, |sum, entry| sum.wrapping_add(entry.int_effective_level()));
+        match check {
+            Check::All => sum(&mut entries.iter().map(|(entry, _)| entry)),
+            Check::Upgrades => sum(&mut upgrades.entries().iter()),
+        }
+    };
+    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key })
 }
 
 #[cfg(test)]
@@ -86,7 +97,7 @@ mod tests {
         fn decode(&self, _: &serde_json::Value) -> Result<(), String> { Ok(()) }
         fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
     }
-    fn no_tool() -> Tool<'static> { static EMPTY: std::sync::OnceLock<NbtCompound> = std::sync::OnceLock::new(); Tool { item: None, item_tags: None, persistent: EMPTY.get_or_init(NbtCompound::new) } }
+    fn no_tool() -> Tool<'static> { static EMPTY: std::sync::OnceLock<NbtCompound> = std::sync::OnceLock::new(); Tool { item: None, item_tags: None, persistent: EMPTY.get_or_init(NbtCompound::new), modifier_tags: None } }
     fn ready() -> Readiness { Readiness { definition: true, materials: true, modifiers: true, item_tags: true } }
     #[test]
     fn any_missing_gate_leaves_state_untouched() {

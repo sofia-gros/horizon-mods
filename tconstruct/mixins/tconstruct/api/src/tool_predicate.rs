@@ -19,6 +19,8 @@ pub(crate) enum Predicate {
     And(Vec<Predicate>),
     Or(Vec<Predicate>),
     HasModifier { modifier: Identifier, min: i32, max: i32, check: Check },
+    /// The same over every modifier in a modifier tag.
+    HasModifierTag { tag: Identifier, min: i32, max: i32, check: Check },
     HasPersistentKey(Identifier),
 }
 
@@ -29,6 +31,8 @@ pub(crate) struct Facts<'a> {
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
     /// Summed integer effective level of the modifier among the checked modifiers.
     pub level: &'a dyn Fn(&Identifier, Check) -> i32,
+    /// Summed level of the checked modifiers that are in a modifier tag.
+    pub tag_level: &'a dyn Fn(&Identifier, Check) -> i32,
     pub has_persistent_key: &'a dyn Fn(&Identifier) -> bool,
 }
 
@@ -63,7 +67,8 @@ impl Predicate {
             "tconstruct:has_persistent_key" => Self::HasPersistentKey(id(object.get("key").ok_or("key missing")?)?),
             "tconstruct:has_modifier" => {
                 let matcher = object.get("modifier").and_then(Value::as_object).ok_or("modifier must be an object")?;
-                if matcher.get("type").and_then(Value::as_str) != Some("tconstruct:single") {
+                let matcher_type = matcher.get("type").and_then(Value::as_str);
+                if !matches!(matcher_type, Some("tconstruct:single" | "tconstruct:tag")) {
                     return Err("only single-modifier matches are implemented".into());
                 }
                 let (min, max) = match object.get("level") {
@@ -78,7 +83,11 @@ impl Predicate {
                     Some("all") => Check::All, Some("upgrades") => Check::Upgrades,
                     _ => return Err("check must be all or upgrades".into()),
                 };
-                Self::HasModifier { modifier: id(matcher.get("modifier").ok_or("modifier missing")?)?, min, max, check }
+                if matcher_type == Some("tconstruct:tag") {
+                    Self::HasModifierTag { tag: id(matcher.get("tag").ok_or("tag missing")?)?, min, max, check }
+                } else {
+                    Self::HasModifier { modifier: id(matcher.get("modifier").ok_or("modifier missing")?)?, min, max, check }
+                }
             }
             other => return Err(format!("unimplemented tool predicate {other}")),
         })
@@ -93,6 +102,10 @@ impl Predicate {
             Self::And(all) => all.iter().all(|p| p.matches(facts)),
             Self::Or(any) => any.iter().any(|p| p.matches(facts)),
             Self::HasPersistentKey(key) => (facts.has_persistent_key)(key),
+            Self::HasModifierTag { tag, min, max, check } => {
+                let level = (facts.tag_level)(tag, *check);
+                if *min == 0 && *max == 0 { level == 0 } else if (*min, *max) == (1, 32767) { level > 0 } else { (*min..=*max).contains(&level) }
+            }
             Self::HasModifier { modifier, min, max, check } => {
                 // Level 0 means absent; the full valid range means present at any level.
                 let level = (facts.level)(modifier, *check);
@@ -108,7 +121,7 @@ mod tests {
     use serde_json::json;
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool, level: &'a dyn Fn(&Identifier, Check) -> i32,
-        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, has_persistent_key: key } }
+        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key } }
     #[test]
     fn every_shipped_predicate_shape_decodes_and_evaluates_over_tool_facts() {
         let pickaxe = id("tconstruct:pickaxe");
@@ -143,10 +156,15 @@ mod tests {
         let none = facts(None, &in_tag, &level, &key);
         assert!(!Predicate::decode(&json!({"type":"mantle:tag","tag":"x:y"})).unwrap().matches(&none));
         assert!(Predicate::Any.matches(&none));
+        // A tag match asks for the summed level of the modifiers in that tag.
+        let tagged = Facts { tag_level: &|tag, _| if tag.path() == "friends" { 2 } else { 0 }, ..facts(None, &in_tag, &level, &key) };
+        let has_tag = |tag: &str, level: Value| Predicate::decode(&json!({"type":"tconstruct:has_modifier","check":"all","level":level,"modifier":{"type":"tconstruct:tag","tag":tag}})).unwrap();
+        assert!(has_tag("test:friends", json!(null)).matches(&tagged) && !has_tag("test:strangers", json!(null)).matches(&tagged));
+        assert!(has_tag("test:strangers", json!(0)).matches(&tagged) && !has_tag("test:friends", json!(0)).matches(&tagged));
         for bad in [json!({"type":"mantle:block","block":"x:y"}), json!({"type":"mantle:and","predicates":[]}),
                     json!({"type":"mantle:inverted","inverted_type":"mantle:inverted"}), json!({}), json!("tag"),
                     json!({"type":"tconstruct:has_modifier","check":"sometimes","modifier":{"type":"tconstruct:single","modifier":"a:b"}}),
-                    json!({"type":"tconstruct:has_modifier","check":"all","modifier":{"type":"tconstruct:tag","tag":"a:b"}})] {
+                    json!({"type":"tconstruct:has_modifier","check":"all","modifier":{"type":"tconstruct:unknown","tag":"a:b"}})] {
             assert!(Predicate::decode(&bad).is_err(), "{bad}");
         }
     }
