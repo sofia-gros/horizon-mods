@@ -36,6 +36,8 @@ pub(crate) struct Crafted {
     pub consumed: Vec<i32>,
     /// Tools taken from the tool slot (`shrinkToolSlotBy`).
     pub tool_shrink: i32,
+    /// Items handed back to the player (an incremental recipe's leftover).
+    pub leftover: Vec<(Identifier, u32)>,
 }
 
 #[derive(Debug)]
@@ -95,11 +97,12 @@ fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> 
     let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
     let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else { return Ok(Outcome::NoMatch); };
     let env = ctx.environment(&tool.item, definition);
-    Ok(match recipe.apply(tool, &env)? {
+    Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
         Err(message) => Outcome::Failure(message),
         Ok(result) => {
-            let consumed = recipe.consumption(modifiers.raw, modifiers.in_tag).into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
-            Outcome::Crafted(Crafted { result, consumed, tool_shrink: i32::try_from(recipe.max_tool_size).unwrap_or(i32::MAX) })
+            let (used, leftover) = recipe.consumption(tool, &result, modifiers.raw, modifiers.in_tag);
+            let consumed = used.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
+            Outcome::Crafted(Crafted { result, consumed, tool_shrink: i32::try_from(recipe.max_tool_size).unwrap_or(i32::MAX), leftover })
         }
     })
 }
@@ -120,7 +123,7 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
                 slot.custom_data = tool;
                 tool_slot::sync_visuals(&mut slot, &env)?;
                 let consumed = inputs.iter().enumerate().map(|(index, input)| i32::from(index < parts.len() && input.is_some())).collect();
-                Outcome::Crafted(Crafted { result: slot, consumed, tool_shrink: 0 })
+                Outcome::Crafted(Crafted { result: slot, consumed, tool_shrink: 0, leftover: Vec::new() })
             }
         });
     }
@@ -158,7 +161,7 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     tool_slot::repair_slot(&mut result, &env, plan.repaired)?;
     let mut consumed = vec![0; inputs.len()];
     for ((index, _), taken) in present.iter().zip(&plan.consumed) { consumed[*index] = *taken; }
-    Ok(Outcome::Crafted(Crafted { result, consumed, tool_shrink: 1 }))
+    Ok(Outcome::Crafted(Crafted { result, consumed, tool_shrink: 1, leftover: Vec::new() }))
 }
 
 fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outcome, String> {
@@ -188,7 +191,7 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
             tool_slot::sync_visuals(&mut result, &env)?;
             let mut consumed = vec![0; inputs.len()];
             consumed[slot] = 1;
-            Outcome::Crafted(Crafted { result, consumed, tool_shrink: max_stack })
+            Outcome::Crafted(Crafted { result, consumed, tool_shrink: max_stack, leftover: Vec::new() })
         }
     })
 }

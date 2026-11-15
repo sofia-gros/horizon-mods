@@ -1,6 +1,6 @@
 //! The `tconstruct:modifier` station recipe: add a modifier level to a tool for items and slots
-//! (SlimeKnights ModifierRecipe/AbstractModifierRecipe, MIT; see LICENSE). Crystals, incremental,
-//! swappable and the other modifier recipe types are separate recipe types and not loaded here.
+//! (SlimeKnights ModifierRecipe/AbstractModifierRecipe/IncrementalModifierRecipe, MIT; see LICENSE).
+//! Modifier crystals, swappable and the other modifier recipe types are not loaded here.
 use crate::{
     material_recipes::Ingredient,
     modifier_entries::List,
@@ -48,12 +48,47 @@ pub(crate) struct Recipe {
     /// The slot type and count this recipe spends.
     pub slots: Option<(String, i32)>,
     pub check_trait_level: bool,
+    pub kind: Kind,
+}
+
+/// What differs between the single-step recipe and the incremental one.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Kind {
+    /// `tconstruct:modifier`: the listed inputs add one level.
+    Single,
+    /// `tconstruct:incremental_modifier`: one ingredient, each item worth `amount_per_item` toward
+    /// the `needed_per_level` a level takes; partial progress is kept on the tool.
+    Incremental { input: Ingredient, amount_per_item: i32, needed_per_level: i32, leftover: Option<Identifier> },
+}
+
+fn positive(fields: &Map<String, Value>, key: &str, default: Option<i32>) -> Result<i32, String> {
+    match fields.get(key) {
+        None => default.ok_or_else(|| format!("{key} missing")),
+        Some(Value::Number(n)) => { let n = crate::materials::number_int(&n.to_string()); if n >= 1 { Ok(n) } else { Err(format!("{key} must be at least 1")) } }
+        Some(_) => Err(format!("{key} must be a number")),
+    }
 }
 
 impl Recipe {
     fn decode(id: &Identifier, fields: &Map<String, Value>) -> Result<Self, String> {
-        let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
-            .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+        let incremental = fields.get("type").and_then(Value::as_str) == Some("tconstruct:incremental_modifier");
+        let (inputs, kind) = if incremental {
+            let leftover = match fields.get("leftover") {
+                None | Some(Value::Null) => None,
+                Some(Value::String(text)) => Some(Identifier::parse(text).map_err(|e| e.to_string())?),
+                Some(_) => return Err("leftover must be an item ID string".into()),
+            };
+            (Vec::new(), Kind::Incremental {
+                input: Ingredient::decode(fields.get("input").ok_or("input missing")?)?,
+                amount_per_item: positive(fields, "amount_per_item", Some(1))?,
+                needed_per_level: positive(fields, "needed_per_level", None)?,
+                leftover,
+            })
+        } else {
+            let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
+                .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+            (inputs, Kind::Single)
+        };
         let tools = Ingredient::decode(fields.get("tools").ok_or("tools missing")?)?;
         let max_tool_size = match fields.get("max_tool_size") {
             None | Some(Value::Null) => 16,
@@ -75,13 +110,21 @@ impl Recipe {
             Some(_) => return Err("slots must name exactly one slot type".into()),
         };
         let check_trait_level = match fields.get("check_trait_level") { None => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("check_trait_level must be boolean".into()) };
-        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level })
+        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level, kind })
     }
 
     /// matches(): the tool qualifies and the inputs are exactly this recipe's, with no extras.
     /// `inputs` holds each slot's item and count, None for an empty slot.
     pub fn matches(&self, tool: &Identifier, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
-        self.tools.matches(tool, in_tag) && self.assign(inputs, in_tag).is_some()
+        if !self.tools.matches(tool, in_tag) { return false; }
+        match &self.kind {
+            Kind::Single => self.assign(inputs, in_tag).is_some(),
+            // containsOnlyIngredient: at least one match and nothing else in the table.
+            Kind::Incremental { input, .. } => {
+                let stacks: Vec<&(Identifier, u32)> = inputs.iter().flatten().collect();
+                !stacks.is_empty() && stacks.iter().all(|stack| input.matches(&stack.0, in_tag))
+            }
+        }
     }
 
     /// checkMatch: each ingredient takes the first unused matching slot (empty slots count as used),
@@ -97,21 +140,57 @@ impl Recipe {
         used.iter().all(|used| *used).then_some(taken)
     }
 
-    /// updateInputs: how many to take from each slot, in slot order.
-    pub fn consumption(&self, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Vec<u32> {
+    /// updateInputs: how many to take from each slot in slot order, and what to hand back.
+    /// `before` is the tool as placed, `after` the crafted result.
+    pub fn consumption(&self, before: &ItemSlot, after: &ItemSlot, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> (Vec<u32>, Vec<(Identifier, u32)>) {
         let mut consumed = vec![0; inputs.len()];
-        if let Some(taken) = self.assign(inputs, in_tag) {
-            for (slot, ingredient) in taken.into_iter().zip(&self.inputs) { consumed[slot] += ingredient.amount; }
+        let mut leftover = Vec::new();
+        match &self.kind {
+            Kind::Single => if let Some(taken) = self.assign(inputs, in_tag) {
+                for (slot, ingredient) in taken.into_iter().zip(&self.inputs) { consumed[slot] += ingredient.amount; }
+            },
+            Kind::Incremental { input, amount_per_item, needed_per_level, leftover: item } => {
+                let entry = |tool: &ItemSlot| List::from_nbt(tool.custom_data.get(TAG_UPGRADES)).entry(&self.result);
+                let (was, now) = (entry(before), entry(after));
+                let need = was.needed();
+                let amount = if need == 0 || need == *needed_per_level {
+                    now.amount(*needed_per_level).wrapping_sub(was.amount(0))
+                } else {
+                    // The sizes differ: rescale into the input's terms and round up, consuming a bit too much.
+                    let gcd = crate::modifier_entries::gcd(need, *needed_per_level);
+                    let scale = need / gcd;
+                    let used = now.amount(*needed_per_level).wrapping_mul(scale).wrapping_sub(was.amount(0).wrapping_mul(*needed_per_level) / gcd);
+                    (used + scale - 1) / scale
+                };
+                let amount = amount.max(0);
+                let mut items = amount / amount_per_item;
+                let rest = amount % amount_per_item;
+                if rest > 0 {
+                    items += 1;
+                    if let Some(item) = item { leftover.push((item.clone(), (amount_per_item - rest) as u32)); }
+                }
+                let mut remaining = items as u32;
+                for (slot, stack) in inputs.iter().enumerate() {
+                    let Some((id, count)) = stack else { continue };
+                    if !input.matches(id, in_tag) { continue; }
+                    let take = (*count).min(remaining);
+                    consumed[slot] = take;
+                    remaining -= take;
+                }
+            }
         }
-        consumed
+        (consumed, leftover)
     }
 
     /// getValidatedResult: the tool with this modifier added, or the failure's message key
     /// (followed by space-separated arguments).
-    pub fn apply(&self, tool: &ItemSlot, env: &Environment) -> Result<Result<ItemSlot, String>, String> {
+    pub fn apply(&self, tool: &ItemSlot, env: &Environment, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Result<Result<ItemSlot, String>, String> {
         let nbt = &tool.custom_data;
-        let level_of = |tag: &str| List::from_nbt(nbt.get(tag)).level(&self.result);
-        let new_level = level_of(if self.check_trait_level { TAG_MODIFIERS } else { TAG_UPGRADES }).wrapping_add(1);
+        let list = List::from_nbt(nbt.get(if self.check_trait_level { TAG_MODIFIERS } else { TAG_UPGRADES }));
+        let entry = list.entry(&self.result);
+        // An incremental recipe continuing a partial level only checks that level; anything else adds a level.
+        let continuing = matches!(self.kind, Kind::Incremental { .. }) && entry.amount(0) > 0;
+        let new_level = if continuing { entry.level } else { list.level(&self.result).wrapping_add(1) };
         let traits = if self.check_trait_level { ".traits" } else { "" };
         if new_level < self.min_level {
             return Ok(Err(format!("recipe.tconstruct.modifier.min_level{traits} {} {}", self.result, self.min_level - 1)));
@@ -119,18 +198,19 @@ impl Recipe {
         if new_level > self.max_level {
             return Ok(Err(format!("recipe.tconstruct.modifier.max_level{traits} {} {}", self.result, self.max_level)));
         }
+        let spends_slots = !continuing;
         let free = |name: &str| {
             let slots = |tag: &str| match nbt.get(tag) { Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get(name)), _ => 0 };
             slots(TAG_PERSISTENT).wrapping_add(slots(crate::tool_stack::TAG_VOLATILE))
         };
-        if let Some((name, count)) = &self.slots {
+        if let Some((name, count)) = self.slots.as_ref().filter(|_| spends_slots) {
             if free(name) < *count {
                 return Ok(Err(if *count == 1 { format!("recipe.tconstruct.modifier.not_enough_slot slot_type.tconstruct.{name}") }
                     else { format!("recipe.tconstruct.modifier.not_enough_slots {count} slot_type.tconstruct.{name}") }));
             }
         }
         let mut copy = tool.clone();
-        if let Some((name, count)) = &self.slots {
+        if let Some((name, count)) = self.slots.as_ref().filter(|_| spends_slots) {
             // ToolDataNBT.addSlots(type, -count): a total of zero removes the key.
             let mut persistent = match copy.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
             let total = crate::modifier_entries::nbt_int(persistent.get(name)).wrapping_sub(*count);
@@ -138,7 +218,16 @@ impl Recipe {
             copy.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
         }
         // ToolStack.addModifier(id, 1): save the new upgrade list, then rebuild.
-        let upgrades = List::from_nbt(copy.custom_data.get(TAG_UPGRADES)).with_modifier(self.result.clone(), 1)?;
+        let current = List::from_nbt(copy.custom_data.get(TAG_UPGRADES));
+        let upgrades = match &self.kind {
+            Kind::Single => current.with_modifier(self.result.clone(), 1)?,
+            // getAvailableAmount: every matching stack counts in full; addModifierAmount stops at the level.
+            Kind::Incremental { input, amount_per_item, needed_per_level, .. } => {
+                let available = inputs.iter().flatten().filter(|stack| input.matches(&stack.0, in_tag))
+                    .fold(0i32, |sum, stack| sum.wrapping_add((stack.1 as i32).wrapping_mul(*amount_per_item)));
+                current.add_amount(self.result.clone(), available, *needed_per_level)
+            }
+        };
         copy.custom_data.insert(TAG_UPGRADES.into(), upgrades.to_nbt());
         // An environment that is not ready cannot rebuild; the recipe then must not produce a stale tool.
         if !rebuild_stats(&mut copy.custom_data, env)? { return Err("the tool could not be rebuilt".into()); }
@@ -160,7 +249,7 @@ impl Recipes {
         for (id, value) in sorted {
             let outcome = (|| -> Result<Option<Recipe>, String> {
                 let fields = value.as_object().ok_or("recipe must be an object")?;
-                if fields.get("type").and_then(Value::as_str) != Some("tconstruct:modifier") { return Ok(None); }
+                if !matches!(fields.get("type").and_then(Value::as_str), Some("tconstruct:modifier" | "tconstruct:incremental_modifier")) { return Ok(None); }
                 if let Some(list) = fields.get("conditions") {
                     let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
                     for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
@@ -234,7 +323,44 @@ mod tests {
         assert!(!r.matches(&pickaxe, &[stack("minecraft:diamond", 1)], &in_tag), "a missing ingredient");
         assert!(!r.matches(&id("minecraft:stick"), &[stack("minecraft:stick", 2), stack("minecraft:diamond", 1)], &in_tag), "the tool must qualify");
         // Consumption takes each ingredient's amount from the slot it matched.
-        assert_eq!(r.consumption(&[stack("minecraft:stick", 5), stack("minecraft:diamond", 3)], &in_tag), vec![2, 1]);
+        let tool = ItemSlot::new(pickaxe.clone(), 1);
+        assert_eq!(r.consumption(&tool, &tool, &[stack("minecraft:stick", 5), stack("minecraft:diamond", 3)], &in_tag), (vec![2, 1], vec![]));
+    }
+    fn incremental(extra: Value) -> Recipe {
+        let mut base = json!({"type":"tconstruct:incremental_modifier","input":{"item":"test:shard"},"amount_per_item":2,"needed_per_level":5,
+            "leftover":"test:dust","tools":{"tag":"test:tools"},"result":"test:grow","slots":{"upgrades":1},"level":{"max":3}});
+        base.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        Recipe::decode(&id("test:inc"), base.as_object().unwrap()).unwrap()
+    }
+    fn with_upgrades(amount: i32, needed: i32) -> ItemSlot {
+        let mut tool = ItemSlot::new(id("test:pick"), 1);
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().add_amount(id("test:grow"), amount, needed).to_nbt());
+        tool
+    }
+    #[test]
+    fn incremental_recipes_match_only_their_ingredient_and_count_partial_progress() {
+        let r = incremental(json!({}));
+        let in_tag = |_: &Identifier, tag: &Identifier| tag.path() == "tools";
+        let pick = id("test:pick");
+        assert!(r.matches(&pick, &[stack("test:shard", 1), None, stack("test:shard", 3)], &in_tag), "any number of the ingredient in any slots");
+        assert!(!r.matches(&pick, &[stack("test:shard", 1), stack("minecraft:dirt", 1)], &in_tag), "a stray item blocks it");
+        assert!(!r.matches(&pick, &[None, None], &in_tag), "needs at least one item");
+        // From nothing, two shards (worth 4 of 5) become a partial level; 3 items round up and hand back 1 dust.
+        let none = ItemSlot::new(pick.clone(), 1);
+        let after = with_upgrades(4, 5);
+        assert_eq!(r.consumption(&none, &after, &[stack("test:shard", 2)], &in_tag), (vec![2], vec![]));
+        let after = with_upgrades(5, 5);
+        assert_eq!(r.consumption(&none, &after, &[stack("test:shard", 3), stack("test:shard", 1)], &in_tag), (vec![3, 0], vec![(id("test:dust"), 1)]),
+            "5 needed at 2 per item takes 3 items and gives back the 1 unused");
+    }
+    #[test]
+    fn incremental_decode_validates_fields() {
+        let bad = |extra: Value| {
+            let mut base = json!({"type":"tconstruct:incremental_modifier","input":{"item":"a:b"},"needed_per_level":4,"tools":{"tag":"a:t"},"result":"a:r"});
+            base.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+            Recipe::decode(&id("test:bad"), base.as_object().unwrap()).is_err()
+        };
+        assert!(!bad(json!({})) && bad(json!({"needed_per_level":0})) && bad(json!({"amount_per_item":0})) && bad(json!({"leftover":3})) && bad(json!({"input":null})));
     }
     #[test]
     fn decode_accepts_shipped_shapes_and_rejects_malformed_recipes() {

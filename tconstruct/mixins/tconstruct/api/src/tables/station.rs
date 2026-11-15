@@ -60,7 +60,7 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
 pub(crate) fn take(
     menu: &mut dyn MenuAccess, lazy: &mut LazyResultContainer, ctx: &Context, input_count: usize, resolver: &Resolver,
 ) -> Result<Option<ItemSlot>, String> {
-    let Outcome::Crafted(Crafted { result, consumed, tool_shrink }) = preview(menu, ctx, input_count, resolver)? else { return Ok(None); };
+    let Outcome::Crafted(Crafted { result, consumed, tool_shrink, leftover }) = preview(menu, ctx, input_count, resolver)? else { return Ok(None); };
     for (index, amount) in consumed.iter().enumerate() {
         let amount = u32::try_from(*amount).unwrap_or(0);
         if amount == 0 { continue; }
@@ -70,6 +70,7 @@ pub(crate) fn take(
             menu.give_stack(extra);
         }
     }
+    for (item, count) in leftover { menu.give_stack(ItemSlot::new(item, count)); }
     shrink_tool_slot(menu, lazy, tool_shrink)?;
     Ok(Some(result))
 }

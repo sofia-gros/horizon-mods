@@ -27,6 +27,10 @@ impl Entry {
         if self.progress.is_some() { self.level.wrapping_sub(1) } else { self.level }
     }
     pub fn with_level(&self, level: i32) -> Self { Self { level, ..self.clone() } }
+    /// ModifierEntry.getAmount(fallback): the partial amount, or the fallback for a whole level.
+    pub fn amount(&self, fallback: i32) -> i32 { self.progress.map_or(fallback, |(amount, _)| amount) }
+    /// ModifierEntry.getNeeded: the amount a level needs, 0 when not incremental.
+    pub fn needed(&self) -> i32 { self.progress.map_or(0, |(_, needed)| needed) }
     pub fn add_amount(&self, mut amount: i32, mut needed: i32) -> Self {
         if needed <= 0 || amount <= 0 { return self.clone(); }
         let Some((previous, previous_need)) = self.progress else {
@@ -86,6 +90,8 @@ impl List {
         }).collect())
     }
     pub fn to_nbt(&self) -> Nbt { Nbt::List(self.0.iter().map(|entry| Nbt::Compound(entry.to_nbt())).collect()) }
+    /// ModifierNBT.getEntry: the entry for this modifier, or the empty entry.
+    pub fn entry(&self, id: &Identifier) -> Entry { self.0.iter().find(|entry| &entry.id == id).cloned().unwrap_or_else(Entry::empty) }
     pub fn level(&self, id: &Identifier) -> i32 {
         self.0.iter().find(|entry| &entry.id == id).map_or(0, |entry| entry.level)
     }
@@ -118,7 +124,7 @@ impl List {
     }
 }
 
-fn gcd(mut a: i32, mut b: i32) -> i32 {
+pub(crate) fn gcd(mut a: i32, mut b: i32) -> i32 {
     while b != 0 { (a, b) = (b, a % b); }
     a
 }
