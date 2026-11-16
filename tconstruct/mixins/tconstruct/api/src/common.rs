@@ -22,12 +22,18 @@ pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_r
 /// Unlike Forge's never-reset flag it is cleared when the server stops, because the
 /// snapshot it vouches for no longer exists.
 static ITEMS: RwLock<Option<pluto_lib::RegistryLookup>> = RwLock::new(None);
+/// The captured entity type registry and tags, for melee target conditions (mob types and entity tags).
+static ENTITY_TYPES: RwLock<Option<pluto_lib::RegistryLookup>> = RwLock::new(None);
+pub(crate) fn entity_type_snapshot() -> Option<pluto_lib::RegistryLookup> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
 pub(crate) fn item_snapshot() -> Option<pluto_lib::RegistryLookup> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap());
     if items.is_some() { *ITEMS.write().expect("item snapshot lock poisoned") = items.clone(); }
+    if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
+        *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(entities);
+    }
     items
 }
 pub(crate) fn server_modifiers() -> Option<&'static Arc<RwLock<crate::modifiers::Registry>>> { MODIFIERS.get() }
@@ -103,6 +109,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         let stopped = materials.clone();
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
+            *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
             let mut state = stopped.write().expect("material registry lock poisoned");
             let generation = state.generation.wrapping_add(1);
             *state = Definitions { generation, ..Definitions::default() };

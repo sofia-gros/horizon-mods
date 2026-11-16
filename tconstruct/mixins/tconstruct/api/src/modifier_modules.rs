@@ -351,9 +351,9 @@ impl Module {
         module.apply(entry, condition.matches(entry, facts), tool, context, speed)
     }
     /// MeleeDamageModifierHook for a conditional melee damage module: the damage after it.
-    pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32) -> f32 {
+    pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
-        module.apply(entry, condition.matches(entry, facts), tool, base, damage)
+        module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
     }
     /// Whether this is a percent melee damage module (None for other modules).
     pub fn melee_percent(&self) -> Option<bool> {
@@ -633,7 +633,9 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
-        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":{"type":"mantle:mob_type","mobs":"minecraft:undead"}})).is_none(), "a target condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_none(), "an attacker condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_none(), "an unknown target condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":{"type":"mantle:mob_type","mobs":"minecraft:undead"},"each_level":2.0})).is_some(), "a mob type target is bound");
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","each_level":2.0})).is_some(), "a condition-free melee module is bound");
         for (kind, fields) in [("tconstruct:stat_boost", json!({"stat":"tconstruct:durability","operation":"explode"})),
             ("tconstruct:modifier_slot", json!({"name":"Bad Name"})), ("tconstruct:volatile_int", json!({"flag":"a:b","flat":99999})),

@@ -111,7 +111,7 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
 
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
 /// priority order (highest first, ties in modifier order), starting from `damage`.
-pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32) -> f32 {
+pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
         for (index, (entry, modifier)) in saved.iter().enumerate() {
@@ -119,7 +119,7 @@ pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, dama
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
         let view = crate::mining_speed::ToolView { nbt };
-        modules.into_iter().fold(damage, |damage, (_, _, entry, module)| module.melee_damage(entry, facts, &view, base, damage))
+        modules.into_iter().fold(damage, |damage, (_, _, entry, module)| module.melee_damage(entry, facts, &view, base, damage, target_in_tag))
     })
 }
 

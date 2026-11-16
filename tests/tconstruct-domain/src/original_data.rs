@@ -545,9 +545,30 @@ fn shipped_jagged_and_stonebound_change_melee_damage_with_the_tools_lost_durabil
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 3).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(damage));
-        melee_damage(&tool.custom_data, &env, 2.0, 10.0)
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|_| false)
     };
     assert_eq!(hit("tconstruct:jagged", 0), 10.0, "a fresh jagged tool changes nothing");
     assert!(hit("tconstruct:jagged", 40) > 10.0, "a worn jagged tool hits harder: {}", hit("tconstruct:jagged", 40));
     assert!(hit("tconstruct:stonebound", 40) < 10.0, "a worn stonebound tool hits softer: {}", hit("tconstruct:stonebound", 40));
+}
+
+#[test]
+fn shipped_smite_and_bane_of_sssss_add_damage_only_to_the_right_targets() {
+    use crate::{modifier_entries::List, tool_stack::{melee_damage, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let hit = |modifier: &str, tags: &'static [&'static str]| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 2).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|tag: &Identifier| tags.contains(&tag.to_string().as_str()))
+    };
+    assert!(hit("tconstruct:smite", &["minecraft:undead"]) > 10.0, "smite boosts undead targets");
+    assert_eq!(hit("tconstruct:smite", &["minecraft:arthropod"]), 10.0, "smite leaves other targets alone");
+    assert!(hit("tconstruct:bane_of_sssss", &["minecraft:arthropod"]) > 10.0, "bane of sssss boosts arthropods");
+    assert_eq!(hit("tconstruct:bane_of_sssss", &[]), 10.0);
 }
