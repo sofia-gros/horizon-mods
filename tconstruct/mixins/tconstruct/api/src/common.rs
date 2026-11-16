@@ -88,6 +88,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers part recycling listener registration failed");
         RECYCLES.set(recycles).expect("Tinkers part recycling already initialized");
+        crate::protection_hook::register_tags().expect("Tinkers damage tag listener registration failed");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {
             let config = salvage_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

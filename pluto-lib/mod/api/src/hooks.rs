@@ -1792,9 +1792,22 @@ impl Hooks for PlutoHooks {
         scoped(host, || networking_api_v1::player_joined(uuid, name));
     }
 
+    fn player_tick(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::PlayerTickEvent) {
+        // Damage hooks get no host, so the armor a player wears is read here each tick for them to find.
+        let Some(player) = host.acting_player() else { return };
+        let mut armor = Vec::new();
+        for (name, slot) in [("feet", horizon_client::mod_api::EquipmentSlot::Feet), ("legs", horizon_client::mod_api::EquipmentSlot::Legs), ("chest", horizon_client::mod_api::EquipmentSlot::Chest), ("head", horizon_client::mod_api::EquipmentSlot::Head)] {
+            let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
+            let data = stack_data_of(host, &stack);
+            if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
+        }
+        entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+    }
+
     fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
+        entity_events_v1::forget_armor(uuid);
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 

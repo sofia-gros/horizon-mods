@@ -51,6 +51,9 @@ pub struct DamageModification {
     pub amount: Cell<f32>,
     /// When a player's attack caused it: the stack the player attacked with (damage, max damage, custom data); None otherwise.
     pub attacker_stack: Option<StackData>,
+    /// The armor the damaged entity wore as of its last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the
+    /// pieces carrying custom data (a mod's own armor keeps its state there). Empty for an entity that is not a player.
+    pub armor: Vec<(String, StackData)>,
 }
 
 static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
@@ -92,6 +95,20 @@ pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
     PENDING_ATTACK.with(|pending| *pending.borrow_mut() = stack.map(|s| (entity, s)));
 }
 
+/// What each player wears, by entity id, with the player's uuid so a logout can forget it.
+static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records what the player (`entity`) wears; an empty list forgets it.
+pub(crate) fn remember_armor(uuid: u128, entity: i32, armor: Vec<(String, StackData)>) {
+    let Ok(mut worn) = ARMOR.lock() else { return };
+    if armor.is_empty() { worn.remove(&entity); } else { worn.insert(entity, (uuid, armor)); }
+}
+
+/// Forgets a player who left.
+pub(crate) fn forget_armor(uuid: u128) {
+    if let Ok(mut worn) = ARMOR.lock() { worn.retain(|_, (known, _)| *known != uuid); }
+}
+
 /// The amount after the callbacks; the stack of the attack that is being applied to `damage.entity`, if there is one.
 pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     let attacker_stack = PENDING_ATTACK.with(|pending| {
@@ -104,7 +121,8 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
             }
         }
     });
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack };
+    let armor = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(_, pieces)| pieces.clone())).unwrap_or_default();
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor };
     MODIFY_DAMAGE.invoke(&modification);
     modification.amount.get()
 }
@@ -116,6 +134,20 @@ pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modify_damage_carries_the_armor_a_player_wore_and_forgets_it_on_logout() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 4242 { log.lock().unwrap().push(hit.armor.iter().map(|(slot, stack)| format!("{slot}:{}", stack.item)).collect::<Vec<_>>()); });
+        let hurt = LivingDamage { entity: 4242, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
+        remember_armor(99, 4242, vec![("head".into(), helmet)]);
+        modify_damage(&hurt);
+        forget_armor(99);
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
 
     #[test]
     fn after_death_reaches_every_callback_with_the_killer() {

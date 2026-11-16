@@ -385,6 +385,28 @@ def main():
         else:
             soft_failures.append(f'tool actions: stripping gave {json.dumps(stripped)}, tilling gave {json.dumps(tilled)}')
 
+        # Protection: the same hit hurts less through a helmet with eight levels of protection (ten points, 40%).
+        def hurt_through(modifiers):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"]' + modifiers + '}]')
+            ctl('wait', '10')
+            before = ctl('state')['health']
+            ctl('command', 'damage @s 8 minecraft:mob_attack')
+            ctl('wait', '10')
+            return before - ctl('state')['health']
+
+        bare_loss = hurt_through('')
+        guarded_loss = hurt_through(',tic_modifiers:[{level:8,name:"tconstruct:protection"}]')
+        print('PROTECTION LOSS', json.dumps({'plain': bare_loss, 'protected': guarded_loss}), flush=True)
+        ctl('command', 'gamemode creative')
+        if guarded_loss < bare_loss - 0.5:
+            result['scenarios'].append(f'a protection helmet takes the sting out of a hit: {guarded_loss} lost against {bare_loss}')
+        else:
+            soft_failures.append(f'protection: {guarded_loss} lost with protection against {bare_loss} without')
+
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')

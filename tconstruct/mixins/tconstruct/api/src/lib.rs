@@ -4,6 +4,7 @@ mod materials;
 mod damage_vanilla;
 mod damage_tags;
 mod protection;
+mod protection_hook;
 mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;
@@ -58,5 +59,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     break_speed_hook::register();
     melee_hook::register();
     tool_action_hook::register();
+    protection_hook::register();
     pluto_lib::no_hooks()
 }
