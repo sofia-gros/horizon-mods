@@ -1788,11 +1788,13 @@ impl Hooks for PlutoHooks {
 
     fn player_logged_in(&self, host: &mut dyn Host, event: &mut PlayerLoggedInEvent<'_>) {
         let (uuid, name) = (event.player, event.name.to_string());
+        remember_player(uuid, &name, true);
         scoped(host, || networking_api_v1::player_joined(uuid, name));
     }
 
     fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
         let (uuid, name) = (event.player, event.name.to_string());
+        remember_player(uuid, &name, false);
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 
@@ -1810,16 +1812,23 @@ impl Hooks for PlutoHooks {
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
-        let Some(player) = host.acting_player() else { return Flow::Continue };
+        // The host names the acting player only for a guest's action; the world's own player is the only one logged in then.
+        let (uuid, name, dimension, creative) = match host.acting_player() {
+            Some(player) => (player.uuid, player.name.clone(), player.dimension.clone(), player.game_mode == 1),
+            None => match sole_player() {
+                Some((uuid, name)) => (uuid, name, host.dimension().to_string(), false),
+                None => return Flow::Continue,
+            },
+        };
         let context = events_interaction_v0::UseItemOnBlockContext {
             held: Some(stack_data_of(host, &event.stack)),
             item: event.stack.item.to_string(),
             count: event.stack.count,
             pos: event.pos,
             face: event.face,
-            dimension: player.dimension.clone(),
-            creative: player.game_mode == 1,
-            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension,
+            creative,
+            player: player_api::ServerPlayer { uuid, name },
         };
         cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
     }
@@ -2007,4 +2016,20 @@ impl Hooks for PlutoHooks {
         };
         cancel_if(!entity_events_v1::allow_damage(&damage))
     }
+}
+
+
+/// The players logged in, kept so an action the host does not name a player for can still be given one.
+static LOGGED_IN: std::sync::Mutex<Vec<(u128, String)>> = std::sync::Mutex::new(Vec::new());
+
+fn remember_player(uuid: u128, name: &str, joined: bool) {
+    let Ok(mut players) = LOGGED_IN.lock() else { return };
+    players.retain(|(known, _)| *known != uuid);
+    if joined { players.push((uuid, name.to_string())); }
+}
+
+/// The only player logged in (a single-player world's), None when there are none or several.
+fn sole_player() -> Option<(u128, String)> {
+    let players = LOGGED_IN.lock().ok()?;
+    if players.len() == 1 { players.first().cloned() } else { None }
 }
