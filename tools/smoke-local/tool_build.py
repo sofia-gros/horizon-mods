@@ -344,6 +344,24 @@ def main():
             result['scenarios'].append(f'a worn plate helmet gives the player the armor {worn["armor"]} and toughness {worn["armor_toughness"]} it publishes')
         else:
             soft_failures.append(f'worn armor attributes: published {published}, read {worn}')
+        # Armor wear: two hits wear the worn helmet, and the tool's own damage follows the component damage.
+        ctl('command', 'gamemode survival')
+        for _ in range(2):
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', 'damage @s 8 minecraft:mob_attack')
+            ctl('wait', '10')
+        inventory_reply = json.dumps(ctl('command', 'data get entity @s Inventory'))
+        ctl('command', 'gamemode creative')
+        after = inventory_reply.split('plate_helmet', 1)[-1][:2500] if 'plate_helmet' in inventory_reply else ''
+        component_damage = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', after)
+        tool_damage = re.search(r'custom_data.{0,1500}?[^_a-z]Damage[^0-9]{0,8}(\d+)', after)
+        print('ARMOR WEAR', json.dumps({'component': component_damage.group(1) if component_damage else None, 'tool': tool_damage.group(1) if tool_damage else None}), flush=True)
+        if component_damage and tool_damage and int(component_damage.group(1)) > 0 and component_damage.group(1) == tool_damage.group(1):
+            result['scenarios'].append(f'two hits wear the worn helmet by {component_damage.group(1)} and its own damage follows')
+        else:
+            soft_failures.append(f'armor wear: component {component_damage.group(1) if component_damage else None}, tool {tool_damage.group(1) if tool_damage else None}')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.

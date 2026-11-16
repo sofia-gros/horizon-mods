@@ -10,8 +10,16 @@ fn pluto_item_wear(game:&mut crate::game::Game<'_>,stack:&horizon_client::items:
     if loss>0 {
         let mut points=loss as i32;
         let mut cancel=false;
+        let _=crate::entry::pluto_item_wear_access::take();
         game.native_item_damaged(0,"",&stack.item,&mut points,&mut cancel);
         loss=if cancel {0} else {points.max(0) as u32};
+        // A callback that rebuilt a worn armor piece (its damage and published attributes already follow the wear) replaces it.
+        if let Some(rebuilt)=crate::entry::pluto_item_wear_access::take() {
+            if let Some(index)=game.armor.iter().position(|worn| worn.as_ref().is_some_and(|piece| piece.item==stack.item && piece.damage==stack.damage && piece.count==stack.count)) {
+                game.armor[index]=Some(rebuilt);
+                loss=0;
+            }
+        }
     }
     if loss>0 {game.trigger_item_durability(stack,stack.damage+loss);}
     std::ops::ControlFlow::Break(loss)
