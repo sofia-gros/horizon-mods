@@ -178,7 +178,51 @@ def main():
         shot('07-worktable-open.png')
         result['scenarios'].append('the modifier worktable opens with a 4-slot menu')
 
+        # Repair: a damaged pickaxe in the station is repaired with planks (the wood material).
         ctl('close')
+        ctl('command', 'clear @s')
+        ctl('command', 'give @s tconstruct:pickaxe[damage=200,custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
+        ctl('command', 'give @s minecraft:oak_planks 8')
+        ctl('wait', '5')
+        ctl('interact', *xyz)
+        ctl('wait', '10')
+        slots = ui_slots()
+        first = min(i for i in slots if i >= 300)
+        tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
+        inv = ctl('screen')['slots']
+        for item, target in (('tconstruct:pickaxe', tool), ('minecraft:oak_planks', inputs[0])):
+            source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == item)
+            ctl('click-slot', source)
+            bounds = ui_slots()[target]
+            ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+            ctl('wait', '5')
+            inv = ctl('screen')['slots']
+        repaired = container_slots()[result_slot]
+        shot('08-repair-preview.png')
+        assert repaired.get('item') == 'tconstruct:pickaxe', repaired
+        assert 'damage' not in repaired.get('components', '') or 'damage=200' not in repaired.get('components', '').replace(': ', '='), repaired
+        result['scenarios'].append('planks preview a repair of a damaged pickaxe')
+        ctl('close')
+
+        # Save and reload: the pickaxe survives quitting and reopening the same world.
+        ctl('command', 'clear @s')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
+        ctl('wait', '5')
+        ctl('quit')
+        proc.wait(timeout=90)
+        endpoint.unlink(missing_ok=True)
+        proc = subprocess.Popen(command, cwd=run, env=env, stdout=log, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + 180
+        while not endpoint.exists():
+            if proc.poll() is not None or time.monotonic() > deadline:
+                raise RuntimeError(f'game did not restart: {run / "game.log"}')
+            time.sleep(.2)
+        ctl('wait-ready', '180', timeout=185)
+        found = ctl('command', 'clear @s tconstruct:pickaxe 0')
+        assert 'Found 1' in json.dumps(found) or 'matching' in json.dumps(found), found
+        assert ctl('state')['gamemode'] == 'creative'
+        result['scenarios'].append('the world reloads with the pickaxe still in the inventory: ' + json.dumps(found)[:160])
+
         ctl('quit')
         proc.wait(timeout=90)
         problems = [line for line in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines() if 'Tinkers:' in line]
