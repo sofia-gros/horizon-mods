@@ -449,6 +449,15 @@ def main():
         burning_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]', burning=True)
         cool_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]')
         print('SCORCHING', json.dumps({'burning target': burning_damage, 'cool target': cool_damage}), flush=True)
+        # Decay puts wither on the mob it hits (the effect the weapon-hit event grants and the game applies after the hit).
+        hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:decay"}]')
+        ctl('wait', '10')
+        effects_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] active_effects'))
+        print('DECAY EFFECTS', effects_reply[:300], flush=True)
+        if 'minecraft:wither' in effects_reply:
+            result['scenarios'].append('decay puts wither on the mob it hits')
+        else:
+            soft_failures.append(f'decay: no wither on the hit mob: {effects_reply[:200]}')
         ctl('command', 'kill @e[type=minecraft:husk]')
         ctl('command', 'gamemode creative')
         if burning_damage > cool_damage + 1.0:
