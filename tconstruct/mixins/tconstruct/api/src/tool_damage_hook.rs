@@ -1,7 +1,9 @@
 //! Connects the damage-reducing modifiers to PlutoLib's item-wear event: a Tinkers tool a player wears down loses less
 //! (or none) when its modifiers cancel points, as ToolDamageUtil.damage's modifier loop does in the original.
-//! The host applies the remaining wear itself; the tool's own damage NBT is not written here.
-use crate::{break_speed_hook::with_held_tool, tool_stack};
+//! The tool's wear runs through ToolDamageUtil.damage over the stack (overslime, reductions, the tool's own damage and broken
+//! state, the published durability, mining and attribute components) and the finished stack replaces the worn one; a piece the
+//! event cannot rewrite (worn armor) keeps the host's own wear, less what the modifiers cancelled.
+use crate::{break_speed_hook::with_held_tool, tool_slot, tool_stack};
 use pluto_lib::ServerLivingEntityEvents;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -17,26 +19,38 @@ fn random() -> f32 {
     (state >> 40) as f32 / (1u64 << 24) as f32
 }
 
-/// The wear left after the tool's modifiers and the new tool data when they changed it (the overslime shield soaks first, then each
-/// modifier cancels part of what is left, as ToolDamageUtil.damage does); the amount unchanged when the stack is not a loaded tool.
-pub(crate) fn reduced(stack: &pluto_lib::StackData, amount: i32) -> (i32, Option<pluto_lib::NbtCompound>) {
-    with_held_tool(stack, |env, tool| {
+/// The wear after the tool's modifiers (the overslime shield soaks first, then each modifier cancels part of what is left, as
+/// ToolDamageUtil.damage does) and the worn stack with that wear applied; the amount unchanged and no stack when the stack is not
+/// a loaded Tinkers tool.
+pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSlot>, amount: i32) -> (i32, Option<pluto_lib::ItemSlot>) {
+    let Ok(result) = with_held_tool(stack, |env, tool| {
         let mut data = tool.custom_data.clone();
         let soaked = crate::overslime::absorb(&mut data, env, None, amount);
         let left = tool_stack::reduce_damage(&data, env, None, soaked, &mut random);
-        (left, (data != tool.custom_data).then_some(data))
-    }).unwrap_or((amount, None))
+        let replacement = slot.and_then(|slot| {
+            let mut next = slot.clone();
+            // The same modifier loop and the tool's own damage and broken state, then the visible stack follows.
+            tool_slot::damage_slot(&mut next, env, amount, true, true, None, &mut random).ok().map(|_| next)
+        });
+        (left, replacement)
+    }) else { return (amount, None); };
+    result
 }
 
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
-        let Some(stack) = wear.stack.as_ref() else { return; };
+        static LOGGED: AtomicU64 = AtomicU64::new(0);
+        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 6;
+        let Some(stack) = wear.stack.as_ref() else {
+            if log { eprintln!("Tinkers: item wear of {} by {}: the player's stack was not found", wear.item, wear.amount.get()); }
+            return;
+        };
         let amount = wear.amount.get();
         if amount <= 0 { return; }
-        let (left, data) = reduced(stack, amount);
+        let (left, replacement) = worn(stack, wear.slot.as_ref(), amount);
         if left != amount { wear.amount.set(left); }
-        if data.is_some() { *wear.custom_data.borrow_mut() = data; }
+        if replacement.is_some() { *wear.replacement.borrow_mut() = replacement; }
     });
 }
 

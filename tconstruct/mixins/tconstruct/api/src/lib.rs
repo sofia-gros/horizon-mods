@@ -37,6 +37,7 @@ mod tool_parts;
 mod tool_mining;
 mod mining_speed;
 mod melee_damage;
+mod knockback;
 mod melee_hook;
 mod part_recycling;
 mod tool_actions;

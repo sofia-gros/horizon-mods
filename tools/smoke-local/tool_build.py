@@ -300,6 +300,52 @@ def main():
         result['scenarios'].append('a modifier crystal alone on the station applies its modifier')
         ctl('close')
 
+        # Armor: plating and maille preview a plate helmet that publishes the armor attributes the host reads from the worn stack.
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
+        ctl('command', 'clear @s')
+        ctl('wait', '5')
+        ctl('interact', *xyz, 'up')
+        ctl('wait', '10')
+        first = min(i for i in ui_slots() if i >= 300)
+        put('helmet_plating', 'cobalt', first + 1)
+        put('maille', 'iron', first + 2)
+        helmet = container_slots()[first + 5]
+        shot('08c-plate-helmet.png')
+        print('PLATE HELMET', json.dumps(helmet)[:500], flush=True)
+        helmet_components = helmet.get('components', '')
+        if helmet.get('item') == 'tconstruct:plate_helmet' and 'attribute_modifiers' in helmet_components and 'minecraft:armor' in helmet_components:
+            result['scenarios'].append('plating and maille preview a plate helmet that publishes its armor attributes')
+        else:
+            soft_failures.append(f'plate helmet: {json.dumps(helmet)[:300]}')
+        # Wear it: take the helmet from the result slot, keep it in the inventory and copy it to the head slot, then read the attributes back.
+        published = {}
+        for name in ('armor', 'armor_toughness'):
+            amount = re.search(r'amount:([0-9.]+)d,id:\W{0,4}tconstruct:armor_' + name + r'/head', helmet_components)
+            published[name] = float(amount.group(1)) if amount else 0.0
+        bounds = ui_slots()[first + 5]
+        ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+        ctl('wait', '5')
+        ctl('click-slot', 5)
+        ctl('wait', '5')
+        ctl('close')
+        for n in range(36):
+            ctl('command', f'execute if items entity @s container.{n} tconstruct:plate_helmet run item replace entity @s armor.head from entity @s container.{n}')
+        ctl('wait', '10')
+
+        def read_attribute(name):
+            reply = json.dumps(ctl('command', f'attribute @s {name} get'))
+            numbers = re.findall(r'-?\d+(?:\.\d+)?', reply.split('value')[-1] if 'value' in reply else reply)
+            return float(numbers[-1]) if numbers else None
+
+        worn = {'armor': read_attribute('minecraft:armor'), 'armor_toughness': read_attribute('minecraft:armor_toughness')}
+        print('ARMOR APPLIED', json.dumps({'published': published, 'worn': worn}), flush=True)
+        if all(worn[name] is not None and abs(worn[name] - published[name]) < 0.01 for name in published) and (published['armor'] > 0 or published['armor_toughness'] > 0):
+            result['scenarios'].append(f'a worn plate helmet gives the player the armor {worn["armor"]} and toughness {worn["armor_toughness"]} it publishes')
+        else:
+            soft_failures.append(f'worn armor attributes: published {published}, read {worn}')
+        ctl('command', 'item replace entity @s armor.head with minecraft:air')
+
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
         stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
         parts = 'tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]'
@@ -427,10 +473,15 @@ def main():
         # A failure here is recorded and the run goes on, so one run reports every scenario after it too.
         stripped = use_on('minecraft:oak_log[axis=y]', '', 'stripping')
         tilled = use_on('minecraft:dirt', '', 'tilling')
+        pathed = use_on('minecraft:grass_block', '', 'pathing')
         if 'stripped_oak_log' in json.dumps(stripped) and 'farmland' in json.dumps(tilled):
             result['scenarios'].append('stripping strips an oak log and tilling tills dirt with a Tinkers tool')
         else:
             soft_failures.append(f'tool actions: stripping gave {json.dumps(stripped)}, tilling gave {json.dumps(tilled)}')
+        if 'dirt_path' in json.dumps(pathed):
+            result['scenarios'].append('pathing turns grass into a path with a Tinkers tool')
+        else:
+            soft_failures.append(f'tool actions: pathing gave {json.dumps(pathed)}')
 
         # Protection: the same hit hurts less through a helmet with eight levels of protection (ten points, 40%).
         def hurt_through(modifiers):

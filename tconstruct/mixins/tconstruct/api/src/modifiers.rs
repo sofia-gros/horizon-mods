@@ -176,6 +176,10 @@ impl Modifier {
     pub fn melee_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.melee_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The knockback modules, each with the modifier's priority.
+    pub fn knockback_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
+        self.modules.iter().filter(|module| module.is_knockback()).map(move |module| (self.priority, module))
+    }
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
         for module in &self.modules { module.apply_stats(entry, facts, builder); }

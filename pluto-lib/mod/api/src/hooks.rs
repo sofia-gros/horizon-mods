@@ -2057,24 +2057,26 @@ impl Hooks for PlutoHooks {
             }
         } else { (event.player, event.name.to_owned()) };
         // The host names the item but not the stack; the player's hand and armor are searched for one of that item.
-        let mut stack = host.held_stack(player).filter(|held| held.item.to_string() == event.item).map(|held| read_stack(&held));
+        let mut found = host.held_stack(player).filter(|held| held.item.to_string() == event.item);
         for slot in [horizon_client::mod_api::EquipmentSlot::Feet, horizon_client::mod_api::EquipmentSlot::Legs, horizon_client::mod_api::EquipmentSlot::Chest, horizon_client::mod_api::EquipmentSlot::Head] {
-            if stack.is_some() { break; }
-            stack = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item).map(|worn| read_stack(&worn));
+            if found.is_some() { break; }
+            found = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item);
         }
+        let stack = found.as_ref().map(read_stack);
+        let slot = found.as_ref().and_then(slot_of);
         let before = stack.clone();
-        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), custom_data: std::cell::RefCell::new(None) };
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None) };
         match entity_events_v1::modify_item_damage(&wear) {
-            Some((amount, data)) => {
+            Some((amount, replacement)) => {
                 event.amount = amount;
-                // New custom data goes to the main-inventory stack that carried the old (a held tool, usually).
-                if let (Some(data), Some(before)) = (data, before) {
-                    for slot in 0..36 {
-                        let Some(found) = host.carried_stack(slot) else { continue };
-                        if &*found.item == event.item && found.count > 0 && read_stack(found).custom_data == before.custom_data {
-                            let mut written = read_stack(found);
-                            written.custom_data = data;
-                            write_stack(found, &written);
+                // A replacement goes to the main-inventory stack that carried the old data (a held tool, usually); the game then
+                // wears it by 0. A stack that is not there keeps the wear in `amount`.
+                if let (Some(replacement), Some(before)) = (replacement, before) {
+                    for index in 0..36 {
+                        let Some(target) = host.carried_stack(index) else { continue };
+                        if &*target.item == event.item && target.count > 0 && read_stack(target).custom_data == before.custom_data {
+                            write_slot(target, &replacement);
+                            event.amount = 0;
                             break;
                         }
                     }

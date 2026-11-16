@@ -51,6 +51,18 @@ pub(crate) fn register() {
             if damage.is_finite() && damage >= 0.0 && damage != amount { hit.amount.set(damage); }
         }
     });
+    // Knockback: the modules of the tool in the attacker's hand add to the strength the game worked out.
+    ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
+        let Some(held) = push.attacker_main.as_ref() else { return; };
+        if push.cancel.get() { return; }
+        let strength = push.strength.get();
+        let entities = common::entity_type_snapshot();
+        let target = Identifier::parse(&push.kind).ok();
+        let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);
+        let Ok(changed) = with_held_tool(held, |env, stack| tool_stack::melee_knockback(&stack.custom_data, env, strength as f32, &in_tag)) else { return; };
+        let changed = f64::from(changed);
+        if changed.is_finite() && changed >= 0.0 && (changed - strength).abs() > 1e-6 { push.strength.set(changed); }
+    });
 }
 
 #[cfg(test)]
