@@ -1,6 +1,8 @@
 //! Clean port: common config/material reload registration; tool gameplay is unfinished.
 mod tables;
 mod materials;
+mod damage_vanilla;
+mod damage_tags;
 mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;

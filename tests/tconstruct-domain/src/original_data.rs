@@ -595,6 +595,34 @@ fn shipped_speedy_publishes_a_movement_speed_attribute_for_its_slots() {
 }
 
 #[test]
+fn shipped_damage_tags_resolve_protection_tags_through_the_vanilla_ones() {
+    use crate::damage_tags::DamageTags;
+    fn walk(dir: &std::path::Path, relative: &str, out: &mut Vec<JsonResourceStack>) {
+        for entry in std::fs::read_dir(dir).expect("tag folder") {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if path.is_dir() { walk(&path, &format!("{relative}{name}/"), out); continue; }
+            if let Some(stem) = name.strip_suffix(".json") {
+                let value = serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON");
+                out.push(JsonResourceStack { id: Identifier::new("tconstruct", &format!("{relative}{stem}")).unwrap(), layers: vec![Ok(value)] });
+            }
+        }
+    }
+    let mut stacks = Vec::new();
+    walk(&root().join("tags/damage_types"), "", &mut stacks);
+    let (tags, problems) = DamageTags::load(&stacks);
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    assert!(tags.contains(&id("tconstruct:protection/fire"), &id("minecraft:lava")), "fire protection takes vanilla's fire tag");
+    assert!(tags.contains(&id("tconstruct:protection/fire"), &id("minecraft:lightning_bolt")), "and lightning");
+    assert!(tags.contains(&id("tconstruct:protection/blast"), &id("minecraft:explosion")));
+    assert!(tags.contains(&id("tconstruct:protection/melee"), &id("minecraft:mob_attack")), "melee comes through is_melee");
+    assert!(tags.contains(&id("tconstruct:protection/projectile"), &id("minecraft:arrow")));
+    assert!(tags.contains(&id("tconstruct:protection/fall"), &id("minecraft:fall")));
+    assert!(!tags.contains(&id("tconstruct:protection/fire"), &id("minecraft:arrow")), "an arrow is no fire damage");
+}
+
+#[test]
 fn shipped_overwield_scales_an_attack_speed_attribute_with_the_tools_overslime() {
     use crate::{modifier_entries::List, tool_stack::{attribute_entries, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt, NbtCompound};

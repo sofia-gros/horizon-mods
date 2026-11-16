@@ -61,6 +61,10 @@ mod tool_mining;
 mod mining_speed;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_damage.rs"]
 mod melee_damage;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
+mod damage_vanilla;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_tags.rs"]
+mod damage_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/break_speed_hook.rs"]
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
