@@ -321,7 +321,7 @@ def main():
         # Wear it: take the helmet from the result slot, keep it in the inventory and copy it to the head slot, then read the attributes back.
         published = {}
         for name in ('armor', 'armor_toughness'):
-            amount = re.search(r'amount:([0-9.]+)d,id:\?"tconstruct:armor_' + name + r'/head', helmet_components)
+            amount = re.search(r'amount:([0-9.]+)d,id:\W{0,4}tconstruct:armor_' + name + r'/head', helmet_components)
             published[name] = float(amount.group(1)) if amount else 0.0
         bounds = ui_slots()[first + 5]
         ctl('click-at', bounds[0] + 8, bounds[1] + 8)
