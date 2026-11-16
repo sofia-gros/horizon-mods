@@ -358,6 +358,29 @@ def main():
         assert smite_damage > plain_damage, (plain_damage, smite_damage)
         result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
 
+        # Tool wear: digging three stones wears a plain pickaxe, but not one with ten levels of reinforced (it cancels every point).
+        def unworn_after_digging(extra):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
+            ctl('select', 1)
+            for _ in range(3):
+                ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+                ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+                ctl('wait', '5')
+                ctl('break', *rock, timeout=60)
+            reply = json.dumps(ctl('command', 'execute if items entity @s weapon.mainhand tconstruct:pickaxe[minecraft:damage=0]'))
+            return 'passed' in reply.lower()
+
+        plain_unworn = unworn_after_digging('')
+        reinforced_unworn = unworn_after_digging(',tic_modifiers:[{level:10,name:"tconstruct:reinforced"}]')
+        ctl('command', 'gamemode creative')
+        print('TOOL WEAR', json.dumps({'plain unworn': plain_unworn, 'reinforced unworn': reinforced_unworn}), flush=True)
+        if not plain_unworn and reinforced_unworn:
+            result['scenarios'].append('digging wears a plain pickaxe but not one with ten levels of reinforced')
+        else:
+            soft_failures.append(f'tool wear: plain pickaxe unworn {plain_unworn}, reinforced unworn {reinforced_unworn}')
+
         # Tool actions: a tool with the stripping modifier strips an oak log, one with tilling tills dirt.
         def use_on(block, extra, modifier):
             ctl('command', 'clear @s')
