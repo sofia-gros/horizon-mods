@@ -40,12 +40,16 @@ pub(crate) fn register() {
     // The first reason a dig was left alone is logged once, so a silent no-op is visible in the game log.
     static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    static CHANGED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     static WITH_MODIFIERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     BreakSpeedCallback::EVENT.register(|dig| {
         match compute(dig) {
             Ok((speed, effective, multiplier, modifiers)) => {
-                // The first digs, and the first digs with modifiers, are logged with their numbers, to see the hook work in a game log.
-                if CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 2 || (modifiers > 0 && WITH_MODIFIERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 6) {
+                // The first digs, the first digs with modifiers and the first digs a modifier changed are logged with their numbers, to see the hook work in a game log.
+                let changed = (speed - dig.speed.get()).abs() > f32::EPSILON;
+                if CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 2
+                    || (changed && CHANGED.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 6)
+                    || (modifiers > 0 && WITH_MODIFIERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 2) {
                     eprintln!("Tinkers: break speed {} original {} speed {} -> {} (effective {effective}, multiplier {multiplier}, modifiers {modifiers})", dig.block.block, dig.original, dig.speed.get(), speed);
                 }
                 if speed.is_finite() && speed >= 0.0 { dig.speed.set(speed); }

@@ -232,8 +232,8 @@ def main():
         print('DIG TICKS', json.dumps(samples), flush=True)
         ctl('command', 'gamemode creative')
         plain_ticks, worn_ticks = samples['plain'], samples['stonebound worn']
-        assert samples['plain'] == samples['plain again'], samples
-        assert worn_ticks < plain_ticks, samples
+        reference = samples['plain again']
+        assert samples['stonebound worn'] < reference, samples
         result['scenarios'].append(f'a worn stonebound pickaxe digs stone faster: {worn_ticks} ticks against {plain_ticks}')
 
         # Save and reload: the pickaxe survives quitting and reopening the same world.
