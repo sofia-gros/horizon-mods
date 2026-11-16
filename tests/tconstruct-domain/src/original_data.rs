@@ -455,3 +455,28 @@ fn stat_override_adds_stored_stats_dropping_the_base_and_multiplies_stored_facto
     let plain = stat(&build(None, None), Stat::AttackDamage);
     assert!((stat(&build(None, Some(2.0)), Stat::AttackDamage) - plain * 2.0).abs() < 1e-3);
 }
+
+#[test]
+fn a_damaged_wood_pickaxe_is_repaired_with_wood_material_items() {
+    use crate::{tool_station::{lookup, Context, Input, Outcome}, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_DAMAGE}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let tools: Vec<(Identifier, &Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
+    let item_max = |_: &Identifier| 1;
+    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(20));
+    let planks = Input::Material { item: Identifier::parse("minecraft:oak_planks").unwrap(), material: Identifier::parse("tconstruct:wood").unwrap(), value: 1, needed: 1, count: 8 };
+    let outcome = lookup(&ctx, Some(&tool), &[Some(planks), None, None, None]).unwrap();
+    match outcome {
+        Outcome::Crafted(done) => assert!(crate::tool_stack::damage(&done.result.custom_data) < 20, "repair lowers the damage"),
+        Outcome::Failure(error) => panic!("repair failed: {error}"),
+        Outcome::NoMatch => panic!("no match for planks repairing a wood pickaxe"),
+        _ => panic!("unexpected outcome"),
+    }
+}

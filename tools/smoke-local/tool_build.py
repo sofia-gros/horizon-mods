@@ -184,7 +184,7 @@ def main():
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('command', 'clear @s')
-        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],Damage:20}] 1')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},Damage:20}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
         ctl('interact', *xyz)
