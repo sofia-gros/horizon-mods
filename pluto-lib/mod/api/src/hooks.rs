@@ -1808,6 +1808,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn use_item(&self, _host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
+        eprintln!("PlutoLib: use item {} x{}", event.stack.item, event.stack.count);
         cancel_if(events_interaction_v0::use_item(&event.stack.item, event.stack.count))
     }
 
@@ -1869,6 +1870,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn right_click_block(&self, _host: &mut dyn Host, event: &mut RightClickBlockEvent) -> Flow {
+        eprintln!("PlutoLib: right click block {:?} face {:?}", event.pos, event.face);
         cancel_if(events_interaction_v0::use_block(event.pos, event.face))
     }
 
