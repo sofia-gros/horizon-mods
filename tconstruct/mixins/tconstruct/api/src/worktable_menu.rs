@@ -13,7 +13,7 @@ use crate::{
     worktable_recipes::Removals,
 };
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
+    BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
     ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction,
 };
 
@@ -22,6 +22,9 @@ const INPUT_COUNT: usize = 2;
 pub(crate) const RESULT_SLOT: usize = TOOL_SLOT + INPUT_COUNT + 1;
 const SLOT_COUNT: usize = RESULT_SLOT + 1;
 const MAX_BUTTONS: usize = 16;
+/// Menu data: slot 0 the selected button, slot 1 the button count, then one entry per button.
+pub(crate) const HEADER: usize = 2;
+pub(crate) const DATA_SLOTS: usize = HEADER + MAX_BUTTONS;
 const NAME: &str = "modifier_worktable";
 const SELECTED: &str = "modifier";
 /// Button grid: left, top and size.
@@ -51,6 +54,23 @@ fn with_context<R>(read: impl FnOnce(&Context, &Removals, &modifier_removal::Sal
     let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_ref(), &tools, item, tag);
     let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
     Some(read(&ctx, &removals, &salvages, &in_tag, &modifier_in_tag))
+}
+
+/// Every modifier by its stable sorted position, the order button data indexes: both sides of a local world read the
+/// same registry, so the position names the modifier. (A remote client has no registry yet and shows numbers.)
+fn modifier_order() -> Vec<Identifier> {
+    common::server_modifiers().and_then(|registry| registry.read().ok()).map(|registry| registry.all_ids()).unwrap_or_default()
+}
+
+/// A modifier's display name: its translation (`modifier.<namespace>.<path>`) or, untranslated, its path as words.
+fn display_name(modifier: &Identifier) -> String {
+    let key = format!("modifier.{}.{}", modifier.namespace(), modifier.path().replace('/', "."));
+    let text = I18n::translate(&key);
+    if text != key { return text; }
+    modifier.path().split(['_', '/']).map(|word| {
+        let mut chars = word.chars();
+        chars.next().map_or(String::new(), |first| first.to_uppercase().chain(chars).collect())
+    }).collect::<Vec<_>>().join(" ")
 }
 
 /// What the slots and the selected modifier craft.
@@ -134,6 +154,15 @@ pub(crate) fn register() {
                 draw.canvas.text(&(index + 1).to_string(), [x + 5.0, y + 5.0], 0x202020, false);
             }
         })
+        .on_tooltip(move |tip| {
+            let count = tip.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            if let Some(index) = button_at(tip.at, count.min(MAX_BUTTONS)) {
+                let order = modifier_order();
+                if let Some(modifier) = tip.data.get(HEADER + index).copied().filter(|value| *value > 0).and_then(|value| order.get(value as usize - 1)) {
+                    tip.lines.push(display_name(modifier));
+                }
+            }
+        })
         .on_click(move |press| {
             let count = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
             (!press.right).then(|| button_at(press.at, count.min(MAX_BUTTONS))).flatten().map(|index| index as i32 + 1)
@@ -162,6 +191,11 @@ pub(crate) fn register() {
             tick.items[RESULT_SLOT] = computation.result.clone();
             tick.set_menu_data(0, computation.selected.map_or(-1, |index| index as i32));
             tick.set_menu_data(1, computation.buttons.len() as i32);
+            let order = modifier_order();
+            for index in 0..MAX_BUTTONS {
+                let value = computation.buttons.get(index).and_then(|button| order.iter().position(|id| id == button)).map_or(0, |position| position as i32 + 1);
+                tick.set_menu_data(HEADER + index, value);
+            }
         }),
     );
 }

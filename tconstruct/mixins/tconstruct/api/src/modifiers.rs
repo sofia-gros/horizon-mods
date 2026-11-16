@@ -207,6 +207,13 @@ impl Registry {
     pub fn get(&self, id: &Identifier) -> Option<&Arc<Modifier>> {
         self.static_modifiers.get(id).or_else(|| self.dynamic.get(id))
     }
+    /// Every modifier identifier this registry holds, static and loaded, sorted: the stable order menus index modifiers by.
+    pub fn all_ids(&self) -> Vec<Identifier> {
+        let mut ids: Vec<Identifier> = self.static_modifiers.keys().chain(self.dynamic.keys()).cloned().collect();
+        ids.sort();
+        ids.dedup();
+        ids
+    }
     /// Identifiers of every loaded dynamic modifier (including redirects), for audits.
     pub fn dynamic_ids(&self) -> impl Iterator<Item = &Identifier> { self.dynamic.keys() }
     pub fn contains_static(&self, id: &Identifier) -> bool { self.static_modifiers.contains_key(id) || self.expected.contains(id) }
