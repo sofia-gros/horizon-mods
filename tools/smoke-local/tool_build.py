@@ -380,6 +380,25 @@ def main():
             result['scenarios'].append(f'a hit rebuilds a fresh helmet with its maintained toughness: {before_hit} to {after_hit}')
         else:
             soft_failures.append(f'maintained: toughness {before_hit} before the hit, {after_hit} after')
+        # Counter: a helmet with decay 2 puts wither on the mob that hits its wearer (a husk that damages the player).
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:2,name:"tconstruct:decay"}]}]')
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+        ctl('wait', '30')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+        ctl('wait', '30')
+        ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:husk,limit=1]')
+        ctl('wait', '10')
+        counter_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1] active_effects'))
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        print('COUNTER EFFECTS', counter_reply[:300], flush=True)
+        if 'minecraft:wither' in counter_reply:
+            result['scenarios'].append('armor with decay puts wither on the mob that hit its wearer')
+        else:
+            soft_failures.append(f'counter: no wither on the attacking mob: {counter_reply[:200]}')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
