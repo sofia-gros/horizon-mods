@@ -155,13 +155,15 @@ LANGUAGES = ['en_us', 'ja_jp']
 
 
 def copy_lang():
-    """The original's translations for the languages this port ships, byte for byte (modifier, block, item,
+    """The original's translations for the languages this port ships (modifier, block, item,
     material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n."""
     if LANG_TARGET.exists():
         shutil.rmtree(LANG_TARGET)
     LANG_TARGET.mkdir(parents=True)
     for language in LANGUAGES:
-        shutil.copyfile(LANG_SOURCE / f'{language}.json', LANG_TARGET / f'{language}.json')
+        # Only the line endings are normalized (the original checkout may be CRLF); the text is the original's.
+        data = (LANG_SOURCE / f'{language}.json').read_bytes().replace(b'\r\n', b'\n')
+        (LANG_TARGET / f'{language}.json').write_bytes(data)
     return len(LANGUAGES)
 
 
