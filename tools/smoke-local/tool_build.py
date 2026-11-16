@@ -189,6 +189,29 @@ def main():
         shot('07-worktable-open.png')
         result['scenarios'].append('the modifier worktable opens with a 4-slot menu')
 
+        # Removal: a wet sponge lets the worktable take a modifier off a tool (the first modifier button).
+        removal_stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
+        removal_parts = 'tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]'
+        ctl('command', 'clear @s')
+        ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{removal_parts},{removal_stats},tic_upgrades:[{{level:1,name:"tconstruct:sharpness"}}]}}] 1')
+        ctl('command', 'give @s minecraft:wet_sponge 1')
+        ctl('wait', '5')
+        inv = ctl('screen')['slots']
+        for item, target in (('tconstruct:pickaxe', wfirst), ('minecraft:wet_sponge', wfirst + 1)):
+            source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == item)
+            ctl('click-slot', source)
+            bounds = ui_slots()[target]
+            ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+            ctl('wait', '5')
+            inv = ctl('screen')['slots']
+        origin = ui_slots()[wfirst]
+        ctl('click-at', origin[0] - 8 + 54 + 9, origin[1] - 24 + 18 + 9)
+        ctl('wait', '10')
+        shot('07b-worktable-removal.png')
+        removed = container_slots()[wfirst + 3]
+        assert removed.get('item') == 'tconstruct:pickaxe' and 'sharpness' not in removed.get('components', ''), removed
+        result['scenarios'].append('the worktable previews taking a modifier off a tool with a wet sponge')
+
         # Repair: a damaged pickaxe in the station is repaired with planks (the wood material).
         ctl('close')
         # The earlier scenarios left parts in the station's slots: replace the block so the slots are empty.
