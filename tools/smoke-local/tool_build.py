@@ -176,6 +176,34 @@ def main():
         shot('06-part-builder-result.png')
         result['scenarios'].append('the part builder offers a pattern button and previews a wood part')
 
+        # Tool recycling: a pickaxe with no upgrades and a venom bottle in the part builder offer the pickaxe's parts.
+        ctl('close')
+        ctl('command', 'clear @s')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}}] 1')
+        ctl('command', 'give @s tconstruct:venom_bottle 1')
+        ctl('command', f'setblock {pb[0]} {pb[1]} {pb[2]} minecraft:air')
+        ctl('command', f'setblock {pb[0]} {pb[1]} {pb[2]} tconstruct:part_builder')
+        ctl('wait', '5')
+        ctl('interact', *pb, 'up')
+        ctl('wait', '10')
+        slots = ui_slots()
+        first = min(i for i in slots if i >= 300)
+        inv = ctl('screen')['slots']
+        for item, target in (('tconstruct:pickaxe', first), ('tconstruct:venom_bottle', first + 1)):
+            source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == item)
+            ctl('click-slot', source)
+            bounds = ui_slots()[target]
+            ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+            ctl('wait', '5')
+            inv = ctl('screen')['slots']
+        origin = ui_slots()[first]
+        ctl('click-at', origin[0] - 8 + 34 + 9, origin[1] - 24 + 18 + 9)
+        ctl('wait', '10')
+        shot('06b-part-recycling.png')
+        recycled = container_slots()[first + 2]
+        assert recycled.get('item', '').startswith('tconstruct:') and 'tconstruct:wood' in recycled.get('components', ''), recycled
+        result['scenarios'].append('the part builder takes a pickaxe apart into a wood part with a venom bottle')
+
         # Modifier worktable opens with its four slots.
         ctl('close')
         wt = [xyz[0] - 2, xyz[1], xyz[2] + 2]
