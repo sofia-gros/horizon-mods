@@ -2058,6 +2058,7 @@ impl Hooks for PlutoHooks {
         } else { (event.player, event.name.to_owned()) };
         // The host names the item but not the stack; the player's hand and armor are searched for one of that item.
         let mut found = host.held_stack(player).filter(|held| held.item.to_string() == event.item);
+        let from_hand = found.is_some();
         for slot in [horizon_client::mod_api::EquipmentSlot::Feet, horizon_client::mod_api::EquipmentSlot::Legs, horizon_client::mod_api::EquipmentSlot::Chest, horizon_client::mod_api::EquipmentSlot::Head] {
             if found.is_some() { break; }
             found = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item);
@@ -2070,16 +2071,26 @@ impl Hooks for PlutoHooks {
             Some((amount, replacement)) => {
                 event.amount = amount;
                 // A replacement goes to the main-inventory stack that carried the old data (a held tool, usually); the game then
-                // wears it by 0. A stack that is not there keeps the wear in `amount`.
+                // wears it by 0. A worn armor piece is replaced by the game's own wear step, which takes the stack from
+                // `pluto_item_wear_access` and wears it by 0; otherwise the wear stays in `amount`.
                 if let (Some(replacement), Some(before)) = (replacement, before) {
-                    for index in 0..36 {
-                        let Some(target) = host.carried_stack(index) else { continue };
-                        if &*target.item == event.item && target.count > 0 && read_stack(target).custom_data == before.custom_data {
-                            write_slot(target, &replacement);
-                            event.amount = 0;
-                            break;
+                    let mut written = false;
+                    if from_hand {
+                        for index in 0..36 {
+                            let Some(target) = host.carried_stack(index) else { continue };
+                            if &*target.item == event.item && target.count > 0 && read_stack(target).custom_data == before.custom_data {
+                                write_slot(target, &replacement);
+                                event.amount = 0;
+                                written = true;
+                                break;
+                            }
                         }
+                    } else if let Some(base) = found.as_ref() {
+                        let mut native = base.clone();
+                        write_slot(&mut native, &replacement);
+                        horizon_client::entry::pluto_item_wear_access::set(native);
                     }
+                    let _ = written;
                 }
                 Flow::Continue
             }

@@ -344,6 +344,42 @@ def main():
             result['scenarios'].append(f'a worn plate helmet gives the player the armor {worn["armor"]} and toughness {worn["armor_toughness"]} it publishes')
         else:
             soft_failures.append(f'worn armor attributes: published {published}, read {worn}')
+        # Armor wear: two hits wear the worn helmet, and the tool's own damage follows the component damage.
+        ctl('command', 'gamemode survival')
+        for _ in range(2):
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', 'damage @s 8 minecraft:mob_attack')
+            ctl('wait', '10')
+        inventory_reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
+        ctl('command', 'gamemode creative')
+        after = inventory_reply if 'plate_helmet' in inventory_reply else ''
+        component_damage = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', after)
+        tool_damage = re.search(r'custom_data.{0,1500}?[^_a-z]Damage[^0-9]{0,8}(\d+)', after)
+        print('ARMOR WEAR', json.dumps({'component': component_damage.group(1) if component_damage else None, 'tool': tool_damage.group(1) if tool_damage else None}), flush=True)
+        if component_damage and tool_damage and int(component_damage.group(1)) > 0 and component_damage.group(1) == tool_damage.group(1):
+            result['scenarios'].append(f'two hits wear the worn helmet by {component_damage.group(1)} and its own damage follows')
+        else:
+            soft_failures.append(f'armor wear: component {component_damage.group(1) if component_damage else None}, tool {tool_damage.group(1) if tool_damage else None}')
+        # Maintained: a fresh helmet gains toughness from the durability above half once a hit rebuilds its published attributes.
+        helmet_stats = 'tic_stats:{"tconstruct:durability":300.0f,"tconstruct:armor":2.0f}'
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:2,name:"tconstruct:maintained"}]}]')
+        ctl('wait', '10')
+        before_hit = read_attribute('minecraft:armor_toughness')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+        ctl('wait', '30')
+        ctl('command', 'damage @s 8 minecraft:mob_attack')
+        ctl('wait', '10')
+        after_hit = read_attribute('minecraft:armor_toughness')
+        ctl('command', 'gamemode creative')
+        print('MAINTAINED', json.dumps({'before the hit': before_hit, 'after the hit': after_hit}), flush=True)
+        if after_hit is not None and after_hit > 0 and (before_hit is None or after_hit > before_hit):
+            result['scenarios'].append(f'a hit rebuilds a fresh helmet with its maintained toughness: {before_hit} to {after_hit}')
+        else:
+            soft_failures.append(f'maintained: toughness {before_hit} before the hit, {after_hit} after')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
