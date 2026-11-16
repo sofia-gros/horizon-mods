@@ -1806,10 +1806,17 @@ impl Hooks for PlutoHooks {
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
         let Some(level) = host.level(host.dimension()) else { return };
         let Some(block) = host.level_block_state(level, event.pos).and_then(|text| BlockState::parse(&text).ok()) else { return };
-        let held = host.acting_player().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        let acting = host.acting_player();
+        let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        let player = acting.as_ref().map(|player| {
+            // Entity.isEyeInFluid(water): the block at the eyes holds water (a water block or a waterlogged one).
+            let eyes = [player.position[0].floor() as i32, (player.position[1] + f64::from(player.eye_height)).floor() as i32, player.position[2].floor() as i32];
+            let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
+            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
+        });
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
-        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held));
+        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player));
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {

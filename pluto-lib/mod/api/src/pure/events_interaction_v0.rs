@@ -58,6 +58,17 @@ pub struct BreakSpeedContext {
     /// The stack the player digs with, with its damage, max damage and custom data; None for an empty hand or when the game does not
     /// say who digs.
     pub held: Option<super::player_api::StackData>,
+    /// The digging player's state when the game says who digs (Player.onGround, isEyeInFluid(water)).
+    pub player: Option<DiggingPlayer>,
+}
+
+/// What a break-speed callback may read about the player who digs.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DiggingPlayer {
+    /// On the ground, as the player's last accepted move said.
+    pub on_ground: bool,
+    /// The player's eyes are inside water (their block, at eye height, holds water).
+    pub eyes_in_water: bool,
 }
 
 /// A player finished using an item over time (ate or drank it).
@@ -171,8 +182,8 @@ pub(crate) fn use_item_finish(context: &UseItemFinishContext) {
 }
 
 /// The dig speed after every callback has had its say.
-pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32, held: Option<super::player_api::StackData>) -> f32 {
-    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held };
+pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32, held: Option<super::player_api::StackData>, player: Option<DiggingPlayer>) -> f32 {
+    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held, player };
     BREAK_SPEED.invoke(&context);
     context.speed.get()
 }
@@ -198,6 +209,22 @@ mod tests {
         UseBlockCallback::EVENT.register(|c| if c.pos == [1, 2, 3] { ActionResult::Success } else { ActionResult::Pass });
         assert!(use_block([1, 2, 3], [0, 1, 0]));
         assert!(!use_block([9, 9, 9], [0, 1, 0]));
+    }
+
+    #[test]
+    fn break_speed_callbacks_read_the_digging_player_and_change_the_speed() {
+        BreakSpeedCallback::EVENT.register(|c| {
+            if let Some(player) = c.player {
+                if !player.on_ground { c.speed.set(c.speed.get() * 5.0); }
+                if player.eyes_in_water { c.speed.set(c.speed.get() + 1.0); }
+            }
+        });
+        let block = BlockState { block: super::super::base::Identifier::parse("test:rock").unwrap(), properties: Default::default() };
+        let state = |on_ground, eyes_in_water| Some(DiggingPlayer { on_ground, eyes_in_water });
+        assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(true, false)), 2.0);
+        assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(false, false)), 10.0);
+        assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(true, true)), 3.0);
+        assert_eq!(break_speed([0, 0, 0], block, 2.0, 2.0, None, None), 2.0, "no player state leaves the speed alone");
     }
 
     #[test]

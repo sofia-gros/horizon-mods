@@ -24,7 +24,7 @@ pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
 pub use crate::pure::events_interaction_v0::{
-    self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
+    self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
     UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext,
 };
 pub use crate::pure::lifecycle_events_v1::{
