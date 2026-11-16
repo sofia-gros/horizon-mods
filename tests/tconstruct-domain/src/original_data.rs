@@ -422,3 +422,36 @@ fn creative_slot_adds_the_slots_stored_in_the_creative_compound_and_forgets_them
     match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => assert!(!data.contains_key("tconstruct:creative")), _ => {} }
     assert_eq!(slots(&tool), before);
 }
+
+#[test]
+fn stat_override_adds_stored_stats_dropping_the_base_and_multiplies_stored_factors() {
+    use crate::{modifier_entries::List, overslime, tool_stack::{rebuild_stats, stat, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}, tool_stats::Stat};
+    use pluto_lib::{Nbt, NbtCompound};
+    let mut world = world();
+    for modifier in overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let build = |bonus: Option<f32>, factor: Option<f32>| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut persistent = NbtCompound::new();
+        for (key, value) in [("tconstruct:override_bonus", bonus), ("tconstruct:override_multiplier", factor)] {
+            if let Some(value) = value {
+                let mut stats = NbtCompound::new();
+                stats.insert("tconstruct:attack_damage".into(), Nbt::Float(value));
+                persistent.insert(key.into(), Nbt::Compound(stats));
+            }
+        }
+        nbt.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        nbt.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:stat_override").unwrap(), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        nbt
+    };
+    // update() sums the value and removes the implicit base, so the stat becomes the stored number plus other additions.
+    let plain_damage = stat(&build(None, None), Stat::AttackDamage);
+    let overridden = stat(&build(Some(7.5), None), Stat::AttackDamage);
+    assert!((overridden - (plain_damage + 7.5)).abs() < 1e-3, "update sums with the definition stats: {overridden} vs {plain_damage}");
+    let plain = stat(&build(None, None), Stat::AttackDamage);
+    assert!((stat(&build(None, Some(2.0)), Stat::AttackDamage) - plain * 2.0).abs() < 1e-3);
+}

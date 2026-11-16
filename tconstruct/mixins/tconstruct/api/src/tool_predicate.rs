@@ -36,8 +36,8 @@ pub(crate) struct Facts<'a> {
     pub has_persistent_key: &'a dyn Fn(&Identifier) -> bool,
     /// The string stored in the tool's persistent data under a key; empty when absent or not a string (NBT getString).
     pub persistent_string: &'a dyn Fn(&Identifier) -> String,
-    /// The integer entries of the tool's persistent compound under a key, in key order (empty when absent).
-    pub persistent_ints: &'a dyn Fn(&Identifier) -> Vec<(String, i32)>,
+    /// The numeric entries of the tool's persistent compound under a key, in key order (empty when absent).
+    pub persistent_numbers: &'a dyn Fn(&Identifier) -> Vec<(String, f64)>,
     /// ToolTraitHook.addTraits of the tool's definition and materials for an alternate hook (rebalanced_trait, trim_trait).
     pub hook_traits: &'a dyn Fn(&Identifier) -> Vec<crate::material_traits::ModifierEntry>,
 }
@@ -127,7 +127,7 @@ mod tests {
     use serde_json::json;
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool, level: &'a dyn Fn(&Identifier, Check) -> i32,
-        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key, persistent_string: &|_| String::new(), persistent_ints: &|_| Vec::new(), hook_traits: &|_| Vec::new() } }
+        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() } }
     #[test]
     fn every_shipped_predicate_shape_decodes_and_evaluates_over_tool_facts() {
         let pickaxe = id("tconstruct:pickaxe");

@@ -59,8 +59,13 @@ pub(crate) enum Module {
     SwappableTraits { key: Option<Identifier>, matching: String, hook: Identifier },
     /// CreativeSlotModifier: the slots stored in the tool's `tconstruct:creative` persistent compound.
     CreativeSlots,
+    /// StatOverrideModifier: the stats stored under `tconstruct:override_bonus` (added, dropping the base) and
+    /// `tconstruct:override_multiplier` (multiplied). Only the float stats are supported.
+    StatOverride,
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
+const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
+const OVERRIDE_MULTIPLIER: &str = "tconstruct:override_multiplier";
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
 fn is_known_slot(name: &str) -> bool { !name.is_empty() }
@@ -255,6 +260,7 @@ impl Module {
                 Self::SwappableTraits { key: optional_key(fields)?, matching, hook }
             }
             // The code-defined creative_slot modifier's module; it binds only volatile data and removal.
+            "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
         }))
@@ -299,10 +305,11 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
+            Self::StatOverride => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
-                for (name, count) in (facts.persistent_ints)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
-                    if is_known_slot(&name) { add_slots(data, &name, count); }
+                for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
+                    if is_known_slot(&name) { add_slots(data, &name, count as i32); }
                 }
             }
             Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
@@ -316,6 +323,7 @@ impl Module {
             // Only a module that matches a stored value owns it.
             Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
+            Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
     }
@@ -379,6 +387,16 @@ impl Module {
             if condition.matches(entry, facts) && harvest { builder.update_tier(tier); }
             return;
         }
+        if let Self::StatOverride = self {
+            let parse = |name: &str| Identifier::parse(name).ok().and_then(|id| Stat::from_id(&id));
+            for (name, value) in (facts.persistent_numbers)(&Identifier::parse(OVERRIDE_BONUS).expect("valid key")) {
+                if let Some(stat) = parse(&name) { builder.update(stat, value as f32); }
+            }
+            for (name, value) in (facts.persistent_numbers)(&Identifier::parse(OVERRIDE_MULTIPLIER).expect("valid key")) {
+                if let Some(stat) = parse(&name) { builder.multiply(stat, f64::from(value as f32)); }
+            }
+            return;
+        }
         let Self::Boost { stat, operation, flat, each, condition } = self else { return; };
         if !condition.matches(entry, facts) || !supports(*stat, facts) { return; }
         let value = f64::from(*flat + *each * entry.effective_level());
@@ -424,7 +442,7 @@ mod tests {
         Module::decode(fields["type"].as_str().unwrap(), fields, &hooks).unwrap()
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
-        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_ints: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
+        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
     }
     #[test]
     fn swappable_slots_follow_the_stored_slot_type_and_clear_on_removal() {
@@ -432,7 +450,7 @@ mod tests {
         let stored = std::cell::RefCell::new(std::collections::BTreeMap::new());
         stored.borrow_mut().insert("test:swap".to_owned(), "abilities".to_owned());
         let lookup = |key: &Identifier| stored.borrow().get(&key.to_string()).cloned().unwrap_or_default();
-        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup, persistent_ints: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup, persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
         let slot = decode(json!({"type":"tconstruct:swappable_slot","slots":1})).unwrap();
         let bonus = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"abilities","bonus":"upgrades","slots":-1})).unwrap();
         let other = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"defense","bonus":"upgrades","slots":-1})).unwrap();
@@ -468,7 +486,7 @@ mod tests {
         let hook_traits = |hook: &Identifier| if hook.to_string() == "tconstruct:rebalanced_trait" {
             vec![crate::material_traits::ModifierEntry { id: id("test:extra"), level: 2, optional: false }]
         } else { Vec::new() };
-        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &stored, persistent_ints: &|_| Vec::new(), hook_traits: &hook_traits };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &stored, persistent_numbers: &|_| Vec::new(), hook_traits: &hook_traits };
         let entry = Entry::new(id("test:rebalanced"), 1);
         let matching = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"traits"})).unwrap();
         let other_value = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"other"})).unwrap();

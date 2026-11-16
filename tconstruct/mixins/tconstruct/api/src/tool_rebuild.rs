@@ -76,9 +76,11 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
         }
     };
     let persistent_string = |key: &Identifier| match tool.persistent.get(&key.to_string()) { Some(Nbt::String(text)) => text.clone(), _ => String::new() };
-    let persistent_ints = |key: &Identifier| -> Vec<(String, i32)> {
+    let persistent_numbers = |key: &Identifier| -> Vec<(String, f64)> {
         match tool.persistent.get(&key.to_string()) {
-            Some(Nbt::Compound(data)) => data.iter().filter_map(|(name, value)| match value { Nbt::Int(number) => Some((name.clone(), *number)), _ => None }).collect(),
+            Some(Nbt::Compound(data)) => data.iter().filter_map(|(name, value)| match value { Nbt::Byte(n) => Some((name.clone(), f64::from(*n))), Nbt::Short(n) => Some((name.clone(), f64::from(*n))),
+                Nbt::Int(n) => Some((name.clone(), f64::from(*n))), Nbt::Long(n) => Some((name.clone(), *n as f64)),
+                Nbt::Float(n) => Some((name.clone(), f64::from(*n))), Nbt::Double(n) => Some((name.clone(), *n)), _ => None }).collect(),
             _ => Vec::new(),
         }
     };
@@ -93,7 +95,7 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
             Check::Upgrades => sum(&mut upgrades.entries().iter()),
         }
     };
-    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key, persistent_string: &persistent_string, persistent_ints: &persistent_ints, hook_traits: &hook_traits })
+    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key, persistent_string: &persistent_string, persistent_numbers: &persistent_numbers, hook_traits: &hook_traits })
 }
 
 #[cfg(test)]
