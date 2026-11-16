@@ -22,6 +22,18 @@ pub(crate) enum Ingredient {
     Intersection(Vec<Ingredient>),
 }
 
+/// The synthetic tag standing for "the tool's definition binds this hook".
+pub(crate) fn hook_tag(hook: &Identifier) -> Identifier {
+    Identifier::new("tconstruct", &format!("tool_hook/{}/{}", hook.namespace(), hook.path())).expect("valid hook tag")
+}
+
+/// The hook a synthetic hook tag stands for, None for an ordinary tag.
+pub(crate) fn hook_of_tag(tag: &Identifier) -> Option<Identifier> {
+    if tag.namespace() != "tconstruct" { return None; }
+    let (namespace, path) = tag.path().strip_prefix("tool_hook/")?.split_once('/')?;
+    Identifier::new(namespace, path).ok()
+}
+
 impl Ingredient {
     pub fn decode(value: &Value) -> Result<Self, String> {
         let id = |value: &Value| Identifier::parse(value.as_str().ok_or("expected an identifier string")?).map_err(|e| e.to_string());
@@ -42,6 +54,13 @@ impl Ingredient {
                     base: Box::new(Self::decode(fields.get("base").ok_or("base missing")?)?),
                     subtracted: Box::new(Self::decode(fields.get("subtracted").ok_or("subtracted missing")?)?),
                 }),
+                // ToolHookIngredient: a tool of the tag whose definition binds the hook. The hook becomes a synthetic tag
+                // that the tag query answers from the tool definitions (see `hook_tag`).
+                Some("tconstruct:tool_hook") => {
+                    let tag = match fields.get("tag") { Some(tag) => id(tag)?, None => Identifier::new("tconstruct", "modifiable").expect("valid tag") };
+                    let hook = id(fields.get("hook").ok_or("hook missing")?)?;
+                    Ok(Self::Intersection(vec![Self::Tag(tag), Self::Tag(hook_tag(&hook))]))
+                }
                 Some(other) => Err(format!("unimplemented ingredient type {other}")),
             },
             _ => Err("ingredient must be an object or a nonempty array".into()),
@@ -199,6 +218,19 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn a_tool_hook_ingredient_needs_the_tag_and_the_hook_through_a_synthetic_tag() {
+        let hook = Identifier::parse("test:hook").unwrap();
+        assert_eq!(hook_of_tag(&hook_tag(&hook)), Some(hook.clone()));
+        assert_eq!(hook_of_tag(&Identifier::parse("tconstruct:modifiable").unwrap()), None);
+        let ingredient = Ingredient::decode(&serde_json::json!({"type":"tconstruct:tool_hook","hook":"test:hook","tag":"test:tools"})).unwrap();
+        let item = Identifier::parse("test:pick").unwrap();
+        let with = |tags: &'static [&'static str]| move |_: &Identifier, tag: &Identifier| tags.contains(&tag.to_string().as_str());
+        assert!(ingredient.matches(&item, &with(&["test:tools", "tconstruct:tool_hook/test/hook"])));
+        assert!(!ingredient.matches(&item, &with(&["test:tools"])), "the tool lacks the hook");
+        assert!(!ingredient.matches(&item, &with(&["tconstruct:tool_hook/test/hook"])), "the tool is not in the tag");
+    }
+
     use serde_json::json;
     struct Flags;
     impl Conditions for Flags {

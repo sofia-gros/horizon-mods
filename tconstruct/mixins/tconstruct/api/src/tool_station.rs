@@ -141,6 +141,15 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
     Ok(Outcome::NoMatch)
 }
 
+/// The tag query the station's recipes use: item tags from the captured snapshot, and the synthetic hook tags from the
+/// tool definitions.
+pub(crate) fn item_in_tag(tags: Option<&pluto_lib::RegistryLookup>, tools: &[(Identifier, &Data)], item: &Identifier, tag: &Identifier) -> bool {
+    if let Some(hook) = crate::material_recipes::hook_of_tag(tag) {
+        return tools.iter().find(|(id, _)| id == item).is_some_and(|(_, definition)| definition.has_hook(&hook));
+    }
+    tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item))
+}
+
 pub(crate) fn definition_for<'a>(ctx: &'a Context, tool: &ItemSlot) -> Option<&'a Data> {
     ctx.tools.iter().find(|(item, _)| *item == tool.item).map(|(_, definition)| *definition)
 }
