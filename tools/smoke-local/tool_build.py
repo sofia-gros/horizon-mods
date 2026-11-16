@@ -94,13 +94,20 @@ def main():
             time.sleep(.2)
         ctl('wait-ready', '180', timeout=185)
         ctl('command', 'clear @s')
+        # A flat arena in the sky: terrain (trees, leaves, litter, slopes) would otherwise get in the way of every scenario.
+        # A 41 x 41 stone floor at height 199 with clear air above it, and the player on top of it.
         pos = ctl('state')['player']['position']
+        centre = [int(pos[0] // 1), int(pos[2] // 1)]
+        ctl('command', f'fill {centre[0] - 20} 200 {centre[1] - 20} {centre[0] + 20} 207 {centre[1] + 20} minecraft:air')
+        ctl('command', f'fill {centre[0] - 20} 199 {centre[1] - 20} {centre[0] + 20} 199 {centre[1] + 20} minecraft:stone')
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '20')
+        pos = ctl('state')['player']['position']
+        assert pos[1] >= 199.5, f'the player is not on the arena: {pos}'
         xyz = [int(pos[0] // 1) + 2, int(pos[1] // 1), int(pos[2] // 1)]
-        # Carve a clear room and floor: forest terrain can put leaves or stone in the line of sight.
-        ctl('command', f'fill {xyz[0] - 3} {xyz[1]} {xyz[2] - 2} {xyz[0] + 1} {xyz[1] + 3} {xyz[2] + 2} minecraft:air')
-        ctl('command', f'fill {xyz[0] - 3} {xyz[1] - 1} {xyz[2] - 2} {xyz[0] + 1} {xyz[1] - 1} {xyz[2] + 2} minecraft:stone')
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
-        ctl('interact', *xyz)
+        ctl('wait', '20')
+        ctl('interact', *xyz, 'up')
         ctl('wait', '10')
         assert ctl('screen')['screen'] == 'container', 'the station block did not open a container menu'
         slots = ui_slots()
@@ -144,7 +151,7 @@ def main():
         ctl('command', 'give @s tconstruct:pattern 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
-        ctl('interact', *pb)
+        ctl('interact', *pb, 'up')
         ctl('wait', '10')
         assert ctl('screen')['screen'] == 'container', 'the part builder did not open a container menu'
         slots = ui_slots()
@@ -170,7 +177,7 @@ def main():
         ctl('close')
         wt = [xyz[0] - 2, xyz[1], xyz[2] + 2]
         ctl('command', f'setblock {wt[0]} {wt[1]} {wt[2]} tconstruct:modifier_worktable')
-        ctl('interact', *wt)
+        ctl('interact', *wt, 'up')
         ctl('wait', '10')
         assert ctl('screen')['screen'] == 'container', 'the modifier worktable did not open a container menu'
         wslots = ui_slots()
@@ -188,7 +195,7 @@ def main():
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},Damage:20}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
-        ctl('interact', *xyz)
+        ctl('interact', *xyz, 'up')
         ctl('wait', '10')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
