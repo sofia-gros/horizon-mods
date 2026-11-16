@@ -2,7 +2,7 @@
 //! reduced (or raised) by the armor's protection modifiers, as ToolEvents.livingHurt does in the original.
 //! The event fires after vanilla's armor and enchantment protection; vanilla enchantment protection is taken as 0 points,
 //! so armor that also carries vanilla protection enchantments is protected by it twice.
-use crate::{break_speed_hook::with_held_tool, damage_tags::{self, DamageTags}, protection::{damage_after_protection, DamageSource, PROTECTION_CAP}, tool_stack};
+use crate::{break_speed_hook::with_held_tool, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 
@@ -39,12 +39,13 @@ pub(crate) fn register() {
         let source = DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags };
         // Each piece's modifiers see the protection so far, feet to head.
         let mut total = 0.0;
+        let mut cap_added = 0.0;
         for (_, piece) in &hit.armor {
-            if let Ok(value) = with_held_tool(piece, |env, stack| tool_stack::protection(&stack.custom_data, env, &source, total)) { total = value; }
+            if let Ok((value, cap)) = with_held_tool(piece, |env, stack| (tool_stack::protection(&stack.custom_data, env, &source, total), tool_stack::protection_cap(&stack.custom_data, env))) { total = value; cap_added += cap; }
         }
         if total == 0.0 { return; }
         let amount = hit.amount.get();
-        let after = damage_after_protection(amount, 0.0, total, PROTECTION_CAP);
+        let after = damage_after_protection(amount, 0.0, total, protection_cap(cap_added));
         if LOGGED.fetch_add(1, Ordering::Relaxed) < 4 {
             eprintln!("Tinkers: {} damage to {} with {} armor pieces: protection {total}, {amount} -> {after}", hit.damage.damage_type, hit.damage.kind, hit.armor.len());
         }

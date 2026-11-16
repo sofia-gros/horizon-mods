@@ -633,8 +633,10 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
     use pluto_lib::{ItemSlot, Nbt};
     let world = world();
     let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
     let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
-        item_tags_loaded: true, item: None, item_tags: None };
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
     let (tags, problems) = DamageTags::load(&damage_tag_stacks());
     assert!(problems.is_empty(), "{problems:?}");
     let id = |text: &str| Identifier::parse(text).unwrap();
@@ -655,6 +657,17 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
     assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:arrow", true), iron_alone, "fire protection adds nothing against an arrow");
     assert_eq!(protection_of("tconstruct:melee_protection", 1, "minecraft:mob_attack", false), 2.0);
     assert_eq!(protection_of("tconstruct:melee_protection", 1, "minecraft:mob_attack", true), 0.0, "an indirect hit is not melee protection");
+    // Boundless raises the cap on summed protection: a level 1 adds 0.1 to the 0.8 attribute, 22.5 points.
+    let cap_with = |level: i32| {
+        let mut tool = ItemSlot::new(id("tconstruct:plate_helmet"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id("tconstruct:boundless"), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        crate::protection::protection_cap(crate::tool_stack::protection_cap(&tool.custom_data, &env))
+    };
+    assert!((cap_with(1) - 22.5).abs() < 1e-4, "{}", cap_with(1));
+    assert!((cap_with(5) - 23.75).abs() < 1e-4, "the cap never passes 95% of 25");
+    assert!((crate::protection::protection_cap(0.0) - 20.0).abs() < 1e-4);
     // The event comes after vanilla's protection: 10 damage with no vanilla protection and 5 points is 8 after the modifier.
     assert!((damage_after_protection(10.0, 0.0, 5.0, 20.0) - 8.0).abs() < 1e-5);
     // Vanilla's 5 points were already taken (8), so 10 points total leaves 6 rather than 4.8.

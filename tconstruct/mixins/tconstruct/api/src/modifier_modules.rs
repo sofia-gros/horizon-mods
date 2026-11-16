@@ -73,6 +73,8 @@ pub(crate) enum Module {
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
+    /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
+    ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
@@ -307,6 +309,10 @@ impl Module {
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
+                if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
+                    let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
+                    return Ok(Some(Self::ProtectionCap { formula, condition: Condition::decode(fields)? }));
+                }
                 let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
                 let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
                 let operation = match fields.get("operation").and_then(Value::as_str) {
@@ -365,7 +371,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -398,6 +404,12 @@ impl Module {
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// What this module adds to the protection cap attribute (0.05 is one point and a quarter of protection).
+    pub fn protection_cap(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound) -> f32 {
+        let Self::ProtectionCap { formula, condition } = self else { return 0.0; };
+        if !condition.matches(entry, facts) { return 0.0; }
+        formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0)
     }
     /// ProtectionModifierHook: the running protection after this module, over a damage source.
     pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {

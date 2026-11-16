@@ -123,6 +123,11 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
 }
 
+/// What the tool's modifiers add to the protection cap attribute (boundless).
+pub(crate) fn protection_cap(nbt: &NbtCompound, env: &Environment) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.protection_cap(entry, facts, nbt)).sum())
+}
+
 /// ProtectionModifierHook over every modifier of the tool, in modifier order, starting from `value`.
 pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, value: f32) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))

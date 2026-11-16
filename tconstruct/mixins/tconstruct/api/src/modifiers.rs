@@ -152,6 +152,10 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// What this modifier adds to the protection cap attribute.
+    pub fn protection_cap(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound) -> f32 {
+        self.modules.iter().map(|module| module.protection_cap(entry, facts, nbt)).sum()
+    }
     /// The running protection after this modifier's protection modules.
     pub fn protection(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         self.modules.iter().fold(value, |value, module| module.protection(entry, facts, nbt, source, value))
