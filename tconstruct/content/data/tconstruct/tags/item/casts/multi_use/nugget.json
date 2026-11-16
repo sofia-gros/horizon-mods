@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:nugget_cast",
-      "required": false
-    }
+    "tconstruct:nugget_cast"
   ]
 }

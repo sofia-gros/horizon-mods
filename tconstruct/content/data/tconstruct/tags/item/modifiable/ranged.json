@@ -1,20 +1,8 @@
 {
   "values": [
-    {
-      "id": "tconstruct:javelin",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/ranged/launcher",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/ranged/small",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/ranged/broad",
-      "required": false
-    }
+    "tconstruct:javelin",
+    "#tconstruct:modifiable/ranged/launcher",
+    "#tconstruct:modifiable/ranged/small",
+    "#tconstruct:modifiable/ranged/broad"
   ]
 }

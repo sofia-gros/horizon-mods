@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:modifiable/armor/worn",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/held",
-      "required": false
-    }
+    "#tconstruct:modifiable/armor/worn",
+    "#tconstruct:modifiable/armor/held"
   ]
 }

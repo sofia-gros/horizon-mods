@@ -1,44 +1,14 @@
 {
   "values": [
-    {
-      "id": "tconstruct:travelers_helmet",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_chestplate",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_leggings",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_boots",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_shield",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_helmet",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_chestplate",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_leggings",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_boots",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_shield",
-      "required": false
-    }
+    "tconstruct:travelers_helmet",
+    "tconstruct:travelers_chestplate",
+    "tconstruct:travelers_leggings",
+    "tconstruct:travelers_boots",
+    "tconstruct:travelers_shield",
+    "tconstruct:plate_helmet",
+    "tconstruct:plate_chestplate",
+    "tconstruct:plate_leggings",
+    "tconstruct:plate_boots",
+    "tconstruct:plate_shield"
   ]
 }

@@ -1,6 +1,6 @@
-# Data attachments: values saved with a player
+# Player and entity attachments
 
-Attach any `serde` value to a player and read it back later, also after the game restarts (the value is stored as JSON with the player). Only players can carry attachments so far; worlds, chunks, block entities and other entities follow.
+Attach any `serde` value to a player and read it back later, also after the game restarts (the value is stored as JSON with the player). Entities also expose typed attachments through `EntityInfo` in a host-scoped callback; worlds, chunks and block entities are not exposed here yet.
 
 Like every `ServerPlayer` method, these work only inside a callback that carries the player (`with_ops`); elsewhere they report "nothing there" and store nothing.
 
@@ -58,9 +58,82 @@ with_ops(&mut game, || {
 });
 ```
 
-> **Use with Caution.** The methods work only inside a callback that carries the player (a join, a command). Elsewhere they report "nothing there" and store nothing, so a handle kept in a `static` cannot write to a player at the wrong moment. Only players can carry attachments so far; worlds, chunks, block entities and other entities follow.
+> **Use with Caution.** The methods work only inside a callback that carries the player (a join, a command). Elsewhere they report "nothing there" and store nothing, so a handle kept in a `static` cannot write to a player at the wrong moment. Entities also expose typed attachments through `EntityInfo` in a host-scoped callback; worlds, chunks and block entities are not exposed here yet.
+
+## Entity State and Synchronization
+
+Use the same typed attachment on the current callback's `EntityInfo`. `create_synced` requests persistence plus native delivery to clients tracking the holder. Native entity storage is UUID-owned; PlutoLib does not add an ID-keyed entity-state map. The memory fixture uses explicit dimension/ID keys and does not simulate native holder lifetimes.
+
+```rust
+use pluto_lib::{with_ops, AttachmentRegistry, EntityInfo, Identifier, MemoryPlayerOps};
+let metal = AttachmentRegistry::create_synced(Identifier::parse("example:metal").unwrap(), || false);
+let entity = EntityInfo { id: 7, kind: "example:slime".into(), dimension: "minecraft:overworld".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    assert!(!entity.has_attached(&metal));
+    assert!(entity.set_attached(&metal, true));
+    assert_eq!(entity.get_attached_existing(&metal), Some(true));
+});
+assert!(!entity.set_attached(&metal, false)); // no host scope
+```
+
+> **Use with Caution.** The API is source-wired to existing native attachment storage/codec/sync, not tested in a running game. JSON snapshot tests do not prove save/reopen or LAN delivery. Keep one immutable sync policy per ID; conflicting synced/unsynced access fails. Entity IDs are current-world callback IDs, not persistent entity references: do not reuse an old EntityInfo after removal or in another callback. Missing native holders/wrong dimensions refuse access; unload callbacks may already have no holder. Clients changing their own native copy do not authoritatively change server state. Native state-to-attribute/render integration is separate.
 
 ## Reference
+
+### `AttachmentRegistry::create_synced`
+
+`fn create_synced<T: Serialize + DeserializeOwned>(id: Identifier, default: fn() -> T) -> AttachmentType<T>`. Like `create`, with persistent JSON and tracking-client sync requested. One ID cannot mix sync policies. Custom hosts without policy support refuse rather than silently storing unsynced data.
+
+```rust
+use pluto_lib::{AttachmentRegistry, Identifier};
+let state = AttachmentRegistry::create_synced(Identifier::parse("example:synced_state").unwrap(), || 0u32);
+assert_eq!(state.id().to_string(), "example:synced_state");
+```
+
+### `EntityInfo::has_attached`
+
+`fn has_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> bool`. True only for existing decodable data in the current host scope.
+
+```rust
+use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
+let value = AttachmentRegistry::create(Identifier::parse("example:entity_has").unwrap(), || false);
+let entity = EntityInfo { id: 1, kind: "example:mob".into(), dimension: "minecraft:overworld".into() };
+assert!(!entity.has_attached(&value));
+```
+
+### `EntityInfo::get_attached_existing`
+
+`fn get_attached_existing<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> Option<T>`. Does not create data; missing, invalid, unsupported and out-of-scope access returns None.
+
+```rust
+use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
+let value = AttachmentRegistry::create(Identifier::parse("example:entity_read").unwrap(), || 0u32);
+let entity = EntityInfo { id: 1, kind: "example:mob".into(), dimension: "minecraft:overworld".into() };
+assert_eq!(entity.get_attached_existing(&value), None);
+```
+
+### `EntityInfo::get_attached`
+
+`fn get_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> T`. Returns stored data or an unstored default.
+
+```rust
+use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
+let value = AttachmentRegistry::create(Identifier::parse("example:entity_default").unwrap(), || 12u32);
+let entity = EntityInfo { id: 1, kind: "example:mob".into(), dimension: "minecraft:overworld".into() };
+assert_eq!(entity.get_attached(&value), 12);
+```
+
+### `EntityInfo::set_attached`
+
+`fn set_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>, value: T) -> bool`. Stores JSON through the current native holder; unsupported/out-of-scope, policy-conflicting or unserializable writes return false.
+
+```rust
+use pluto_lib::{with_ops, AttachmentRegistry, EntityInfo, Identifier, MemoryPlayerOps};
+let value = AttachmentRegistry::create_synced(Identifier::parse("example:entity_write").unwrap(), || false);
+let entity = EntityInfo { id: 1, kind: "example:mob".into(), dimension: "minecraft:overworld".into() };
+with_ops(&mut MemoryPlayerOps::default(), || assert!(entity.set_attached(&value, true)));
+```
 
 ### `AttachmentRegistry`
 

@@ -51,6 +51,67 @@ Client-resource listeners receive an initial notification after the client backe
 
 > **Use with Caution.** The native bridge has been built and checked in an integrated client: initial notification before join, one after actual F3+T, conflicting-pack priority, exact raw bytes/RGBA and unchanged old image snapshots. Reads return `None` without an installed client backend or when the resource cannot be read/decoded; a headless server or pure test must not assume an image exists. Triggering `reload_event(...).invoke(&())` only calls listeners: it does not reload packs or install a fresh handle. Dedicated/LAN and malformed native-pack reloads were not exercised.
 
+## Reading JSON Data Folders
+
+Register a folder under `data/<namespace>/`, not a filesystem path. The server backend discovers effective JSON resources across the resource root/content mods and enabled world datapacks; the top pack wins each resource ID. The callback receives decoded JSON, with the folder and `.json` suffix removed from each ID. Empty batches must clear data that disappeared.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+ResourceManagerHelper::get(ResourceType::ServerData)
+    .register_json_reload_listener(Identifier::new("example", "rules").unwrap(), "custom/rules", |files| {
+        // Build a new owned table from this complete batch, then replace the old one.
+        for (id, json) in files { let _ = (id, json); }
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** Server folder discovery/apply is included in the v13 host/API/game-entry typechecks; executable linking, gameplay and combined attachment review remain pending. Native source sorts effective IDs and omits malformed JSON (including a broken top override, without reviving a lower pack). The facade validates the whole batch before invoking a callback outside registry locks. Callback errors are returned by pure dispatch and logged by the native bridge; they do not roll back other listeners or abort the whole server reload. There is no borrowed player/world context. `reload_registry` source-exposes owned entity-type and item membership/tag snapshots during these callbacks; retain that value when later work needs the same generation. Other registries remain unavailable. Folder callbacks run before `ServerData` notifications; notification phase ordering does not order folder callbacks. Registrations made during application affect the next native enumeration, not the current one. Client JSON declarations are accepted but currently inert, never redirected to server data.
+
+## Reading Complete Resource Stacks
+
+A tag loader needs every pack layer, not just the effective top JSON. During a server JSON callback, `reload_json_stacks` returns the complete stacks for any **exact directory captured in that reload pass**. Register every needed folder before the pass starts. All folders are prepared before any callback; reading another captured folder does not wait for its listener or depend on callback order. Each resource ID has bottom-to-top layers; malformed JSON and failed reads remain explicit errors at their original positions. This API does not merge tags, apply `replace`, skip errors or choose a fallback for you.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+let data = ResourceManagerHelper::get(ResourceType::ServerData);
+data.register_json_reload_listener(Identifier::new("example", "tool_definitions").unwrap(),
+    "tools/definitions", |_| Ok(())).unwrap();
+data.register_json_reload_listener(Identifier::new("example", "material_tags").unwrap(), "tags/materials", |_| {
+        let definitions = ResourceManagerHelper::reload_json_stacks("tools/definitions")
+            .ok_or("definitions unavailable; do not mix with the previous generation")?;
+        let _ = definitions; // captured before either listener, not loaded from a global cache
+        let stacks = ResourceManagerHelper::reload_json_stacks("tags/materials")
+            .ok_or("resource stacks unavailable")?;
+        for stack in stacks {
+            for layer in stack.layers {
+                let json = layer?; // this strict example rejects any failed layer
+                let _ = json; // a format-specific loader applies its own merge rules
+            }
+        }
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** Native source now scopes the whole reload-listener pass, preparing all registered folders from one pack stack before callbacks. Repeated directories share a capture; overlapping root/child directories reuse each pack/file's captured bytes. This is not an atomic filesystem transaction against external writers. Normal effective JSON and complete layers derive from those same bytes: a broken highest layer is omitted from the normal batch, never replaced by a lower pack, while the stack API retains both the valid lower layer and the error. This path is included in the v13 attachment plan and host/API/game-entry typechecks; executable linking and gameplay remain unverified. Production-helper regressions cover top-layer rejection and nested-scope restoration during unwinding; they do not exercise native pack I/O. `None` means unsupported/unavailable scope or an uncaptured/unsafe directory; `Some(empty)` means a successfully captured empty folder. Returned JSON is owned and survives reload/scope exit. Nested callbacks restore outer snapshots, including unwinding. Client JSON stacks remain unavailable. A loader that intentionally logs/skips a malformed layer must do so explicitly according to its source format; there is no implicit fallback.
+
+## Capturing Reload Registry Membership
+
+Inside a server JSON-folder callback, `reload_registry` returns an owned lookup for a supported registry. Native source uses the full entity-type ID data used by command validation, not the renderer-filtered MobTypes list. Entity tags come from the active world's successfully loaded pack-tag registry, with the native base-tag fallback only when that registry is unavailable. Item entries/tags use the world's currently selected native Items, not the fixed base Items or a built-in mod tag catalog. An absent tag and a present empty tag remain distinct.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+ResourceManagerHelper::get(ResourceType::ServerData)
+    .register_json_reload_listener(Identifier::new("example", "entity_rules").unwrap(), "entity_rules", |_| {
+        let registry = Identifier::new("minecraft", "entity_type").unwrap();
+        let entities = ResourceManagerHelper::reload_registry(&registry)
+            .ok_or("entity registry unavailable; do not publish a fake empty table")?;
+        let _player_exists = entities.contains(&Identifier::new("minecraft", "player").unwrap());
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** The native wrapper/provider is source-declared, guarded pending native attachment review, and not plan/type/build/game validated. `minecraft:entity_type` and `minecraft:item` are source-supported. Outside the callback, or for unsupported/unavailable registries, the result is `None`, not a fabricated empty registry. Invalid registry contents are logged and make that registry unavailable without discarding valid independent registries. Broken or duplicate registry IDs invalidate the entire ambiguous context. Valid JSON is still delivered so a consumer can disable stale state. This does not abort or roll back the whole server reload. Owned lookups survive callback exit/reload, but retaining one does not refresh it. Entries/tag members are sets: no original registry order or seeded random-selection parity is promised. Nested callbacks restore the outer context, including panic unwinding; no world pointer or temporary entity ID is retained.
+
 ## Reference
 
 ### `ResourceType`
@@ -101,6 +162,91 @@ ResourceManagerHelper::get(ResourceType::ClientResources)
     });
 reload_event(ResourceType::ClientResources).invoke(&());
 assert_eq!(RELOADS.load(Ordering::Relaxed), 1);
+```
+
+### `ResourceManagerHelper::register_json_reload_listener`
+
+`fn register_json_reload_listener(&self, id: Identifier, directory: &str, apply: impl Fn(&[(Identifier, serde_json::Value)]) -> Result<(), String> + Send + Sync + 'static) -> Result<(), String>`. Registers a complete JSON-folder batch callback for this resource type. Duplicate listener IDs within the same type are rejected without replacement. Directories are nonempty slash-separated relative segments, without empty, `.` or `..` segments, backslashes or colons. Listener/resource IDs must also be plain namespaced paths. Callbacks may retain cloned JSON and register other listeners without a held registry lock. No client-native JSON discovery exists yet; server-native transport is source-wired but unverified.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+let data = ResourceManagerHelper::get(ResourceType::ServerData);
+let id = Identifier::new("example", "json_data").unwrap();
+data.register_json_reload_listener(id.clone(), "rules", |_| Ok(())).unwrap();
+assert!(data.register_json_reload_listener(id, "other", |_| Ok(())).is_err());
+assert!(data.register_json_reload_listener(Identifier::new("example", "unsafe").unwrap(), "../rules", |_| Ok(())).is_err());
+```
+
+### `ResourceManagerHelper::reload_json_stacks`
+
+`fn reload_json_stacks(directory: &str) -> Option<Vec<JsonResourceStack>>`. Returns owned complete stacks for an exact directory captured in the current server reload pass, in backend resource-ID order, with layers bottom pack first. All registered folders are captured before callbacks; another captured folder is readable regardless of listener order. Unsafe, uncaptured or unavailable directories and out-of-scope/client backends return `None`. A captured folder with no resources returns `Some(vec![])`. This reads the captured snapshot, not the filesystem again.
+
+```rust
+use pluto_lib::ResourceManagerHelper;
+assert!(ResourceManagerHelper::reload_json_stacks("tags/materials").is_none()); // outside callback
+assert!(ResourceManagerHelper::reload_json_stacks("../escape").is_none());
+```
+
+### `JsonResourceStack`
+
+Owned JSON layers: `id: Identifier` is the resource ID with the directory and `.json` suffix removed; `layers: Vec<Result<serde_json::Value, String>>` retains each pack's JSON or read/parse error, bottom-to-top. Error strings identify their resource/layer where available. Cloning or editing this value does not change the callback's retained snapshot. Manual construction does not install packs or publish a reload.
+
+```rust
+use pluto_lib::{Identifier, JsonResourceStack};
+let stack = JsonResourceStack {
+    id: Identifier::new("example", "ores").unwrap(),
+    layers: vec![Ok(serde_json::json!({"values": ["example:copper"]})), Err("invalid top JSON".into())],
+};
+assert_eq!(stack.id.to_string(), "example:ores");
+assert!(stack.layers[0].is_ok());
+assert!(stack.layers[1].is_err()); // not replaced by the lower layer
+```
+
+### `ResourceManagerHelper::reload_registry`
+
+`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type` and `minecraft:item`; native integration remains unverified.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+for registry in ["entity_type", "item"] {
+    let id = Identifier::new("minecraft", registry).unwrap();
+    assert!(ResourceManagerHelper::reload_registry(&id).is_none()); // outside a reload callback
+}
+```
+
+### `RegistryLookup`
+
+A cloneable, owned registry/tag membership snapshot. Keep it to pair derived data with the same reload generation. Values cannot be edited through this view; retaining or cloning one does not refresh it.
+
+```rust
+use pluto_lib::{Identifier, RegistryLookup, ResourceManagerHelper};
+let snapshot: Option<RegistryLookup> = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:entity_type").unwrap());
+let retained = snapshot.clone();
+assert_eq!(snapshot, retained);
+```
+
+### `RegistryLookup::contains`
+
+`fn contains(&self, id: &Identifier) -> bool`. Tests actual captured registry membership, independent of renderer/model availability.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:entity_type").unwrap()) {
+    let _exists = entities.contains(&Identifier::parse("minecraft:player").unwrap());
+}
+```
+
+### `RegistryLookup::get_tag`
+
+`fn get_tag(&self, tag: &Identifier) -> Option<&std::collections::BTreeSet<Identifier>>`. Returns the captured tag's members; `None` means absent, `Some(empty)` means present but empty. This is membership, not an ordered tag RNG API.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:entity_type").unwrap()) {
+    if let Some(members) = entities.get_tag(&Identifier::parse("minecraft:skeletons").unwrap()) {
+        let _has_skeleton = members.contains(&Identifier::parse("minecraft:skeleton").unwrap());
+    }
+}
 ```
 
 ### `ResourceManagerHelper::read_client_resource`

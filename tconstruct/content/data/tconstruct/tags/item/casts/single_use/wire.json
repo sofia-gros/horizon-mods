@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:wire_sand_cast",
-      "required": false
-    },
-    {
-      "id": "tconstruct:wire_red_sand_cast",
-      "required": false
-    }
+    "tconstruct:wire_sand_cast",
+    "tconstruct:wire_red_sand_cast"
   ]
 }

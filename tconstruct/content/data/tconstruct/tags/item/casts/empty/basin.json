@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:gold_platform",
-      "required": false
-    }
+    "tconstruct:gold_platform"
   ]
 }

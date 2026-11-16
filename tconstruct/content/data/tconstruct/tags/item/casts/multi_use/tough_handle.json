@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:tough_handle_cast",
-      "required": false
-    }
+    "tconstruct:tough_handle_cast"
   ]
 }

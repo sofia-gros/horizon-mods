@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:crossbow",
-      "required": false
-    },
-    {
-      "id": "tconstruct:war_pick",
-      "required": false
-    }
+    "tconstruct:crossbow",
+    "tconstruct:war_pick"
   ]
 }

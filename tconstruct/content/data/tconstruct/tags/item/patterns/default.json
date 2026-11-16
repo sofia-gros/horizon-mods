@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:pattern",
-      "required": false
-    }
+    "tconstruct:pattern"
   ]
 }

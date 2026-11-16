@@ -1,6 +1,0 @@
-{
-  "effects": "drowning",
-  "exhaustion": 0.0,
-  "message_id": "tconstruct.update_health",
-  "scaling": "never"
-}

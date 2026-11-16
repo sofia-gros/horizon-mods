@@ -1,28 +1,10 @@
 {
   "values": [
-    {
-      "id": "tconstruct:sledge_hammer",
-      "required": false
-    },
-    {
-      "id": "tconstruct:vein_hammer",
-      "required": false
-    },
-    {
-      "id": "tconstruct:excavator",
-      "required": false
-    },
-    {
-      "id": "tconstruct:broad_axe",
-      "required": false
-    },
-    {
-      "id": "tconstruct:scythe",
-      "required": false
-    },
-    {
-      "id": "tconstruct:cleaver",
-      "required": false
-    }
+    "tconstruct:sledge_hammer",
+    "tconstruct:vein_hammer",
+    "tconstruct:excavator",
+    "tconstruct:broad_axe",
+    "tconstruct:scythe",
+    "tconstruct:cleaver"
   ]
 }

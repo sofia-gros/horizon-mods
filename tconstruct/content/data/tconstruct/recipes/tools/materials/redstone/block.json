@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:storage_blocks/redstone"
   },
@@ -8,6 +9,5 @@
   },
   "material": "tconstruct:redstone",
   "needed": 4,
-  "type": "tconstruct:material",
   "value": 9
 }

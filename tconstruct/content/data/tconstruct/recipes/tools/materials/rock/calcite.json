@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "item": "minecraft:calcite"
   },
   "material": "tconstruct:rock#calcite",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

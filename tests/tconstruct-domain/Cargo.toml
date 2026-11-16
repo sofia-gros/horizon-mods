@@ -1,0 +1,17 @@
+[package]
+name = "tconstruct-domain-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# The real host-independent PlutoLib implementation and public types, not mocks.
+# This checks domain rules, not launcher integration or native behavior.
+[dependencies]
+serde_json = "=1.0.154"
+toml = "=0.8.23"
+pluto_lib = { package = "pluto-lib-pure-tests", path = "../../pluto-lib/tests/pure" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]

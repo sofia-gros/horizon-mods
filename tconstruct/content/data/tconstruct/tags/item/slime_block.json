@@ -1,17 +1,8 @@
 {
   "values": [
     "minecraft:slime_block",
-    {
-      "id": "tconstruct:sky_slime",
-      "required": false
-    },
-    {
-      "id": "tconstruct:ichor_slime",
-      "required": false
-    },
-    {
-      "id": "tconstruct:ender_slime",
-      "required": false
-    }
+    "tconstruct:sky_slime",
+    "tconstruct:ichor_slime",
+    "tconstruct:ender_slime"
   ]
 }

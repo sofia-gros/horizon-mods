@@ -21,7 +21,63 @@ def metadata():
     return json.loads((ROOT / 'tools/cloud-insertion-boundaries.json').read_text())
 
 
+def native_metadata():
+    return json.loads((ROOT / 'tools/native-cloud-preservation.json').read_text())
+
+
+def check_native(plan, workspace):
+    meta = native_metadata()
+    if plan.get('schema') != meta['schema']:
+        raise ValueError('Unreviewed native cloud preservation schema')
+    root = Path(workspace).resolve()
+    for name, expected in meta['sources'].items():
+        source = root / name
+        if source.is_symlink() or not source.is_file():
+            raise ValueError('Native cloud source must be a regular file: ' + name)
+        source.resolve().relative_to(root)
+        if plan.get('inputs', {}).get(name) != expected or digest(source.read_bytes()) != expected:
+            raise ValueError('Native cloud plan/workspace source differs: ' + name)
+    permitted = {}
+    for section, key, field, source_key in (
+            ('modules', 'contact_module', 'source', 'module'),
+            ('injections', 'contact_hook', 'helper_source', 'hook')):
+        expected = meta[key]
+        identifier = 'module_id' if section == 'modules' else 'injection_id'
+        selected = [entry for entry in plan.get(section, [])
+                    if entry.get(identifier) == expected[identifier]]
+        if len(selected) != 1:
+            raise ValueError('Expected one reviewed cloud-adjacent contact ' + section)
+        entry = selected[0]
+        if any(entry.get(k) != value for k, value in expected.items()):
+            raise ValueError('Cloud-adjacent contact identity/phase differs')
+        if section == 'modules' and entry.get('visibility', 'pub(crate)') != 'pub(crate)':
+            raise ValueError('Cloud-adjacent contact visibility differs')
+        raw = (ROOT / 'mod' / meta[source_key + '_source']).read_bytes()
+        if digest(raw) != meta[source_key + '_sha256'] or entry.get(field, '').encode() != raw:
+            raise ValueError('Cloud-adjacent contact source differs')
+        permitted[section] = entry
+    forbidden_names = {entry['name'] for entry in metadata()['modules']}
+    prefixes = tuple(meta['protected_prefixes'])
+    for section in ('modules', 'injections', 'states'):
+        for entry in plan.get(section, []):
+            if any(c.get('file') in meta['sources'] for c in entry.get('constructors', [])):
+                raise ValueError('State constructor changes a preserved native cloud source')
+            if entry is permitted.get(section):
+                continue
+            if (entry.get('mod_id') == MOD_ID or entry.get('name') in forbidden_names
+                    or entry.get('file') in meta['sources']
+                    or entry.get('target', '').startswith(prefixes)
+                    or entry.get('function_fingerprint') == meta['contact_hook']['function_fingerprint']):
+                raise ValueError('Unreviewed attachment changes a preserved native cloud boundary')
+
+
 def check(plan, workspace, meta=None, helpers=None):
+    if any(entry.get('mod_id') == 'pluto_lib'
+           for section in ('injections', 'modules', 'states') for entry in plan.get(section, [])):
+        if meta is not None or helpers is not None:
+            raise ValueError('Native cloud preservation forbids metadata/helper overrides')
+        check_native(plan, workspace)
+        return
     meta = metadata() if meta is None else meta
     helpers = ROOT / 'mixins/pluto_native_creative' if helpers is None else Path(helpers)
     workspace = Path(workspace).resolve()
@@ -78,7 +134,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, TypeError) as error:
         print('Cloud insertion composition rejected: ' + str(error), file=sys.stderr)
         return 1
-    print('Cloud insertion native inputs, package bytes, placement and exclusive boundaries verified.')
+    print('Cloud boundary verified; native preservation supplies no custom insertion authority API.')
     return 0
 
 

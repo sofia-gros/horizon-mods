@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:seared_tanks",
-      "required": false
-    }
+    "#tconstruct:seared_tanks"
   ]
 }

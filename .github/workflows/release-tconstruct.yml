@@ -20,18 +20,23 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.sha }}
+      # Development archives and historical format fixtures are not release evidence.
+      # Keep validation above mandatory; this gate does not replace native/game checks.
+      - name: Require completed clean-port and supported distribution
+        # Direct-host installation is not supported by the ordinary hnmod format.
+        # This fails explicitly until that distribution path is implemented/reviewed.
+        run: python3 tools/validate_release.py "$GITHUB_REF_NAME" --preflight
       - name: Build packages from the tagged commit
         run: |
-          mkdir -p dist
-          python3 tconstruct/tools/package_hmod.py --output dist/tconstruct.hmod
-          python3 tconstruct/tools/package_hnmod.py --output dist/tconstruct.hnmod
-          python3 pluto-lib/tools/package_native.py dist/plutolib.hnmod
-          python3 tools/validate_release.py "$GITHUB_REF_NAME" dist
-          (cd dist && sha256sum tconstruct.hmod tconstruct.hnmod plutolib.hnmod > SHA256SUMS)
+          mkdir -p .local/release
+          python3 tools/port.py package --output .local/release/tconstruct.hnmod
+          python3 tools/package_bundle.py pluto-lib/mod .local/release/pluto-lib.hnmod
+          python3 tools/validate_release.py "$GITHUB_REF_NAME" .local/release
+          (cd .local/release && sha256sum tconstruct.hnmod pluto-lib.hnmod > SHA256SUMS)
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            dist/tconstruct.hmod dist/tconstruct.hnmod dist/plutolib.hnmod dist/SHA256SUMS
+            .local/release/tconstruct.hnmod .local/release/pluto-lib.hnmod .local/release/SHA256SUMS

@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:plate_sand_cast",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_red_sand_cast",
-      "required": false
-    }
+    "tconstruct:plate_sand_cast",
+    "tconstruct:plate_red_sand_cast"
   ]
 }

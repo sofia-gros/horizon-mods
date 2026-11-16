@@ -2,9 +2,6 @@
   "values": [
     "minecraft:crimson_planks",
     "minecraft:warped_planks",
-    {
-      "id": "#tconstruct:slimy_planks",
-      "required": false
-    }
+    "#tconstruct:slimy_planks"
   ]
 }

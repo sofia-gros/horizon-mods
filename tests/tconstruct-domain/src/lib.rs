@@ -1,0 +1,87 @@
+//! Compile production domain modules against the actual host-independent API.
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tables/mod.rs"]
+mod tables;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/materials.rs"]
+mod materials;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/material_traits.rs"]
+mod material_traits;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_entries.rs"]
+mod modifier_entries;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs"]
+mod modifier_module_types;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/formula.rs"]
+mod formula;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/material_recipes.rs"]
+mod material_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_recipes.rs"]
+mod modifier_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_recipes.rs"]
+mod worktable_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/overslime.rs"]
+mod overslime;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_removal.rs"]
+mod modifier_removal;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_recipes.rs"]
+mod part_builder_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_predicate.rs"]
+mod tool_predicate;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_modules.rs"]
+mod modifier_modules;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifiers.rs"]
+mod modifiers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/material_stats.rs"]
+mod material_stats;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/material_snapshot.rs"]
+mod material_snapshot;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/material_sync.rs"]
+mod material_sync;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_materials.rs"]
+mod tool_materials;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_stats.rs"]
+mod tool_stats;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_definitions.rs"]
+mod tool_definitions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_rebuild.rs"]
+mod tool_rebuild;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_stack.rs"]
+mod tool_stack;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_damage.rs"]
+mod tool_damage;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_repair.rs"]
+mod tool_repair;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_swap.rs"]
+mod tool_swap;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_build.rs"]
+mod tool_build;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_parts.rs"]
+mod tool_parts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_mining.rs"]
+mod tool_mining;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mining_speed.rs"]
+mod mining_speed;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/break_speed_hook.rs"]
+mod break_speed_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_slot.rs"]
+mod tool_slot;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
+mod tool_station;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_menu.rs"]
+mod station_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_menu.rs"]
+mod worktable_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_menu.rs"]
+mod part_builder_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_parts.rs"]
+mod creative_parts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
+mod creative;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
+mod config;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/conditions.rs"]
+mod conditions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/common.rs"]
+mod common;
+#[cfg(test)]
+mod reload_tests;
+#[cfg(test)]
+mod original_data;

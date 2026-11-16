@@ -7,10 +7,44 @@ use std::sync::{Arc, Mutex};
 
 use super::base::{Identifier, NbtCompound};
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
+#[path = "model_part.rs"]
+mod model_part;
+pub use model_part::{ModelPart, ModelPolygon, ModelVertex, PartPose};
+#[path = "model_layer.rs"]
+mod model_layer;
+pub use model_layer::{CubeDefinition, PartDefinition, LayerDefinition, EntityModelLayerRegistry};
+pub(crate) use model_layer::{definitions as model_layer_definitions, definitions_for as model_layer_definitions_for};
+
+/// The model transform used when drawing an item (Minecraft: `ItemDisplayContext`).
+/// This selects the item's resource-model transform, not the surrounding canvas pose.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ItemDisplayContext {
+    None,
+    ThirdPersonLeftHand,
+    ThirdPersonRightHand,
+    FirstPersonLeftHand,
+    FirstPersonRightHand,
+    Head,
+    Gui,
+    Ground,
+    Fixed,
+    OnShelf,
+}
 
 /// The surface a block entity renderer draws on. PlutoLib passes one to the renderer; a test can implement it to check what a renderer
 /// draws. Positions are in blocks under the current pose; a `tint` is `0xRRGGBB`.
 pub trait BlockEntityCanvas {
+    /// A property of the exact state being drawn, not a second world lookup.
+    /// None if absent or unavailable on a custom canvas.
+    fn state_property(&self, _name: &str) -> Option<String> { None }
+    /// Read-only transient data of this client entity, distinct from server NBT.
+    /// None if instance storage/transport is unsupported or temporarily busy.
+    /// Native snapshot forwarding exists in source, not yet native-validated.
+    fn client_data(&self) -> Option<&NbtCompound> { None }
+    /// Current render interpolation fraction. None on unsupported canvases.
+    fn partial_tick(&self) -> Option<f32> { None }
+    /// Current level game time. This is not a block entity's animation counter.
+    fn game_time(&self) -> Option<i64> { None }
     /// Saves the pose (position, rotation, scale) to come back to with [`pop`](Self::pop).
     fn push(&mut self);
     /// Comes back to the pose of the matching [`push`](Self::push).
@@ -30,9 +64,27 @@ pub trait BlockEntityCanvas {
     fn block(&mut self, block: &str, properties: &[(&str, &str)]) -> bool;
     /// Draws an item stack as it looks fixed in a frame; false if it cannot be drawn.
     fn item(&mut self, item: &ItemSlot) -> bool;
+    /// Draws a stack with the chosen item-model display transform. Custom canvases
+    /// that only implement `item` support Fixed; other contexts return false rather
+    /// than silently drawing the wrong transform. The native canvas handles all contexts.
+    fn item_with_context(&mut self, item: &ItemSlot, context: ItemDisplayContext) -> bool {
+        context == ItemDisplayContext::Fixed && self.item(item)
+    }
     /// Draws a model (`mymod:block/gear`) the mod registered; false if there is none.
     fn model(&mut self, model: &str, tint: u32) -> bool;
-    /// Keeps what was drawn until the block entity, its light or the resource packs change, so idle machines cost nothing per frame.
+    /// Bakes an owned part tree from a native registered or vanilla model layer,
+    /// e.g. `minecraft:piglin_head#main`. None when unavailable or unsupported.
+    /// Cache the returned tree in the renderer rather than baking every frame.
+    fn bake_layer(&mut self, _layer: &str) -> Option<ModelPart> { None }
+    /// Draws a part tree under this canvas's current pose, with an entity-texture
+    /// sprite and RGB tint. Part translations/vertices are in texels, rotations
+    /// in radians; visibility and skip_draw retain their distinct meanings.
+    /// Custom canvases without model-part support return false without drawing.
+    fn model_part(&mut self, _part: &ModelPart, _sprite: &str, _tint: u32) -> bool { false }
+    /// Requests geometry caching for static rendering. PlutoLib coalesces hints
+    /// and checks them after the callback; a registered client ticker or an
+    /// unavailable type registry suppresses the request. Generation/token
+    /// adapters for existing native entries are source-wired but unvalidated.
     fn keep(&mut self);
 }
 
@@ -51,6 +103,7 @@ pub struct BlockEntityRender<'a> {
 type Renderer = Arc<dyn Fn(&mut BlockEntityRender<'_>) + Send + Sync>;
 
 static RENDERERS: Mutex<Option<HashMap<String, Renderer>>> = Mutex::new(None);
+pub(crate) fn registry_available() -> bool { !RENDERERS.is_poisoned() }
 
 /// Registers block entity renderers (Fabric: `BlockEntityRendererFactories.register`).
 pub struct BlockEntityRendererRegistry;
@@ -60,6 +113,7 @@ impl BlockEntityRendererRegistry {
     pub fn register(block: Identifier, renderer: impl Fn(&mut BlockEntityRender<'_>) + Send + Sync + 'static) {
         if let Ok(mut all) = RENDERERS.lock() {
             all.get_or_insert_with(HashMap::new).insert(block.to_string(), Arc::new(renderer));
+            super::render_cache::changed();
         }
     }
 
@@ -69,12 +123,44 @@ impl BlockEntityRendererRegistry {
     }
 }
 
+/// Defer keep hints until the complete callback has finished: a callback may
+/// register a client ticker after asking to keep its geometry. All optional
+/// canvas operations must forward too, rather than falling back to trait stubs.
+struct CacheCanvas<'a> {
+    inner: &'a mut dyn BlockEntityCanvas,
+    keep_requested: bool,
+}
+impl BlockEntityCanvas for CacheCanvas<'_> {
+    fn state_property(&self, name: &str) -> Option<String> { self.inner.state_property(name) }
+    fn client_data(&self) -> Option<&NbtCompound> { self.inner.client_data() }
+    fn partial_tick(&self) -> Option<f32> { self.inner.partial_tick() }
+    fn game_time(&self) -> Option<i64> { self.inner.game_time() }
+    fn push(&mut self) { self.inner.push(); }
+    fn pop(&mut self) { self.inner.pop(); }
+    fn translate(&mut self, by: [f32; 3]) { self.inner.translate(by); }
+    fn rotate_about(&mut self, axis: [f32; 3], degrees: f32, pivot: [f32; 3]) { self.inner.rotate_about(axis, degrees, pivot); }
+    fn scale(&mut self, by: [f32; 3]) { self.inner.scale(by); }
+    fn quad(&mut self, sprite: &str, corners: [[f32; 3]; 4], uv: [f32; 4], tint: u32) -> bool { self.inner.quad(sprite, corners, uv, tint) }
+    fn cube(&mut self, from: [f32; 3], to: [f32; 3], sprite: &str, tint: u32) -> bool { self.inner.cube(from, to, sprite, tint) }
+    fn block(&mut self, block: &str, properties: &[(&str, &str)]) -> bool { self.inner.block(block, properties) }
+    fn item(&mut self, item: &ItemSlot) -> bool { self.inner.item(item) }
+    fn item_with_context(&mut self, item: &ItemSlot, context: ItemDisplayContext) -> bool { self.inner.item_with_context(item, context) }
+    fn model(&mut self, model: &str, tint: u32) -> bool { self.inner.model(model, tint) }
+    fn bake_layer(&mut self, layer: &str) -> Option<ModelPart> { self.inner.bake_layer(layer) }
+    fn model_part(&mut self, part: &ModelPart, sprite: &str, tint: u32) -> bool { self.inner.model_part(part, sprite, tint) }
+    fn keep(&mut self) { self.keep_requested = true; }
+}
+
 /// Draws the block entity with the block's renderer; false if the block has none.
 pub(crate) fn render(block: &str, pos: BlockPos, data: &NbtCompound, canvas: &mut dyn BlockEntityCanvas) -> bool {
     let renderer = RENDERERS.lock().ok().and_then(|all| all.as_ref().and_then(|m| m.get(block).cloned()));
     match renderer {
         Some(renderer) => {
-            renderer(&mut BlockEntityRender { pos, block, data, canvas });
+            let mut canvas = CacheCanvas { inner: canvas, keep_requested: false };
+            renderer(&mut BlockEntityRender { pos, block, data, canvas: &mut canvas });
+            if canvas.keep_requested && super::block_entity_api_v1::client_ticks(block) == Some(false) {
+                canvas.inner.keep();
+            }
             true
         }
         None => false,
@@ -87,9 +173,13 @@ mod tests {
     use crate::pure::base::{Nbt, NbtCompoundExt};
 
     #[derive(Default)]
-    struct Recorder(Vec<String>);
+    struct Recorder(Vec<String>, Option<NbtCompound>, Option<f32>, Option<i64>);
 
     impl BlockEntityCanvas for Recorder {
+        fn client_data(&self) -> Option<&NbtCompound> { self.1.as_ref() }
+        fn partial_tick(&self) -> Option<f32> { self.2 }
+        fn game_time(&self) -> Option<i64> { self.3 }
+        fn state_property(&self, _: &str) -> Option<String> { self.2.map(|_| "north".into()) }
         fn push(&mut self) {
             self.0.push("push".into());
         }
@@ -119,8 +209,19 @@ mod tests {
             self.0.push(format!("item {}", item.item));
             true
         }
+        fn item_with_context(&mut self, item: &ItemSlot, context: ItemDisplayContext) -> bool {
+            if self.2.is_some() && context == ItemDisplayContext::Head {
+                self.0.push("head-item".into()); true
+            } else { context == ItemDisplayContext::Fixed && self.item(item) }
+        }
         fn model(&mut self, _: &str, _: u32) -> bool {
-            false
+            if self.2.is_some() { self.0.push("model".into()); true } else { false }
+        }
+        fn bake_layer(&mut self, _: &str) -> Option<ModelPart> {
+            self.2.map(|_| ModelPart::new(Vec::new(), Vec::new(), PartPose::ZERO))
+        }
+        fn model_part(&mut self, _: &ModelPart, _: &str, _: u32) -> bool {
+            if self.2.is_some() { self.0.push("model-part".into()); true } else { false }
         }
         fn keep(&mut self) {
             self.0.push("keep".into());
@@ -148,5 +249,121 @@ mod tests {
         let mut nothing = Recorder::default();
         assert!(!render("test:other", [0; 3], &data, &mut nothing));
         assert!(nothing.0.is_empty());
+    }
+
+    #[test]
+    fn keep_is_decided_after_registration_changes_and_client_ticks_stay_frame_dependent() {
+        use crate::pure::block_entity_api_v1::{self, BlockEntityType, BlockEntityTypeRegistry};
+        use crate::pure::block_api_v1::MemoryBlockView;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let block = "test:cache_policy";
+        let late = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&late);
+        BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse(block).unwrap()));
+        BlockEntityRendererRegistry::register(Identifier::parse(block).unwrap(), move |r| {
+            r.canvas.keep();
+            r.canvas.keep(); // coalesced and checked only after this callback
+            let count = r.canvas.client_data().map(|d| d.get_int("ticks", 0)).unwrap_or(0) as f32;
+            r.canvas.cube([0.0; 3], [1.0, count, 1.0], "test:client", 0xFFFFFF);
+            if flag.swap(false, Ordering::SeqCst) {
+                BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse(block).unwrap()).client_ticker(|tick| {
+                    let count = tick.client_data.get_int("ticks", 0) as i32;
+                    tick.client_data.insert("ticks".into(), Nbt::Int(count + 1));
+                }));
+            }
+        });
+        let saved = NbtCompound::new();
+        let mut canvas = Recorder::default();
+        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert_eq!(canvas.0.iter().filter(|line| *line == "keep").count(), 1);
+        late.store(true, Ordering::SeqCst);
+        canvas.0.clear();
+        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert!(!canvas.0.iter().any(|line| line == "keep")); // registered AFTER keep request
+        let mut local = NbtCompound::new();
+        for expected in [1.0, 2.0] {
+            assert!(block_entity_api_v1::client_tick(block, [0; 3], &saved, &mut local, &MemoryBlockView::default(), true));
+            canvas.0.clear();
+            canvas.1 = Some(local.clone());
+            assert!(render(block, [0; 3], &saved, &mut canvas));
+            assert_eq!(canvas.0, [format!("cube test:client {:?}", [1.0, expected, 1.0])]);
+        }
+        assert!(saved.is_empty());
+        BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse(block).unwrap()));
+        canvas.0.clear();
+        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert_eq!(canvas.0.iter().filter(|line| *line == "keep").count(), 1);
+    }
+
+    #[test]
+    fn cache_policy_canvas_preserves_optional_frame_model_and_item_operations() {
+        let mut inner = Recorder::default();
+        inner.1 = Some(NbtCompound::from([("ticks".into(), Nbt::Int(5))]));
+        inner.2 = Some(0.25);
+        inner.3 = Some(42);
+        {
+            let mut canvas = CacheCanvas { inner: &mut inner, keep_requested: false };
+            assert_eq!(canvas.client_data().unwrap().get_int("ticks", 0), 5);
+            assert_eq!(canvas.partial_tick(), Some(0.25));
+            assert_eq!(canvas.game_time(), Some(42));
+            assert_eq!(canvas.state_property("facing").as_deref(), Some("north"));
+            let part = canvas.bake_layer("test:layer#main").unwrap();
+            assert!(canvas.model_part(&part, "test:entity", 0xFFFFFF));
+            assert!(canvas.model("test:model", 0xFFFFFF));
+            assert!(canvas.item_with_context(&ItemSlot::new(Identifier::parse("minecraft:stick").unwrap(), 1), ItemDisplayContext::Head));
+            canvas.keep();
+            assert!(canvas.keep_requested);
+        }
+        assert_eq!(inner.0, ["model-part", "model", "head-item"]); // no premature backend keep
+    }
+
+    #[test]
+    fn poisoned_renderer_registry_refuses_existing_cache_generations() {
+        // Poisoning is permanent; isolate it from the other registry tests.
+        if std::env::var_os("PLUTO_RENDER_POISON_TEST_CHILD").is_none() || !std::env::args().any(|arg| arg == "--exact") {
+            let name = concat!(module_path!(), "::poisoned_renderer_registry_refuses_existing_cache_generations");
+            let filter = name.split_once("::").unwrap().1;
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", filter, "--test-threads=1"])
+                .env("PLUTO_RENDER_POISON_TEST_CHILD", "1").output().unwrap();
+            assert!(output.status.success() && String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+                "{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            return;
+        }
+        let block = Identifier::parse("test:poisoned_renderer").unwrap();
+        BlockEntityRendererRegistry::register(block, |r| r.canvas.keep());
+        assert!(super::super::render_cache::generation().is_some());
+        assert!(std::panic::catch_unwind(|| {
+            let _guard = RENDERERS.lock().unwrap();
+            panic!("poison renderer registry");
+        }).is_err());
+        assert_eq!(super::super::render_cache::generation(), None);
+        let mut canvas = Recorder::default();
+        assert!(!render("test:poisoned_renderer", [0; 3], &NbtCompound::new(), &mut canvas));
+        assert!(canvas.0.is_empty());
+    }
+
+    #[test]
+    fn legacy_canvas_keeps_fixed_items_but_never_substitutes_them_for_other_contexts() {
+        let stack = ItemSlot::new(Identifier::parse("test:head").unwrap(), 1);
+        let mut recorder = Recorder::default();
+        let canvas: &mut dyn BlockEntityCanvas = &mut recorder;
+        assert!(canvas.item_with_context(&stack, ItemDisplayContext::Fixed));
+        for context in [ItemDisplayContext::None, ItemDisplayContext::ThirdPersonLeftHand,
+            ItemDisplayContext::ThirdPersonRightHand, ItemDisplayContext::FirstPersonLeftHand,
+            ItemDisplayContext::FirstPersonRightHand, ItemDisplayContext::Head,
+            ItemDisplayContext::Gui, ItemDisplayContext::Ground, ItemDisplayContext::OnShelf] {
+            assert!(!canvas.item_with_context(&stack, context));
+        }
+        // No unimplemented context was drawn using the fixed-frame transform.
+        assert_eq!(recorder.0, ["item test:head"]);
+        assert_eq!(recorder.state_property("rotation"), None);
+        assert_eq!(recorder.partial_tick(), None);
+        assert_eq!(recorder.game_time(), None);
+        assert!(recorder.client_data().is_none());
+        assert!(recorder.bake_layer("test:head#main").is_none());
+        let part = ModelPart::new(Vec::new(), Vec::new(), PartPose::ZERO);
+        assert!(!recorder.model_part(&part, "test:entity/head", 0xFFFFFF));
+        assert_eq!(recorder.0, ["item test:head"]);
     }
 }

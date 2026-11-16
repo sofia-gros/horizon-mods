@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 
+pub use super::entity_spawn_api::{MobSpawnInfo,MobSpawnPreparation,MobSpawnCompletion,MobSpawnAction,MobSpawnCallback};
 use super::base::Event;
 use super::player_api::StackData;
 

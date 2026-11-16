@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:storage_blocks/cinderslime"
   },
@@ -8,6 +9,5 @@
   },
   "material": "tconstruct:cinderslime",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 9
 }

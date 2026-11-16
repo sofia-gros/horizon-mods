@@ -13,8 +13,32 @@ use super::base::{Identifier, Nbt, NbtCompound};
 /// A block position `[x, y, z]`.
 pub type BlockPos = [i32; 3];
 
-/// One stack in an item slot: the item, the count, and what a mod keeps on the stack. A stack whose item is not changed keeps all of its
-/// other data when only the count is changed.
+// Host-owned value transported without exposing host types through the public API.
+#[derive(Clone)]
+struct StackSnapshot {
+    value: Arc<dyn std::any::Any + Send + Sync>,
+    equal: fn(&dyn std::any::Any, &dyn std::any::Any) -> bool,
+}
+impl StackSnapshot {
+    fn new<T: std::any::Any + Send + Sync + PartialEq>(value: T) -> Self {
+        Self { value: Arc::new(value), equal: |left, right| {
+            left.downcast_ref::<T>().zip(right.downcast_ref::<T>()).is_some_and(|(a, b)| a == b)
+        } }
+    }
+}
+impl std::fmt::Debug for StackSnapshot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("StackSnapshot(..)")
+    }
+}
+impl PartialEq for StackSnapshot {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.value, &other.value) || (self.equal)(self.value.as_ref(), other.value.as_ref())
+    }
+}
+
+/// One stack in an item slot. Clone an existing slot to retain all native components when moving it.
+/// A newly constructed slot is plain; changing its item identity discards the captured components.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ItemSlot {
     /// The item.
@@ -27,12 +51,24 @@ pub struct ItemSlot {
     pub max_damage: Option<i32>,
     /// The stack's `minecraft:custom_data`, empty for none.
     pub custom_data: NbtCompound,
+    /// The stack's own `minecraft:tool` component (mining rules and speeds), when it has one. Set it
+    /// to give this stack, not every stack of the item, its mining behavior; `None` leaves the item's.
+    pub tool: Option<NbtCompound>,
+    snapshot: Option<StackSnapshot>,
 }
 
 impl ItemSlot {
     /// A plain stack of `count` of `item`, with no damage and no data.
     pub fn new(item: Identifier, count: u32) -> Self {
-        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new() }
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, snapshot: None }
+    }
+
+    pub(crate) fn capture<T: std::any::Any + Send + Sync + PartialEq>(&mut self, value: T) {
+        self.snapshot = Some(StackSnapshot::new(value));
+    }
+
+    pub(crate) fn captured<T: std::any::Any>(&self) -> Option<&T> {
+        self.snapshot.as_ref()?.value.downcast_ref()
     }
 }
 
@@ -110,6 +146,18 @@ impl BlockEntityTick<'_> {
     }
 }
 
+/// A client-only block entity tick. Saved/synchronized data is read-only;
+/// client_data belongs to this client entity instance, is never serialized or
+/// sent to the server, and is discarded when the instance unloads or is replaced.
+/// Native instance ownership and dispatch remain an explicit support-matrix stub.
+pub struct BlockEntityClientTick<'a> {
+    pub pos: BlockPos,
+    pub data: &'a NbtCompound,
+    pub client_data: &'a mut NbtCompound,
+    pub world: &'a dyn super::block_api_v1::BlockView,
+}
+
+type ClientTicker = Arc<dyn Fn(&mut BlockEntityClientTick<'_>) + Send + Sync>;
 type Ticker = Arc<dyn Fn(&mut BlockEntityTick<'_>) + Send + Sync>;
 type UpdateTag = Arc<dyn Fn(&NbtCompound) -> NbtCompound + Send + Sync>;
 
@@ -126,13 +174,14 @@ pub struct BlockEntityType {
     menu: Option<String>,
     tanks: Vec<u32>,
     ticker: Option<Ticker>,
+    client_ticker: Option<ClientTicker>,
     update_tag: Option<UpdateTag>,
 }
 
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, update_tag: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None }
     }
 
     /// The same type under another id.
@@ -176,6 +225,14 @@ impl BlockEntityType {
         self
     }
 
+    /// Registers the client-level ticker, independently of the server ticker.
+    /// Callable and pure-testable now; native ticking/transient render transport
+    /// are not wired yet, so registration alone produces no client animation.
+    pub fn client_ticker(mut self, ticker: impl Fn(&mut BlockEntityClientTick<'_>) + Send + Sync + 'static) -> Self {
+        self.client_ticker = Some(Arc::new(ticker));
+        self
+    }
+
     /// The same type, clients being sent what `update_tag` makes of the saved data whenever a chunk holding it is sent or its block
     /// changes (Minecraft: `BlockEntity.getUpdateTag`).
     pub fn update_tag(mut self, update_tag: impl Fn(&NbtCompound) -> NbtCompound + Send + Sync + 'static) -> Self {
@@ -190,6 +247,7 @@ impl BlockEntityType {
 }
 
 static TYPES: Mutex<Vec<BlockEntityType>> = Mutex::new(Vec::new());
+pub(crate) fn registry_available() -> bool { !TYPES.is_poisoned() }
 
 /// Registers block entity types (Fabric: `Registry.register(Registries.BLOCK_ENTITY_TYPE, ...)`).
 pub struct BlockEntityTypeRegistry;
@@ -200,6 +258,7 @@ impl BlockEntityTypeRegistry {
         if let Ok(mut all) = TYPES.lock() {
             all.retain(|t| t.block != entity_type.block);
             all.push(entity_type);
+            super::render_cache::changed();
         }
     }
 
@@ -211,6 +270,14 @@ impl BlockEntityTypeRegistry {
 
 fn by_entity_id(id: &str) -> Option<BlockEntityType> {
     TYPES.lock().ok()?.iter().find(|t| t.id.to_string() == id).cloned()
+}
+
+/// Predicate for the draft mod-only native factory-priority adapter. Keep a
+/// poisoned registry distinct from an unregistered block so it cannot silently
+/// become a vanilla skull/sign after registration was intended.
+pub(crate) fn registered_type(block: &str) -> Result<bool, String> {
+    Ok(TYPES.lock().map_err(|_| "block entity type registry poisoned")?
+        .iter().any(|entity_type| entity_type.block.to_string() == block))
 }
 
 /// A new block entity for `block`: its type id and starting data; None if the block has no registered type.
@@ -248,6 +315,12 @@ pub(crate) fn ticks(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.ticker.is_some())
 }
 
+/// A client ticker makes render geometry frame-dependent. None preserves a
+/// poisoned registry as unavailable; cache policy must not treat that as static.
+pub(crate) fn client_ticks(block: &str) -> Option<bool> {
+    TYPES.lock().ok().map(|all| all.iter().any(|t| t.block.to_string() == block && t.client_ticker.is_some()))
+}
+
 /// Runs the ticker of the block entity type `entity_id` on `data`; true if a ticker ran.
 pub(crate) fn tick(entity_id: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> bool {
     match by_entity_id(entity_id).and_then(|t| t.ticker) {
@@ -257,6 +330,21 @@ pub(crate) fn tick(entity_id: &str, pos: BlockPos, data: &mut NbtCompound, items
         }
         None => false,
     }
+}
+
+/// Source dispatcher for a client copy. The future native adapter must supply
+/// instance-owned transient data, not a global position map or saved entity NBT.
+/// Resolve by actual block, not shared type ID: floor/wall variants may differ.
+pub(crate) fn client_tick(
+    block: &str, pos: BlockPos, data: &NbtCompound,
+    client_data: &mut NbtCompound, world: &dyn super::block_api_v1::BlockView,
+    client_side: bool,
+) -> bool {
+    if !client_side { return false; }
+    let ticker = BlockEntityTypeRegistry::get(block).and_then(|t| t.client_ticker);
+    let Some(ticker) = ticker else { return false };
+    ticker(&mut BlockEntityClientTick { pos, data, client_data, world });
+    true
 }
 
 /// What clients are sent of the block entity type `entity_id` with `data`; None sends nothing.
@@ -306,6 +394,46 @@ mod tests {
         assert!(create("test:unknown").is_none());
         assert!(!ticks("test:unknown"));
         assert!(!tick("test:unknown_entity", [0; 3], &mut data, &mut items));
+    }
+
+    #[test]
+    fn client_tickers_keep_transient_instances_separate_from_saved_data_and_server_ticks() {
+        use crate::pure::block_api_v1::{BlockView, MemoryBlockView};
+        let block = "test:client_clock";
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id(block)).sync_data().client_ticker(|tick| {
+            assert!(BlockEntityTypeRegistry::get("test:client_clock").is_some()); // no lock held
+            let Some(powered) = tick.world.has_neighbor_signal(tick.pos) else { return };
+            if powered {
+                let count = tick.client_data.get_int("frames", 0);
+                tick.client_data.insert("frames".into(), Nbt::Int(count as i32 + 1));
+            }
+            assert_eq!(tick.data.get_int("server", -1), 7);
+        }));
+        let mut world = MemoryBlockView::default();
+        world.neighbor_signals.insert([1, 2, 3], true);
+        world.neighbor_signals.insert([4, 5, 6], false);
+        let mut saved = NbtCompound::new();
+        saved.insert("server".into(), Nbt::Int(7));
+        let mut a = NbtCompound::new();
+        let mut b = NbtCompound::new();
+        assert!(!ticks(block));
+        assert!(!tick(block, [1, 2, 3], &mut saved, &mut Vec::new()));
+        assert!(!client_tick(block, [1, 2, 3], &saved, &mut a, &world, false));
+        assert!(a.is_empty());
+        assert!(client_tick(block, [1, 2, 3], &saved, &mut a, &world, true));
+        assert!(client_tick(block, [1, 2, 3], &saved, &mut a, &world, true));
+        assert!(client_tick(block, [4, 5, 6], &saved, &mut b, &world, true));
+        assert_eq!(a.get_int("frames", 0), 2);
+        assert!(b.is_empty());
+        assert_eq!(update_tag(block, &saved), Some(saved.clone()));
+        assert_eq!(saved.len(), 1); // transient data never entered the update tag
+        world.unloaded.insert([1, 2, 3]);
+        assert_eq!(world.has_neighbor_signal([1, 2, 3]), None);
+        assert!(client_tick(block, [1, 2, 3], &saved, &mut a, &world, true));
+        assert_eq!(a.get_int("frames", 0), 2); // unknown is not false or true
+        assert!(!client_tick("test:missing_client_clock", [0; 3], &saved, &mut b, &world, true));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id(block)));
+        assert!(!client_tick(block, [1, 2, 3], &saved, &mut a, &world, true));
     }
 
     #[test]

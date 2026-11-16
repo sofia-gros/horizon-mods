@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:modifiable/melee/weapon",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/melee/unarmed",
-      "required": false
-    }
+    "#tconstruct:modifiable/melee/weapon",
+    "#tconstruct:modifiable/melee/unarmed"
   ]
 }

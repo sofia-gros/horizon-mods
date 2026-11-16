@@ -23,6 +23,22 @@ assert_eq!(copper.attributes.luminance, 12);
 
 Any code can look a fluid up by id later with `FluidRegistry::get`, for example to find out how hot it is.
 
+## Keeping Reload Membership
+
+During a server JSON reload callback, `FluidRegistry::snapshot` returns owned membership for the native fluid IDs captured by that pass plus the fluids defined through PlutoLib when the callback starts. Keep it alongside your parsed tag data, rather than querying later global definitions while applying old data.
+
+```rust
+use pluto_lib::{FluidRegistry, Identifier, ResourceManagerHelper, ResourceType};
+ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+    Identifier::parse("example:fluid_rules").unwrap(), "example/fluid_rules", |_| {
+        let fluids = FluidRegistry::snapshot().ok_or("native fluid membership unavailable")?;
+        let _water_exists = fluids.contains(&Identifier::parse("minecraft:water").unwrap());
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** Native source reads the complete static fluid IDs from the selected resource root's command-registry export, not a renderer catalog or a guessed water/lava list. A missing/empty native export makes capture unavailable even when mods have defined fluids. Invalid/duplicate native IDs and a poisoned definition registry also reject capture. This is pure-tested and source-wired, not native plan/build/game validated. Retained snapshots never refresh; registering a fluid later can affect later captures, not an earlier snapshot. Nested scopes restore outer membership, including unwinding. This API captures membership only: it does not freeze attributes, supply ordered tag members or enable source/flowing blocks and buckets. Read ordered JSON tag layers separately and apply the source format's merge rules. The current generic `reload_registry` tag lookup still supports only entity/item registries; no unavailable fluid tag members are advertised as absent.
+
 ## Hot, Cool and Light Fluids
 
 The attributes follow the units of the game's own fluids, so water is the comparison: temperature 300 kelvin, density and viscosity 1000. A fluid that is hotter than lava (1300) should burn, a negative density rises, and a higher viscosity flows slower. A mod usually describes a few families of fluids with the same numbers, so keep them in one place:
@@ -111,6 +127,36 @@ I18n::use_language(None);
 > **Tip.** When the player switches language, a name you drew last frame is simply asked for again. Only text you kept (a built string) needs rebuilding, on `LanguageEvents::CHANGED`.
 
 ## Reference
+
+### `FluidRegistry::snapshot`
+
+`fn snapshot() -> Option<FluidRegistrySnapshot>`. Returns this server JSON callback's immutable native-plus-defined fluid membership, or `None` when capture or scope is unavailable. No hardcoded/builtin fallback substitutes for an unavailable native registry.
+
+```rust
+use pluto_lib::FluidRegistry;
+assert!(FluidRegistry::snapshot().is_none()); // outside a supported server callback
+```
+
+### `FluidRegistrySnapshot`
+
+An owned, cloneable membership generation. Clones share immutable storage; keeping one does not observe later registration, reloads or world changes. Constructed by the backend, not from guessed IDs.
+
+```rust
+use pluto_lib::{FluidRegistry, FluidRegistrySnapshot};
+let captured: Option<FluidRegistrySnapshot> = FluidRegistry::snapshot();
+assert_eq!(captured.clone(), captured);
+```
+
+### `FluidRegistrySnapshot::contains`
+
+`fn contains(&self, id: &Identifier) -> bool`. Tests this generation's fluid membership. It does not query attributes, tags or world-fluid support.
+
+```rust
+use pluto_lib::{FluidRegistry, Identifier};
+if let Some(fluids) = FluidRegistry::snapshot() {
+    let _known = fluids.contains(&Identifier::parse("example:molten_copper").unwrap());
+}
+```
 
 ### `FluidAttributes`
 

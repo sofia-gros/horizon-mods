@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:coin_cast",
-      "required": false
-    }
+    "tconstruct:coin_cast"
   ]
 }

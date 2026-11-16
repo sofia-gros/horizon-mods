@@ -1,36 +1,12 @@
 {
   "values": [
-    {
-      "id": "tconstruct:pickaxe",
-      "required": false
-    },
-    {
-      "id": "tconstruct:mattock",
-      "required": false
-    },
-    {
-      "id": "tconstruct:pickadze",
-      "required": false
-    },
-    {
-      "id": "tconstruct:hand_axe",
-      "required": false
-    },
-    {
-      "id": "tconstruct:kama",
-      "required": false
-    },
-    {
-      "id": "tconstruct:dagger",
-      "required": false
-    },
-    {
-      "id": "tconstruct:sword",
-      "required": false
-    },
-    {
-      "id": "tconstruct:flint_and_brick",
-      "required": false
-    }
+    "tconstruct:pickaxe",
+    "tconstruct:mattock",
+    "tconstruct:pickadze",
+    "tconstruct:hand_axe",
+    "tconstruct:kama",
+    "tconstruct:dagger",
+    "tconstruct:sword",
+    "tconstruct:flint_and_brick"
   ]
 }

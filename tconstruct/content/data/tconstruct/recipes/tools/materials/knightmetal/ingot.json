@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:ingots/knightmetal"
   },
   "material": "tconstruct:knightmetal",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

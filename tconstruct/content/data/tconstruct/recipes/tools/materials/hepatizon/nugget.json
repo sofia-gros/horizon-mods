@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:nuggets/hepatizon"
   },
   "material": "tconstruct:hepatizon",
   "needed": 9,
-  "type": "tconstruct:material",
   "value": 1
 }

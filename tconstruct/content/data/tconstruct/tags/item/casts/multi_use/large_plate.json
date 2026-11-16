@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:large_plate_cast",
-      "required": false
-    }
+    "tconstruct:large_plate_cast"
   ]
 }

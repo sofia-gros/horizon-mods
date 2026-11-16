@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:material",
   "ingredient": [
     {
       "item": "minecraft:exposed_copper"
@@ -25,6 +26,5 @@
   },
   "material": "tconstruct:copper#oxidized",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 9
 }

@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:maille_sand_cast",
-      "required": false
-    },
-    {
-      "id": "tconstruct:maille_red_sand_cast",
-      "required": false
-    }
+    "tconstruct:maille_sand_cast",
+    "tconstruct:maille_red_sand_cast"
   ]
 }

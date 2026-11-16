@@ -1,20 +1,8 @@
 {
   "values": [
-    {
-      "id": "tconstruct:dagger",
-      "required": false
-    },
-    {
-      "id": "tconstruct:arrow",
-      "required": false
-    },
-    {
-      "id": "tconstruct:shuriken",
-      "required": false
-    },
-    {
-      "id": "tconstruct:throwing_axe",
-      "required": false
-    }
+    "tconstruct:dagger",
+    "tconstruct:arrow",
+    "tconstruct:shuriken",
+    "tconstruct:throwing_axe"
   ]
 }

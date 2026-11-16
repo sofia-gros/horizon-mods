@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:helmet_plating_cast",
-      "required": false
-    }
+    "tconstruct:helmet_plating_cast"
   ]
 }

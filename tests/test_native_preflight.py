@@ -13,6 +13,30 @@ SPEC.loader.exec_module(PREFLIGHT)
 
 
 class NativePreflight(unittest.TestCase):
+    def test_factory_guard_is_selected_for_real_operations_not_requested_names(self):
+        requested = ['protection']
+        self.assertEqual(PREFLIGHT.required_guards({}, requested), ['protection', 'structures'])
+        for section, entry in [
+            ('modules', {'module_id': 'pluto-block-entity-access'}),
+            ('modules', {'module_id': 'alias', 'file': 'crates/horizon-client/src/entry.rs',
+                         'name': 'pluto_block_entity_access'}),
+            ('modules', {'module_id': 'alias', 'file': 'crates/horizon-client-render/src/lib.rs',
+                         'name': 'pluto_client_block_entity_state'}),
+            ('states', {'state_id': 'pluto-block-entity-client-state'}),
+            ('states', {'state_id': 'alias', 'target': 'horizon_client_render::chunk::block_entity::ModBlockEntity'}),
+            ('states', {'state_id': 'alias', 'file': 'crates/horizon-client-render/src/chunk/block_entity.rs'}),
+            ('states', {'state_id': 'alias', 'constructors': [{'file': 'crates/horizon-client-render/src/chunk/block_entity.rs'}]}),
+            ('injections', {'injection_id': 'pluto-block-entity-factory'}),
+            ('injections', {'mod_id': 'foreign', 'injection_id': 'alias',
+                            'target': "horizon_client::game::native_hooks::Game<'_>::new_block_entity"}),
+        ]:
+            with self.subTest(section=section, entry=entry):
+                plan = {section: [entry]}
+                names = PREFLIGHT.required_guards(plan, requested)
+                self.assertEqual(names, ['block_entities', 'protection', 'structures'])
+                self.assertEqual(PREFLIGHT.required_guards(plan, names), names)
+        self.assertEqual(requested, ['protection'])
+
     def test_cli_view_omits_only_trait_metadata_and_preserves_all_execution_records(self):
         source = '''[mod]
 id="example"

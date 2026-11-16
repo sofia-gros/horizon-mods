@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:modifiable/armor/chestplate",
-      "required": false
-    }
+    "#tconstruct:modifiable/armor/chestplate"
   ]
 }

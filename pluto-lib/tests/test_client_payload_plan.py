@@ -1,5 +1,7 @@
 """Source and complete-plan guard tests; not live packet execution."""
 import copy
+import hashlib
+from unittest.mock import patch
 import importlib.util
 import json
 from pathlib import Path
@@ -76,5 +78,62 @@ class ClientPayloadTests(unittest.TestCase):
         _,files=package._bundle(json.loads((ROOT/"horizon-native.json").read_text()))
         for name in ["client-payload.rs","client-payload-observed.rs","inventory-api/src/client_payload.rs"]:
             self.assertEqual(files[f"pluto_native_creative/{name}"],(NATIVE/name).read_bytes())
+
+class NativePayloadTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        sources = {}
+        for name in guard.NATIVE_SOURCES:
+            source = self.root / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_bytes(b'native packet fixture')
+            sources[name] = hashlib.sha256(source.read_bytes()).hexdigest()
+        patcher = patch.object(guard, 'NATIVE_SOURCES', sources)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.plan = {'schema': 6, 'inputs': dict(sources), 'injections': [],
+                     'modules': [{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}], 'states': []}
+
+    def test_current_sources_include_poll_loop_and_reject_drift(self):
+        meta = guard.metadata(self.plan)
+        guard.check(self.plan, meta)
+        guard.check_source(self.root, meta)
+        for name in guard.NATIVE_SOURCES:
+            expected = self.plan['inputs'].pop(name)
+            with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                guard.check(self.plan, meta)
+            self.plan['inputs'][name] = expected
+            source = self.root / name
+            source.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'source drifted'):
+                guard.check_source(self.root, meta)
+            source.write_bytes(b'native packet fixture')
+        with self.assertRaisesRegex(ValueError, 'metadata'):
+            guard.check(self.plan, guard.metadata())
+        self.plan['schema'] = 7
+        with self.assertRaisesRegex(ValueError, 'schema'):
+            guard.check(self.plan, meta)
+
+    def test_native_callers_and_mixed_bundle_remain_forbidden(self):
+        meta = guard.metadata(self.plan)
+        candidates = ([{'mod_id': 'foreign', 'target': 'alias::Game::' + name}
+                       for name in guard.NATIVE_METHODS]
+                      + [{'mod_id': 'foreign', 'file': name} for name in guard.NATIVE_SOURCES
+                         if name.endswith(('remote_poll.rs', 'execution_role.rs'))]
+                      + [{'mod_id': 'pluto_native_creative', 'file': 'unrelated.rs'}])
+        for section in ('injections', 'modules', 'states'):
+            for entry in candidates:
+                with self.subTest(section=section, entry=entry):
+                    self.plan[section].append(entry)
+                    with self.assertRaises(ValueError):
+                        guard.check(self.plan, meta)
+                    self.plan[section].pop()
+        self.plan['injections'].append({'mod_id': 'pluto_lib',
+                                       'target': "horizon_client::game::native_hooks::Game<'_>::native_screen_data",
+                                       'file': 'crates/horizon-client/src/game/native_hooks.rs'})
+        guard.check(self.plan, meta)
+
 
 if __name__=="__main__":unittest.main()

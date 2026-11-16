@@ -1,16 +1,7 @@
 {
   "values": [
-    {
-      "id": "tconstruct:earth_slime_crystal_block",
-      "required": false
-    },
-    {
-      "id": "tconstruct:budding_earth_slime_crystal",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:slimy_grass/earth",
-      "required": false
-    }
+    "tconstruct:earth_slime_crystal_block",
+    "tconstruct:budding_earth_slime_crystal",
+    "#tconstruct:slimy_grass/earth"
   ]
 }

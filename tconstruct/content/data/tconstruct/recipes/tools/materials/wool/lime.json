@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "item": "minecraft:lime_wool"
   },
   "material": "tconstruct:wool#lime",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

@@ -53,6 +53,12 @@ impl LevelView for View<'_, '_> {
         behaviours.tag(tag).is_some_and(|set| set.contains(block))
     }
 
+    fn state_in_tag(&self, state: &StateInfo, tag: &str) -> Option<bool> {
+        let state = resolve(self.level, state)?;
+        let behaviours = self.level.behaviours;
+        Some(behaviours.tag(tag).is_some_and(|set| set.contains(behaviours.block(state))))
+    }
+
     fn brightness(&self, pos: [i32; 3]) -> u8 {
         horizon_world::level::raw_brightness(self.level, at(pos), self.level.sky_darken()).clamp(0, 15) as u8
     }
@@ -91,6 +97,66 @@ impl LevelView for View<'_, '_> {
     fn build_height(&self) -> [i32; 2] {
         [self.level.world.bottom_y(), self.level.world.top_y()]
     }
+}
+
+/// A borrowed client callback view. Native signal getters require mutable
+/// LevelAccess/Ticks even though the query API is read-only; scoped interior
+/// borrows let the real native implementation answer without copying circuits.
+/// The client ticker itself runs without a held level/tick borrow. Individual
+/// native queries retain their own native callback semantics.
+struct ClientView<'a, 'g> {
+    level: std::cell::RefCell<&'a mut GameLevel<'g>>,
+    ticks: std::cell::RefCell<&'a mut Ticks>,
+}
+impl ClientView<'_, '_> {
+    fn read<R>(&self, f: impl FnOnce(&dyn LevelView) -> R) -> R {
+        let level = self.level.borrow();
+        f(&View { level: &**level })
+    }
+}
+impl LevelView for ClientView<'_, '_> {
+    fn state(&self, pos: [i32; 3]) -> Option<StateInfo> {
+        self.read(|view| if view.area_loaded(pos, 0) { view.state(pos) } else { None })
+    }
+    fn is_air(&self, pos: [i32; 3]) -> bool { self.read(|v| v.is_air(pos)) }
+    fn replaceable(&self, pos: [i32; 3]) -> bool { self.read(|v| v.replaceable(pos)) }
+    fn has_neighbor_signal(&self, pos: [i32; 3]) -> Option<bool> {
+        horizon_world::level::pluto_block_access::query_neighbor_signal(pos, self.build_height(),
+            |x, z| self.level.borrow().world.loaded(x, z), || {
+                let mut level = self.level.borrow_mut();
+                let mut ticks = self.ticks.borrow_mut();
+                let behaviours = level.behaviours;
+                behaviours.has_neighbor_signal(&mut **level, &mut **ticks, at(pos))
+            })
+    }
+    fn face_sturdy(&self, pos: [i32; 3], face: u8) -> bool { self.read(|v| v.face_sturdy(pos, face)) }
+    fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool { self.read(|v| v.in_tag(pos, tag)) }
+    fn state_in_tag(&self, state: &StateInfo, tag: &str) -> Option<bool> { self.read(|v| v.state_in_tag(state, tag)) }
+    fn brightness(&self, pos: [i32; 3]) -> u8 { self.read(|v| v.brightness(pos)) }
+    fn light_passes_up(&self, pos: [i32; 3]) -> bool {
+        pos[1].checked_add(1).is_some() && self.read(|v| v.light_passes_up(pos))
+    }
+    fn is_water(&self, pos: [i32; 3]) -> bool { self.read(|v| v.is_water(pos)) }
+    fn fluid_full(&self, pos: [i32; 3]) -> bool { self.read(|v| v.fluid_full(pos)) }
+    fn area_loaded(&self, pos: [i32; 3], radius: i32) -> bool {
+        if radius < 0 { return false; }
+        let Some((x0, x1)) = pos[0].checked_sub(radius).zip(pos[0].checked_add(radius)) else { return false };
+        let Some((z0, z1)) = pos[2].checked_sub(radius).zip(pos[2].checked_add(radius)) else { return false };
+        let level = self.level.borrow();
+        // Check every covered chunk, not just four corners of a large radius.
+        (x0.div_euclid(16)..=x1.div_euclid(16)).all(|x|
+            (z0.div_euclid(16)..=z1.div_euclid(16)).all(|z|
+                level.world.loaded(x * 16, z * 16)))
+    }
+    fn full_block(&self, pos: [i32; 3]) -> bool { self.read(|v| v.full_block(pos)) }
+    fn build_height(&self) -> [i32; 2] { self.read(|v| v.build_height()) }
+}
+
+/// Source-wired native client view entry. The client animation-pass driver calls
+/// it after obtaining an owned transient-state update lease; native-unvalidated.
+pub(super) fn with_client_view<R>(level: &mut GameLevel<'_>, ticks: &mut Ticks,
+    body: impl FnOnce(&dyn LevelView) -> R) -> R {
+    body(&ClientView { level: std::cell::RefCell::new(level), ticks: std::cell::RefCell::new(ticks) })
 }
 
 pub(super) fn survives(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, survives: &mut Option<bool>) {
@@ -134,7 +200,7 @@ pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &Pl
     }
 }
 
-pub(super) fn update_shape(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, direction: Direction, neighbour_pos: BlockPos, neighbour: BlockStateId, new: &mut Option<BlockStateId>) {
+pub(super) fn update_shape(level: &GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, direction: Direction, neighbour_pos: BlockPos, neighbour: BlockStateId, new: &mut Option<BlockStateId>) {
     let Some(sink) = pluto_block::sink() else { return };
     let Some(current) = info(level, state) else { return };
     if !(sink.has)(&current.block) {
@@ -146,8 +212,13 @@ pub(super) fn update_shape(level: &GameLevel<'_>, pos: BlockPos, state: BlockSta
         direction: direction as u8,
         neighbour_pos: [neighbour_pos.x, neighbour_pos.y, neighbour_pos.z],
         neighbour: info(level, neighbour),
+        tick_delay: std::cell::Cell::new(None),
     };
-    if let Some(changed) = (sink.update_shape)(&View { level }, &update) {
+    let changed = (sink.update_shape)(&View { level }, &update);
+    if let Some(delay) = update.tick_delay.get().filter(|delay| *delay > 0) {
+        level.native_schedule_block_tick(ticks, update.pos, &update.state.block, delay);
+    }
+    if let Some(changed) = changed {
         // the same state counts as an answer too: the game's own handling of this update is then skipped
         if let Some(id) = resolve(level, &changed) {
             *new = Some(id);
@@ -181,6 +252,9 @@ impl LevelView for Edit<'_, '_> {
 
     fn in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         View { level: &*self.level }.in_tag(pos, tag)
+    }
+    fn state_in_tag(&self, state: &StateInfo, tag: &str) -> Option<bool> {
+        View { level: &*self.level }.state_in_tag(state, tag)
     }
 
     fn brightness(&self, pos: [i32; 3]) -> u8 {

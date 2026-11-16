@@ -1,9 +1,0 @@
-{
-  "template": "minecraft:white_glazed_terracotta",
-  "properties": {
-    "hardness": 1.0,
-    "explosion_resistance": 5.0,
-    "requires_tool": false,
-    "sounds": "minecraft:oak_planks"
-  }
-}

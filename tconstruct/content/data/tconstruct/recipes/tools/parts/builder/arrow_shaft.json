@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:part_builder",
   "allow_uncraftable": true,
   "cost": 1,
   "pattern": "tconstruct:arrow_shaft",
@@ -12,6 +13,5 @@
   ],
   "result": {
     "item": "tconstruct:arrow_shaft"
-  },
-  "type": "tconstruct:part_builder"
+  }
 }

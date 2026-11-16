@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:arrow",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/ammo/thrown",
-      "required": false
-    }
+    "tconstruct:arrow",
+    "#tconstruct:modifiable/ammo/thrown"
   ]
 }

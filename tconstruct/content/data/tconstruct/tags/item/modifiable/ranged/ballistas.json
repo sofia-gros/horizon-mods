@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:longbow",
-      "required": false
-    }
+    "tconstruct:longbow"
   ]
 }

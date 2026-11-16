@@ -1,0 +1,11 @@
+A:\Project\horizon-mods\pluto-lib\target\debug\deps\lz4_flex-f01bd67c21664f29.d: C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\lib.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\mod.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\compress.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\hashtable.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\decompress_safe.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\fastcpy.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\sink.rs
+
+A:\Project\horizon-mods\pluto-lib\target\debug\deps\liblz4_flex-f01bd67c21664f29.rmeta: C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\lib.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\mod.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\compress.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\hashtable.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\decompress_safe.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\fastcpy.rs C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\sink.rs
+
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\lib.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\mod.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\compress.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\hashtable.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\block\decompress_safe.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\fastcpy.rs:
+C:\Users\metal\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4_flex-0.14.0\src\sink.rs:

@@ -1,20 +1,40 @@
-name: Client config Windows
+name: Clean package Windows
 on:
   pull_request:
     paths:
-      - 'tconstruct/mixins/tconstruct/source-config-parser/**'
+      - 'tconstruct/**'
+      - 'pluto-lib/mod/api/src/pure/**'
+      - 'pluto-lib/tests/pure/**'
+      - 'tools/port.py'
+      - 'tools/package_bundle.py'
+      - 'tests/test_clean_port.py'
+      - 'tests/test_package_bundle.py'
+      - 'tests/test_manifest_states.py'
+      - 'docs/port-plan.json'
       - '.github/workflows/client-config-windows.yml'
 permissions:
   contents: read
 jobs:
   client-config:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - name: Install pinned Rust
         run: rustup toolchain install 1.95.0 --profile minimal
-      - name: Test client config parser
-        run: cargo +1.95.0 test --manifest-path tconstruct/mixins/tconstruct/source-config-parser/Cargo.toml
+      - name: Validate active package and reject host state
+        run: |
+          python tools/port.py check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_clean_port.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_package_bundle.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_manifest_states.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test host-independent PlutoLib contracts
+        run: cargo +1.95.0 test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml --lib
+      # The old source-config-parser belongs to the frozen runtime. Nothing here
+      # claims native compilation or client-config parity for the clean product.

@@ -99,10 +99,46 @@ impl FluidDef {
 
 static FLUIDS: Mutex<Option<HashMap<String, FluidDef>>> = Mutex::new(None);
 
+/// Owned fluid membership for one server reload: native registry IDs plus the
+/// fluids defined through PlutoLib. This does not provide flowing-block support
+/// or turn a later live attribute lookup into a same-generation lookup.
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub struct FluidRegistrySnapshot { ids:std::sync::Arc<std::collections::BTreeSet<Identifier>> }
+impl FluidRegistrySnapshot {
+    /// Whether this captured registry contains the fluid ID.
+    pub fn contains(&self,id:&Identifier)->bool { self.ids.contains(id) }
+    pub(crate) fn capture(base:Option<&[String]>)->Result<Option<Self>,String> {
+        let Some(base)=base else { return Ok(None) };
+        let mut ids=std::collections::BTreeSet::new();
+        for id in base {
+            let id=Identifier::parse(id).map_err(|e|e.to_string())?;
+            if !ids.insert(id) { return Err("duplicate native fluid registry ID".into()); }
+        }
+        let defined=FLUIDS.lock().map_err(|_|"fluid definitions registry poisoned")?;
+        if let Some(defined)=defined.as_ref() { ids.extend(defined.values().map(|def|def.id.clone())); }
+        Ok(Some(Self { ids:std::sync::Arc::new(ids) }))
+    }
+}
+thread_local! { static CURRENT_FLUIDS:std::cell::RefCell<Vec<Option<FluidRegistrySnapshot>>>=const { std::cell::RefCell::new(Vec::new()) }; }
+pub(crate) fn with_fluid_registry<T>(snapshot:Option<FluidRegistrySnapshot>,action:impl FnOnce()->T)->T {
+    struct Scope;
+    impl Drop for Scope { fn drop(&mut self) { CURRENT_FLUIDS.with(|v| { v.borrow_mut().pop(); }); } }
+    CURRENT_FLUIDS.with(|v|v.borrow_mut().push(snapshot));
+    let _scope=Scope;
+    action()
+}
+
 /// Registers fluids (Fabric: `Registry.register(Registries.FLUID, ...)`).
 pub struct FluidRegistry;
 
 impl FluidRegistry {
+    /// This server JSON callback's owned fluid membership, or None when the
+    /// native registry export/scope is unavailable. Never substitutes an empty
+    /// native registry or hardcoded vanilla IDs. Retain it with parsed tag data.
+    pub fn snapshot()->Option<FluidRegistrySnapshot> {
+        CURRENT_FLUIDS.with(|v|v.borrow().last().cloned().flatten())
+    }
+
     /// Defines a fluid. Registering the same id again replaces the earlier definition.
     pub fn register(def: FluidDef) {
         if let Ok(mut all) = FLUIDS.lock() {
@@ -137,6 +173,34 @@ impl FluidRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reload_membership_requires_native_capture_and_does_not_refresh_retained_fluid_ids() {
+        let old_id=Identifier::parse("test:snapshot_fluid_old").unwrap();
+        let late_id=Identifier::parse("test:snapshot_fluid_late").unwrap();
+        FluidRegistry::register(FluidDef::new(old_id.clone()));
+        assert!(FluidRegistrySnapshot::capture(None).unwrap().is_none(),"defined mod fluids cannot stand in for unavailable native membership");
+        let base=vec!["minecraft:water".to_owned()];
+        let original=FluidRegistrySnapshot::capture(Some(&base)).unwrap().unwrap();
+        assert!(original.contains(&old_id));
+        assert!(original.contains(&Identifier::parse("minecraft:water").unwrap()));
+        assert!(!original.contains(&late_id));
+        assert!(FluidRegistry::snapshot().is_none());
+        let kept=with_fluid_registry(Some(original.clone()),|| {
+            let kept=FluidRegistry::snapshot().unwrap();
+            FluidRegistry::register(FluidDef::new(late_id.clone()));
+            let newer=FluidRegistrySnapshot::capture(Some(&base)).unwrap().unwrap();
+            with_fluid_registry(Some(newer),||assert!(FluidRegistry::snapshot().unwrap().contains(&late_id)));
+            let failed=std::panic::catch_unwind(||with_fluid_registry(None,|| {
+                assert!(FluidRegistry::snapshot().is_none()); panic!("nested fluid reload failed");
+            }));
+            assert!(failed.is_err()); assert_eq!(FluidRegistry::snapshot(),Some(original.clone()));
+            kept
+        });
+        assert!(!kept.contains(&late_id)); assert!(FluidRegistry::snapshot().is_none());
+        assert!(FluidRegistrySnapshot::capture(Some(&["bad id".into()])).is_err());
+        assert!(FluidRegistrySnapshot::capture(Some(&[base[0].clone(),base[0].clone()])).is_err());
+    }
 
     #[test]
     fn a_defined_fluid_keeps_its_attributes_replaces_on_reregistration_and_unknown_ids_are_none() {

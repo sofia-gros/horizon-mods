@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:modifiable/skulls/swappable",
-      "required": false
-    }
+    "#tconstruct:modifiable/skulls/swappable"
   ]
 }

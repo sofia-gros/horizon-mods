@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:broad_axe_head_cast",
-      "required": false
-    }
+    "tconstruct:broad_axe_head_cast"
   ]
 }

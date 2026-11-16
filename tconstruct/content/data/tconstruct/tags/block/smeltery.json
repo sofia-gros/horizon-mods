@@ -1,16 +1,7 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:smeltery/wall",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:smeltery/floor",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:smeltery/tanks",
-      "required": false
-    }
+    "#tconstruct:smeltery/wall",
+    "#tconstruct:smeltery/floor",
+    "#tconstruct:smeltery/tanks"
   ]
 }

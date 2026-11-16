@@ -15,6 +15,10 @@ use super::block_entity_api_v1::BlockPos;
 use super::item_group_api_v1::ItemStack;
 use super::world_api_v1::BlockState;
 
+#[path = "block_path.rs"]
+mod path_nodes;
+pub use path_nodes::{PathNodeType, PathNodeTypeContext};
+
 /// One of the six block faces (Minecraft: `Direction`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direction {
@@ -142,10 +146,16 @@ pub trait BlockView {
     /// The active chunk generator's vertical depth, not the build ceiling.
     /// None when the callback has no generator context (including live views).
     fn generation_depth(&self) -> Option<i32> { None }
+    /// Minecraft Level.hasNeighborSignal, not this block's powered property.
+    /// None when the native query is unavailable; do not interpret it as false.
+    fn has_neighbor_signal(&self, _pos: BlockPos) -> Option<bool> { None }
     /// Whether the whole `face` of the block at `pos` is solid (Minecraft: `isFaceSturdy`), something a block can be fixed to.
     fn is_face_sturdy(&self, pos: BlockPos, face: Direction) -> bool;
     /// Whether the block at `pos` is in the block tag `tag`, such as `tconstruct:slimy_leaves`.
     fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool;
+    /// Registry tag membership of a supplied state, even before it is in the world.
+    /// None when this view has no registry, rather than querying another position.
+    fn is_state_in_tag(&self, _state: &BlockState, _tag: &str) -> Option<bool> { None }
     /// The light at `pos` from the sky and from blocks, 0 to 15 (Minecraft: `getMaxLocalRawBrightness`).
     fn brightness(&self, pos: BlockPos) -> u8;
     /// Whether light passes from the block at `pos` into the block above it, which is what lets grass live under a cover.
@@ -180,8 +190,13 @@ pub struct MemoryBlockView {
     pub replaceable: BTreeSet<BlockPos>,
     /// An optional generator depth, independent of the build limits.
     pub generator_depth: Option<i32>,
+    /// Explicit neighbor-signal answers; absent/unloaded means unavailable,
+    /// not unpowered. Memory does not simulate redstone propagation.
+    pub neighbor_signals: BTreeMap<BlockPos, bool>,
     /// The tags each position's block is in.
     pub tags: BTreeMap<BlockPos, BTreeSet<String>>,
+    /// Explicit registry tags by block id, independent of placed positions.
+    pub state_tags: BTreeMap<String, BTreeSet<String>>,
     /// The light of each position; positions not listed have 15 (open sky).
     pub light: BTreeMap<BlockPos, u8>,
     /// Positions that hold a full source of water.
@@ -212,6 +227,9 @@ impl BlockView for MemoryBlockView {
     }
 
     fn generation_depth(&self) -> Option<i32> { self.generator_depth }
+    fn has_neighbor_signal(&self, pos: BlockPos) -> Option<bool> {
+        if self.unloaded.contains(&pos) { None } else { self.neighbor_signals.get(&pos).copied() }
+    }
 
     fn is_face_sturdy(&self, pos: BlockPos, _face: Direction) -> bool {
         self.blocks.contains_key(&pos) && !self.weak.contains(&pos)
@@ -219,6 +237,9 @@ impl BlockView for MemoryBlockView {
 
     fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool {
         self.tags.get(&pos).is_some_and(|tags| tags.contains(tag))
+    }
+    fn is_state_in_tag(&self, state: &BlockState, tag: &str) -> Option<bool> {
+        self.state_tags.get(&state.block.to_string()).map(|tags| tags.contains(tag))
     }
 
     fn brightness(&self, pos: BlockPos) -> u8 {
@@ -458,6 +479,24 @@ pub struct ShapeUpdateContext<'a> {
     pub neighbour: Option<BlockState>,
     /// The blocks around.
     pub view: &'a dyn BlockView,
+    tick_delay: std::cell::Cell<Option<i32>>,
+}
+impl<'a> ShapeUpdateContext<'a> {
+    /// Construct one update with no scheduled-tick request.
+    pub fn new(state: BlockState, pos: BlockPos, direction: Direction,
+        neighbour_pos: BlockPos, neighbour: Option<BlockState>, view: &'a dyn BlockView) -> Self {
+        Self { state, pos, direction, neighbour_pos, neighbour, view, tick_delay: std::cell::Cell::new(None) }
+    }
+    /// Request a tick of this block at this position, without changing its state.
+    /// Nonpositive delays reject; repeated requests keep the earliest. The native
+    /// backend still owns loaded-chunk checks and queue deduplication.
+    pub fn schedule_tick(&self, delay: i32) -> bool {
+        if delay <= 0 { return false; }
+        self.tick_delay.set(Some(self.tick_delay.get().map_or(delay, |old| old.min(delay))));
+        true
+    }
+    /// The requested delay, for adapters and custom hosts; None if none was requested.
+    pub fn scheduled_tick_delay(&self) -> Option<i32> { self.tick_delay.get() }
 }
 
 /// An entity is inside the block (Minecraft: `entityInside`).
@@ -475,6 +514,59 @@ pub struct EntityInsideContext {
     pub kind: String,
 }
 
+/// A server-side landing's calculated damage before hurt handling. This is
+/// independent of bounce velocity; changing damage does not create a bounce.
+/// Native player landings are connected; mob/item adapters remain unavailable.
+pub struct FallOnContext {
+    pub state: BlockState,
+    pub pos: BlockPos,
+    pub entity: i32,
+    pub kind: String,
+    pub distance: f64,
+    pub damage: f32,
+}
+
+/// Entity motion immediately after the native horizontal collision response.
+/// A registered callback owns vertical landing response; no native vertical
+/// restitution is applied afterwards. Current native coverage is players.
+pub struct AfterFallContext {
+    pub state: BlockState,
+    pub pos: BlockPos,
+    pub entity: i32,
+    pub kind: String,
+    pub living: bool,
+    pub item: bool,
+    pub suppressing_bounce: bool,
+    pub velocity: [f64; 3],
+    pub fall_distance: f64,
+    pub on_ground: bool,
+}
+
+/// Mutable motion at the block's entityInside callback, separate from the
+/// existing read-only contact notification. Only finite velocity is applied.
+/// Native sound/network-side effects are not implied by a velocity edit.
+pub struct EntityInsideMotionContext {
+    pub state: BlockState,
+    pub pos: BlockPos,
+    pub entity: i32,
+    pub kind: String,
+    pub server: bool,
+    pub suppressing_bounce: bool,
+    pub position: [f64; 3],
+    pub previous_position: [f64; 3],
+    pub velocity: [f64; 3],
+    /// Request the server's existing velocity packet; never clears a prior mark.
+    pub sync_velocity: bool,
+    /// Request the contacted block's step sound at its centre: volume/pitch.
+    /// Accepted by the authoritative same-tick queue, not an audio-delivery guarantee.
+    pub step_sound: Option<[f32; 2]>,
+}
+type StickyFlagFn = Arc<dyn Fn(&BlockState) -> bool + Send + Sync>;
+type StickToFn = Arc<dyn Fn(&BlockState, &BlockState) -> bool + Send + Sync>;
+type PathNodeFn = Arc<dyn Fn(&PathNodeTypeContext<'_>) -> Option<PathNodeType> + Send + Sync>;
+pub(crate) type InsideMotionFn = Arc<dyn Fn(&mut EntityInsideMotionContext) + Send + Sync>;
+pub(crate) type AfterFallFn = Arc<dyn Fn(&mut AfterFallContext) + Send + Sync>;
+type FallOnFn = Arc<dyn Fn(&mut FallOnContext) + Send + Sync>;
 type SurviveFn = Arc<dyn Fn(&SurviveContext<'_>) -> bool + Send + Sync>;
 type PlacementFn = Arc<dyn Fn(&PlacementContext<'_>) -> Placement + Send + Sync>;
 type ShapeFn = Arc<dyn Fn(&ShapeUpdateContext<'_>) -> Option<BlockState> + Send + Sync>;
@@ -493,6 +585,17 @@ type BonemealCheckFn = Arc<dyn Fn(&BonemealContext<'_>) -> bool + Send + Sync>;
 type BonemealSuccessFn = Arc<dyn Fn(&mut TickContext<'_>) -> bool + Send + Sync>;
 type PlaceOnFn = Arc<dyn Fn(&PlaceOnContext<'_>) -> bool + Send + Sync>;
 
+/// Minecraft's block piston reaction, independent of slime/sticky predicates.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PistonBehavior {
+    Normal = 0,
+    Destroy = 1,
+    Block = 2,
+    Ignore = 3,
+    PushOnly = 4,
+}
+
 /// What one block of the mod does. Build it, then give it to [`BlockBehaviors::register`].
 #[derive(Clone)]
 pub struct BlockBehavior {
@@ -501,6 +604,14 @@ pub struct BlockBehavior {
     state_for_placement: Option<PlacementFn>,
     update_shape: Option<ShapeFn>,
     entity_inside: Option<InsideFn>,
+    fall_on: Option<FallOnFn>,
+    after_fall: Option<AfterFallFn>,
+    inside_motion: Option<InsideMotionFn>,
+    slime_block: Option<StickyFlagFn>,
+    sticky_block: Option<StickyFlagFn>,
+    stick_to: Option<StickToFn>,
+    path_node_type: Option<PathNodeFn>,
+    piston_behavior: Option<PistonBehavior>,
     random_tick: Option<TickFn>,
     scheduled_tick: Option<TickFn>,
     can_bonemeal: Option<BonemealCheckFn>,
@@ -513,7 +624,7 @@ pub struct BlockBehavior {
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None }
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, fall_on: None, after_fall: None, inside_motion: None, slime_block: None, sticky_block: None, stick_to: None, path_node_type: None, piston_behavior: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -539,6 +650,57 @@ impl BlockBehavior {
     /// An entity is inside the block's space.
     pub fn entity_inside(mut self, f: impl Fn(&EntityInsideContext) + Send + Sync + 'static) -> Self {
         self.entity_inside = Some(Arc::new(f));
+        self
+    }
+
+    /// Classify a path node with borrowed world context. None keeps the native
+    /// answer; Some(Blocked) is an explicit answer. Native adapter pending.
+    pub fn path_node_type(mut self, f: impl Fn(&PathNodeTypeContext<'_>) -> Option<PathNodeType> + Send + Sync + 'static) -> Self {
+        self.path_node_type = Some(Arc::new(f));
+        self
+    }
+
+    /// Source isSlimeBlock predicate. Accepted but not connected to native
+    /// piston/entity-push queries on the pinned host (documented stub).
+    pub fn is_slime_block(mut self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> Self {
+        self.slime_block = Some(Arc::new(f));
+        self
+    }
+
+    /// Source isStickyBlock predicate; native piston dispatch is unavailable.
+    pub fn is_sticky_block(mut self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> Self {
+        self.sticky_block = Some(Arc::new(f));
+        self
+    }
+
+    /// This block's directional canStickTo predicate, not the complete pair
+    /// resolver. Native piston dispatch is unavailable on the pinned host.
+    pub fn can_stick_to(mut self, f: impl Fn(&BlockState, &BlockState) -> bool + Send + Sync + 'static) -> Self {
+        self.stick_to = Some(Arc::new(f));
+        self
+    }
+
+    /// Edits velocity during entityInside, without implying sound or networking.
+    /// The read-only entity_inside notification remains a separate callback.
+    pub fn entity_inside_motion(mut self, f: impl Fn(&mut EntityInsideMotionContext) + Send + Sync + 'static) -> Self {
+        self.inside_motion = Some(Arc::new(f));
+        self
+    }
+
+    /// Owns vertical landing response (Minecraft: updateEntityAfterFallOn).
+    /// Native horizontal collision response has already run. No additional
+    /// vertical gravity/drag restitution follows. Player adapter only so far;
+    /// this does not change fall damage or dispatch on side contacts.
+    pub fn update_entity_after_fall_on(mut self, f: impl Fn(&mut AfterFallContext) + Send + Sync + 'static) -> Self {
+        self.after_fall = Some(Arc::new(f));
+        self
+    }
+
+    /// Changes server-side calculated landing damage (Minecraft: fallOn).
+    /// Bounce velocity is a different operation. Player adapter implemented;
+    /// other entity adapters remain unsupported. Invalid damage is ignored.
+    pub fn fall_on(mut self, f: impl Fn(&mut FallOnContext) + Send + Sync + 'static) -> Self {
+        self.fall_on = Some(Arc::new(f));
         self
     }
 
@@ -589,6 +751,19 @@ impl BlockBehavior {
         self
     }
 
+    /// Static piston reaction for every state of this declared mod block.
+    /// Register before the content declaration snapshot is collected. Native
+    /// attachment remains source-only behind the native attachment review gate.
+    pub fn piston_behavior(mut self, behavior: PistonBehavior) -> Self {
+        self.piston_behavior = Some(behavior);
+        self
+    }
+
+    /// Explicit static piston reaction; None retains the content template.
+    pub fn piston_behavior_override(&self) -> Option<PistonBehavior> {
+        self.piston_behavior
+    }
+
     /// The block this behaviour belongs to.
     pub fn block(&self) -> &Identifier {
         &self.block
@@ -597,6 +772,11 @@ impl BlockBehavior {
 }
 
 static BEHAVIORS: Mutex<Vec<BlockBehavior>> = Mutex::new(Vec::new());
+
+pub(crate) fn piston_behavior_declarations() -> Result<Vec<(String, PistonBehavior)>, String> {
+    let behaviors=BEHAVIORS.lock().map_err(|_|"block behavior registry poisoned")?;
+    Ok(behaviors.iter().filter_map(|b|b.piston_behavior.map(|p|(b.block.to_string(),p))).collect())
+}
 
 /// The registry of block behaviours.
 pub struct BlockBehaviors;
@@ -618,6 +798,61 @@ impl BlockBehaviors {
     /// Every block that has a behaviour.
     pub fn registered() -> Vec<BlockBehavior> {
         BEHAVIORS.lock().map(|all| all.clone()).unwrap_or_default()
+    }
+}
+
+pub(crate) fn path_node_type(context: &PathNodeTypeContext<'_>) -> Option<PathNodeType> {
+    let callback = BlockBehaviors::get(&context.state.block.to_string())?.path_node_type?;
+    callback(context)
+}
+
+pub(crate) fn slime_block(state: &BlockState) -> Option<bool> {
+    let callback = BlockBehaviors::get(&state.block.to_string())?.slime_block?;
+    Some(callback(state))
+}
+pub(crate) fn sticky_block(state: &BlockState) -> Option<bool> {
+    let callback = BlockBehaviors::get(&state.block.to_string())?.sticky_block?;
+    Some(callback(state))
+}
+pub(crate) fn stick_to(state: &BlockState, other: &BlockState) -> Option<bool> {
+    let callback = BlockBehaviors::get(&state.block.to_string())?.stick_to?;
+    Some(callback(state, other))
+}
+
+pub(crate) fn inside_motion_handler(block: &str) -> Option<InsideMotionFn> {
+    BlockBehaviors::get(block)?.inside_motion
+}
+
+pub(crate) fn apply_inside_motion(callback: &InsideMotionFn, context: &mut EntityInsideMotionContext) {
+    let (velocity, sync, sound) = (context.velocity, context.sync_velocity, context.step_sound);
+    callback(context);
+    let sound_valid = context.step_sound.is_none_or(|values| values.iter().all(|v| v.is_finite() && *v >= 0.0));
+    if !context.velocity.iter().all(|v| v.is_finite()) || !sound_valid {
+        (context.velocity, context.sync_velocity, context.step_sound) = (velocity, sync, sound);
+    }
+}
+
+pub(crate) fn after_fall_handler(block: &str) -> Option<AfterFallFn> {
+    BlockBehaviors::get(block)?.after_fall
+}
+
+pub(crate) fn apply_after_fall(callback: &AfterFallFn, context: &mut AfterFallContext) {
+    let (velocity, distance, on_ground) = (context.velocity, context.fall_distance, context.on_ground);
+    callback(context);
+    if !context.velocity.iter().all(|v|v.is_finite()) || !context.fall_distance.is_finite() || context.fall_distance < 0.0 {
+        (context.velocity, context.fall_distance, context.on_ground) = (velocity, distance, on_ground);
+    }
+}
+
+pub(crate) fn has_fall_on(block: &str) -> bool {
+    BlockBehaviors::get(block).is_some_and(|b| b.fall_on.is_some())
+}
+
+pub(crate) fn fall_on(block: &str, context: &mut FallOnContext) {
+    if let Some(callback) = BlockBehaviors::get(block).and_then(|b| b.fall_on) {
+        let before = context.damage;
+        callback(context); // no registry lock held during reentrant callbacks
+        context.damage = if context.damage.is_finite() { context.damage.max(0.0) } else { before };
     }
 }
 
@@ -689,6 +924,85 @@ mod tests {
         Identifier::parse(text).unwrap()
     }
 
+    #[test]
+    fn stickiness_queries_preserve_directional_false_and_allow_reentrant_registration() {
+        let state = BlockState::parse("example:sticky").unwrap();
+        let stone = BlockState::parse("minecraft:stone").unwrap();
+        assert_eq!(slime_block(&state), None);
+        BlockBehaviors::register(BlockBehavior::new(id("example:sticky"))
+            .is_slime_block(|_| true)
+            .is_sticky_block(|_| { BlockBehaviors::register(BlockBehavior::new(id("example:reentrant_sticky"))); true })
+            .can_stick_to(|state, other| state.block == other.block));
+        assert_eq!(slime_block(&state), Some(true));
+        assert_eq!(sticky_block(&state), Some(true));
+        assert_eq!(stick_to(&state, &stone), Some(false));
+        assert_eq!(stick_to(&state, &state), Some(true));
+        assert_eq!(stick_to(&stone, &state), None, "never infer the opposite side's predicate");
+    }
+
+    #[test]
+    fn inside_motion_captures_callbacks_and_rejects_partial_nonfinite_velocity() {
+        let block = "example:inside_motion";
+        BlockBehaviors::register(BlockBehavior::new(id(block)).entity_inside_motion(|c| {
+            // Reentrant registration must not deadlock or replace this invocation.
+            BlockBehaviors::register(BlockBehavior::new(id("example:inside_motion")));
+            c.velocity = [0.4, c.velocity[1], -0.2];
+        }));
+        let callback = inside_motion_handler(block).unwrap();
+        let mut c = EntityInsideMotionContext { state: BlockState::parse(block).unwrap(), pos:[0,64,0], entity:1,
+            kind:"minecraft:player".into(),server:true,suppressing_bounce:false,
+            position:[0.0,64.2,0.5],previous_position:[-0.2,64.2,0.5],velocity:[-0.3,-0.08,0.1],sync_velocity:false,step_sound:None };
+        apply_inside_motion(&callback, &mut c);
+        assert_eq!(c.velocity, [0.4,-0.08,-0.2]);
+        assert!(inside_motion_handler(block).is_none());
+        let invalid: InsideMotionFn = Arc::new(|c| { c.velocity = [1.0,f64::INFINITY,2.0]; c.sync_velocity = true; });
+        apply_inside_motion(&invalid, &mut c);
+        assert_eq!(c.velocity, [0.4,-0.08,-0.2]);
+        assert!(!c.sync_velocity, "invalid motion cannot request a packet");
+        let invalid_sound: InsideMotionFn = Arc::new(|c| { c.velocity[0]=2.0; c.sync_velocity=true; c.step_sound=Some([1.0,f32::NAN]); });
+        apply_inside_motion(&invalid_sound, &mut c);
+        assert_eq!(c.velocity, [0.4,-0.08,-0.2]);
+        assert!(!c.sync_velocity && c.step_sound.is_none(), "invalid sound rejects all outputs together");
+    }
+
+    #[test]
+    fn captured_after_fall_handler_survives_registry_replacement_and_invalid_motion_is_atomic() {
+        let block="example:after_fall";
+        BlockBehaviors::register(BlockBehavior::new(id(block)).update_entity_after_fall_on(|c| {
+            c.velocity[1] = -c.velocity[1]; c.fall_distance = 0.0; c.on_ground = false;
+        }));
+        let callback=after_fall_handler(block).unwrap();
+        BlockBehaviors::register(BlockBehavior::new(id(block)));
+        assert!(after_fall_handler(block).is_none());
+        let mut c=AfterFallContext { state:BlockState::parse(block).unwrap(),pos:[0,64,0],entity:1,
+            kind:"minecraft:player".into(),living:true,item:false,suppressing_bounce:false,
+            velocity:[0.2,-0.7,0.3],fall_distance:10.0,on_ground:true };
+        apply_after_fall(&callback,&mut c);
+        assert_eq!((c.velocity,c.fall_distance,c.on_ground),([0.2,0.7,0.3],0.0,false));
+        let invalid:AfterFallFn=Arc::new(|c| {c.velocity[0]=f64::NAN; c.fall_distance=20.0; c.on_ground=true;});
+        apply_after_fall(&invalid,&mut c);
+        assert_eq!((c.velocity,c.fall_distance,c.on_ground),([0.2,0.7,0.3],0.0,false));
+    }
+    #[test]
+    fn fall_damage_callbacks_are_reentrant_and_reject_invalid_damage() {
+        let block="example:fall_damage";
+        BlockBehaviors::register(BlockBehavior::new(id(block)).fall_on(|c| {
+            assert!(BlockBehaviors::get("example:fall_damage").is_some());
+            c.damage=0.0;
+        }));
+        let mut c=FallOnContext {state:BlockState::parse(block).unwrap(),pos:[0,64,0],entity:1,kind:"minecraft:player".into(),distance:10.0,damage:7.0};
+        assert!(has_fall_on(block));
+        fall_on(block,&mut c);
+        assert_eq!(c.damage,0.0);
+        BlockBehaviors::register(BlockBehavior::new(id(block)).fall_on(|c|c.damage=f32::NAN));
+        c.damage=7.0;
+        fall_on(block,&mut c);
+        assert_eq!(c.damage,7.0);
+        BlockBehaviors::register(BlockBehavior::new(id(block)).fall_on(|c|c.damage=-3.0));
+        fall_on(block,&mut c);
+        assert_eq!(c.damage,0.0);
+        assert!(!has_fall_on("example:unregistered_fall"));
+    }
     #[test]
     fn explicit_write_flags_are_recorded_and_legacy_editors_reject_unsupported_flags() {
         struct Legacy { writes: usize }

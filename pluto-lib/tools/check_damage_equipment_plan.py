@@ -18,7 +18,56 @@ def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+# Reviewed 441f49d5 inputs. creatures.rs is the exact direct-host output:
+# its sole delta forwards MobEvents to the particle adapter; hurt_player_from
+# is unchanged. The other two files are pristine Git blobs. Pinning the entire
+# prepared file also rejects any future direct rewrite until it is reviewed.
+NATIVE_SOURCES = {
+    'crates/horizon-client/src/game/creatures.rs': 'e2a6a83ce2f210596cc76a9886965f89198a416ea1c3a4673a3bee42ecb4002c',
+    'crates/horizon-client/src/game/explosion.rs': '002b5dc60b4064e8c1349c91823f669d1129b190f6fea8c9c3b8440b918e8674',
+    'crates/horizon-client/src/game/item_durability.rs': '09057717874b509f168bd267cf67086cd8d5dec8ff3c41c68615b9f06cfdec61',
+}
+NATIVE_TARGETS = {
+    "horizon_client::game::creatures::Game<'_>::hurt_player_from",
+    "horizon_client::game::explosion::Game<'_>::explosion_hurt_player",
+    *(f"horizon_client::game::item_durability::Game<'_>::{name}" for name in
+      ('hurt_player_equipment', 'push_seen_with_equipment_hurt', 'wear_armor',
+       'hurt_armor', 'hurt_equipment')),
+}
+UNATTACHED_FILES = {
+    'crates/horizon-client/src/game/explosion.rs',
+    'crates/horizon-client/src/game/item_durability.rs',
+}
+
+
+def native_bundle(plan):
+    return any(entry.get('mod_id') == 'pluto_lib'
+               for section in ('injections', 'modules', 'states')
+               for entry in plan.get(section, []))
+
+
+def check_native_order(plan, entries):
+    if plan.get('schema') != 6:
+        raise ValueError('unreviewed official plan schema for native equipment')
+    targets = NATIVE_TARGETS | {entry['target'] for entry in entries}
+    methods = {target.rsplit('::', 1)[-1] for target in targets}
+    for section in ('injections', 'modules', 'states'):
+        for entry in plan.get(section, []):
+            if any(c.get('file') in NATIVE_SOURCES for c in entry.get('constructors', [])):
+                raise ValueError('state constructor changes a preserved native equipment source')
+            if entry.get('mod_id') == 'pluto_native_creative':
+                raise ValueError('native equipment cannot compose the retired marker bundle')
+            if (entry.get('file') in UNATTACHED_FILES
+                    or entry.get('target', '').rsplit('::', 1)[-1] in methods):
+                raise ValueError('native equipment boundary must remain unattached')
+    # Unrelated creature spawn/drop/particle attachments are checked by their
+    # own mandatory guards, not certified as equipment behavior here.
+
+
 def check_order(plan, entries):
+    if native_bundle(plan):
+        check_native_order(plan, entries)
+        return
     for meta in entries:
         selected = [p for p in plan.get("injections", []) if p["target"] == meta["target"]]
         own = [p for p in selected if p.get("mod_id") == "pluto_native_creative"
@@ -43,6 +92,19 @@ def check_order(plan, entries):
 
 
 def verify_source(plan, workspace, entries):
+    workspace = Path(workspace)
+    if native_bundle(plan):
+        check_native_order(plan, entries)
+        for name, expected in NATIVE_SOURCES.items():
+            source = workspace / name
+            if source.is_symlink() or not source.is_file():
+                raise ValueError(f'native equipment source is not a regular file: {name}')
+            source.resolve().relative_to(workspace.resolve())
+            if plan.get('inputs', {}).get(name) != expected:
+                raise ValueError(f'native equipment plan source differs: {name}')
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+                raise ValueError(f'native equipment workspace source differs: {name}')
+        return
     for meta in entries:
         text = (workspace / meta["file"]).read_text()
         if digest(text) != meta["file_sha256"]:
@@ -90,4 +152,4 @@ if __name__ == "__main__":
     except (ValueError, OSError, KeyError, StopIteration, subprocess.CalledProcessError) as error:
         print(f"damage equipment adapter rejected: {error}", file=sys.stderr)
         raise SystemExit(1)
-    print("Damage equipment source, adapter hunks and combined hook ordering verified.")
+    print("Equipment boundary verified; native preservation supplies no custom protection or wear-observer API.")

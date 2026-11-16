@@ -1,60 +1,18 @@
 {
   "values": [
-    {
-      "id": "tconstruct:travelers_helmet",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_chestplate",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_leggings",
-      "required": false
-    },
-    {
-      "id": "tconstruct:travelers_boots",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_helmet",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_chestplate",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_leggings",
-      "required": false
-    },
-    {
-      "id": "tconstruct:plate_boots",
-      "required": false
-    },
-    {
-      "id": "tconstruct:slime_helmet",
-      "required": false
-    },
-    {
-      "id": "tconstruct:slimy_chestplate",
-      "required": false
-    },
-    {
-      "id": "tconstruct:slime_leggings",
-      "required": false
-    },
-    {
-      "id": "tconstruct:slime_boots",
-      "required": false
-    },
-    {
-      "id": "tconstruct:slime_wings",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/trim/no_pattern",
-      "required": false
-    }
+    "tconstruct:travelers_helmet",
+    "tconstruct:travelers_chestplate",
+    "tconstruct:travelers_leggings",
+    "tconstruct:travelers_boots",
+    "tconstruct:plate_helmet",
+    "tconstruct:plate_chestplate",
+    "tconstruct:plate_leggings",
+    "tconstruct:plate_boots",
+    "tconstruct:slime_helmet",
+    "tconstruct:slimy_chestplate",
+    "tconstruct:slime_leggings",
+    "tconstruct:slime_boots",
+    "tconstruct:slime_wings",
+    "#tconstruct:modifiable/armor/trim/no_pattern"
   ]
 }

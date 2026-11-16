@@ -1,44 +1,14 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:seared_blocks",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:seared_tanks",
-      "required": false
-    },
-    {
-      "id": "tconstruct:smeltery_controller",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_ladder",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_drain",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_chute",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_duct",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_glass",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_soul_glass",
-      "required": false
-    },
-    {
-      "id": "tconstruct:seared_tinted_glass",
-      "required": false
-    }
+    "#tconstruct:seared_blocks",
+    "#tconstruct:seared_tanks",
+    "tconstruct:smeltery_controller",
+    "tconstruct:seared_ladder",
+    "tconstruct:seared_drain",
+    "tconstruct:seared_chute",
+    "tconstruct:seared_duct",
+    "tconstruct:seared_glass",
+    "tconstruct:seared_soul_glass",
+    "tconstruct:seared_tinted_glass"
   ]
 }

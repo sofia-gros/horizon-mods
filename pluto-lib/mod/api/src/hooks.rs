@@ -4,6 +4,7 @@
 //! `Flow::Cancel` when the PlutoLib callbacks say so.
 
 use horizon_client::mod_api::{
+    AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
     AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
@@ -14,9 +15,10 @@ use horizon_client::mod_api::{
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
+use horizon_client::pluto_host_world as horizon_world;
 use crate::pure::base::{Identifier, Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, ItemSlot};
-use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas};
+use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
@@ -60,6 +62,11 @@ impl horizon_client::entry::pluto_block::structures::PieceCallbacks for ApiStruc
 
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
+    horizon_client::menu::pluto_menu_actions::set_handler(staged_menu_click);
+    horizon_client::menu::pluto_menu_actions::set_pick_all_exclusion(|menu, slot| {
+        block_entity_api_v1::block_of_menu(menu)
+            .is_some_and(|block| screen_handler_api_v1::excluded_from_pick_all(&block, slot))
+    });
     crate::pure::i18n_api::set_host(crate::pure::i18n_api::HostLanguage {
         code: horizon_client::lang::code,
         get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
@@ -68,7 +75,154 @@ pub fn hooks() -> Box<dyn Hooks> {
         crate::pure::color_provider_api_v1::has_block_provider,
         crate::pure::color_provider_api_v1::block_color_from_host,
     );
+    horizon_client::item_render::pluto_item_colors::set_provider(
+        crate::pure::color_provider_api_v1::has_item_provider,
+        |item,count,components,tint_index| {
+            let count=u32::try_from(count).ok()?;
+            let custom_data=match components.get("minecraft:custom_data") {
+                None=>NbtCompound::new(),
+                Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+                    Tag::Compound(data)=>compound_from_tag(&data),
+                    _=>return None,
+                },
+            };
+            let damage=match components.get("minecraft:damage") {
+                None=>0,
+                Some(value)=>u32::try_from(value.as_u64()?).ok()?,
+            };
+            let max_damage=match components.get("minecraft:max_damage") {
+                None=>None,
+                Some(value)=>Some(i32::try_from(value.as_i64()?).ok()?),
+            };
+            crate::pure::color_provider_api_v1::ColorProviderRegistry::item_color(
+                &crate::pure::color_provider_api_v1::ItemColorContext {
+                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data},tint_index,
+                })
+        },
+    ).expect("PlutoLib item colour provider installs once before native rendering");
+    horizon_client::mobs::pluto_entity_particles::set_provider(
+        crate::pure::particle_factory_registry::entity_particle_from_host,
+    ).expect("PlutoLib entity particle provider installs once");
+    horizon_client::game::pluto_item_particles::set_provider(|particle| {
+        let data=crate::pure::particle_factory_registry::item_from_host(particle)?;
+        let mut stack=ItemStack::new(data.item.as_str(),data.count);
+        write_stack(&mut stack,&data);
+        Some(stack)
+    }).expect("PlutoLib item particle factory provider installs once");
+    horizon_client::game::pluto_living_drops::set_provider(
+        crate::pure::living_entity_drops::has_callbacks,
+        |context| {
+            let info=context.info().clone();
+            let info=crate::pure::living_entity_drops::LivingDropInfo {
+                entity:entity_events_v1::EntityInfo {id:info.entity_id,kind:info.entity_type,dimension:info.dimension},
+                position:info.position,damage_type:info.damage_type,killer_type:info.killer_type,
+            };
+            crate::pure::living_entity_drops::dispatch(&mut ApiLivingDrops {context,info})
+        },
+    ).expect("PlutoLib living drop provider installs once");
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
+    horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
+        .expect("PlutoLib block entity predicate installs once before native initialization");
+    horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
+        .expect("PlutoLib render cache generation provider installs once");
+    horizon_client::entry::pluto_block_entity_access::set_client_tick_sink(
+        horizon_client::entry::pluto_block_entity_access::ClientTickSink {
+            has: |block| block_entity_api_v1::client_ticks(block) == Some(true),
+            tick: |block, pos, saved, transient, view| {
+                let saved = compound_from_tag(saved);
+                let mut local = compound_from_tag(transient);
+                let ran = block_entity_api_v1::client_tick(block, pos, &saved, &mut local, &GameView(view), true);
+                if ran { *transient = compound_to_tag(&local); }
+                ran
+            },
+        }).expect("PlutoLib client block entity tick sink installs once");
+    horizon_client::entry::pluto_block::set_item_placement_provider(|| {
+        Ok(item_api_v1::standing_wall_bindings()?.into_iter().map(|binding|
+            horizon_client::entry::pluto_block::ItemPlacementBinding {
+                item: binding.item.to_string(), standing: binding.standing.to_string(),
+                wall: binding.wall.to_string(), attachment: binding.attachment as u8,
+            }).collect())
+    }).expect("PlutoLib item placement provider installs once before table loading");
+    horizon_client::entry::pluto_living_load_access::set_provider(horizon_client::entry::pluto_living_load_access::Provider {
+        has:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_load_bases,
+        bases:|host,info| {
+        scoped(host,|| {
+            use crate::pure::living_entity_behavior::{LivingEntityBehaviors,LivingEntityLoadContext};
+            let context=LivingEntityLoadContext {entity:entity_events_v1::EntityInfo {
+                id:info.entity,kind:info.kind.clone(),dimension:info.dimension.clone()},slime_size:info.slime_size};
+            Ok(LivingEntityBehaviors::attribute_bases_on_load(&context)?.into_iter().map(|base|
+                horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
+        })
+    }}).expect("PlutoLib living load provider installs once");
+    horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
+        attributes:|kind| {
+            let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
+            Ok(crate::pure::living_entity_behavior::LivingEntityBehaviors::transient_attribute_modifiers(&kind)?
+                .into_iter().map(|m|horizon_client::mobs::pluto_living_entity_access::AttributeModifier {
+                    attribute:m.attribute.to_string(),id:m.id.to_string(),amount:m.amount,operation:m.operation as u8,
+                }).collect())
+        },
+        has_fall:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_fall,
+        fall:|entity,kind,distance,multiplier,inherited| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::calculate_fall_damage(
+                &crate::pure::living_entity_behavior::CalculateFallDamageContext {entity,entity_type,distance,multiplier,inherited})
+        },
+        has_jump:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_jump,
+        jump:|entity,kind,slime_size,block_jump_factor| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::jump_power(
+                &crate::pure::living_entity_behavior::JumpPowerContext {entity,entity_type,slime_size,block_jump_factor})
+        },
+        has_attack:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_attack,
+        attack:|entity,kind,attribute| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::attack_damage(
+                &crate::pure::living_entity_behavior::AttackDamageContext {entity,entity_type,attribute})
+        },
+    }).expect("PlutoLib living query sink installs once");
+    horizon_client::entry::pluto_block::set_skull_definition_provider(|| {
+        Ok(crate::pure::skull_model_registry::definitions()?.into_iter().map(|d|
+            horizon_client::entry::pluto_block::SkullDefinition {
+                item:d.item.to_string(),layer:d.layer,texture:d.texture.to_string(),animation:d.animation as u8,
+            }).collect())
+    }).expect("PlutoLib skull definitions install before item models load");
+    horizon_client::entry::pluto_block::set_skull_part_provider(|| {
+        let definitions=horizon_client::entry::pluto_block::skull_definitions()?;
+        let requested=definitions.iter().filter(|d|!d.layer.starts_with("minecraft:"))
+            .map(|d|d.layer.clone()).collect();
+        let layers=block_entity_renderer_api_v1::model_layer_definitions_for(&requested)?;
+        let mut models=Vec::new();
+        for definition in definitions.iter().filter(|d|!d.layer.starts_with("minecraft:")) {
+            let layer=layers.iter().find(|(id,_)|id==&definition.layer)
+                .map(|(_,layer)|layer).ok_or_else(||format!("{}: skull layer not registered",definition.layer))?;
+            models.push((definition.item.clone(),skull_model_to_native(&layer_to_native(layer).bake_root())));
+        }
+        Ok(models)
+    }).expect("PlutoLib skull geometry installs before item renderers load");
+    horizon_client::entry::pluto_block::set_block_settings_provider(|| {
+        Ok(block_api_v1::piston_behavior_declarations()?.into_iter().map(|(block,piston)|
+            horizon_client::entry::pluto_block::BlockSettingsDeclaration {block,piston:piston as u8}
+        ).collect())
+    }).expect("PlutoLib static block settings provider installs before native content loading");
+    horizon_client::entry::pluto_block::set_entity_type_provider(|| {
+        Ok(crate::pure::entity_type_api::derived_entity_types()?.into_iter().map(|d|
+            horizon_client::entry::pluto_block::DerivedEntityDefinition {
+                id: d.id.to_string(), factory: d.factory.to_string(), width: d.width, height: d.height,
+                tracking_chunks: d.tracking_chunks, velocity_updates: d.velocity_updates,
+            }).collect())
+    }).expect("PlutoLib entity type provider installs once before native table loading");
+    horizon_client::entry::pluto_block::set_mask_dispatcher(|item, wearer, observer| {
+        item_api_v1::ender_mask(&item_api_v1::EnderMaskContext {
+            item: item.to_owned(), stack: None, wearer_uuid: Some(wearer), observer_entity: Some(observer),
+        })
+    }).expect("PlutoLib item mask dispatcher installs once");
+    horizon_client::entry::pluto_entity_spawn_access::set_provider(
+        horizon_client::entry::pluto_entity_spawn_access::Provider {
+            enabled:crate::pure::entity_spawn_api::has_callbacks,prepare:native_spawn_prepare,
+        }).expect("PlutoLib mob spawn dispatcher installs once");
+    horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
+        .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
     horizon_client::entry::pluto_block::set_survival_dispatcher(blocks.survives);
     horizon_client::entry::pluto_block::set_sink(blocks);
@@ -189,6 +343,23 @@ impl HostHandle {
     }
 }
 
+struct ApiLivingDrops<'a> {
+    context:&'a mut dyn horizon_client::game::pluto_living_drops::Context,
+    info:crate::pure::living_entity_drops::LivingDropInfo,
+}
+impl crate::pure::living_entity_drops::LivingEntityDrops for ApiLivingDrops<'_> {
+    fn info(&self)->&crate::pure::living_entity_drops::LivingDropInfo {&self.info}
+    fn can_drop_head(&self)->Result<bool,String> {self.context.can_drop_head()}
+    fn claim_head_drop(&mut self)->Result<bool,String> {self.context.claim_head_drop()}
+    fn append_stack(&mut self,data:player_api::StackData)->Result<(),String> {
+        Identifier::parse(&data.item).map_err(|e|e.to_string())?;
+        if data.count==0 || data.count>i32::MAX as u32 {return Err("invalid death drop count".into());}
+        let mut stack=ItemStack::new(data.item.as_str(),data.count);
+        write_stack(&mut stack,&data);
+        self.context.append(stack)
+    }
+}
+
 /// A stack as PlutoLib's `StackData`: its damage, max damage and the `minecraft:custom_data` the stack carries.
 fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
     read_stack(stack)
@@ -206,6 +377,32 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
     player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data }
 }
 
+fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,resource_loader_v0::RegistryLookup>)
+    ->Result<Option<crate::pure::item_registry::ItemRegistrySnapshot>,String> {
+    let id=Identifier::parse("minecraft:item").unwrap();
+    let Some(lookup)=registries.get(&id) else { return Ok(None) };
+    let Some(snapshot)=horizon_client::registries::pluto_reload_registry::current() else { return Ok(None) };
+    let Some(defaults)=snapshot.iter().find(|r|r.id=="minecraft:item").and_then(|r|r.item_defaults.as_ref()) else { return Ok(None) };
+    fn strict(tag:&Tag)->Option<Nbt> {
+        match tag {
+            Tag::String(value)=>Some(Nbt::String(value.to_string().ok()?)),
+            Tag::List(values)=>Some(Nbt::List(values.iter().map(strict).collect::<Option<Vec<_>>>()?)),
+            Tag::Compound(values)=>Some(Nbt::Compound(values.iter().map(|(key,value)|
+                Some((key.to_string().ok()?,strict(value)?))).collect::<Option<NbtCompound>>()?)),
+            _=>nbt_from_tag(tag),
+        }
+    }
+    let stacks=defaults.iter().map(|prototype| {
+        let (tag,used)=horizon_world::nbt::read_network(&prototype.custom_data,horizon_world::nbt::Limits::default())
+            .map_err(|e|format!("invalid item prototype NBT: {e}"))?;
+        if used!=prototype.custom_data.len() { return Err("trailing item prototype NBT".into()); }
+        let Some(Nbt::Compound(custom_data))=strict(&tag) else { return Err("unsupported item prototype custom data".into()) };
+        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data })
+    }).collect::<Result<Vec<_>,String>>()?;
+    crate::pure::item_registry::ItemRegistrySnapshot::decode(lookup,stacks)?
+        .with_crafting_remainders(defaults.iter().map(|prototype|(prototype.id.clone(),prototype.crafting_remainder.clone())).collect()).map(Some)
+}
+
 /// Writes count, damage, max damage and custom data of `new` onto `stack` (the item is not changed).
 fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     stack.count = new.count;
@@ -214,6 +411,184 @@ fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
     stack.data_mut().set_other("minecraft:custom_data", (!new.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&new.custom_data))));
     stack.tidy();
+}
+
+use horizon_client::entry::pluto_entity_spawn_access as spawn_access;
+struct SpawnView<'a> {
+    info:crate::pure::entity_spawn_api::MobSpawnInfo,
+    random:&'a mut dyn spawn_access::Random,
+    equipment:&'a mut dyn spawn_access::Equipment,
+}
+fn spawn_info(info:&spawn_access::Info)->Result<crate::pure::entity_spawn_api::MobSpawnInfo,String> {
+    if !info.position.iter().all(|v|v.is_finite()) { return Err("non-finite mob spawn position".into()); }
+    Ok(crate::pure::entity_spawn_api::MobSpawnInfo {
+        entity_type:Identifier::parse(&info.entity_type).map_err(|e|e.to_string())?,
+        dimension:Identifier::parse(&info.dimension).map_err(|e|e.to_string())?,
+        position:info.position,reason:info.reason.clone(),
+    })
+}
+impl crate::pure::entity_spawn_api::MobSpawnPreparation for SpawnView<'_> {
+    fn info(&self)->&crate::pure::entity_spawn_api::MobSpawnInfo { &self.info }
+    fn next_float(&mut self)->f32 { self.random.next_float() }
+    fn next_double(&mut self)->f64 { self.random.next_double() }
+    fn next_int(&mut self,bound:i32)->Result<i32,String> {
+        if bound<=0 { return Err("mob RNG bound must be positive".into()); }
+        self.random.next_int(bound)
+    }
+    fn equipment(&self,slot:&str)->Result<Option<player_api::StackData>,String> {
+        self.equipment.get(slot).map(|stack|stack.as_ref().map(read_stack))
+    }
+}
+impl crate::pure::entity_spawn_api::MobSpawnCompletion for SpawnView<'_> {
+    fn set_equipment(&mut self,slot:&str,stack:player_api::StackData)->Result<(),String> {
+        let mut native=ItemStack::new(&stack.item,stack.count);
+        write_stack(&mut native,&stack);
+        self.equipment.set(slot,native)
+    }
+}
+struct SpawnCompletion(crate::pure::entity_spawn_api::PreparedSpawn);
+impl spawn_access::Completion for SpawnCompletion {
+    fn complete(self:Box<Self>,info:&spawn_access::Info,random:&mut dyn spawn_access::Random,equipment:&mut dyn spawn_access::Equipment)->Result<(),String> {
+        let mut view=SpawnView { info:spawn_info(info)?,random,equipment };
+        self.0.complete(&mut view)
+    }
+}
+fn native_spawn_prepare(info:&spawn_access::Info,random:&mut dyn spawn_access::Random,equipment:&mut dyn spawn_access::Equipment)
+    ->Result<Option<Box<dyn spawn_access::Completion>>,String> {
+    let mut view=SpawnView { info:spawn_info(info)?,random,equipment };
+    Ok(crate::pure::entity_spawn_api::prepare(&mut view)?.map(|pending|Box::new(SpawnCompletion(pending)) as Box<dyn spawn_access::Completion>))
+}
+
+struct NativeTradeWorld<'a>(&'a horizon_client::items::Items);
+impl crate::pure::trade_offer_helper::TradeWorld for NativeTradeWorld<'_> {
+    fn item_tag(&self, tag: &str) -> Option<Vec<String>> { self.0.item_tag_order.get(tag).cloned() }
+    fn item_exists(&self, item: &str) -> bool { self.0.get(item).is_some() }
+}
+struct NativeTradeRandom<'a>(&'a mut dyn horizon_client::merchant::pluto_trade_access::Random);
+impl crate::pure::trade_offer_helper::TradeRandom for NativeTradeRandom<'_> {
+    fn next_int(&mut self, bound: i32) -> i32 { self.0.next_int(bound) }
+    fn next_float(&mut self) -> f32 { self.0.next_float() }
+    fn next_double(&mut self) -> f64 { self.0.next_double() }
+}
+fn native_trade_stack(items: &horizon_client::items::Items, data: &player_api::StackData) -> Result<ItemStack, String> {
+    if items.get(&data.item).is_none() { return Err(format!("trade references unknown item {}", data.item)); }
+    let mut made = ItemStack::new(&data.item, data.count);
+    write_stack(&mut made, data);
+    Ok(made)
+}
+fn native_trade_factories(set: &str) -> Result<Vec<horizon_client::merchant::pluto_trade_access::Factory>, String> {
+    use crate::pure::trade_offer_helper::{TradeOfferContext, TradeOfferHelper};
+    use horizon_client::merchant::{ItemCost, MerchantOffer, pluto_trade_access::Factory};
+    // Current host's modern pool names. This preserves its native amount and
+    // duplicate policy; original 1.20 rare-list distribution is not validated.
+    let level = match set {
+        "minecraft:wandering_trader/common" => 1,
+        "minecraft:wandering_trader/uncommon" => 2,
+        _ => return Ok(Vec::new()),
+    };
+    Ok(TradeOfferHelper::wandering_trader_offers(level)?.into_iter().map(|factory| Factory {
+        create: std::sync::Arc::new(move |ctx, random| {
+            let world = NativeTradeWorld(ctx.items);
+            let context = TradeOfferContext { world: &world, position: ctx.origin, variant: ctx.variant };
+            let Some(offer) = factory.create(&context, &mut NativeTradeRandom(random))? else { return Ok(None) };
+            let first = native_trade_stack(ctx.items, &offer.first_buy)?;
+            let second = offer.second_buy.as_ref().map(|s| native_trade_stack(ctx.items, s)).transpose()?;
+            let result = native_trade_stack(ctx.items, &offer.sell)?;
+            Ok(Some(MerchantOffer { base_cost_a: ItemCost { stack: first }, cost_b: second.map(|stack| ItemCost { stack }),
+                result, uses: 0, max_uses: offer.max_uses, reward_exp: true, special_price_diff: 0,
+                demand: 0, price_multiplier: offer.price_multiplier, xp: offer.experience }))
+        }),
+    }).collect())
+}
+
+struct StagedMenu<'a, 'env> {
+    menu: &'a mut horizon_client::menu::Menu,
+    env: &'a horizon_client::menu::Env<'env>,
+}
+
+fn native_slot(slot: Option<ItemSlot>) -> Option<ItemStack> {
+    slot.filter(|slot| slot.count > 0).map(|slot| {
+        let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+        write_slot(&mut stack, &slot);
+        stack
+    })
+}
+
+impl screen_handler_api_v1::MenuAccess for StagedMenu<'_, '_> {
+    fn slot_count(&self) -> usize { self.menu.slot_count() }
+    fn stack(&self, slot: usize) -> Option<ItemSlot> {
+        if slot >= self.menu.slot_count() { return None; }
+        self.menu.slot(slot).and_then(slot_of)
+    }
+    fn set_stack(&mut self, slot: usize, stack: Option<ItemSlot>) -> bool {
+        if slot >= self.menu.slot_count() { return false; }
+        self.menu.set_slot(self.env, slot, native_slot(stack));
+        true
+    }
+    fn swap_stack(&self, button: i32) -> Option<ItemSlot> {
+        horizon_client::menu::pluto_menu_actions::swap_stack(self.menu, button).and_then(slot_of)
+    }
+    fn set_swap_stack(&mut self, button: i32, stack: Option<ItemSlot>) -> bool {
+        horizon_client::menu::pluto_menu_actions::set_swap_stack(self.menu, button, native_slot(stack))
+    }
+    fn carried(&self) -> Option<ItemSlot> { self.menu.carried.as_ref().and_then(slot_of) }
+    fn set_carried(&mut self, stack: Option<ItemSlot>) { self.menu.carried = native_slot(stack); }
+    fn same_item_and_components(&self, left: &ItemSlot, right: &ItemSlot) -> bool {
+        match (native_slot(Some(left.clone())), native_slot(Some(right.clone()))) {
+            (Some(left), Some(right)) => left.same_item_same_components(&right),
+            _ => false,
+        }
+    }
+    fn max_stack_count(&self, stack: &ItemSlot) -> u32 {
+        native_slot(Some(stack.clone())).map_or(0, |stack| {
+            horizon_client::menu::pluto_menu_actions::max_stack_count(self.env, &stack)
+        })
+    }
+    fn move_stack(&mut self, stack: &mut ItemSlot, start: usize, end: usize, reverse: bool) -> bool {
+        let Some(mut native) = native_slot(Some(stack.clone())) else { return false };
+        let moved = horizon_client::menu::pluto_menu_actions::move_stack(self.menu, self.env, &mut native, start, end, reverse);
+        if let Some(remainder) = slot_of(&native) { *stack = remainder; }
+        moved
+    }
+    fn crafting_remainder(&self, stack: &ItemSlot) -> Option<ItemSlot> {
+        let stack = native_slot(Some(stack.clone()))?;
+        horizon_client::menu::pluto_menu_actions::crafting_remainder(self.env, &stack).as_ref().and_then(slot_of)
+    }
+    fn give_stack(&mut self, stack: ItemSlot) {
+        if let Some(mut stack) = native_slot(Some(stack)) {
+            horizon_client::menu::pluto_menu_actions::give_stack(self.menu, self.env, &mut stack);
+        }
+    }
+    fn drop_stack(&mut self, stack: &ItemSlot) {
+        if let Some(stack) = native_slot(Some(stack.clone())) {
+            horizon_client::menu::pluto_menu_actions::drop_stack(self.menu, &stack);
+        }
+    }
+}
+
+fn staged_menu_click(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>,
+    context: &mut horizon_client::menu::pluto_menu_actions::Context, slot: usize, button: i32,
+    input: horizon_client::menu::Input) -> bool {
+    use screen_handler_api_v1::{SlotAction, SlotClick};
+    use horizon_client::menu::Input;
+    // Remote menus use a synthetic ModBlockEntity with an empty entity id.
+    // Resolve its declared menu type rather than silently skipping prediction.
+    let block = block_entity_api_v1::block_of(&context.entity).or_else(|| {
+        let horizon_client::menu::Kind::Mod(kind) = menu.kind() else { return None };
+        block_entity_api_v1::block_of_menu(kind.id)
+    });
+    let Some(block) = block else { return false };
+    let action = match input {
+        Input::Pickup => SlotAction::Pickup, Input::QuickMove => SlotAction::QuickMove,
+        Input::Swap => SlotAction::Swap, Input::Throw => SlotAction::Throw, _ => return false,
+    };
+    let Some(handler) = screen_handler_api_v1::slot_click(&block, slot, action) else { return false };
+    let player = player_api::ServerPlayer { uuid: context.player_uuid, name: context.player_name.clone() };
+    let mut data = compound_from_tag(&context.data);
+    handler(&mut SlotClick { pos: context.pos, player: &player, authoritative: context.authoritative,
+        slot, button, action, data: &mut data, menu: &mut StagedMenu { menu, env } });
+    context.data = compound_to_tag(&data);
+    true
 }
 
 struct HostOps(HostHandle);
@@ -284,6 +659,12 @@ fn scoped<R>(host: &mut dyn Host, f: impl FnOnce() -> R) -> R {
 }
 
 impl PlayerOps for HostOps {
+    fn net_send_to_player(&mut self, player: u128, channel: &str, data: &[u8]) -> Result<(), String> {
+        self.host().net_send_to_player(player, channel, data)
+    }
+    fn net_send_to_server(&mut self, channel: &str, data: &[u8]) -> Result<(), String> {
+        self.host().net_send_to_server(channel, data)
+    }
     fn tell(&mut self, player: u128, line: &str) -> bool {
         self.host().tell(player, Text::literal(line.to_owned()))
     }
@@ -399,31 +780,50 @@ impl PlayerOps for HostOps {
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
-        let kind = json_attachment(id)?;
+        self.attachment_get_with_policy(player, id, false)
+    }
+    fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
+        self.attachment_set_with_policy(player, id, json, false)
+    }
+    fn attachment_get_with_policy(&mut self, player: u128, id: &str, sync: bool) -> Option<String> {
+        let kind = json_attachment(id, sync)?;
         match kind.get_existing(self.host(), Holder::Player(player)) {
             Ok(Some(json)) if !json.is_empty() => Some(json),
             _ => None,
         }
     }
-
-    fn attachment_set(&mut self, player: u128, id: &str, json: &str) -> bool {
-        match json_attachment(id) {
+    fn attachment_set_with_policy(&mut self, player: u128, id: &str, json: &str, sync: bool) -> bool {
+        match json_attachment(id, sync) {
             Some(kind) => kind.set(self.host(), Holder::Player(player), json.to_owned()).is_ok(),
             None => false,
         }
+    }
+    fn entity_attachment_get(&mut self, entity: u32, dimension: &str, id: &str, sync: bool) -> Option<String> {
+        let kind = json_attachment(id, sync)?;
+        let host = self.host();
+        if host.dimension() != dimension { return None; }
+        match kind.get_existing(host, Holder::Entity(entity)) {
+            Ok(Some(json)) if !json.is_empty() => Some(json),
+            _ => None,
+        }
+    }
+    fn entity_attachment_set(&mut self, entity: u32, dimension: &str, id: &str, json: &str, sync: bool) -> bool {
+        let Some(kind) = json_attachment(id, sync) else { return false };
+        let host = self.host();
+        host.dimension() == dimension && kind.set(host, Holder::Entity(entity), json.to_owned()).is_ok()
     }
 }
 
 /// Horizon wants attachment keys as `'static` strs and a codec made of plain functions, while PlutoLib attachments are created at run time.
 /// So each id gets one leaked `AttachmentType<String>` (made once, kept for the process) whose value is the JSON text in a string tag.
-fn json_attachment(id: &str) -> Option<&'static AttachmentType<String>> {
+fn json_attachment(id: &str, sync: bool) -> Option<&'static AttachmentType<String>> {
     use std::collections::HashMap;
     use std::sync::{Mutex, OnceLock};
     static KINDS: OnceLock<Mutex<HashMap<String, &'static AttachmentType<String>>>> = OnceLock::new();
     let (namespace, name) = id.split_once(':')?;
     let mut kinds = KINDS.get_or_init(Default::default).lock().ok()?;
     if let Some(kind) = kinds.get(id) {
-        return Some(*kind);
+        return (kind.sync == sync).then_some(*kind);
     }
     let kind: &'static AttachmentType<String> = Box::leak(Box::new(AttachmentType {
         namespace: Box::leak(namespace.to_owned().into_boxed_str()),
@@ -437,7 +837,7 @@ fn json_attachment(id: &str) -> Option<&'static AttachmentType<String>> {
             },
         }),
         copy_on_death: false,
-        sync: false,
+        sync,
     }));
     kinds.insert(id.to_owned(), kind);
     Some(kind)
@@ -493,21 +893,50 @@ fn compound_to_tag(compound: &NbtCompound) -> Compound {
 /// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
 fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     let data = read_stack(stack);
-    Some(ItemSlot { item: crate::pure::base::Identifier::parse(&stack.item).ok()?, count: data.count, damage: data.damage, max_damage: data.max_damage, custom_data: data.custom_data })
+    let mut slot = ItemSlot::new(crate::pure::base::Identifier::parse(&stack.item).ok()?, data.count);
+    slot.damage = data.damage;
+    slot.max_damage = data.max_damage;
+    slot.custom_data = data.custom_data;
+    slot.tool = read_tool(stack);
+    slot.capture(stack.clone());
+    Some(slot)
 }
 
-/// Writes an item slot's count, damage, max damage and custom data onto a stack of the same item.
+/// Restore the source stack, not the destination's components, then apply public edits.
 fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
-    write_stack(stack, &player_api::StackData { item: stack.item.to_string(), count: slot.count, damage: slot.damage, max_damage: slot.max_damage, custom_data: slot.custom_data.clone() });
+    let item = slot.item.to_string();
+    *stack = slot.captured::<ItemStack>().filter(|old| old.item.as_ref() == item)
+        .cloned().unwrap_or_else(|| ItemStack::new(&item, slot.count));
+    let before = read_stack(stack);
+    stack.count = slot.count;
+    stack.damage = slot.damage;
+    if slot.max_damage != before.max_damage {
+        stack.data_mut().set_other("minecraft:max_damage", slot.max_damage.filter(|m| *m > 0).map(Tag::Int));
+    }
+    if slot.custom_data != before.custom_data {
+        stack.data_mut().set_other("minecraft:custom_data", (!slot.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&slot.custom_data))));
+    }
+    // The stack's own tool component; the native encoder/decoder and mining rules read it from here.
+    if slot.tool != read_tool(stack) {
+        stack.data_mut().set_other("minecraft:tool", slot.tool.as_ref().map(|tool| Tag::Compound(compound_to_tag(tool))));
+    }
+    stack.tidy();
 }
 
-/// Runs `f` on a block entity's data and item slots as PlutoLib's types and writes back what changed; a slot whose item is unchanged keeps
-/// its data and only takes the new count. True if `f` did something (its own answer).
+/// The stack's own `minecraft:tool` component as public NBT, None when it has none of its own.
+fn read_tool(stack: &ItemStack) -> Option<NbtCompound> {
+    match stack.data().and_then(|d| d.other("minecraft:tool")) {
+        Some(Tag::Compound(compound)) => Some(compound_from_tag(compound)),
+        _ => None,
+    }
+}
+
+/// Runs `f` on public data/slots and writes back changes, retaining each moved slot's source components.
+/// True if `f` did something (its own answer).
 fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompound, &mut Vec<Option<ItemSlot>>) -> bool) -> bool {
     let mut data = compound_from_tag(&entity.nbt);
     let before = data.clone();
-    let original: Vec<Option<ItemStack>> = entity.items.clone();
-    let mut items: Vec<Option<ItemSlot>> = original
+    let mut items: Vec<Option<ItemSlot>> = entity.items
         .iter()
         .map(|slot| slot.as_ref().and_then(slot_of))
         .collect();
@@ -523,33 +952,113 @@ fn with_block_entity(entity: &mut ModBlockEntity, f: impl FnOnce(&mut NbtCompoun
         if items != before_items {
             entity.items = items
                 .iter()
-                .zip(original.iter().chain(std::iter::repeat(&None)))
-                .map(|(now, was)| match (now, was) {
-                    (None, _) => None,
-                    (Some(slot), Some(old)) if old.item.as_ref() == slot.item.to_string() => {
-                        let mut kept = old.clone();
-                        write_slot(&mut kept, slot);
-                        Some(kept)
-                    }
-                    (Some(slot), _) => {
-                        let mut made = ItemStack::new(&slot.item.to_string(), slot.count);
-                        write_slot(&mut made, slot);
-                        Some(made)
-                    }
-                })
+                .map(|now| now.as_ref().filter(|slot| slot.count > 0).map(|slot| {
+                    let mut made = ItemStack::new(&slot.item.to_string(), slot.count);
+                    write_slot(&mut made, slot);
+                    made
+                }))
                 .collect();
         }
     }
     ran
 }
 
+/// Commit the container and the complete remainder only when routing handled the click.
+fn with_quick_move(
+    entity: &mut ModBlockEntity,
+    stack: &mut ItemStack,
+    route: impl FnOnce(&mut ItemSlot, &mut NbtCompound, &mut Vec<Option<ItemSlot>>) -> bool,
+) -> bool {
+    let Some(mut moved) = slot_of(stack) else { return false };
+    let handled = with_block_entity(entity, |data, items| route(&mut moved, data, items));
+    if handled {
+        write_slot(stack, &moved);
+    }
+    handled
+}
+
+fn layer_to_native(layer: &block_entity_renderer_api_v1::LayerDefinition) -> horizon_client::mod_api::LayerDefinition {
+    use horizon_client::mod_api::{CubeDeformation, CubeListBuilder, MeshDefinition, PartId};
+    fn append(mesh: &mut MeshDefinition, parent: PartId, parts: &[(String, block_entity_renderer_api_v1::PartDefinition)]) {
+        for (name, part) in parts {
+            let mut cubes = CubeListBuilder::create();
+            for cube in &part.cubes {
+                let [x, y, z] = cube.deformation;
+                cubes = cubes.tex_offs(cube.texture_offset[0], cube.texture_offset[1])
+                    .set_mirror(cube.mirror)
+                    .add_box_with(cube.origin, cube.dimensions, CubeDeformation::xyz(x, y, z));
+            }
+            let child = mesh.add_or_replace_child(parent, name, cubes, pose_to_native(part.pose));
+            append(mesh, child, &part.children);
+        }
+    }
+    let mut mesh = MeshDefinition::new();
+    let root = mesh.root();
+    append(&mut mesh, root, &layer.parts);
+    horizon_client::mod_api::LayerDefinition::create(mesh, layer.texture_size[0], layer.texture_size[1])
+}
+
+fn pose_from_native(pose: horizon_client::mod_api::PartPose) -> PartPose {
+    PartPose { translation: [pose.x, pose.y, pose.z], rotation: [pose.x_rot, pose.y_rot, pose.z_rot],
+        scale: [pose.x_scale, pose.y_scale, pose.z_scale] }
+}
+fn pose_to_native(pose: PartPose) -> horizon_client::mod_api::PartPose {
+    horizon_client::mod_api::PartPose {
+        x: pose.translation[0], y: pose.translation[1], z: pose.translation[2],
+        x_rot: pose.rotation[0], y_rot: pose.rotation[1], z_rot: pose.rotation[2],
+        x_scale: pose.scale[0], y_scale: pose.scale[1], z_scale: pose.scale[2],
+    }
+}
+fn model_from_native(part: &horizon_client::mod_api::ModelPart) -> ModelPart {
+    let polygons = part.polygons.iter().map(|polygon| ModelPolygon {
+        vertices: polygon.vertices.map(|v| ModelVertex { pos: v.pos, uv: [v.u, v.v] }),
+        normal: polygon.normal,
+    }).collect();
+    let children = part.children().map(|(name, child)| (name.to_owned(), model_from_native(child))).collect();
+    let mut model = ModelPart::new(polygons, children, pose_from_native(part.initial_pose()));
+    model.pose = pose_from_native(part.store_pose());
+    model.visible = part.visible;
+    model.skip_draw = part.skip_draw;
+    model
+}
+fn skull_model_to_native(part:&horizon_client::mod_api::ModelPart)->horizon_client::entry::pluto_block::SkullModelPart {
+    let p=part.store_pose();
+    horizon_client::entry::pluto_block::SkullModelPart {
+        pose:[p.x,p.y,p.z,p.x_rot,p.y_rot,p.z_rot,p.x_scale,p.y_scale,p.z_scale],
+        polygons:if part.visible && !part.skip_draw {part.polygons.iter().map(|poly|
+            poly.vertices.map(|v|[v.pos[0],v.pos[1],v.pos[2],v.u,v.v])).collect()} else {Vec::new()},
+        children:if part.visible {part.children().map(|(name,child)|(name.to_owned(),skull_model_to_native(child))).collect()} else {Vec::new()},
+    }
+}
+
+fn model_to_native(part: &ModelPart) -> horizon_client::mod_api::ModelPart {
+    let polygons = part.polygons.iter().map(|polygon| horizon_client::mod_api::ModelPolygon {
+        vertices: polygon.vertices.map(|v| horizon_client::mod_api::ModelVertex { pos: v.pos, u: v.uv[0], v: v.uv[1] }),
+        normal: polygon.normal,
+    }).collect();
+    let children = part.children.iter().map(|(name, child)| (name.clone(), model_to_native(child))).collect();
+    let mut model = horizon_client::mod_api::ModelPart::new(polygons, children, pose_to_native(part.initial_pose));
+    model.load_pose(pose_to_native(part.pose));
+    model.visible = part.visible;
+    model.skip_draw = part.skip_draw;
+    model
+}
+
 /// What a block entity renderer draws on: the game's draw state for this block entity.
 struct HostDraw<'a> {
     host: &'a dyn Host,
     draw: &'a mut BlockEntityDraw,
+    state: horizon_world::registry::BlockStateId,
+    client_data: Option<&'a NbtCompound>,
 }
 
 impl BlockEntityCanvas for HostDraw<'_> {
+    fn client_data(&self) -> Option<&NbtCompound> { self.client_data }
+    fn state_property(&self, name: &str) -> Option<String> {
+        self.host.block_state_property(self.state, name).map(str::to_owned)
+    }
+    fn partial_tick(&self) -> Option<f32> { Some(self.draw.partial) }
+    fn game_time(&self) -> Option<i64> { Some(self.draw.game_time) }
     fn push(&mut self) {
         self.draw.push();
     }
@@ -584,11 +1093,37 @@ impl BlockEntityCanvas for HostDraw<'_> {
     }
 
     fn item(&mut self, item: &ItemSlot) -> bool {
-        self.host.draw_item(self.draw, &ItemStack::new(&item.item.to_string(), item.count), DisplayContext::Fixed, None, 0)
+        self.item_with_context(item, ItemDisplayContext::Fixed)
+    }
+
+    fn item_with_context(&mut self, item: &ItemSlot, context: ItemDisplayContext) -> bool {
+        let native = match context {
+            ItemDisplayContext::None => DisplayContext::None,
+            ItemDisplayContext::ThirdPersonLeftHand => DisplayContext::ThirdPersonLeftHand,
+            ItemDisplayContext::ThirdPersonRightHand => DisplayContext::ThirdPersonRightHand,
+            ItemDisplayContext::FirstPersonLeftHand => DisplayContext::FirstPersonLeftHand,
+            ItemDisplayContext::FirstPersonRightHand => DisplayContext::FirstPersonRightHand,
+            ItemDisplayContext::Head => DisplayContext::Head,
+            ItemDisplayContext::Gui => DisplayContext::Gui,
+            ItemDisplayContext::Ground => DisplayContext::Ground,
+            ItemDisplayContext::Fixed => DisplayContext::Fixed,
+            ItemDisplayContext::OnShelf => DisplayContext::OnShelf,
+        };
+        let mut stack = ItemStack::new(&item.item.to_string(), item.count);
+        write_slot(&mut stack, item);
+        self.host.draw_item(self.draw, &stack, native, None, 0)
     }
 
     fn model(&mut self, model: &str, tint: u32) -> bool {
         self.host.draw_model(self.draw, model, tint)
+    }
+
+    fn bake_layer(&mut self, layer: &str) -> Option<ModelPart> {
+        self.host.bake_layer(layer).map(|part| model_from_native(&part))
+    }
+
+    fn model_part(&mut self, part: &ModelPart, sprite: &str, tint: u32) -> bool {
+        self.host.draw_model_part(self.draw, &model_to_native(part), sprite, tint)
     }
 
     fn keep(&mut self) {
@@ -651,6 +1186,7 @@ impl block_api_v1::BlockView for GameView<'_> {
 
     fn is_replaceable(&self, pos: [i32; 3]) -> bool { self.0.replaceable(pos) }
     fn generation_depth(&self) -> Option<i32> { self.0.generation_depth() }
+    fn has_neighbor_signal(&self, pos: [i32; 3]) -> Option<bool> { self.0.has_neighbor_signal(pos) }
 
     fn is_face_sturdy(&self, pos: [i32; 3], face: block_api_v1::Direction) -> bool {
         self.0.face_sturdy(pos, face as u8)
@@ -658,6 +1194,9 @@ impl block_api_v1::BlockView for GameView<'_> {
 
     fn is_in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         self.0.in_tag(pos, tag)
+    }
+    fn is_state_in_tag(&self, state: &BlockState, tag: &str) -> Option<bool> {
+        self.0.state_in_tag(&to_info(state), tag)
     }
     fn brightness(&self, pos: [i32; 3]) -> u8 {
         self.0.brightness(pos)
@@ -702,6 +1241,7 @@ impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::Bl
 
     fn is_replaceable(&self, pos: [i32; 3]) -> bool { self.0.replaceable(pos) }
     fn generation_depth(&self) -> Option<i32> { self.0.generation_depth() }
+    fn has_neighbor_signal(&self, pos: [i32; 3]) -> Option<bool> { self.0.has_neighbor_signal(pos) }
 
     fn is_face_sturdy(&self, pos: [i32; 3], face: block_api_v1::Direction) -> bool {
         self.0.face_sturdy(pos, face as u8)
@@ -709,6 +1249,9 @@ impl<T: horizon_client::entry::pluto_block::LevelEdit + ?Sized> block_api_v1::Bl
 
     fn is_in_tag(&self, pos: [i32; 3], tag: &str) -> bool {
         self.0.in_tag(pos, tag)
+    }
+    fn is_state_in_tag(&self, state: &BlockState, tag: &str) -> Option<bool> {
+        self.0.state_in_tag(&to_info(state), tag)
     }
     fn brightness(&self, pos: [i32; 3]) -> u8 {
         self.0.brightness(pos)
@@ -827,6 +1370,14 @@ fn direction(face: u8) -> block_api_v1::Direction {
 }
 
 fn block_sink() -> horizon_client::entry::pluto_block::Sink {
+    horizon_world::level::pluto_block_access::set_path_node_dispatcher(|view, state, pos, entity| {
+        let state = to_state(state)?;
+        let context = block_api_v1::PathNodeTypeContext {
+            state, pos, view: &GameView(view),
+            entity: entity.map(|(id, _)| id), kind: entity.map(|(_, kind)| kind.to_owned()),
+        };
+        block_api_v1::path_node_type(&context).map(|kind| kind.name().to_owned())
+    });
     use horizon_client::entry::pluto_block::{LevelEdit, LevelView, Placement, PlacementAnswer, ShapeUpdate, Sink, StateInfo};
     fn survives(view: &dyn LevelView, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
         let state = to_state(state)?;
@@ -857,15 +1408,13 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
     fn update_shape(view: &dyn LevelView, update: &ShapeUpdate) -> Option<StateInfo> {
         let state = to_state(&update.state)?;
         let block = state.block.to_string();
-        let context = block_api_v1::ShapeUpdateContext {
-            state,
-            pos: update.pos,
-            direction: direction(update.direction),
-            neighbour_pos: update.neighbour_pos,
-            neighbour: update.neighbour.as_ref().and_then(to_state),
-            view: &GameView(view),
-        };
-        block_api_v1::shape_update(&block, &context).map(|changed| to_info(&changed))
+        let view = GameView(view);
+        let context = block_api_v1::ShapeUpdateContext::new(state, update.pos,
+            direction(update.direction), update.neighbour_pos,
+            update.neighbour.as_ref().and_then(to_state), &view);
+        let changed = block_api_v1::shape_update(&block, &context);
+        update.tick_delay.set(context.scheduled_tick_delay());
+        changed.map(|changed| to_info(&changed))
     }
     fn random_tick(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> bool {
         let Some(state) = to_state(state) else { return false };
@@ -899,6 +1448,47 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
     }
     Sink {
         has: |block| block_api_v1::BlockBehaviors::get(block).is_some(),
+        inside_motion: |state| {
+            let state = to_state(state)?;
+            let callback = block_api_v1::inside_motion_handler(&state.block.to_string())?;
+            Some(std::sync::Arc::new(move |request: &mut horizon_client::entry::pluto_block::InsideMotion| {
+                let mut context = block_api_v1::EntityInsideMotionContext {
+                    state: state.clone(), pos: request.pos, entity: request.entity, kind: request.kind.clone(),
+                    server: request.server, suppressing_bounce: request.suppressing_bounce,
+                    position: request.position, previous_position: request.previous_position, velocity: request.velocity,
+                    sync_velocity: request.sync_velocity, step_sound: request.step_sound,
+                };
+                block_api_v1::apply_inside_motion(&callback, &mut context);
+                request.velocity = context.velocity;
+                request.sync_velocity = context.sync_velocity;
+                request.step_sound = context.step_sound;
+            }))
+        },
+        after_fall: |state| {
+            let state = to_state(state)?;
+            let callback = block_api_v1::after_fall_handler(&state.block.to_string())?;
+            Some(std::sync::Arc::new(move |request: &mut horizon_client::entry::pluto_block::AfterFall| {
+                let mut context = block_api_v1::AfterFallContext {
+                    state: state.clone(), pos: request.pos, entity: request.entity, kind: request.kind.clone(),
+                    living: request.living, item: request.item, suppressing_bounce: request.suppressing_bounce,
+                    velocity: request.velocity, fall_distance: request.fall_distance, on_ground: request.on_ground,
+                };
+                block_api_v1::apply_after_fall(&callback, &mut context);
+                request.velocity = context.velocity;
+                request.fall_distance = context.fall_distance;
+                request.on_ground = context.on_ground;
+            }))
+        },
+        fall_on: |request| {
+            let Some(state) = to_state(&request.state) else { return };
+            let block = state.block.to_string();
+            let mut context = block_api_v1::FallOnContext {
+                state, pos: request.pos, entity: request.entity, kind: request.kind.clone(),
+                distance: request.distance, damage: request.damage,
+            };
+            block_api_v1::fall_on(&block, &mut context);
+            request.damage = context.damage;
+        },
         survives,
         placement,
         update_shape,
@@ -912,6 +1502,25 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
 }
 
 impl Hooks for PlutoHooks {
+    fn client_player_network_logging_in(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::ClientPlayerNetworkLoggingInEvent) {
+        scoped(host, networking_api_v1::client_joined);
+    }
+    fn client_disconnecting(&self, _host: &dyn Host, _event: &mut horizon_client::mod_api::ClientDisconnectingEvent) {
+        networking_api_v1::client_disconnecting();
+    }
+    fn net_from_client(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::NetFromClientEvent<'_>) {
+        scoped(host, || networking_api_v1::from_client(event.player, event.channel, event.data));
+    }
+    fn net_from_server(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::NetFromServerEvent<'_>) {
+        scoped(host, || networking_api_v1::from_server(event.channel, event.data));
+    }
+    fn layer_definitions(&self, event: &mut horizon_client::mod_api::LayerDefinitionsEvent<'_>) {
+        match block_entity_renderer_api_v1::model_layer_definitions() {
+            Ok(definitions) => event.layers.extend(definitions.into_iter().map(|(id, layer)| (id, layer_to_native(&layer)))),
+            Err(error) => eprintln!("pluto_lib: model layer collection rejected: {error}"),
+        }
+    }
+
     fn use_duration(&self, _host: &dyn Host, event: &mut UseDurationEvent<'_>) {
         event.duration = item_api_v1::use_duration(&event.stack.item, event.duration);
     }
@@ -970,7 +1579,11 @@ impl Hooks for PlutoHooks {
         let before = carried.clone();
         with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
         if carried != before {
-            *event.carried = carried.map(|s| ItemStack::new(&s.item.to_string(), s.count));
+            *event.carried = carried.filter(|s| s.count > 0).map(|s| {
+                let mut stack = ItemStack::new(&s.item.to_string(), s.count);
+                write_slot(&mut stack, &s);
+                stack
+            });
         }
     }
 
@@ -981,16 +1594,11 @@ impl Hooks for PlutoHooks {
 
     fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
-        let Ok(item) = crate::pure::base::Identifier::parse(&event.stack.item) else { return Flow::Continue };
-        let mut moved = ItemSlot::new(item, event.stack.count);
         let (pos, slot, container_slots) = (event.pos, event.slot, event.container_slots);
-        let mut handled = false;
-        with_block_entity(event.entity, |data, items| {
-            handled = screen_handler_api_v1::quick_move(&block, pos, slot, container_slots, &mut moved, data, items);
-            handled
+        let handled = with_quick_move(event.entity, event.stack, |moved, data, items| {
+            screen_handler_api_v1::quick_move(&block, pos, slot, container_slots, moved, data, items)
         });
         if handled {
-            event.stack.count = moved.count;
             Flow::Cancel
         } else {
             Flow::Continue
@@ -1008,7 +1616,13 @@ impl Hooks for PlutoHooks {
             return;
         }
         let data = compound_from_tag(&event.entity.nbt);
-        let mut canvas = HostDraw { host, draw: &mut *event.draw };
+        // A snapshot from this exact native entity, never its saved NBT or a
+        // global position cache. Busy/poisoned stays unavailable. The generated
+        // state getter and this adapter await native attachment plan/native validation.
+        let client_data = event.entity.__horizon_mixins_pluto_lib_pluto_block_entity_client_state()
+            .snapshot().ok().map(|snapshot| compound_from_tag(&snapshot));
+        let mut canvas = HostDraw { host, draw: &mut *event.draw, state: event.state,
+            client_data: client_data.as_ref() };
         block_entity_renderer_api_v1::render(event.block, event.pos, &data, &mut canvas);
     }
 
@@ -1114,8 +1728,8 @@ impl Hooks for PlutoHooks {
         lifecycle_events_v1::server_stopping(event.dedicated);
     }
 
-    fn server_tick(&self, _host: &mut dyn Host, event: &mut ServerTickEvent<'_>) {
-        match event.phase {
+    fn server_tick(&self, host: &mut dyn Host, event: &mut ServerTickEvent<'_>) {
+        scoped(host, || match event.phase {
             ServerTickPhase::ServerTickStart { .. } => {
                 crate::pure::i18n_api::poll_language();
                 lifecycle_events_v1::server_tick(true)
@@ -1123,7 +1737,7 @@ impl Hooks for PlutoHooks {
             ServerTickPhase::ServerTickEnd { .. } => lifecycle_events_v1::server_tick(false),
             #[allow(unreachable_patterns)]
             _ => {}
-        }
+        });
     }
 
     fn level_tick_pre(&self, _host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
@@ -1152,13 +1766,13 @@ impl Hooks for PlutoHooks {
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 
-    fn entity_join_level(&self, _host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {
-        entity_events_v1::entity_loaded(event.entity, event.kind, event.dimension);
+    fn entity_join_level(&self, host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {
+        scoped(host, || entity_events_v1::entity_loaded(event.entity, event.kind, event.dimension));
         Flow::Continue
     }
 
-    fn entity_leave_level(&self, _host: &mut dyn Host, event: &mut EntityLeaveLevelEvent<'_>) {
-        entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension);
+    fn entity_leave_level(&self, host: &mut dyn Host, event: &mut EntityLeaveLevelEvent<'_>) {
+        scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 
     fn use_item(&self, _host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
@@ -1192,10 +1806,17 @@ impl Hooks for PlutoHooks {
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
         let Some(level) = host.level(host.dimension()) else { return };
         let Some(block) = host.level_block_state(level, event.pos).and_then(|text| BlockState::parse(&text).ok()) else { return };
-        let held = host.acting_player().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        let acting = host.acting_player();
+        let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| stack_data_of(host, &stack));
+        let player = acting.as_ref().map(|player| {
+            // Entity.isEyeInFluid(water): the block at the eyes holds water (a water block or a waterlogged one).
+            let eyes = [player.position[0].floor() as i32, (player.position[1] + f64::from(player.eye_height)).floor() as i32, player.position[2].floor() as i32];
+            let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
+            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
+        });
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
-        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held));
+        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player));
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {
@@ -1244,6 +1865,65 @@ impl Hooks for PlutoHooks {
     fn loot_table_load(&self, event: &mut LootTableLoadEvent<'_>) {
         let edited = loot_api_v2::modify(event.id, event.table.clone());
         *event.table = edited;
+    }
+
+    fn add_server_reload_listeners(&self, _host: &mut dyn Host, event: &mut AddServerReloadListenersEvent<'_>) {
+        let listeners = resource_loader_v0::json_reload_listeners(resource_loader_v0::ResourceType::ServerData)
+            .expect("JSON reload registry must remain available");
+        // Refuse a cross-mod ID collision before adding any of this batch.
+        for (id, _) in &listeners {
+            assert!(!event.listeners.iter().any(|l| l.id == id.to_string()), "duplicate native JSON listener {id}");
+        }
+        event.listeners.extend(listeners.into_iter().map(|(id,directory)| NativeReloadListener::json(&id.to_string(),&directory)));
+    }
+
+    fn server_reload_listener_apply(&self, _host: &mut dyn Host, event: &mut ServerReloadListenerApplyEvent<'_>) {
+        let registries = (|| {
+            let Some(snapshot)=horizon_client::registries::pluto_reload_registry::current() else {
+                return Ok::<_,String>(std::collections::BTreeMap::new());
+            };
+            let (registries,errors)=resource_loader_v0::decode_reload_registries(snapshot.iter()
+                .filter(|r|r.id!="minecraft:fluid")
+                .map(|r|(r.id.as_str(),r.entries.as_slice(),r.tags.as_slice())))?;
+            for error in errors { eprintln!("PlutoLib: reload registry unavailable: {error}"); }
+            Ok(registries)
+        })();
+        let registries=match registries {
+            Ok(registries)=>registries,
+            Err(error)=>{
+                eprintln!("PlutoLib: invalid reload registry snapshot: {error}; registry lookups unavailable");
+                // Still deliver valid JSON with no registry context: consumers
+                // can disable stale state instead of never hearing this reload.
+                std::collections::BTreeMap::new()
+            }
+        };
+        let mut resources=std::collections::BTreeMap::new();
+        if let Some(folders)=horizon_client::registries::pluto_reload_registry::current_resources() {
+            for (directory,records) in folders.iter() {
+                match resource_loader_v0::decode_json_stacks(records.iter().map(|r|(r.id.as_str(),r.layers.as_slice()))) {
+                    Ok(stacks)=>{ resources.insert(directory.clone(),stacks); },
+                    Err(error)=>eprintln!("PlutoLib: JSON resource stacks unavailable for {directory}: {error}"),
+                }
+            }
+        }
+        let items=match reload_item_prototypes(&registries) {
+            Ok(snapshot)=>snapshot,
+            Err(error)=>{ eprintln!("PlutoLib: item prototypes unavailable: {error}"); None }
+        };
+        let native=horizon_client::registries::pluto_reload_registry::current();
+        let base=native.as_ref().and_then(|records|records.iter().find(|r|r.id=="minecraft:fluid")).map(|r|r.entries.as_slice());
+        let fluids=match crate::pure::fluid_api_v1::FluidRegistrySnapshot::capture(base) {
+            Ok(snapshot)=>snapshot,
+            Err(error)=>{ eprintln!("PlutoLib: fluid registry unavailable: {error}"); None }
+        };
+        let result=crate::pure::fluid_api_v1::with_fluid_registry(fluids,||
+            crate::pure::item_registry::with_item_registry(items,||
+                resource_loader_v0::with_reload_folders(registries,resources,||
+                    resource_loader_v0::apply_json_reload_listener(resource_loader_v0::ResourceType::ServerData,
+                        &event.listener.id,&event.listener.folder,event.files))));
+        if let Err(error) = result {
+            eprintln!("PlutoLib: JSON reload listener {} failed: {error}", event.listener.id);
+        }
     }
 
     fn server_data_loaded(&self, _host: &mut dyn Host, _event: &mut ServerDataLoadedEvent) {

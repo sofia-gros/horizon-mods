@@ -59,4 +59,70 @@ class PlacementBoundaries(unittest.TestCase):
             with self.assertRaises(ValueError):GUARD.verify_source(broken,root,meta,root)
             (root/'native.rs').write_text('changed')
             with self.assertRaises(ValueError):GUARD.verify_source(plan,root,meta,root)
+class NativePlacementTests(unittest.TestCase):
+    def test_matching_and_station_dispatch_use_their_own_source_sets(self):
+        from unittest.mock import patch
+        for name, method in (('check_crafting_match_plan', 'assemble_if_matches'),
+                             ('check_station_ingredient_plan', 'ingredient')):
+            module = load(name)
+            with self.subTest(guard=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                sources = {}
+                for file in module.NATIVE_SOURCES:
+                    source = root / file
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    source.write_bytes(b'native recipe fixture')
+                    sources[file] = module.digest(source.read_bytes())
+                with patch.object(module, 'NATIVE_SOURCES', sources):
+                    plan = dict(schema=6, inputs=dict(sources), injections=[], states=[],
+                                modules=[{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}])
+                    module.check(plan, root)
+                    plan['injections'].append({'target': 'alias::' + method})
+                    with self.assertRaisesRegex(ValueError, 'unattached'):
+                        module.check(plan, root)
+                    plan['injections'].clear()
+                    for file in sources:
+                        expected = plan['inputs'].pop(file)
+                        with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                            module.check(plan, root)
+                        plan['inputs'][file] = expected
+
+    def test_preserved_sources_and_all_attachment_kinds(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = {}
+            for name in GUARD.NATIVE_SOURCES:
+                source = root / name
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_bytes(b'native placement')
+                sources[name] = GUARD.digest(source.read_bytes())
+            with patch.object(GUARD, 'NATIVE_SOURCES', sources):
+                plan = dict(schema=6, inputs=dict(sources), injections=[], states=[],
+                            modules=[{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}])
+                GUARD.check(plan, root)
+                for name in sources:
+                    source = root / name
+                    source.write_bytes(b'changed')
+                    with self.assertRaisesRegex(ValueError, 'workspace source differs'):
+                        GUARD.check(plan, root)
+                    source.write_bytes(b'native placement')
+                    expected = plan['inputs'].pop(name)
+                    with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                        GUARD.check(plan, root)
+                    plan['inputs'][name] = expected
+                for section in ('injections', 'modules', 'states'):
+                    for entry in ([{'file': name} for name in sources]
+                                  + [{'target': 'alias::Recipes::placement'},
+                                     {'target': 'alias::Game::place_recipe'},
+                                     {'mod_id': 'pluto_native_creative'}]):
+                        plan[section].append(entry)
+                        with self.assertRaisesRegex(ValueError, 'unattached'):
+                            GUARD.check(plan, root)
+                        plan[section].pop()
+                plan['schema'] = 7
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    GUARD.check(plan, root)
+
+
 if __name__=='__main__':unittest.main()

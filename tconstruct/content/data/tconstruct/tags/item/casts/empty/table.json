@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:gold_bars",
-      "required": false
-    }
+    "tconstruct:gold_bars"
   ]
 }

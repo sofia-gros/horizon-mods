@@ -1,24 +1,9 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:casts/gold",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/sand",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/red_sand",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/empty/table",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/empty/basin",
-      "required": false
-    }
+    "#tconstruct:casts/gold",
+    "#tconstruct:casts/sand",
+    "#tconstruct:casts/red_sand",
+    "#tconstruct:casts/empty/table",
+    "#tconstruct:casts/empty/basin"
   ]
 }

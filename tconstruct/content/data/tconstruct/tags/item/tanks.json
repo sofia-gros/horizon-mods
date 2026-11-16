@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:seared_tanks",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:scorched_tanks",
-      "required": false
-    }
+    "#tconstruct:seared_tanks",
+    "#tconstruct:scorched_tanks"
   ]
 }

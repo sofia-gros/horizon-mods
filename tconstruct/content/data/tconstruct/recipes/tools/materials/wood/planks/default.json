@@ -1,22 +1,22 @@
 {
+  "type": "tconstruct:material",
   "conditions": [
     {
+      "type": "mantle:tag_combination_filled",
       "ignore": "tconstruct:wood_variants/planks",
-      "match": "minecraft:planks",
-      "type": "mantle:tag_combination_filled"
+      "match": "minecraft:planks"
     }
   ],
   "ingredient": {
+    "type": "forge:difference",
     "base": {
       "tag": "minecraft:planks"
     },
     "subtracted": {
       "tag": "tconstruct:wood_variants/planks"
-    },
-    "type": "forge:difference"
+    }
   },
   "material": "tconstruct:wood",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

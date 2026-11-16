@@ -703,12 +703,12 @@
       "note": "not yet compared with the port"
     },
     "json/loot/equipment/MobEquipment.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "world_equipment.rs decodes the five non-integration definitions, snapshots chance selections before inherited initialization, then matches and builds actual library tools/materials/fluid NBT. Output metadata/count and persistent data survive rebuilding; failures abort that replacement before its gear write. Rich ItemOutput/predicate/material codecs, full tool behavior and native full-finalize/publication transport remain incomplete."
     },
     "json/loot/equipment/MobEquipmentManager.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "EquipmentTable resolves prepared reload-context entity tags/explicit IDs into owned lists, preserves selector multiplicity and stable descending priority, skips/reports bad files and replaces the entire old table including empty/all-invalid reloads. Prepared rules survive table replacement in real construction tests. General PlutoLib JSON-folder discovery/apply now source-forwards native hooks, but owned EquipmentGeneration/EquipmentSpawn now pair selected rules with matching immutable resources and release on abort/completion. reload condition evaluation now uses the library ConditionContext before codecs/tag lookups, skipping false files without errors and reporting malformed/unknown conditions. PlutoLib RegistryLookup now source-scopes full command entity-type IDs and effective world pack tags with native fallback; Tinkers now registers the JSON folder, publishes owned resolved tables, disables rules without registry context and clears on server start/stop. Item/tag queries use the same reload's active item lookup; Common config conditions use owned exact-property snapshots from loading/reloading, with invalid retention and parse-time property validation. Missing services are errors rather than false defaults; nested expressions parse fully then short-circuit values, and empty AND/OR reject. ToolLibrary::load_from now accepts caller-owned resource generations, conditions/enchantment mappings and item-existence checks, with no implicit builtin fallback. PlutoLib complete JSON stacks now retain ordered layers/errors from one native pack stack in source; ToolLibrary::load_stacks now assembles owned logical-folder inputs, preserving top-only definitions, ordered tag replace/append/nesting, layered enchantment mappings and layer errors, rejecting unavailable folders and ambiguous stacks without builtin fallback. Guarded native source now captures all distinct registered folders before callbacks; Tinkers declares tinkering/recipes/tags/item roots and projects owned logical kinds without namespace-partitioning item tags, type-filters salvage, and source-publishes matching rules/library atomically. Missing roots/item registry or condition services clear the publication. Owned item prototype snapshots now source-publish with matching rules/library and provide plain ItemOutput defaults without later global lookup. Missing/invalid/unsupported prototypes disable publication; unretained native custom-data defaults are unavailable, not fabricated empty NBT. Native prototype/component validation remains pending. FluidRegistry native-plus-defined membership and ordered raw fluid-tag layers are now source-captured and retained with the same publication; original swasher tag order/optional members and layered remove/error behavior are pure-tested without fixed tag fallback. Missing native fluid registry or tag-folder capture disables current rules; a guarded Mob-owned Navigation SpawnState now source-declares clone-discard, typed consume-once and abort ownership rather than a temporary-ID map. Direct Mob state was removed after reading the pinned validator: publicly constructible Mob cannot gain fields. Navigation has private fields/a concrete Default literal and survives the pinned spawn tails; the owner/constructor/AI/rider/finalize sources are pinned. Actual plan/type validation remains pending; canonical state behavior is pure-tested. Runtime/natural, normal/trial-spawner, patrol/raid, marked-structure and finalizing-frog-conversion callers plus the Tinkers consumer are source-wired; actual spawner publication/converted-tail helpers pass trace-host tests. Full caller review, native field/constructor attachment and native validation remain pending. The ancient-trade production consumer now captures this same published library before selection and uses original registered item-class identities, not builtin tag/library fallback; a real-consumer test clears publication mid-selection and retains the old build/pricing generation. The shared tag core now has decode-before-replace, whole-tag required-reference failure, required-before-optional dependency ordering, Forge removals/re-add ordering and DFU optional-field defaults. Java HashMap-dependent cycle ties/remaining codec edge parity and native multi-folder/plan/type/build/game validation and spawn/resource-generation pairing remain pending. Fixed MobData tags and renderer-filtered MobTypes are not unconditional authoritative replacements."
     },
     "json/loot/HasLootContextSetCondition.java": {
       "status": "todo",
@@ -1124,7 +1124,7 @@
     },
     "materials/definition/MaterialManager.java": {
       "status": "partial",
-      "note": "manager.rs: definitions with conditions, redirects (validated), tags with nesting, optional members and replace, sorting of the visible ones; loaded against the original generated data (302 definition files, no problems). Not done: reading the files from the game (the game glue) and the client sync packet"
+      "note": "manager.rs: conditional definitions, validated redirects, visible sorting and shared TagLoader core. Whole-layer decoding precedes replace; missing required members/tags suppress the whole tag and dependents; Forge remove/re-add ordering and DFU malformed-optional defaults are ported from original 1.20.1 bytecode and Forge 47.4.0 patches. Owned reload-root projection/publication is source-wired. Remaining: cycle-tie/codec edge parity, native reload validation and client sync"
     },
     "materials/definition/MaterialVariant.java": {
       "status": "ported",
@@ -1171,8 +1171,8 @@
       "note": "registry.rs: the three managers behind one set of lookups, unknown fallback, redirects, tags, stat type registration with trait fallbacks; the variant handle resolves against the registry"
     },
     "materials/RandomMaterial.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "D dependency: materials/ancient.rs ports Randomized.ANCIENT selection and all-ancient build requests against the actual MaterialRegistry. Hidden materials are allowed; negative tiers, exclude_from_loot and missing actual stats reject. Nonempty candidates consume nextInt(size), including singleton lists; empty lists use first visible/sorted with real stats or UNKNOWN without RNG. Explicit requests stop at the stat count and unspecified stats use first-with-stat. The cache borrows one immutable snapshot, so replacement requires dropping it; registry iteration order is preserved, not claimed bit-identical to Java hash order. Real registry/codec tests and the D equipment bridge run host-independently. General randomized predicates/tier codecs, fixed/first/variant/conditional JSON loaders and native reload/tool construction remain incomplete."
     },
     "materials/stats/IMaterialStats.java": {
       "status": "partial",
@@ -1696,7 +1696,7 @@
     },
     "modifiers/ModifierManager.java": {
       "status": "partial",
-      "note": "tconstruct/library/src/modifiers/mod.rs: definitions with redirects, conditions and modules, tags, the enchantment mapping, static modifiers by id; all 308 of the original's modifier files, their tags and the enchantment map load without problems. Not done: the client sync packet, the registration event, per-enchantment lookups by item"
+      "note": "modifiers/mod.rs: conditional definitions/redirects/modules, enchantment mappings and static modifier IDs. Shared tag core now preserves decode-before-replace, whole-tag required failures, required/optional dependency ordering and Forge ordered removals/re-addition with DFU defaults. Owned native-root consumption/publication exists in source; native validation, cycle-tie/codec edge parity, client sync, registration event and item-specific enchantment lookups remain"
     },
     "modifiers/modules/armor/AdjustDamageModule.java": {
       "status": "todo",
@@ -2751,8 +2751,8 @@
       "note": "not yet compared with the port"
     },
     "tools/capability/fluid/ToolTankHelper.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "tool_tank.rs carries configurable stat/default/key, Number.intValue capacity, Forge FluidName/Amount/Tag storage with caller registry lookup, deep copies and source empty/clamp semantics. ToolData preserves tic_persistent through actual rebuilds; roundtrip/type/registry cases and actual equipment construction pass in the world pure suite. Native capability, tank-handler trait, JSON helper registry and spawn/reload attachment remain incomplete."
     },
     "tools/capability/inventory/InventoryMenuModule.java": {
       "status": "todo",
@@ -2971,8 +2971,8 @@
       "note": "not yet compared with the port"
     },
     "tools/definition/module/material/MaterialStatsModule.java": {
-      "status": "todo",
-      "note": "not yet compared with the port"
+      "status": "partial",
+      "note": "D dependency now partially implemented: typed material_stats decodes literal/nested stat types, required nested scales, primary_part >= -1 and explicit/default hook lists. ToolMaterialHook requirements are independent of craftable parts; conflicting providers reject rather than concatenate. Actual rebuild applies scaled stats in module order, UNKNOWN/default stats for a short nonempty material list, per-stat material traits and max-rarity/shiny volatile data. Explicit hooks gate each consumer; invalid/unsupported hooks reject. Primary rebalanced-trait descriptors are exposed but their consumer, repair hooks and wire codecs remain incomplete, and carried() stays false. Library tests cover real registry stats/traits/volatile rebuild and decoder boundaries; D tests build a source battlesign with two actual ancient materials/head+plating_shield, positive rebuilt durability and material tiers. This is not complete modifier/equipment/render/game parity."
     },
     "tools/definition/module/material/MaterialTraitsModule.java": {
       "status": "todo",

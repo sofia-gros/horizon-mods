@@ -28,7 +28,9 @@ def main(argv=None):
     old = {'horizon': compat['horizon_revision'], 'mixins': compat['mixins_revision']}
     new = {'horizon': a.horizon, 'mixins': a.mixins}
     changed = 0
-    files = [compat_path, ROOT / 'pluto-lib/horizon-native.json']
+    files = [compat_path, ROOT / 'pluto-lib/horizon-native.json',
+             ROOT / 'tconstruct/mixins/tconstruct/api/Cargo.toml',
+             ROOT / 'pluto-lib/mod/api/Cargo.toml']
     files += sorted((ROOT / 'pluto-lib').rglob('horizon-mixin.toml'))
     files += sorted((ROOT / 'tconstruct/mixins').rglob('horizon-mixin.toml'))
     # Host-source harnesses hard-code the Horizon revision they were written against.

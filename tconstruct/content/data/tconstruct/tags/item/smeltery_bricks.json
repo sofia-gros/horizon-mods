@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:seared_blocks",
-      "required": false
-    }
+    "#tconstruct:seared_blocks"
   ]
 }

@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:sword",
-      "required": false
-    },
-    {
-      "id": "tconstruct:cleaver",
-      "required": false
-    }
+    "tconstruct:sword",
+    "tconstruct:cleaver"
   ]
 }

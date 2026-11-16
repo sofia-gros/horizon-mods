@@ -1,20 +1,8 @@
 {
   "values": [
-    {
-      "id": "tconstruct:sky_staff",
-      "required": false
-    },
-    {
-      "id": "tconstruct:earth_staff",
-      "required": false
-    },
-    {
-      "id": "tconstruct:ichor_staff",
-      "required": false
-    },
-    {
-      "id": "tconstruct:ender_staff",
-      "required": false
-    }
+    "tconstruct:sky_staff",
+    "tconstruct:earth_staff",
+    "tconstruct:ichor_staff",
+    "tconstruct:ender_staff"
   ]
 }

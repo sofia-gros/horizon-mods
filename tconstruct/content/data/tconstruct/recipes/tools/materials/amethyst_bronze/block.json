@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:storage_blocks/amethyst_bronze"
   },
@@ -8,6 +9,5 @@
   },
   "material": "tconstruct:amethyst_bronze",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 9
 }

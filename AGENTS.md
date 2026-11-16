@@ -1,44 +1,49 @@
 # Working agreement
 
-For every agent (Codex, Claude Code, others) and human working here. `CLAUDE.md` points to this file.
+## Active direction — 2026-11-14
 
-> **If you are Codex:** do not choose your own work. Read [docs/codex.md](docs/codex.md) completely, then follow its "The only workflow" (`python tools/codex_next.py` names your task). Do not read or change `docs/roadmap.md`, do not write documents, and write few tests with expected values worked out from the original Java. The rules below apply to you as well; where `docs/codex.md` is stricter, it wins.
+The owner requested a clean PlutoLib-only Tinkers port, preservation of old files, minimal useful tests/documentation, and continuous work without routine approval pauses. This file and [the active roadmap](docs/roadmap.md) supersede the archived workflow. Historical inventories are reference material, not task selectors or evidence of completion.
 
-## What this repository is
+## Non-negotiable boundaries
 
-Two products in one repository: **PlutoLib** (`pluto-lib/`), Horizon's Fabric API, and **Tinkers' Construct for Horizon** (`tconstruct/`).
-PlutoLib is an independent, general-purpose mod that follows Fabric API's names, features and behaviour (Horizon Mixins is expected to offer the NeoForge-like API),
-is released once per Horizon version, and lets mods (Tinkers now, anyone's later) survive Horizon updates with little or no change.
-Read [pluto-lib/docs/design-principles.md](pluto-lib/docs/design-principles.md) before changing PlutoLib or adding a hook; the owner decides changes of direction.
-Upstream is the official `horizon-rust/horizon` and `horizon-rust/horizon-mixins`; we never edit them, and the owner's old personal fork of Horizon is not a dependency.
+- Original Java at `tconstruct/compatibility.json` is the specification; verify the checkout revision. Original Java and reference checkouts of official Horizon/Mixins remain read-only. Owner clarification (2026-11-14): Mixins support is not a ceiling on PlutoLib. When necessary, PlutoLib directly rewrites Horizon build sources through repository-owned, reproducible patches; do not wait for upstream support. Keep official reference inputs separate from patched build inputs and verify both. No other-mod integration.
+- Owner decision (2026-11-14): use the official Horizon and Mixins default-branch HEADs resolved at the start of the current compatibility unit, then record and hold their full SHAs for implementation/verification. Do not substitute an older cached checkout or move pins during validation; an update invalidates affected compatibility evidence. Updating pins is not authorization to bypass native guards.
+- `tconstruct/` is the ONLY active Tinkers product. Its Rust code depends on PlutoLib's public API, never Horizon APIs/types, direct injections, host patches, private adapters or legacy files. Owner-approved exception (2026-11-14): Cargo must declare the official launcher's required `horizon-client` dependency as metadata only, pinned to the selected Horizon revision with default features disabled; this permits no direct use from Tinkers Rust code. Zero direct injections, with no grandfathered exceptions.
+- `pluto-lib/` owns all host attachment. APIs are general-purpose and Fabric-API-shaped, never named or branched around Tinkers content. Preserve creative-tab paging and taking stacks out. Mods do not compete for injection points.
+- `legacy/2026-11-14/` is a frozen working-tree snapshot, including previously uncommitted changes. Never execute, import, package, edit or delete it as a shortcut. Read it only to recover reviewed assets/algorithms; verify them against Java before reuse. Keep licence notices.
+- A stub is not usable support for a required feature. Never complete a feature on the strength of a helper, decoder, mock or successful build alone.
+- Owner decision (2026-11-14): all previous Phase completion/order restrictions are retired. Isolated official-source native builds and game validation may proceed for the current roadmap unit without another Phase approval. The owner explicitly renewed isolated rebuild permission, including while asleep, on 2026-11-14; do not ask again for routine rebuilds within this scope. Preserve source-integrity, injection-ownership and concrete attachment-contract checks; missing fingerprints require inspection of the actual pinned source/plan, never synthetic approval. Use isolated homes/worlds, never user saves.
 
-Where things are: [README.md](README.md), [docs/architecture.md](docs/architecture.md), [docs/development.md](docs/development.md) (build and checks), [docs/releasing.md](docs/releasing.md), [docs/roadmap.md](docs/roadmap.md) (the plan, the permissions and the decision log).
+## Fixed porting strategy — owner decision, 2026-11-14
 
-## Rules
+- The first implementation unit is **Tinkers common foundations + tool construction/use**, not slime dirt or individual block behaviors. Establish the original-wide capability/dependency map (R3) and execution path (R1) before starting that unit (R2).
+- Cover registration/data loading, materials/parts/tool definitions and calculations, stack state, required crafting stations/inventories/screens, use/durability/repair, required modifier paths, persistence/synchronization and presentation as one coherent domain. Derive precise coverage from Java; do not silently replace it with one demonstration tool or omit unsupported behavior.
+- Inspect later fluids/casting/entities/world consumers before fixing shared API contracts. Build only the general PlutoLib capabilities actually required by the domain, with real host adapters; keep Tinkers rules in Tinkers. Do not attempt a speculative complete API platform first.
+- Small linkage probes are infrastructure only. Internal subtasks are allowed, but helpers, individual injections or isolated blocks are not independent completion/review/build milestones. Integrate and review the domain, then batch authorized native/game validation; retain inexpensive focused checks during implementation.
+- Verify the complete loop: material -> part -> tool -> use/durability -> repair -> save/reload, plus relevant state synchronization and presentation. Slime soil belongs to the later world/vegetation domain, not the first port.
+- Do not change this strategy or return to the archived per-injection workflow on an agent's own initiative. A strategy change requires the owner's explicit decision; ordinary dependency ordering and implementation choices do not require approval. Keep this section, the roadmap and machine queue consistent when an approved change occurs.
 
-1. **PlutoLib only.** Mods call PlutoLib (Fabric-API-shaped); if an API is missing, add it to PlutoLib first. PlutoLib's API is always complete: where the host cannot do something yet, the call exists as a documented stub, never missing. No API is designed around a single feature of a single mod.
-   `tools/lint_forbidden_api.py` rejects fork references and non-official git dependencies; the legacy direct injections in `tconstruct/` are frozen by `tools/forbidden_api_baseline.json` (may shrink, never grow).
-2. **One pull request, one verification unit.** It says exactly what was run and what was not. Work by roadmap phase: implement the domain in batches, then revisit every parked/partial item through alternative PlutoLib routes before moving on. Missing native APIs alone do not prove impossibility. Follow the phase exit rule in `docs/roadmap.md` §1.1; batch native builds and reuse their binaries across game gates, rather than making each small fix a separate build/PR.
-3. **Verify locally first.** Run the local gate in [docs/development.md](docs/development.md); CI is a slower second check, not a precondition. Anything that touches game behaviour also needs `tools/smoke-local`.
-4. **Say "verified" only for what ran.** Builds, launches, mod loads and "feature works" are different claims; unexecuted means "unverified".
-4c. **Scope and ownership rules from the owner.** (1) No mod-integration items, blocks or systems are written (the original's `plugin` package is out of scope). (2) PlutoLib's responsibilities and specification (`pluto-lib/docs/design-principles.md`) are re-read before PlutoLib work and never bent for one mod. (3) PlutoLib keeps, and builds on, the creative-tab feature of the old bundle: more tabs than fit are paged, and a mod's tab items can be taken out of it (`pluto-lib/mixins/pluto_creative`, `pluto_native_creative`). (4) Mods built on PlutoLib never compete for injections: PlutoLib owns each host injection point once and dispatches to registered callbacks in a defined order; a mod ships no injection of its own (`tools/check_injection_ownership.py` fails on a second PlutoLib hook of one place, a mod hooking a place PlutoLib owns, or a mod gaining injections beyond `tools/injection_limits.json`).
-4b. **The original Java is the specification.** The open-source Tinkers' Construct at the revision pinned in `tconstruct/compatibility.json` is what the port must match; the existing Rust is of unknown correctness. Port a whole domain at a time (for example the whole smeltery) from the Java onto PlutoLib instead of moving code injection by injection; a domain is one design, one build and one in-game check. A shallow clone for reading lives in `.local/tconstruct-source`.
-4a. **PlutoLib API changes carry their documentation, written like the Vue guide.** Each page in `pluto-lib/docs/api/` opens with a short explanation, then `## Basic Example`, then sections that each give the explanation, then code, then the caveat (a `> **Tip.**` or `> **Use with Caution.**` callout where it helps), and ends with `## Reference`, one section per public item with its types, arguments and an example per form. Every code block is compiled and run by the test suite. Adding or changing a public item means writing or updating its section (types, arguments, a working example for every form) in `pluto-lib/docs/api/`; `tools/check_api_docs.py` and the doctests fail otherwise.
-5. **No new features while PlutoLib is built**, and no new direct injections.
-6. **Keep tests few and real.** A test must fail when the behaviour it names is broken. Never write tests that assert source or document text, copy upstream files, or exist only to pass.
-7. **Line endings are LF everywhere.** `.gitattributes` forces it whatever `core.autocrlf` says; `python tools/check_line_endings.py` checks it. In Python write files with `newline="\n"`.
-8. **Never bypass a PlutoLib guard** (`pluto-lib/tools/check_*_plan.py`); a failing guard means that feature needs re-review.
-9. **Documents stay few and current.** No per-implementation notes; detail lives in code (rustdoc, tests). Update the existing documents instead of adding new ones.
-9a. **Documentation travels with the change.** A PR that changes an API updates its page in `pluto-lib/docs/api/`, the page list in `pluto-lib/docs/api/index.md` and the feature list in `pluto-lib/README.md`; a PR that moves a phase updates the status table and decision log in `docs/roadmap.md`. A new page is linked from a page people start from (the API index is linked from the root README and `pluto-lib/README.md`).
-10. **Releases** only by tag, per product (`pluto-lib-v…`, `tconstruct-v…`), and only when [docs/releasing.md](docs/releasing.md)'s criteria hold.
+## How to work
 
-## Pins and the slice
+1. Run `python tools/port.py next`; read the selected task and the relevant original sources. Keep one active integration unit. The machine queue is `docs/port-plan.json`.
+2. Trace original entry -> required state/data -> public PlutoLib API -> actual host caller -> observable result BEFORE expanding helper implementations.
+3. Missing general API: implement it in PlutoLib first, including its actual host adapter, then finish the Tinkers consumer. Do not ask the user about ordinary API names, file choices, or whether to continue.
+4. Prefer the existing validated implementation when source-correct. Do not copy whole legacy directories, carry injection fallbacks, or rewrite correct code merely for cleanliness.
+5. Test only behavior that could be wrong. Use source-derived expectations and the production path. No prose/source-string assertions, trivial count padding, duplicate host implementations or mass test generation. Boundary/package validators may inspect real build inputs and archives.
+6. During edits run targeted checks; at an integration-unit boundary run related regressions once. Batch expensive validation and reuse identical binaries. Never run every suite after every small edit.
+7. Update only the current task's short result, blockers and evidence. Public API changes need a concise usable example/caveat, not a new report. No per-iteration diaries or test-count progress claims.
+8. Continue immediately to the next unblocked step in the SAME turn. Do not stop to ask “continue?”, “implement the API?”, “update docs?”, or “run the planned checks?”. Do not use a timer as an artificial gap. While a background job runs, do independent authorized work; do not poll harness-tracked jobs.
 
-`tconstruct/compatibility.json` pins the Horizon and Mixins commits; `python tools/bump_upstream.py --horizon SHA --mixins SHA` changes them everywhere.
-Upstream moves fast, so a *slice* is built and launched (`tools/smoke-local/slice.json`): everything the pinned Mixins accepts, parked rather than deleted otherwise. Do not edit the full manifests to make a build pass.
+## Real blockers, not habitual pauses
 
-## Habits that avoid known trouble
+A failed check is a diagnosis task, not an approval question. Do not repeat an unchanged failing command. When a route fails, inspect the cause, try a materially different permitted route, and record the unresolved prerequisite if none is supported. Missing host hooks alone do not prove impossibility.
 
-- Write commit messages and PR bodies to files (Write tool), then `git commit -F` and `gh pr create --body-file`; shell heredocs mangle backticks and apostrophes.
-- Windows GUI programs (the launcher, Horizon) print nothing unless their output is redirected to a file.
-- Builds are large: put `TMP`, `CARGO_HOME` and `CARGO_TARGET_DIR` on a roomy drive and keep 10 GB free.
+Stop only the affected task for: explicit permission denial; an irreversible/outward-facing action without authorization; risk to user saves or unrelated changes; credentials/cost/licence acceptance; genuinely conflicting requirements; or no safe feasible route. Continue independent queued work. Ask one consolidated question only when the answer is actually required to proceed. Never fabricate approval or relax a test/guard to avoid a question.
+
+Owner authorization (2026-11-14): commits, pushes, PR creation and merges needed for this work may proceed without renewed confirmation, including while the owner sleeps. Preserve unrelated/uncommitted changes and the archive; this does not authorize destructive resets, history rewriting, releases or account changes. Keep upstream reference checkouts read-only; PlutoLib-owned direct changes belong in isolated Horizon build copies. Use LF. Owner storage rule: work and build caches stay on A:; do not use D:. Maintain at least 50 GB free on A:, including during builds; reserve additional build headroom before large builds and keep user data and validation evidence intact during cache cleanup. No new agents/sessions unless permitted by the active conversation/harness.
+
+## Completion and honesty
+
+`python tools/port.py check` checks the clean product boundary, not semantic parity. `python tools/port.py package --output PATH` packages only that checked product. Existing CI and historical tools/tests remain present; do not disable them to conceal migration failures. Reconcile their entry points in task R1.
+
+Report in Japanese: what now works, what remains, and what actually ran. A new empty entry point is infrastructure, not a Tinkers feature. Source-ready and game-verified are distinct; evidence must identify the input revision/hash and scenario. Changed inputs invalidate the corresponding evidence. Planning rules cannot guarantee AI obedience or complete parity: enforce structural constraints in tooling, review semantics against Java, and observe gameplay.

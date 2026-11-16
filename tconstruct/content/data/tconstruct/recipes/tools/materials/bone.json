@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "tconstruct:bones"
   },
   "material": "tconstruct:bone",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

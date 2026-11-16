@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:coin_sand_cast",
-      "required": false
-    },
-    {
-      "id": "tconstruct:coin_red_sand_cast",
-      "required": false
-    }
+    "tconstruct:coin_sand_cast",
+    "tconstruct:coin_red_sand_cast"
   ]
 }

@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:ingot_cast",
-      "required": false
-    }
+    "tconstruct:ingot_cast"
   ]
 }

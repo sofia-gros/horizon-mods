@@ -1,1 +1,0 @@
-{"type":"minecraft:crafting_shaped","category":"redstone","key":{"C":"#forge:ingots/copper","G":"#forge:glass_panes/colorless"},"pattern":[" C ","CGC"," C "],"result":{"id":"tconstruct:copper_gauge","count":4}}

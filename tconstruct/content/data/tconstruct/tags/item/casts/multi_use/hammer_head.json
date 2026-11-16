@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:hammer_head_cast",
-      "required": false
-    }
+    "tconstruct:hammer_head_cast"
   ]
 }

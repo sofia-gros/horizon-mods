@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:gear_cast",
-      "required": false
-    }
+    "tconstruct:gear_cast"
   ]
 }

@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:slime_helmet",
-      "required": false
-    }
+    "tconstruct:slime_helmet"
   ]
 }

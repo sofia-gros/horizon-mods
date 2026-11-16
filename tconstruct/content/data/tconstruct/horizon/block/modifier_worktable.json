@@ -1,1 +1,1 @@
-{"template":"minecraft:white_glazed_terracotta","properties":{"hardness":3.0,"explosion_resistance":9.0,"requires_tool":true,"sounds":"minecraft:iron_block"}}
+{"template":"minecraft:crafting_table","properties":{"hardness":2.0,"explosion_resistance":2.0,"sounds":"minecraft:oak_planks","map_color":13,"occludes":false},"item":true}

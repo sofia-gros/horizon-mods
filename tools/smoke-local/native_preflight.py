@@ -4,6 +4,7 @@ Only the temporary CLI-view headers omit trait metadata unsupported by the old
 planner. The launcher's real bundles keep their API/dependency declarations.
 """
 import json
+import importlib.util
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,6 +14,9 @@ import tomllib
 from probe_cache import file_digest, tree_digest, guarded_plan
 
 ROOT = Path(__file__).resolve().parents[2]
+_BLOCK_ENTITY_SPEC = importlib.util.spec_from_file_location('preflight_block_entity_guard', ROOT / 'pluto-lib/tools/check_block_entity_plan.py')
+_BLOCK_ENTITIES = importlib.util.module_from_spec(_BLOCK_ENTITY_SPEC)
+_BLOCK_ENTITY_SPEC.loader.exec_module(_BLOCK_ENTITIES)
 
 
 def cli_manifest(text):
@@ -28,6 +32,14 @@ def cli_manifest(text):
 
 def has_operations(document):
     return any(document.get(section) for section in ('injection', 'bridge', 'module', 'state', 'crate', 'post_build'))
+
+
+def required_guards(document, guards):
+    """Select guards from actual plan operations, including cached ones."""
+    names = set(guards) | {'structures'}
+    if _BLOCK_ENTITIES.kept(document):
+        names.add('block_entities')
+    return sorted(names)
 
 
 def check(cli, workspace, bundles, work, guards, horizon_revision, mixins_revision, log=None):
@@ -83,6 +95,10 @@ def check(cli, workspace, bundles, work, guards, horizon_revision, mixins_revisi
             subprocess.run([str(cli.resolve()), 'plan', '--workspace', str(workspace.resolve()),
                             '--mods', str(combined), '--out', str(plan.resolve())], check=True, stdout=log, stderr=subprocess.STDOUT)
         def guard():
+            document = json.loads(plan.read_text(encoding='utf-8'))
+            # Include the factory guard on cached plans too. The sliced checker
+            # independently rejects omission; this is selection, not a bypass.
+            names[:] = required_guards(document, names)
             subprocess.run([sys.executable, str(ROOT / 'pluto-lib/tools/check_sliced_plan.py'),
                             str(plan), str(workspace.resolve()), ','.join(names)], check=True, stdout=log, stderr=subprocess.STDOUT)
         reused = guarded_plan(plan, work / 'native-preflight-cache.json', key, produce, guard)

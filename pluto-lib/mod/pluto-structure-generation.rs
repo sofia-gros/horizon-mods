@@ -36,6 +36,9 @@ impl Decoration {
         if region[4].is_decorated() {
             return Ok(DecorateStats::default());
         }
+        // Capture full chunks before moving their terrain into the region.
+        let full: Vec<ChunkPos> = region.iter().filter(|chunk| chunk.is_full())
+            .map(|chunk| chunk.position()).collect();
         let mut chunks = Vec::with_capacity(9);
         let mut biomes = Vec::with_capacity(9);
         let (min_y, height) = (region[4].terrain.min_y(), region[4].terrain.height());
@@ -91,6 +94,10 @@ impl Decoration {
             // WorldGenRegion.isOutsideBuildHeight: the level's range, not the noise's.
             build: (min_y, min_y + height),
             shape_ticks: std::cell::RefCell::new(crate::level::Ticks::new(0)),
+            last_tag: None,
+            floor_bounds: [None; 9],
+            shape_capture: std::cell::RefCell::new(Vec::new()),
+            full,
         };
         let mut stats = DecorateStats::default();
         let blocks = self.blocks;

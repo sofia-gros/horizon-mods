@@ -81,6 +81,8 @@ let _ = window;
 
 > **Use with Caution.** The dynamic resolver is called as synchronized menu contents change. Keep it quick and deterministic, and return exactly one position per container slot; an absent result, non-finite coordinates or a wrong-length result restores the static layout. Item slots include damage and custom data. Static screens never invoke a resolver.
 
+The cursor passed to `on_button` and the stack passed to `on_quick_move` carry `ItemSlot` damage, max damage and custom data. Clone that slot when moving it; constructing a plain `ItemSlot::new` discards those fields. Cloning a received slot now carries an opaque source-stack snapshot across slots and cursor transfers, preserving native components rather than borrowing the destination's data. `ItemSlot::new` is plain, and changing the item identity discards captured components. A handled quick move writes back the complete remainder, including damage, max damage and custom data edits, not only its count. Returning `false` leaves both the original stack and the block entity unchanged. The production conversion fixture checks source-versus-destination metadata, public edits and component removal, plain replacement and rejected quick-move rollback. This change is source-ready only: native build/gameplay validation belongs to the integrated R2 domain, and authoritative recipe-result taking is not supplied by these callbacks.
+
 ## What the Slots Take
 
 `on_slot_rule` decides what each slot of the menu takes and how many it holds. A result slot, which only gives, answers `may_place = false`; a fuel slot can take fewer. `on_quick_move` says where a shift-clicked stack goes, and `on_accepts` whether a hopper may put an item in:
@@ -97,7 +99,7 @@ let window = ScreenHandlerType::new(Identifier::new("example", "oven").unwrap(),
     .on_quick_move(|moved| {
         // fuel goes to the second slot
         if moved.stack.item.to_string() == "minecraft:coal" && moved.items.get(1).is_some_and(|slot| slot.is_none()) {
-            moved.items[1] = Some(ItemSlot::new(moved.stack.item.clone(), moved.stack.count));
+            moved.items[1] = Some(moved.stack.clone()); // retain damage and custom data
             moved.stack.count = 0;
             return true;
         }
@@ -108,6 +110,105 @@ let _ = window;
 ```
 
 > **Use with Caution.** The slot rule runs inside every click, drag and shift-click, several times for one, with no world or player at hand. Answer from the stack alone, and fast.
+
+## Operations inside the menu
+
+### `SlotAction`
+
+The owned click kinds; other native operations remain delegated.
+
+```rust
+use pluto_lib::SlotAction;
+let action = SlotAction::Pickup;
+```
+
+### `SlotClick`
+
+Callback context: `pos` is the block position; `player` is the acting player; `authoritative` distinguishes server effects; `slot`, `button` and `action` identify the click. Mutable `data` is saved block-entity data and `menu` accesses pending menu state. Neither grants a live player/world mutation scope.
+
+```rust
+use pluto_lib::SlotClick;
+fn is_server_click(click: &SlotClick<'_>) -> bool { click.authoritative }
+```
+
+### `ScreenHandlerType::on_slot_click`
+
+`on_slot_click(slot, action, handler)` owns one operation on one menu slot. Other slots and operations keep the native path. `SlotAction` is `Pickup`, `QuickMove`, `Swap` or `Throw`; drag, creative clone and pick-all remain native. The callback receives `SlotClick`: `pos`, `player`, `authoritative`, `slot`, `button`, `action`, mutable saved `data`, and a staged `menu`. It does not install a live player/world mutation scope.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout, SlotAction};
+
+let window = ScreenHandlerType::new(
+    Identifier::new("example", "single_slot_store").unwrap(),
+    ScreenLayout::new(176.0, 166.0).slot(80.0, 35.0),
+).on_slot_click(0, SlotAction::QuickMove, |click| {
+    let Some(mut stack) = click.menu.stack(0) else { return };
+    // One container slot followed by the player's slots in this menu.
+    let end = click.menu.slot_count();
+    if click.menu.move_stack(&mut stack, 1, end, true) {
+        click.menu.set_stack(0, Some(stack)); // zero remaining count becomes empty
+    }
+});
+let _ = window;
+```
+
+### `ScreenHandlerType::exclude_from_pick_all`
+
+Use `exclude_from_pick_all(slot)` for a lazy recipe-result slot. It vetoes that slot when double-click collection scans candidates, including when the click started on another slot, and preserves every native refusal. It also excludes that slot from the native shift-double-click scan. It does not implement crafting, prevent ordinary pickup, or change storage slots unless explicitly declared.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+let window = ScreenHandlerType::new(
+    Identifier::new("example", "workbench").unwrap(),
+    ScreenLayout::new(176.0, 166.0).slot(80.0, 35.0),
+).exclude_from_pick_all(0);
+let _ = window;
+```
+
+### `MenuAccess`
+
+`MenuAccess` operates on the native menu's pending state, not directly on the live player inventory:
+
+| Method | Meaning |
+|---|---|
+| `slot_count(&self) -> usize` | Number of menu slots, including the player's slots. |
+| `stack(&self, slot: usize) -> Option<ItemSlot>` | Clone the complete slot stack; `None` for empty/out-of-range. |
+| `set_stack(&mut self, slot: usize, stack: Option<ItemSlot>) -> bool` | Replace a staged slot; false out-of-range, zero count becomes empty. The callback is responsible for its recipe/placement rules. |
+| `swap_stack(&self, button: i32) -> Option<ItemSlot>` | Clone hotbar 0..=8 or offhand 40, using swap-button numbering, not menu-slot numbering. Other buttons return `None`. |
+| `set_swap_stack(&mut self, button: i32, stack: Option<ItemSlot>) -> bool` | Replace that staged swap target; other buttons return false, zero count clears it. Offhand works without a visible menu slot. Recipe eligibility and stack limits remain the callback's responsibility. |
+| `carried(&self) -> Option<ItemSlot>` | Clone the cursor stack. |
+| `set_carried(&mut self, stack: Option<ItemSlot>)` | Replace the staged cursor; zero count becomes empty. |
+| `same_item_and_components(&self, left: &ItemSlot, right: &ItemSlot) -> bool` | Native item/component comparison after applying public edits to each captured stack. Ignores count; false if either count is zero. Does not check capacity or slot acceptance. |
+| `max_stack_count(&self, stack: &ItemSlot) -> u32` | Native component-aware item-stack limit, including removed max-stack-size components; zero for an empty stack. A destination slot may impose a lower limit. |
+| `move_stack(&mut self, stack: &mut ItemSlot, start: usize, end: usize, reverse: bool) -> bool` | Delegate to native transfer over `[start, end)`, respecting slot acceptance, components and limits. Returns whether anything moved; leaves the remainder in `stack`. Invalid bounds return false. |
+| `crafting_remainder(&self, stack: &ItemSlot) -> Option<ItemSlot>` | Resolve the native item's crafting remainder from this menu's registry, as a fresh one-item stack. Empty/unknown items or no remainder return `None`. This is not the use/food remainder and does not implement mod-specific fallback rules. |
+| `give_stack(&mut self, stack: ItemSlot)` | Consume an owned stack through native player-inventory insertion (`place_back`), including merge selection and dropping overflow. Inventory writes and overflow drops stay staged until the normal menu commit. Zero count is ignored; this does not remove a source slot. |
+| `drop_stack(&mut self, stack: &ItemSlot)` | Queue a drop through the native menu commit; does not itself remove the source stack. |
+
+For an extra recipe remainder after consuming its source input, return the owned stack through the native player-inventory path rather than assuming a menu-slot range:
+
+```rust
+use pluto_lib::{ItemSlot, MenuAccess};
+fn return_remainder(menu: &mut dyn MenuAccess, remainder: ItemSlot) {
+    menu.give_stack(remainder); // native insertion, then queued overflow drop
+}
+```
+
+For a non-empty cursor, check both component identity and available capacity before accepting a result. This helper only calculates room; it neither transfers items nor crafts:
+
+```rust
+use pluto_lib::{ItemSlot, MenuAccess};
+fn cursor_room(menu: &dyn MenuAccess, result: &ItemSlot) -> u32 {
+    match menu.carried() {
+        None => menu.max_stack_count(result),
+        Some(cursor) if menu.same_item_and_components(&cursor, result) =>
+            menu.max_stack_count(&cursor).saturating_sub(cursor.count),
+        Some(_) => 0,
+    }
+}
+```
+
+**Integration status:** the public adapter and pinned local/guest source connections are implemented; the inspected v10 source composition including pick-all exclusion, stack-limit forwarding, crafting-remainder lookup and native player-inventory return passes all retained attachment guards. The component-comparison/stack-limit API examples compile; the bridge fixture is not evidence of native stack semantics. Native typechecking and gameplay are pending. Remote synthetic menus resolve by declared menu type, but recipe/saved-data synchronization remains incomplete. This is not yet verified support. It is also not a lazy crafting-result implementation: recipes must implement their own preview invalidation, amount tracking, consumption and action ordering. A callback owns its registered action; simply returning does not invoke the native action afterward. Avoid also registering the older `on_quick_move` for the same operation, since that server hook runs earlier.
 
 ## Reference
 

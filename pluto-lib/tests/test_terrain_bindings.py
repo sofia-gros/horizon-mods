@@ -65,4 +65,45 @@ class TerrainBindingChecks(unittest.TestCase):
         for name in ['terrain-bindings.rs','terrain-binding-host.rs','fluid-render-prepare.rs','fluid-render-before-assemble.rs','api/src/fluid.rs']:
             self.assertEqual(files['pluto_native_creative/'+name],(NATIVE/name).read_bytes())
         source=(NATIVE/'api/src/fluid.rs').read_text();self.assertEqual(source.count('static REGISTRY:'),1)
+class NativeTerrainAssemblyTests(unittest.TestCase):
+    def test_native_owners_sources_and_no_catalog_attachment(self):
+        import hashlib
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / guard.NATIVE_FILE
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b'native assembly')
+            expected = hashlib.sha256(source.read_bytes()).hexdigest()
+            with patch.object(guard, 'NATIVE_SHA256', expected):
+                plan = dict(schema=6, inputs={guard.NATIVE_FILE: expected}, injections=[],
+                            modules=[{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}], states=[])
+                meta = guard.metadata(plan)
+                guard.check(plan, meta)
+                guard.check_source(root, meta)
+                candidates = [{'file': guard.NATIVE_FILE}, {'target': 'alias::assemble'},
+                              {'target': 'alias::PackResources::load'}, {'mod_id': 'pluto_native_creative'}]
+                candidates += [{'name': name} for name in (
+                    'pluto_terrain_binding_host', 'pluto_terrain_bindings', 'pluto_fluid_render_prepare')]
+                for section in ('injections', 'modules', 'states'):
+                    for entry in candidates:
+                        plan[section].append(entry)
+                        with self.assertRaisesRegex(ValueError, 'unattached'):
+                            guard.check(plan, meta)
+                        plan[section].pop()
+                plan['inputs'].clear()
+                with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                    guard.check(plan, meta)
+                plan['inputs'][guard.NATIVE_FILE] = expected
+                with self.assertRaisesRegex(ValueError, 'metadata'):
+                    guard.check(plan, guard.metadata())
+                plan['schema'] = 7
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    guard.check(plan, meta)
+                source.write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'source drifted'):
+                    guard.check_source(root, meta)
+
+
 if __name__=='__main__':unittest.main()

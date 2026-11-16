@@ -1,24 +1,9 @@
 {
   "values": [
-    {
-      "id": "tconstruct:war_pick",
-      "required": false
-    },
-    {
-      "id": "tconstruct:swasher",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/interactable/right",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/interactable/left",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/held",
-      "required": false
-    }
+    "tconstruct:war_pick",
+    "tconstruct:swasher",
+    "#tconstruct:modifiable/interactable/right",
+    "#tconstruct:modifiable/interactable/left",
+    "#tconstruct:modifiable/armor/held"
   ]
 }

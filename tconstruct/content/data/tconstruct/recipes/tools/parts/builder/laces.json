@@ -1,4 +1,5 @@
 {
+  "type": "tconstruct:part_builder",
   "cost": 2,
   "pattern": "tconstruct:laces",
   "pattern_item": {
@@ -6,6 +7,5 @@
   },
   "result": {
     "item": "tconstruct:laces"
-  },
-  "type": "tconstruct:part_builder"
+  }
 }

@@ -44,31 +44,45 @@ class ProductNotices(unittest.TestCase):
                 self.assertEqual(archive.read('LICENSE.horizon'),notice.read_bytes())
                 self.assertNotIn('LICENSE',archive.namelist())
                 self.assertIn('mixins/example/horizon-mixin.toml',archive.namelist())
+            (bundle / 'new_helper.rs').write_text('pub fn helper() {}', encoding='utf-8', newline='\n')
+            rejected = root / 'incomplete.hnmod'
+            with patch.object(module, 'tracked_files', side_effect=tracked):
+                with self.assertRaisesRegex(ValueError, 'untracked source inputs'):
+                    module.build(bundle, rejected, root)
+            self.assertFalse(rejected.exists())
+            manifest.write_text(manifest.read_text(encoding='utf-8') + '\n[[module]]\nid="helper"\nsource="new_helper.rs"\n', encoding='utf-8', newline='\n')
+            (bundle / 'unrelated.rs').write_text('must not ship', encoding='utf-8', newline='\n')
+            with patch.object(module, 'tracked_files', side_effect=tracked):
+                module.build(bundle, rejected, root, manifest_inputs=True)
+            with zipfile.ZipFile(rejected) as archive:
+                self.assertIn('mixins/example/new_helper.rs', archive.namelist())
+                self.assertNotIn('mixins/example/unrelated.rs', archive.namelist())
+            manifest.write_text(manifest.read_text(encoding='utf-8').replace('new_helper.rs', '../escape.rs'), encoding='utf-8', newline='\n')
+            with patch.object(module, 'tracked_files', side_effect=tracked):
+                with self.assertRaisesRegex(ValueError, 'unsafe declared source'):
+                    module.build(bundle, root / 'escape.hnmod', root, manifest_inputs=True)
 
 
-class TinkersPackageSlice(unittest.TestCase):
-    def test_packaged_manifest_leaves_out_the_hooks_mixins_refuses(self):
+class TinkersPackageBoundary(unittest.TestCase):
+    def test_package_contains_the_exact_checked_inputs_without_host_hooks(self):
         import tempfile, tomllib, zipfile
-        spec = importlib.util.spec_from_file_location('package_hnmod', ROOT / 'tconstruct/tools/package_hnmod.py')
+        spec = importlib.util.spec_from_file_location('clean_package', ROOT / 'tools/port.py')
         pkg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pkg)
-        with tempfile.TemporaryDirectory() as tmp:
+        expected, _, _, _ = pkg.checked_files(ROOT)
+        (ROOT / '.local').mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / '.local') as tmp:
             out = Path(tmp) / 'tconstruct.hnmod'
-            pkg.package(out)
-            with zipfile.ZipFile(out) as z:
-                manifest = tomllib.loads(z.read('mixins/tconstruct_native/horizon-mixin.toml').decode())
-                names = set(z.namelist())
-                self.assertLessEqual(len(names), pkg.MAX_ENTRIES)
-                for kind, key in [('module', 'source'), ('injection', 'helper')]:
-                    for entry in manifest.get(kind, []):
-                        if key in entry:
-                            self.assertIn('mixins/tconstruct_native/' + entry[key], names)
-                self.assertIn('mixins/tconstruct_native/api/src/lib.rs', names)
-        ids = {i['id'] for i in manifest['injection']}
-        self.assertFalse(ids & {'source-host-mining-context', 'source-client-mining-context', 'tinkers-chest-pick-color'})
-        self.assertGreater(len(ids), 100)  # most injections ship; the count falls as they move onto PlutoLib
-        # the launcher cannot work around Mixins' printing bug in these Horizon files, so nothing that edits them ships
-        self.assertFalse([m for m in manifest['module'] if m['file'].endswith('worldgen/structure/start.rs')])
+            pkg.package(ROOT, out)
+            with zipfile.ZipFile(out) as archive:
+                prefix = 'mixins/tconstruct_native/'
+                self.assertEqual(set(archive.namelist()), {'horizon-native.json'} | {prefix + name for name in expected})
+                manifest = tomllib.loads(archive.read(prefix + 'horizon-mixin.toml').decode())
+                self.assertFalse(set(manifest) & {'injection', 'module', 'state', 'bridge', 'crate'})
+                self.assertEqual(manifest['dependencies'], {'pluto_lib': '^0.1'})
+                for name, content in expected.items():
+                    if name != 'horizon-mixin.toml':  # package identity is rewritten by the packager
+                        self.assertEqual(archive.read(prefix + name), content)
 
 
 if __name__ == '__main__':

@@ -1,12 +1,6 @@
 {
   "values": [
-    {
-      "id": "tconstruct:blank_sand_cast",
-      "required": false
-    },
-    {
-      "id": "tconstruct:blank_red_sand_cast",
-      "required": false
-    }
+    "tconstruct:blank_sand_cast",
+    "tconstruct:blank_red_sand_cast"
   ]
 }

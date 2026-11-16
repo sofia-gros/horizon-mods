@@ -1,26 +1,11 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:patterns/default",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:patterns/reusable",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/sand",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:casts/red_sand",
-      "required": false
-    },
+    "#tconstruct:patterns/default",
+    "#tconstruct:patterns/reusable",
+    "#tconstruct:casts/sand",
+    "#tconstruct:casts/red_sand",
     "minecraft:sand",
     "minecraft:red_sand",
-    {
-      "id": "tconstruct:venom_bottle",
-      "required": false
-    }
+    "tconstruct:venom_bottle"
   ]
 }

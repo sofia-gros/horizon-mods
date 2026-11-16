@@ -17,11 +17,18 @@ fn attempt(state:&StructureState,context:&mut impl StartContext,index:usize,chun
 // The pinned host's create_starts order, with only its per-attempt dispatch
 // extended. Rejections remove a weighted candidate; native types keep native
 // try_generate. This is not a post-generation scan or a second start cache.
-fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chunk:ChunkPos)->Vec<StructureStart> {
+fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chunk:ChunkPos,mut saved:Vec<StructureStart>)->Vec<StructureStart> {
     let seed=context.seed();
     let mut starts=Vec::new();
     for &set_index in &state.possible_sets {
         let set=&state.registry.sets[set_index];
+        // Native create_starts_with_saved: a restored start owns its whole
+        // placement set, including mixed native/custom weighted candidates.
+        let before=starts.len();
+        while let Some(index)=saved.iter().position(|start|set.structures.iter().any(|(s,_)|*s==start.structure)) {
+            starts.push(saved.remove(index));
+        }
+        if starts.len()!=before {continue}
         let custom=set.structures.iter().any(|(index,_)| {
             matches!(&state.registry.structures[*index].kind,
                 crate::worldgen::structure::start::StructureKind::Unsupported(kind)
@@ -64,6 +71,7 @@ fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chun
             total-=selected.1;
         }
     }
+    starts.extend(saved);
     starts
 }
 
@@ -97,6 +105,13 @@ pub fn build(state:&StructureState,context:&mut impl StartContext,chunk:ChunkPos
         Err(_)=>work.lock().unwrap(),
     };
     if let Some(found)=state.starts.get((chunk.x,chunk.z)) {return ControlFlow::Break(Some(found))}
-    let starts:Starts=Arc::new(create(state,context,rings,chunk).into_iter().map(Arc::new).collect());
+    // Current chunks also have the native SaveDir source installed on the
+    // structure state. Read it under the same lock, before any generation.
+    let saved=state.saved.get().and_then(|source|source(chunk));
+    let saved=saved.iter().flat_map(|starts|starts.iter()).filter_map(|(name,tag)| {
+        let index=state.registry.structures.iter().position(|s|s.name==name.to_string_lossy())?;
+        read_saved_start(index,&state.registry.structures[index],chunk,tag,&state.resources,&state.bindings)
+    }).collect();
+    let starts:Starts=Arc::new(create(state,context,rings,chunk,saved).into_iter().map(Arc::new).collect());
     ControlFlow::Break(Some(state.starts.insert_first((chunk.x,chunk.z),starts)))
 }

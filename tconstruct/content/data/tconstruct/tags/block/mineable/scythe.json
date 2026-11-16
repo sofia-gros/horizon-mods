@@ -1,4 +1,9 @@
 {
+  "remove": [
+    "minecraft:pumpkin",
+    "minecraft:carved_pumpkin",
+    "minecraft:melon"
+  ],
   "values": [
     "minecraft:kelp",
     "minecraft:kelp_plant",

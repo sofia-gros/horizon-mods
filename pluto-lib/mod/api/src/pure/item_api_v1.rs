@@ -1,4 +1,5 @@
-//! Counterpart of Fabric's `fabric-item-api-v1` (so far: item tooltips).
+//! Counterpart of Fabric's `fabric-item-api-v1`: item tooltips/use and
+//! Minecraft standing/wall block-item binding declarations (native binding stub).
 //!
 //! Fabric's `ItemTooltipCallback` lets callbacks read and edit the tooltip's lines. `with_lines` edits the current list while
 //! preserving untouched native rich text; the original `added` list still appends simple lines after the editable list.
@@ -8,6 +9,11 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
 use super::base::{Event, Identifier};
+pub use super::standing_wall_item::StandingAndWallBlockItem;
+pub use super::item_registry::{ItemRegistry,ItemRegistrySnapshot};
+pub use super::item_behavior::{EnderMaskContext, ItemBehavior, ItemBehaviors};
+pub(crate) use super::item_behavior::ender_mask;
+pub(crate) use super::standing_wall_item::standing_wall_bindings;
 
 /// One tooltip line to add.
 #[derive(Clone, Debug, PartialEq, Eq)]

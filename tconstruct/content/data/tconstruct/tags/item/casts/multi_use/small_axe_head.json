@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:small_axe_head_cast",
-      "required": false
-    }
+    "tconstruct:small_axe_head_cast"
   ]
 }

@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "tag": "forge:nuggets/manyullyn"
   },
   "material": "tconstruct:manyullyn",
   "needed": 9,
-  "type": "tconstruct:material",
   "value": 1
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Validate the protection wrapper's ordering in a complete official Mixins plan."""
+"""Verify native protection preservation or the retained marker wrapper's ordering."""
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -9,7 +10,46 @@ STATUS = "horizon_client_render::effects::StatusFlags::protection"
 KERNEL = "horizon_world::combat_rules::after_magic"
 
 
-def check(plan):
+# Pinned 441f49d5 Git blobs. The trait bundle has no marker/protection API:
+# preserve the native hit, status lookup and scalar calculation instead of
+# requiring a retired wrapper to be installed. This certifies no custom EPF.
+NATIVE_SOURCES = {
+    'crates/horizon-client/src/health.rs': '493e3f31f821779594cd9ddb00a35e0029f129d8e48d6e446b6282439fd2e3bd',
+    'crates/horizon-client-render/src/effects.rs': '7f0e546d908c362d7dda4bc2ae09a7b27f937c7151e33a6e8799d041985470ed',
+    'crates/horizon-world/src/combat_rules.rs': 'a2b3ab54355ab6a074c419b1a533452cdb394f6c92ae86af05f44c4883f3f22c',
+}
+
+
+def check_native(plan, workspace):
+    if plan.get('schema') != 6:
+        raise ValueError('unreviewed official plan schema for native protection')
+    if workspace is None:
+        raise ValueError('native protection preservation requires the input workspace')
+    for section in ('injections', 'modules', 'states'):
+        for entry in plan.get(section, []):
+            if any(c.get('file') in NATIVE_SOURCES for c in entry.get('constructors', [])):
+                raise ValueError('state constructor changes a preserved native protection source')
+            if entry.get('file') in NATIVE_SOURCES or entry.get('target') in (HIT, STATUS, KERNEL):
+                raise ValueError('native protection files must remain unattached; mixed marker composition is forbidden')
+            if entry.get('mod_id') == 'pluto_native_creative':
+                raise ValueError('native protection preservation cannot compose the retired marker bundle')
+    root = Path(workspace)
+    for name, expected in NATIVE_SOURCES.items():
+        source = root / name
+        if source.is_symlink() or not source.is_file():
+            raise ValueError(f'native protection source is not a regular file: {name}')
+        source.resolve().relative_to(root.resolve())
+        if plan.get('inputs', {}).get(name) != expected:
+            raise ValueError(f'native protection plan source differs: {name}')
+        if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+            raise ValueError(f'native protection workspace source differs: {name}')
+
+
+def check(plan, workspace=None):
+    if any(entry.get('mod_id') == 'pluto_lib'
+           for section in ('injections', 'modules', 'states') for entry in plan.get(section, [])):
+        check_native(plan, workspace)
+        return
     injections = plan.get("injections", [])
     def own(entry, suffix):
         return entry.get("mod_id") == "pluto_native_creative" and entry.get("injection_id", "").endswith(suffix)
@@ -37,10 +77,10 @@ def check(plan):
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) != 2:
-            raise ValueError("usage: check_protection_plan.py COMPLETE_PLAN.json")
-        check(json.loads(Path(sys.argv[1]).read_text()))
+        if len(sys.argv) not in (2, 3):
+            raise ValueError("usage: check_protection_plan.py COMPLETE_PLAN.json [INPUT_WORKSPACE]")
+        check(json.loads(Path(sys.argv[1]).read_text()), Path(sys.argv[2]) if len(sys.argv) == 3 else None)
     except (ValueError, OSError, KeyError) as error:
         print(f"protection ordering rejected: {error}", file=sys.stderr)
         raise SystemExit(1)
-    print("Protection ordering verified for the supplied complete plan.")
+    print("Protection boundary verified for the supplied plan; no custom-protection capability claim.")

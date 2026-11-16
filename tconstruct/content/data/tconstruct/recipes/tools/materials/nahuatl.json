@@ -1,9 +1,9 @@
 {
+  "type": "tconstruct:material",
   "ingredient": {
     "item": "tconstruct:nahuatl"
   },
   "material": "tconstruct:nahuatl",
   "needed": 1,
-  "type": "tconstruct:material",
   "value": 1
 }

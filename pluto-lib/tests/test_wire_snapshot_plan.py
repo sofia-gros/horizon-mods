@@ -70,5 +70,41 @@ class WireSnapshotPlan(unittest.TestCase):
             self.assertNotIn(forbidden, source)
 
 
+class NativeWireTests(unittest.TestCase):
+    def test_no_private_seam_and_exact_native_source(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / MODULE.NATIVE_FILE
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b'native Wire')
+            expected = MODULE.digest(source.read_bytes())
+            with patch.object(MODULE, 'NATIVE_SHA256', expected):
+                plan = dict(schema=6, inputs={MODULE.NATIVE_FILE: expected}, injections=[],
+                            states=[], modules=[{'mod_id': 'pluto_lib', 'file': 'unrelated.rs'}])
+                MODULE.check(plan, root)
+                candidates = [{'file': MODULE.NATIVE_FILE}, {'mod_id': 'pluto_native_creative'},
+                              {'target': 'horizon_items::item_data::Wire::new'}]
+                candidates += [{'name': name} for _, name, _ in MODULE.MODULES.values()]
+                for section in ('injections', 'modules', 'states'):
+                    for entry in candidates:
+                        plan[section].append(entry)
+                        with self.assertRaisesRegex(ValueError, 'unattached'):
+                            MODULE.check(plan, root)
+                        plan[section].pop()
+                with self.assertRaisesRegex(ValueError, 'metadata'):
+                    MODULE.check(plan, root, MODULE.metadata())
+                plan['inputs'].clear()
+                with self.assertRaisesRegex(ValueError, 'plan source differs'):
+                    MODULE.check(plan, root)
+                plan['inputs'][MODULE.NATIVE_FILE] = expected
+                source.write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'workspace source differs'):
+                    MODULE.check(plan, root)
+                plan['schema'] = 7
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    MODULE.check(plan, root)
+
+
 if __name__ == '__main__':
     unittest.main()

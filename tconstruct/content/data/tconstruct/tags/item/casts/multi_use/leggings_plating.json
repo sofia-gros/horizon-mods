@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:leggings_plating_cast",
-      "required": false
-    }
+    "tconstruct:leggings_plating_cast"
   ]
 }

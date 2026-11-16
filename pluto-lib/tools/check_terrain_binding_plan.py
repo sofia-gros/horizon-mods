@@ -10,13 +10,45 @@ from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 NATIVE=ROOT/'mixins/pluto_native_creative'
-def metadata():return json.loads((ROOT/'tools/terrain-binding-source.json').read_text())
+NATIVE_FILE = 'crates/horizon-client/src/game/resource_tables.rs'
+NATIVE_SHA256 = '4fcc044ad903c9322ed2eea024d221230d8da3bc18e06133a846647dea6de180'
+
+
+def native_bundle(plan):
+    return any(entry.get('mod_id') == 'pluto_lib'
+               for section in ('injections', 'modules', 'states') for entry in plan.get(section, []))
+
+
+def metadata(plan=None):
+    if plan is not None and native_bundle(plan):
+        return {'native_preservation': True, 'source_sha256': {NATIVE_FILE: NATIVE_SHA256}}
+    return json.loads((ROOT/'tools/terrain-binding-source.json').read_text())
 
 def reviewed_ids(identifier):
     # Accept only the component spelling and its exact deterministic bundle ID.
     return {identifier, 'pluto_native_creative-' + identifier}
 
 def check(plan,meta):
+    if native_bundle(plan):
+        # The trait bundle supplies no derived terrain-binding catalog. The
+        # moved PackResources assembly keeps its original owners and workers.
+        # Other rendering attachments still require their own combined review.
+        if plan.get('schema') != 6 or meta != metadata(plan):
+            raise ValueError('unreviewed native terrain assembly schema or metadata')
+        forbidden = {'pluto_terrain_binding_host', 'pluto_terrain_bindings', 'pluto_fluid_render_prepare'}
+        for section in ('injections', 'modules', 'states'):
+            for entry in plan.get(section, []):
+                if any(c.get('file') == NATIVE_FILE for c in entry.get('constructors', [])):
+                    raise ValueError('state constructor changes a preserved native terrain source')
+                target = entry.get('target', '')
+                if (entry.get('mod_id') == 'pluto_native_creative' or entry.get('file') == NATIVE_FILE
+                        or entry.get('name') in forbidden
+                        or target.rsplit('::', 1)[-1] == 'assemble'
+                        or target.endswith('PackResources::load')):
+                    raise ValueError('native terrain assembly must remain unattached; no mixed catalog preparation')
+        if plan.get('inputs', {}).get(NATIVE_FILE) != NATIVE_SHA256:
+            raise ValueError('native terrain assembly plan source differs')
+        return
     hooks=plan.get('injections',[])
     selected=[h for h in hooks if h.get('target')==meta['target']
         or (h.get('file')==meta['location']['file'] and h.get('node')==meta['location']['node'])
@@ -44,12 +76,20 @@ def check(plan,meta):
     for path,digest in meta['source_sha256'].items():
         if plan.get('inputs',{}).get(path)!=digest:raise ValueError(f'Plan uses unreviewed official source: {path}')
 def check_source(workspace,meta):
+    workspace = Path(workspace)
+    if meta.get('native_preservation') and meta['source_sha256'] != {NATIVE_FILE: NATIVE_SHA256}:
+        raise ValueError('unreviewed native terrain assembly source metadata')
     for path,digest in meta['source_sha256'].items():
-        if hashlib.sha256((workspace/path).read_bytes()).hexdigest()!=digest:raise ValueError(f'Official source drifted: {path}')
+        source = workspace / path
+        if source.is_symlink():
+            raise ValueError('terrain assembly source must not be a symlink')
+        source.resolve().relative_to(workspace.resolve())
+        if hashlib.sha256(source.read_bytes()).hexdigest()!=digest:raise ValueError(f'Official source drifted: {path}')
 if __name__=='__main__':
     try:
         if len(sys.argv)!=3:raise ValueError('usage: check_terrain_binding_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE')
-        meta=metadata();check(json.loads(Path(sys.argv[1]).read_text()),meta);check_source(Path(sys.argv[2]),meta)
+        plan=json.loads(Path(sys.argv[1]).read_text())
+        meta=metadata(plan);check(plan,meta);check_source(Path(sys.argv[2]),meta)
     except (ValueError,OSError,KeyError) as e:
         print(f'Terrain binding preparation rejected: {e}',file=sys.stderr);raise SystemExit(1)
-    print('Terrain binding preparation source, owners and exclusive assembly phase verified.')
+    print('Terrain assembly boundary verified; native preservation supplies no derived binding catalog.')

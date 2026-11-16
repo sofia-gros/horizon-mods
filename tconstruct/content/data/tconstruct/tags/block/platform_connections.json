@@ -3,10 +3,7 @@
     "minecraft:lever",
     "minecraft:ladder",
     "minecraft:iron_bars",
-    {
-      "id": "tconstruct:gold_bars",
-      "required": false
-    },
+    "tconstruct:gold_bars",
     "minecraft:tripwire_hook",
     "minecraft:wall_torch",
     "minecraft:soul_wall_torch",
@@ -22,6 +19,10 @@
       "required": false
     },
     "#minecraft:walls",
-    "#minecraft:wall_signs"
+    "#minecraft:wall_signs",
+    {
+      "id": "#architects_palette:nubs",
+      "required": false
+    }
   ]
 }

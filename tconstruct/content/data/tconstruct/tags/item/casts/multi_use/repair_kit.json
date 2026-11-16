@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:repair_kit_cast",
-      "required": false
-    }
+    "tconstruct:repair_kit_cast"
   ]
 }

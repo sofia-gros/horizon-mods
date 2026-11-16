@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:small_blade_cast",
-      "required": false
-    }
+    "tconstruct:small_blade_cast"
   ]
 }

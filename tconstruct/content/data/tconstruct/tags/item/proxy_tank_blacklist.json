@@ -3,13 +3,7 @@
     "minecraft:bucket",
     "minecraft:glass_bottle",
     "minecraft:bowl",
-    {
-      "id": "tconstruct:copper_can",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/ammo",
-      "required": false
-    }
+    "tconstruct:copper_can",
+    "#tconstruct:modifiable/ammo"
   ]
 }

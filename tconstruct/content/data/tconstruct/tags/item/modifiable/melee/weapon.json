@@ -1,60 +1,18 @@
 {
   "values": [
-    {
-      "id": "tconstruct:pickaxe",
-      "required": false
-    },
-    {
-      "id": "tconstruct:vein_hammer",
-      "required": false
-    },
-    {
-      "id": "tconstruct:mattock",
-      "required": false
-    },
-    {
-      "id": "tconstruct:pickadze",
-      "required": false
-    },
-    {
-      "id": "tconstruct:excavator",
-      "required": false
-    },
-    {
-      "id": "tconstruct:kama",
-      "required": false
-    },
-    {
-      "id": "tconstruct:crossbow",
-      "required": false
-    },
-    {
-      "id": "tconstruct:longbow",
-      "required": false
-    },
-    {
-      "id": "tconstruct:fishing_rod",
-      "required": false
-    },
-    {
-      "id": "tconstruct:flint_and_brick",
-      "required": false
-    },
-    {
-      "id": "tconstruct:war_pick",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/melee/primary",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/melee/sword",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/melee/parry",
-      "required": false
-    }
+    "tconstruct:pickaxe",
+    "tconstruct:vein_hammer",
+    "tconstruct:mattock",
+    "tconstruct:pickadze",
+    "tconstruct:excavator",
+    "tconstruct:kama",
+    "tconstruct:crossbow",
+    "tconstruct:longbow",
+    "tconstruct:fishing_rod",
+    "tconstruct:flint_and_brick",
+    "tconstruct:war_pick",
+    "#tconstruct:modifiable/melee/primary",
+    "#tconstruct:modifiable/melee/sword",
+    "#tconstruct:modifiable/melee/parry"
   ]
 }

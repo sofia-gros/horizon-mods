@@ -1,20 +1,8 @@
 {
   "values": [
-    {
-      "id": "#tconstruct:modifiable/armor/boots",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/leggings",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/chestplate",
-      "required": false
-    },
-    {
-      "id": "#tconstruct:modifiable/armor/helmets",
-      "required": false
-    }
+    "#tconstruct:modifiable/armor/boots",
+    "#tconstruct:modifiable/armor/leggings",
+    "#tconstruct:modifiable/armor/chestplate",
+    "#tconstruct:modifiable/armor/helmets"
   ]
 }

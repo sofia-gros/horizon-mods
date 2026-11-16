@@ -1,8 +1,5 @@
 {
   "values": [
-    {
-      "id": "tconstruct:dagger",
-      "required": false
-    }
+    "tconstruct:dagger"
   ]
 }

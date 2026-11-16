@@ -10,9 +10,6 @@
     "#minecraft:cherry_logs",
     "#minecraft:crimson_stems",
     "#minecraft:warped_stems",
-    {
-      "id": "#tconstruct:slimy_logs",
-      "required": false
-    }
+    "#tconstruct:slimy_logs"
   ]
 }
