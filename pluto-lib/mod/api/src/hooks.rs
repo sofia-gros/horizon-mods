@@ -1812,6 +1812,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
+        eprintln!("PlutoLib: use item on {:?} acting {} logged-in {}", event.pos, host.acting_player().is_some(), LOGGED_IN.lock().map_or(0, |players| players.len()));
         // The host names the acting player only for a guest's action; the world's own player is the only one logged in then.
         let (uuid, name, dimension, creative) = match host.acting_player() {
             Some(player) => (player.uuid, player.name.clone(), player.dimension.clone(), player.game_mode == 1),
