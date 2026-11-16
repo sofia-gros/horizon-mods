@@ -59,11 +59,11 @@ fn with_context<R>(read: impl FnOnce(&Context, &Recipes, &MaterialRecipes, &dyn 
     let material_recipes = common::material_recipes()?.read().ok()?;
     if !part_recipes.loaded || !material_recipes.loaded { return None; }
     let item_tags = common::item_snapshot();
-    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
     // A tag leftover resolves to the first member of the tag (the host has no mod preference list).
     let first_of = |source: &LeftoverSource| match source {
         LeftoverSource::Item(item) => Some(item.clone()),
-        LeftoverSource::Tag(tag) => item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).and_then(|members| members.iter().next().cloned()),
+        LeftoverSource::Tag(tag) => item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).and_then(|members| members.iter().next().cloned()),
     };
     let parts = tool_parts::registry();
     let ctx = Context { materials: &materials as &Definitions, parts: &parts, in_tag: &in_tag };

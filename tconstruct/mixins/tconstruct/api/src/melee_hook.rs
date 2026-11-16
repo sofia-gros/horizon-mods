@@ -39,7 +39,7 @@ pub(crate) fn register() {
         // The target's entity type tags come from the entity type registry captured at the last reload.
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&hit.damage.kind).ok();
-        let in_tag = |tag: &Identifier| target_in_tag(entities.as_ref(), target.as_ref(), tag);
+        let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);
         let changed = with_held_tool(held, |env, stack| {
             let base = 1.0 + tool_stack::stat(&stack.custom_data, Stat::AttackDamage);
             tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag)

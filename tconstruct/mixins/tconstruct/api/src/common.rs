@@ -21,18 +21,18 @@ pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_r
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
 /// Unlike Forge's never-reset flag it is cleared when the server stops, because the
 /// snapshot it vouches for no longer exists.
-static ITEMS: RwLock<Option<pluto_lib::RegistryLookup>> = RwLock::new(None);
+static ITEMS: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
 /// The captured entity type registry and tags, for melee target conditions (mob types and entity tags).
-static ENTITY_TYPES: RwLock<Option<pluto_lib::RegistryLookup>> = RwLock::new(None);
-pub(crate) fn entity_type_snapshot() -> Option<pluto_lib::RegistryLookup> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
+static ENTITY_TYPES: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
-pub(crate) fn item_snapshot() -> Option<pluto_lib::RegistryLookup> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
+pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap());
-    if items.is_some() { *ITEMS.write().expect("item snapshot lock poisoned") = items.clone(); }
+    if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
-        *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(entities);
+        *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));
     }
     items
 }

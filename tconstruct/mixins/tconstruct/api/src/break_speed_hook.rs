@@ -14,7 +14,7 @@ pub(crate) fn with_held_tool<R>(held: &pluto_lib::StackData, run: impl FnOnce(&t
     let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
-    let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
+    let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
     let mut stack = ItemSlot::new(item.clone(), held.count);
     stack.custom_data = held.custom_data.clone();
     let definition = tool_station::definition_for(&ctx, &stack).ok_or("no tool definition for the held item")?;

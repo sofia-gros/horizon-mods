@@ -50,8 +50,8 @@ fn with_context<R>(read: impl FnOnce(&Context, &Removals, &modifier_removal::Sal
     let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
-    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
-    let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_ref(), &tools, item, tag);
+    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
+    let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_deref(), &tools, item, tag);
     let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
     Some(read(&ctx, &removals, &salvages, &in_tag, &modifier_in_tag))
 }
