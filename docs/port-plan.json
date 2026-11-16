@@ -37,6 +37,8 @@
     "api/src/protection.rs",
     "api/src/protection_hook.rs",
     "api/src/tool_damage_hook.rs",
+    "api/src/weapon_effect.rs",
+    "api/src/weapon_effect_hook.rs",
     "api/src/damage_tags.rs",
     "api/src/damage_vanilla.rs",
     "api/src/part_recycling.rs",

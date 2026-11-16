@@ -2044,8 +2044,34 @@ impl Hooks for PlutoHooks {
                 effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
             })
         };
-        if let (Some(attacker), Some(target)) = (state_of(host, event.causing), state_of(host, event.entity)) {
-            entity_events_v1::hit_states(event.entity, attacker, target);
+        // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
+        // server's list of players: what that list says (sprinting, on the ground) and their effects.
+        let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
+            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)?;
+            Some(entity_events_v1::EntityState {
+                kind: "minecraft:player".to_owned(),
+                sprinting: player.sprinting,
+                on_ground: player.on_ground,
+                in_water: false,
+                fire_ticks: 0,
+                fire_immune: false,
+                effects: host.effects(player.uuid).map(|effects| effects.into_iter().map(|effect| effect.id).collect()).unwrap_or_default(),
+            })
+        };
+        let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
+        let target_state = state_of(host, event.entity);
+        if let (Some(attacker), Some(target)) = (&attacker_state, &target_state) {
+            entity_events_v1::hit_states(event.entity, attacker.clone(), target.clone());
+        }
+        // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
+        let hit = entity_events_v1::WeaponHit {
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
+            attacker_state, target_state, effects: std::cell::RefCell::new(Vec::new()),
+        };
+        if let Ok(entity) = u32::try_from(event.entity) {
+            for grant in entity_events_v1::weapon_hit(&hit) {
+                horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
         }
         Flow::Continue
     }

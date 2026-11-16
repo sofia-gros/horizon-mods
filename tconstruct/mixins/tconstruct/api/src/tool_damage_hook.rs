@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SEED: AtomicU64 = AtomicU64::new(0x9E37_79B9_7F4A_7C15);
 
 /// A uniform value in [0, 1) from a xorshift generator; modifier chances are drawn one point at a time.
-fn random() -> f32 {
+pub(crate) fn random() -> f32 {
     let mut state = SEED.load(Ordering::Relaxed);
     state ^= state << 13;
     state ^= state >> 7;

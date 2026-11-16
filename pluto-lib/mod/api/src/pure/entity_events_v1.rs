@@ -60,6 +60,33 @@ pub struct EntityState {
     pub effects: Vec<String>,
 }
 
+/// A status effect for a callback to put on the mob a weapon hit.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EffectGrant {
+    /// The effect id, such as `minecraft:slowness`; an id the game does not know is skipped.
+    pub effect: String,
+    /// The amplifier, the level less one: 0 is level I.
+    pub amplifier: i32,
+    /// How long it lasts, in ticks.
+    pub duration: i32,
+}
+
+/// A player's weapon hit on a mob, heard on a server before the hit's damage lands.
+#[derive(Clone, Debug)]
+pub struct WeaponHit {
+    /// The mob's entity id and type id, and the attacking player's entity id.
+    pub entity: i32,
+    pub kind: String,
+    pub attacker: i32,
+    /// The weapon: its damage, max damage and custom data; None for an empty hand.
+    pub weapon: Option<StackData>,
+    /// What the player and the mob were doing as the hit landed; None when the game could not tell.
+    pub attacker_state: Option<EntityState>,
+    pub target_state: Option<EntityState>,
+    /// The effects to put on the mob, which callbacks add to.
+    pub effects: RefCell<Vec<EffectGrant>>,
+}
+
 /// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
 #[derive(Clone, Debug)]
 pub struct DamageModification {
@@ -121,6 +148,7 @@ pub struct ItemDamage {
     pub replacement: RefCell<Option<ItemSlot>>,
 }
 
+static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
 static MODIFY_ITEM_DAMAGE: Event<ItemDamage, ()> = Event::void();
 static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
@@ -138,10 +166,18 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
+    /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
+    pub const WEAPON_HIT: &'static Event<WeaponHit, ()> = &WEAPON_HIT;
     /// NeoForge: `LivingKnockBackEvent`. Change the strength or direction with `set`, or set `cancel`. Server only.
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+}
+
+/// The effects the callbacks put on the mob a weapon hit.
+pub(crate) fn weapon_hit(hit: &WeaponHit) -> Vec<EffectGrant> {
+    WEAPON_HIT.invoke(hit);
+    hit.effects.borrow_mut().drain(..).collect()
 }
 
 /// The knockback after the callbacks as (strength, x, z), or None when a callback cancelled it.
@@ -278,6 +314,20 @@ mod tests {
         modify_damage(&hurt);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(true), Some(40)), (None, None)], "the states belong to one hit");
+    }
+
+    #[test]
+    fn a_weapon_hit_collects_the_effects_callbacks_put_on_the_mob() {
+        ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
+            if hit.entity != 7373 { return; }
+            if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:wand") {
+                hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
+            }
+        });
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, effects: RefCell::new(Vec::new()) };
+        assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
+        assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
+        assert!(weapon_hit(&hit(None)).is_empty());
     }
 
     #[test]
