@@ -66,6 +66,8 @@ pub(crate) enum Module {
     MiningSpeed { module: Box<crate::mining_speed::MiningSpeed>, condition: Condition },
     /// ConditionalMeleeDamageModule without target or attacker conditions: changes the damage of a melee hit.
     MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
+    /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
+    Attribute { attribute: String, operation: &'static str, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -276,6 +278,21 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
+                let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
+                let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+                let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+                let operation = match fields.get("operation").and_then(Value::as_str) {
+                    Some("addition") => "add_value", Some("multiply_base") => "add_multiplied_base", Some("multiply_total") => "add_multiplied_total",
+                    _ => return Ok(None),
+                };
+                if fields.contains_key("formula") || fields.contains_key("variables") { return Ok(None); }
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::Attribute { attribute: format!("minecraft:{path}"), operation, flat: float(fields, "flat")?, each: float(fields, "each_level")?, slots, condition: Condition::decode(fields)? }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -321,7 +338,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -354,6 +371,22 @@ impl Module {
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
+    pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, wanted: &[&str]) -> Vec<NbtCompound> {
+        let Self::Attribute { attribute, operation, flat, each, slots, condition } = self else { return Vec::new(); };
+        if !condition.matches(entry, facts) { return Vec::new(); }
+        let amount = f64::from(flat + each * entry.effective_level());
+        let short = attribute.rsplit(':').next().unwrap_or(attribute);
+        slots.iter().filter(|slot| wanted.contains(&slot.as_str())).map(|slot| {
+            let mut modifier = NbtCompound::new();
+            modifier.insert("type".into(), Nbt::String(attribute.clone()));
+            modifier.insert("id".into(), Nbt::String(format!("{}/{short}/{slot}", entry.id)));
+            modifier.insert("amount".into(), Nbt::Double(amount));
+            modifier.insert("operation".into(), Nbt::String((*operation).to_owned()));
+            modifier.insert("slot".into(), Nbt::String(slot.clone()));
+            modifier
+        }).collect()
     }
     /// Whether this is a percent melee damage module (None for other modules).
     pub fn melee_percent(&self) -> Option<bool> {

@@ -152,6 +152,10 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
+    pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, wanted: &[&str]) -> Vec<NbtCompound> {
+        self.modules.iter().flat_map(|module| module.attribute_entries(entry, facts, wanted)).collect()
+    }
     /// The conditional melee damage modules, each with its sort priority (a percent module runs at 75).
     pub fn melee_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.melee_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))

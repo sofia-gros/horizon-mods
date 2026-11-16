@@ -109,6 +109,11 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
     })
 }
 
+/// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
+pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, wanted)).collect())
+}
+
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
 /// priority order (highest first, ties in modifier order), starting from `damage`.
 pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {

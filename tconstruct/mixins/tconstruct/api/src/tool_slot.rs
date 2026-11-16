@@ -20,29 +20,47 @@ pub(crate) fn sync_visuals(slot: &mut ItemSlot, env: &Environment) -> Result<(),
     Ok(())
 }
 
-/// AttributesModifierHook.getHeldAttributeModifiers for the main hand: a melee weapon's attack damage
-/// is its stat and its attack speed the stat less the player's base of 4; a broken tool has none. The
-/// weapon check needs the item tags, so without them the item's own modifiers stay.
+/// The stack's attribute modifiers, from AttributesModifierHook.getHeldAttributeModifiers and ModifiableArmorItem: a melee weapon's
+/// attack damage is its stat and its attack speed the stat less the player's base of 4 (main hand); an armor piece's armor, toughness and
+/// knockback resistance are its stats (its own slot); then each modifier's attribute modules add theirs. A broken tool has none. The
+/// weapon and armor checks need the item tags, so without them (or for another tool) the item's own modifiers stay.
 fn attribute_modifiers(data: &pluto_lib::NbtCompound, env: &Environment) -> Option<Vec<pluto_lib::NbtCompound>> {
     use pluto_lib::Nbt;
     let (item, tags) = (env.item?, env.item_tags?);
-    let melee = Identifier::new("tconstruct", "modifiable/melee/weapon").expect("valid tag id");
-    if !tags.get_tag(&melee).is_some_and(|members| members.contains(item)) { return None; }
+    let in_tag = |name: &str| Identifier::new("tconstruct", name).ok().and_then(|tag| tags.get_tag(&tag)).is_some_and(|members| members.contains(item));
+    let melee = in_tag("modifiable/melee/weapon");
+    let armor_slot = if in_tag("modifiable/armor") {
+        let path = item.path();
+        if path.ends_with("_helmet") { Some("head") } else if path.ends_with("_chestplate") { Some("chest") }
+        else if path.ends_with("_leggings") { Some("legs") } else if path.ends_with("_boots") { Some("feet") } else { None }
+    } else { None };
+    if !melee && armor_slot.is_none() { return None; }
     if is_broken(data) { return Some(Vec::new()); }
-    let modifier = |attribute: &str, id: &str, amount: f64| {
+    let modifier = |attribute: &str, id: String, amount: f64, slot: &str| {
         let mut entry = pluto_lib::NbtCompound::new();
         entry.insert("type".into(), Nbt::String(format!("minecraft:{attribute}")));
-        entry.insert("id".into(), Nbt::String(format!("tconstruct:{id}")));
+        entry.insert("id".into(), Nbt::String(id));
         entry.insert("amount".into(), Nbt::Double(amount));
         entry.insert("operation".into(), Nbt::String("add_value".into()));
-        entry.insert("slot".into(), Nbt::String("mainhand".into()));
+        entry.insert("slot".into(), Nbt::String(slot.to_owned()));
         entry
     };
-    Some(vec![
-        modifier("attack_damage", "tool_attack_damage", f64::from(stat(data, Stat::AttackDamage))),
+    let mut list = Vec::new();
+    let mut wanted = Vec::new();
+    if melee {
+        wanted.push("mainhand");
+        list.push(modifier("attack_damage", "tconstruct:tool_attack_damage".into(), f64::from(stat(data, Stat::AttackDamage)), "mainhand"));
         // The tool's attack speed counts from the player's base of 4.
-        modifier("attack_speed", "tool_attack_speed", f64::from(stat(data, Stat::AttackSpeed)) - 4.0),
-    ])
+        list.push(modifier("attack_speed", "tconstruct:tool_attack_speed".into(), f64::from(stat(data, Stat::AttackSpeed)) - 4.0, "mainhand"));
+    }
+    if let Some(slot) = armor_slot {
+        wanted.push(slot);
+        for (attribute, value) in [("armor", stat(data, Stat::Armor)), ("armor_toughness", stat(data, Stat::ArmorToughness)), ("knockback_resistance", stat(data, Stat::KnockbackResistance))] {
+            if value > 0.0 { list.push(modifier(attribute, format!("tconstruct:armor_{attribute}/{slot}"), f64::from(value), slot)); }
+        }
+    }
+    list.extend(crate::tool_stack::attribute_entries(data, env, &wanted));
+    Some(list)
 }
 
 /// ToolStack.rebuildStats on the slot's data followed by the visual mirror. `Ok(false)` means the

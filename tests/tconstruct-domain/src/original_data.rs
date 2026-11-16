@@ -572,3 +572,24 @@ fn shipped_smite_and_bane_of_sssss_add_damage_only_to_the_right_targets() {
     assert!(hit("tconstruct:bane_of_sssss", &["minecraft:arthropod"]) > 10.0, "bane of sssss boosts arthropods");
     assert_eq!(hit("tconstruct:bane_of_sssss", &[]), 10.0);
 }
+
+#[test]
+fn shipped_speedy_publishes_a_movement_speed_attribute_for_its_slots() {
+    use crate::{modifier_entries::List, tool_stack::{attribute_entries, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:speedy").unwrap(), 3).unwrap().to_nbt());
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let held = attribute_entries(&tool.custom_data, &env, &["mainhand"]);
+    assert_eq!(held.len(), 1, "{held:?}");
+    assert_eq!(held[0]["type"], Nbt::String("minecraft:movement_speed".into()));
+    assert_eq!(held[0]["operation"], Nbt::String("add_multiplied_total".into()));
+    match held[0]["amount"] { Nbt::Double(amount) => assert!((amount - 0.3).abs() < 1e-5, "{amount}"), _ => panic!("amount is a double") }
+    assert_eq!(attribute_entries(&tool.custom_data, &env, &["head"]).len(), 1, "speedy lists the head slot");
+    assert!(attribute_entries(&tool.custom_data, &env, &["offhand"]).is_empty(), "speedy does not list the offhand");
+}
