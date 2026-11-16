@@ -10,6 +10,8 @@ static MODIFIER_RECIPES: OnceLock<Arc<RwLock<crate::modifier_recipes::Recipes>>>
 pub(crate) fn modifier_recipes() -> Option<&'static Arc<RwLock<crate::modifier_recipes::Recipes>>> { MODIFIER_RECIPES.get() }
 static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
+static RECYCLES: OnceLock<Arc<RwLock<crate::part_recycling::Recycles>>> = OnceLock::new();
+pub(crate) fn recycles() -> Option<&'static Arc<RwLock<crate::part_recycling::Recycles>>> { RECYCLES.get() }
 static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = OnceLock::new();
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
@@ -21,13 +23,19 @@ pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_r
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
 /// Unlike Forge's never-reset flag it is cleared when the server stops, because the
 /// snapshot it vouches for no longer exists.
-static ITEMS: RwLock<Option<pluto_lib::RegistryLookup>> = RwLock::new(None);
+static ITEMS: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+/// The captured entity type registry and tags, for melee target conditions (mob types and entity tags).
+static ENTITY_TYPES: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
-pub(crate) fn item_snapshot() -> Option<pluto_lib::RegistryLookup> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
+pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap());
-    if items.is_some() { *ITEMS.write().expect("item snapshot lock poisoned") = items.clone(); }
+    if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
+    if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
+        *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));
+    }
     items
 }
 pub(crate) fn server_modifiers() -> Option<&'static Arc<RwLock<crate::modifiers::Registry>>> { MODIFIERS.get() }
@@ -74,6 +82,13 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             let config = part_recipe_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers part builder recipe listener registration failed");
+        let recycle_config = config.clone();
+        let recycles = crate::part_recycling::register(move || {
+            let config = recycle_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers part recycling listener registration failed");
+        RECYCLES.set(recycles).expect("Tinkers part recycling already initialized");
+        crate::protection_hook::register_tags().expect("Tinkers damage tag listener registration failed");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {
             let config = salvage_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
@@ -103,6 +118,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         let stopped = materials.clone();
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
+            *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
             let mut state = stopped.write().expect("material registry lock poisoned");
             let generation = state.generation.wrapping_add(1);
             *state = Definitions { generation, ..Definitions::default() };

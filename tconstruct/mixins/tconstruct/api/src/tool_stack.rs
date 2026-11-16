@@ -109,6 +109,49 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
     })
 }
 
+/// The enchantments the tool's modifiers give it (EnchantmentModifierHook), levels adding up per enchantment.
+pub(crate) fn enchantments(nbt: &NbtCompound, env: &Environment) -> std::collections::BTreeMap<String, i32> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut levels: std::collections::BTreeMap<String, i32> = std::collections::BTreeMap::new();
+        for (entry, modifier) in saved { for (name, level) in modifier.enchantments(entry, facts) { let total = levels.entry(name).or_insert(0); *total = total.saturating_add(level); } }
+        levels
+    })
+}
+
+/// The tool actions the tool's modifiers perform on a right click, in modifier order.
+pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
+}
+
+/// What the tool's modifiers add to the protection cap attribute (boundless).
+pub(crate) fn protection_cap(nbt: &NbtCompound, env: &Environment) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.protection_cap(entry, facts, nbt)).sum())
+}
+
+/// ProtectionModifierHook over every modifier of the tool, in modifier order, starting from `value`.
+pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, value: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))
+}
+
+/// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
+pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
+}
+
+/// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
+/// priority order (highest first, ties in modifier order), starting from `damage`.
+pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for (priority, module) in modifier.melee_modules() { modules.push((priority, index, entry, module)); }
+        }
+        modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
+        let view = crate::mining_speed::ToolView { nbt };
+        modules.into_iter().fold(damage, |damage, (_, _, entry, module)| module.melee_damage(entry, facts, &view, base, damage, target_in_tag))
+    })
+}
+
 /// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
 /// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
 pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {

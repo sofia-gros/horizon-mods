@@ -1,6 +1,10 @@
 //! Clean port: common config/material reload registration; tool gameplay is unfinished.
 mod tables;
 mod materials;
+mod damage_vanilla;
+mod damage_tags;
+mod protection;
+mod protection_hook;
 mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;
@@ -31,6 +35,11 @@ mod tool_build;
 mod tool_parts;
 mod tool_mining;
 mod mining_speed;
+mod melee_damage;
+mod melee_hook;
+mod part_recycling;
+mod tool_actions;
+mod tool_action_hook;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
@@ -48,5 +57,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     worktable_menu::register();
     creative::register();
     break_speed_hook::register();
+    melee_hook::register();
+    tool_action_hook::register();
+    protection_hook::register();
     pluto_lib::no_hooks()
 }

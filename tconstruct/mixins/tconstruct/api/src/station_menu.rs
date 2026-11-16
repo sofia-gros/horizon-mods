@@ -29,10 +29,10 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Op
     let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
-    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
+    let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
     // Material recipes may be absent (not loaded): inputs then simply never resolve to materials.
     let recipes = common::material_recipes().and_then(|recipes| recipes.read().ok());
-    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_ref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_deref(), &tools, item, tag);
     let modifier_recipes = common::modifier_recipes().and_then(|recipes| recipes.read().ok());
     let overslime_recipes = common::overslime_recipes().and_then(|recipes| recipes.read().ok());
     let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded),

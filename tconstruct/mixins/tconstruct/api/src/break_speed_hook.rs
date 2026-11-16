@@ -3,9 +3,8 @@
 use crate::{common, mining_speed::Context, tool_definitions, tool_mining, tool_parts, tool_stack, tool_station::{self, Context as Tools}};
 use pluto_lib::{BreakSpeedCallback, BreakSpeedContext, Identifier, ItemSlot};
 
-/// The speed after the held tool's modifiers; `Err` names why the held stack is left alone.
-fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static str> {
-    let held = dig.held.as_ref().ok_or("no held stack")?;
+/// Runs `run` over the held stack as a loaded Tinkers tool and its environment; `Err` names why the stack is left alone.
+pub(crate) fn with_held_tool<R>(held: &pluto_lib::StackData, run: impl FnOnce(&tool_stack::Environment, &ItemSlot) -> R) -> Result<R, &'static str> {
     if !held.custom_data.contains_key(tool_stack::TAG_MATERIALS) { return Err("held stack is not a Tinkers tool"); }
     let item = Identifier::parse(&held.item).map_err(|_| "held item id")?;
     let definitions = tool_definitions::register().read().map_err(|_| "tool definitions locked")?;
@@ -15,24 +14,32 @@ fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static 
     let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
-    let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_ref(), tools: &tools, item_max: &item_max };
+    let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
     let mut stack = ItemSlot::new(item.clone(), held.count);
     stack.custom_data = held.custom_data.clone();
     let definition = tool_station::definition_for(&ctx, &stack).ok_or("no tool definition for the held item")?;
     let env = ctx.environment(&item, definition);
     if tool_stack::is_broken(&stack.custom_data) { return Err("the tool is broken"); }
-    let block_in_tag = |tag: &Identifier| dig.block.is_in_tag(&tag.to_string());
-    let tier = tool_stack::harvest_tier(&stack.custom_data);
-    let effective = definition.effective().is_some_and(|effective| tool_mining::is_effective(effective, &tier, &block_in_tag));
-    // What vanilla applied on top of the tool's own rule speed: haste, fatigue, water and air.
-    let rule_speed = if effective { tool_stack::stat(&stack.custom_data, crate::tool_stats::Stat::MiningSpeed).max(1.0) } else { 1.0 };
-    let multiplier = if rule_speed > 0.0 { dig.original / rule_speed } else { 1.0 };
-    let context = Context {
-        block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
-        on_ground: dig.player.map(|player| player.on_ground), eyes_in_water: dig.player.map(|player| player.eyes_in_water),
-    };
-    let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, &modifiers).len();
-    Ok((tool_stack::break_speed(&stack.custom_data, &env, &context, dig.speed.get()), effective, multiplier, modifier_count))
+    Ok(run(&env, &stack))
+}
+
+/// The speed after the held tool's modifiers; `Err` names why the held stack is left alone.
+fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static str> {
+    let held = dig.held.as_ref().ok_or("no held stack")?;
+    with_held_tool(held, |env, stack| {
+        let block_in_tag = |tag: &Identifier| dig.block.is_in_tag(&tag.to_string());
+        let tier = tool_stack::harvest_tier(&stack.custom_data);
+        let effective = env.definition.and_then(|definition| definition.effective()).is_some_and(|effective| tool_mining::is_effective(effective, &tier, &block_in_tag));
+        // What vanilla applied on top of the tool's own rule speed: haste, fatigue, water and air.
+        let rule_speed = if effective { tool_stack::stat(&stack.custom_data, crate::tool_stats::Stat::MiningSpeed).max(1.0) } else { 1.0 };
+        let multiplier = if rule_speed > 0.0 { dig.original / rule_speed } else { 1.0 };
+        let context = Context {
+            block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
+            on_ground: dig.player.map(|player| player.on_ground), eyes_in_water: dig.player.map(|player| player.eyes_in_water),
+        };
+        let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).len();
+        (tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get()), effective, multiplier, modifier_count)
+    })
 }
 
 /// Registers the callback. Called once from the product's hooks.

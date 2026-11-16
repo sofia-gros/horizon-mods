@@ -32,7 +32,7 @@ struct ModBlockEntity { nbt:NbtCompound, items:Vec<Option<ItemStack>>, data:Vec<
 fn compound_from_tag(c:&NbtCompound)->NbtCompound { c.clone() }
 #[derive(Clone, Debug, PartialEq, Default)]
 struct Extra { max: Option<i32>, custom: NbtCompound, name: String, enchantments: Vec<String>, wire: Vec<u8> }
-enum Tag { Int(i32), Compound(NbtCompound) }
+enum Tag { Int(i32), Compound(NbtCompound), List(Vec<Tag>) }
 impl Extra { fn set_other(&mut self, key:&str, tag:Option<Tag>) {
     match (key, tag) {
         ("minecraft:max_damage", Some(Tag::Int(v))) => self.max=Some(v),

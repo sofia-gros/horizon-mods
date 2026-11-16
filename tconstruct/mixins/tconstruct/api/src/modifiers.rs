@@ -152,6 +152,30 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// What this modifier adds to the protection cap attribute.
+    pub fn protection_cap(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound) -> f32 {
+        self.modules.iter().map(|module| module.protection_cap(entry, facts, nbt)).sum()
+    }
+    /// The running protection after this modifier's protection modules.
+    pub fn protection(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        self.modules.iter().fold(value, |value, module| module.protection(entry, facts, nbt, source, value))
+    }
+    /// The enchantments this modifier's constant enchantment modules give.
+    pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
+        self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()
+    }
+    /// The tool actions this modifier's transform modules perform on a right click.
+    pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
+        self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
+    }
+    /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
+    pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
+        self.modules.iter().flat_map(|module| module.attribute_entries(entry, facts, nbt, wanted)).collect()
+    }
+    /// The conditional melee damage modules, each with its sort priority (a percent module runs at 75).
+    pub fn melee_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
+        self.modules.iter().filter_map(move |module| module.melee_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
+    }
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
         for module in &self.modules { module.apply_stats(entry, facts, builder); }
@@ -198,6 +222,13 @@ impl Registry {
     }
     pub fn get(&self, id: &Identifier) -> Option<&Arc<Modifier>> {
         self.static_modifiers.get(id).or_else(|| self.dynamic.get(id))
+    }
+    /// Every modifier identifier this registry holds, static and loaded, sorted: the stable order menus index modifiers by.
+    pub fn all_ids(&self) -> Vec<Identifier> {
+        let mut ids: Vec<Identifier> = self.static_modifiers.keys().chain(self.dynamic.keys()).cloned().collect();
+        ids.sort();
+        ids.dedup();
+        ids
     }
     /// Identifiers of every loaded dynamic modifier (including redirects), for audits.
     pub fn dynamic_ids(&self) -> impl Iterator<Item = &Identifier> { self.dynamic.keys() }

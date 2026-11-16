@@ -26,7 +26,7 @@ pub struct UseBlockContext {
 }
 
 /// A player used an item on a block: the held item, the block it was used on and who did it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UseItemOnBlockContext {
     /// The item id, such as `tconstruct:earth_slime_grass_seeds`.
     pub item: String,
@@ -42,6 +42,8 @@ pub struct UseItemOnBlockContext {
     pub player: ServerPlayer,
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
+    /// The stack that was used, with its damage, max damage and custom data (a tool a mod made keeps its state there).
+    pub held: Option<super::player_api::StackData>,
 }
 
 /// How fast the player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).

@@ -35,6 +35,11 @@ pub mod fixtures {
         resources::with_reload_folders(registries, folders, || resources::apply_json_reload_listener(
             super::ResourceType::ServerData, listener, directory, files))
     }
+    /// A captured registry with tags: `tags` pairs a tag id with its members, which must be entries.
+    pub fn registry_with_tags(entries: &[&str], tags: &[(&str, &[&str])]) -> Result<super::RegistryLookup, String> {
+        let tags = tags.iter().map(|(tag, members)| ((*tag).to_owned(), members.iter().map(|id| (*id).to_owned()).collect())).collect::<Vec<_>>();
+        super::RegistryLookup::from_parts(&entries.iter().map(|id| (*id).to_owned()).collect::<Vec<_>>(), &tags)
+    }
     pub fn registry(entries: &[&str]) -> Result<super::RegistryLookup, String> {
         super::RegistryLookup::from_parts(&entries.iter().map(|id| (*id).to_owned()).collect::<Vec<_>>(), &[])
     }

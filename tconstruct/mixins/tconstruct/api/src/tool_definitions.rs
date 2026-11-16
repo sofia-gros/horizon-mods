@@ -287,6 +287,11 @@ impl Data {
 
     /// ToolTraitHook.addTraits for an alternate hook (rebalanced_trait, trim_trait): the same module
     /// kinds as the main hook, but only those bound to it.
+    /// ToolDefinitionData.getHooks().hasHook: the definition binds an alternate trait hook (the main trait hook
+    /// is bound by any definition with trait modules).
+    pub fn has_hook(&self, hook: &Identifier) -> bool {
+        self.hook_traits.contains_key(hook) || (hook.to_string() == "tconstruct:tool_traits" && !self.traits.is_empty())
+    }
     pub fn hook_traits(&self, hook: &Identifier, materials: &MaterialList, registry: &Materials) -> Result<Vec<crate::material_traits::ModifierEntry>, String> {
         Self::module_traits(self.hook_traits.get(hook).map_or(&[][..], Vec::as_slice), materials, registry)
     }

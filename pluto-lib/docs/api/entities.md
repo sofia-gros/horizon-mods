@@ -569,14 +569,14 @@ assert!(ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&hit));
 
 ### `DamageModification`
 
-Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it.
+Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection.
 
 ```rust
 use pluto_lib::{DamageModification, LivingDamage};
 use std::cell::Cell;
 
 let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
-let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None };
+let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new() };
 hit.amount.set(hit.amount.get() + 2.0);
 assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());

@@ -4,6 +4,7 @@
 //! binding or stat Tinkers cannot honor is also unbound, never half-installed.
 use crate::{
     formula::Formula,
+    mining_speed::StatFormula,
     modifier_entries::{nbt_int, Entry},
     tool_predicate::{Facts, Predicate},
     tool_stats::{Builder, Stat},
@@ -64,6 +65,17 @@ pub(crate) enum Module {
     StatOverride,
     /// ConditionalMiningSpeedModule: changes the dig speed of the blocks it names.
     MiningSpeed { module: Box<crate::mining_speed::MiningSpeed>, condition: Condition },
+    /// ConditionalMeleeDamageModule without target or attacker conditions: changes the damage of a melee hit.
+    MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
+    /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
+    /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
+    ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
+    /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
+    Enchantment { name: String, flat: f32, each: f32, condition: Condition },
+    Protection { module: crate::protection::Protection, condition: Condition },
+    /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
+    ProtectionCap { formula: StatFormula, condition: Condition },
+    Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -268,6 +280,52 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:conditional_melee_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_damage" | "tconstruct:monster_melee_damage" | "tconstruct:tooltip")) => {
+                match crate::melee_damage::MeleeDamage::decode(fields)? {
+                    Some(module) => Self::MeleeDamage { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
+                let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
+                let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
+                let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
+                Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:constant_enchantment" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
+                let name = identifier(fields, "name")?.to_string();
+                // `level` is a plain number (a flat level) or a leveling value with flat and each_level parts.
+                let (flat, each) = match fields.get("level") {
+                    Some(Value::Number(number)) => (number.as_f64().ok_or("level must be a number")? as f32, 0.0),
+                    Some(Value::Object(level)) => (float(level, "flat")?, float(level, "each_level")?),
+                    _ => return Err("level must be a number or a leveling value".into()),
+                };
+                Self::Enchantment { name, flat, each, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
+                let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
+                Self::Protection { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
+                let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
+                if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
+                    let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
+                    return Ok(Some(Self::ProtectionCap { formula, condition: Condition::decode(fields)? }));
+                }
+                let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+                let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+                let operation = match fields.get("operation").and_then(Value::as_str) {
+                    Some("addition") => "add_value", Some("multiply_base") => "add_multiplied_base", Some("multiply_total") => "add_multiplied_total",
+                    _ => return Ok(None),
+                };
+                // The original's formula has only `level` by default; a variable naming an input this port lacks leaves it unbound.
+                let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::Attribute { attribute: format!("minecraft:{path}"), operation, formula, slots, condition: Condition::decode(fields)? }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -313,7 +371,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -341,6 +399,54 @@ impl Module {
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
         let Self::MiningSpeed { module, condition } = self else { return speed; };
         module.apply(entry, condition.matches(entry, facts), tool, context, speed)
+    }
+    /// MeleeDamageModifierHook for a conditional melee damage module: the damage after it.
+    pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+        let Self::MeleeDamage { module, condition } = self else { return damage; };
+        module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// What this module adds to the protection cap attribute (0.05 is one point and a quarter of protection).
+    pub fn protection_cap(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound) -> f32 {
+        let Self::ProtectionCap { formula, condition } = self else { return 0.0; };
+        if !condition.matches(entry, facts) { return 0.0; }
+        formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0)
+    }
+    /// ProtectionModifierHook: the running protection after this module, over a damage source.
+    pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        let Self::Protection { module, condition } = self else { return value; };
+        if !condition.matches(entry, facts) || !module.source().matches(source) { return value; }
+        module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
+    }
+    /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
+    pub fn enchantment(&self, entry: &Entry, facts: &Facts) -> Option<(String, i32)> {
+        let Self::Enchantment { name, flat, each, condition } = self else { return None; };
+        let level = (flat + each * entry.effective_level()) as i32;
+        (level > 0 && condition.matches(entry, facts)).then(|| (name.clone(), level))
+    }
+    /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
+    pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
+        let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
+    }
+    /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
+    pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
+        let Self::Attribute { attribute, operation, formula, slots, condition } = self else { return Vec::new(); };
+        if !condition.matches(entry, facts) { return Vec::new(); }
+        let amount = f64::from(formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0));
+        let short = attribute.rsplit(':').next().unwrap_or(attribute);
+        slots.iter().filter(|slot| wanted.contains(&slot.as_str())).map(|slot| {
+            let mut modifier = NbtCompound::new();
+            modifier.insert("type".into(), Nbt::String(attribute.clone()));
+            modifier.insert("id".into(), Nbt::String(format!("{}/{short}/{slot}", entry.id)));
+            modifier.insert("amount".into(), Nbt::Double(amount));
+            modifier.insert("operation".into(), Nbt::String((*operation).to_owned()));
+            modifier.insert("slot".into(), Nbt::String(slot.clone()));
+            modifier
+        }).collect()
+    }
+    /// Whether this is a percent melee damage module (None for other modules).
+    pub fn melee_percent(&self) -> Option<bool> {
+        match self { Self::MeleeDamage { module, .. } => Some(module.percent()), _ => None }
     }
     /// The module's priority override, if it is a mining speed module.
     pub fn mining_percent(&self) -> Option<bool> {
@@ -616,7 +722,10 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
-        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage"})).is_none());
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_none(), "an attacker condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_none(), "an unknown target condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":{"type":"mantle:mob_type","mobs":"minecraft:undead"},"each_level":2.0})).is_some(), "a mob type target is bound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","each_level":2.0})).is_some(), "a condition-free melee module is bound");
         for (kind, fields) in [("tconstruct:stat_boost", json!({"stat":"tconstruct:durability","operation":"explode"})),
             ("tconstruct:modifier_slot", json!({"name":"Bad Name"})), ("tconstruct:volatile_int", json!({"flag":"a:b","flat":99999})),
             ("tconstruct:rarity", json!({"rarity":"mythic"})), ("tconstruct:volatile_flag", json!({"flag":"a:b","modifier_level":0})),

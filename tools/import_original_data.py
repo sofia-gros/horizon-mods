@@ -109,6 +109,25 @@ PART_RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/da
 PART_RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/parts/builder'
 
 
+RECYCLE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/recycling'
+RECYCLE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/recycling'
+
+
+def copy_recycling_recipes():
+    """The part builder's tool recycling recipes (a tool breaks into its parts), byte for byte."""
+    if RECYCLE_TARGET.exists():
+        shutil.rmtree(RECYCLE_TARGET)
+    count = 0
+    for path in sorted(RECYCLE_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder_tool_recycling':
+            continue
+        destination = RECYCLE_TARGET / path.relative_to(RECYCLE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_part_builder_recipes():
     """The part builder recipes that make tool parts from materials, byte for byte. The sand and
     red sand cast recipes belong to the smeltery and come with it."""
@@ -123,6 +142,55 @@ def copy_part_builder_recipes():
         shutil.copyfile(path, destination)
         count += 1
     return count
+
+
+DAMAGE_TAG_SOURCE = TAG_SOURCE / 'damage_type'
+DAMAGE_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/tags/damage_types'
+VANILLA_DAMAGE_TAGS = ROOT / '.local/base-26.3/data/minecraft/tags/damage_type'
+
+
+def copy_damage_tags():
+    """Damage-type tags (protection/*, is_melee...). The host has no damage-type tag capture, so the mod reads
+    them from its own folder, like the modifier tags."""
+    count = 0
+    for path in sorted(DAMAGE_TAG_SOURCE.rglob('*.json')):
+        destination = DAMAGE_TAG_TARGET / path.relative_to(DAMAGE_TAG_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(json.loads(path.read_text(encoding='utf-8')), indent=2) + '\n', encoding='utf-8', newline='\n')
+        count += 1
+    return count
+
+
+def write_damage_vanilla():
+    """damage_vanilla.rs: the vanilla damage-type tags the shipped tags and protection modules name, flattened.
+
+    Read from the pinned vanilla data, so a tag is as the game version defines it. The bypass tags are what
+    mantle:can_protect (not bypassing invulnerability, as vanilla's enchantment protection) looks at."""
+    wanted = {'bypasses_invulnerability'}
+    for path in DAMAGE_TAG_SOURCE.rglob('*.json'):
+        for value in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = value if isinstance(value, str) else value.get('id', '')
+            if text.startswith('#minecraft:'):
+                wanted.add(text[len('#minecraft:'):])
+
+    def flatten(name):
+        data = json.loads((VANILLA_DAMAGE_TAGS / f'{name}.json').read_text(encoding='utf-8'))
+        members = []
+        for value in data.get('values', []):
+            text = value if isinstance(value, str) else value['id']
+            if text.startswith('#minecraft:'):
+                members += [m for m in flatten(text[len('#minecraft:'):]) if m not in members]
+            elif text not in members:
+                members.append(text)
+        return members
+
+    lines = ['//! Vanilla damage-type tags the Tinkers damage tags and protection modules name, flattened.',
+             '//! Generated from the pinned vanilla data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for name in sorted(wanted):
+        lines.append(f'    ("{name}", &[' + ', '.join(f'"{m}"' for m in flatten(name)) + ']),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
 def copy_tags():
@@ -140,6 +208,10 @@ def copy_tags():
                 text = value if isinstance(value, str) else value.get('id', '')
                 if isinstance(value, str) and text.lstrip('#').startswith('forge:'):
                     value = {'id': text, 'required': False}
+                # This port registers no Tinkers entity types yet; a tag naming one would make the whole
+                # entity-type tag capture unusable for PlutoLib (an unknown member), so it waits for its entity.
+                if source_name == 'entity_types' and isinstance(value, str) and text.startswith('tconstruct:'):
+                    continue
                 values.append(value)
             data['values'] = values
             destination = TAG_TARGET / target_name / path.relative_to(TAG_SOURCE / source_name)
@@ -147,6 +219,24 @@ def copy_tags():
             destination.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
             count += 1
     return count
+
+
+LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
+LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
+LANGUAGES = ['en_us', 'ja_jp']
+
+
+def copy_lang():
+    """The original's translations for the languages this port ships (modifier, block, item,
+    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n."""
+    if LANG_TARGET.exists():
+        shutil.rmtree(LANG_TARGET)
+    LANG_TARGET.mkdir(parents=True)
+    for language in LANGUAGES:
+        # Only the line endings are normalized (the original checkout may be CRLF); the text is the original's.
+        data = (LANG_SOURCE / f'{language}.json').read_bytes().replace(b'\r\n', b'\n')
+        (LANG_TARGET / f'{language}.json').write_bytes(data)
+    return len(LANGUAGES)
 
 
 def main():
@@ -184,9 +274,11 @@ def main():
     lines += [f'    "{kind}",' for kind in types] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
-    tags = copy_tags()
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes()
-    print(f'copied {copied} files, {tags} tags and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    tags = copy_tags() + copy_damage_tags()
+    write_damage_vanilla()
+    languages = copy_lang()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

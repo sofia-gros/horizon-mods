@@ -59,8 +59,26 @@ mod tool_parts;
 mod tool_mining;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mining_speed.rs"]
 mod mining_speed;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_damage.rs"]
+mod melee_damage;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
+mod damage_vanilla;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_tags.rs"]
+mod damage_tags;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/protection.rs"]
+mod protection;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/protection_hook.rs"]
+mod protection_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/break_speed_hook.rs"]
 mod break_speed_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
+mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
+mod part_recycling;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
+mod tool_actions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_action_hook.rs"]
+mod tool_action_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_slot.rs"]
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
