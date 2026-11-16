@@ -154,6 +154,19 @@ pub fn hooks() -> Box<dyn Hooks> {
                 horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
         })
     }}).expect("PlutoLib living load provider installs once");
+    horizon_client::entry::pluto_player_hurt_access::set_sink(horizon_client::entry::pluto_player_hurt_access::Sink {
+        hurt: |hurt| {
+            let hit = entity_events_v1::WearerHit {
+                attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                attacker_state: entity_events_v1::EntityState {
+                    kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
+                    fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
+                },
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()),
+            };
+            entity_events_v1::wearer_hit(&hit).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
+        },
+    }).expect("PlutoLib player hurt sink installs once");
     horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
         attributes:|kind| {
             let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
