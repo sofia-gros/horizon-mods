@@ -1,1 +1,1 @@
-{"template": "minecraft:fishing_rod", "components": {"minecraft:max_stack_size": 1}}
+{"template":"minecraft:fishing_rod","max_stack_size":1}

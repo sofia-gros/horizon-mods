@@ -96,9 +96,9 @@ def main():
         ctl('command', 'clear @s')
         pos = ctl('state')['player']['position']
         xyz = [int(pos[0] // 1) + 2, int(pos[1] // 1), int(pos[2] // 1)]
-        # Carve a clear line of sight and a floor: the spawn terrain can put grass between the player and the block.
-        ctl('command', f'fill {xyz[0] - 1} {xyz[1]} {xyz[2]} {xyz[0]} {xyz[1] + 1} {xyz[2]} minecraft:air')
-        ctl('command', f'setblock {xyz[0]} {xyz[1] - 1} {xyz[2]} minecraft:stone')
+        # Carve a clear room and floor: forest terrain can put leaves or stone in the line of sight.
+        ctl('command', f'fill {xyz[0] - 3} {xyz[1]} {xyz[2] - 2} {xyz[0] + 1} {xyz[1] + 3} {xyz[2] + 2} minecraft:air')
+        ctl('command', f'fill {xyz[0] - 3} {xyz[1] - 1} {xyz[2] - 2} {xyz[0] + 1} {xyz[1] - 1} {xyz[2] + 2} minecraft:stone')
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('interact', *xyz)
         ctl('wait', '10')
