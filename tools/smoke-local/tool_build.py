@@ -224,10 +224,16 @@ def main():
 
         # Creative mode breaks blocks instantly, so dig in survival.
         ctl('command', 'gamemode survival')
-        plain_ticks = dig_ticks('')
-        worn_ticks = dig_ticks(',Damage:50,tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')
+        samples = {}
+        for label, extra in (('plain', ''), ('plain again', ''), ('damage only', ',Damage:50'),
+                             ('stonebound fresh', ',tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]'),
+                             ('stonebound worn', ',Damage:50,tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')):
+            samples[label] = dig_ticks(extra)
+        print('DIG TICKS', json.dumps(samples), flush=True)
         ctl('command', 'gamemode creative')
-        assert worn_ticks < plain_ticks, (plain_ticks, worn_ticks)
+        plain_ticks, worn_ticks = samples['plain'], samples['stonebound worn']
+        assert samples['plain'] == samples['plain again'], samples
+        assert worn_ticks < plain_ticks, samples
         result['scenarios'].append(f'a worn stonebound pickaxe digs stone faster: {worn_ticks} ticks against {plain_ticks}')
 
         # Save and reload: the pickaxe survives quitting and reopening the same world.
