@@ -207,6 +207,26 @@ def main():
         result['scenarios'].append('planks preview a repair of a damaged pickaxe')
         ctl('close')
 
+        # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
+        stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
+        parts = 'tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]'
+        rock = [xyz[0] - 1, xyz[1], xyz[2] - 2]
+
+        def dig_ticks(extra):
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
+            ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+            ctl('wait', '5')
+            ctl('select', 1)
+            value = ctl('break', *rock, timeout=60)
+            assert value.get('block') in ('minecraft:air', None) or 'air' in json.dumps(value.get('block')), value
+            return value['ticks']
+
+        plain_ticks = dig_ticks('')
+        worn_ticks = dig_ticks(',Damage:50,tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')
+        assert worn_ticks < plain_ticks, (plain_ticks, worn_ticks)
+        result['scenarios'].append(f'a worn stonebound pickaxe digs stone faster: {worn_ticks} ticks against {plain_ticks}')
+
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
