@@ -1796,6 +1796,7 @@ impl Hooks for PlutoHooks {
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
         let Some(player) = host.acting_player() else { return Flow::Continue };
         let context = events_interaction_v0::UseItemOnBlockContext {
+            held: Some(stack_data_of(host, &event.stack)),
             item: event.stack.item.to_string(),
             count: event.stack.count,
             pos: event.pos,

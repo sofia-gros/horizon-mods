@@ -152,6 +152,10 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The tool actions this modifier's transform modules perform on a right click.
+    pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
+        self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
+    }
     /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
     pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, wanted: &[&str]) -> Vec<NbtCompound> {
         self.modules.iter().flat_map(|module| module.attribute_entries(entry, facts, wanted)).collect()

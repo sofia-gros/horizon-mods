@@ -67,6 +67,8 @@ pub(crate) enum Module {
     /// ConditionalMeleeDamageModule without target or attacker conditions: changes the damage of a melee hit.
     MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
+    /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
+    ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     Attribute { attribute: String, operation: &'static str, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
@@ -278,6 +280,12 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
+                let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
+                let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
+                let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
+                Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
+            }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
@@ -338,7 +346,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -371,6 +379,11 @@ impl Module {
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
+    pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
+        let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, wanted: &[&str]) -> Vec<NbtCompound> {

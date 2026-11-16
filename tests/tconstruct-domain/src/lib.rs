@@ -65,6 +65,10 @@ mod melee_damage;
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
 mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
+mod tool_actions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_action_hook.rs"]
+mod tool_action_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_slot.rs"]
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
