@@ -393,10 +393,10 @@ def main():
             ctl('wait', '30')
             ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"]' + modifiers + '}]')
             ctl('wait', '10')
-            before = ctl('state')['health']
+            before = ctl('state')['player']['health']
             ctl('command', 'damage @s 8 minecraft:mob_attack')
             ctl('wait', '10')
-            return before - ctl('state')['health']
+            return before - ctl('state')['player']['health']
 
         bare_loss = hurt_through('')
         guarded_loss = hurt_through(',tic_modifiers:[{level:8,name:"tconstruct:protection"}]')
