@@ -22,7 +22,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
@@ -180,6 +180,8 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier')
                 elif '/recipes/tools/parts/builder/' in name:
                     reviewed = ('tconstruct:part_builder',)
+                elif '/recipes/tools/recycling/' in name:
+                    reviewed = ('tconstruct:part_builder_tool_recycling',)
                 else:
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:

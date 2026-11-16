@@ -33,6 +33,7 @@
     "api/src/break_speed_hook.rs",
     "api/src/melee_damage.rs",
     "api/src/melee_hook.rs",
+    "api/src/part_recycling.rs",
     "api/src/tool_actions.rs",
     "api/src/tool_action_hook.rs",
     "api/src/tool_slot.rs",

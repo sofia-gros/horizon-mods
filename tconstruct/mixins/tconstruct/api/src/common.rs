@@ -10,6 +10,8 @@ static MODIFIER_RECIPES: OnceLock<Arc<RwLock<crate::modifier_recipes::Recipes>>>
 pub(crate) fn modifier_recipes() -> Option<&'static Arc<RwLock<crate::modifier_recipes::Recipes>>> { MODIFIER_RECIPES.get() }
 static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
+static RECYCLES: OnceLock<Arc<RwLock<crate::part_recycling::Recycles>>> = OnceLock::new();
+pub(crate) fn recycles() -> Option<&'static Arc<RwLock<crate::part_recycling::Recycles>>> { RECYCLES.get() }
 static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = OnceLock::new();
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
@@ -80,6 +82,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             let config = part_recipe_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers part builder recipe listener registration failed");
+        let recycle_config = config.clone();
+        let recycles = crate::part_recycling::register(move || {
+            let config = recycle_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers part recycling listener registration failed");
+        RECYCLES.set(recycles).expect("Tinkers part recycling already initialized");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {
             let config = salvage_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

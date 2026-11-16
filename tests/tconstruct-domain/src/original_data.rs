@@ -614,3 +614,44 @@ fn shipped_constant_enchantments_give_the_tool_enchantment_levels() {
     assert_eq!(with("tconstruct:swift_sneak", 1).get("minecraft:swift_sneak"), Some(&1));
     assert!(with("tconstruct:sharpness", 2).is_empty(), "a modifier without enchantment modules gives none");
 }
+
+#[test]
+fn shipped_tool_recycling_loads_and_a_wood_pickaxe_breaks_into_its_parts() {
+    use crate::{part_recycling::Recycles, tool_stack::{rebuild_stats, Environment, TAG_DAMAGE, TAG_MATERIALS}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let files = recursive_files("tools/recycling", "tools/recycling");
+    assert_eq!(files.len(), 15);
+    let recycles = Recycles::load(&files, &conditions());
+    // The minotaur axe's record waits on another mod's condition, which never holds here.
+    assert_eq!((recycles.len(), recycles.problems.len()), (14, 0), "{:?}", recycles.problems);
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let venom = Identifier::parse("tconstruct:venom_bottle").unwrap();
+    // The general recipe takes any recyclable multipart tool; every tag query answers yes except the unrecyclable list.
+    let in_tag = |_: &Identifier, tag: &Identifier| tag.path() != "modifiable/unrecyclable";
+    let recipe = recycles.find(&tool, &venom, &in_tag).expect("a recycling recipe matches a plain pickaxe and the venom bottle");
+    let registry = crate::tool_parts::registry();
+    let parts = pickaxe.tool_parts();
+    let buttons = recipe.buttons(&tool, parts, &registry, &world.materials);
+    let names: Vec<String> = buttons.iter().map(|part| part.path().to_owned()).collect();
+    assert_eq!(names, vec!["pick_head", "tool_handle", "tool_binding"], "the pickaxe's three parts, once each");
+    let head = recipe.assemble(&tool, &buttons[0], parts, &registry, &world.materials).expect("the head");
+    assert_eq!(head.item.path(), "pick_head");
+    assert!(!head.custom_data.is_empty(), "the part carries the tool's material");
+    // An undamaged tool always gives a second part, picked from the others.
+    let extra = recipe.leftover(&tool, &buttons[0], parts, &registry, &world.materials, &mut || 0.0).expect("an undamaged tool gives a leftover part");
+    assert!(extra.item.path() != "pick_head");
+    // A worn tool loses that part with the share of durability it lost: a roll below the share gives nothing.
+    tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(30));
+    assert!(recipe.leftover(&tool, &buttons[0], parts, &registry, &world.materials, &mut || 0.1).is_none());
+    assert!(recipe.leftover(&tool, &buttons[0], parts, &registry, &world.materials, &mut || 0.9).is_some());
+    // A tool with upgrades does not recycle.
+    let mut upgraded = tool.clone();
+    upgraded.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), crate::modifier_entries::List::default().with_modifier(Identifier::parse("tconstruct:sharpness").unwrap(), 1).unwrap().to_nbt());
+    assert!(recycles.find(&upgraded, &venom, &in_tag).is_none());
+}

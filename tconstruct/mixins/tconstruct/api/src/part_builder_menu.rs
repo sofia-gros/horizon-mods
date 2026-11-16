@@ -70,8 +70,37 @@ fn with_context<R>(read: impl FnOnce(&Context, &Recipes, &MaterialRecipes, &dyn 
     Some(read(&ctx, &part_recipes, &material_recipes, &in_tag, &first_of))
 }
 
+/// Tool recycling: a tool in the material slot and a matching pattern offer the tool's parts as buttons. `None` when the slots are not a
+/// recycling recipe (the ordinary part recipes then apply).
+fn recycle(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computation> {
+    let tool = items.get(MATERIAL_SLOT).cloned().flatten()?;
+    let pattern = items.get(PATTERN_SLOT).cloned().flatten()?;
+    if !tool.custom_data.contains_key(crate::tool_stack::TAG_MATERIALS) { return None; }
+    let definitions = crate::tool_definitions::register().read().ok()?;
+    let materials = common::register().read().ok()?;
+    if !materials.server_loaded { return None; }
+    let recycles = common::recycles()?.read().ok()?;
+    if !recycles.loaded { return None; }
+    let item_tags = common::item_snapshot();
+    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let recipe = recycles.find(&tool, &pattern.item, &in_tag)?;
+    let definition_parts = definitions.data.get(&tool.item)?.tool_parts();
+    let registry = tool_parts::registry();
+    let order = pattern_order();
+    let buttons: Vec<Identifier> = recipe.buttons(&tool, definition_parts, &registry, &materials).into_iter().filter(|part| order.contains(part)).collect();
+    let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
+    let crafted = selected_index.and_then(|index| {
+        let result = recipe.assemble(&tool, &buttons[index], definition_parts, &registry, &materials)?;
+        let leftover = recipe.leftover(&tool, &buttons[index], definition_parts, &registry, &materials, &mut crate::part_recycling::random);
+        let keeps_pattern = in_tag(&pattern.item, &Identifier::new("tconstruct", "patterns/reusable").expect("valid tag"));
+        Some(Crafted { result, items_used: recipe.tools.amount, leftover, keeps_pattern })
+    });
+    Some(Computation { buttons, selected: selected_index, crafted })
+}
+
 /// What the slots and the selected pattern craft (slots beyond the first two are ignored).
 pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computation> {
+    if let Some(recycling) = recycle(items, selected) { return Some(recycling); }
     let pattern_stack = items.get(PATTERN_SLOT).cloned().flatten();
     let material_stack = items.get(MATERIAL_SLOT).cloned().flatten();
     with_context(|ctx, recipes, material_recipes, in_tag, first_of| {

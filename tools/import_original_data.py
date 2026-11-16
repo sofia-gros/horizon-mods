@@ -109,6 +109,25 @@ PART_RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/da
 PART_RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/parts/builder'
 
 
+RECYCLE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/recycling'
+RECYCLE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/recycling'
+
+
+def copy_recycling_recipes():
+    """The part builder's tool recycling recipes (a tool breaks into its parts), byte for byte."""
+    if RECYCLE_TARGET.exists():
+        shutil.rmtree(RECYCLE_TARGET)
+    count = 0
+    for path in sorted(RECYCLE_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder_tool_recycling':
+            continue
+        destination = RECYCLE_TARGET / path.relative_to(RECYCLE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_part_builder_recipes():
     """The part builder recipes that make tool parts from materials, byte for byte. The sand and
     red sand cast recipes belong to the smeltery and come with it."""
@@ -204,7 +223,7 @@ def main():
     write_creative_parts(skipped_materials)
     tags = copy_tags()
     languages = copy_lang()
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
