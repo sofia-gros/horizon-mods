@@ -216,6 +216,8 @@ def main():
         def dig_ticks(extra):
             ctl('command', 'clear @s')
             ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
+            # Decorations such as leaf litter can sit in front of the block: clear the cell around it first.
+            ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
             ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
             ctl('wait', '5')
             ctl('select', 1)
