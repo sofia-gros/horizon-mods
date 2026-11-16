@@ -366,9 +366,16 @@ def main():
             ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} {block}')
             ctl('wait', '5')
             ctl('select', 1)
-            ctl('interact', *rock, 'up')
-            ctl('wait', '5')
-            return ctl('block', *rock)
+            before = ctl('block', *rock)
+            # The first click after the player turned to the target can land on air; click again until the block answers.
+            for _ in range(3):
+                ctl('wait', '10')
+                ctl('interact', *rock, 'up')
+                ctl('wait', '5')
+                after = ctl('block', *rock)
+                if after.get('state') != before.get('state'):
+                    break
+            return after
 
         # A failure here is recorded and the run goes on, so one run reports every scenario after it too.
         stripped = use_on('minecraft:oak_log[axis=y]', '', 'stripping')
