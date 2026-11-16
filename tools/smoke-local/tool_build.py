@@ -222,8 +222,11 @@ def main():
             assert value.get('block') in ('minecraft:air', None) or 'air' in json.dumps(value.get('block')), value
             return value['ticks']
 
+        # Creative mode breaks blocks instantly, so dig in survival.
+        ctl('command', 'gamemode survival')
         plain_ticks = dig_ticks('')
         worn_ticks = dig_ticks(',Damage:50,tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')
+        ctl('command', 'gamemode creative')
         assert worn_ticks < plain_ticks, (plain_ticks, worn_ticks)
         result['scenarios'].append(f'a worn stonebound pickaxe digs stone faster: {worn_ticks} ticks against {plain_ticks}')
 
