@@ -626,6 +626,34 @@ assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());
 ```
 
+### `ServerLivingEntityEvents::MODIFY_KNOCKBACK`
+
+NeoForge: `LivingKnockBackEvent`. Heard on a server for each knockback: change the strength or the direction with `set`, or set `cancel` for none. It carries the stacks in the attacker's hands.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
+    if push.attacker_main.as_ref().is_some_and(|stack| stack.item == "example:hammer") {
+        push.strength.set(push.strength.get() * 2.0);
+    }
+});
+```
+
+### `ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE`
+
+A player's item is about to lose durability: change the amount with `amount.set`, set `cancel` for no wear, or put new custom data in `custom_data` for the stack. The game's own hook is heard for a LAN player only; PlutoLib reports the local player's wear too.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
+    if wear.item == "example:unbreaking_pickaxe" {
+        wear.cancel.set(true);
+    }
+});
+```
+
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
 
 NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount with `amount.set`. For a player's attack on the server it carries the stack used.
