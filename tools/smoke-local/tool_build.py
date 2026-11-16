@@ -300,6 +300,26 @@ def main():
         result['scenarios'].append('a modifier crystal alone on the station applies its modifier')
         ctl('close')
 
+        # Armor: plating and maille preview a plate helmet that publishes the armor attributes the host reads from the worn stack.
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
+        ctl('command', 'clear @s')
+        ctl('wait', '5')
+        ctl('interact', *xyz, 'up')
+        ctl('wait', '10')
+        first = min(i for i in ui_slots() if i >= 300)
+        put('helmet_plating', 'iron', first + 1)
+        put('maille', 'iron', first + 2)
+        helmet = container_slots()[first + 5]
+        shot('08c-plate-helmet.png')
+        print('PLATE HELMET', json.dumps(helmet)[:500], flush=True)
+        helmet_components = helmet.get('components', '')
+        if helmet.get('item') == 'tconstruct:plate_helmet' and 'attribute_modifiers' in helmet_components and 'minecraft:armor' in helmet_components:
+            result['scenarios'].append('plating and maille preview a plate helmet that publishes its armor attributes')
+        else:
+            soft_failures.append(f'plate helmet: {json.dumps(helmet)[:300]}')
+        ctl('close')
+
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
         stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
         parts = 'tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]'
