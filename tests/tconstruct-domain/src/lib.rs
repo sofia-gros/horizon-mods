@@ -69,6 +69,8 @@ mod damage_tags;
 mod protection;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/protection_hook.rs"]
 mod protection_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_damage_hook.rs"]
+mod tool_damage_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/break_speed_hook.rs"]
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
