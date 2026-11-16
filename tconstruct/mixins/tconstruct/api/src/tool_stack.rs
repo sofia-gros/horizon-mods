@@ -166,6 +166,20 @@ pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f3
     })
 }
 
+/// The mob effects a melee hit with this tool puts on its target, as (applies before the hit, grant), in modifier order. `in_tag` answers
+/// the entity type tags and the pseudo state tags of the hit; `rolls` gives uniform values in [0, 1).
+pub(crate) fn weapon_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(bool, crate::weapon_effect::Grant)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut grants = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.weapon_effect_modules() {
+                if let Some(grant) = module.weapon_effect(entry, facts, in_tag, rolls) { grants.push(grant); }
+            }
+        }
+        grants
+    })
+}
+
 /// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
 /// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
 pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {
