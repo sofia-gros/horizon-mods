@@ -344,6 +344,8 @@ impl Data {
     pub fn mining_component(&self, broken: bool, mining_speed: f32, tier: &Identifier) -> Result<Option<NbtCompound>, String> {
         self.effective.as_ref().map(|effective| crate::tool_mining::tool_component(effective, broken, mining_speed, tier)).transpose()
     }
+    /// The definition's effectiveness module, if it has one.
+    pub fn effective(&self) -> Option<&crate::tool_mining::Effective> { self.effective.as_ref() }
     /// Modules this definition declares that are recorded but not implemented (see `UNBOUND`).
     pub fn unbound_modules(&self) -> &[Identifier] { &self.unbound }
     /// ToolPartsHook.parts: the part items in slot order (empty for tools without a parts module).

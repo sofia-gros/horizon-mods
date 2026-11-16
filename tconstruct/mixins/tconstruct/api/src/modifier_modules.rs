@@ -62,6 +62,8 @@ pub(crate) enum Module {
     /// StatOverrideModifier: the stats stored under `tconstruct:override_bonus` (added, dropping the base) and
     /// `tconstruct:override_multiplier` (multiplied). Only the float stats are supported.
     StatOverride,
+    /// ConditionalMiningSpeedModule: changes the dig speed of the blocks it names.
+    MiningSpeed { module: Box<crate::mining_speed::MiningSpeed>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -260,6 +262,12 @@ impl Module {
                 Self::SwappableTraits { key: optional_key(fields)?, matching, hook }
             }
             // The code-defined creative_slot modifier's module; it binds only volatile data and removal.
+            "tconstruct:conditional_mining_speed" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:break_speed" | "tconstruct:tooltip")) => {
+                match crate::mining_speed::MiningSpeed::decode(fields)? {
+                    Some(module) => Self::MiningSpeed { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -305,7 +313,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride => {}
+            Self::StatOverride | Self::MiningSpeed { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -326,6 +334,17 @@ impl Module {
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
+    }
+
+    /// BreakSpeedModifierHook for a conditional mining speed module: the speed after it, with its priority
+    /// (percent modules run after the additive ones, at 75).
+    pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+        let Self::MiningSpeed { module, condition } = self else { return speed; };
+        module.apply(entry, condition.matches(entry, facts), tool, context, speed)
+    }
+    /// The module's priority override, if it is a mining speed module.
+    pub fn mining_percent(&self) -> Option<bool> {
+        match self { Self::MiningSpeed { module, .. } => Some(module.percent()), _ => None }
     }
 
     /// ModifierTraitModule.addTraits: the entry this module adds for `entry`, if any. A fixed-level

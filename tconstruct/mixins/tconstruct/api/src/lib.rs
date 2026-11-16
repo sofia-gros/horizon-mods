@@ -30,9 +30,11 @@ mod tool_swap;
 mod tool_build;
 mod tool_parts;
 mod tool_mining;
+mod mining_speed;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
+mod break_speed_hook;
 mod creative_parts;
 mod creative;
 mod conditions;
@@ -45,5 +47,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     part_builder_menu::register();
     worktable_menu::register();
     creative::register();
+    break_speed_hook::register();
     pluto_lib::no_hooks()
 }

@@ -95,6 +95,20 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
 
+/// BreakSpeedModifierHook over every modifier of the tool: each conditional mining speed module in
+/// priority order (highest first, ties in modifier order), starting from `speed`.
+pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for (priority, module) in modifier.mining_modules() { modules.push((priority, index, entry, module)); }
+        }
+        modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
+        let view = crate::mining_speed::ToolView { nbt };
+        modules.into_iter().fold(speed, |speed, (_, _, entry, module)| module.mining_speed(entry, facts, &view, context, speed))
+    })
+}
+
 /// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
 /// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
 pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {

@@ -36,6 +36,17 @@ fn incorrect_tag(tier: &Identifier) -> Option<&'static str> {
     })
 }
 
+/// IsEffectiveToolHook for one block: it is in the effective tag and, unless tiers are ignored, the
+/// tool's tier can harvest it. `in_tag` answers block tags.
+pub(crate) fn is_effective(effective: &Effective, tier: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
+    if !in_tag(&effective.tag) { return false; }
+    if effective.ignore_tier { return true; }
+    match incorrect_tag(tier).and_then(|tag| Identifier::parse(tag.trim_start_matches('#')).ok()) {
+        Some(incorrect) => !in_tag(&incorrect),
+        None => false,
+    }
+}
+
 /// MiningSpeedToolHook.getDestroySpeed + isToolEffective as vanilla tool rules:
 /// - broken: every block mines at 0.3 and nothing counts as correct for drops;
 /// - otherwise an effective, correct-tier block mines at max(1, mining speed) and drops,
@@ -80,6 +91,21 @@ mod tests {
              matches!(rule["correct_for_drops"], Nbt::Byte(1)))
         }).collect()
     }
+    #[test]
+    fn effectiveness_needs_the_tag_and_a_tier_that_can_harvest() {
+        let iron = Identifier::parse("minecraft:iron").unwrap();
+        let wood = Identifier::parse("minecraft:wood").unwrap();
+        let in_tags = |tags: &'static [&'static str]| move |tag: &Identifier| tags.contains(&tag.to_string().as_str());
+        let effective = pickaxe();
+        let tag = effective.tag.to_string();
+        let tag: &'static str = Box::leak(tag.into_boxed_str());
+        assert!(is_effective(&effective, &iron, &in_tags(Box::leak(vec![tag].into_boxed_slice()))));
+        assert!(!is_effective(&effective, &iron, &in_tags(&[])), "not in the effective tag");
+        assert!(!is_effective(&effective, &wood, &in_tags(Box::leak(vec![tag, "minecraft:incorrect_for_wooden_tool"].into_boxed_slice()))), "the tier cannot harvest it");
+        let loose = Effective { ignore_tier: true, ..effective.clone() };
+        assert!(is_effective(&loose, &wood, &in_tags(Box::leak(vec![tag, "minecraft:incorrect_for_wooden_tool"].into_boxed_slice()))));
+    }
+
     #[test]
     fn tier_rule_precedes_the_effective_rule_so_wrong_tier_blocks_stay_slow() {
         let iron = Identifier::parse("minecraft:iron").unwrap();

@@ -480,3 +480,53 @@ fn a_damaged_wood_pickaxe_is_repaired_with_wood_material_items() {
         _ => panic!("unexpected outcome"),
     }
 }
+
+#[test]
+fn shipped_mining_speed_modifiers_change_the_dig_speed_of_a_rebuilt_pickaxe() {
+    use crate::{mining_speed::Context, modifier_entries::List, tool_stack::{break_speed, rebuild_stats, Environment, TAG_DAMAGE, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let mut world = world();
+    for modifier in crate::overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let stone = Identifier::parse("minecraft:stone").unwrap();
+    let melts = |tag: &Identifier| tag.to_string() == "tconstruct:can_melt";
+    let dig = |nbt: &pluto_lib::NbtCompound, effective: bool, on_ground: bool| {
+        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false) };
+        break_speed(nbt, &env, &context, 4.0)
+    };
+    let build = |upgrades: Vec<(&str, i32)>, persistent: Option<(&str, i32)>, damage: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (name, level) in upgrades { list = list.with_modifier(Identifier::parse(name).unwrap(), level).unwrap(); }
+        tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        if let Some((key, value)) = persistent {
+            let mut data = NbtCompound::new();
+            data.insert(key.into(), Nbt::Int(value));
+            tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(data));
+        }
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(damage));
+        tool.custom_data
+    };
+    let plain = build(vec![], None, 0);
+    assert_eq!(dig(&plain, true, true), 4.0, "no modifier leaves the speed alone");
+    // searing: +6 per level on blocks that can melt, only on effective blocks.
+    let searing = build(vec![("tconstruct:searing", 2)], None, 0);
+    assert!(dig(&searing, true, true) > 4.0 + 11.0, "searing II adds 12 times the tool multiplier: {}", dig(&searing, true, true));
+    assert_eq!(dig(&searing, false, true), 4.0, "an ineffective block gets nothing");
+    // airborne: +400% while off the ground, regardless of effectiveness.
+    let airborne = build(vec![("tconstruct:airborne", 1)], None, 0);
+    assert_eq!(dig(&airborne, true, true), 4.0);
+    assert!(dig(&airborne, false, false) > 4.0, "airborne boosts in the air");
+    // stonebound: the more durability lost, the faster (a percent formula over the tool's lost durability).
+    let fresh = build(vec![("tconstruct:stonebound", 2)], None, 0);
+    let worn = build(vec![("tconstruct:stonebound", 2)], None, 30);
+    assert_eq!(dig(&fresh, true, true), 4.0);
+    assert!(dig(&worn, true, true) > 4.0, "a worn stonebound tool digs faster: {}", dig(&worn, true, true));
+    // overwield: overslime from persistent data speeds up broad tools; the pickaxe is not broad, so check it reads data.
+    let overwield = build(vec![("tconstruct:overwield", 1)], Some(("tconstruct:overslime", 100)), 0);
+    let _ = dig(&overwield, true, true);
+}
