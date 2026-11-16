@@ -272,6 +272,32 @@ def main():
         result['scenarios'].append('planks preview a repair of a damaged pickaxe')
         ctl('close')
 
+        # Modifier crystal: a crystal alone on the station applies its modifier to the tool, in place of the recipe's inputs.
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
+        ctl('command', 'clear @s')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},tic_volatile_data:{upgrades:3,abilities:1}}] 1')
+        ctl('command', 'give @s tconstruct:modifier_crystal[custom_data={modifier:"tconstruct:sharpness"}] 1')
+        ctl('wait', '5')
+        ctl('interact', *xyz, 'up')
+        ctl('wait', '10')
+        slots = ui_slots()
+        first = min(i for i in slots if i >= 300)
+        tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
+        inv = ctl('screen')['slots']
+        for item, target in (('tconstruct:pickaxe', tool), ('tconstruct:modifier_crystal', inputs[0])):
+            source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == item)
+            ctl('click-slot', source)
+            bounds = ui_slots()[target]
+            ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+            ctl('wait', '5')
+            inv = ctl('screen')['slots']
+        crystal_result = container_slots()[result_slot]
+        shot('08b-modifier-crystal.png')
+        assert crystal_result.get('item') == 'tconstruct:pickaxe' and 'sharpness' in crystal_result.get('components', ''), crystal_result
+        result['scenarios'].append('a modifier crystal alone on the station applies its modifier')
+        ctl('close')
+
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
         stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
         parts = 'tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]'

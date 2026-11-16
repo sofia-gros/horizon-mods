@@ -74,6 +74,8 @@ pub(crate) struct ModifierRecipes<'a> {
     pub overslime: Option<&'a crate::overslime::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
+    /// The slot and modifier of a modifier crystal when it is the only thing on the table.
+    pub crystal: Option<(usize, Identifier)>,
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
 }
 
@@ -97,6 +99,19 @@ pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Opti
 fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> Result<Outcome, String> {
     let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
     let env = ctx.environment(&tool.item, definition);
+    // A modifier crystal alone on the table applies its modifier through the ordinary single-step recipe (ModifierRecipe.matchesCrystal).
+    if let Some((slot, modifier)) = &modifiers.crystal {
+        if let Some(recipe) = modifiers.recipes.find_crystal(&tool.item, modifier, modifiers.in_tag) {
+            return Ok(match recipe.apply_crystal(tool, &env, modifiers.in_tag)? {
+                Err(message) => Outcome::Failure(message),
+                Ok(result) => {
+                    let mut consumed = vec![0; modifiers.raw.len()];
+                    consumed[*slot] = 1;
+                    Outcome::Crafted(Crafted { result, consumed, tool_shrink: i32::try_from(recipe.max_tool_size).unwrap_or(i32::MAX), leftover: Vec::new() })
+                }
+            });
+        }
+    }
     let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else {
         // No modifier recipe: slime balls may fill overslime.
         let Some(recipe) = modifiers.overslime.and_then(|recipes| recipes.find(&tool.item, modifiers.raw, modifiers.in_tag)) else { return Ok(Outcome::NoMatch); };

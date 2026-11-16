@@ -48,6 +48,8 @@ pub(crate) struct Recipe {
     /// The slot type and count this recipe spends.
     pub slots: Option<(String, i32)>,
     pub check_trait_level: bool,
+    /// Whether a modifier crystal of this recipe's modifier can stand in for the inputs (the original's `allow_crystal`, true by default).
+    pub allow_crystal: bool,
     pub kind: Kind,
     /// Per-level level ranges and slots of the multilevel recipe types (empty for the others).
     pub levels: Vec<LevelEntry>,
@@ -150,7 +152,8 @@ impl Recipe {
         } else { Vec::new() };
         let (min_level, max_level) = levels.first().map_or((min_level, max_level), |first| (first.min, first.max));
         let check_trait_level = match fields.get("check_trait_level") { None => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("check_trait_level must be boolean".into()) };
-        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level, kind, levels })
+        let allow_crystal = match fields.get("allow_crystal") { None | Some(Value::Null) => true, Some(Value::Bool(value)) => *value, Some(_) => return Err("allow_crystal must be boolean".into()) };
+        Ok(Self { id: id.clone(), inputs, tools, max_tool_size, result, min_level, max_level, slots, check_trait_level, allow_crystal, kind, levels })
     }
 
     /// matches(): the tool qualifies and the inputs are exactly this recipe's, with no extras.
@@ -218,11 +221,21 @@ impl Recipe {
     /// getValidatedResult: the tool with this modifier added, or the failure's message key
     /// (followed by space-separated arguments).
     pub fn apply(&self, tool: &ItemSlot, env: &Environment, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Result<Result<ItemSlot, String>, String> {
+        self.apply_inner(tool, env, inputs, in_tag, false)
+    }
+
+    /// The same with a modifier crystal standing in for the inputs: it always adds a whole new level, even to a partly filled
+    /// incremental modifier.
+    pub fn apply_crystal(&self, tool: &ItemSlot, env: &Environment, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Result<Result<ItemSlot, String>, String> {
+        self.apply_inner(tool, env, &[], in_tag, true)
+    }
+
+    fn apply_inner(&self, tool: &ItemSlot, env: &Environment, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, crystal: bool) -> Result<Result<ItemSlot, String>, String> {
         let nbt = &tool.custom_data;
         let list = List::from_nbt(nbt.get(if self.check_trait_level { TAG_MODIFIERS } else { TAG_UPGRADES }));
         let entry = list.entry(&self.result);
         // An incremental recipe continuing a partial level only checks that level; anything else adds a level.
-        let continuing = matches!(self.kind, Kind::Incremental { .. }) && entry.amount(0) > 0;
+        let continuing = !crystal && matches!(self.kind, Kind::Incremental { .. }) && entry.amount(0) > 0;
         let new_level = if continuing { entry.level } else { list.level(&self.result).wrapping_add(1) };
         let traits = if self.check_trait_level { ".traits" } else { "" };
         let persistent_of = |tool: &ItemSlot| match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
@@ -271,6 +284,7 @@ impl Recipe {
             Kind::Swappable { .. } if swapping => current,
             Kind::Swappable { .. } => current.with_modifier(self.result.clone(), 1)?,
             Kind::Single => current.with_modifier(self.result.clone(), 1)?,
+            Kind::Incremental { .. } if crystal => current.with_modifier(self.result.clone(), 1)?,
             // getAvailableAmount: every matching stack counts in full; addModifierAmount stops at the level.
             Kind::Incremental { input, amount_per_item, needed_per_level, .. } => {
                 let available = inputs.iter().flatten().filter(|stack| input.matches(&stack.0, in_tag))
@@ -331,7 +345,26 @@ impl Recipes {
     pub fn find(&self, tool: &Identifier, inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Recipe> {
         self.recipes.iter().find(|recipe| recipe.matches(tool, inputs, in_tag))
     }
+    /// The recipe a modifier crystal applies for `modifier` on this tool: a single-step or incremental recipe that allows crystals.
+    pub fn find_crystal(&self, tool: &Identifier, modifier: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Recipe> {
+        self.recipes.iter().find(|recipe| recipe.allow_crystal && matches!(recipe.kind, Kind::Single | Kind::Incremental { .. }) && &recipe.result == modifier && recipe.tools.matches(tool, in_tag))
+    }
     pub fn len(&self) -> usize { self.recipes.len() }
+}
+
+/// The crystal item and the NBT key holding its modifier.
+pub(crate) const CRYSTAL_ITEM: (&str, &str) = ("tconstruct", "modifier_crystal");
+pub(crate) const CRYSTAL_KEY: &str = "modifier";
+
+/// matchesCrystal: the table holds exactly one stack and it is a crystal; returns the modifier it carries and its slot.
+pub(crate) fn lone_crystal(stacks: &[Option<(Identifier, u32, Option<Identifier>)>]) -> Option<(usize, Identifier)> {
+    let mut found = None;
+    for (slot, stack) in stacks.iter().enumerate() {
+        let Some((item, _, modifier)) = stack else { continue; };
+        if found.is_some() || item.namespace() != CRYSTAL_ITEM.0 || item.path() != CRYSTAL_ITEM.1 { return None; }
+        found = Some((slot, modifier.clone()?));
+    }
+    found
 }
 
 /// Reload listener, shaped like the material recipes': a missing condition context clears and fails.

@@ -52,7 +52,13 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
     let (tool, inputs) = read(menu, input_count, resolver);
     let raw: Vec<Option<(Identifier, u32)>> = (1..=input_count)
         .map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| (stack.item.clone(), stack.count))).collect();
-    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, overslime: resolver.overslime_recipes, raw: &raw, in_tag: resolver.in_tag });
+    // A modifier crystal carries its modifier in the stack's data, which the plain item and count above do not.
+    let stacks: Vec<Option<(Identifier, u32, Option<Identifier>)>> = (1..=input_count).map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| {
+        let modifier = match stack.custom_data.get(crate::modifier_recipes::CRYSTAL_KEY) { Some(pluto_lib::Nbt::String(text)) => Identifier::parse(text).ok(), _ => None };
+        (stack.item.clone(), stack.count, modifier)
+    })).collect();
+    let crystal = crate::modifier_recipes::lone_crystal(&stacks);
+    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, raw: &raw, in_tag: resolver.in_tag });
     tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref())
 }
 

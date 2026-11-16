@@ -655,3 +655,33 @@ fn shipped_tool_recycling_loads_and_a_wood_pickaxe_breaks_into_its_parts() {
     upgraded.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), crate::modifier_entries::List::default().with_modifier(Identifier::parse("tconstruct:sharpness").unwrap(), 1).unwrap().to_nbt());
     assert!(recycles.find(&upgraded, &venom, &in_tag).is_none());
 }
+
+#[test]
+fn a_modifier_crystal_alone_applies_its_modifier_through_the_single_step_recipe() {
+    use crate::{modifier_entries::List, modifier_recipes::{lone_crystal, Recipes}, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let files = recursive_files("tools/modifiers", "tools/modifiers");
+    let recipes = Recipes::load(&files, &conditions());
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut slots = NbtCompound::new();
+    slots.insert("upgrades".into(), Nbt::Int(3));
+    tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(slots));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let in_tag = |_: &Identifier, _: &Identifier| true;
+    let sharp = Identifier::parse("tconstruct:sharpness").unwrap();
+    let recipe = recipes.find_crystal(&tool.item, &sharp, &in_tag).expect("sharpness takes a crystal");
+    let crafted = recipe.apply_crystal(&tool, &env, &in_tag).unwrap().expect("the crystal applies");
+    assert_eq!(List::from_nbt(crafted.custom_data.get(TAG_UPGRADES)).level(&sharp), 1);
+    // The table holds exactly one stack and it is a crystal: that is a crystal match; two stacks, or another item, is not.
+    let crystal = Identifier::parse("tconstruct:modifier_crystal").unwrap();
+    assert_eq!(lone_crystal(&[Some((crystal.clone(), 2, Some(sharp.clone()))), None]), Some((0, sharp.clone())));
+    assert_eq!(lone_crystal(&[None, Some((crystal.clone(), 1, Some(sharp.clone())))]), Some((1, sharp.clone())));
+    assert!(lone_crystal(&[Some((crystal.clone(), 1, Some(sharp.clone()))), Some((crystal.clone(), 1, Some(sharp.clone())))]).is_none());
+    assert!(lone_crystal(&[Some((Identifier::parse("minecraft:stick").unwrap(), 1, None))]).is_none());
+    assert!(lone_crystal(&[Some((crystal, 1, None))]).is_none(), "a crystal with no modifier is blank");
+}
