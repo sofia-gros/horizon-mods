@@ -115,6 +115,9 @@ def main():
         tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
         assert result_slot in slots, sorted(slots)
         shot('01-station-open.png')
+        # The content mod's language file names the window (a key on screen means nobody translated it).
+        title = ''.join(part.get('text', '') for part in ctl('screen').get('title', []))
+        assert title == 'Tinker Station', title
         result['scenarios'].append('content mod loads and the station opens a 6-slot menu')
 
         for item, material, slot in [('pick_head', 'wood', inputs[0]), ('tool_handle', 'wood', inputs[1]), ('tool_binding', 'wood', inputs[2])]:
