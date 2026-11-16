@@ -227,7 +227,7 @@ def main():
         samples = {}
         for label, extra in (('plain', ''), ('plain again', ''), ('damage only', ',Damage:50'),
                              ('stonebound fresh', ',tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]'),
-                             ('stonebound worn', ',Damage:50,tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')):
+                             ('stonebound worn', ',Damage:50,tic_multipliers:{"tconstruct:durability":0.01f},tic_modifiers:[{level:3,name:"tconstruct:stonebound"}]')):
             samples[label] = dig_ticks(extra)
         print('DIG TICKS', json.dumps(samples), flush=True)
         ctl('command', 'gamemode creative')
