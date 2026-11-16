@@ -308,7 +308,7 @@ def main():
         ctl('interact', *xyz, 'up')
         ctl('wait', '10')
         first = min(i for i in ui_slots() if i >= 300)
-        put('helmet_plating', 'iron', first + 1)
+        put('helmet_plating', 'cobalt', first + 1)
         put('maille', 'iron', first + 2)
         helmet = container_slots()[first + 5]
         shot('08c-plate-helmet.png')
@@ -318,7 +318,33 @@ def main():
             result['scenarios'].append('plating and maille preview a plate helmet that publishes its armor attributes')
         else:
             soft_failures.append(f'plate helmet: {json.dumps(helmet)[:300]}')
+        # Wear it: take the helmet from the result slot, keep it in the inventory and copy it to the head slot, then read the attributes back.
+        published = {}
+        for name in ('armor', 'armor_toughness'):
+            amount = re.search(r'amount:([0-9.]+)d,id:\?"tconstruct:armor_' + name + r'/head', helmet_components)
+            published[name] = float(amount.group(1)) if amount else 0.0
+        bounds = ui_slots()[first + 5]
+        ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+        ctl('wait', '5')
+        ctl('click-slot', 5)
+        ctl('wait', '5')
         ctl('close')
+        for n in range(36):
+            ctl('command', f'execute if items entity @s container.{n} tconstruct:plate_helmet run item replace entity @s armor.head from entity @s container.{n}')
+        ctl('wait', '10')
+
+        def read_attribute(name):
+            reply = json.dumps(ctl('command', f'attribute @s {name} get'))
+            numbers = re.findall(r'-?\d+(?:\.\d+)?', reply.split('value')[-1] if 'value' in reply else reply)
+            return float(numbers[-1]) if numbers else None
+
+        worn = {'armor': read_attribute('minecraft:armor'), 'armor_toughness': read_attribute('minecraft:armor_toughness')}
+        print('ARMOR APPLIED', json.dumps({'published': published, 'worn': worn}), flush=True)
+        if all(worn[name] is not None and abs(worn[name] - published[name]) < 0.01 for name in published) and (published['armor'] > 0 or published['armor_toughness'] > 0):
+            result['scenarios'].append(f'a worn plate helmet gives the player the armor {worn["armor"]} and toughness {worn["armor_toughness"]} it publishes')
+        else:
+            soft_failures.append(f'worn armor attributes: published {published}, read {worn}')
+        ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
         stats = 'tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f}'
