@@ -18,6 +18,8 @@ pub mod nbt {
     #[derive(Clone, Debug, PartialEq)]
     pub enum Tag { Int(i32), IntArray(Vec<i32>) }
     pub type Compound = std::collections::BTreeMap<String, Tag>;
+    /// The host's string key type; the stub keeps plain Strings.
+    pub type JavaString = String;
 }
 pub mod containers {
     pub struct ModBlockEntity { pub id: String, pub nbt: crate::nbt::Compound, pub data: Vec<i32> }

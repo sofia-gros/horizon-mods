@@ -44,6 +44,9 @@ impl Extra { fn set_other(&mut self, key:&str, tag:Option<Tag>) {
 } }
 #[derive(Clone, Debug, PartialEq)]
 struct ItemStack { item: Arc<str>, count:u32, damage:u32, extra:Extra }
+// The adapter reads the optional minecraft:tool component; the fixture stacks carry none.
+impl Extra { fn other(&self, _key:&str)->Option<&Tag> { None } }
+impl ItemStack { fn data(&self)->Option<&Extra> { Some(&self.extra) } }
 impl ItemStack {
     fn new(item:&str,count:u32)->Self { Self {item:Arc::from(item),count,damage:0,extra:Extra::default()} }
     fn data_mut(&mut self)->&mut Extra { &mut self.extra }

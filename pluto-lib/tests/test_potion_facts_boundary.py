@@ -35,6 +35,7 @@ def normalize_composition(source, row):
     return normalize(source)
 
 
+@unittest.skipUnless(ARCHIVED.is_dir(), 'the archived pre-cutover sources are kept locally under legacy/, not in the repository')
 class PotionFactsBoundary(unittest.TestCase):
     def test_all_six_consumers_preserve_every_non_catalog_policy_byte(self):
         evidence = json.loads((ROOT / 'pluto-lib/tests/potion-catalog-consumer-sources.json').read_text())
