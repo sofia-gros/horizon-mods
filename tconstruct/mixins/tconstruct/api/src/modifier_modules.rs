@@ -4,6 +4,7 @@
 //! binding or stat Tinkers cannot honor is also unbound, never half-installed.
 use crate::{
     formula::Formula,
+    mining_speed::StatFormula,
     modifier_entries::{nbt_int, Entry},
     tool_predicate::{Facts, Predicate},
     tool_stats::{Builder, Stat},
@@ -71,7 +72,7 @@ pub(crate) enum Module {
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, condition: Condition },
-    Attribute { attribute: String, operation: &'static str, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -307,11 +308,12 @@ impl Module {
                     Some("addition") => "add_value", Some("multiply_base") => "add_multiplied_base", Some("multiply_total") => "add_multiplied_total",
                     _ => return Ok(None),
                 };
-                if fields.contains_key("formula") || fields.contains_key("variables") { return Ok(None); }
+                // The original's formula has only `level` by default; a variable naming an input this port lacks leaves it unbound.
+                let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
                 let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
                     .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
                     .collect::<Result<Vec<_>, _>>()?;
-                Self::Attribute { attribute: format!("minecraft:{path}"), operation, flat: float(fields, "flat")?, each: float(fields, "each_level")?, slots, condition: Condition::decode(fields)? }
+                Self::Attribute { attribute: format!("minecraft:{path}"), operation, formula, slots, condition: Condition::decode(fields)? }
             }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
@@ -404,10 +406,10 @@ impl Module {
         condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
-    pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, wanted: &[&str]) -> Vec<NbtCompound> {
-        let Self::Attribute { attribute, operation, flat, each, slots, condition } = self else { return Vec::new(); };
+    pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
+        let Self::Attribute { attribute, operation, formula, slots, condition } = self else { return Vec::new(); };
         if !condition.matches(entry, facts) { return Vec::new(); }
-        let amount = f64::from(flat + each * entry.effective_level());
+        let amount = f64::from(formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0));
         let short = attribute.rsplit(':').next().unwrap_or(attribute);
         slots.iter().filter(|slot| wanted.contains(&slot.as_str())).map(|slot| {
             let mut modifier = NbtCompound::new();

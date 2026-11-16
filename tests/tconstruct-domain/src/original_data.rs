@@ -595,6 +595,33 @@ fn shipped_speedy_publishes_a_movement_speed_attribute_for_its_slots() {
 }
 
 #[test]
+fn shipped_overwield_scales_an_attack_speed_attribute_with_the_tools_overslime() {
+    use crate::{modifier_entries::List, tool_stack::{attribute_entries, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let amount_with = |overslime: Option<i32>| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:overwield").unwrap(), 2).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        if let Some(amount) = overslime {
+            let mut persistent = NbtCompound::new();
+            persistent.insert("tconstruct:overslime".into(), Nbt::Int(amount));
+            tool.custom_data.insert("tic_persistent".into(), Nbt::Compound(persistent));
+        }
+        let held = attribute_entries(&tool.custom_data, &env, &["mainhand"]);
+        let speed = held.iter().find(|entry| entry["type"] == Nbt::String("minecraft:attack_speed".into()));
+        speed.map(|entry| match entry["amount"] { Nbt::Double(amount) => amount, _ => panic!("amount is a double") })
+    };
+    assert_eq!(amount_with(None), Some(0.0), "no overslime adds nothing");
+    assert!((amount_with(Some(1)).unwrap() - 0.15).abs() < 1e-5, "one point of overslime counts once");
+    assert!((amount_with(Some(9)).unwrap() - 0.3).abs() < 1e-5, "the level (2) caps the overslime that counts");
+}
+
+#[test]
 fn shipped_constant_enchantments_give_the_tool_enchantment_levels() {
     use crate::{modifier_entries::List, tool_stack::{enchantments, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt};

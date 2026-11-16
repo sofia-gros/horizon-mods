@@ -125,7 +125,7 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
 
 /// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
 pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
-    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, wanted)).collect())
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
 }
 
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
