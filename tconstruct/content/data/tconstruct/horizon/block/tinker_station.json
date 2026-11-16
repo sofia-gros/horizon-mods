@@ -1,1 +1,1 @@
-{"template":"minecraft:smithing_table","properties":{"hardness":1.0,"explosion_resistance":5.0,"sounds":"minecraft:oak_planks","map_color":13},"occludes":false,"item":true}
+{"template":"minecraft:smithing_table","properties":{"hardness":1.0,"explosion_resistance":5.0,"sounds":"minecraft:oak_planks","map_color":13,"occludes":false},"item":true}

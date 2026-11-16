@@ -25,7 +25,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
 ITEM_KEYS = {'template', 'components', 'crafting_remainder'}
-BLOCK_KEYS = {'template', 'properties', 'occludes', 'item', 'components'}
+BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
 
 
