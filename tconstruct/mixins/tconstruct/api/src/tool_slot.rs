@@ -3,9 +3,10 @@
 //! SlimeKnights (MIT; see LICENSE) defines the arithmetic; this only mirrors it onto an ItemSlot.
 use crate::{
     tool_damage,
-    tool_stack::{current_durability, damage, durability, is_broken, mining_component, rebuild_stats, Environment},
+    tool_stack::{current_durability, damage, durability, is_broken, mining_component, rebuild_stats, stat, Environment},
+    tool_stats::Stat,
 };
-use pluto_lib::ItemSlot;
+use pluto_lib::{Identifier, ItemSlot};
 
 /// Mirrors the stored tool state onto the slot: `max_damage` is the fake maximum (one above
 /// durability while broken, so vanilla never deletes the stack), `damage` is ToolStack.getDamage,
@@ -15,7 +16,33 @@ pub(crate) fn sync_visuals(slot: &mut ItemSlot, env: &Environment) -> Result<(),
     slot.max_damage = Some(tool_damage::fake_max_damage(data, true).max(1));
     slot.damage = u32::try_from(damage(data)).unwrap_or(0);
     slot.tool = match env.definition { Some(definition) => mining_component(data, definition)?, None => None };
+    slot.attribute_modifiers = attribute_modifiers(data, env);
     Ok(())
+}
+
+/// AttributesModifierHook.getHeldAttributeModifiers for the main hand: a melee weapon's attack damage
+/// is its stat and its attack speed the stat less the player's base of 4; a broken tool has none. The
+/// weapon check needs the item tags, so without them the item's own modifiers stay.
+fn attribute_modifiers(data: &pluto_lib::NbtCompound, env: &Environment) -> Option<Vec<pluto_lib::NbtCompound>> {
+    use pluto_lib::Nbt;
+    let (item, tags) = (env.item?, env.item_tags?);
+    let melee = Identifier::new("tconstruct", "modifiable/melee/weapon").expect("valid tag id");
+    if !tags.get_tag(&melee).is_some_and(|members| members.contains(item)) { return None; }
+    if is_broken(data) { return Some(Vec::new()); }
+    let modifier = |attribute: &str, id: &str, amount: f64| {
+        let mut entry = pluto_lib::NbtCompound::new();
+        entry.insert("type".into(), Nbt::String(format!("minecraft:{attribute}")));
+        entry.insert("id".into(), Nbt::String(format!("tconstruct:{id}")));
+        entry.insert("amount".into(), Nbt::Double(amount));
+        entry.insert("operation".into(), Nbt::String("add_value".into()));
+        entry.insert("slot".into(), Nbt::String("mainhand".into()));
+        entry
+    };
+    Some(vec![
+        modifier("attack_damage", "tool_attack_damage", f64::from(stat(data, Stat::AttackDamage))),
+        // The tool's attack speed counts from the player's base of 4.
+        modifier("attack_speed", "tool_attack_speed", f64::from(stat(data, Stat::AttackSpeed)) - 4.0),
+    ])
 }
 
 /// ToolStack.rebuildStats on the slot's data followed by the visual mirror. `Ok(false)` means the

@@ -898,6 +898,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.max_damage = data.max_damage;
     slot.custom_data = data.custom_data;
     slot.tool = read_tool(stack);
+    slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -920,7 +921,20 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     if slot.tool != read_tool(stack) {
         stack.data_mut().set_other("minecraft:tool", slot.tool.as_ref().map(|tool| Tag::Compound(compound_to_tag(tool))));
     }
+    // The stack's own attribute modifiers: the host applies them to a player holding or wearing the stack.
+    if slot.attribute_modifiers != read_attribute_modifiers(stack) {
+        stack.data_mut().set_other("minecraft:attribute_modifiers", slot.attribute_modifiers.as_ref()
+            .map(|list| Tag::List(list.iter().map(|modifier| Tag::Compound(compound_to_tag(modifier))).collect())));
+    }
     stack.tidy();
+}
+
+/// The stack's own `minecraft:attribute_modifiers` component as public NBT, None when it has none of its own.
+fn read_attribute_modifiers(stack: &ItemStack) -> Option<Vec<NbtCompound>> {
+    match stack.data().and_then(|d| d.other("minecraft:attribute_modifiers")) {
+        Some(Tag::List(items)) => Some(items.iter().filter_map(|item| match item { Tag::Compound(compound) => Some(compound_from_tag(compound)), _ => None }).collect()),
+        _ => None,
+    }
 }
 
 /// The stack's own `minecraft:tool` component as public NBT, None when it has none of its own.

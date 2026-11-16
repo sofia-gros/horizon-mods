@@ -115,6 +115,7 @@ def main():
         preview = container_slots()[result_slot]
         assert preview.get('item') == 'tconstruct:pickaxe', preview
         assert 'tic_stats' in preview.get('components', ''), 'the previewed tool has no rebuilt stats: ' + str(preview)
+        assert 'attribute_modifiers' in preview.get('components', '') and 'tconstruct:tool_attack_damage' in preview.get('components', ''), 'the previewed melee tool publishes no attack attributes: ' + str(preview)
         shot('02-pickaxe-preview.png')
         result['scenarios'].append('three wood parts preview a pickaxe with stats')
 

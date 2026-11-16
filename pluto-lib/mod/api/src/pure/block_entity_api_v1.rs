@@ -54,13 +54,17 @@ pub struct ItemSlot {
     /// The stack's own `minecraft:tool` component (mining rules and speeds), when it has one. Set it
     /// to give this stack, not every stack of the item, its mining behavior; `None` leaves the item's.
     pub tool: Option<NbtCompound>,
+    /// The stack's own `minecraft:attribute_modifiers` component, one compound per modifier (`type`, `id`, `amount`, `operation`, `slot`),
+    /// when it has one. Set it to give this stack, not every stack of the item, its attribute modifiers: an empty list gives it none;
+    /// `None` leaves the item's.
+    pub attribute_modifiers: Option<Vec<NbtCompound>>,
     snapshot: Option<StackSnapshot>,
 }
 
 impl ItemSlot {
     /// A plain stack of `count` of `item`, with no damage and no data.
     pub fn new(item: Identifier, count: u32) -> Self {
-        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, snapshot: None }
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, snapshot: None }
     }
 
     pub(crate) fn capture<T: std::any::Any + Send + Sync + PartialEq>(&mut self, value: T) {
