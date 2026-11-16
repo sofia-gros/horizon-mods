@@ -43,6 +43,23 @@ impl ServerEntityEvents {
     pub const ENTITY_UNLOAD: &'static Event<EntityInfo, ()> = &ENTITY_UNLOAD;
 }
 
+/// What a living entity is doing, as the game reports it when a player's weapon hits a mob.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EntityState {
+    /// The entity type id, such as `minecraft:husk`.
+    pub kind: String,
+    pub sprinting: bool,
+    /// Whether it stands on the ground; false in the air.
+    pub on_ground: bool,
+    /// Whether it is in water.
+    pub in_water: bool,
+    /// How long it burns for, in ticks; 0 or less when it does not.
+    pub fire_ticks: i32,
+    pub fire_immune: bool,
+    /// The ids of the effects on it, such as `minecraft:poison`.
+    pub effects: Vec<String>,
+}
+
 /// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
 #[derive(Clone, Debug)]
 pub struct DamageModification {
@@ -55,6 +72,9 @@ pub struct DamageModification {
     /// The armor the damaged entity wore as of its last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the
     /// pieces carrying custom data (a mod's own armor keeps its state there). Empty for an entity that is not a player.
     pub armor: Vec<(String, StackData)>,
+    /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
+    pub attacker_state: Option<EntityState>,
+    pub target_state: Option<EntityState>,
 }
 
 /// Knockback about to be applied to a living entity, which callbacks may change or cancel (NeoForge: `LivingKnockBackEvent`).
@@ -151,6 +171,12 @@ pub(crate) fn after_death(death: &LivingDamage) {
 
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
+    static PENDING_STATES: RefCell<Option<(i32, EntityState, EntityState)>> = const { RefCell::new(None) };
+}
+
+/// A player's weapon is hitting `entity`: what both were doing, remembered for the damage that follows in the same call.
+pub(crate) fn hit_states(entity: i32, attacker: EntityState, target: EntityState) {
+    PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target)));
 }
 
 /// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
@@ -185,7 +211,14 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
         }
     });
     let armor = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(_, pieces)| pieces.clone())).unwrap_or_default();
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor };
+    let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match pending.take() {
+            Some((entity, attacker, target)) if entity == damage.entity => (Some(attacker), Some(target)),
+            other => { *pending = other; (None, None) }
+        }
+    });
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state };
     MODIFY_DAMAGE.invoke(&modification);
     modification.amount.get()
 }
@@ -231,6 +264,20 @@ mod tests {
         let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None) };
         assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
         assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
+    }
+
+    #[test]
+    fn a_weapon_hit_carries_what_the_attacker_and_the_target_were_doing() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 6262 {
+            log.lock().unwrap().push((hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks)));
+        });
+        let hurt = LivingDamage { entity: 6262, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 5.0 };
+        hit_states(6262, EntityState { sprinting: true, ..EntityState::default() }, EntityState { fire_ticks: 40, ..EntityState::default() });
+        modify_damage(&hurt);
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![(Some(true), Some(40)), (None, None)], "the states belong to one hit");
     }
 
     #[test]

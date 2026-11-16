@@ -416,12 +416,15 @@ def main():
         # Melee damage: smite adds damage against undead targets (a husk with no AI stays where it is summoned).
         ctl('command', 'gamemode survival')
 
-        def hit_damage(extra):
+        def hit_damage(extra, burning=False):
             ctl('command', 'kill @e[type=minecraft:husk]')
             ctl('command', 'clear @s')
             ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
             ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
             ctl('wait', '20')
+            if burning:
+                ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
+                ctl('wait', '5')
             ctl('select', 1)
             found = ctl('entities', 8, 'husk')
             listed = found.get('mobs') or found.get('entities') or []
@@ -440,6 +443,18 @@ def main():
         ctl('command', 'gamemode creative')
         assert smite_damage > plain_damage, (plain_damage, smite_damage)
         result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
+
+        # Scorching adds damage against a burning target, a state the hit reports (a husk set alight).
+        ctl('command', 'gamemode survival')
+        burning_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]', burning=True)
+        cool_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]')
+        print('SCORCHING', json.dumps({'burning target': burning_damage, 'cool target': cool_damage}), flush=True)
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        if burning_damage > cool_damage + 1.0:
+            result['scenarios'].append(f'scorching adds damage against a burning target: {burning_damage} against {cool_damage}')
+        else:
+            soft_failures.append(f'scorching: {burning_damage} against a burning target, {cool_damage} against a cool one')
 
         # Tool wear: digging three stones wears a plain pickaxe, but not one with ten levels of reinforced (it cancels every point).
         def unworn_after_digging(extra):

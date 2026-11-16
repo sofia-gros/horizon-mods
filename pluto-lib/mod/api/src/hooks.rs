@@ -2030,6 +2030,26 @@ impl Hooks for PlutoHooks {
         cancel_if(!entity_events_v1::allow_damage(&damage))
     }
 
+    fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
+        // A player's weapon hit on a mob: what both were doing is remembered for the damage event that follows in the same call.
+        let state_of = |host: &dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
+            let entity = host.entity(u32::try_from(id).ok()?)?;
+            Some(entity_events_v1::EntityState {
+                kind: host.entity_kind(entity)?,
+                sprinting: host.entity_is_sprinting(entity).unwrap_or(false),
+                on_ground: host.entity_on_ground(entity).unwrap_or(true),
+                in_water: host.entity_is_in_water(entity).unwrap_or(false),
+                fire_ticks: host.entity_fire_ticks(entity).unwrap_or(0),
+                fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
+            })
+        };
+        if let (Some(attacker), Some(target)) = (state_of(host, event.causing), state_of(host, event.entity)) {
+            entity_events_v1::hit_states(event.entity, attacker, target);
+        }
+        Flow::Continue
+    }
+
     fn living_knockback_v2(&self, event: &mut horizon_client::mod_api::LivingKnockbackV2Event<'_>) -> Flow {
         let push = entity_events_v1::KnockbackModification {
             entity: event.entity,
