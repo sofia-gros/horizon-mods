@@ -32,9 +32,9 @@ pub(crate) fn register() {
     // The first few hits are logged with what the hook saw, so a hit it leaves alone is visible in the game log.
     static LOGGED: AtomicUsize = AtomicUsize::new(0);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
-        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 4;
         let Some(held) = hit.attacker_stack.as_ref() else { return; };
         if hit.damage.damage_type != PLAYER_ATTACK { return; }
+        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 8;
         let amount = hit.amount.get();
         // The target's entity type tags come from the entity type registry captured at the last reload.
         let entities = common::entity_type_snapshot();
@@ -48,7 +48,9 @@ pub(crate) fn register() {
             tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag)
         });
         if log {
-            eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {})", hit.damage.kind, held.item, amount, changed, entities.is_some());
+            eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {}; attacker sprinting: {:?}; target fire ticks: {:?})",
+                hit.damage.kind, held.item, amount, changed, entities.is_some(),
+                hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks));
         }
         if let Ok(damage) = changed {
             if damage.is_finite() && damage >= 0.0 && damage != amount { hit.amount.set(damage); }
