@@ -38,12 +38,24 @@ fn perform(used: &UseItemOnBlockContext, actions: &[(ToolAction, String, bool)])
     None
 }
 
+static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     UseItemOnBlockCallback::EVENT.register(|used| {
+        eprintln!("Tinkers: use on block {} at {:?} held {}", used.item, used.pos, used.held.is_some());
         let Some(held) = used.held.as_ref() else { return ActionResult::Pass; };
-        let Ok(actions) = with_held_tool(held, |env, stack| tool_stack::tool_actions(&stack.custom_data, env)) else { return ActionResult::Pass; };
-        if actions.is_empty() || perform(used, &actions).is_none() { return ActionResult::Pass; }
+        let actions = match with_held_tool(held, |env, stack| tool_stack::tool_actions(&stack.custom_data, env)) {
+            Ok(actions) => actions,
+            Err(reason) => {
+                if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("Tinkers: tool action click on {} left alone: {reason}", held.item); }
+                return ActionResult::Pass;
+            }
+        };
+        let performed = if actions.is_empty() { None } else { perform(used, &actions) };
+        if let Some(sound) = &performed { eprintln!("Tinkers: tool action {sound} at {:?}", used.pos); }
+        else if !actions.is_empty() { eprintln!("Tinkers: tool action found no block to transform at {:?} ({} actions)", used.pos, actions.len()); }
+        if performed.is_none() { return ActionResult::Pass; }
         // The tool wears by one (creative mode keeps it whole), written back to the slot that held it.
         if !used.creative {
             if let Some(slot) = find_slot(used, held) {
