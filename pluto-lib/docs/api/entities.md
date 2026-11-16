@@ -48,6 +48,22 @@ ServerLivingEntityEvents::ALLOW_DAMAGE.register(|damage: &LivingDamage| damage.d
 
 > **Tip.** `AFTER_DEATH` is called when a living entity's death goes ahead, just before it is removed (Horizon's death hook can still cancel it for other mods). `attacker` is the killer's id, negative when there is none; `direct` is always negative and `amount` 0 here. Players are not reported yet.
 
+## Changing Knockback and Item Wear
+
+`ServerLivingEntityEvents::MODIFY_KNOCKBACK` (NeoForge's `LivingKnockBackEvent`) is heard on a server for each knockback: the `entity` pushed and its `kind`, the `attacker` entity id (negative for none), the stacks in the attacker's `attacker_main` and `attacker_off` hands (damage, max damage and custom data; `None` for an empty hand) and the `strength`, `x` and `z` the game worked out. A callback changes them with `Cell::set`, or sets `cancel` for no knockback. Every callback is called in turn and sees the last one's values.
+
+`ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE` is heard on a server when a player's item is about to lose durability (vanilla `ItemStack.hurtAndBreak`, after Unbreaking and not for a creative player or a LAN host). It carries the player's `player` uuid and `name`, the `item` id, the `stack` as the player holds or wears it (main hand first, then feet, legs, chest and head; `None` when no stack of that item is found) and the `amount`. Change the wear with `amount.set` (0 or less leaves the item whole) or set `cancel` for none.
+
+```rust
+ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
+    if wear.stack.as_ref().is_some_and(|stack| stack.custom_data.contains_key("example_mending")) {
+        wear.amount.set(wear.amount.get() / 2);
+    }
+});
+```
+
+> **Use with Caution.** Both events ride the host's own hooks and run only in the game that owns the world. The item wear event names the item but not the slot, so a player carrying two stacks of one item may see the other stack's data.
+
 ## Derived Entity Types
 
 `EntityTypeRegistry::register_derived` declares a new type ID that reuses a vanilla entity implementation. Choose the actual base class: a different render model does not justify changing simulation to another mob. Width/height are the default (size-one) runtime dimensions in blocks, and the tracking range is in chunks. If a source class scales its EntityType builder dimensions (for example Slime's 0.255 factor), apply that class conversion before registration; do not copy the unscaled builder box.
