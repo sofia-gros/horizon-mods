@@ -67,6 +67,8 @@ pub(crate) enum Module {
     MiningSpeed { module: Box<crate::mining_speed::MiningSpeed>, condition: Condition },
     /// ConditionalMeleeDamageModule without target or attacker conditions: changes the damage of a melee hit.
     MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
+    /// KnockbackModule: adds knockback to a melee hit, filtered on the target's entity type tags.
+    Knockback { module: Box<crate::knockback::Knockback>, condition: Condition },
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
@@ -286,6 +288,12 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:knockback" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:tooltip")) => {
+                match crate::knockback::Knockback::decode(fields)? {
+                    Some(module) => Self::Knockback { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
@@ -371,7 +379,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -405,6 +413,13 @@ impl Module {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
     }
+    /// MeleeHitModifierHook.beforeMeleeHit for a knockback module: the strength after it (a melee hit, never a projectile's).
+    pub fn knockback(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, strength: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+        let Self::Knockback { module, condition } = self else { return strength; };
+        module.apply(entry, condition.matches(entry, facts), tool, strength, false, target_in_tag)
+    }
+    /// Whether this is a knockback module.
+    pub fn is_knockback(&self) -> bool { matches!(self, Self::Knockback { .. }) }
     /// What this module adds to the protection cap attribute (0.05 is one point and a quarter of protection).
     pub fn protection_cap(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound) -> f32 {
         let Self::ProtectionCap { formula, condition } = self else { return 0.0; };

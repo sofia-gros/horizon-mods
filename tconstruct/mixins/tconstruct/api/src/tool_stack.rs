@@ -152,6 +152,20 @@ pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, dama
     })
 }
 
+/// MeleeHitModifierHook.beforeMeleeHit's knockback over every modifier of the tool, in priority order (highest first,
+/// ties in modifier order), starting from the game's `strength`.
+pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for (priority, module) in modifier.knockback_modules() { modules.push((priority, index, entry, module)); }
+        }
+        modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
+        let view = crate::mining_speed::ToolView { nbt };
+        modules.into_iter().fold(strength, |strength, (_, _, entry, module)| module.knockback(entry, facts, &view, strength, target_in_tag))
+    })
+}
+
 /// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
 /// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
 pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {

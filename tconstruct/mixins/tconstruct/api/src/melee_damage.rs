@@ -25,7 +25,7 @@ fn mob_type_tag(mobs: &str) -> Option<&'static str> {
 pub(crate) enum TargetCondition { Any, Tag(Identifier), Not(Box<TargetCondition>), And(Vec<TargetCondition>), Or(Vec<TargetCondition>) }
 
 impl TargetCondition {
-    fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
+    pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
         // A bare string is a predicate type with no fields; none of those is known here.
         let Some(object) = value.as_object() else { return Ok(None); };
@@ -55,7 +55,7 @@ impl TargetCondition {
             _ => return Ok(None),
         }))
     }
-    fn matches(&self, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
+    pub(crate) fn matches(&self, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => in_tag(tag),
