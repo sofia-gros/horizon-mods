@@ -796,3 +796,30 @@ fn a_modifier_crystal_alone_applies_its_modifier_through_the_single_step_recipe(
     assert!(lone_crystal(&[Some((Identifier::parse("minecraft:stick").unwrap(), 1, None))]).is_none());
     assert!(lone_crystal(&[Some((crystal, 1, None))]).is_none(), "a crystal with no modifier is blank");
 }
+
+#[test]
+fn shipped_maintained_gives_a_helmet_toughness_until_it_is_worn_below_half() {
+    use crate::{modifier_entries::List, tool_stack::{attribute_entries, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let toughness_at = |damage: i32| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:maintained").unwrap(), 2).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool.custom_data.insert("Damage".into(), Nbt::Int(damage));
+        let held = attribute_entries(&tool.custom_data, &env, &["head"]);
+        println!("maintained entries at damage {damage}: {held:?}");
+        held.iter().find(|entry| entry["type"] == Nbt::String("minecraft:armor_toughness".into()))
+            .map(|entry| match entry["amount"] { Nbt::Double(amount) => amount, _ => panic!("amount is a double") })
+    };
+    // The bonus is the share of durability above half, so a fresh helmet gets the most and one worn below half gets none.
+    let fresh = toughness_at(0);
+    assert!(fresh.is_some_and(|amount| amount > 0.0), "a fresh helmet gains toughness: {fresh:?}");
+    assert!(toughness_at(400).is_none_or(|amount| amount == 0.0), "a helmet worn below half its durability gains none");
+}

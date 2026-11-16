@@ -180,6 +180,10 @@ impl Modifier {
     pub fn knockback_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter(|module| module.is_knockback()).map(move |module| (self.priority, module))
     }
+    /// The weapon effect modules.
+    pub fn weapon_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_weapon_effect())
+    }
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
         for module in &self.modules { module.apply_stats(entry, facts, builder); }

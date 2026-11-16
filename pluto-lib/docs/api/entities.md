@@ -611,19 +611,67 @@ wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
+### `EffectGrant`
+
+A status effect for a callback to put on the mob a weapon hit: `effect` is the effect id (an id the game does not know is skipped), `amplifier` the level less one (0 is level I) and `duration` how long it lasts, in ticks.
+
+```rust
+use pluto_lib::EffectGrant;
+
+let grant = EffectGrant { effect: "minecraft:wither".into(), amplifier: 2, duration: 120 };
+assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
+```
+
+### `WeaponHit`
+
+A player's weapon hit on a mob: `entity` is the mob's id and `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, and `effects` the effects callbacks push for the mob.
+
+```rust
+use pluto_lib::WeaponHit;
+use std::cell::RefCell;
+
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, effects: RefCell::new(Vec::new()) };
+assert!(hit.effects.borrow().is_empty());
+```
+
+### `EntityState`
+
+What a living entity was doing when a player's weapon hit it: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it.
+
+```rust
+use pluto_lib::EntityState;
+
+let state = EntityState { kind: "minecraft:husk".into(), sprinting: false, on_ground: true, in_water: false, fire_ticks: 40, fire_immune: false, effects: vec!["minecraft:poison".into()] };
+assert!(state.fire_ticks > 0 && state.effects.contains(&"minecraft:poison".to_string()));
+```
+
 ### `DamageModification`
 
-Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection.
+Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection. When a player's weapon hit a mob, `attacker_state` and `target_state` say what the player and the mob were doing as the hit landed (`None` otherwise).
 
 ```rust
 use pluto_lib::{DamageModification, LivingDamage};
 use std::cell::Cell;
 
 let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
-let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new() };
+let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None };
 hit.amount.set(hit.amount.get() + 2.0);
 assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());
+```
+
+### `ServerLivingEntityEvents::WEAPON_HIT`
+
+A player's weapon hit on a mob, heard on a server before the hit's damage lands. It carries the weapon and what the player and the mob were doing; push status effects on the mob with `effects`, and the game puts them on it right after.
+
+```rust
+use pluto_lib::{EffectGrant, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
+    if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:frost_blade") {
+        hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 1, duration: 60 });
+    }
+});
 ```
 
 ### `ServerLivingEntityEvents::MODIFY_KNOCKBACK`

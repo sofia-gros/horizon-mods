@@ -1408,6 +1408,14 @@ bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", 
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
 
+# The stack a mod's item-wear callback puts in place of a worn armor piece.
+[[module]]
+id = "pluto-item-wear-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_item_wear_access"
+source = "pluto-item-wear-access.rs"
+visibility = "pub"
+
 # The local player's item wear reaches the same mod event a LAN player's does (the game's own hook skips the local player).
 [[injection]]
 id = "pluto-item-wear"
@@ -1416,3 +1424,18 @@ kind = "HEAD"
 cancellable = true
 helper = "pluto-item-wear.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "amount", ty = "u32", value = "amount" }]
+
+# The status effects a mod's weapon-hit callback puts on a mob (the game has no mod call that applies an effect to a mob).
+[[module]]
+id = "pluto-mob-effect-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_mob_effect_access"
+source = "pluto-mob-effect-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-mob-effect-apply"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"
+kind = "RETURN"
+helper = "pluto-mob-effect-apply.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

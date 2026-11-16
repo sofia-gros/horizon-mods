@@ -2030,6 +2030,52 @@ impl Hooks for PlutoHooks {
         cancel_if(!entity_events_v1::allow_damage(&damage))
     }
 
+    fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
+        // A player's weapon hit on a mob: what both were doing is remembered for the damage event that follows in the same call.
+        let state_of = |host: &dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
+            let entity = host.entity(u32::try_from(id).ok()?)?;
+            Some(entity_events_v1::EntityState {
+                kind: host.entity_kind(entity)?,
+                sprinting: host.entity_is_sprinting(entity).unwrap_or(false),
+                on_ground: host.entity_on_ground(entity).unwrap_or(true),
+                in_water: host.entity_is_in_water(entity).unwrap_or(false),
+                fire_ticks: host.entity_fire_ticks(entity).unwrap_or(0),
+                fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
+            })
+        };
+        // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
+        // server's list of players: what that list says (sprinting, on the ground) and their effects.
+        let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
+            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)?;
+            Some(entity_events_v1::EntityState {
+                kind: "minecraft:player".to_owned(),
+                sprinting: player.sprinting,
+                on_ground: player.on_ground,
+                in_water: false,
+                fire_ticks: 0,
+                fire_immune: false,
+                effects: host.effects(player.uuid).map(|effects| effects.into_iter().map(|effect| effect.id).collect()).unwrap_or_default(),
+            })
+        };
+        let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
+        let target_state = state_of(host, event.entity);
+        if let (Some(attacker), Some(target)) = (&attacker_state, &target_state) {
+            entity_events_v1::hit_states(event.entity, attacker.clone(), target.clone());
+        }
+        // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
+        let hit = entity_events_v1::WeaponHit {
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
+            attacker_state, target_state, effects: std::cell::RefCell::new(Vec::new()),
+        };
+        if let Ok(entity) = u32::try_from(event.entity) {
+            for grant in entity_events_v1::weapon_hit(&hit) {
+                horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
+        Flow::Continue
+    }
+
     fn living_knockback_v2(&self, event: &mut horizon_client::mod_api::LivingKnockbackV2Event<'_>) -> Flow {
         let push = entity_events_v1::KnockbackModification {
             entity: event.entity,
@@ -2058,6 +2104,7 @@ impl Hooks for PlutoHooks {
         } else { (event.player, event.name.to_owned()) };
         // The host names the item but not the stack; the player's hand and armor are searched for one of that item.
         let mut found = host.held_stack(player).filter(|held| held.item.to_string() == event.item);
+        let from_hand = found.is_some();
         for slot in [horizon_client::mod_api::EquipmentSlot::Feet, horizon_client::mod_api::EquipmentSlot::Legs, horizon_client::mod_api::EquipmentSlot::Chest, horizon_client::mod_api::EquipmentSlot::Head] {
             if found.is_some() { break; }
             found = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item);
@@ -2070,16 +2117,26 @@ impl Hooks for PlutoHooks {
             Some((amount, replacement)) => {
                 event.amount = amount;
                 // A replacement goes to the main-inventory stack that carried the old data (a held tool, usually); the game then
-                // wears it by 0. A stack that is not there keeps the wear in `amount`.
+                // wears it by 0. A worn armor piece is replaced by the game's own wear step, which takes the stack from
+                // `pluto_item_wear_access` and wears it by 0; otherwise the wear stays in `amount`.
                 if let (Some(replacement), Some(before)) = (replacement, before) {
-                    for index in 0..36 {
-                        let Some(target) = host.carried_stack(index) else { continue };
-                        if &*target.item == event.item && target.count > 0 && read_stack(target).custom_data == before.custom_data {
-                            write_slot(target, &replacement);
-                            event.amount = 0;
-                            break;
+                    let mut written = false;
+                    if from_hand {
+                        for index in 0..36 {
+                            let Some(target) = host.carried_stack(index) else { continue };
+                            if &*target.item == event.item && target.count > 0 && read_stack(target).custom_data == before.custom_data {
+                                write_slot(target, &replacement);
+                                event.amount = 0;
+                                written = true;
+                                break;
+                            }
                         }
+                    } else if let Some(base) = found.as_ref() {
+                        let mut native = base.clone();
+                        write_slot(&mut native, &replacement);
+                        horizon_client::entry::pluto_item_wear_access::set(native);
                     }
+                    let _ = written;
                 }
                 Flow::Continue
             }
