@@ -181,7 +181,7 @@ def main():
         # Repair: a damaged pickaxe in the station is repaired with planks (the wood material).
         ctl('close')
         ctl('command', 'clear @s')
-        ctl('command', 'give @s tconstruct:pickaxe[damage=200,custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],Damage:20}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
         ctl('interact', *xyz)
@@ -200,7 +200,7 @@ def main():
         repaired = container_slots()[result_slot]
         shot('08-repair-preview.png')
         assert repaired.get('item') == 'tconstruct:pickaxe', repaired
-        assert 'damage' not in repaired.get('components', '') or 'damage=200' not in repaired.get('components', '').replace(': ', '='), repaired
+        assert 'Damage' not in repaired.get('components', '') or 'Damage: 20' not in repaired.get('components', ''), repaired
         result['scenarios'].append('planks preview a repair of a damaged pickaxe')
         ctl('close')
 
