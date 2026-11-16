@@ -153,6 +153,10 @@ fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe(
     assert_eq!(hit.applied, 0, "every roll below 75% cancels its point");
     let hit = tool_slot::damage_slot(&mut reinforced, &env, 8, true, true, None, &mut || 0.9).unwrap();
     assert_eq!(hit.applied, 8, "every roll above 75% lets its point through");
+    // From level 6 the flat branch counts: 0.5 + 0.05 * 10 = 100% at level X, so even the highest roll cancels the point.
+    let mut ten = tool(&[("tconstruct:reinforced", 10)]);
+    let hit = tool_slot::damage_slot(&mut ten, &env, 8, true, true, None, &mut || 0.99).unwrap();
+    assert_eq!(hit.applied, 0, "ten levels of reinforced cancel every point");
     // An unmodified pickaxe takes the full damage regardless of the roll.
     let mut plain = tool(&[]);
     assert_eq!(tool_slot::damage_slot(&mut plain, &env, 5, true, true, None, &mut || 0.0).unwrap().applied, 5);

@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -369,8 +370,10 @@ def main():
                 ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
                 ctl('wait', '5')
                 ctl('break', *rock, timeout=60)
-            reply = json.dumps(ctl('command', 'execute if items entity @s weapon.mainhand tconstruct:pickaxe[minecraft:damage=0]'))
-            return 'passed' in reply.lower()
+            reply = json.dumps(ctl('command', 'data get entity @s SelectedItem'))
+            held = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', reply)
+            print('TOOL WEAR ITEM', reply[:300], flush=True)
+            return 'tconstruct:pickaxe' in reply and (held is None or int(held.group(1)) == 0)
 
         plain_unworn = unworn_after_digging('')
         reinforced_unworn = unworn_after_digging(',tic_modifiers:[{level:10,name:"tconstruct:reinforced"}]')
