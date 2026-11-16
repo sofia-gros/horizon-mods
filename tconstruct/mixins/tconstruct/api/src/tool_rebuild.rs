@@ -76,6 +76,12 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
         }
     };
     let persistent_string = |key: &Identifier| match tool.persistent.get(&key.to_string()) { Some(Nbt::String(text)) => text.clone(), _ => String::new() };
+    let persistent_ints = |key: &Identifier| -> Vec<(String, i32)> {
+        match tool.persistent.get(&key.to_string()) {
+            Some(Nbt::Compound(data)) => data.iter().filter_map(|(name, value)| match value { Nbt::Int(number) => Some((name.clone(), *number)), _ => None }).collect(),
+            _ => Vec::new(),
+        }
+    };
     let hook_traits = |hook: &Identifier| tool.hook_traits.map(|lookup| lookup(hook)).unwrap_or_default();
     let has_persistent_key = |key: &Identifier| tool.persistent.contains_key(&key.to_string());
     // A tag match sums the levels of every checked modifier that is in the tag.
@@ -87,7 +93,7 @@ pub(crate) fn with_facts<R>(tool: &Tool, entries: &[(Entry, Arc<Modifier>)], upg
             Check::Upgrades => sum(&mut upgrades.entries().iter()),
         }
     };
-    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key, persistent_string: &persistent_string, hook_traits: &hook_traits })
+    run(&Facts { item: tool.item, in_tag: &in_tag, level: &level, tag_level: &tag_level, has_persistent_key: &has_persistent_key, persistent_string: &persistent_string, persistent_ints: &persistent_ints, hook_traits: &hook_traits })
 }
 
 #[cfg(test)]

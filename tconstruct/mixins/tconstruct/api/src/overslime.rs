@@ -39,7 +39,9 @@ pub(crate) fn modifier() -> Result<Modifier, String> {
 /// The code-defined modifiers registered with overslime: overworked is a plain modifier whose level
 /// only scales overslime restoration (see `overworked_bonus`).
 pub(crate) fn code_modifiers() -> Result<Vec<Modifier>, String> {
-    Ok(vec![modifier()?, Modifier::decode(overworked(), &json!({}))?])
+    let creative = Modifier::decode(Identifier::new("tconstruct", "creative_slot").expect("valid id"),
+        &json!({"level_display":"tconstruct:no_levels","modules":[{"type":"tconstruct:creative_slots","hooks":["tconstruct:volatile_data","tconstruct:remove"]}]}))?;
+    Ok(vec![modifier()?, Modifier::decode(overworked(), &json!({}))?, creative])
 }
 
 /// PersistentDataCapacityBar.getAmount.

@@ -387,3 +387,38 @@ fn slime_balls_fill_overslime_on_a_pickaxe_and_the_shield_soaks_damage_first() {
     overslime::add_amount(&mut full.custom_data, &env, 10_000);
     assert!(recipe.apply(&full, &env, &inputs, &in_tag).unwrap().is_err());
 }
+
+#[test]
+fn creative_slot_adds_the_slots_stored_in_the_creative_compound_and_forgets_them_on_removal() {
+    use crate::{overslime, tool_stack::{on_removed, rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES, TAG_VOLATILE}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let mut world = world();
+    for modifier in overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let slots = |tool: &ItemSlot| match tool.custom_data.get(TAG_VOLATILE) {
+        Some(Nbt::Compound(data)) => crate::modifier_entries::nbt_int(data.get("upgrades")),
+        _ => 0,
+    };
+    let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    let before = slots(&tool);
+    let mut stored = NbtCompound::new();
+    stored.insert("upgrades".into(), Nbt::Int(3));
+    let mut persistent = NbtCompound::new();
+    persistent.insert("tconstruct:creative".into(), Nbt::Compound(stored));
+    tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    tool.custom_data.insert(TAG_UPGRADES.into(), crate::modifier_entries::List::default()
+        .with_modifier(Identifier::parse("tconstruct:creative_slot").unwrap(), 1).unwrap().to_nbt());
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    assert_eq!(slots(&tool), before + 3, "the stored slots join the volatile data");
+    // Removing the modifier forgets the stored compound.
+    let original = tool.custom_data.clone();
+    tool.custom_data.insert(TAG_UPGRADES.into(), crate::modifier_entries::List::default().to_nbt());
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    on_removed(&original, &mut tool.custom_data, &env);
+    match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => assert!(!data.contains_key("tconstruct:creative")), _ => {} }
+    assert_eq!(slots(&tool), before);
+}

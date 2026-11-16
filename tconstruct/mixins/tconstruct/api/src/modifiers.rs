@@ -6,6 +6,8 @@ use serde_json::Value;
 use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
+/// Module types only code-defined modifiers use; the original ships no data for them.
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -93,7 +95,7 @@ impl Modifier {
                 let kind = id(fields.get("type").ok_or("modifier module type missing")?)?;
                 let empty = kind.to_string() == "tconstruct:empty";
                 // A module type the original never ships is a typo or a foreign module: reject it.
-                if !crate::modifier_module_types::KNOWN.contains(&kind.to_string().as_str()) { return Err(format!("unknown modifier module {kind}")); }
+                if !crate::modifier_module_types::KNOWN.contains(&kind.to_string().as_str()) && !CODE_MODULES.contains(&kind.to_string().as_str()) { return Err(format!("unknown modifier module {kind}")); }
                 let hooks = match fields.get("hooks").filter(|v| !v.is_null()) {
                     Some(hooks) => hooks.as_array().ok_or("hooks must be an array")?.iter().map(id).collect::<Result<Vec<_>, _>>()?,
                     None => Vec::new(),
@@ -154,7 +156,7 @@ impl Modifier {
 
 /// Facts for a context with no tool stack.
 fn no_tool() -> crate::tool_predicate::Facts<'static> {
-    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), hook_traits: &|_| Vec::new() }
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_ints: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
 }
 
 #[derive(Clone, Debug)]
@@ -421,7 +423,7 @@ mod tests {
         ], &BooleanConditions);
         assert!(registry.problems.is_empty(), "{:?}", registry.problems);
         let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false, tag_level: &|_, _| 0,
-            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), hook_traits: &|_| Vec::new() };
+            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), persistent_ints: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
         let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
         let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);
         // Owner level 3: the scaled trait is 2 * 3, the fixed one joins once even with a second owner.
