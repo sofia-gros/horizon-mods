@@ -19,7 +19,8 @@ class CleanPort(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        # Resolved: on Windows runners the temp dir is a short 8.3 path that resolve() expands.
+        self.root = Path(self.temp.name).resolve()
         for rel in ['docs/port-plan.json', 'tconstruct/compatibility.json']:
             dst = self.root / rel
             dst.parent.mkdir(parents=True, exist_ok=True)

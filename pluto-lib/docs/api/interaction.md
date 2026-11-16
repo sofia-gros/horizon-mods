@@ -283,6 +283,17 @@ assert_eq!(dig.pos, [0, 64, 0]);
 assert_eq!(dig.block.block.path(), "stone");
 ```
 
+### `DiggingPlayer`
+
+What a break-speed callback may read about the player who digs: `on_ground` (the player's last accepted move put them on the ground) and `eyes_in_water` (the block at their eye height holds water or is waterlogged).
+
+```rust
+use pluto_lib::DiggingPlayer;
+
+let airborne = DiggingPlayer { on_ground: false, eyes_in_water: false };
+assert!(!airborne.on_ground && !airborne.eyes_in_water);
+```
+
 ### `BreakSpeedCallback`
 
 How fast a player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).
