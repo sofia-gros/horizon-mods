@@ -195,7 +195,7 @@ def main():
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('command', 'clear @s')
-        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},Damage:20}] 1')
+        ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},Damage:20,tic_modifiers:[{level:1,name:"tconstruct:silky"}]}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
         ctl('interact', *xyz, 'up')
@@ -215,6 +215,8 @@ def main():
         shot('08-repair-preview.png')
         assert repaired.get('item') == 'tconstruct:pickaxe', repaired
         assert 'Damage' not in repaired.get('components', '') or 'Damage: 20' not in repaired.get('components', ''), repaired
+        # The rebuilt tool publishes what its modifiers give it: silky's silk touch and the melee attributes.
+        assert 'silk_touch' in repaired.get('components', ''), repaired
         result['scenarios'].append('planks preview a repair of a damaged pickaxe')
         ctl('close')
 

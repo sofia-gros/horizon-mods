@@ -17,6 +17,9 @@ pub(crate) fn sync_visuals(slot: &mut ItemSlot, env: &Environment) -> Result<(),
     slot.damage = u32::try_from(damage(data)).unwrap_or(0);
     slot.tool = match env.definition { Some(definition) => mining_component(data, definition)?, None => None };
     slot.attribute_modifiers = attribute_modifiers(data, env);
+    // The tool's enchantments come from its modifiers alone; a tool with none keeps whatever component it has (none).
+    let levels = crate::tool_stack::enchantments(data, env);
+    slot.enchantments = if levels.is_empty() && slot.enchantments.is_none() { None } else { Some(levels) };
     Ok(())
 }
 

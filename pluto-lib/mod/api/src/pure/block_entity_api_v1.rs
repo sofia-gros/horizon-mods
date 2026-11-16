@@ -58,13 +58,16 @@ pub struct ItemSlot {
     /// when it has one. Set it to give this stack, not every stack of the item, its attribute modifiers: an empty list gives it none;
     /// `None` leaves the item's.
     pub attribute_modifiers: Option<Vec<NbtCompound>>,
+    /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3), when it has one.
+    /// Set it to give this stack, not every stack of the item, those enchantments; an empty map removes them; `None` leaves the stack's.
+    pub enchantments: Option<std::collections::BTreeMap<String, i32>>,
     snapshot: Option<StackSnapshot>,
 }
 
 impl ItemSlot {
     /// A plain stack of `count` of `item`, with no damage and no data.
     pub fn new(item: Identifier, count: u32) -> Self {
-        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, snapshot: None }
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, enchantments: None, snapshot: None }
     }
 
     pub(crate) fn capture<T: std::any::Any + Send + Sync + PartialEq>(&mut self, value: T) {

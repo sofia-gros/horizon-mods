@@ -899,6 +899,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.custom_data = data.custom_data;
     slot.tool = read_tool(stack);
     slot.attribute_modifiers = read_attribute_modifiers(stack);
+    slot.enchantments = read_enchantments(stack);
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -926,7 +927,22 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
         stack.data_mut().set_other("minecraft:attribute_modifiers", slot.attribute_modifiers.as_ref()
             .map(|list| Tag::List(list.iter().map(|modifier| Tag::Compound(compound_to_tag(modifier))).collect())));
     }
+    // The stack's own enchantments: the host applies them (fortune, silk touch, respiration...) to the holder or wearer.
+    if slot.enchantments != read_enchantments(stack) {
+        stack.data_mut().set_other("minecraft:enchantments", slot.enchantments.as_ref().map(|levels| {
+            let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
+            Tag::Compound(compound_to_tag(&compound))
+        }));
+    }
     stack.tidy();
+}
+
+/// The stack's own `minecraft:enchantments` component as enchantment id to level, None when it has none of its own.
+fn read_enchantments(stack: &ItemStack) -> Option<std::collections::BTreeMap<String, i32>> {
+    match stack.data().and_then(|d| d.other("minecraft:enchantments")) {
+        Some(Tag::Compound(levels)) => Some(compound_from_tag(levels).into_iter().filter_map(|(id, level)| match level { Nbt::Int(level) => Some((id, level)), _ => None }).collect()),
+        _ => None,
+    }
 }
 
 /// The stack's own `minecraft:attribute_modifiers` component as public NBT, None when it has none of its own.

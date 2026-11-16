@@ -152,6 +152,10 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The enchantments this modifier's constant enchantment modules give.
+    pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
+        self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()
+    }
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()

@@ -593,3 +593,24 @@ fn shipped_speedy_publishes_a_movement_speed_attribute_for_its_slots() {
     assert_eq!(attribute_entries(&tool.custom_data, &env, &["head"]).len(), 1, "speedy lists the head slot");
     assert!(attribute_entries(&tool.custom_data, &env, &["offhand"]).is_empty(), "speedy does not list the offhand");
 }
+
+#[test]
+fn shipped_constant_enchantments_give_the_tool_enchantment_levels() {
+    use crate::{modifier_entries::List, tool_stack::{enchantments, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let with = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        enchantments(&tool.custom_data, &env)
+    };
+    // Conditions on the tool's tags hold when there is no item context (a preview outside a stack).
+    assert_eq!(with("tconstruct:respiration", 1).get("minecraft:respiration"), Some(&1));
+    assert_eq!(with("tconstruct:swift_sneak", 1).get("minecraft:swift_sneak"), Some(&1));
+    assert!(with("tconstruct:sharpness", 2).is_empty(), "a modifier without enchantment modules gives none");
+}

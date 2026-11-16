@@ -109,6 +109,15 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
     })
 }
 
+/// The enchantments the tool's modifiers give it (EnchantmentModifierHook), levels adding up per enchantment.
+pub(crate) fn enchantments(nbt: &NbtCompound, env: &Environment) -> std::collections::BTreeMap<String, i32> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut levels: std::collections::BTreeMap<String, i32> = std::collections::BTreeMap::new();
+        for (entry, modifier) in saved { for (name, level) in modifier.enchantments(entry, facts) { let total = levels.entry(name).or_insert(0); *total = total.saturating_add(level); } }
+        levels
+    })
+}
+
 /// The tool actions the tool's modifiers perform on a right click, in modifier order.
 pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())

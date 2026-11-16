@@ -69,6 +69,8 @@ pub(crate) enum Module {
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
+    /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
+    Enchantment { name: String, flat: f32, each: f32, condition: Condition },
     Attribute { attribute: String, operation: &'static str, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
@@ -286,6 +288,16 @@ impl Module {
                 let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
                 Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
             }
+            "tconstruct:constant_enchantment" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
+                let name = identifier(fields, "name")?.to_string();
+                // `level` is a plain number (a flat level) or a leveling value with flat and each_level parts.
+                let (flat, each) = match fields.get("level") {
+                    Some(Value::Number(number)) => (number.as_f64().ok_or("level must be a number")? as f32, 0.0),
+                    Some(Value::Object(level)) => (float(level, "flat")?, float(level, "each_level")?),
+                    _ => return Err("level must be a number or a leveling value".into()),
+                };
+                Self::Enchantment { name, flat, each, condition: Condition::decode(fields)? }
+            }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
@@ -346,7 +358,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -379,6 +391,12 @@ impl Module {
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
+    pub fn enchantment(&self, entry: &Entry, facts: &Facts) -> Option<(String, i32)> {
+        let Self::Enchantment { name, flat, each, condition } = self else { return None; };
+        let level = (flat + each * entry.effective_level()) as i32;
+        (level > 0 && condition.matches(entry, facts)).then(|| (name.clone(), level))
     }
     /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
