@@ -600,15 +600,15 @@ assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
 
 ### `ItemDamage`
 
-A player's item about to lose durability, for a callback to change or cancel. `player` is the player's uuid and `name` their name; `item` is the id of the item worn and `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `custom_data` is new custom data for the stack, which a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data.
+A player's item about to lose durability, for a callback to change or cancel. `player` is the player's uuid and `name` their name; `item` is the id of the item worn and `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` is the stack as an item slot, with its components; `replacement` is a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack that is not in the main inventory (worn armor) is not rewritten and the game wears it by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left.
 
 ```rust
 use pluto_lib::ItemDamage;
 use std::cell::{Cell, RefCell};
 
-let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, amount: Cell::new(3), cancel: Cell::new(false), custom_data: RefCell::new(None) };
+let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, slot: None, amount: Cell::new(3), cancel: Cell::new(false), replacement: RefCell::new(None) };
 wear.amount.set(wear.amount.get() - 1);
-assert_eq!((wear.amount.get(), wear.cancel.get(), wear.custom_data.borrow().is_none()), (2, false, true));
+assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
 ### `DamageModification`
@@ -642,7 +642,7 @@ ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
 
 ### `ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE`
 
-A player's item is about to lose durability: change the amount with `amount.set`, set `cancel` for no wear, or put new custom data in `custom_data` for the stack. The game's own hook is heard for a LAN player only; PlutoLib reports the local player's wear too.
+A player's item is about to lose durability: change the amount with `amount.set`, set `cancel` for no wear, or put a whole new stack in `replacement`. The game's own hook is heard for a LAN player only; PlutoLib reports the local player's wear too.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;
