@@ -380,10 +380,15 @@ def main():
         # A failure here is recorded and the run goes on, so one run reports every scenario after it too.
         stripped = use_on('minecraft:oak_log[axis=y]', '', 'stripping')
         tilled = use_on('minecraft:dirt', '', 'tilling')
+        pathed = use_on('minecraft:grass_block', '', 'pathing')
         if 'stripped_oak_log' in json.dumps(stripped) and 'farmland' in json.dumps(tilled):
             result['scenarios'].append('stripping strips an oak log and tilling tills dirt with a Tinkers tool')
         else:
             soft_failures.append(f'tool actions: stripping gave {json.dumps(stripped)}, tilling gave {json.dumps(tilled)}')
+        if 'dirt_path' in json.dumps(pathed):
+            result['scenarios'].append('pathing turns grass into a path with a Tinkers tool')
+        else:
+            soft_failures.append(f'tool actions: pathing gave {json.dumps(pathed)}')
 
         # Protection: the same hit hurts less through a helmet with eight levels of protection (ten points, 40%).
         def hurt_through(modifiers):
