@@ -208,6 +208,10 @@ def copy_tags():
                 text = value if isinstance(value, str) else value.get('id', '')
                 if isinstance(value, str) and text.lstrip('#').startswith('forge:'):
                     value = {'id': text, 'required': False}
+                # This port registers no Tinkers entity types yet; a tag naming one would make the whole
+                # entity-type tag capture unusable for PlutoLib (an unknown member), so it waits for its entity.
+                if source_name == 'entity_types' and isinstance(value, str) and text.startswith('tconstruct:'):
+                    continue
                 values.append(value)
             data['values'] = values
             destination = TAG_TARGET / target_name / path.relative_to(TAG_SOURCE / source_name)
