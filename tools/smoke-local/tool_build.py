@@ -136,6 +136,48 @@ def main():
         shot('04-head-swap-preview.png')
         result['scenarios'].append('a stone head previews a head swap on the placed pickaxe')
 
+        # Part builder: planks plus a pattern; the first pattern button crafts a wood part.
+        ctl('close')
+        pb = [xyz[0] - 2, xyz[1], xyz[2]]
+        ctl('command', f'setblock {pb[0]} {pb[1]} {pb[2]} tconstruct:part_builder')
+        ctl('command', 'give @s tconstruct:pattern 1')
+        ctl('command', 'give @s minecraft:oak_planks 8')
+        ctl('wait', '5')
+        ctl('interact', *pb)
+        ctl('wait', '10')
+        assert ctl('screen')['screen'] == 'container', 'the part builder did not open a container menu'
+        slots = ui_slots()
+        first = min(i for i in slots if i >= 300)
+        assert {first, first + 1, first + 2} <= set(slots), sorted(slots)
+        inv = ctl('screen')['slots']
+        for item, target in (('minecraft:oak_planks', first), ('tconstruct:pattern', first + 1)):
+            source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == item)
+            ctl('click-slot', source)
+            bounds = ui_slots()[target]
+            ctl('click-at', bounds[0] + 8, bounds[1] + 8)
+            ctl('wait', '5')
+        shot('05-part-builder-inputs.png')
+        origin = ui_slots()[first]
+        ctl('click-at', origin[0] - 8 + 34 + 9, origin[1] - 24 + 18 + 9)
+        ctl('wait', '10')
+        built = container_slots()[first + 2]
+        assert built.get('item', '').startswith('tconstruct:') and 'tconstruct:wood' in built.get('components', ''), built
+        shot('06-part-builder-result.png')
+        result['scenarios'].append('the part builder offers a pattern button and previews a wood part')
+
+        # Modifier worktable opens with its four slots.
+        ctl('close')
+        wt = [xyz[0] - 2, xyz[1], xyz[2] + 2]
+        ctl('command', f'setblock {wt[0]} {wt[1]} {wt[2]} tconstruct:modifier_worktable')
+        ctl('interact', *wt)
+        ctl('wait', '10')
+        assert ctl('screen')['screen'] == 'container', 'the modifier worktable did not open a container menu'
+        wslots = ui_slots()
+        wfirst = min(i for i in wslots if i >= 300)
+        assert {wfirst, wfirst + 1, wfirst + 2, wfirst + 3} <= set(wslots), sorted(wslots)
+        shot('07-worktable-open.png')
+        result['scenarios'].append('the modifier worktable opens with a 4-slot menu')
+
         ctl('close')
         ctl('quit')
         proc.wait(timeout=90)
