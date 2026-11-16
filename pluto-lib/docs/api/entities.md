@@ -55,7 +55,9 @@ ServerLivingEntityEvents::ALLOW_DAMAGE.register(|damage: &LivingDamage| damage.d
 `ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE` is heard on a server when a player's item is about to lose durability (vanilla `ItemStack.hurtAndBreak`, after Unbreaking and not for a creative player or a LAN host). It carries the player's `player` uuid and `name`, the `item` id, the `stack` as the player holds or wears it (main hand first, then feet, legs, chest and head; `None` when no stack of that item is found) and the `amount`. Change the wear with `amount.set` (0 or less leaves the item whole) or set `cancel` for none.
 
 ```rust
-ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
+use pluto_lib::{ItemDamage, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear: &ItemDamage| {
     if wear.stack.as_ref().is_some_and(|stack| stack.custom_data.contains_key("example_mending")) {
         wear.amount.set(wear.amount.get() / 2);
     }
