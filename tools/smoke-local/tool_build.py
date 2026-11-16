@@ -86,6 +86,7 @@ def main():
         ctl('wait', '5')
 
     result = {'scenarios': []}
+    soft_failures = []
     try:
         deadline = time.monotonic() + 180
         while not endpoint.exists():
@@ -369,11 +370,13 @@ def main():
             ctl('wait', '5')
             return ctl('block', *rock)
 
+        # A failure here is recorded and the run goes on, so one run reports every scenario after it too.
         stripped = use_on('minecraft:oak_log[axis=y]', '', 'stripping')
-        assert 'stripped_oak_log' in json.dumps(stripped), stripped
         tilled = use_on('minecraft:dirt', '', 'tilling')
-        assert 'farmland' in json.dumps(tilled), tilled
-        result['scenarios'].append('stripping strips an oak log and tilling tills dirt with a Tinkers tool')
+        if 'stripped_oak_log' in json.dumps(stripped) and 'farmland' in json.dumps(tilled):
+            result['scenarios'].append('stripping strips an oak log and tilling tills dirt with a Tinkers tool')
+        else:
+            soft_failures.append(f'tool actions: stripping gave {json.dumps(stripped)}, tilling gave {json.dumps(tilled)}')
 
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
@@ -399,8 +402,13 @@ def main():
         problems = [line for line in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines() if 'Tinkers:' in line]
         (run / 'tinkers-log.txt').write_text(newline='\n', data=chr(10).join(problems) + chr(10), encoding='utf-8')
         result['tinkers_log_lines'] = len(problems)
-        result['result'] = 'TOOL BUILD PASS'
+        seen = [line for line in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines() if 'PlutoLib: use item on' in line or 'Tinkers: use on' in line or 'Tinkers: tool action' in line]
+        print('USE-ON LOG', json.dumps(seen[:6]), flush=True)
+        result['result'] = 'TOOL BUILD PASS' if not soft_failures else 'TOOL BUILD PARTIAL'
+        result['failures'] = soft_failures
         print(json.dumps({**result, 'run': str(run)}))
+        if soft_failures:
+            raise SystemExit('soft failures: ' + json.dumps(soft_failures))
     finally:
         if proc.poll() is None:
             proc.terminate()
