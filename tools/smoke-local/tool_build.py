@@ -237,6 +237,34 @@ def main():
         assert samples['stonebound worn'] < reference, samples
         result['scenarios'].append(f'a worn stonebound pickaxe digs stone faster: {worn_ticks} ticks against {plain_ticks}')
 
+        # Melee damage: smite adds damage against undead targets (a husk with no AI stays where it is summoned).
+        ctl('command', 'gamemode survival')
+
+        def hit_damage(extra):
+            ctl('command', 'kill @e[type=minecraft:husk]')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
+            ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+            ctl('wait', '20')
+            ctl('select', 1)
+            found = ctl('entities', 8, 'husk')
+            listed = found.get('mobs') or found.get('entities') or []
+            assert listed, found
+            target = listed[0]['id']
+            ctl('look-at-entity', target)
+            ctl('wait', '30')
+            reply = ctl('attack', target)
+            assert reply.get('hit'), reply
+            return reply['health_before'] - reply['health']
+
+        plain_damage = hit_damage('')
+        smite_damage = hit_damage(',tic_modifiers:[{level:3,name:"tconstruct:smite"}]')
+        print('HIT DAMAGE', json.dumps({'plain': plain_damage, 'smite': smite_damage}), flush=True)
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        assert smite_damage > plain_damage, (plain_damage, smite_damage)
+        result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
+
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
