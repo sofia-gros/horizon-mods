@@ -408,7 +408,7 @@ def main():
         else:
             soft_failures.append(f'protection: {guarded_loss} lost with protection against {bare_loss} without')
 
-        # Armor attributes: the worn helmet's own armor and the toughness its maintained modifier adds read back from the player.
+        # Armor attributes: the worn helmet's own armor and the toughness its maintained modifier adds once the helmet is worn down (it is zero on a fresh one) read back from the player.
         def read_attribute(name):
             reply = json.dumps(ctl('command', f'attribute @s {name} get'))
             found = re.findall(r'-?\d+(?:\.\d+)?', reply.split('value')[-1] if 'value' in reply else reply)
@@ -417,7 +417,7 @@ def main():
         ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"]}]')
         ctl('wait', '10')
         plain_armor, plain_toughness = read_attribute('minecraft:armor'), read_attribute('minecraft:armor_toughness')
-        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],tic_modifiers:[{level:2,name:"tconstruct:maintained"}]}]')
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],Damage:200,tic_modifiers:[{level:2,name:"tconstruct:maintained"}]}]')
         ctl('wait', '10')
         kept_toughness = read_attribute('minecraft:armor_toughness')
         print('ARMOR ATTRIBUTES', json.dumps({'armor': plain_armor, 'toughness': plain_toughness, 'maintained toughness': kept_toughness}), flush=True)
