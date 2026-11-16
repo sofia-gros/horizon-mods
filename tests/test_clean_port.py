@@ -62,6 +62,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/break_speed_hook.rs',
                 'mixins/tconstruct_native/api/src/melee_damage.rs',
                 'mixins/tconstruct_native/api/src/melee_hook.rs',
+                'mixins/tconstruct_native/api/src/protection.rs',
                 'mixins/tconstruct_native/api/src/damage_tags.rs',
                 'mixins/tconstruct_native/api/src/damage_vanilla.rs',
                 'mixins/tconstruct_native/api/src/part_recycling.rs',

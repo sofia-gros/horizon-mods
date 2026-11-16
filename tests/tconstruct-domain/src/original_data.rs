@@ -594,9 +594,7 @@ fn shipped_speedy_publishes_a_movement_speed_attribute_for_its_slots() {
     assert!(attribute_entries(&tool.custom_data, &env, &["offhand"]).is_empty(), "speedy does not list the offhand");
 }
 
-#[test]
-fn shipped_damage_tags_resolve_protection_tags_through_the_vanilla_ones() {
-    use crate::damage_tags::DamageTags;
+fn damage_tag_stacks() -> Vec<JsonResourceStack> {
     fn walk(dir: &std::path::Path, relative: &str, out: &mut Vec<JsonResourceStack>) {
         for entry in std::fs::read_dir(dir).expect("tag folder") {
             let path = entry.unwrap().path();
@@ -610,6 +608,13 @@ fn shipped_damage_tags_resolve_protection_tags_through_the_vanilla_ones() {
     }
     let mut stacks = Vec::new();
     walk(&root().join("tags/damage_types"), "", &mut stacks);
+    stacks
+}
+
+#[test]
+fn shipped_damage_tags_resolve_protection_tags_through_the_vanilla_ones() {
+    use crate::damage_tags::DamageTags;
+    let stacks = damage_tag_stacks();
     let (tags, problems) = DamageTags::load(&stacks);
     assert!(problems.is_empty(), "{problems:?}");
     let id = |text: &str| Identifier::parse(text).unwrap();
@@ -620,6 +625,40 @@ fn shipped_damage_tags_resolve_protection_tags_through_the_vanilla_ones() {
     assert!(tags.contains(&id("tconstruct:protection/projectile"), &id("minecraft:arrow")));
     assert!(tags.contains(&id("tconstruct:protection/fall"), &id("minecraft:fall")));
     assert!(!tags.contains(&id("tconstruct:protection/fire"), &id("minecraft:arrow")), "an arrow is no fire damage");
+}
+
+#[test]
+fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, protection::{damage_after_protection, DamageSource}, tool_stack::{protection, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let protection_of = |modifier: &str, level: i32, damage_type: &str, indirect: bool| {
+        let mut tool = ItemSlot::new(id("tconstruct:plate_helmet"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = id(damage_type);
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags }, 0.0)
+    };
+    assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
+    assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
+    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:lava", false), 3.0);
+    // Iron plating and maille bring their own projectile protection, so an arrow is measured against a helmet with an unrelated modifier.
+    let iron_alone = protection_of("tconstruct:sharpness", 1, "minecraft:arrow", true);
+    assert!(iron_alone > 0.0, "iron armor protects against projectiles by itself");
+    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:arrow", true), iron_alone, "fire protection adds nothing against an arrow");
+    assert_eq!(protection_of("tconstruct:melee_protection", 1, "minecraft:mob_attack", false), 2.0);
+    assert_eq!(protection_of("tconstruct:melee_protection", 1, "minecraft:mob_attack", true), 0.0, "an indirect hit is not melee protection");
+    // The event comes after vanilla's protection: 10 damage with no vanilla protection and 5 points is 8 after the modifier.
+    assert!((damage_after_protection(10.0, 0.0, 5.0, 20.0) - 8.0).abs() < 1e-5);
+    // Vanilla's 5 points were already taken (8), so 10 points total leaves 6 rather than 4.8.
+    assert!((damage_after_protection(8.0, 5.0, 10.0, 20.0) - 6.0).abs() < 1e-5);
 }
 
 #[test]

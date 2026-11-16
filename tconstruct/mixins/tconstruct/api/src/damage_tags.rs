@@ -26,6 +26,11 @@ impl DamageTags {
         (Self { members }, problems)
     }
 
+    /// Whether `damage_type` is in the vanilla tag `name` (`minecraft:<name>`).
+    pub fn contains_vanilla(&self, name: &str, damage_type: &Identifier) -> bool {
+        Identifier::new("minecraft", name).is_ok_and(|tag| self.contains(&tag, damage_type))
+    }
+
     /// Whether `damage_type` is in `tag`.
     pub fn contains(&self, tag: &Identifier, damage_type: &Identifier) -> bool {
         self.members.get(tag).is_some_and(|members| members.contains(damage_type))

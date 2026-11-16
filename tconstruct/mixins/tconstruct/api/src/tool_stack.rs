@@ -123,6 +123,11 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
 }
 
+/// ProtectionModifierHook over every modifier of the tool, in modifier order, starting from `value`.
+pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, value: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))
+}
+
 /// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
 pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())

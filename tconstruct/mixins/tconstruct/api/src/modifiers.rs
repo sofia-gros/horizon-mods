@@ -152,6 +152,10 @@ impl Modifier {
     pub fn mining_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.mining_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The running protection after this modifier's protection modules.
+    pub fn protection(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        self.modules.iter().fold(value, |value, module| module.protection(entry, facts, nbt, source, value))
+    }
     /// The enchantments this modifier's constant enchantment modules give.
     pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
         self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()

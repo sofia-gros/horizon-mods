@@ -3,6 +3,7 @@ mod tables;
 mod materials;
 mod damage_vanilla;
 mod damage_tags;
+mod protection;
 mod material_traits;
 mod modifier_entries;
 mod modifier_module_types;

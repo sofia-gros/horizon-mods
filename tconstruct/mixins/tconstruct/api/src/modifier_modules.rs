@@ -72,6 +72,7 @@ pub(crate) enum Module {
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, condition: Condition },
+    Protection { module: crate::protection::Protection, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
@@ -299,6 +300,10 @@ impl Module {
                 };
                 Self::Enchantment { name, flat, each, condition: Condition::decode(fields)? }
             }
+            "tconstruct:protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
+                let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
+                Self::Protection { module, condition: Condition::decode(fields)? }
+            }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
@@ -360,7 +365,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -393,6 +398,12 @@ impl Module {
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
+    }
+    /// ProtectionModifierHook: the running protection after this module, over a damage source.
+    pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        let Self::Protection { module, condition } = self else { return value; };
+        if !condition.matches(entry, facts) || !module.source().matches(source) { return value; }
+        module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
     }
     /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
     pub fn enchantment(&self, entry: &Entry, facts: &Facts) -> Option<(String, i32)> {
