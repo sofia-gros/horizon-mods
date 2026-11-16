@@ -8,36 +8,64 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 const PLAYER_ATTACK: &str = "minecraft:player_attack";
 
+/// What vanilla's entity type tags hold, for the mob types the original's target conditions name. Used when the game
+/// reports no entity type tags of its own (the captured registry is absent or lacks the tag).
+fn vanilla_tag_members(tag: &str) -> &'static [&'static str] {
+    match tag {
+        "minecraft:undead" => &["bogged", "drowned", "husk", "phantom", "skeleton", "skeleton_horse", "stray", "wither", "wither_skeleton", "zoglin", "zombie", "zombie_horse", "zombie_villager", "zombified_piglin"],
+        "minecraft:arthropod" => &["bee", "cave_spider", "endermite", "silverfish", "spider"],
+        "minecraft:illager" => &["evoker", "illusioner", "pillager", "vindicator"],
+        "minecraft:aquatic" => &["axolotl", "cod", "dolphin", "elder_guardian", "glow_squid", "guardian", "pufferfish", "salmon", "squid", "tadpole", "tropical_fish", "turtle"],
+        _ => &[],
+    }
+}
+
+/// Whether `target` is in the entity type tag: the captured registry's answer when it knows the tag, else vanilla's contents.
+pub(crate) fn target_in_tag(entities: Option<&pluto_lib::RegistryLookup>, target: Option<&Identifier>, tag: &Identifier) -> bool {
+    let Some(target) = target else { return false; };
+    if let Some(members) = entities.and_then(|entities| entities.get_tag(tag)) { return members.contains(target); }
+    target.namespace() == "minecraft" && vanilla_tag_members(&tag.to_string()).contains(&target.path())
+}
+
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     // The first few hits are logged with what the hook saw, so a hit it leaves alone is visible in the game log.
     static LOGGED: AtomicUsize = AtomicUsize::new(0);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
-        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 8;
-        if log {
-            eprintln!("Tinkers: damage {} of {} on {} (stack: {:?})", hit.damage.damage_type, hit.amount.get(), hit.damage.kind, hit.attacker_stack.as_ref().map(|stack| stack.item.as_str()));
-        }
+        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 4;
         let Some(held) = hit.attacker_stack.as_ref() else { return; };
         if hit.damage.damage_type != PLAYER_ATTACK { return; }
         let amount = hit.amount.get();
         // The target's entity type tags come from the entity type registry captured at the last reload.
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&hit.damage.kind).ok();
-        let target_in_tag = |tag: &Identifier| match (&entities, &target) {
-            (Some(entities), Some(target)) => entities.get_tag(tag).is_some_and(|members| members.contains(target)),
-            _ => false,
-        };
+        let in_tag = |tag: &Identifier| target_in_tag(entities.as_ref(), target.as_ref(), tag);
         let changed = with_held_tool(held, |env, stack| {
             let base = 1.0 + tool_stack::stat(&stack.custom_data, Stat::AttackDamage);
-            tool_stack::melee_damage(&stack.custom_data, env, base, amount, &target_in_tag)
+            tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag)
         });
         if log {
-            let undead = Identifier::parse("minecraft:undead").ok();
-            eprintln!("Tinkers: melee {:?}, entity types captured: {}, undead tag known: {}, target in undead: {}",
-                changed, entities.is_some(), undead.as_ref().is_some_and(|tag| entities.as_ref().is_some_and(|e| e.get_tag(tag).is_some())), undead.as_ref().is_some_and(|tag| target_in_tag(tag)));
+            eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {})", hit.damage.kind, held.item, amount, changed, entities.is_some());
         }
         if let Ok(damage) = changed {
             if damage.is_finite() && damage >= 0.0 && damage != amount { hit.amount.set(damage); }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+
+    #[test]
+    fn without_a_captured_tag_vanillas_mob_type_tags_answer() {
+        let husk = id("minecraft:husk");
+        assert!(target_in_tag(None, Some(&husk), &id("minecraft:undead")));
+        assert!(!target_in_tag(None, Some(&husk), &id("minecraft:arthropod")));
+        assert!(target_in_tag(None, Some(&id("minecraft:spider")), &id("minecraft:arthropod")));
+        assert!(!target_in_tag(None, Some(&id("modded:husk")), &id("minecraft:undead")), "only vanilla's own entity types");
+        assert!(!target_in_tag(None, None, &id("minecraft:undead")));
+        assert!(!target_in_tag(None, Some(&husk), &id("tconstruct:killagers")), "an unknown tag matches nothing");
+    }
 }
