@@ -4,7 +4,7 @@ use crate::{common, mining_speed::Context, tool_definitions, tool_mining, tool_p
 use pluto_lib::{BreakSpeedCallback, BreakSpeedContext, Identifier, ItemSlot};
 
 /// The speed after the held tool's modifiers; `Err` names why the held stack is left alone.
-fn compute(dig: &BreakSpeedContext) -> Result<f32, &'static str> {
+fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static str> {
     let held = dig.held.as_ref().ok_or("no held stack")?;
     if !held.custom_data.contains_key(tool_stack::TAG_MATERIALS) { return Err("held stack is not a Tinkers tool"); }
     let item = Identifier::parse(&held.item).map_err(|_| "held item id")?;
@@ -31,21 +31,29 @@ fn compute(dig: &BreakSpeedContext) -> Result<f32, &'static str> {
         block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
         on_ground: dig.player.map(|player| player.on_ground), eyes_in_water: dig.player.map(|player| player.eyes_in_water),
     };
-    Ok(tool_stack::break_speed(&stack.custom_data, &env, &context, dig.speed.get()))
+    let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, &modifiers).len();
+    Ok((tool_stack::break_speed(&stack.custom_data, &env, &context, dig.speed.get()), effective, multiplier, modifier_count))
 }
 
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     // The first reason a dig was left alone is logged once, so a silent no-op is visible in the game log.
     static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    static CALLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    static CHANGED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    static WITH_MODIFIERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     BreakSpeedCallback::EVENT.register(|dig| {
-        if !CALLED.swap(true, std::sync::atomic::Ordering::Relaxed) {
-            eprintln!("Tinkers: break speed hook first called for {} (held: {:?}, player known: {})", dig.block.block, dig.held.as_ref().map(|held| held.item.as_str()), dig.player.is_some());
-        }
         match compute(dig) {
-            Ok(speed) if speed.is_finite() && speed >= 0.0 => dig.speed.set(speed),
-            Ok(_) => {}
+            Ok((speed, effective, multiplier, modifiers)) => {
+                // The first digs, the first digs with modifiers and the first digs a modifier changed are logged with their numbers, to see the hook work in a game log.
+                let changed = (speed - dig.speed.get()).abs() > f32::EPSILON;
+                if CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 2
+                    || (changed && CHANGED.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 6)
+                    || (modifiers > 0 && WITH_MODIFIERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 2) {
+                    eprintln!("Tinkers: break speed {} original {} speed {} -> {} (effective {effective}, multiplier {multiplier}, modifiers {modifiers})", dig.block.block, dig.original, dig.speed.get(), speed);
+                }
+                if speed.is_finite() && speed >= 0.0 { dig.speed.set(speed); }
+            }
             Err(reason) => {
                 if dig.held.is_some() && !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("Tinkers: break speed hook left a dig alone: {reason}"); }
             }
