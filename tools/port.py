@@ -17,7 +17,7 @@ BUNDLE = Path('tconstruct/mixins/tconstruct')
 CONTENT = Path('tconstruct/content')
 # Content-mod inputs are discovered on disk but each must match one reviewed shape.
 CONTENT_PATHS = (
-    re.compile(r'horizon-mod\.toml'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
+    re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:en_us|ja_jp)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
@@ -184,6 +184,11 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
+                continue
+            if name.startswith('assets/tconstruct/lang/'):
+                # A language file: a flat object of translation keys to plain strings.
+                if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
+                    raise ValueError(f'a language file must map keys to strings: {name}')
                 continue
             if '/tags/' in name:
                 if not isinstance(item, dict) or set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):

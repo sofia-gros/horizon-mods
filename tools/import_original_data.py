@@ -149,6 +149,22 @@ def copy_tags():
     return count
 
 
+LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
+LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
+LANGUAGES = ['en_us', 'ja_jp']
+
+
+def copy_lang():
+    """The original's translations for the languages this port ships, byte for byte (modifier, block, item,
+    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n."""
+    if LANG_TARGET.exists():
+        shutil.rmtree(LANG_TARGET)
+    LANG_TARGET.mkdir(parents=True)
+    for language in LANGUAGES:
+        shutil.copyfile(LANG_SOURCE / f'{language}.json', LANG_TARGET / f'{language}.json')
+    return len(LANGUAGES)
+
+
 def main():
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
     head = subprocess.run(['git', '-C', str(ROOT / '.local/tconstruct-source'), 'rev-parse', 'HEAD'],
@@ -185,8 +201,9 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     tags = copy_tags()
+    languages = copy_lang()
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes()
-    print(f'copied {copied} files, {tags} tags and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':
