@@ -57,6 +57,8 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_build.rs',
                 'mixins/tconstruct_native/api/src/tool_parts.rs',
                 'mixins/tconstruct_native/api/src/tool_mining.rs',
+                'mixins/tconstruct_native/api/src/mining_speed.rs',
+                'mixins/tconstruct_native/api/src/break_speed_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_slot.rs',
                 'mixins/tconstruct_native/api/src/tool_station.rs',
                 'mixins/tconstruct_native/api/src/station_menu.rs',
@@ -99,7 +101,7 @@ class CleanPort(unittest.TestCase):
         declared = {}
         for path in (ROOT / port.CONTENT / 'data/tconstruct/horizon/item').glob('*.json'):
             item = json.loads(path.read_text(encoding='utf-8'))
-            size = item.get('components', {}).get('minecraft:max_stack_size')
+            size = item.get('max_stack_size')
             if size is not None:
                 declared[path.stem] = size
         self.assertEqual(table, declared)
