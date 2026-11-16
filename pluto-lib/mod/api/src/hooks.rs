@@ -2062,9 +2062,25 @@ impl Hooks for PlutoHooks {
             if stack.is_some() { break; }
             stack = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item).map(|worn| read_stack(&worn));
         }
-        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false) };
+        let before = stack.clone();
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), custom_data: std::cell::RefCell::new(None) };
         match entity_events_v1::modify_item_damage(&wear) {
-            Some(amount) => { event.amount = amount; Flow::Continue }
+            Some((amount, data)) => {
+                event.amount = amount;
+                // New custom data goes to the main-inventory stack that carried the old (a held tool, usually).
+                if let (Some(data), Some(before)) = (data, before) {
+                    for slot in 0..36 {
+                        let Some(found) = host.carried_stack(slot) else { continue };
+                        if &*found.item == event.item && found.count > 0 && read_stack(found).custom_data == before.custom_data {
+                            let mut written = read_stack(found);
+                            written.custom_data = data;
+                            write_stack(found, &written);
+                            break;
+                        }
+                    }
+                }
+                Flow::Continue
+            }
             None => Flow::Cancel,
         }
     }

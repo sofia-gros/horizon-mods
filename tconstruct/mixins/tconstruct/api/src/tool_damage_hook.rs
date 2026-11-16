@@ -17,9 +17,15 @@ fn random() -> f32 {
     (state >> 40) as f32 / (1u64 << 24) as f32
 }
 
-/// The wear left after the tool's modifiers; the amount unchanged when the stack is not a loaded Tinkers tool.
-pub(crate) fn reduced(stack: &pluto_lib::StackData, amount: i32) -> i32 {
-    with_held_tool(stack, |env, tool| tool_stack::reduce_damage(&tool.custom_data, env, None, amount, &mut random)).unwrap_or(amount)
+/// The wear left after the tool's modifiers and the new tool data when they changed it (the overslime shield soaks first, then each
+/// modifier cancels part of what is left, as ToolDamageUtil.damage does); the amount unchanged when the stack is not a loaded tool.
+pub(crate) fn reduced(stack: &pluto_lib::StackData, amount: i32) -> (i32, Option<pluto_lib::NbtCompound>) {
+    with_held_tool(stack, |env, tool| {
+        let mut data = tool.custom_data.clone();
+        let soaked = crate::overslime::absorb(&mut data, env, None, amount);
+        let left = tool_stack::reduce_damage(&data, env, None, soaked, &mut random);
+        (left, (data != tool.custom_data).then_some(data))
+    }).unwrap_or((amount, None))
 }
 
 /// Registers the callback. Called once from the product's hooks.
@@ -28,8 +34,9 @@ pub(crate) fn register() {
         let Some(stack) = wear.stack.as_ref() else { return; };
         let amount = wear.amount.get();
         if amount <= 0 { return; }
-        let left = reduced(stack, amount);
+        let (left, data) = reduced(stack, amount);
         if left != amount { wear.amount.set(left); }
+        if data.is_some() { *wear.custom_data.borrow_mut() = data; }
     });
 }
 

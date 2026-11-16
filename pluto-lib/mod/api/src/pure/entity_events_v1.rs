@@ -3,6 +3,7 @@
 //! Entities are identified by their numeric id (Fabric passes entity objects); PlutoLib grows the data as modules need it.
 
 use std::cell::{Cell, RefCell};
+use super::base::NbtCompound;
 
 pub use super::entity_spawn_api::{MobSpawnInfo,MobSpawnPreparation,MobSpawnCompletion,MobSpawnAction,MobSpawnCallback};
 use super::base::Event;
@@ -92,6 +93,9 @@ pub struct ItemDamage {
     pub amount: Cell<i32>,
     /// Set to true for no wear at all.
     pub cancel: Cell<bool>,
+    /// New custom data for the worn stack, which a callback may set; written to the stack in the player's main inventory that
+    /// carried the data in `stack` (a worn armor piece is not rewritten).
+    pub custom_data: RefCell<Option<NbtCompound>>,
 }
 
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
@@ -123,10 +127,10 @@ pub(crate) fn modify_knockback(modification: &KnockbackModification) -> Option<(
     if modification.cancel.get() { None } else { Some((modification.strength.get(), modification.x.get(), modification.z.get())) }
 }
 
-/// The wear after the callbacks, or None when a callback cancelled it.
-pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<i32> {
+/// The wear after the callbacks, with the new custom data a callback set, or None when a callback cancelled it.
+pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<(i32, Option<NbtCompound>)> {
     MODIFY_ITEM_DAMAGE.invoke(wear);
-    if wear.cancel.get() { None } else { Some(wear.amount.get()) }
+    if wear.cancel.get() { None } else { Some((wear.amount.get(), wear.custom_data.borrow_mut().take())) }
 }
 
 pub(crate) fn entity_loaded(id: u32, kind: &str, dimension: &str) {
@@ -221,8 +225,8 @@ mod tests {
         assert_eq!(modify_knockback(&push(Some(hammer.clone()), None)), Some((0.8, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, None)), Some((0.4, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, Some(hammer))), None);
-        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, amount: Cell::new(amount), cancel: Cell::new(false) };
-        assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some(2));
+        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, amount: Cell::new(amount), cancel: Cell::new(false), custom_data: RefCell::new(None) };
+        assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
         assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
     }
 
