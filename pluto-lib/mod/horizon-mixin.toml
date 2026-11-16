@@ -1407,3 +1407,12 @@ bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", 
 
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
+
+# The local player's item wear reaches the same mod event a LAN player's does (the game's own hook skips the local player).
+[[injection]]
+id = "pluto-item-wear"
+target = "horizon_client::game::enchant_effects::Game<'_>::wear"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-wear.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "amount", ty = "u32", value = "amount" }]

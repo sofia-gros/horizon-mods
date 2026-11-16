@@ -3,6 +3,7 @@
 //! Entities are identified by their numeric id (Fabric passes entity objects); PlutoLib grows the data as modules need it.
 
 use std::cell::{Cell, RefCell};
+use super::base::NbtCompound;
 
 pub use super::entity_spawn_api::{MobSpawnInfo,MobSpawnPreparation,MobSpawnCompletion,MobSpawnAction,MobSpawnCallback};
 use super::base::Event;
@@ -56,6 +57,49 @@ pub struct DamageModification {
     pub armor: Vec<(String, StackData)>,
 }
 
+/// Knockback about to be applied to a living entity, which callbacks may change or cancel (NeoForge: `LivingKnockBackEvent`).
+#[derive(Clone, Debug)]
+pub struct KnockbackModification {
+    pub entity: i32,
+    pub kind: String,
+    /// The entity that caused it, or a negative id if none.
+    pub attacker: i32,
+    /// The stack in the attacker's main hand, with its damage, max damage and custom data; None for an empty hand or no attacker.
+    pub attacker_main: Option<StackData>,
+    /// The stack in the attacker's off hand; None when empty.
+    pub attacker_off: Option<StackData>,
+    /// The strength now, which callbacks may change with `set`; each callback sees the last one's.
+    pub strength: Cell<f64>,
+    /// The direction the target is pushed away along, on the horizontal plane.
+    pub x: Cell<f64>,
+    pub z: Cell<f64>,
+    /// Set to true for no knockback at all.
+    pub cancel: Cell<bool>,
+}
+
+/// A player's item about to lose durability, which callbacks may change or cancel (NeoForge has no event for it; the vanilla
+/// source is `ItemStack.hurtAndBreak`). It is heard on a server, once for each wear, after Unbreaking has had its say, and not for
+/// a creative player's tools.
+#[derive(Clone, Debug)]
+pub struct ItemDamage {
+    /// The player's uuid and name.
+    pub player: u128,
+    pub name: String,
+    /// The item id of the stack worn.
+    pub item: String,
+    /// The stack as the player holds or wears it (main hand first, then the armor slots), found by its item id; None when none matches.
+    pub stack: Option<StackData>,
+    /// The wear now, which callbacks may change with `set` (0 or less leaves the item whole); each callback sees the last one's.
+    pub amount: Cell<i32>,
+    /// Set to true for no wear at all.
+    pub cancel: Cell<bool>,
+    /// New custom data for the worn stack, which a callback may set; written to the stack in the player's main inventory that
+    /// carried the data in `stack` (a worn armor piece is not rewritten).
+    pub custom_data: RefCell<Option<NbtCompound>>,
+}
+
+static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
+static MODIFY_ITEM_DAMAGE: Event<ItemDamage, ()> = Event::void();
 static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
 static ALLOW_DAMAGE: Event<LivingDamage, bool> = Event::allow_all();
 static AFTER_DEATH: Event<LivingDamage, ()> = Event::void();
@@ -71,6 +115,22 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
+    /// NeoForge: `LivingKnockBackEvent`. Change the strength or direction with `set`, or set `cancel`. Server only.
+    pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
+    /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
+    pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+}
+
+/// The knockback after the callbacks as (strength, x, z), or None when a callback cancelled it.
+pub(crate) fn modify_knockback(modification: &KnockbackModification) -> Option<(f64, f64, f64)> {
+    MODIFY_KNOCKBACK.invoke(modification);
+    if modification.cancel.get() { None } else { Some((modification.strength.get(), modification.x.get(), modification.z.get())) }
+}
+
+/// The wear after the callbacks, with the new custom data a callback set, or None when a callback cancelled it.
+pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<(i32, Option<NbtCompound>)> {
+    MODIFY_ITEM_DAMAGE.invoke(wear);
+    if wear.cancel.get() { None } else { Some((wear.amount.get(), wear.custom_data.borrow_mut().take())) }
 }
 
 pub(crate) fn entity_loaded(id: u32, kind: &str, dimension: &str) {
@@ -147,6 +207,27 @@ mod tests {
         forget_armor(99);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn knockback_and_item_wear_can_be_changed_or_cancelled_by_callbacks() {
+        ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
+            if push.entity != 5151 { return; }
+            if push.attacker_main.as_ref().is_some_and(|stack| stack.item == "example:hammer") { push.strength.set(push.strength.get() * 2.0); }
+            if push.attacker_off.is_some() { push.cancel.set(true); }
+        });
+        ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
+            if wear.name != "wearer" { return; }
+            if wear.item == "example:shield" { wear.cancel.set(true); } else { wear.amount.set(wear.amount.get() - 1); }
+        });
+        let hammer = StackData { item: "example:hammer".into(), count: 1, ..StackData::default() };
+        let push = |main: Option<StackData>, off: Option<StackData>| KnockbackModification { entity: 5151, kind: "minecraft:zombie".into(), attacker: 1, attacker_main: main, attacker_off: off, strength: Cell::new(0.4), x: Cell::new(1.0), z: Cell::new(0.0), cancel: Cell::new(false) };
+        assert_eq!(modify_knockback(&push(Some(hammer.clone()), None)), Some((0.8, 1.0, 0.0)));
+        assert_eq!(modify_knockback(&push(None, None)), Some((0.4, 1.0, 0.0)));
+        assert_eq!(modify_knockback(&push(None, Some(hammer))), None);
+        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, amount: Cell::new(amount), cancel: Cell::new(false), custom_data: RefCell::new(None) };
+        assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
+        assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
     }
 
     #[test]
