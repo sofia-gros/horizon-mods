@@ -2029,6 +2029,61 @@ impl Hooks for PlutoHooks {
         };
         cancel_if(!entity_events_v1::allow_damage(&damage))
     }
+
+    fn living_knockback_v2(&self, event: &mut horizon_client::mod_api::LivingKnockbackV2Event<'_>) -> Flow {
+        let push = entity_events_v1::KnockbackModification {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            attacker: event.attacker,
+            attacker_main: event.attacker_main.map(read_stack),
+            attacker_off: event.attacker_off.map(read_stack),
+            strength: std::cell::Cell::new(event.strength),
+            x: std::cell::Cell::new(event.x),
+            z: std::cell::Cell::new(event.z),
+            cancel: std::cell::Cell::new(false),
+        };
+        match entity_events_v1::modify_knockback(&push) {
+            Some((strength, x, z)) => { event.strength = strength; event.x = x; event.z = z; Flow::Continue }
+            None => Flow::Cancel,
+        }
+    }
+
+    fn item_damaged(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ItemDamagedEvent<'_>) -> Flow {
+        // Player 0 is the local player, whose wear the game's own hook skips and PlutoLib's `pluto-item-wear` injection reports.
+        let (player, name) = if event.player == 0 {
+            match host.acting_player().map(|acting| acting.uuid).or_else(|| sole_player().map(|(uuid, _)| uuid)) {
+                Some(uuid) => (uuid, sole_player().filter(|(known, _)| *known == uuid).map(|(_, name)| name).unwrap_or_default()),
+                None => (0, String::new()),
+            }
+        } else { (event.player, event.name.to_owned()) };
+        // The host names the item but not the stack; the player's hand and armor are searched for one of that item.
+        let mut stack = host.held_stack(player).filter(|held| held.item.to_string() == event.item).map(|held| read_stack(&held));
+        for slot in [horizon_client::mod_api::EquipmentSlot::Feet, horizon_client::mod_api::EquipmentSlot::Legs, horizon_client::mod_api::EquipmentSlot::Chest, horizon_client::mod_api::EquipmentSlot::Head] {
+            if stack.is_some() { break; }
+            stack = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item).map(|worn| read_stack(&worn));
+        }
+        let before = stack.clone();
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), custom_data: std::cell::RefCell::new(None) };
+        match entity_events_v1::modify_item_damage(&wear) {
+            Some((amount, data)) => {
+                event.amount = amount;
+                // New custom data goes to the main-inventory stack that carried the old (a held tool, usually).
+                if let (Some(data), Some(before)) = (data, before) {
+                    for slot in 0..36 {
+                        let Some(found) = host.carried_stack(slot) else { continue };
+                        if &*found.item == event.item && found.count > 0 && read_stack(found).custom_data == before.custom_data {
+                            let mut written = read_stack(found);
+                            written.custom_data = data;
+                            write_stack(found, &written);
+                            break;
+                        }
+                    }
+                }
+                Flow::Continue
+            }
+            None => Flow::Cancel,
+        }
+    }
 }
 
 

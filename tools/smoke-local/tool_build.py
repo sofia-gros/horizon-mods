@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -357,6 +358,52 @@ def main():
         ctl('command', 'gamemode creative')
         assert smite_damage > plain_damage, (plain_damage, smite_damage)
         result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
+
+        # Tool wear: digging three stones wears a plain pickaxe, but not one with ten levels of reinforced (it cancels every point).
+        def unworn_after_digging(extra):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
+            ctl('select', 1)
+            for _ in range(3):
+                ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+                ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+                ctl('wait', '5')
+                ctl('break', *rock, timeout=60)
+            reply = json.dumps(ctl('command', 'data get entity @s SelectedItem'))
+            held = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', reply)
+            print('TOOL WEAR ITEM', reply[:300], flush=True)
+            return 'tconstruct:pickaxe' in reply and (held is None or int(held.group(1)) == 0)
+
+        plain_unworn = unworn_after_digging('')
+        reinforced_unworn = unworn_after_digging(',tic_modifiers:[{level:10,name:"tconstruct:reinforced"}]')
+        ctl('command', 'gamemode creative')
+        print('TOOL WEAR', json.dumps({'plain unworn': plain_unworn, 'reinforced unworn': reinforced_unworn}), flush=True)
+        if not plain_unworn and reinforced_unworn:
+            result['scenarios'].append('digging wears a plain pickaxe but not one with ten levels of reinforced')
+        else:
+            soft_failures.append(f'tool wear: plain pickaxe unworn {plain_unworn}, reinforced unworn {reinforced_unworn}')
+
+        # Overslime: a shield of 20 soaks the wear of three stones, so the pickaxe stays whole and keeps 17.
+        ctl('command', 'gamemode survival')
+        ctl('command', 'clear @s')
+        shield_stats = stats.replace('"tconstruct:mining_speed":2.0f', '"tconstruct:mining_speed":2.0f,"tconstruct:overslime":50.0f')
+        ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{shield_stats},tic_modifiers:[{{level:1,name:"tconstruct:overslime"}}],tic_persistent:{{"tconstruct:overslime":20}}}}] 1')
+        ctl('select', 1)
+        for _ in range(3):
+            ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+            ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+            ctl('wait', '5')
+            ctl('break', *rock, timeout=60)
+        shield_reply = json.dumps(ctl('command', 'data get entity @s SelectedItem'))
+        ctl('command', 'gamemode creative')
+        left = re.search(r'tconstruct:overslime[^0-9]{0,8}(\d+)', shield_reply.split('tic_persistent')[-1]) if 'tic_persistent' in shield_reply else None
+        worn = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', shield_reply)
+        print('OVERSLIME', json.dumps({'shield left': left.group(1) if left else None, 'damage': worn.group(1) if worn else '0'}), flush=True)
+        if left and int(left.group(1)) == 17 and (worn is None or int(worn.group(1)) == 0):
+            result['scenarios'].append('overslime soaks the wear of three stones: shield 20 to 17, pickaxe unworn')
+        else:
+            soft_failures.append(f'overslime: shield left {left.group(1) if left else None}, damage {worn.group(1) if worn else 0}: {shield_reply[:300]}')
 
         # Tool actions: a tool with the stripping modifier strips an oak log, one with tilling tills dirt.
         def use_on(block, extra, modifier):
