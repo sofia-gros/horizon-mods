@@ -20,7 +20,7 @@ CONTENT_PATHS = (
     re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:en_us|ja_jp)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )

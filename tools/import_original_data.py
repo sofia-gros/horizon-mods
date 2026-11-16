@@ -144,6 +144,55 @@ def copy_part_builder_recipes():
     return count
 
 
+DAMAGE_TAG_SOURCE = TAG_SOURCE / 'damage_type'
+DAMAGE_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/tags/damage_types'
+VANILLA_DAMAGE_TAGS = ROOT / '.local/base-26.3/data/minecraft/tags/damage_type'
+
+
+def copy_damage_tags():
+    """Damage-type tags (protection/*, is_melee...). The host has no damage-type tag capture, so the mod reads
+    them from its own folder, like the modifier tags."""
+    count = 0
+    for path in sorted(DAMAGE_TAG_SOURCE.rglob('*.json')):
+        destination = DAMAGE_TAG_TARGET / path.relative_to(DAMAGE_TAG_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(json.loads(path.read_text(encoding='utf-8')), indent=2) + '\n', encoding='utf-8', newline='\n')
+        count += 1
+    return count
+
+
+def write_damage_vanilla():
+    """damage_vanilla.rs: the vanilla damage-type tags the shipped tags and protection modules name, flattened.
+
+    Read from the pinned vanilla data, so a tag is as the game version defines it. The bypass tags are what
+    mantle:can_protect (not bypassing invulnerability, as vanilla's enchantment protection) looks at."""
+    wanted = {'bypasses_invulnerability'}
+    for path in DAMAGE_TAG_SOURCE.rglob('*.json'):
+        for value in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = value if isinstance(value, str) else value.get('id', '')
+            if text.startswith('#minecraft:'):
+                wanted.add(text[len('#minecraft:'):])
+
+    def flatten(name):
+        data = json.loads((VANILLA_DAMAGE_TAGS / f'{name}.json').read_text(encoding='utf-8'))
+        members = []
+        for value in data.get('values', []):
+            text = value if isinstance(value, str) else value['id']
+            if text.startswith('#minecraft:'):
+                members += [m for m in flatten(text[len('#minecraft:'):]) if m not in members]
+            elif text not in members:
+                members.append(text)
+        return members
+
+    lines = ['//! Vanilla damage-type tags the Tinkers damage tags and protection modules name, flattened.',
+             '//! Generated from the pinned vanilla data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for name in sorted(wanted):
+        lines.append(f'    ("{name}", &[' + ', '.join(f'"{m}"' for m in flatten(name)) + ']),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -221,7 +270,8 @@ def main():
     lines += [f'    "{kind}",' for kind in types] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
-    tags = copy_tags()
+    tags = copy_tags() + copy_damage_tags()
+    write_damage_vanilla()
     languages = copy_lang()
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
