@@ -585,6 +585,32 @@ let hit = LivingDamage { entity: 2, kind: "minecraft:cow".into(), damage_type: "
 assert!(ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&hit));
 ```
 
+### `KnockbackModification`
+
+Knockback about to be applied, for a callback to change or cancel. `entity` is the id of the entity pushed and `kind` its type; `attacker` is the id of what caused it, negative for none. `attacker_main` and `attacker_off` are the stacks in the attacker's hands, with damage, max damage and custom data; `None` for an empty hand. `strength`, `x` and `z` are the strength and the horizontal direction now (each a `Cell`: change it with `set`); `cancel` set to true gives no knockback.
+
+```rust
+use pluto_lib::KnockbackModification;
+use std::cell::Cell;
+
+let push = KnockbackModification { entity: 4, kind: "minecraft:zombie".into(), attacker: 1, attacker_main: None, attacker_off: None, strength: Cell::new(0.4), x: Cell::new(1.0), z: Cell::new(0.0), cancel: Cell::new(false) };
+push.strength.set(push.strength.get() * 2.0);
+assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
+```
+
+### `ItemDamage`
+
+A player's item about to lose durability, for a callback to change or cancel. `player` is the player's uuid and `name` their name; `item` is the id of the item worn and `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `custom_data` is new custom data for the stack, which a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data.
+
+```rust
+use pluto_lib::ItemDamage;
+use std::cell::{Cell, RefCell};
+
+let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, amount: Cell::new(3), cancel: Cell::new(false), custom_data: RefCell::new(None) };
+wear.amount.set(wear.amount.get() - 1);
+assert_eq!((wear.amount.get(), wear.cancel.get(), wear.custom_data.borrow().is_none()), (2, false, true));
+```
+
 ### `DamageModification`
 
 Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection.
