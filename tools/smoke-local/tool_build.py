@@ -277,6 +277,24 @@ def main():
         assert smite_damage > plain_damage, (plain_damage, smite_damage)
         result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
 
+        # Tool actions: a tool with the stripping modifier strips an oak log, one with tilling tills dirt.
+        def use_on(block, extra, modifier):
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra},tic_modifiers:[{{level:1,name:"tconstruct:{modifier}"}}]}}] 1')
+            ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+            ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} {block}')
+            ctl('wait', '5')
+            ctl('select', 1)
+            ctl('interact', *rock, 'up')
+            ctl('wait', '5')
+            return ctl('block', *rock)
+
+        stripped = use_on('minecraft:oak_log[axis=y]', '', 'stripping')
+        assert 'stripped_oak_log' in json.dumps(stripped), stripped
+        tilled = use_on('minecraft:dirt', '', 'tilling')
+        assert 'farmland' in json.dumps(tilled), tilled
+        result['scenarios'].append('stripping strips an oak log and tilling tills dirt with a Tinkers tool')
+
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"]}] 1')
