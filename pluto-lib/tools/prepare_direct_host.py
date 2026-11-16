@@ -198,7 +198,7 @@ def prepare(source, output):
     receipt = {'horizon_revision': parsed['compatibility']['horizon_revision'],
                'bundle_sha256': bundle_digest.hexdigest(),
                'attachments': receipts, 'native_verified': False}
-    (output / 'direct-host.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+    (output / 'direct-host.json').write_text(newline='\n', data=json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return receipt
 
 

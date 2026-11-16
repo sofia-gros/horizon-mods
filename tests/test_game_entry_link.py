@@ -27,10 +27,10 @@ class GameEntryLink(unittest.TestCase):
         (game / 'src').mkdir(parents=True)
         (game / 'src/main.rs').write_bytes(entry.MAIN.encode())
         (game / 'Cargo.toml').write_bytes(entry.MANIFEST.encode())
-        (self.stage / 'Cargo.lock').write_text('fixture lock')
+        (self.stage / 'Cargo.lock').write_text(newline='\n', data='fixture lock')
         (self.stage / 'texture.bin').write_bytes(b'embedded fixture asset')
         self.product = {'api/src/lib.rs': b'fixture consumer'}
-        (self.prepared / 'consumer-check.json').write_text(json.dumps({'consumer_inputs': {
+        (self.prepared / 'consumer-check.json').write_text(newline='\n', data=json.dumps({'consumer_inputs': {
             name: hashlib.sha256(data).hexdigest() for name, data in self.product.items()}}))
         self.receipt = {'exit': 0, 'horizon_revision': entry.PIN,
                         'source_sha256': entry.source_digest(self.stage)}
@@ -41,7 +41,7 @@ class GameEntryLink(unittest.TestCase):
         product_patch.start(); self.addCleanup(product_patch.stop)
 
     def save_receipt(self):
-        (self.prepared / 'game-entry-check.json').write_text(json.dumps(self.receipt))
+        (self.prepared / 'game-entry-check.json').write_text(newline='\n', data=json.dumps(self.receipt))
 
     def cargo_result(self, code=0):
         binary = self.target / 'debug/horizon-client.exe'

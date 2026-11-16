@@ -55,7 +55,7 @@ def prepare(prepared):
             dest.write_bytes(data)
     (consumer / 'Cargo.toml').write_text(''.join(lines), encoding='utf-8', newline='\n')
     (probe / 'src').mkdir(parents=True)
-    (probe / 'Cargo.toml').write_text('''[package]
+    (probe / 'Cargo.toml').write_text(newline='\n', data='''[package]
 name = "pluto-clean-linkage"
 version = "0.0.0"
 edition = "2024"
@@ -64,17 +64,17 @@ publish = false
 horizon-client = { path = "../../crates/horizon-client", default-features = false }
 pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }
 tconstruct = { package = "mod-tconstruct", path = "../tconstruct" }
-''', encoding='utf-8', newline='\n')
-    (probe / 'src/main.rs').write_text('''// Diagnostic type composition only; never launch this as the game.
+''', encoding='utf-8')
+    (probe / 'src/main.rs').write_text(newline='\n', data='''// Diagnostic type composition only; never launch this as the game.
 fn main() {
     let _mods: horizon_client::mod_api::Mods = vec![
         pluto_lib::hooks(), tconstruct::hooks(),
     ].into();
 }
-''', encoding='utf-8', newline='\n')
-    workspace.write_text(original.replace('members = [\n',
+''', encoding='utf-8')
+    workspace.write_text(newline='\n', data=original.replace('members = [\n',
         'members = [\n    "native-api/tconstruct",\n    "native-api/clean-linkage",\n', 1),
-        encoding='utf-8', newline='\n')
+        encoding='utf-8')
     return stage, {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
 
 
@@ -85,7 +85,7 @@ def check(prepared):
     code = subprocess.run(command).returncode
     if code == 0:
         code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
-    (prepared / 'consumer-check.json').write_text(json.dumps({
+    (prepared / 'consumer-check.json').write_text(newline='\n', data=json.dumps({
         'exit': code, 'consumer_inputs': inputs,
         'launcher_integration_checked': False, 'binary_linked': False,
         'gameplay_checked': False,

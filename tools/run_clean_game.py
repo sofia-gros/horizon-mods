@@ -106,7 +106,7 @@ def launch(executable, proof, resources, automation=False, content=False):
     print('Development entry only; Tinkers content is not yet playable.' + (' (clean content mod enabled)' if content else ''), flush=True)
     print('Isolated run: ' + str(run), flush=True)
     result = subprocess.run(command, cwd=run, env=env)
-    (run / 'launch.json').write_text(json.dumps({
+    (run / 'launch.json').write_text(newline='\n', data=json.dumps({
         'exit': result.returncode, 'source_sha256': proof['source_sha256'],
         'binary_sha256': proof['binary_sha256'], 'command': command,
         'official_launcher_executed': False, 'gameplay_parity': False,

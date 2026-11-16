@@ -36,8 +36,8 @@ def stage_api_check(stage, bundle):
         raise ValueError('API check input already exists')
     shutil.copytree(source, dest)
     (dest / 'Cargo.toml').write_text(''.join(lines), encoding='utf-8', newline='\n')
-    workspace.write_text(root.replace('members = [\n', 'members = [\n    "native-api/pluto_lib",\n', 1),
-                         encoding='utf-8', newline='\n')
+    workspace.write_text(newline='\n', data=root.replace('members = [\n', 'members = [\n    "native-api/pluto_lib",\n', 1),
+                         encoding='utf-8')
     return parsed['package']['name']
 
 from prepare_direct_host import prepare
@@ -63,7 +63,7 @@ def check_contracts(output):
                str(output / 'plan.json'), str(output / 'horizon'), ','.join(GUARDS),
                str(output / 'direct-host.json')]
     result = subprocess.run(command, capture_output=True, text=True)
-    (output / 'contract-check.json').write_text(json.dumps({
+    (output / 'contract-check.json').write_text(newline='\n', data=json.dumps({
         'command': command, 'exit': result.returncode,
         'stdout': result.stdout, 'stderr': result.stderr,
     }, indent=2) + '\n', encoding='utf-8')
@@ -98,7 +98,7 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     command = [str(mixins), 'plan', '--workspace', str(workspace),
                '--mods', str(output / 'mods'), '--out', str(output / 'plan.json')]
     result = subprocess.run(command, capture_output=True, text=True)
-    (output / 'plan-result.json').write_text(json.dumps({
+    (output / 'plan-result.json').write_text(newline='\n', data=json.dumps({
         'command': command, 'revision': receipt['horizon_revision'],
         'exit': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr,
         'native_compiled': False,
@@ -123,7 +123,7 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     # This compiles host attachments, not the launcher's trait-crate wiring.
     checked = subprocess.run(['cargo', '+1.95.0', 'check', '--offline', '--locked',
                               '--manifest-path', str(stage / 'Cargo.toml'), '-p', 'horizon-client'])
-    (output / 'native-check.json').write_text(json.dumps({
+    (output / 'native-check.json').write_text(newline='\n', data=json.dumps({
         'exit': checked.returncode, 'trait_linkage_checked': False,
         'gameplay_checked': False,
     }, indent=2) + '\n', encoding='utf-8')
@@ -138,7 +138,7 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     api_result = resolved.returncode
     if not api_result:
         api_result = subprocess.run(api_command[:4] + ['--locked'] + api_command[4:]).returncode
-    (output / 'api-check.json').write_text(json.dumps({
+    (output / 'api-check.json').write_text(newline='\n', data=json.dumps({
         'exit': api_result, 'package': package,
         'launcher_integration_checked': False, 'gameplay_checked': False,
     }, indent=2) + '\n', encoding='utf-8')

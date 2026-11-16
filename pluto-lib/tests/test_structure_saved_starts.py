@@ -18,7 +18,7 @@ class StructureSavedStartsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='structure-saved-starts-') as temp:
             source = Path(temp) / 'saved.rs'
             binary = Path(temp) / 'saved.exe'
-            source.write_text(fixture.replace('PRODUCTION_HELPER', '"' + helper + '"'), encoding='utf-8')
+            source.write_text(newline='\n', data=fixture.replace('PRODUCTION_HELPER', '"' + helper + '"'), encoding='utf-8')
             subprocess.run(['rustc', '+1.95.0', '--edition=2021', '--test', str(source), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 

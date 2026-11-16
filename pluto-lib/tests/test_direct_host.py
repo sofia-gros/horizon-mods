@@ -29,7 +29,7 @@ class DirectHostTests(unittest.TestCase):
                 def prepare(source, dest):
                     (dest / 'bundle').mkdir(parents=True)
                     (dest / 'horizon-overlay').mkdir()
-                    (dest / 'bundle/horizon-mixin.toml').write_text('[mod]\nid="pluto_lib"\n')
+                    (dest / 'bundle/horizon-mixin.toml').write_text(newline='\n', data='[mod]\nid="pluto_lib"\n')
                     return {'horizon_revision': pin}
                 def checkout(source, workspace, revision):
                     workspace.mkdir()
@@ -63,7 +63,7 @@ class DirectHostTests(unittest.TestCase):
             root = Path(temp)
             source, stage = root / 'source', root / 'stage'
             config = root / 'gitconfig'
-            config.write_text('[core]\n\tautocrlf = true\n\teol = crlf\n', encoding='utf-8')
+            config.write_text(newline='\n', data='[core]\n\tautocrlf = true\n\teol = crlf\n', encoding='utf-8')
             env = {'GIT_CONFIG_GLOBAL': str(config), 'GIT_CONFIG_NOSYSTEM': '1',
                    'GIT_AUTHOR_NAME': 'Fixture', 'GIT_AUTHOR_EMAIL': 'fixture@example.invalid',
                    'GIT_COMMITTER_NAME': 'Fixture', 'GIT_COMMITTER_EMAIL': 'fixture@example.invalid'}
@@ -89,7 +89,7 @@ class DirectHostTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='direct-api-') as temp:
             stage = Path(temp)
             workspace = stage / 'Cargo.toml'
-            workspace.write_text('[workspace]\nmembers = [\n]\n', encoding='utf-8')
+            workspace.write_text(newline='\n', data='[workspace]\nmembers = [\n]\n', encoding='utf-8')
             package = planner.stage_api_check(stage, ROOT / 'pluto-lib/mod')
             original = tomllib.loads((ROOT / 'pluto-lib/mod/api/Cargo.toml').read_text(encoding='utf-8'))
             rewritten = tomllib.loads((stage / 'native-api/pluto_lib/Cargo.toml').read_text(encoding='utf-8'))
@@ -157,7 +157,7 @@ class DirectHostTests(unittest.TestCase):
             relative = next(iter(direct.STATES.values()))[0]
             path = source / relative
             path.parent.mkdir(parents=True)
-            path.write_text('changed host input', encoding='utf-8')
+            path.write_text(newline='\n', data='changed host input', encoding='utf-8')
             output = Path(temp) / 'output'
             with self.assertRaisesRegex(ValueError, 'fingerprint mismatch'):
                 direct.prepare(source, output)
@@ -222,7 +222,7 @@ fn direct_storage_preserves_owner_and_capture() {
         with tempfile.TemporaryDirectory(prefix='direct-state-') as temp:
             source = Path(temp) / 'states.rs'
             binary = Path(temp) / 'states.exe'
-            source.write_text(rust, encoding='utf-8')
+            source.write_text(newline='\n', data=rust, encoding='utf-8')
             subprocess.run(['rustc', '+1.95.0', '--edition=2021', '--test', str(source), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 

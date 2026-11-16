@@ -14,7 +14,7 @@ class RuntimeSpawnTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='runtime-spawn-') as temp:
             source = Path(temp) / 'spawn.rs'
             binary = Path(temp) / 'spawn.exe'
-            source.write_text(fixture.replace('PRODUCTION_HELPER', '"' + helper + '"'), encoding='utf-8')
+            source.write_text(newline='\n', data=fixture.replace('PRODUCTION_HELPER', '"' + helper + '"'), encoding='utf-8')
             subprocess.run(['rustc', '+1.95.0', '--edition=2021', '--test', str(source), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 

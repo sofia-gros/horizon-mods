@@ -89,8 +89,8 @@ def prepare(prepared):
     (game / 'src').mkdir(parents=True)
     (game / 'Cargo.toml').write_text(MANIFEST, encoding='utf-8', newline='\n')
     (game / 'src/main.rs').write_text(MAIN, encoding='utf-8', newline='\n')
-    workspace.write_text(original.replace('members = [\n', 'members = [\n    "crates/native-game",\n', 1),
-                         encoding='utf-8', newline='\n')
+    workspace.write_text(newline='\n', data=original.replace('members = [\n', 'members = [\n    "crates/native-game",\n', 1),
+                         encoding='utf-8')
     return stage
 
 
@@ -144,7 +144,7 @@ def link(prepared, target):
                '--bin', 'horizon-client', '--message-format=json-render-diagnostics']
     env = dict(os.environ, CARGO_INCREMENTAL='0')
     result = subprocess.run(command, capture_output=True, text=True, env=env)
-    (prepared / 'game-entry-link.log').write_text(result.stdout + '\n' + result.stderr, encoding='utf-8')
+    (prepared / 'game-entry-link.log').write_text(newline='\n', data=result.stdout + '\n' + result.stderr, encoding='utf-8')
     proof = {'exit': result.returncode, 'command': command, 'horizon_revision': PIN,
              'source_sha256': inputs, 'binary_linked': False,
              'official_launcher_executed': False, 'gameplay_checked': False,
@@ -186,7 +186,7 @@ def check(prepared):
         code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
         if source_digest(stage) != inputs:
             code = 1
-    (prepared / 'game-entry-check.json').write_text(json.dumps({
+    (prepared / 'game-entry-check.json').write_text(newline='\n', data=json.dumps({
         'exit': code, 'horizon_revision': PIN, 'source_sha256': inputs,
         'entry_sha256': hashlib.sha256(MAIN.encode()).hexdigest(),
         'manifest_sha256': hashlib.sha256(MANIFEST.encode()).hexdigest(),

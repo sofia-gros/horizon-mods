@@ -229,7 +229,7 @@ def main():
         ctl('quit')
         proc.wait(timeout=90)
         problems = [line for line in (run / 'game.log').read_text(encoding='utf-8', errors='replace').splitlines() if 'Tinkers:' in line]
-        (run / 'tinkers-log.txt').write_text(chr(10).join(problems) + chr(10), encoding='utf-8')
+        (run / 'tinkers-log.txt').write_text(newline='\n', data=chr(10).join(problems) + chr(10), encoding='utf-8')
         result['tinkers_log_lines'] = len(problems)
         result['result'] = 'TOOL BUILD PASS'
         print(json.dumps({**result, 'run': str(run)}))

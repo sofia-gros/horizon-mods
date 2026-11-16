@@ -351,8 +351,8 @@ class BlockEntityPlan(unittest.TestCase):
         import json
         path = Path(self.temp.name) / 'direct-plan.json'
         proof = Path(self.temp.name) / 'direct-receipt.json'
-        path.write_text(json.dumps({}), encoding='utf-8')
-        proof.write_text(json.dumps({'attachments': []}), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps({}), encoding='utf-8')
+        proof.write_text(newline='\n', data=json.dumps({'attachments': []}), encoding='utf-8')
         for names in ('structures', 'block_entities', 'protection'):
             result = subprocess.run([sys.executable, str(ROOT / 'tools/check_sliced_plan.py'),
                 str(path), str(self.workspace), names, str(proof)], capture_output=True, text=True)

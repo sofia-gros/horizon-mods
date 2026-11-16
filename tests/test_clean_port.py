@@ -30,7 +30,7 @@ class CleanPort(unittest.TestCase):
     def test_package_contains_only_checked_product_and_never_overwrites(self):
         output = self.root / '.local/test.hnmod'
         (self.root / 'legacy').mkdir()
-        (self.root / 'legacy/old.rs').write_text('must not ship', encoding='utf-8')
+        (self.root / 'legacy/old.rs').write_text(newline='\n', data='must not ship', encoding='utf-8')
         digest = port.package(self.root, output)
         with zipfile.ZipFile(output) as archive:
             self.assertEqual(set(archive.namelist()), {
@@ -122,28 +122,28 @@ class CleanPort(unittest.TestCase):
             port.package_content(self.root, output)  # packages never overwrite
         item = self.root / port.CONTENT / 'data/tconstruct/horizon/item/pick_head.json'
         for bad in ({'template': 'tconstruct:pick_head'}, {'template': 'minecraft:flint', 'script': 'x'}, []):
-            item.write_text(json.dumps(bad), encoding='utf-8')
+            item.write_text(newline='\n', data=json.dumps(bad), encoding='utf-8')
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
-        item.write_text(json.dumps({'template': 'minecraft:flint'}), encoding='utf-8')
+        item.write_text(newline='\n', data=json.dumps({'template': 'minecraft:flint'}), encoding='utf-8')
         stray = self.root / port.CONTENT / 'data/tconstruct/horizon/entity_type/slime.json'
         stray.parent.mkdir(parents=True)
-        stray.write_text('{}', encoding='utf-8')
+        stray.write_text(newline='\n', data='{}', encoding='utf-8')
         with self.assertRaises(ValueError):
             port.checked_content(self.root, version)  # a file with no reviewed shape
         stray.unlink()
         menu = self.root / port.CONTENT / 'data/tconstruct/horizon/menu/tinker_station.json'
         for bad in ({'slots': 6, 'results': [6]}, {'slots': 0}, {'slots': 6, 'script': 1}):
-            menu.write_text(json.dumps(bad), encoding='utf-8')
+            menu.write_text(newline='\n', data=json.dumps(bad), encoding='utf-8')
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
-        menu.write_text(json.dumps({'slots': 6, 'data_slots': 2, 'results': [5]}), encoding='utf-8')
+        menu.write_text(newline='\n', data=json.dumps({'slots': 6, 'data_slots': 2, 'results': [5]}), encoding='utf-8')
         block = self.root / port.CONTENT / 'data/tconstruct/horizon/block/tinker_station.json'
         for bad in ({'template': 'tconstruct:x'}, {'template': 'minecraft:stone', 'properties': 3}, {'template': 'minecraft:stone', 'script': 1}):
-            block.write_text(json.dumps(bad), encoding='utf-8')
+            block.write_text(newline='\n', data=json.dumps(bad), encoding='utf-8')
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
-        block.write_text(json.dumps({'template': 'minecraft:stone'}), encoding='utf-8')
+        block.write_text(newline='\n', data=json.dumps({'template': 'minecraft:stone'}), encoding='utf-8')
         with self.assertRaises(ValueError):
             port.checked_content(self.root, '9.9.9')  # manifest version must match the native product
 
@@ -157,14 +157,14 @@ class CleanPort(unittest.TestCase):
         stage = prepared / 'applied'
         stage.mkdir(parents=True)
         workspace = stage / 'Cargo.toml'
-        workspace.write_text('[workspace]\nmembers = [\n]\n', encoding='utf-8')
+        workspace.write_text(newline='\n', data='[workspace]\nmembers = [\n]\n', encoding='utf-8')
         receipt = prepared / 'api-check.json'
-        receipt.write_text(json.dumps({'exit': 101, 'package': 'mod-pluto_lib'}))
+        receipt.write_text(newline='\n', data=json.dumps({'exit': 101, 'package': 'mod-pluto_lib'}))
         with patch.object(linkage, 'ROOT', self.root):
             with self.assertRaisesRegex(ValueError, 'successful PlutoLib'):
                 linkage.prepare(prepared)
             self.assertFalse((stage / 'native-api').exists())
-            receipt.write_text(json.dumps({'exit': 0, 'package': 'mod-pluto_lib'}))
+            receipt.write_text(newline='\n', data=json.dumps({'exit': 0, 'package': 'mod-pluto_lib'}))
             _, hashes = linkage.prepare(prepared)
             files = port.checked_files(self.root)[0]
             consumer = stage / 'native-api/tconstruct'
@@ -194,23 +194,23 @@ class CleanPort(unittest.TestCase):
         for crate in ('horizon-client', 'horizon-official'):
             folder = stage / 'crates' / crate
             folder.mkdir(parents=True)
-            (folder / 'Cargo.toml').write_text('[build-dependencies]\nhorizon-mod-api-gen = { path = "../horizon-mod-api-gen" }\nwinresource = "0.1"\n')
+            (folder / 'Cargo.toml').write_text(newline='\n', data='[build-dependencies]\nhorizon-mod-api-gen = { path = "../horizon-mod-api-gen" }\nwinresource = "0.1"\n')
         workspace = stage / 'Cargo.toml'
-        workspace.write_text('[workspace]\nmembers = [\n]\n')
-        (prepared / 'direct-host.json').write_text(json.dumps({'horizon_revision': entry.PIN}))
+        workspace.write_text(newline='\n', data='[workspace]\nmembers = [\n]\n')
+        (prepared / 'direct-host.json').write_text(newline='\n', data=json.dumps({'horizon_revision': entry.PIN}))
         for name in ('native-check', 'api-check'):
-            (prepared / (name + '.json')).write_text('{"exit": 0}')
+            (prepared / (name + '.json')).write_text(newline='\n', data='{"exit": 0}')
         receipt = prepared / 'consumer-check.json'
         hashes = {name: hashlib.sha256(data).hexdigest() for name, data in port.checked_files(self.root)[0].items()}
-        receipt.write_text(json.dumps({'exit': 1, 'consumer_inputs': hashes}))
+        receipt.write_text(newline='\n', data=json.dumps({'exit': 1, 'consumer_inputs': hashes}))
         with patch.object(entry, 'ROOT', self.root):
             with self.assertRaisesRegex(ValueError, 'successful host/API/consumer'):
                 entry.prepare(prepared)
             self.assertFalse((stage / 'crates/native-game').exists())
-            receipt.write_text(json.dumps({'exit': 0, 'consumer_inputs': {}}))
+            receipt.write_text(newline='\n', data=json.dumps({'exit': 0, 'consumer_inputs': {}}))
             with self.assertRaisesRegex(ValueError, 'consumer inputs changed'):
                 entry.prepare(prepared)
-            receipt.write_text(json.dumps({'exit': 0, 'consumer_inputs': hashes}))
+            receipt.write_text(newline='\n', data=json.dumps({'exit': 0, 'consumer_inputs': hashes}))
             entry.prepare(prepared)
             config = port.tomllib.loads((stage / 'crates/native-game/Cargo.toml').read_text())
             self.assertEqual(config['features']['default'], ['horizon-client/default', 'official'])
@@ -243,7 +243,7 @@ class CleanPort(unittest.TestCase):
                     port.package(self.root, output)
                 self.assertFalse(output.exists())
                 path.write_bytes(original)
-        (base / 'orphan.rs').write_text('fn hidden() {}', encoding='utf-8')
+        (base / 'orphan.rs').write_text(newline='\n', data='fn hidden() {}', encoding='utf-8')
         with self.assertRaises(ValueError):
             port.checked_files(self.root)
 
@@ -259,15 +259,15 @@ class CleanPort(unittest.TestCase):
         for task in data['tasks']:
             task.update(status='done', evidence=[{'stage': 'game',
                 'input_digest': 'fixture', 'scenario': 'fixture'}])
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         self.assertEqual(port.release_preflight(self.root), port.checked_files(self.root)[3])
         final = next(task for task in data['tasks'] if task['id'] == 'R5')
         final['evidence'] = [{'stage': 'pure', 'result': 'not runtime evidence'}]
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'gameplay completion'):
             port.release_preflight(self.root)
         data['tasks'].remove(final)
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'whole-product R5'):
             port.release_preflight(self.root)
 
@@ -280,17 +280,17 @@ class CleanPort(unittest.TestCase):
         data['tasks'][1].update(status='blocked', blocker='native authorization not granted')
         mapping = next(t for t in data['tasks'] if t['id'] == 'R3')
         mapping.update(status='pending', evidence=[])
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         self.assertEqual(port.next_task(self.root)['id'], 'R3')
         data['tasks'][1].update(status='done', evidence=[{'stage': 'source', 'result': 'fixture'}])
         mapping.update(status='done', evidence=[{'stage': 'source', 'result': 'fixture'}])
         data['tasks'][2].update(status='done', evidence=[{'stage': 'pure', 'result': 'not a game run'}])
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         with self.assertRaises(ValueError):
             port.plan(self.root)
         data['tasks'][2]['status'] = 'pending'
         data['tasks'][0]['depends_on'] = ['R3']
-        path.write_text(json.dumps(data), encoding='utf-8')
+        path.write_text(newline='\n', data=json.dumps(data), encoding='utf-8')
         with self.assertRaises(ValueError):
             port.plan(self.root)
 

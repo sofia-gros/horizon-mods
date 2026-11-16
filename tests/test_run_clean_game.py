@@ -22,12 +22,12 @@ class CleanGameRun(unittest.TestCase):
         self.prepared = self.root / '.local/clean-port/prepared'
         self.stage = self.prepared / 'applied'
         self.stage.mkdir(parents=True)
-        (self.stage / 'source.rs').write_text('fixture source')
+        (self.stage / 'source.rs').write_text(newline='\n', data='fixture source')
         self.binary = self.root / '.local/cache/game.exe'
         self.binary.parent.mkdir(parents=True)
         self.binary.write_bytes(b'fixture executable')
         for name in ('contract-check', 'native-check', 'api-check', 'consumer-check', 'game-entry-check'):
-            (self.prepared / (name + '.json')).write_text(json.dumps({
+            (self.prepared / (name + '.json')).write_text(newline='\n', data=json.dumps({
                 'exit': 0, 'source_sha256': run.source_digest(self.stage)}))
         self.proof = {'exit': 0, 'binary_linked': True, 'horizon_revision': run.PIN,
                       'source_sha256': run.source_digest(self.stage),
@@ -35,7 +35,7 @@ class CleanGameRun(unittest.TestCase):
         self.save()
 
     def save(self):
-        (self.prepared / 'game-entry-link.json').write_text(json.dumps(self.proof))
+        (self.prepared / 'game-entry-link.json').write_text(newline='\n', data=json.dumps(self.proof))
 
     def check(self):
         return run.checked_executable(self.prepared, self.root / '.local')
@@ -51,7 +51,7 @@ class CleanGameRun(unittest.TestCase):
         for name in ('contract-check', 'native-check', 'api-check', 'consumer-check', 'game-entry-check'):
             path = self.prepared / (name + '.json')
             original = path.read_bytes()
-            path.write_text(json.dumps({'exit': 1}))
+            path.write_text(newline='\n', data=json.dumps({'exit': 1}))
             with self.subTest(prerequisite=name), self.assertRaisesRegex(ValueError, 'failed prerequisite'):
                 self.check()
             path.write_bytes(original)
