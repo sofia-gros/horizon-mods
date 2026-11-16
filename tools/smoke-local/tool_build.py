@@ -487,6 +487,30 @@ def main():
         else:
             soft_failures.append(f'overslime: shield left {left.group(1) if left else None}, damage {worn.group(1) if worn else 0}: {shield_reply[:300]}')
 
+        # Overwield: overslime adds attack speed, so a pickaxe with overwield swings faster after a dig rebuilds its attributes.
+        def swing_speed(modifiers):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{shield_stats},tic_modifiers:[{modifiers}],tic_persistent:{{"tconstruct:overslime":20}}}}] 1')
+            ctl('select', 1)
+            ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+            ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+            ctl('wait', '5')
+            ctl('break', *rock, timeout=60)
+            ctl('wait', '10')
+            reply = json.dumps(ctl('command', 'attribute @s minecraft:attack_speed get'))
+            numbers = re.findall(r'-?\d+(?:\.\d+)?', reply.split('value')[-1] if 'value' in reply else reply)
+            ctl('command', 'gamemode creative')
+            return float(numbers[-1]) if numbers else None
+
+        plain_swing = swing_speed('{level:1,name:"tconstruct:overslime"}')
+        overwield_swing = swing_speed('{level:1,name:"tconstruct:overslime"},{level:2,name:"tconstruct:overwield"}')
+        print('OVERWIELD', json.dumps({'without': plain_swing, 'with': overwield_swing}), flush=True)
+        if plain_swing is not None and overwield_swing is not None and overwield_swing > plain_swing + 0.1:
+            result['scenarios'].append(f'overwield raises the attack speed with overslime: {plain_swing} to {overwield_swing}')
+        else:
+            soft_failures.append(f'overwield: attack speed {plain_swing} without, {overwield_swing} with')
+
         # Tool actions: a tool with the stripping modifier strips an oak log, one with tilling tills dirt.
         def use_on(block, extra, modifier):
             ctl('command', 'clear @s')
