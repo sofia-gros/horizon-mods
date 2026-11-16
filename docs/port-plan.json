@@ -31,6 +31,8 @@
     "api/src/tool_mining.rs",
     "api/src/mining_speed.rs",
     "api/src/break_speed_hook.rs",
+    "api/src/melee_damage.rs",
+    "api/src/melee_hook.rs",
     "api/src/tool_slot.rs",
     "api/src/tool_station.rs",
     "api/src/station_menu.rs",

@@ -31,6 +31,8 @@ mod tool_build;
 mod tool_parts;
 mod tool_mining;
 mod mining_speed;
+mod melee_damage;
+mod melee_hook;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
@@ -48,5 +50,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     worktable_menu::register();
     creative::register();
     break_speed_hook::register();
+    melee_hook::register();
     pluto_lib::no_hooks()
 }

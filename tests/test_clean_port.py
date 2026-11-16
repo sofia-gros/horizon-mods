@@ -60,6 +60,8 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_mining.rs',
                 'mixins/tconstruct_native/api/src/mining_speed.rs',
                 'mixins/tconstruct_native/api/src/break_speed_hook.rs',
+                'mixins/tconstruct_native/api/src/melee_damage.rs',
+                'mixins/tconstruct_native/api/src/melee_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_slot.rs',
                 'mixins/tconstruct_native/api/src/tool_station.rs',
                 'mixins/tconstruct_native/api/src/station_menu.rs',

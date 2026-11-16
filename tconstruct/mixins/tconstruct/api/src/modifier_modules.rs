@@ -64,6 +64,8 @@ pub(crate) enum Module {
     StatOverride,
     /// ConditionalMiningSpeedModule: changes the dig speed of the blocks it names.
     MiningSpeed { module: Box<crate::mining_speed::MiningSpeed>, condition: Condition },
+    /// ConditionalMeleeDamageModule without target or attacker conditions: changes the damage of a melee hit.
+    MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -268,6 +270,12 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:conditional_melee_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_damage" | "tconstruct:monster_melee_damage" | "tconstruct:tooltip")) => {
+                match crate::melee_damage::MeleeDamage::decode(fields)? {
+                    Some(module) => Self::MeleeDamage { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -313,7 +321,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -341,6 +349,15 @@ impl Module {
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
         let Self::MiningSpeed { module, condition } = self else { return speed; };
         module.apply(entry, condition.matches(entry, facts), tool, context, speed)
+    }
+    /// MeleeDamageModifierHook for a conditional melee damage module: the damage after it.
+    pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32) -> f32 {
+        let Self::MeleeDamage { module, condition } = self else { return damage; };
+        module.apply(entry, condition.matches(entry, facts), tool, base, damage)
+    }
+    /// Whether this is a percent melee damage module (None for other modules).
+    pub fn melee_percent(&self) -> Option<bool> {
+        match self { Self::MeleeDamage { module, .. } => Some(module.percent()), _ => None }
     }
     /// The module's priority override, if it is a mining speed module.
     pub fn mining_percent(&self) -> Option<bool> {
@@ -616,7 +633,8 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
-        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage"})).is_none());
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":{"type":"mantle:mob_type","mobs":"minecraft:undead"}})).is_none(), "a target condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","each_level":2.0})).is_some(), "a condition-free melee module is bound");
         for (kind, fields) in [("tconstruct:stat_boost", json!({"stat":"tconstruct:durability","operation":"explode"})),
             ("tconstruct:modifier_slot", json!({"name":"Bad Name"})), ("tconstruct:volatile_int", json!({"flag":"a:b","flat":99999})),
             ("tconstruct:rarity", json!({"rarity":"mythic"})), ("tconstruct:volatile_flag", json!({"flag":"a:b","modifier_level":0})),

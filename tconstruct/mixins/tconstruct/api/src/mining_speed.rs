@@ -34,8 +34,54 @@ pub(crate) enum Variable {
 #[derive(Clone, Debug, PartialEq)]
 enum Shape { Boost { flat: f32, each: f32 }, Percent { flat: f32, each: f32 }, PostFix(Formula, Vec<Variable>) }
 
+/// A stat module's formula (VariableFormula over `level`, the running value, `multiplier` and the base value):
+/// either the simple boost/percent fallback or a post fix formula with tool variables. Shared by the
+/// conditional mining speed and melee damage modules.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct MiningSpeed { blocks: BlockCondition, holder: HolderCondition, require_effective: bool, percent: bool, shape: Shape }
+pub(crate) struct StatFormula { percent: bool, shape: Shape }
+
+impl StatFormula {
+    /// `names` are the four default variable names; `None` when a variable names an input this port does not hold.
+    pub fn decode(fields: &Map<String, Value>, names: &[&str; 4]) -> Result<Option<Self>, String> {
+        let percent = match fields.get("percent") { None | Some(Value::Null) => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("percent must be boolean".into()) };
+        let shape = if let Some(variables) = fields.get("variables") {
+            let formula = fields.get("formula").ok_or("Cannot set variables when not using formula")?;
+            let variables = variables.as_object().ok_or("variables must be an object")?;
+            let mut all: Vec<&str> = names.to_vec();
+            let mut decoded = Vec::new();
+            for (name, value) in variables {
+                if names.contains(&name.as_str()) { return Err(format!("Variable {name} is already defined for this module")); }
+                match Variable::decode(value)? { Some(variable) => decoded.push(variable), None => return Ok(None) }
+                all.push(name);
+            }
+            Shape::PostFix(Formula::decode(formula, &all)?, decoded)
+        } else if let Some(formula) = fields.get("formula") {
+            Shape::PostFix(Formula::decode(formula, names)?, Vec::new())
+        } else if percent {
+            Shape::Percent { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
+        } else {
+            Shape::Boost { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
+        };
+        Ok(Some(Self { percent, shape }))
+    }
+    /// A percent module runs later in the original (priority 75).
+    pub fn percent(&self) -> bool { self.percent }
+    /// The value after the formula: `value` is the running value, `base` the value before any modifier.
+    pub fn eval(&self, entry: &Entry, tool: &ToolView, value: f32, multiplier: f32, base: f32) -> f32 {
+        match &self.shape {
+            Shape::Boost { flat, each } => value + (flat + each * entry.effective_level()) * multiplier,
+            Shape::Percent { flat, each } => value * (1.0 + (flat + each * entry.effective_level())),
+            Shape::PostFix(formula, variables) => {
+                let mut arguments = vec![entry.effective_level(), value, multiplier, base];
+                arguments.extend(variables.iter().map(|variable| variable.value(tool)));
+                formula.apply(&arguments).unwrap_or(value)
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct MiningSpeed { blocks: BlockCondition, holder: HolderCondition, require_effective: bool, formula: StatFormula }
 
 /// What the dig is, for one evaluation.
 pub(crate) struct Context<'a> {
@@ -53,6 +99,10 @@ pub(crate) struct Context<'a> {
 
 /// Tool state a variable reads.
 pub(crate) struct ToolView<'a> { pub nbt: &'a NbtCompound }
+impl ToolView<'_> {
+    /// IToolStackView.getMultiplier.
+    pub fn multiplier(&self, stat: Stat) -> f32 { Variable::StatMultiplier(stat).value(self) }
+}
 
 fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
     match fields.get(key) {
@@ -205,44 +255,18 @@ impl MiningSpeed {
         let blocks = match fields.get("blocks").filter(|value| !value.is_null()) { None => BlockCondition::Any, Some(value) => match BlockCondition::decode(value)? { Some(blocks) => blocks, None => return Ok(None) } };
         let Some(holder) = HolderCondition::decode(fields.get("entity"))? else { return Ok(None); };
         let require_effective = match fields.get("require_effective") { None | Some(Value::Null) => true, Some(Value::Bool(value)) => *value, Some(_) => return Err("require_effective must be boolean".into()) };
-        let percent = match fields.get("percent") { None | Some(Value::Null) => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("percent must be boolean".into()) };
-        let shape = if let Some(variables) = fields.get("variables") {
-            let formula = fields.get("formula").ok_or("Cannot set variables when not using formula")?;
-            let variables = variables.as_object().ok_or("variables must be an object")?;
-            let mut names: Vec<&str> = NAMES.to_vec();
-            let mut decoded = Vec::new();
-            for (name, value) in variables {
-                if NAMES.contains(&name.as_str()) { return Err(format!("Variable {name} is already defined for this module")); }
-                match Variable::decode(value)? { Some(variable) => decoded.push(variable), None => return Ok(None) }
-                names.push(name);
-            }
-            Shape::PostFix(Formula::decode(formula, &names)?, decoded)
-        } else if let Some(formula) = fields.get("formula") {
-            Shape::PostFix(Formula::decode(formula, &NAMES)?, Vec::new())
-        } else if percent {
-            Shape::Percent { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
-        } else {
-            Shape::Boost { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
-        };
-        Ok(Some(Self { blocks, holder, require_effective, percent, shape }))
+        let Some(formula) = StatFormula::decode(fields, &NAMES)? else { return Ok(None); };
+        Ok(Some(Self { blocks, holder, require_effective, formula }))
     }
 
     /// Whether the module is a percent module, which the original runs later (priority 75).
-    pub fn percent(&self) -> bool { self.percent }
+    pub fn percent(&self) -> bool { self.formula.percent() }
 
     /// BreakSpeedModifierHook.modifyBreakSpeed. `condition` is the module's ModifierCondition result.
     pub fn apply(&self, entry: &Entry, condition: bool, tool: &ToolView, context: &Context, speed: f32) -> f32 {
         if (self.require_effective && !context.effective) || !condition || !self.blocks.matches(context.block, context.block_in_tag) || !self.holder.matches(context) { return speed; }
         let tool_multiplier = Variable::StatMultiplier(Stat::MiningSpeed).value(tool);
         let multiplier = context.multiplier * tool_multiplier;
-        match &self.shape {
-            Shape::Boost { flat, each } => speed + (flat + each * entry.effective_level()) * multiplier,
-            Shape::Percent { flat, each } => speed * (1.0 + (flat + each * entry.effective_level())),
-            Shape::PostFix(formula, variables) => {
-                let mut arguments = vec![entry.effective_level(), speed, multiplier, context.original];
-                arguments.extend(variables.iter().map(|variable| variable.value(tool)));
-                formula.apply(&arguments).unwrap_or(speed)
-            }
-        }
+        self.formula.eval(entry, tool, speed, multiplier, context.original)
     }
 }
