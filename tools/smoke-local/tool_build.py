@@ -458,6 +458,20 @@ def main():
             result['scenarios'].append('decay puts wither on the mob it hits')
         else:
             soft_failures.append(f'decay: no wither on the hit mob: {effects_reply[:200]}')
+        # Knockback: the modifier pushes the hit mob further from where it stood than a plain hit does.
+        def hit_push(extra):
+            hit_damage(extra)
+            ctl('wait', '8')
+            pos = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] Pos'))
+            numbers = [float(n) for n in re.findall(r'(-?\d+\.\d+)d', pos)]
+            return ((numbers[0] - rock[0]) ** 2 + (numbers[2] - rock[2]) ** 2) ** 0.5 if len(numbers) >= 3 else None
+        plain_push = hit_push('')
+        knock_push = hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
+        print('KNOCKBACK', json.dumps({'plain': plain_push, 'knockback': knock_push}), flush=True)
+        if plain_push is not None and knock_push is not None and knock_push > plain_push + 0.3:
+            result['scenarios'].append(f'knockback pushes the hit mob further: {knock_push:.2f} blocks against {plain_push:.2f}')
+        else:
+            soft_failures.append(f'knockback: pushed {knock_push} against {plain_push} for a plain hit')
         ctl('command', 'kill @e[type=minecraft:husk]')
         ctl('command', 'gamemode creative')
         if burning_damage > cool_damage + 1.0:
