@@ -40,7 +40,12 @@ pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSl
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
-        let Some(stack) = wear.stack.as_ref() else { return; };
+        static LOGGED: AtomicU64 = AtomicU64::new(0);
+        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 6;
+        let Some(stack) = wear.stack.as_ref() else {
+            if log { eprintln!("Tinkers: item wear of {} by {}: the player's stack was not found", wear.item, wear.amount.get()); }
+            return;
+        };
         let amount = wear.amount.get();
         if amount <= 0 { return; }
         let (left, replacement) = worn(stack, wear.slot.as_ref(), amount);
