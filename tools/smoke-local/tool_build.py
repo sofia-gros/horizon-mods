@@ -180,6 +180,9 @@ def main():
 
         # Repair: a damaged pickaxe in the station is repaired with planks (the wood material).
         ctl('close')
+        # The earlier scenarios left parts in the station's slots: replace the block so the slots are empty.
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} minecraft:air')
+        ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('command', 'clear @s')
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],Damage:20}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
