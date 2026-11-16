@@ -352,9 +352,9 @@ def main():
             ctl('wait', '30')
             ctl('command', 'damage @s 8 minecraft:mob_attack')
             ctl('wait', '10')
-        inventory_reply = json.dumps(ctl('command', 'data get entity @s Inventory'))
+        inventory_reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
         ctl('command', 'gamemode creative')
-        after = inventory_reply.split('plate_helmet', 1)[-1][:2500] if 'plate_helmet' in inventory_reply else ''
+        after = inventory_reply if 'plate_helmet' in inventory_reply else ''
         component_damage = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', after)
         tool_damage = re.search(r'custom_data.{0,1500}?[^_a-z]Damage[^0-9]{0,8}(\d+)', after)
         print('ARMOR WEAR', json.dumps({'component': component_damage.group(1) if component_damage else None, 'tool': tool_damage.group(1) if tool_damage else None}), flush=True)
