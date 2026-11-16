@@ -43,7 +43,6 @@ static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::ne
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     UseItemOnBlockCallback::EVENT.register(|used| {
-        eprintln!("Tinkers: use on block {} at {:?} held {}", used.item, used.pos, used.held.is_some());
         let Some(held) = used.held.as_ref() else { return ActionResult::Pass; };
         let actions = match with_held_tool(held, |env, stack| tool_stack::tool_actions(&stack.custom_data, env)) {
             Ok(actions) => actions,
