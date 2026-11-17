@@ -162,7 +162,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
                 },
-                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()),
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()),
             };
             entity_events_v1::wearer_hit(&hit).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
@@ -1815,6 +1815,12 @@ impl Hooks for PlutoHooks {
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        // Effects the armor's counters put on the wearer land here, where a host is at hand.
+        for grant in entity_events_v1::take_self_effects() {
+            if grant.duration > 0 && grant.amplifier >= 0 {
+                host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: grant.effect, amplifier: u8::try_from(grant.amplifier).unwrap_or(u8::MAX), duration: grant.duration, ambient: false, particles: true });
+            }
+        }
     }
 
     fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {

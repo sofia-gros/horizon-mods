@@ -16,9 +16,10 @@ pub(crate) fn register() {
         };
         for (_, piece) in &hit.armor {
             let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::counter_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { continue; };
-            for grant in grants {
+            for (whom, grant) in grants {
                 if grant.effect.namespace() != "minecraft" { continue; }
-                hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+                let grant = EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration };
+                if whom == crate::weapon_effect::Whom::Wearer { hit.self_effects.borrow_mut().push(grant); } else { hit.effects.borrow_mut().push(grant); }
             }
         }
     });

@@ -636,14 +636,14 @@ assert!(hit.effects.borrow().is_empty());
 
 ### `WearerHit`
 
-A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) and `effects` the effects callbacks push for the mob.
+A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) `effects` the effects callbacks push for the mob and `self_effects` the ones they push for the wearer.
 
 ```rust
 use pluto_lib::{EntityState, WearerHit};
 use std::cell::RefCell;
 
-let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()) };
-assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty());
+let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()) };
+assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty());
 ```
 
 ### `EntityState`
@@ -674,7 +674,7 @@ assert!(hit.attacker_stack.is_none());
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
 
-A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
 ```rust
 use pluto_lib::{EffectGrant, ServerLivingEntityEvents};
