@@ -107,6 +107,8 @@ mod worktable_menu;
 mod part_builder_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_parts.rs"]
 mod creative_parts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_tools.rs"]
+mod creative_tools;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
 mod creative;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]

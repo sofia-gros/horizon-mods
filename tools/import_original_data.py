@@ -61,6 +61,53 @@ def write_creative_parts(skipped):
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
+ARMOR_TOOLS = ['travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
+               'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
+               'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+
+
+def write_creative_tools():
+    """creative_tools.rs: the armor and shield stacks of the Tools tab, as ToolBuildHandler.addVariants lists them.
+
+    Per tool, one material list for each visible material (same order as the parts tab) that has any of the
+    tool's stat types; slots whose stat type the material lacks take the first visible material with it
+    (createSingleMaterial / MaterialRegistry.firstWithStatType).
+    """
+    definitions = {}
+    for path in (TARGET / 'materials/definition').glob('*.json'):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if 'redirect' in data or data.get('hidden', False):
+            continue
+        definitions[path.stem] = data
+    order = sorted(definitions, key=lambda name: (definitions[name].get('tier', 0), definitions[name].get('sortOrder', 100), name, 'tconstruct'))
+    stats = {name: set(json.loads((TARGET / 'materials/stats' / f'{name}.json').read_text(encoding='utf-8')).get('stats', {}))
+             for name in order if (TARGET / 'materials/stats' / f'{name}.json').exists()}
+    source = (ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs').read_text(encoding='utf-8')
+    table = source.split('const PARTS')[1].split('];')[0]
+    part_stat = dict(re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table))
+    lines = ['//! Armor and shield stacks of the Tools creative tab: per tool, the material of each slot for every entry.',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const ARMOR: &[(&str, &[&[&str]])] = &[']
+    for tool in ARMOR_TOOLS:
+        modules = json.loads((TARGET / 'tool_definitions' / f'{tool}.json').read_text(encoding='utf-8'))['modules']
+        required = []
+        for module in modules:
+            if module['type'] == 'tconstruct:part_stats':
+                required = [part_stat[part.split(':')[1]] for part in module['parts']]
+            elif module['type'] == 'tconstruct:material_stats':
+                required = [(entry if isinstance(entry, str) else entry['stat']).split(':')[1] for entry in module['stat_types']]
+        has = lambda name, stat: f'tconstruct:{stat}' in stats.get(name, set())
+        first = [next(name for name in order if has(name, stat)) for stat in required]
+        entries = []
+        for name in order:
+            if any(has(name, stat) for stat in required):
+                entries.append([name if has(name, stat) else first[i] for i, stat in enumerate(required)])
+        rows = ', '.join('&[' + ', '.join(f'"{m}"' for m in entry) + ']' for entry in entries)
+        lines.append(f'    ("{tool}", &[{rows}]),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_tools.rs').write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
+
+
 RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/materials'
 RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/materials'
 
@@ -274,6 +321,7 @@ def main():
     lines += [f'    "{kind}",' for kind in types] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
+    write_creative_tools()
     tags = copy_tags() + copy_damage_tags()
     write_damage_vanilla()
     languages = copy_lang()

@@ -53,6 +53,7 @@ mod tool_station;
 mod station_menu;
 mod break_speed_hook;
 mod creative_parts;
+mod creative_tools;
 mod creative;
 mod conditions;
 mod config;

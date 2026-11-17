@@ -83,6 +83,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/part_builder_menu.rs',
                 'mixins/tconstruct_native/api/src/worktable_menu.rs',
                 'mixins/tconstruct_native/api/src/creative_parts.rs',
+                'mixins/tconstruct_native/api/src/creative_tools.rs',
                 'mixins/tconstruct_native/api/src/creative.rs',
                 'mixins/tconstruct_native/api/src/material_stats.rs',
                 'mixins/tconstruct_native/api/src/material_snapshot.rs',
