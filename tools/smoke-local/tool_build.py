@@ -469,12 +469,25 @@ def main():
         # Melee damage: smite adds damage against undead targets (a husk with no AI stays where it is summoned).
         ctl('command', 'gamemode survival')
 
-        def hit_damage(extra, burning=False):
+        def hit_damage(extra, burning=False, warm_up=False):
             ctl('command', 'kill @e[type=minecraft:husk]')
             ctl('command', 'clear @s')
             ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
             ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
             ctl('wait', '20')
+            if warm_up:
+                # A tool handed over by a command has no published attributes yet; the wear of one hit rebuilds them (the attack
+                # knockback a modifier adds is one), so the measured hit is the second.
+                ctl('select', 1)
+                first = (ctl('entities', 8, 'husk').get('mobs') or [])
+                if first:
+                    ctl('look-at-entity', first[0]['id'])
+                    ctl('wait', '30')
+                    ctl('attack', first[0]['id'])
+                    ctl('wait', '30')
+                ctl('command', 'kill @e[type=minecraft:husk]')
+                ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+                ctl('wait', '20')
             if burning:
                 ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
                 ctl('wait', '5')
@@ -513,7 +526,7 @@ def main():
             soft_failures.append(f'decay: no wither on the hit mob: {effects_reply[:200]}')
         # Knockback: the modifier pushes the hit mob further from where it stood than a plain hit does.
         def hit_push(extra):
-            hit_damage(extra)
+            hit_damage(extra, warm_up=True)
             ctl('wait', '8')
             pos = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] Pos'))
             numbers = [float(n) for n in re.findall(r'(-?\d+\.\d+)d', pos)]
