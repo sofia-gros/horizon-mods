@@ -188,6 +188,14 @@ impl Modifier {
     pub fn effect_immunity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_effect_immunity())
     }
+    /// The inventory modules, in module order.
+    pub fn inventory_parts(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::tool_inventory::Part> {
+        self.modules.iter().filter_map(|module| module.inventory_part(entry, facts)).collect()
+    }
+    /// The keys of the inventory menu modules.
+    pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {
+        self.modules.iter().filter_map(|module| module.inventory_menu_key()).collect()
+    }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())

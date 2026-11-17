@@ -920,3 +920,74 @@ fn shipped_block_damage_modules_block_the_sources_they_name() {
     assert!(blocked("tconstruct:frost_walker", "minecraft:hot_floor"), "frost walker blocks magma damage");
     assert!(!blocked("tconstruct:frost_walker", "minecraft:fall"), "and not a fall");
 }
+
+#[test]
+fn shipped_inventory_modifiers_give_a_tool_its_slots_filters_and_stored_stacks() {
+    use crate::{modifier_entries::List, tool_inventory::{Items, MenuKey, TOTAL_SLOTS}, tool_stack::{inventory, inventory_slots, rebuild_stats, with_persistent, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let boots_id = Identifier::parse("tconstruct:plate_boots").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_boots"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_boots"])]).unwrap();
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&boots_id), item_tags: Some(&armor_tags) };
+    let build = |mods: &[(&str, i32)]| {
+        let mut tool = ItemSlot::new(boots_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (modifier, level) in mods { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+        tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let max_stack = |_: &Identifier| 64;
+    let in_tag = |item: &Identifier, tag: &Identifier| (tag.path() == "slimeball_ammo" && item.path() == "slime_ball") || (tag.path() == "throwable" && item.path() == "snowball");
+    let fits = |_: &Identifier| true;
+    let no_handler = |_: &ItemSlot| false;
+    let items = Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &no_handler };
+
+    // The pocket gives 3 slots a level under its own key; the tool belt 3 plus one a level.
+    let pockets = build(&[("tconstruct:pocket", 2)]);
+    assert_eq!(inventory_slots(&pockets.custom_data), 6);
+    assert_eq!(inventory(&pockets.custom_data, &env).slots(), 6);
+    let belt = build(&[("tconstruct:tool_belt", 1)]);
+    assert_eq!(inventory_slots(&belt.custom_data), 4);
+    // Every modifier counts, and the last one's slots come first.
+    let both = build(&[("tconstruct:pocket", 1), ("tconstruct:tool_belt", 1)]);
+    assert_eq!(inventory_slots(&both.custom_data), 7);
+    let Some(Nbt::Compound(volatile)) = both.custom_data.get("tic_volatile_data") else { panic!("no volatile data") };
+    assert_eq!(volatile.get(TOTAL_SLOTS), Some(&Nbt::Int(7)));
+    let handler = inventory(&both.custom_data, &env);
+    let mut tool = both.clone();
+    with_persistent(&mut tool.custom_data, |persistent| {
+        let rest = handler.insert_item(&items, persistent, 0, ItemSlot::new(id("minecraft:stick"), 70), false);
+        assert_eq!(rest.map(|rest| rest.count), Some(6), "a slot holds a stack of 64 by default");
+        handler.insert_item(&items, persistent, 6, ItemSlot::new(id("minecraft:apple"), 1), false);
+    });
+    let Some(Nbt::Compound(persistent)) = tool.custom_data.get("tic_persistent") else { panic!("no persistent data") };
+    assert!(persistent.contains_key("tconstruct:tool_belt") && persistent.contains_key("tconstruct:pockets"), "each modifier's stacks sit under its own key");
+
+    // Filters and limits come from the data.
+    let sliver = inventory(&build(&[("tconstruct:sliver", 1)]).custom_data, &env);
+    assert!(sliver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:slime_ball"), 1)) && !sliver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:stick"), 1)));
+    assert_eq!(sliver.slot_limit(0), 32);
+    assert_eq!(sliver.pattern(0, false).map(ToString::to_string).as_deref(), Some("tconstruct:slimeball"));
+    assert_eq!(sliver.pattern(0, true), None);
+    let sleeves = inventory(&build(&[("tconstruct:sleeves", 1)]).custom_data, &env);
+    assert!(sleeves.is_item_valid(&items, 2, &ItemSlot::new(id("minecraft:snowball"), 1)) && sleeves.slot_limit(2) == 16);
+    let minimap = inventory(&build(&[("tconstruct:minimap", 1)]).custom_data, &env);
+    assert!(minimap.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:filled_map"), 1)) && !minimap.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:paper"), 1)));
+    assert_eq!(minimap.slot_limit(0), 1);
+    let frame = inventory(&build(&[("tconstruct:item_frame", 2)]).custom_data, &env);
+    assert_eq!((frame.slots(), frame.slot_limit(5)), (6, 1));
+    assert_eq!(inventory(&build(&[("tconstruct:shield_strap", 1)]).custom_data, &env).slots(), 1);
+
+    // The menu modules are bound; the quiver inventories (another module) stay unbound.
+    let keys = |modifier: &str| world.registry.get(&id(modifier)).map(|modifier| modifier.inventory_menu_keys()).unwrap_or_default();
+    assert_eq!(keys("tconstruct:pocket"), vec![MenuKey::Any]);
+    assert_eq!(keys("tconstruct:shield_strap"), vec![MenuKey::Shift]);
+    assert_eq!(keys("tconstruct:tool_belt"), vec![MenuKey::Shift]);
+    assert_eq!(keys("tconstruct:crafting_table"), vec![MenuKey::Any]);
+    assert_eq!(inventory_slots(&build(&[("tconstruct:bulk_quiver", 1)]).custom_data), 0);
+}

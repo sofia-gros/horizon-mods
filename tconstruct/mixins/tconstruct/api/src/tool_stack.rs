@@ -254,10 +254,40 @@ pub(crate) fn try_validate(nbt: &NbtCompound, env: &Environment) -> Option<Strin
         let free = crate::modifier_entries::nbt_int(persistent.get(&name)).wrapping_add(crate::modifier_entries::nbt_int(volatile.get(&name)));
         if free < 0 { return Some(format!("recipe.tconstruct.modifier.validate_slots slot_type.tconstruct.{name}")); }
     }
+    // Stacks that no longer fit the tool's slots stop the change (the move itself is validate_inventory).
+    let mut checked = nbt.clone();
+    if let Err(error) = validate_inventory(&mut checked, env) { return Some(error.to_owned()); }
     let upgrades = List::from_nbt(nbt.get(TAG_UPGRADES));
     with_tool_facts(nbt, env, |_, facts| {
         upgrades.entries().iter().find_map(|entry| env.modifiers.get(&entry.id).and_then(|modifier| modifier.validate_upgrade(entry, facts)))
     })
+}
+
+/// The tool's item handler: every inventory module of its modifiers, the last modifier first (ToolInventoryCapability).
+pub(crate) fn inventory(nbt: &NbtCompound, env: &Environment) -> crate::tool_inventory::ToolInventory {
+    with_tool_facts(nbt, env, |saved, facts| {
+        crate::tool_inventory::ToolInventory::new(saved.iter().rev().flat_map(|(entry, modifier)| modifier.inventory_parts(entry, facts)).collect())
+    })
+}
+
+/// The slots the tool's volatile data counts (ToolInventoryCapability.TOTAL_SLOTS); the capability exists only above zero.
+pub(crate) fn inventory_slots(nbt: &NbtCompound) -> i32 {
+    match nbt.get(TAG_VOLATILE) { Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get(crate::tool_inventory::TOTAL_SLOTS)), _ => 0 }
+}
+
+/// Runs `edit` over the tool's persistent data (the stored stacks live there) and writes it back.
+pub(crate) fn with_persistent<R>(nbt: &mut NbtCompound, edit: impl FnOnce(&mut NbtCompound) -> R) -> R {
+    let mut persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let result = edit(&mut persistent);
+    if persistent.is_empty() { if nbt.contains_key(TAG_PERSISTENT) && !matches!(nbt.get(TAG_PERSISTENT), Some(Nbt::Compound(data)) if data.is_empty()) { nbt.remove(TAG_PERSISTENT); } }
+    else { nbt.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent)); }
+    result
+}
+
+/// InventoryModule.validate over the tool: stacks above a module's slots move down; an error key when they cannot.
+pub(crate) fn validate_inventory(nbt: &mut NbtCompound, env: &Environment) -> Result<(), &'static str> {
+    let handler = inventory(nbt, env);
+    with_persistent(nbt, |persistent| handler.validate(persistent))
 }
 
 /// ToolDamageUtil.damage's modifier loop: each modifier may cancel part of the damage; once nothing

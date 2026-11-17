@@ -28,6 +28,7 @@ impl Condition {
     fn matches(&self, entry: &Entry, facts: &Facts) -> bool {
         self.min <= entry.level && entry.level <= self.max && self.tool.matches(facts)
     }
+    fn tool_matches(&self, facts: &Facts) -> bool { self.tool.matches(facts) }
 }
 
 /// StatBoostModule.StatOperation.
@@ -75,6 +76,12 @@ pub(crate) enum Module {
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
     /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
     EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
+    /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
+    Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
+    /// InventoryMenuModule: the key that opens the tool's inventory screen.
+    InventoryMenu(crate::tool_inventory::MenuKey),
+    /// InventorySlotMenuModule: clicking the tool in the player's inventory opens its inventory screen.
+    InventorySlotMenu,
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
@@ -311,6 +318,16 @@ impl Module {
             "tconstruct:effect_immunity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::EffectImmunity { module: Box::new(crate::effect_immunity::EffectImmunity::decode(fields)?), condition: Condition::decode(fields)? }
             }
+            "tconstruct:inventory" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack")) => {
+                match crate::tool_inventory::Inventory::decode(fields)? {
+                    Some(module) => Self::Inventory { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:inventory_menu" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:armor_interact" | "tconstruct:general_interact")) => {
+                Self::InventoryMenu(crate::tool_inventory::MenuKey::decode(fields)?)
+            }
+            "tconstruct:inventory_slot_menu" if only("tconstruct:slot_stack") => Self::InventorySlotMenu,
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -414,6 +431,11 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
+            Self::Inventory { module, condition } => {
+                // ToolInventoryCapability.addSlots, when the module's condition holds.
+                if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
+            }
+            Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
             Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
@@ -432,6 +454,8 @@ impl Module {
             // Only a module that matches a stored value owns it.
             Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
+            // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
+            Self::Inventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -479,6 +503,15 @@ impl Module {
     pub fn effect_immunity(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, i32)> {
         let Self::EffectImmunity { module, condition } = self else { return None; };
         module.immunity(entry, condition.matches(entry, facts))
+    }
+    /// The inventory this module adds to a tool, with its conditions evaluated against the tool.
+    pub fn inventory_part(&self, entry: &Entry, facts: &Facts) -> Option<crate::tool_inventory::Part> {
+        let Self::Inventory { module, condition } = self else { return None; };
+        Some(crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts)))
+    }
+    /// The key that opens the inventory screen, for an inventory menu module.
+    pub fn inventory_menu_key(&self) -> Option<crate::tool_inventory::MenuKey> {
+        if let Self::InventoryMenu(key) = self { Some(*key) } else { None }
     }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }

@@ -69,6 +69,8 @@ mod weapon_effect;
 mod thorns;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity.rs"]
 mod effect_immunity;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_inventory.rs"]
+mod tool_inventory;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity_hook.rs"]
 mod effect_immunity_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]

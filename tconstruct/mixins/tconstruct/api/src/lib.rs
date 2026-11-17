@@ -41,6 +41,7 @@ mod knockback;
 mod weapon_effect;
 mod thorns;
 mod effect_immunity;
+mod tool_inventory;
 mod effect_immunity_hook;
 mod weapon_effect_hook;
 mod melee_hook;
