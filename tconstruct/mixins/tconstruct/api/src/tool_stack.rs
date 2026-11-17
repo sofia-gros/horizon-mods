@@ -246,6 +246,20 @@ pub(crate) fn effect_immunities(nbt: &NbtCompound, env: &Environment) -> Vec<(Id
     })
 }
 
+/// The claims a worn armor piece makes on attributes through max armor attribute modules, in modifier order.
+pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crate::max_armor::Candidate> {
+    let broken = is_broken(nbt);
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.max_armor_attribute_modules().filter_map(move |module| module.max_armor_candidate(entry, facts, broken)).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The levels a worn armor piece adds under each armor level key, in modifier order.
+pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    let broken = is_broken(nbt);
+    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, broken)).collect::<Vec<_>>()).collect()
+}
+
 /// The damage a worn armor piece's thorns deal to the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and
 /// the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn thorns_hurts(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::thorns::Hurt> {

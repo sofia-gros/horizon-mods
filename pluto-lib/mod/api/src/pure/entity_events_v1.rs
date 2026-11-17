@@ -99,6 +99,9 @@ pub struct PlayerTick {
     pub effects: Vec<(String, i32, i32)>,
     /// The effects to take off the player, which callbacks add to.
     pub remove_effects: RefCell<Vec<String>>,
+    /// The amounts callbacks add to the base value of the player's attributes, as (attribute id, amount), which callbacks push to every tick
+    /// for as long as they want them: an amount no callback names any more is taken off again.
+    pub attribute_additions: RefCell<Vec<(String, f64)>>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -228,6 +231,49 @@ impl ServerLivingEntityEvents {
 pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
     PLAYER_TICK.invoke(tick);
     tick.remove_effects.borrow_mut().drain(..).collect()
+}
+
+static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+static TICKING: std::sync::Mutex<std::collections::BTreeSet<u128>> = std::sync::Mutex::new(std::collections::BTreeSet::new());
+
+/// Whether the player's tick is heard: while they wear armor carrying custom data, and for one tick after the last such piece comes off, so
+/// that what the callbacks kept for the armor (an attribute amount) is let go.
+pub(crate) fn tick_wanted(player: u128, armor_worn: bool) -> bool {
+    let Ok(mut ticking) = TICKING.lock() else { return armor_worn };
+    if armor_worn { ticking.insert(player); true } else { ticking.remove(&player) }
+}
+
+/// The changes to a player's attribute bases for the amounts `wanted` (summed per attribute): (attribute, change, the total then applied).
+/// Nothing is recorded until `attribute_applied` is told the host took the change.
+pub(crate) fn attribute_changes(player: u128, wanted: &[(String, f64)]) -> Vec<(String, f64, f64)> {
+    let mut totals: std::collections::BTreeMap<&str, f64> = std::collections::BTreeMap::new();
+    for (attribute, amount) in wanted { *totals.entry(attribute).or_insert(0.0) += amount; }
+    let Ok(applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let mut changes = Vec::new();
+    for (attribute, total) in &totals {
+        let held = applied.get(&(player, (*attribute).to_owned())).copied().unwrap_or(0.0);
+        if *total != held { changes.push(((*attribute).to_owned(), total - held, *total)); }
+    }
+    for ((who, attribute), held) in applied.iter() {
+        if *who == player && *held != 0.0 && !totals.contains_key(attribute.as_str()) { changes.push((attribute.clone(), -held, 0.0)); }
+    }
+    changes
+}
+
+/// Records that the host took a change: the player's total for the attribute is now `total`.
+pub(crate) fn attribute_applied(player: u128, attribute: &str, total: f64) {
+    if let Ok(mut applied) = ATTRIBUTES.lock() {
+        if total == 0.0 { applied.remove(&(player, attribute.to_owned())); } else { applied.insert((player, attribute.to_owned()), total); }
+    }
+}
+
+/// What a player who leaves holds on their attributes (to take off), forgotten.
+pub(crate) fn forget_attributes(player: u128) -> Vec<(String, f64)> {
+    if let Ok(mut ticking) = TICKING.lock() { ticking.remove(&player); }
+    let Ok(mut applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
+    applied.retain(|(who, _), _| *who != player);
+    held
 }
 
 /// The effects the callbacks put on a mob that hurt the player (`wearer`, the entity id of the player the armor is attributed to); the ones for
@@ -475,9 +521,37 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
+    }
+
+    #[test]
+    fn attribute_amounts_are_applied_once_and_taken_off_when_no_callback_names_them() {
+        let wanted = vec![("minecraft:knockback_resistance".to_string(), 0.1), ("minecraft:knockback_resistance".to_string(), 0.05)];
+        let first = attribute_changes(31, &wanted);
+        assert_eq!(first.len(), 1);
+        assert!((first[0].1 - 0.15).abs() < 1e-12 && (first[0].2 - 0.15).abs() < 1e-12);
+        attribute_applied(31, &first[0].0, first[0].2);
+        assert!(attribute_changes(31, &wanted).is_empty(), "an amount already applied is not applied again");
+        let less = attribute_changes(31, &wanted[..1]);
+        assert!((less[0].1 + 0.05).abs() < 1e-12);
+        attribute_applied(31, &less[0].0, less[0].2);
+        let gone = attribute_changes(31, &[]);
+        assert!((gone[0].1 + 0.1).abs() < 1e-12 && gone[0].2 == 0.0);
+        attribute_applied(31, &gone[0].0, 0.0);
+        assert!(attribute_changes(31, &[]).is_empty());
+        attribute_applied(31, "minecraft:armor", 2.0);
+        assert_eq!(forget_attributes(31), vec![("minecraft:armor".to_string(), 2.0)]);
+        assert!(forget_attributes(31).is_empty());
+    }
+
+    #[test]
+    fn a_player_is_ticked_while_armor_is_worn_and_once_after() {
+        assert!(!tick_wanted(32, false));
+        assert!(tick_wanted(32, true));
+        assert!(tick_wanted(32, false), "one more tick to let go of what the armor kept");
+        assert!(!tick_wanted(32, false));
     }
 
     #[test]

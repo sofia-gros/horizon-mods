@@ -613,14 +613,15 @@ assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_n
 
 ### `PlayerTick`
 
-A server player's tick: `player` is the uuid and `entity` the entity id, `armor` the pieces worn that carry custom data (as (slot, stack)), `effects` the effects on the player as (effect id, amplifier, ticks left) and `remove_effects` the ids callbacks push to take off.
+A server player's tick: `player` is the uuid and `entity` the entity id, `armor` the pieces worn that carry custom data (as (slot, stack)), `effects` the effects on the player as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, and `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the base value of the player's attributes for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again). The tick is heard once more after the last armor piece with custom data comes off, so an amount tied to armor is let go. The host gives no transient modifier call, so the amount moves the saved base value: it is exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
 use std::cell::RefCell;
 
-let tick = PlayerTick { player: 1, entity: 4, armor: Vec::new(), effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()) };
+let tick = PlayerTick { player: 1, entity: 4, armor: Vec::new(), effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()) };
 tick.remove_effects.borrow_mut().push("minecraft:poison".into());
+tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
 ```
 
