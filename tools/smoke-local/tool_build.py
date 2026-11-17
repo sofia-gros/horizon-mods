@@ -430,6 +430,9 @@ def main():
             result['scenarios'].append(f'tempered protection counts against a burning attacker only: {burning_loss} lost against {calm_loss}')
         else:
             soft_failures.append(f'tempered protection: {burning_loss} lost to a burning attacker, {calm_loss} to a calm one')
+        # The hits above push the player away from the arena spot the later tests count their reach from.
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '20')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
