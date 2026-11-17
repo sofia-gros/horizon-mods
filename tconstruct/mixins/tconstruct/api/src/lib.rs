@@ -40,6 +40,8 @@ mod melee_damage;
 mod knockback;
 mod weapon_effect;
 mod thorns;
+mod effect_immunity;
+mod effect_immunity_hook;
 mod weapon_effect_hook;
 mod melee_hook;
 mod part_recycling;
@@ -67,5 +69,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     protection_hook::register();
     tool_damage_hook::register();
     weapon_effect_hook::register();
+    effect_immunity_hook::register();
     pluto_lib::no_hooks()
 }

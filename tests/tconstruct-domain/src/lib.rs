@@ -67,6 +67,10 @@ mod knockback;
 mod weapon_effect;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/thorns.rs"]
 mod thorns;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity.rs"]
+mod effect_immunity;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity_hook.rs"]
+mod effect_immunity_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]
 mod weapon_effect_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]

@@ -894,3 +894,29 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
 }
+
+#[test]
+fn shipped_block_damage_modules_block_the_sources_they_name() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, protection::DamageSource, tool_stack::{blocks_damage, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let boots_id = Identifier::parse("tconstruct:plate_boots").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_boots"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_boots"])]).unwrap();
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&boots_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let blocked = |modifier: &str, damage_type: &str| {
+        let mut tool = ItemSlot::new(boots_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        blocks_damage(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false })
+    };
+    assert!(blocked("tconstruct:long_fall", "minecraft:fall"), "long fall blocks fall damage");
+    assert!(!blocked("tconstruct:long_fall", "minecraft:mob_attack"), "and nothing else");
+    assert!(blocked("tconstruct:frost_walker", "minecraft:hot_floor"), "frost walker blocks magma damage");
+    assert!(!blocked("tconstruct:frost_walker", "minecraft:fall"), "and not a fall");
+}

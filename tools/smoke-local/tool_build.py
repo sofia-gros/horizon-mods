@@ -451,6 +451,46 @@ def main():
             result['scenarios'].append(f'tempered protection counts against a burning attacker only: {burning_loss} lost against {calm_loss}')
         else:
             soft_failures.append(f'tempered protection: {burning_loss} lost to a burning attacker, {calm_loss} to a calm one')
+        # Immunity: a helmet with withered 1 (count 1) takes wither I off its wearer at the tick, and leaves wither II alone.
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:1,name:"tconstruct:withered"}]}]')
+        ctl('wait', '10')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:wither 30 0 true')
+        ctl('wait', '15')
+        first_reply = json.dumps(ctl('command', 'data get entity @s active_effects'))
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:wither 30 1 true')
+        ctl('wait', '15')
+        second_reply = json.dumps(ctl('command', 'data get entity @s active_effects'))
+        ctl('command', 'effect clear @s')
+        ctl('command', 'gamemode creative')
+        print('IMMUNITY', json.dumps({'wither I': 'minecraft:wither' in first_reply, 'wither II': 'minecraft:wither' in second_reply}), flush=True)
+        if 'minecraft:wither' not in first_reply and 'minecraft:wither' in second_reply:
+            result['scenarios'].append('withered takes wither I off the wearer and leaves wither II')
+        else:
+            soft_failures.append(f'effect immunity: wither I kept {"minecraft:wither" in first_reply}, wither II kept {"minecraft:wither" in second_reply}')
+        # Block damage: a helmet with long fall takes all of a fall's damage away, and one without takes it.
+        def fall_loss(modifiers):
+            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + modifiers + '}]')
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            before = ctl('state')['player']['health']
+            ctl('command', 'damage @s 6 minecraft:fall')
+            ctl('wait', '10')
+            lost = before - ctl('state')['player']['health']
+            ctl('command', 'gamemode creative')
+            return lost
+
+        plain_fall = fall_loss('')
+        guarded_fall = fall_loss(',tic_modifiers:[{level:1,name:"tconstruct:long_fall"}]')
+        print('LONG FALL', json.dumps({'plain': plain_fall, 'long fall': guarded_fall}), flush=True)
+        if plain_fall > 0.5 and guarded_fall < 0.01:
+            result['scenarios'].append(f'long fall blocks a fall: {guarded_fall} lost against {plain_fall}')
+        else:
+            soft_failures.append(f'long fall: {guarded_fall} lost with it, {plain_fall} without')
         # The hits above push the player away from the arena spot the later tests count their reach from.
         ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
         ctl('wait', '20')
