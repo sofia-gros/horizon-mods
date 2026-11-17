@@ -611,6 +611,19 @@ wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
+### `PlayerTick`
+
+A server player's tick: `player` is the uuid and `entity` the entity id, `armor` the pieces worn that carry custom data (as (slot, stack)), `effects` the effects on the player as (effect id, amplifier, ticks left) and `remove_effects` the ids callbacks push to take off.
+
+```rust
+use pluto_lib::PlayerTick;
+use std::cell::RefCell;
+
+let tick = PlayerTick { player: 1, entity: 4, armor: Vec::new(), effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()) };
+tick.remove_effects.borrow_mut().push("minecraft:poison".into());
+assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
+```
+
 ### `CounterDamage`
 
 Damage for a callback to deal to the mob that hurt the player: `damage_type` is the damage type id (`minecraft:thorns`) and `amount` the amount.
@@ -681,6 +694,20 @@ let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: N
 hit.amount.set(hit.amount.get() + 2.0);
 assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());
+```
+
+### `ServerLivingEntityEvents::PLAYER_TICK`
+
+A server player's tick, heard while they wear armor carrying custom data (a mod's own armor keeps its state there). It carries the armor and the effects on the player; take effects off them with `remove_effects`. It is how a mod grants immunity to an effect the game gives no call to refuse: the effect is gone by the next tick.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+    if tick.armor.iter().any(|(_, piece)| piece.item == "example:antidote_helmet") && tick.effects.iter().any(|(id, _, _)| id == "minecraft:poison") {
+        tick.remove_effects.borrow_mut().push("minecraft:poison".into());
+    }
+});
 ```
 
 ### `ServerLivingEntityEvents::WEARER_HIT`

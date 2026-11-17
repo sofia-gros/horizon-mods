@@ -180,6 +180,19 @@ pub(crate) fn weapon_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn 
     })
 }
 
+/// The effects a worn armor piece makes its wearer immune to, each with the count the piece adds, in modifier order.
+pub(crate) fn effect_immunities(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut counts = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.effect_immunity_modules() {
+                if let Some(count) = module.effect_immunity(entry, facts) { counts.push(count); }
+            }
+        }
+        counts
+    })
+}
+
 /// The damage a worn armor piece's thorns deal to the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and
 /// the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn thorns_hurts(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::thorns::Hurt> {
