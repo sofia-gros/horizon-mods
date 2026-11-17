@@ -123,6 +123,12 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
 }
 
+/// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
+/// (a tool actions module such as `item_hook`, `drill_attack`, `grapple_hook` or `shield_disable`).
+pub(crate) fn can_perform_action(nbt: &NbtCompound, env: &Environment, name: &str) -> bool {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.can_perform_action(entry, facts, name)))
+}
+
 /// What the tool's modifiers add to the protection cap attribute (boundless).
 pub(crate) fn protection_cap(nbt: &NbtCompound, env: &Environment) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.protection_cap(entry, facts, nbt)).sum())

@@ -168,6 +168,10 @@ impl Modifier {
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
     }
+    /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
+    pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
+        self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))
+    }
     /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
     pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
         self.modules.iter().flat_map(|module| module.attribute_entries(entry, facts, nbt, wanted)).collect()

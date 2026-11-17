@@ -59,8 +59,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     registry.reload(&files("modifiers"), &conditions());
     assert!(registry.problems.is_empty(), "modifiers that do not decode: {:#?}", registry.problems);
     let unbound = (0..).zip(registry.dynamic_ids()).filter(|(_, id)| registry.get(id).is_some_and(|modifier| !modifier.unbound.is_empty())).count();
-    // The baseline of modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert!(unbound <= 300, "{unbound} modifiers carry unported modules");
+    let mut kinds = std::collections::BTreeSet::new();
+    for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
+    // Modifiers with at least one unported module; it only shrinks as modules are ported.
+    assert_eq!((unbound, kinds.len()), (196, 128), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
