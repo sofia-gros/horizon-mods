@@ -61,6 +61,8 @@ mod tool_mining;
 mod mining_speed;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_damage.rs"]
 mod melee_damage;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/conditional_stat.rs"]
+mod conditional_stat;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/knockback.rs"]
 mod knockback;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect.rs"]
@@ -71,6 +73,8 @@ mod thorns;
 mod capacity;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity.rs"]
 mod effect_immunity;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_inventory.rs"]
+mod tool_inventory;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity_hook.rs"]
 mod effect_immunity_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]
