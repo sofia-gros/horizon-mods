@@ -212,6 +212,11 @@ pub(crate) fn take_self_effects() -> Vec<EffectGrant> {
     SELF_EFFECTS.lock().map(|mut queue| std::mem::take(&mut *queue)).unwrap_or_default()
 }
 
+/// The entity id of the only player wearing custom-data armor, which a hit on a player is attributed to.
+pub(crate) fn only_wearer_entity() -> Option<i32> {
+    ARMOR.lock().ok().and_then(|worn| if worn.len() == 1 { worn.keys().next().copied() } else { None })
+}
+
 /// What each player wore, by entity id, for a hit on them: the armor cached by `remember_armor`, for the entity the game names.
 pub(crate) fn armor_of_the_only_wearer() -> Vec<(String, StackData)> {
     ARMOR.lock().ok().and_then(|worn| if worn.len() == 1 { worn.values().next().map(|(_, pieces)| pieces.clone()) } else { None }).unwrap_or_default()

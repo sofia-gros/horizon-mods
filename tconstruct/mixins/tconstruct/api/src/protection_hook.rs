@@ -2,7 +2,7 @@
 //! reduced (or raised) by the armor's protection modifiers, as ToolEvents.livingHurt does in the original.
 //! The event fires after vanilla's armor and enchantment protection; vanilla enchantment protection is taken as 0 points,
 //! so armor that also carries vanilla protection enchantments is protected by it twice.
-use crate::{break_speed_hook::with_held_tool, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
+use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 
@@ -36,7 +36,14 @@ pub(crate) fn register() {
         if hit.armor.is_empty() { return; }
         let Ok(damage_type) = Identifier::parse(&hit.damage.damage_type) else { return; };
         let tags = tags();
-        let source = DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags };
+        // The attacker's entity type tags and what it was doing (the states of a hit by a mob come with the hit).
+        let entities = common::entity_type_snapshot();
+        let attacker_kind = hit.attacker_state.as_ref().and_then(|state| Identifier::parse(&state.kind).ok());
+        let attacker_in_tag = |tag: &Identifier| {
+            if tag.namespace() == crate::melee_damage::STATE_NAMESPACE { return crate::melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), None); }
+            crate::melee_hook::target_in_tag(entities.as_deref(), attacker_kind.as_ref(), tag)
+        };
+        let source = DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags, attacker_in_tag: &attacker_in_tag };
         // Each piece's modifiers see the protection so far, feet to head.
         let mut total = 0.0;
         let mut cap_added = 0.0;

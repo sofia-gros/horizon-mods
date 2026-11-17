@@ -459,7 +459,7 @@ impl Module {
     /// ProtectionModifierHook: the running protection after this module, over a damage source.
     pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         let Self::Protection { module, condition } = self else { return value; };
-        if !condition.matches(entry, facts) || !module.source().matches(source) { return value; }
+        if !condition.matches(entry, facts) || !module.source().matches(source) || !module.attacker_matches(source) { return value; }
         module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
     }
     /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
