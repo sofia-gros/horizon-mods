@@ -380,10 +380,12 @@ def main():
             result['scenarios'].append(f'a hit rebuilds a fresh helmet with its maintained toughness: {before_hit} to {after_hit}')
         else:
             soft_failures.append(f'maintained: toughness {before_hit} before the hit, {after_hit} after')
+        # Husks stand where the mining test will put its stone, a few blocks from the station.
+        husk_at = [xyz[0] - 1, xyz[1], xyz[2] - 2]
         # Counter: a helmet with decay 2 puts wither on the mob that hits its wearer (a husk that damages the player).
         ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:2,name:"tconstruct:decay"}]}]')
         ctl('command', 'kill @e[type=minecraft:husk]')
-        ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+        ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
         ctl('wait', '30')
         ctl('command', 'gamemode survival')
         ctl('command', 'effect clear @s')
@@ -402,7 +404,7 @@ def main():
         # Protection that names the attacker: tempered protection counts against a burning mob only (a husk that is set alight).
         def loss_from_husk(burning):
             ctl('command', 'kill @e[type=minecraft:husk]')
-            ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+            ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
             ctl('wait', '20')
             if burning:
                 ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
@@ -428,6 +430,9 @@ def main():
             result['scenarios'].append(f'tempered protection counts against a burning attacker only: {burning_loss} lost against {calm_loss}')
         else:
             soft_failures.append(f'tempered protection: {burning_loss} lost to a burning attacker, {calm_loss} to a calm one')
+        # The hits above push the player away from the arena spot the later tests count their reach from.
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '20')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
