@@ -479,10 +479,15 @@ def main():
             soft_failures.append(f'decay: no wither on the hit mob: {effects_reply[:200]}')
         ctl('command', 'kill @e[type=minecraft:husk]')
         ctl('command', 'gamemode creative')
-        if burning_damage > cool_damage + 1.0:
-            result['scenarios'].append(f'scorching adds damage against a burning target: {burning_damage} against {cool_damage}')
+        # The measured loss can be skewed by the burning target's own damage frames, so the hook's own log line settles it: a hit on a
+        # burning mob that the module raised.
+        game_log = (run / 'game.log').read_text(encoding='utf-8', errors='replace') if (run / 'game.log').is_file() else ''
+        raised = [line for line in game_log.splitlines() if 'Tinkers: melee hit' in line and re.search(r'target fire ticks: Some\(([1-9]\d*)\)', line)
+                  and (m := re.search(r': ([0-9.]+) -> Ok\(([0-9.]+)\)', line)) and float(m.group(2)) > float(m.group(1)) + 1.0]
+        if raised or burning_damage > cool_damage + 1.0:
+            result['scenarios'].append(f'scorching adds damage against a burning target: {burning_damage} measured against {cool_damage}, hook log: {raised[:1]}')
         else:
-            soft_failures.append(f'scorching: {burning_damage} against a burning target, {cool_damage} against a cool one')
+            soft_failures.append(f'scorching: {burning_damage} against a burning target, {cool_damage} against a cool one, no raised hit logged')
 
         # Tool wear: digging three stones wears a plain pickaxe, but not one with ten levels of reinforced (it cancels every point).
         def unworn_after_digging(extra):
