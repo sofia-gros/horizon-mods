@@ -650,7 +650,7 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id(damage_type);
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false }, 0.0)
     };
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
@@ -822,4 +822,75 @@ fn shipped_maintained_gives_a_helmet_toughness_until_it_is_worn_below_half() {
     let fresh = toughness_at(0);
     assert!(fresh.is_some_and(|amount| amount > 0.0), "a fresh helmet gains toughness: {fresh:?}");
     assert!(toughness_at(400).is_none_or(|amount| amount == 0.0), "a helmet worn below half its durability gains none");
+}
+
+#[test]
+fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
+    use crate::{damage_tags::DamageTags, melee_damage::{state_in_tag, STATE_NAMESPACE}, modifier_entries::List, protection::DamageSource, tool_stack::{protection, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let protection_against = |modifier: &str, attacker: &EntityState, undead: bool| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), 2).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = id("minecraft:mob_attack");
+        let in_tag = |tag: &Identifier| if tag.namespace() == STATE_NAMESPACE { state_in_tag(tag, Some(attacker), None) } else { undead && tag.to_string() == "minecraft:undead" };
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag }, 0.0)
+    };
+    let calm = EntityState { kind: "minecraft:husk".into(), on_ground: true, ..EntityState::default() };
+    let burning = EntityState { fire_ticks: 40, ..calm.clone() };
+    let flying = EntityState { on_ground: false, ..calm.clone() };
+    assert_eq!(protection_against("tconstruct:tempered_protection", &burning, false), 2.5, "against a burning attacker");
+    assert_eq!(protection_against("tconstruct:tempered_protection", &calm, false), 0.0, "against a calm one");
+    assert_eq!(protection_against("tconstruct:consecrated", &calm, true), 2.5, "against the undead");
+    assert_eq!(protection_against("tconstruct:consecrated", &calm, false), 0.0, "against the living");
+    assert_eq!(protection_against("tconstruct:airborn", &flying, false), 2.5, "against an attacker in the air");
+    assert_eq!(protection_against("tconstruct:airborn", &calm, false), 0.0, "against one on the ground");
+}
+
+#[test]
+fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer() {
+    use crate::{modifier_entries::List, tool_stack::{counter_effects, rebuild_stats, weapon_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Whom};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let decay = |level: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:decay").unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let tool = decay(2);
+    let none = |_: &Identifier| false;
+    // The weapon module: wither at the modifier level (per_level 1), 120 ticks, always.
+    // (Decay also brings pierce along, an effect of the original's own that no registration here carries.)
+    let hit = weapon_effects(&tool.custom_data, &env, &none, &mut || 0.0);
+    let wither: Vec<_> = hit.iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    assert_eq!(wither.len(), 1, "{hit:?}");
+    assert_eq!((wither[0].1.amplifier, wither[0].1.duration), (1, 120));
+    // The armor counter: wither II for 120 ticks on the attacker with 50% a level (certain at level 2), and a wither I on the wearer at 10% a level.
+    let counter = counter_effects(&tool.custom_data, &env, &none, &mut || 0.0);
+    let counter: Vec<_> = counter.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    let on_attacker: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Attacker).collect();
+    let on_wearer: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Wearer).collect();
+    assert_eq!(on_attacker.len(), 1, "{counter:?}");
+    assert_eq!((on_attacker[0].1.amplifier, on_attacker[0].1.duration), (1, 120));
+    assert_eq!(on_wearer.len(), 1, "a low roll lands the wearer's wither too: {counter:?}");
+    assert_eq!(on_wearer[0].1.amplifier, 0);
+    let unlucky = counter_effects(&tool.custom_data, &env, &none, &mut || 0.99);
+    let unlucky: Vec<_> = unlucky.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
+    assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
 }

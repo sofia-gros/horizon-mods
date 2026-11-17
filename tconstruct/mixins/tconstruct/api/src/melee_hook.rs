@@ -32,30 +32,40 @@ pub(crate) fn register() {
     // The first few hits are logged with what the hook saw, so a hit it leaves alone is visible in the game log.
     static LOGGED: AtomicUsize = AtomicUsize::new(0);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
-        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 4;
         let Some(held) = hit.attacker_stack.as_ref() else { return; };
         if hit.damage.damage_type != PLAYER_ATTACK { return; }
+        let log = LOGGED.fetch_add(1, Ordering::Relaxed) < 8;
         let amount = hit.amount.get();
         // The target's entity type tags come from the entity type registry captured at the last reload.
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&hit.damage.kind).ok();
-        let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);
+        let in_tag = |tag: &Identifier| {
+            if tag.namespace() == crate::melee_damage::STATE_NAMESPACE { return crate::melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
+            target_in_tag(entities.as_deref(), target.as_ref(), tag)
+        };
         let changed = with_held_tool(held, |env, stack| {
             let base = 1.0 + tool_stack::stat(&stack.custom_data, Stat::AttackDamage);
             tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag)
         });
         if log {
-            eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {})", hit.damage.kind, held.item, amount, changed, entities.is_some());
+            eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {}; attacker sprinting: {:?}; target fire ticks: {:?})",
+                hit.damage.kind, held.item, amount, changed, entities.is_some(),
+                hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks));
         }
         if let Ok(damage) = changed {
             if damage.is_finite() && damage >= 0.0 && damage != amount { hit.amount.set(damage); }
         }
     });
     // Knockback: the modules of the tool in the attacker's hand add to the strength the game worked out.
+    static KNOCKS: AtomicUsize = AtomicUsize::new(0);
     ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
         let Some(held) = push.attacker_main.as_ref() else { return; };
         if push.cancel.get() { return; }
         let strength = push.strength.get();
+        // The strength the game reports for a hit with a Tinkers tool (the tool's attack knockback attribute is part of it).
+        if held.custom_data.contains_key(crate::tool_stack::TAG_MATERIALS) && KNOCKS.fetch_add(1, Ordering::Relaxed) < 12 {
+            eprintln!("Tinkers: knockback strength {strength:.3} on {} with {}", push.kind, held.item);
+        }
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&push.kind).ok();
         let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);

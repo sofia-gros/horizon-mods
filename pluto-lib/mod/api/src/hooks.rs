@@ -154,6 +154,22 @@ pub fn hooks() -> Box<dyn Hooks> {
                 horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
         })
     }}).expect("PlutoLib living load provider installs once");
+    horizon_client::entry::pluto_player_hurt_access::set_sink(horizon_client::entry::pluto_player_hurt_access::Sink {
+        hurt: |hurt| {
+            let hit = entity_events_v1::WearerHit {
+                attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                attacker_state: entity_events_v1::EntityState {
+                    kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
+                    fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
+                },
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()),
+            };
+            // The damage event that follows carries the attacker's state, for the protection that conditions on it.
+            let wearer = entity_events_v1::only_wearer_entity();
+            if let Some(wearer) = wearer { entity_events_v1::hit_states(wearer, Some(hit.attacker_state.clone()), None); }
+            entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
+        },
+    }).expect("PlutoLib player hurt sink installs once");
     horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
         attributes:|kind| {
             let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
@@ -1802,6 +1818,21 @@ impl Hooks for PlutoHooks {
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        // Damage the armor's thorns deal to the mobs that hit the wearer lands here, as hurt by the player.
+        for (mob, damage) in entity_events_v1::take_counter_damage(player.entity_id) {
+            // Thorns hurt the mob as the player does, which reaches the weapon-hit hook; that hit is not the player's weapon.
+            if let Ok(target) = u32::try_from(mob) {
+                COUNTER_HURT.with(|flag| flag.set(true));
+                host.hurt_entity(&player.dimension, target, damage.amount, &damage.damage_type, u32::try_from(player.entity_id).ok());
+                COUNTER_HURT.with(|flag| flag.set(false));
+            }
+        }
+        // Effects the armor's counters put on the wearer land here, where a host is at hand.
+        for grant in entity_events_v1::take_self_effects(player.entity_id) {
+            if grant.duration > 0 && grant.amplifier >= 0 {
+                host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: grant.effect, amplifier: u8::try_from(grant.amplifier).unwrap_or(u8::MAX), duration: grant.duration, ambient: false, particles: true });
+            }
+        }
     }
 
     fn player_logged_out(&self, host: &mut dyn Host, event: &mut PlayerLoggedOutEvent<'_>) {
@@ -2030,6 +2061,53 @@ impl Hooks for PlutoHooks {
         cancel_if(!entity_events_v1::allow_damage(&damage))
     }
 
+    fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
+        if COUNTER_HURT.with(|flag| flag.get()) { return Flow::Continue; }
+        // A player's weapon hit on a mob: what both were doing is remembered for the damage event that follows in the same call.
+        let state_of = |host: &dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
+            let entity = host.entity(u32::try_from(id).ok()?)?;
+            Some(entity_events_v1::EntityState {
+                kind: host.entity_kind(entity)?,
+                sprinting: host.entity_is_sprinting(entity).unwrap_or(false),
+                on_ground: host.entity_on_ground(entity).unwrap_or(true),
+                in_water: host.entity_is_in_water(entity).unwrap_or(false),
+                fire_ticks: host.entity_fire_ticks(entity).unwrap_or(0),
+                fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
+            })
+        };
+        // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
+        // server's list of players: what that list says (sprinting, on the ground) and their effects.
+        let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
+            // The player list names the attacker by entity id (0 for the owner of a single-player world, who is the acting player).
+            let player = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing))?;
+            Some(entity_events_v1::EntityState {
+                kind: "minecraft:player".to_owned(),
+                sprinting: player.sprinting,
+                on_ground: player.on_ground,
+                in_water: false,
+                fire_ticks: 0,
+                fire_immune: false,
+                effects: host.effects(player.uuid).map(|effects| effects.into_iter().map(|effect| effect.id).collect()).unwrap_or_default(),
+            })
+        };
+        let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
+        let target_state = state_of(host, event.entity);
+        entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
+        // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
+        let hit = entity_events_v1::WeaponHit {
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
+            attacker_state, target_state, effects: std::cell::RefCell::new(Vec::new()),
+        };
+        if let Ok(entity) = u32::try_from(event.entity) {
+            for grant in entity_events_v1::weapon_hit(&hit) {
+                horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
+        Flow::Continue
+    }
+
     fn living_knockback_v2(&self, event: &mut horizon_client::mod_api::LivingKnockbackV2Event<'_>) -> Flow {
         let push = entity_events_v1::KnockbackModification {
             entity: event.entity,
@@ -2099,6 +2177,12 @@ impl Hooks for PlutoHooks {
     }
 }
 
+
+thread_local! {
+    /// Set while the player's counter damage (thorns) is being dealt: the hurt reaches the weapon-hit hook, which must not treat it as a hit
+    /// with the player's weapon.
+    static COUNTER_HURT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
 
 /// The players logged in, kept so an action the host does not name a player for can still be given one.
 static LOGGED_IN: std::sync::Mutex<Vec<(u128, String)>> = std::sync::Mutex::new(Vec::new());
