@@ -25,7 +25,7 @@ pub(crate) fn random() -> f32 {
 pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSlot>, amount: i32) -> (i32, Option<pluto_lib::ItemSlot>) {
     let Ok(result) = with_held_tool(stack, |env, tool| {
         let mut data = tool.custom_data.clone();
-        let soaked = crate::overslime::absorb(&mut data, env, None, amount);
+        let soaked = crate::capacity::absorb(&mut data, env, None, amount, &mut random);
         let left = tool_stack::reduce_damage(&data, env, None, soaked, &mut random);
         let replacement = slot.and_then(|slot| {
             let mut next = slot.clone();

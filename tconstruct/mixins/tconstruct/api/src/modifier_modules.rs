@@ -34,6 +34,24 @@ impl Condition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation { Add, Percent, MultiplyBase, MultiplyConditional, MultiplyAll }
 
+/// The shipped presentation-only modules. Tinkers has no client text/colour rendering to feed, so these are
+/// recorded with their data and have no effect on game state (in the original they only style names, bars and tooltips).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Display {
+    /// ShowInteractionSourceModule (display name).
+    InteractionSource,
+    /// MaterialVariantColorModule (display name): colours the name by the tool's material.
+    MaterialVariantColor { material: Identifier },
+    /// DurabilityBarColorModule (durability display): a fixed RGB bar colour.
+    DurabilityColor { color: i32 },
+    /// ModifierVariantColorModule (display name).
+    VariantColor,
+    /// ModifierVariantNameModule (display name): the formatter that appends the variant.
+    VariantName { formatter: Identifier },
+    /// StatTooltipModule (tooltip): the stat line it adds.
+    StatTooltip { stat: Identifier, condition: Condition },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
@@ -75,11 +93,19 @@ pub(crate) enum Module {
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
     /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
     EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
+    /// CapacityBarModule: a bar in persistent data under the modifier's ID.
+    CapacityBar { bar: crate::capacity::Bar },
+    /// DurabilityShieldModule: soaks tool wear from the modifier's capacity bar.
+    DurabilityShield { shield: crate::capacity::Shield },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
     CounterEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
+    /// A presentation-only module (display name, durability bar, tooltip): it changes no tool state, so the port records it and its data.
+    Display(Display),
+    /// ToolActionsModule (ToolActionModifierHook): answers whether the tool can perform each named tool action.
+    ToolActions { actions: Vec<String>, condition: Condition },
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
@@ -308,6 +334,12 @@ impl Module {
                 let source = match fields.get("damage_source") { None | Some(Value::Null) => crate::protection::SourceCondition::Any, Some(value) => match crate::protection::SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
                 Self::BlockDamage { source, condition: Condition::decode(fields)? }
             }
+            "tconstruct:capacity_bar" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:capacity_bar") => {
+                match crate::capacity::Bar::decode(fields)? { Some(bar) => Self::CapacityBar { bar }, None => return Ok(None) }
+            }
+            "tconstruct:durability_shield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_damage" | "tconstruct:durability_display")) => {
+                match crate::capacity::Shield::decode(fields)? { Some(shield) => Self::DurabilityShield { shield }, None => return Ok(None) }
+            }
             "tconstruct:effect_immunity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::EffectImmunity { module: Box::new(crate::effect_immunity::EffectImmunity::decode(fields)?), condition: Condition::decode(fields)? }
             }
@@ -334,6 +366,23 @@ impl Module {
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
                 Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
+            }
+            // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
+            "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
+            "tconstruct:variant_color" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::VariantColor),
+            "tconstruct:material_variant_color" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::MaterialVariantColor { material: identifier(fields, "material")? }),
+            "tconstruct:variant_name" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::VariantName { formatter: identifier(fields, "formatter")? }),
+            "tconstruct:durability_color" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:durability_display") => {
+                let text = fields.get("color").and_then(Value::as_str).ok_or("color must be a hex string")?;
+                let color = i32::from_str_radix(text.trim_start_matches('#'), 16).ok().filter(|color| (0..=0xFF_FFFF).contains(color)).ok_or("color must be an RGB hex value")?;
+                Self::Display(Display::DurabilityColor { color })
+            }
+            "tconstruct:stat_tooltip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tooltip") => Self::Display(Display::StatTooltip { stat: identifier(fields, "stat")?, condition: Condition::decode(fields)? }),
+            "tconstruct:tool_actions" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_action") => {
+                let names = fields.get("tool_actions").and_then(Value::as_array).ok_or("tool_actions must be an array")?;
+                let mut actions = Vec::new();
+                for name in names { let name = name.as_str().filter(|name| !name.is_empty()).ok_or("tool action must be a name")?; if !actions.iter().any(|known| known == name) { actions.push(name.to_owned()); } }
+                Self::ToolActions { actions, condition: Condition::decode(fields)? }
             }
             "tconstruct:constant_enchantment" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
                 let name = identifier(fields, "name")?.to_string();
@@ -414,7 +463,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -432,6 +481,8 @@ impl Module {
             // Only a module that matches a stored value owns it.
             Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
+            // CapacityBarValidator.onRemoved empties the bar.
+            Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -480,6 +531,10 @@ impl Module {
         let Self::EffectImmunity { module, condition } = self else { return None; };
         module.immunity(entry, condition.matches(entry, facts))
     }
+    /// The capacity bar this module declares.
+    pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { match self { Self::CapacityBar { bar } => Some(bar), _ => None } }
+    /// The durability shield this module declares.
+    pub fn shield(&self) -> Option<&crate::capacity::Shield> { match self { Self::DurabilityShield { shield } => Some(shield), _ => None } }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
     /// Whether this is a thorns module.
@@ -512,6 +567,11 @@ impl Module {
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
+    }
+    /// ToolActionModifierHook.canPerformAction for a tool actions module (ToolActionsModule): whether `name` is one of its actions.
+    pub fn can_perform_action(&self, entry: &Entry, facts: &Facts, name: &str) -> bool {
+        let Self::ToolActions { actions, condition } = self else { return false; };
+        condition.matches(entry, facts) && actions.iter().any(|action| action == name)
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
@@ -801,6 +861,28 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"entity":{"type":"tconstruct:sneaking"}})).is_none());
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$light"],"variables":{"light":{"type":"tconstruct:entity"}}})).is_none());
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"cause":{"type":"mantle:and"}})).is_none());
+    }
+    #[test]
+    fn tool_actions_answer_only_their_named_actions_and_display_modules_change_nothing() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("test:m"), 1);
+        let actions = decode(json!({"type":"tconstruct:tool_actions","tool_actions":["drill_attack","item_hook"]})).unwrap();
+        assert!(actions.can_perform_action(&entry, &f, "item_hook") && !actions.can_perform_action(&entry, &f, "grapple_hook"));
+        let late = decode(json!({"type":"tconstruct:tool_actions","tool_actions":["shield_disable"],"modifier_level":{"min":2}})).unwrap();
+        assert!(!late.can_perform_action(&entry, &f, "shield_disable"), "the level condition gates the action");
+        // Every presentation module keeps its data and leaves the volatile data alone.
+        for value in [json!({"type":"tconstruct:show_interaction_source"}), json!({"type":"tconstruct:variant_color"}),
+            json!({"type":"tconstruct:material_variant_color","material":"tconstruct:wool"}), json!({"type":"tconstruct:durability_color","color":"FFFFFF"}),
+            json!({"type":"tconstruct:variant_name","formatter":"tconstruct:parameter"}), json!({"type":"tconstruct:stat_tooltip","stat":"tconstruct:hunger"})] {
+            let module = decode(value.clone()).unwrap_or_else(|| panic!("{value} is unbound"));
+            let mut data = NbtCompound::new();
+            module.apply_volatile(&entry, &f, &mut data);
+            assert!(data.is_empty());
+        }
+        assert_eq!(decode(json!({"type":"tconstruct:durability_color","color":"00ff80"})), Some(Module::Display(Display::DurabilityColor { color: 0x00FF80 })));
+        assert!(Module::decode("tconstruct:durability_color", json!({"color":"zz"}).as_object().unwrap(), &[]).is_err());
+        assert!(decode(json!({"type":"tconstruct:show_interaction_source","hooks":["tconstruct:tooltip"]})).is_none(), "a foreign hook binding stays unbound");
     }
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {

@@ -82,7 +82,7 @@ pub(crate) fn damage_slot(
     let before = slot.custom_data.clone();
     let outcome = tool_damage::damage_tool_reduced(&mut slot.custom_data, amount, consumes_resources, has_durability_tag,
         // Overslime soaks damage before any other reduction.
-        &mut |nbt, amount| { let amount = crate::overslime::absorb(nbt, env, cause, amount); crate::tool_stack::reduce_damage(nbt, env, cause, amount, random) });
+        &mut |nbt, amount| { let amount = crate::capacity::absorb(nbt, env, cause, amount, random); crate::tool_stack::reduce_damage(nbt, env, cause, amount, random) });
     // The shield (persistent data) can change without any wear landing, and the attributes that follow it must follow.
     if outcome.applied > 0 || slot.custom_data != before { sync_visuals(slot, env)?; }
     Ok(outcome)

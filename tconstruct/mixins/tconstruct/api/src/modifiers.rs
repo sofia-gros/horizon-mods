@@ -168,6 +168,10 @@ impl Modifier {
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
     }
+    /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
+    pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
+        self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))
+    }
     /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
     pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
         self.modules.iter().flat_map(|module| module.attribute_entries(entry, facts, nbt, wanted)).collect()
@@ -184,6 +188,10 @@ impl Modifier {
     pub fn block_damage_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_block_damage())
     }
+    /// The first capacity bar module (the bar a shield of this modifier drains).
+    pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { self.modules.iter().find_map(|module| module.capacity_bar()) }
+    /// The durability shields.
+    pub fn shields(&self) -> impl Iterator<Item = &crate::capacity::Shield> { self.modules.iter().filter_map(|module| module.shield()) }
     /// The effect immunity modules.
     pub fn effect_immunity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_effect_immunity())
