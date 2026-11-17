@@ -650,7 +650,7 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id(damage_type);
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false }, 0.0)
     };
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
@@ -822,4 +822,37 @@ fn shipped_maintained_gives_a_helmet_toughness_until_it_is_worn_below_half() {
     let fresh = toughness_at(0);
     assert!(fresh.is_some_and(|amount| amount > 0.0), "a fresh helmet gains toughness: {fresh:?}");
     assert!(toughness_at(400).is_none_or(|amount| amount == 0.0), "a helmet worn below half its durability gains none");
+}
+
+#[test]
+fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
+    use crate::{damage_tags::DamageTags, melee_damage::{state_in_tag, STATE_NAMESPACE}, modifier_entries::List, protection::DamageSource, tool_stack::{protection, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let protection_against = |modifier: &str, attacker: &EntityState, undead: bool| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), 2).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = id("minecraft:mob_attack");
+        let in_tag = |tag: &Identifier| if tag.namespace() == STATE_NAMESPACE { state_in_tag(tag, Some(attacker), None) } else { undead && tag.to_string() == "minecraft:undead" };
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag }, 0.0)
+    };
+    let calm = EntityState { kind: "minecraft:husk".into(), on_ground: true, ..EntityState::default() };
+    let burning = EntityState { fire_ticks: 40, ..calm.clone() };
+    let flying = EntityState { on_ground: false, ..calm.clone() };
+    assert_eq!(protection_against("tconstruct:tempered_protection", &burning, false), 2.5, "against a burning attacker");
+    assert_eq!(protection_against("tconstruct:tempered_protection", &calm, false), 0.0, "against a calm one");
+    assert_eq!(protection_against("tconstruct:consecrated", &calm, true), 2.5, "against the undead");
+    assert_eq!(protection_against("tconstruct:consecrated", &calm, false), 0.0, "against the living");
+    assert_eq!(protection_against("tconstruct:airborn", &flying, false), 2.5, "against an attacker in the air");
+    assert_eq!(protection_against("tconstruct:airborn", &calm, false), 0.0, "against one on the ground");
 }

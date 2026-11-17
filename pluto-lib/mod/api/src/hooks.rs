@@ -164,6 +164,8 @@ pub fn hooks() -> Box<dyn Hooks> {
                 },
                 armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()),
             };
+            // The damage event that follows carries the attacker's state, for the protection that conditions on it.
+            if let Some(wearer) = entity_events_v1::only_wearer_entity() { entity_events_v1::hit_states(wearer, Some(hit.attacker_state.clone()), None); }
             entity_events_v1::wearer_hit(&hit).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
