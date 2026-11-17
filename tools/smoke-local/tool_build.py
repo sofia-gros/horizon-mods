@@ -531,13 +531,21 @@ def main():
             pos = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] Pos'))
             numbers = [float(n) for n in re.findall(r'(-?\d+\.\d+)d', pos)]
             return ((numbers[0] - rock[0]) ** 2 + (numbers[2] - rock[2]) ** 2) ** 0.5 if len(numbers) >= 3 else None
-        plain_push = hit_push('')
-        knock_push = hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
-        print('KNOCKBACK', json.dumps({'plain': plain_push, 'knockback': knock_push}), flush=True)
-        if plain_push is not None and knock_push is not None and knock_push > plain_push + 0.3:
-            result['scenarios'].append(f'knockback pushes the hit mob further: {knock_push:.2f} blocks against {plain_push:.2f}')
+        # A mob without AI does not move, so the push is read as the strength the game reports for the hit (the hook logs it).
+        def knock_strengths():
+            text = (run / 'game.log').read_text(encoding='utf-8', errors='replace') if (run / 'game.log').is_file() else ''
+            return [float(m.group(1)) for m in re.finditer(r'Tinkers: knockback strength ([0-9.]+) on', text)]
+        before_plain = len(knock_strengths())
+        hit_push('')
+        plain_strengths = knock_strengths()[before_plain:]
+        before_knock = len(knock_strengths())
+        hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
+        knock_values = knock_strengths()[before_knock:]
+        print('KNOCKBACK', json.dumps({'plain hits': plain_strengths, 'knockback hits': knock_values}), flush=True)
+        if plain_strengths and knock_values and max(knock_values) > max(plain_strengths) + 0.1:
+            result['scenarios'].append(f'knockback raises the strength of a hit: {max(knock_values)} against {max(plain_strengths)}')
         else:
-            soft_failures.append(f'knockback: pushed {knock_push} against {plain_push} for a plain hit')
+            soft_failures.append(f'knockback: strengths {knock_values} against {plain_strengths} for plain hits')
         ctl('command', 'kill @e[type=minecraft:husk]')
         ctl('command', 'gamemode creative')
         # The measured loss can be skewed by the burning target's own damage frames, so the hook's own log line settles it: a hit on a

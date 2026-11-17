@@ -57,10 +57,15 @@ pub(crate) fn register() {
         }
     });
     // Knockback: the modules of the tool in the attacker's hand add to the strength the game worked out.
+    static KNOCKS: AtomicUsize = AtomicUsize::new(0);
     ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
         let Some(held) = push.attacker_main.as_ref() else { return; };
         if push.cancel.get() { return; }
         let strength = push.strength.get();
+        // The strength the game reports for a hit with a Tinkers tool (the tool's attack knockback attribute is part of it).
+        if held.custom_data.contains_key(crate::tool_stack::TAG_MATERIALS) && KNOCKS.fetch_add(1, Ordering::Relaxed) < 12 {
+            eprintln!("Tinkers: knockback strength {strength:.3} on {} with {}", push.kind, held.item);
+        }
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&push.kind).ok();
         let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);
