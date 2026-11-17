@@ -25,4 +25,6 @@ A player's weapon hit on a mob now reaches the mods with what the player and the
 
 A server player's tick reaches the mods while they wear armor carrying custom data (`ServerLivingEntityEvents::PLAYER_TICK`, from the game's own player tick hook), and the effect immunity modules (`mithridatism`, `shell_gut`, `slow_bones`, `withered`) take the effects they refuse off the wearer at that tick, as `ModifierEvents.isPotionApplicable` refuses them in the original (the game gives no call to refuse an effect, so a refused effect shows for up to a tick). The owner approved attaching the hit on the wearer to the knockback scope (2026-11-17).
 
+The 14 mob disguise modifiers are source-ready: a mob working out how far it sees a wearer asks `ServerLivingEntityEvents::MODIFY_VISIBILITY` (from `PlayerView::visibility_percent`), and each worn level halves that range for the disguised mob type; the enderman disguise's `tconstruct:endermask` flag makes the helmet answer the Enderman stare query. Domain-tested against the shipped data; the native attachment and a game run are not done.
+
 See [the plan](../docs/roadmap.md). Implement missing general capabilities in PlutoLib first, then connect the actual Tinkers behavior. Do not write documentation or tests as substitutes for that connection.

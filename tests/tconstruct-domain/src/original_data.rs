@@ -131,6 +131,45 @@ fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
 }
 
 #[test]
+fn every_shipped_disguise_binds_and_a_worn_piece_halves_the_range_per_level_for_its_mob() {
+    use crate::{mob_disguise, modifier_entries::List, tool_stack::{mob_disguises, rebuild_stats, volatile_flag, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let disguises: Vec<Identifier> = files("modifiers").into_iter().map(|(id, _)| id).filter(|id| id.path().ends_with("_disguise")).collect();
+    assert_eq!(disguises.len(), 14, "the original ships fourteen disguises");
+    for id in &disguises {
+        let modifier = world.registry.get(id).expect("the shipped disguise loads");
+        assert!(modifier.unbound.is_empty(), "{id} has unported modules: {:?}", modifier.unbound);
+        let found: Vec<_> = modifier.mob_disguise_modules().collect();
+        assert_eq!(found.len(), 1, "{id} is one mob_disguise module");
+        let entity = found[0].mob_disguise(&crate::modifier_entries::Entry::new(id.clone(), 1)).unwrap().0;
+        assert_eq!(entity.to_string(), format!("minecraft:{}", id.path().trim_end_matches("_disguise")), "{id} disguises as its own mob");
+    }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let piece = |upgrades: &[(&str, i32)]| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        nbt.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        nbt
+    };
+    // Enderman disguise II and skeleton disguise I on one piece, a second skeleton disguise on another: counts add per mob type.
+    let first = piece(&[("tconstruct:enderman_disguise", 2), ("tconstruct:skeleton_disguise", 1)]);
+    let second = piece(&[("tconstruct:skeleton_disguise", 1)]);
+    let counts = mob_disguise::count(mob_disguises(&first, &env).into_iter().chain(mob_disguises(&second, &env)));
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:enderman"), 0.25);
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:skeleton"), 0.25);
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:zombie"), 1.0);
+    assert!(volatile_flag(&first, crate::mob_disguise_hook::ENDERMASK), "the enderman disguise makes the piece an ender mask");
+    assert!(!volatile_flag(&second, crate::mob_disguise_hook::ENDERMASK));
+    assert!(mob_disguises(&piece(&[]), &env).is_empty());
+}
+
+#[test]
 fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe() {
     use crate::{modifier_entries::List, tool_slot, tool_stack::{current_durability, rebuild_stats, repair_factor, Environment, TAG_MATERIALS, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt};

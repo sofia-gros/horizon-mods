@@ -75,6 +75,8 @@ pub(crate) enum Module {
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
     /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
     EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
+    /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
+    MobDisguise { module: crate::mob_disguise::MobDisguise },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
@@ -311,6 +313,9 @@ impl Module {
             "tconstruct:effect_immunity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::EffectImmunity { module: Box::new(crate::effect_immunity::EffectImmunity::decode(fields)?), condition: Condition::decode(fields)? }
             }
+            "tconstruct:mob_disguise" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
+                Self::MobDisguise { module: crate::mob_disguise::MobDisguise::decode(fields)? }
+            }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -414,7 +419,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -482,6 +487,13 @@ impl Module {
     }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
+    /// The mob type a disguise module makes the wearer pass for, with the count it adds.
+    pub fn mob_disguise(&self, entry: &Entry) -> Option<(Identifier, i32)> {
+        let Self::MobDisguise { module } = self else { return None; };
+        Some(module.disguise(entry))
+    }
+    /// Whether this is a mob disguise module.
+    pub fn is_mob_disguise(&self) -> bool { matches!(self, Self::MobDisguise { .. }) }
     /// Whether this is a thorns module.
     pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
     /// Whether this is an armor counter effect module.

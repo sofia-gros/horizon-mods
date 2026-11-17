@@ -188,6 +188,10 @@ impl Modifier {
     pub fn effect_immunity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_effect_immunity())
     }
+    /// The mob disguise modules.
+    pub fn mob_disguise_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_mob_disguise())
+    }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())

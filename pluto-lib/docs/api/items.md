@@ -420,7 +420,7 @@ assert_eq!(potion.remainder.unwrap().0.to_string(), "minecraft:glass_bottle");
 
 ### `EnderMaskContext`
 
-A query with `item: String`, `stack: Option<StackData>`, `wearer_uuid: Option<u128>` and `observer_entity: Option<u32>`. Missing context is not a fabricated empty stack or ID zero.
+A query with `item: String`, `stack: Option<StackData>`, `wearer_uuid: Option<u128>` and `observer_entity: Option<u32>`. Missing context is not a fabricated empty stack or ID zero. `stack` is the helmet the wearer wore as of their last tick when it carries custom data (what a mod's own armor keeps its state in), and `None` otherwise.
 
 ```rust
 use pluto_lib::EnderMaskContext;

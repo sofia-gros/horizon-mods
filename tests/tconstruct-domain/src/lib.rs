@@ -71,6 +71,10 @@ mod thorns;
 mod effect_immunity;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity_hook.rs"]
 mod effect_immunity_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise.rs"]
+mod mob_disguise;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise_hook.rs"]
+mod mob_disguise_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]
 mod weapon_effect_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
