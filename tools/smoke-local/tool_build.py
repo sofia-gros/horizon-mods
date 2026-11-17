@@ -479,7 +479,8 @@ def main():
                 # A tool handed over by a command has no published attributes yet; the wear of one hit rebuilds them (the attack
                 # knockback a modifier adds is one), so the measured hit is the second.
                 ctl('select', 1)
-                first = (ctl('entities', 8, 'husk').get('mobs') or [])
+                found_first = ctl('entities', 8, 'husk')
+                first = found_first.get('mobs') or found_first.get('entities') or []
                 if first:
                     ctl('look-at-entity', first[0]['id'])
                     ctl('wait', '30')
@@ -542,6 +543,7 @@ def main():
         hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
         knock_values = knock_strengths()[before_knock:]
         print('KNOCKBACK', json.dumps({'plain hits': plain_strengths, 'knockback hits': knock_values}), flush=True)
+        print('KNOCKBACK TOOL', json.dumps(ctl('command', 'data get entity @s SelectedItem'))[:600], flush=True)
         if plain_strengths and knock_values and max(knock_values) > max(plain_strengths) + 0.1:
             result['scenarios'].append(f'knockback raises the strength of a hit: {max(knock_values)} against {max(plain_strengths)}')
         else:
