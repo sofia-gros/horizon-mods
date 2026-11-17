@@ -71,6 +71,10 @@ pub(crate) enum Module {
     Knockback { module: Box<crate::knockback::Knockback>, condition: Condition },
     /// MobEffectModule.Weapon: a melee hit that may put a mob effect on the target.
     WeaponEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
+    /// BlockDamageSourceModule: armor that blocks damage of the sources it names.
+    BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
+    /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
+    EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
@@ -300,6 +304,13 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:block_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:damage_block" | "tconstruct:tooltip")) => {
+                let source = match fields.get("damage_source") { None | Some(Value::Null) => crate::protection::SourceCondition::Any, Some(value) => match crate::protection::SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
+                Self::BlockDamage { source, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:effect_immunity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
+                Self::EffectImmunity { module: Box::new(crate::effect_immunity::EffectImmunity::decode(fields)?), condition: Condition::decode(fields)? }
+            }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -403,7 +414,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -457,6 +468,20 @@ impl Module {
         let Self::Thorns { module, condition } = self else { return None; };
         module.hurt(entry, condition.matches(entry, facts), in_tag, rolls)
     }
+    /// Whether a block damage module blocks damage from `source`, when its conditions hold.
+    pub fn blocks_damage(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource) -> bool {
+        let Self::BlockDamage { source: blocked, condition } = self else { return false; };
+        condition.matches(entry, facts) && blocked.matches(source)
+    }
+    /// Whether this is a block damage module.
+    pub fn is_block_damage(&self) -> bool { matches!(self, Self::BlockDamage { .. }) }
+    /// The effect an immunity module makes the wearer immune to, with the count it adds, when its conditions hold.
+    pub fn effect_immunity(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, i32)> {
+        let Self::EffectImmunity { module, condition } = self else { return None; };
+        module.immunity(entry, condition.matches(entry, facts))
+    }
+    /// Whether this is an effect immunity module.
+    pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
     /// Whether this is a thorns module.
     pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
     /// Whether this is an armor counter effect module.
